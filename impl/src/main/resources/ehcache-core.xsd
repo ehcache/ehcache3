@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!--
+  ~ All content copyright Terracotta, Inc., unless otherwise indicated. All rights reserved.
+  -->
+
+<xs:schema version="1.0" xmlns:ehcache="http://www.ehcache.org/v3" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" targetNamespace="http://www.ehcache.org/v3">
+  <xs:element name="config" type="ehcache:config-type"/>
+  
+  <xs:complexType name="config-type">
+    <xs:sequence>
+      <xs:element name="service" type="ehcache:service-type" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="cache" type="ehcache:cache-type" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="service-type">
+    <xs:sequence>
+      <xs:any namespace="##other" minOccurs="1" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="cache-type">
+    <xs:sequence>
+      <xs:element name="key-type" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="value-type" type="xs:string" minOccurs="1" maxOccurs="1"/> 
+      <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="alias" use="required" type="xs:string"/>
+    <xs:attribute name="provider" use="required" type="xs:string"/>
+  </xs:complexType>
+</xs:schema>

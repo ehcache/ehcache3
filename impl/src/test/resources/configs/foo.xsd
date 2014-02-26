@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!--
+  ~ All content copyright Terracotta, Inc., unless otherwise indicated. All rights reserved.
+  -->
+
+
+<xs:schema version="1.0"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified"
+           targetNamespace="http://www.example.com/foo">
+ <xs:element name="foo"/>
+</xs:schema>

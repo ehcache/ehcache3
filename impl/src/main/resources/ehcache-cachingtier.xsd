@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!--
+  ~ All content copyright Terracotta, Inc., unless otherwise indicated. All rights reserved.
+  -->
+
+<xs:schema version="1.0" xmlns:c="http://www.ehcache.org/v3/cachingtier" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" targetNamespace="http://www.ehcache.org/v3/cachingtier">
+  <xs:element name="cachingtier" type="c:cachingtier-type"/>
+  <xs:complexType name="cachingtier-type">
+    <xs:attribute name="size" type="xs:long" use="required"/>
+  </xs:complexType>
+</xs:schema>
+
