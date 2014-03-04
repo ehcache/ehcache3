@@ -5,7 +5,6 @@
 package org.ehcache.config;
 
 import org.ehcache.spi.ServiceConfiguration;
-import org.ehcache.spi.AtomicCacheProvider;
 import org.ehcache.spi.CacheProvider;
 
 import java.util.Collection;
@@ -41,12 +40,8 @@ public class CacheConfigurationBuilder {
     return new CacheConfiguration<>(cacheType, keyType, valueType, serviceConfigurations.toArray(
         new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
-  
-  public <K, V> CacheConfiguration<K, V> buildAtomicCacheConfig(Class<K> keyType, Class<V> valueType) {
-    return buildConfig(AtomicCacheProvider.class, keyType, valueType);
-  }
-  
-  public <K, V> CacheConfiguration<K, V> buildCacheConfig(Class<K> keyType, Class<V> valueType) {
+
+    public <K, V> CacheConfiguration<K, V> buildCacheConfig(Class<K> keyType, Class<V> valueType) {
     return buildConfig(CacheProvider.class, keyType, valueType);
   }
 }

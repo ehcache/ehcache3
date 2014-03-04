@@ -4,29 +4,31 @@
 
 package org.ehcache.internal.cachingtier;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.ehcache.Cache;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.ServiceConfiguration;
 import org.ehcache.spi.ServiceProvider;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Future;
+
 /**
- *
  * @author cdennis
  */
 public class TieredCache<K, V> implements Cache<K, V> {
 
   private final Cache<K, V> authority;
   final CachingTier<K> cachingTier;
-  
+
   public TieredCache(Cache<K, V> authority, Class<K> keyClazz, Class<V> valueClazz, ServiceProvider serviceProvider, ServiceConfiguration<?>... configs) {
     this.authority = authority;
-    this.cachingTier = serviceProvider.findService(CachingTierProvider.class).createCachingTier(keyClazz, valueClazz, serviceProvider, configs);
+    this.cachingTier = serviceProvider.findService(CachingTierProvider.class)
+        .createCachingTier(keyClazz, valueClazz, serviceProvider, configs);
   }
 
   @Override
@@ -58,26 +60,26 @@ public class TieredCache<K, V> implements Cache<K, V> {
         }
       }
     }
-    
+
     if (cachedValue instanceof Fault) {
-      return ((Fault<V>) cachedValue).get();
+      return ((Fault<V>)cachedValue).get();
     } else {
-      return (V) cachedValue;
+      return (V)cachedValue;
     }
   }
-  
+
   private void wrapAndThrow(Throwable t) throws CacheAccessException {
     if (t instanceof CacheAccessException) {
-      throw (CacheAccessException) t;
+      throw (CacheAccessException)t;
     } else if (t instanceof Error) {
-      throw (Error) t;
-    } else if(t instanceof RuntimeException) {
-      throw (RuntimeException) t;
+      throw (Error)t;
+    } else if (t instanceof RuntimeException) {
+      throw (RuntimeException)t;
     } else {
       throw new RuntimeException(t);
     }
   }
-  
+
   @Override
   public void put(K key, V value) throws CacheAccessException {
     try {
@@ -86,11 +88,11 @@ public class TieredCache<K, V> implements Cache<K, V> {
       cachingTier.remove(key);
     }
   }
-  
+
   @Override
-  public void remove(K key) throws CacheAccessException {
+  public boolean remove(K key) throws CacheAccessException {
     try {
-      authority.remove(key);
+      return authority.remove(key);
     } finally {
       cachingTier.remove(key);
     }
@@ -140,38 +142,69 @@ public class TieredCache<K, V> implements Cache<K, V> {
 
   @Override
   public void putAll(Map<? extends K, ? extends V> map) throws CacheAccessException {
-    for (Entry<? extends K, ? extends V> e : map.entrySet()) {
-      put(e.getKey(), e.getValue());
+    for (Map.Entry<? extends K, ? extends V> entry : map.entrySet()) {
+      put(entry.getKey(), entry.getValue());
     }
   }
 
   @Override
-  public Map<K, V> getAndRemoveAll(Set<? extends K> keys) throws CacheAccessException {
-    Map<K, V> result = new HashMap<>(keys.size(), 1);
-    for (K k : keys) {
-      result.put(k, getAndRemove(k));
-    }
-    return Collections.unmodifiableMap(result);
+  public Future<Void> loadAll(final Set<? extends K> keys, final boolean replaceExistingValues) throws CacheAccessException {
+    throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public Map<K, V> getAndPutAll(Map<? extends K, ? extends V> map) throws CacheAccessException {
-    Map<K, V> result = new HashMap<>(map.size(), 1);
-    for (Entry<? extends K, ? extends V> e : map.entrySet()) {
-      K k = e.getKey();
-      result.put(k, getAndPut(k, e.getValue()));
-    }
-    return Collections.unmodifiableMap(result);
+  public boolean putIfAbsent(final K key, final V value) throws CacheAccessException {
+    throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public void putAll(Cache<? extends K, ? extends V> cache) {
-    throw new UnsupportedOperationException("Not supported yet.");
+  public boolean remove(final K key, final V oldValue) throws CacheAccessException {
+    throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public Map<K, V> getAndPutAll(Cache<? extends K, ? extends V> cache) {
-    throw new UnsupportedOperationException("Not supported yet.");
+  public boolean replace(final K key, final V oldValue, final V newValue) throws CacheAccessException {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public boolean replace(final K key, final V value) throws CacheAccessException {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public V getAndReplace(final K key, final V value) throws CacheAccessException {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public void removeAll() throws CacheAccessException {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public void clear() throws CacheAccessException {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public <C> C getConfiguration(final Class<C> clazz) throws CacheAccessException {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public boolean isClosed() throws CacheAccessException {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public void close() throws IOException {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public Iterator<Entry<K, V>> iterator() {
+    throw new UnsupportedOperationException("Implement me!");
   }
 
   public long getMaxCacheSize() {
@@ -196,7 +229,7 @@ public class TieredCache<K, V> implements Cache<K, V> {
       synchronized (this) {
         boolean interrupted = false;
         try {
-          while(!complete) {
+          while (!complete) {
             try {
               wait();
             } catch (InterruptedException e) {
@@ -204,19 +237,19 @@ public class TieredCache<K, V> implements Cache<K, V> {
             }
           }
         } finally {
-          if(interrupted) {
+          if (interrupted) {
             Thread.currentThread().interrupt();
           }
         }
       }
 
-      if(throwable != null) {
+      if (throwable != null) {
         throw new RuntimeException("Faulting from underlying cache failed on other thread", throwable);
       }
 
       return value;
     }
-    
+
     void fail(final Throwable t) {
       synchronized (this) {
         this.throwable = t;

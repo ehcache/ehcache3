@@ -4,15 +4,16 @@
 
 package org.ehcache.internal;
 
+import org.ehcache.Cache;
+
+import java.io.IOException;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.ehcache.Cache;
-import org.ehcache.exceptions.CacheAccessException;
+import java.util.concurrent.Future;
 
 /**
- *
  * @author cdennis
  */
 public class HeapCache<K, V> implements Cache<K, V> {
@@ -25,11 +26,6 @@ public class HeapCache<K, V> implements Cache<K, V> {
   }
 
   @Override
-  public void remove(K key) {
-    throw new UnsupportedOperationException("Not supported yet.");
-  }
-
-  @Override
   public void put(K key, V value) {
     underlying.put(key, value);
   }
@@ -37,6 +33,21 @@ public class HeapCache<K, V> implements Cache<K, V> {
   @Override
   public V getAndRemove(K key) {
     throw new UnsupportedOperationException("Not supported yet.");
+  }
+
+  @Override
+  public boolean replace(final K key, final V oldValue, final V newValue) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public boolean replace(final K key, final V value) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public V getAndReplace(final K key, final V value) {
+    throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
@@ -55,33 +66,62 @@ public class HeapCache<K, V> implements Cache<K, V> {
   }
 
   @Override
+  public void removeAll() {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public void clear() {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public <C> C getConfiguration(final Class<C> clazz) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public boolean isClosed() {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
   public void putAll(Map<? extends K, ? extends V> entries) {
     throw new UnsupportedOperationException("Not supported yet.");
   }
 
   @Override
-  public Map<K, V> getAndRemoveAll(Set<? extends K> keys) {
-    throw new UnsupportedOperationException("Not supported yet.");
+  public boolean putIfAbsent(final K key, final V value) {
+    throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public Map<K, V> getAndPutAll(Map<? extends K, ? extends V> entries) {
-    throw new UnsupportedOperationException("Not supported yet.");
+  public boolean remove(final K key) {
+    throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public void putAll(Cache<? extends K, ? extends V> cache) {
-    throw new UnsupportedOperationException("Not supported yet.");
+  public boolean remove(final K key, final V oldValue) {
+    throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public Map<K, V> getAndPutAll(Cache<? extends K, ? extends V> cache) {
-    throw new UnsupportedOperationException("Not supported yet.");
-  }
-
-  @Override
-  public boolean containsKey(K key) throws CacheAccessException {
+  public boolean containsKey(K key) {
     return underlying.containsKey(key);
   }
-    
+
+  @Override
+  public Future<Void> loadAll(final Set<? extends K> keys, final boolean replaceExistingValues) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public void close() throws IOException {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public Iterator<Entry<K, V>> iterator() {
+    throw new UnsupportedOperationException("Implement me!");
+  }
 }

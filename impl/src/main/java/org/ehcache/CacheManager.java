@@ -39,17 +39,8 @@ public final class CacheManager {
 
     serviceProvider.startAllServices();
   }
-  
-  public <K, V> AtomicCache<K, V> getAtomicCache(String alias, Class<K> keyType, Class<V> valueType) {
-    final Cache<K, V> cache = getCache(alias, keyType, valueType);
-    if (cache == null || cache instanceof AtomicCache) {
-      return (AtomicCache<K, V>)cache;
-    } else {
-      throw new IllegalArgumentException();
-    }
-  }
 
-  public <K, V> Cache<K, V> getCache(String alias, Class<K> keyType, Class<V> valueType) {
+    public <K, V> Cache<K, V> getCache(String alias, Class<K> keyType, Class<V> valueType) {
     final CacheHolder cacheHolder = caches.get(alias);
     if(cacheHolder == null) {
       return null;

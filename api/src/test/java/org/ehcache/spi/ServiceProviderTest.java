@@ -6,7 +6,6 @@ package org.ehcache.spi;
 
 import java.util.concurrent.Future;
 import org.junit.Test;
-import org.ehcache.AtomicCache;
 import org.ehcache.Cache;
 
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -27,7 +26,6 @@ public class ServiceProviderTest {
     assertThat(provider.findService(FooProvider.class), sameInstance(service));
     final Service fancyCacheProvider = new FancyCacheProvider();
     provider.addService(fancyCacheProvider);
-    assertThat(provider.findService(AtomicCacheProvider.class), sameInstance(fancyCacheProvider));
     assertThat(provider.findService(CacheProvider.class), sameInstance(fancyCacheProvider));
   }
 
@@ -52,7 +50,6 @@ public class ServiceProviderTest {
     }
     assertThat(provider.findService(FooProvider.class), nullValue());
     assertThat(provider.findService(CacheProvider.class), sameInstance(service));
-    assertThat(provider.findService(AtomicCacheProvider.class), sameInstance(service));
   }
 }
 
@@ -79,10 +76,10 @@ class ChildTestService extends ParentTestService {
 
 }
 
-class FancyCacheProvider implements AtomicCacheProvider {
+class FancyCacheProvider implements CacheProvider {
 
   @Override
-  public <K, V> AtomicCache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceProvider serviceProvider, ServiceConfiguration<?>... config) {
+  public <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceProvider serviceProvider, ServiceConfiguration<?>... config) {
     return null;
   }
 
