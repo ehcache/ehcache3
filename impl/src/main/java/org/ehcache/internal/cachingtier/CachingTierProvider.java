@@ -4,8 +4,9 @@
 
 package org.ehcache.internal.cachingtier;
 
-import org.ehcache.spi.Service;
-import org.ehcache.spi.ServiceConfiguration;
+import org.ehcache.internal.ServiceLocator;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.ServiceProvider;
 
 /**
@@ -14,7 +15,7 @@ import org.ehcache.spi.ServiceProvider;
  */
 public interface CachingTierProvider extends Service {
   
-  <K, V> CachingTier<K> createCachingTier(Class<K> keyClazz, Class<V> valueClazz, ServiceProvider serviceProvider, ServiceConfiguration<?>... config);
+  <K, V> CachingTier<K> createCachingTier(Class<K> keyClazz, Class<V> valueClazz, ServiceLocator serviceProvider, ServiceConfiguration<?>... config);
 
   void releaseCachingTier(CachingTier<?> resource);
 }

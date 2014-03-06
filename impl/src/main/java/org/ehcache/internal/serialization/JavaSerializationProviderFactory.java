@@ -3,8 +3,8 @@
  */
 package org.ehcache.internal.serialization;
 
-import org.ehcache.spi.ServiceConfiguration;
-import org.ehcache.spi.ServiceFactory;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceFactory;
 
 /**
  *

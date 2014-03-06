@@ -4,7 +4,7 @@
 
 package org.ehcache.internal;
 
-import org.ehcache.spi.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author Alex Snaps

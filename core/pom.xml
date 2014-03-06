@@ -1,29 +1,26 @@
-<!--
-  ~ All content copyright Terracotta, Inc., unless otherwise indicated. All rights reserved.
-  -->
-
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
     <groupId>org.ehcache</groupId>
     <artifactId>ehcache-parent</artifactId>
     <version>3.0.0-SNAPSHOT</version>
-    <relativePath>../</relativePath>
   </parent>
 
   <groupId>org.ehcache.modules</groupId>
-  <artifactId>api</artifactId>
-  <packaging>jar</packaging>
+  <artifactId>core</artifactId>
 
-  <name>Ehcache v3 API</name>
-
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
+  <name>Ehcache v3 Core</name>
 
   <dependencies>
+    <dependency>
+      <groupId>org.ehcache.modules</groupId>
+      <artifactId>api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit-dep</artifactId>
@@ -43,5 +40,4 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-  
 </project>

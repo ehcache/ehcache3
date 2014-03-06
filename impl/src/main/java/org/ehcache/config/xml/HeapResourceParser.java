@@ -6,7 +6,7 @@ package org.ehcache.config.xml;
 
 import org.ehcache.internal.HeapResource;
 import org.ehcache.internal.HeapResourceCacheConfiguration;
-import org.ehcache.spi.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.w3c.dom.Element;
 
 import java.io.IOException;

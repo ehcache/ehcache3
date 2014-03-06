@@ -5,7 +5,9 @@ package org.ehcache.internal.serialization;
 
 import java.io.Serializable;
 import java.util.concurrent.Future;
-import org.ehcache.spi.ServiceConfiguration;
+
+import org.ehcache.internal.ServiceLocator;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.internal.util.ServiceUtil;
 
@@ -16,7 +18,7 @@ import org.ehcache.internal.util.ServiceUtil;
 public class JavaSerializationProvider implements SerializationProvider {
 
   @Override
-  public <T> Serializer<T> createSerializer(Class<T> clazz, ServiceProvider serviceProvider, ServiceConfiguration<?>... config) {
+  public <T> Serializer<T> createSerializer(Class<T> clazz, ServiceLocator serviceProvider, ServiceConfiguration<?>... config) {
     if (!Serializable.class.isAssignableFrom(clazz)) {
       throw new IllegalArgumentException();
     }

@@ -5,8 +5,8 @@
 package org.ehcache.internal;
 
 import org.ehcache.Cache;
-import org.ehcache.spi.CacheProvider;
-import org.ehcache.spi.ServiceConfiguration;
+import org.ehcache.spi.cache.CacheProvider;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.internal.util.ServiceUtil;
 
@@ -22,7 +22,7 @@ import static org.ehcache.internal.HeapCachingTierResource.wrapCacheWithCachingT
 public class HeapResource implements CacheProvider {
 
   @Override
-  public <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceProvider serviceProvider, ServiceConfiguration<?>... config) {
+  public <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceLocator serviceProvider, ServiceConfiguration<?>... config) {
     return wrapCacheWithCachingTierIfConfigured(new HeapCache<K, V>(), keyClazz, valueClazz, serviceProvider, config);
   }
 

@@ -7,21 +7,19 @@ package org.ehcache.config;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import org.ehcache.spi.ServiceConfiguration;
-import org.ehcache.spi.CacheProvider;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.cache.CacheProvider;
 
 /**
  * @author Alex Snaps
  */
 public final class CacheConfiguration<K, V> {
 
-  private final Class<? extends CacheProvider> cacheType;
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final Collection<ServiceConfiguration<?>> serviceConfigurations;
 
-  public CacheConfiguration(Class<? extends CacheProvider> cacheType, Class<K> keyType, Class<V> valueType, ServiceConfiguration<?>... serviceConfigurations) {
-    this.cacheType = cacheType;
+  public CacheConfiguration(Class<K> keyType, Class<V> valueType, ServiceConfiguration<?>... serviceConfigurations) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.serviceConfigurations = Collections.unmodifiableCollection(Arrays.asList(serviceConfigurations));
@@ -29,10 +27,6 @@ public final class CacheConfiguration<K, V> {
 
   public Collection<ServiceConfiguration<?>> getServiceConfigurations() {
     return serviceConfigurations;
-  }
-
-  public Class<? extends CacheProvider> getCacheType() {
-    return cacheType;
   }
 
   public Class<K> getKeyType() {
