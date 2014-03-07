@@ -23,7 +23,6 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.ConfigurationBuilder;
-import org.ehcache.spi.cache.CacheProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -100,14 +99,13 @@ public class XmlConfiguration {
     String key = getElementTextContent(element, "key-type");
     String value = getElementTextContent(element, "value-type");
 
-    Class<? extends CacheProvider> providerType = null;
     Class<?> keyType = getClassForName(key);
     Class<?> valueType = getClassForName(value);
     
     for (ServiceConfiguration<?> serviceConfig : parseExtensions(element)) {
       builder.addServiceConfig(serviceConfig);
     }    
-    return builder.buildConfig(providerType, keyType, valueType);
+    return builder.buildConfig(keyType, valueType);
   }
 
   private ServiceConfiguration<?> parseExtension(Element parent) {

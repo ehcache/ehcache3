@@ -11,7 +11,6 @@ import org.ehcache.internal.cachingtier.ClockEvictingHeapCachingTier;
 import org.ehcache.internal.cachingtier.TieredCache;
 import org.ehcache.internal.util.ServiceUtil;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.ServiceProvider;
 
 import java.util.concurrent.Future;
 

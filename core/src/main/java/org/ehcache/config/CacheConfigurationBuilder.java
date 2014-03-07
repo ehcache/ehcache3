@@ -5,7 +5,6 @@
 package org.ehcache.config;
 
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.cache.CacheProvider;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -36,12 +35,12 @@ public class CacheConfigurationBuilder {
     return this;
   }
 
-  public <K, V> CacheConfiguration<K, V> buildConfig(final Class<? extends CacheProvider> cacheType, Class<K> keyType, Class<V> valueType) {
+  public <K, V> CacheConfiguration<K, V> buildConfig(Class<K> keyType, Class<V> valueType) {
     return new CacheConfiguration<>(keyType, valueType, serviceConfigurations.toArray(
         new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
     public <K, V> CacheConfiguration<K, V> buildCacheConfig(Class<K> keyType, Class<V> valueType) {
-    return buildConfig(CacheProvider.class, keyType, valueType);
+    return buildConfig(keyType, valueType);
   }
 }

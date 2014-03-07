@@ -170,7 +170,7 @@ public final class ServiceProvider implements ServiceLocator {
     Lock lock = runningLock.writeLock();
     lock.lock();
     try {
-      Collection<Future<?>> starts = new ArrayList<Future<?>>();
+      Collection<Future<?>> starts = new ArrayList<>();
       for (Service service : services.values()) {
         starts.add(service.start());
       }

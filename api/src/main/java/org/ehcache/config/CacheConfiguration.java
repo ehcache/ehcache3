@@ -8,7 +8,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.cache.CacheProvider;
 
 /**
  * @author Alex Snaps

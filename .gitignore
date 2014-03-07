@@ -1,18 +1,9 @@
-/impl/target/
-/api/target/
+*/target/
 
 .project
-
 .settings/org.eclipse.m2e.core.prefs
-
-api/.classpath
-
+*/.classpath
 *.prefs
-
-impl/.classpath
-
-offheap/.classpath
-/frs/target/
 
 *.iml
 .idea

@@ -7,7 +7,6 @@ package org.ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.internal.HeapResource;
-import org.ehcache.spi.cache.CacheProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.ServiceProvider;
 
@@ -15,8 +14,6 @@ import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
-import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 
 /**
  * @author Alex Snaps
