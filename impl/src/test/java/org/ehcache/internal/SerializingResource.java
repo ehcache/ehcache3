@@ -9,8 +9,8 @@ import java.util.concurrent.Future;
 import org.ehcache.Cache;
 import org.ehcache.internal.serialization.SerializationProvider;
 import org.ehcache.internal.serialization.Serializer;
-import org.ehcache.spi.CacheProvider;
-import org.ehcache.spi.ServiceConfiguration;
+import org.ehcache.spi.cache.CacheProvider;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.internal.util.ServiceUtil;
 
@@ -21,7 +21,7 @@ import org.ehcache.internal.util.ServiceUtil;
 public class SerializingResource implements CacheProvider {
 
   @Override
-  public <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceProvider serviceProvider, ServiceConfiguration<?>... config) {
+  public <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceLocator serviceProvider, ServiceConfiguration<?>... config) {
     SerializationProvider serialization = serviceProvider.findService(SerializationProvider.class);
     Serializer<V> serializer = serialization.createSerializer(valueClazz, serviceProvider);
     return new SerializingCache(serializer);

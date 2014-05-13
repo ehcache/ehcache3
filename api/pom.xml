@@ -13,11 +13,11 @@
     <relativePath>../</relativePath>
   </parent>
 
+  <groupId>org.ehcache.modules</groupId>
   <artifactId>api</artifactId>
   <packaging>jar</packaging>
 
   <name>Ehcache v3 API</name>
-  <url>http://maven.apache.org</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

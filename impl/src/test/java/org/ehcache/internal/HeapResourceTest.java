@@ -5,7 +5,7 @@
 package org.ehcache.internal;
 
 import org.ehcache.Cache;
-import org.ehcache.CacheManager;
+import org.ehcache.DefaultCacheManager;
 import org.junit.Test;
 import org.ehcache.internal.cachingtier.TieredCache;
 import org.ehcache.config.Configuration;
@@ -28,13 +28,13 @@ public class HeapResourceTest {
     XmlConfiguration xmlConfiguration = new XmlConfiguration();
     final Configuration configuration =
         xmlConfiguration.parseConfiguration(HeapResourceTest.class.getResource("/configs/cachingtier-cache.xml"));
-    CacheManager cacheManager = new CacheManager(configuration);
+    DefaultCacheManager defaultCacheManager = new DefaultCacheManager(configuration);
     try {
-      final Cache<String, String> foo = cacheManager.getCache("foo", String.class, String.class);
+      final Cache<String, String> foo = defaultCacheManager.getCache("foo", String.class, String.class);
       assertThat((Class) foo.getClass(), sameInstance((Class) TieredCache.class));
       assertThat(((TieredCache<String, String>)foo).getMaxCacheSize(), is(4321L));
     } finally {
-      cacheManager.stop();
+      defaultCacheManager.stop();
     }
   }
 }

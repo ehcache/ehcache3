@@ -9,11 +9,11 @@
     <relativePath>../</relativePath>
   </parent>
 
+  <groupId>org.ehcache.modules</groupId>
   <artifactId>impl</artifactId>
   <packaging>jar</packaging>
 
   <name>Ehcache v3 Impl</name>
-  <url>http://maven.apache.org</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -21,7 +21,12 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.ehcache</groupId>
+      <groupId>org.ehcache.modules</groupId>
+      <artifactId>core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.ehcache.modules</groupId>
       <artifactId>api</artifactId>
       <version>${project.version}</version>
     </dependency>

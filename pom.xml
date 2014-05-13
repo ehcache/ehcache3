@@ -15,6 +15,7 @@
 
   <modules>
     <module>api</module>
+    <module>core</module>
     <module>impl</module>
   </modules>
 
