@@ -1,1 +1,40 @@
-Welcome to the ehcache3 wiki!
+= Ehcache 3 developer wiki
+
+:toc:
+
+== Developer, be welcome!
+
+This wiki contains all design documents and other related material to doing development on Ehcache, not _using_ Ehcache! If you are a developer that wants to get involved in developing new features, fixing bugs, extend the existing or implement a new module based on the Ehcache3 SPIs, this is the place you've been looking for. Be welcome!
+
+== How to contribute?
+
+=== Process
+
+=== Code layout
+
+The code core of Ehcache is split in three core modules:
+
+ . the link:module.api[API module], which ... ;
+ . the link:module.core[Core module], that ... ; and
+ . the link:module.impl[Implementation module], containing ... .
+
+=== Contributor agreement
+
+== How to extend?
+
+=== SPIs
++org.ehcache.spi.service+, +org.ehcache.spi.cache+
+
+=== Extension points
+
+== Fundamental concepts
+
+=== Modular approach
+
++org.ehcache.spi.ServiceProvider+, +org.ehcache.spi.service.Service+
+
+=== Configuration
+
++org.ehcache.config.CacheConfiguration+, +org.ehcache.spi.service.ServiceConfiguration+, +org.ehcache.config.xml.XmlConfigurationParser+
+
+NOTE: For more information on how the configuration is parsed, resolved and services are then bootstrapped, please read the link:design.bootstrapping[Bootstrapping design doc].
