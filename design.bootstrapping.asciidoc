@@ -1,0 +1,9 @@
+= Bootstrapping design doc
+
+:toc:
+
+== Configuration
+
+=== Extending the config
+
+== Services
