@@ -29,7 +29,7 @@ public class CacheTest {
   public void testHeapCache() throws CacheAccessException {
     final HeapResource heapResource = new HeapResource();
     final Cache<String, String> cachingTier = heapResource.createCache(String.class, String.class, null);
-    Cache<String, String> cache = new TieredCache<>(cachingTier,
+    Cache<String, String> cache = new TieredCache<String, String>(cachingTier,
         String.class, String.class, new ServiceProvider(heapResource), new HeapResourceCacheConfiguration(1000));
     cache.put("foo", "bar");
     assertThat(cache, hasEntry("foo", "bar"));
@@ -42,7 +42,7 @@ public class CacheTest {
     final SerializationProvider serialization = new JavaSerializationProvider();
     final ServiceProvider serviceProvider = new ServiceProvider(serialization);
     final Cache<String, String> cachingTier = serializingResource.createCache(String.class, String.class, serviceProvider);
-    Cache<String, String> cache = new TieredCache<>(cachingTier, String.class, String.class, new ServiceProvider(heapResource), new HeapResourceCacheConfiguration(1000));
+    Cache<String, String> cache = new TieredCache<String, String>(cachingTier, String.class, String.class, new ServiceProvider(heapResource), new HeapResourceCacheConfiguration(1000));
     cache.put("foo", "bar");
     assertThat(cache, hasEntry("foo", "bar"));
   }
@@ -55,7 +55,7 @@ public class CacheTest {
     final ServiceProvider serviceProvider = new ServiceProvider(serialization);
 
     final Cache<String, Serializable> cachingTier = serializingResource.createCache(String.class, Serializable.class, serviceProvider);
-    Cache<String, Serializable> cache = new TieredCache<>(cachingTier, String.class, Serializable.class, new ServiceProvider(heapResource), new HeapResourceCacheConfiguration(1000));
+    Cache<String, Serializable> cache = new TieredCache<String, Serializable>(cachingTier, String.class, Serializable.class, new ServiceProvider(heapResource), new HeapResourceCacheConfiguration(1000));
     try {
       cache.put("foo", new Object[] { new Object() });
       fail();

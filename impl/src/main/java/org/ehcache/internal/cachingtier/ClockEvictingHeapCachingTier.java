@@ -27,9 +27,9 @@ public class ClockEvictingHeapCachingTier<K> implements CachingTier<K> {
 
   private static final int MAX_EVICTION = 5;
 
-  private final ConcurrentHashMapV8<K, ClockEvictableEntry> map = new ConcurrentHashMapV8<>();
+  private final ConcurrentHashMapV8<K, ClockEvictableEntry> map = new ConcurrentHashMapV8<K, ClockEvictableEntry>();
   private volatile AtomicReference<Iterator<Map.Entry<K, ClockEvictableEntry>>> iterator
-      = new AtomicReference<>(map.entrySet().iterator());
+      = new AtomicReference<Iterator<Map.Entry<K,ClockEvictableEntry>>>(map.entrySet().iterator());
 
   private Map.Entry<K, ClockEvictableEntry> newIterator(final Iterator<Map.Entry<K, ClockEvictableEntry>> old) {
     final Iterator<Map.Entry<K, ClockEvictableEntry>> newIt = map.entrySet().iterator();

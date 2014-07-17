@@ -40,7 +40,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public final class ServiceProvider implements ServiceLocator {
 
-  private final ConcurrentMap<Class<? extends Service>, Service> services = new ConcurrentHashMap<>();
+  private final ConcurrentMap<Class<? extends Service>, Service> services = new ConcurrentHashMap<Class<? extends Service>, Service>();
   private final ServiceLoader<ServiceFactory> serviceFactory = ServiceLoader.load(ServiceFactory.class);
 
   private final ReadWriteLock runningLock = new ReentrantReadWriteLock();
@@ -76,7 +76,7 @@ public final class ServiceProvider implements ServiceLocator {
     final Lock lock = runningLock.readLock();
     lock.lock();
     try {
-      Set<Class<? extends Service>> serviceClazzes = new HashSet<>();
+      Set<Class<? extends Service>> serviceClazzes = new HashSet<Class<? extends Service>>();
 
       for (Class<?> i : getAllInterfaces(service.getClass())) {
         if(Service.class != i && Service.class.isAssignableFrom(i)) {
@@ -134,7 +134,7 @@ public final class ServiceProvider implements ServiceLocator {
   }
 
   private Collection<Class<?>> getAllInterfaces(final Class<?> clazz) {
-    ArrayList<Class<?>> interfaces = new ArrayList<>();
+    ArrayList<Class<?>> interfaces = new ArrayList<Class<?>>();
     for(Class<?> c = clazz; c != null; c = c.getSuperclass()) {
       for (Class<?> i : c.getInterfaces()) {
         interfaces.add(i);
@@ -158,7 +158,7 @@ public final class ServiceProvider implements ServiceLocator {
   }
   
   public static <T> Collection<T> findAmongst(Class<T> clazz, Object ... instances) {
-    Collection<T> matches = new ArrayList<>();
+    Collection<T> matches = new ArrayList<T>();
     for (Object instance : instances) {
       if(clazz.isAssignableFrom(instance.getClass())) {
         matches.add((T)instance);
@@ -182,7 +182,7 @@ public final class ServiceProvider implements ServiceLocator {
     Lock lock = runningLock.writeLock();
     lock.lock();
     try {
-      Collection<Future<?>> starts = new ArrayList<>();
+      Collection<Future<?>> starts = new ArrayList<Future<?>>();
       for (Service service : services.values()) {
         starts.add(service.start());
       }
@@ -211,7 +211,7 @@ public final class ServiceProvider implements ServiceLocator {
     Lock lock = runningLock.writeLock();
     lock.lock();
     try {
-      Collection<Future<?>> stops = new ArrayList<>();
+      Collection<Future<?>> stops = new ArrayList<Future<?>>();
       for (Service service : services.values()) {
         stops.add(service.stop());
       }

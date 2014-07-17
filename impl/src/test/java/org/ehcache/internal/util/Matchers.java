@@ -4,11 +4,10 @@
 
 package org.ehcache.internal.util;
 
+import org.ehcache.Cache;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-import org.ehcache.Cache;
-import org.ehcache.exceptions.CacheAccessException;
 
 /**
  *
@@ -21,11 +20,7 @@ public class Matchers {
 
       @Override
       protected boolean matchesSafely(Cache<? super K, ?> item) {
-        try {
-          return item.containsKey(key);
-        } catch (CacheAccessException e) {
-          throw new AssertionError(e);
-        }
+        return item.containsKey(key);
       }
 
       @Override
@@ -40,11 +35,7 @@ public class Matchers {
 
       @Override
       protected boolean matchesSafely(Cache<? super K, ? super V> item) {
-        try {
-          return value.equals(item.get(key));
-        } catch (CacheAccessException e) {
-          throw new AssertionError(e);
-        }
+        return value.equals(item.get(key));
       }
 
       @Override

@@ -34,7 +34,7 @@ public class HeapResourceTest {
       assertThat((Class) foo.getClass(), sameInstance((Class) TieredCache.class));
       assertThat(((TieredCache<String, String>)foo).getMaxCacheSize(), is(4321L));
     } finally {
-      defaultCacheManager.stop();
+      defaultCacheManager.close();
     }
   }
 }
