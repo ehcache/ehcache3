@@ -8,24 +8,33 @@ This wiki contains all design documents and other related material to doing deve
 
 == How to contribute?
 
+
+
 === Process
+
+On paper (or on this screen), it's pretty straight forward:
+
+ . Join the https://groups.google.com/forum/#!forum/ehcache-dev[developer mailing list] and say hello!
+ . Check the https://github.com/ehcache/ehcache3/issues[issues] and verify what you want isn't yet planned or could even already being worked on by someone;
+ . If the task exists already and isn't assigned: drop us an email on the https://groups.google.com/forum/#!forum/ehcache-dev[developer mailing list] about it and we'll make sure we help you getting started and we'll assign the task/issue to you;
+ . If nothing matches in the existing issue list, create a bug as such; or, if we're talking about a larger task or feature, https://groups.google.com/forum/#!forum/ehcache-dev[drop us a message] first, and we'll see how to tackle it;
+ . https://github.com/ehcache/ehcache3/fork[Fork] the project to your own repository and get started (you probably want to work on a dedicated branch);
+ . Rebase your fork and do a pull request. We'll use that to code review it;
+ . Be rich and famous!
+
+Now, the doing the work part might be a little more challenging, and we don't provide any guarantees as to becoming rich... but you'll be famous to us!
+
+=== Contributor agreement
+
+In order to accept any contribution, we will need you to fill out and mail https://confluence.terracotta.org/download/attachments/27918462/Terracotta%20Individual%20Contributor%20Agreement%20v3.pdf?version=1&modificationDate=1393442245216&api=v2[the Individual Contributor Agreement] at contributors@terracotta.org.
 
 === Code layout
 
 The code core of Ehcache is split in three core modules:
 
- . the link:module.api[API module], which ... ;
- . the link:module.core[Core module], that ... ; and
- . the link:module.impl[Implementation module], containing ... .
-
-=== Contributor agreement
-
-== How to extend?
-
-=== SPIs
-+org.ehcache.spi.service+, +org.ehcache.spi.cache+
-
-=== Extension points
+ . the link:module.api[API module], which contains mainly interfaces. They are the core API to Ehcache (e.g. +Cache+, +CacheManager+) that users depend on. It also contains the entry points in terms of SPI (e.g. +Service+, +Store+, +AuthoritativeTier+ & +CachingTier+), that are used by other modules that in turn provide their implementations;
+ . the link:module.core[Core module], that is composed of the plumbery that wires the API used by users with the SPI implementations present in packaged modules; and
+ . the link:module.impl[Implementation module], containing the default implementation of +Cache+ and +CacheManager+, as well as implementations of core SPIs, such as +HeapResource+ that lets you create on-heap +Cache+ and +CachingTier+ instances.
 
 == Fundamental concepts
 
@@ -38,3 +47,10 @@ The code core of Ehcache is split in three core modules:
 +org.ehcache.config.CacheConfiguration+, +org.ehcache.spi.service.ServiceConfiguration+, +org.ehcache.config.xml.XmlConfigurationParser+
 
 NOTE: For more information on how the configuration is parsed, resolved and services are then bootstrapped, please read the link:design.bootstrapping[Bootstrapping design doc].
+
+== How to extend?
+
+=== SPIs
++org.ehcache.spi.service+, +org.ehcache.spi.cache+
+
+=== Extension points
