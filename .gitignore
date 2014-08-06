@@ -1,5 +1,8 @@
 */target/
 
+build/
+/.gradle/
+
 .project
 .settings/org.eclipse.m2e.core.prefs
 */.classpath
