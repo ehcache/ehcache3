@@ -26,7 +26,7 @@ import java.util.HashSet;
  */
 public class CacheConfigurationBuilder {
 
-  private final Collection<ServiceConfiguration<?>> serviceConfigurations = new HashSet<>();
+  private final Collection<ServiceConfiguration<?>> serviceConfigurations = new HashSet<ServiceConfiguration<?>>();
 
   public static CacheConfigurationBuilder newCacheConfigurationBuilder() {
     return new CacheConfigurationBuilder();
@@ -48,7 +48,7 @@ public class CacheConfigurationBuilder {
   }
 
   public <K, V> CacheConfiguration<K, V> buildConfig(Class<K> keyType, Class<V> valueType) {
-    return new CacheConfiguration<>(keyType, valueType, serviceConfigurations.toArray(
+    return new CacheConfiguration<K, V>(keyType, valueType, serviceConfigurations.toArray(
         new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 

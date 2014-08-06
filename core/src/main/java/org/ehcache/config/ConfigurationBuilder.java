@@ -28,8 +28,8 @@ import java.util.Map;
  */
 public class ConfigurationBuilder {
 
-  private final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<>();
-  private final List<ServiceConfiguration<?>> serviceConfigurations = new ArrayList<>();
+  private final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
+  private final List<ServiceConfiguration<?>> serviceConfigurations = new ArrayList<ServiceConfiguration<?>>();
 
   public static ConfigurationBuilder newConfigurationBuilder() {
     return new ConfigurationBuilder();

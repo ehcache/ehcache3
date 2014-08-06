@@ -21,13 +21,19 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.internal.ServiceLocator;
 import org.ehcache.spi.service.ServiceConfiguration;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Future;
+
+import javax.cache.CacheManager;
+import javax.cache.configuration.CacheEntryListenerConfiguration;
+import javax.cache.configuration.Configuration;
+import javax.cache.integration.CompletionListener;
+import javax.cache.processor.EntryProcessor;
+import javax.cache.processor.EntryProcessorException;
+import javax.cache.processor.EntryProcessorResult;
 
 /**
  * @author cdennis
@@ -44,15 +50,15 @@ public class TieredCache<K, V> implements Cache<K, V> {
   }
 
   @Override
-  public boolean containsKey(K key) throws CacheAccessException {
+  public boolean containsKey(K key) {
     return (cachingTier.get(key) != null) || authority.containsKey(key);
   }
 
   @Override
-  public V get(K key) throws CacheAccessException {
+  public V get(K key) {
     Object cachedValue = cachingTier.get(key);
     if (cachedValue == null) {
-      Fault<V> f = new Fault<>();
+      Fault<V> f = new Fault<V>();
       cachedValue = cachingTier.putIfAbsent(key, f);
       if (cachedValue == null) {
         try {
@@ -80,9 +86,9 @@ public class TieredCache<K, V> implements Cache<K, V> {
     }
   }
 
-  private void wrapAndThrow(Throwable t) throws CacheAccessException {
+  private void wrapAndThrow(Throwable t) {
     if (t instanceof CacheAccessException) {
-      throw (CacheAccessException)t;
+      throw new RuntimeException(t);
     } else if (t instanceof Error) {
       throw (Error)t;
     } else if (t instanceof RuntimeException) {
@@ -93,7 +99,7 @@ public class TieredCache<K, V> implements Cache<K, V> {
   }
 
   @Override
-  public void put(K key, V value) throws CacheAccessException {
+  public void put(K key, V value) {
     try {
       authority.put(key, value);
     } finally {
@@ -102,7 +108,7 @@ public class TieredCache<K, V> implements Cache<K, V> {
   }
 
   @Override
-  public boolean remove(K key) throws CacheAccessException {
+  public boolean remove(K key) {
     try {
       return authority.remove(key);
     } finally {
@@ -111,7 +117,7 @@ public class TieredCache<K, V> implements Cache<K, V> {
   }
 
   @Override
-  public V getAndRemove(K key) throws CacheAccessException {
+  public V getAndRemove(K key) {
     try {
       return authority.getAndRemove(key);
     } finally {
@@ -120,7 +126,7 @@ public class TieredCache<K, V> implements Cache<K, V> {
   }
 
   @Override
-  public V getAndPut(K key, V value) throws CacheAccessException {
+  public V getAndPut(K key, V value) {
     boolean cleanRun = false;
     V oldValue = null;
     try {
@@ -137,8 +143,8 @@ public class TieredCache<K, V> implements Cache<K, V> {
   }
 
   @Override
-  public Map<K, V> getAll(Set<? extends K> keys) throws CacheAccessException {
-    Map<K, V> result = new HashMap<>(keys.size(), 1);
+  public Map<K, V> getAll(Set<? extends K> keys) {
+    Map<K, V> result = new HashMap<K, V>(keys.size(), 1);
     for (K k : keys) {
       result.put(k, get(k));
     }
@@ -146,71 +152,106 @@ public class TieredCache<K, V> implements Cache<K, V> {
   }
 
   @Override
-  public void removeAll(Set<? extends K> keys) throws CacheAccessException {
+  public void removeAll(Set<? extends K> keys) {
     for (K k : keys) {
       remove(k);
     }
   }
 
   @Override
-  public void putAll(Map<? extends K, ? extends V> map) throws CacheAccessException {
+  public void putAll(Map<? extends K, ? extends V> map) {
     for (Map.Entry<? extends K, ? extends V> entry : map.entrySet()) {
       put(entry.getKey(), entry.getValue());
     }
   }
 
   @Override
-  public Future<Void> loadAll(final Set<? extends K> keys, final boolean replaceExistingValues) throws CacheAccessException {
+  public void loadAll(final Set<? extends K> ks, final boolean b, final CompletionListener completionListener) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public boolean putIfAbsent(final K key, final V value) throws CacheAccessException {
+  public boolean putIfAbsent(final K key, final V value) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public boolean remove(final K key, final V oldValue) throws CacheAccessException {
+  public boolean remove(final K key, final V oldValue) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public boolean replace(final K key, final V oldValue, final V newValue) throws CacheAccessException {
+  public boolean replace(final K key, final V oldValue, final V newValue) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public boolean replace(final K key, final V value) throws CacheAccessException {
+  public boolean replace(final K key, final V value) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public V getAndReplace(final K key, final V value) throws CacheAccessException {
+  public V getAndReplace(final K key, final V value) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public void removeAll() throws CacheAccessException {
+  public void removeAll() {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public void clear() throws CacheAccessException {
+  public void clear() {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public <C> C getConfiguration(final Class<C> clazz) throws CacheAccessException {
+  public <C extends Configuration<K, V>> C getConfiguration(final Class<C> cClass) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public boolean isClosed() throws CacheAccessException {
+  public <T> T invoke(final K k, final EntryProcessor<K, V, T> kvtEntryProcessor, final Object... objects) throws EntryProcessorException {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public void close() throws IOException {
+  public <T> Map<K, EntryProcessorResult<T>> invokeAll(final Set<? extends K> ks, final EntryProcessor<K, V, T> kvtEntryProcessor, final Object... objects) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public String getName() {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public CacheManager getCacheManager() {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public boolean isClosed() {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public <T> T unwrap(final Class<T> tClass) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public void registerCacheEntryListener(final CacheEntryListenerConfiguration<K, V> kvCacheEntryListenerConfiguration) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public void deregisterCacheEntryListener(final CacheEntryListenerConfiguration<K, V> kvCacheEntryListenerConfiguration) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public void close() {
     throw new UnsupportedOperationException("Implement me!");
   }
 

@@ -23,7 +23,7 @@ public class ClockEvictingHeapCachingTierTest {
     final long hotStart = maximumSize + 1000;
     final long hotEnd = maximumSize + 1500;
 
-    ClockEvictingHeapCachingTier<String> cache = new ClockEvictingHeapCachingTier<>(maximumSize);
+    ClockEvictingHeapCachingTier<String> cache = new ClockEvictingHeapCachingTier<String>(maximumSize);
 
     for(long i = 0; i < maximumSize * 4; i++) {
       for (long j = hotStart; j < hotEnd; j++) {
@@ -43,7 +43,7 @@ public class ClockEvictingHeapCachingTierTest {
 
   @Test
   public void testReplacesAlright() {
-    ClockEvictingHeapCachingTier<String> cache = new ClockEvictingHeapCachingTier<>(10);
+    ClockEvictingHeapCachingTier<String> cache = new ClockEvictingHeapCachingTier<String>(10);
     assertThat(cache.putIfAbsent("key", 1), nullValue());
     assertThat(cache.replace("key", 2, 1), is(false));
     assertThat(cache.get("key"), is((Object) 1));
@@ -53,7 +53,7 @@ public class ClockEvictingHeapCachingTierTest {
 
   @Test
   public void testRemovesAlright() {
-    ClockEvictingHeapCachingTier<String> cache = new ClockEvictingHeapCachingTier<>(10);
+    ClockEvictingHeapCachingTier<String> cache = new ClockEvictingHeapCachingTier<String>(10);
     assertThat(cache.putIfAbsent("key", 1), nullValue());
     cache.remove("key", 2);
     assertThat(cache.get("key"), is((Object) 1));

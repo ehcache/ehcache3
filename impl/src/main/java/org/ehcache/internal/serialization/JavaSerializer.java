@@ -47,9 +47,13 @@ public class JavaSerializer<T extends Serializable> implements Serializer<T> {
 
   @Override
   public T read(ByteBuffer entry) throws IOException, ClassNotFoundException {
-    try (ByteBufferInputStream bin = new ByteBufferInputStream(entry)) {
+    ByteBufferInputStream bin = null;
+    try {
+      bin = new ByteBufferInputStream(entry);
       ObjectInputStream oin = new ObjectInputStream(bin);
       return (T)oin.readObject();
+    } finally {
+      bin.close();
     }
   }
 

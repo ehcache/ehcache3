@@ -36,7 +36,7 @@ public class HeapCachingTierResource implements CachingTierProvider {
 
   public static <K, V> Cache<K, V> wrapCacheWithCachingTierIfConfigured(final Cache<K, V> cache, final Class<K> keyClazz, final Class<V> valueClazz, final ServiceLocator serviceProvider, final ServiceConfiguration<?>[] config) {
     if(findAmongst(HeapResourceCacheConfiguration.class, config).size() > 0) {
-      return new TieredCache<>(cache, keyClazz, valueClazz, serviceProvider, config);
+      return new TieredCache<K, V>(cache, keyClazz, valueClazz, serviceProvider, config);
     } else {
       return cache;
     }
@@ -45,7 +45,7 @@ public class HeapCachingTierResource implements CachingTierProvider {
   @Override
   public <K, V> CachingTier<K> createCachingTier(Class<K> keyClazz, Class<V> valueClazz, ServiceLocator serviceProvider, ServiceConfiguration<?>... configs) {
     final HeapResourceCacheConfiguration config = findSingletonAmongst(HeapResourceCacheConfiguration.class, configs);
-    return new ClockEvictingHeapCachingTier<>(config.getMaxOnHeapEntryCount());
+    return new ClockEvictingHeapCachingTier<K>(config.getMaxOnHeapEntryCount());
   }
 
   @Override

@@ -34,7 +34,7 @@ public final class Configuration {
 
   public Configuration(Map<String, CacheConfiguration<?, ?>> caches, ServiceConfiguration<?> ... services) {
     this.services = unmodifiableCollection(Arrays.asList(services));
-    this.caches = unmodifiableMap(new HashMap<>(caches));
+    this.caches = unmodifiableMap(new HashMap<String,CacheConfiguration<?, ?>>(caches));
   }
 
   public Map<String, CacheConfiguration<?, ?>> getCacheConfigurations() {

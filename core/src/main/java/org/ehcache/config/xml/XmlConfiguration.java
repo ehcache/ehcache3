@@ -56,10 +56,10 @@ public class XmlConfiguration {
   private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 
   private final DocumentBuilder domBuilder;
-  private final Map<URI, XmlConfigurationParser> xmlParsers = new HashMap<>();
+  private final Map<URI, XmlConfigurationParser> xmlParsers = new HashMap<URI, XmlConfigurationParser>();
           
   public XmlConfiguration() throws IOException, SAXException {
-    Collection<Source> schemaSources = new ArrayList<>();
+    Collection<Source> schemaSources = new ArrayList<Source>();
     for (XmlConfigurationParser parser : ServiceLoader.load(XmlConfigurationParser.class)) {
       schemaSources.add(parser.getXmlSchema());
       xmlParsers.put(parser.getNamespace(), parser);
@@ -130,7 +130,7 @@ public class XmlConfiguration {
   }
   
   private Collection<ServiceConfiguration<?>> parseExtensions(Element parent) {
-    Collection<ServiceConfiguration<?>> configs = new ArrayList<>();
+    Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
     for (Node child = parent.getFirstChild(); child != null; child = child.getNextSibling()) {
       if (Node.ELEMENT_NODE == child.getNodeType()) {
         String namespaceString = child.getNamespaceURI();

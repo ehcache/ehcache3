@@ -25,12 +25,20 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
+import javax.cache.CacheManager;
+import javax.cache.configuration.CacheEntryListenerConfiguration;
+import javax.cache.configuration.Configuration;
+import javax.cache.integration.CompletionListener;
+import javax.cache.processor.EntryProcessor;
+import javax.cache.processor.EntryProcessorException;
+import javax.cache.processor.EntryProcessorResult;
+
 /**
  * @author cdennis
  */
 public class HeapCache<K, V> implements Cache<K, V> {
 
-  private final Map<K, V> underlying = new ConcurrentHashMap<>();
+  private final Map<K, V> underlying = new ConcurrentHashMap<K, V>();
 
   @Override
   public V get(K key) {
@@ -88,12 +96,47 @@ public class HeapCache<K, V> implements Cache<K, V> {
   }
 
   @Override
-  public <C> C getConfiguration(final Class<C> clazz) {
+  public <C extends Configuration<K, V>> C getConfiguration(final Class<C> cClass) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public <T> T invoke(final K k, final EntryProcessor<K, V, T> kvtEntryProcessor, final Object... objects) throws EntryProcessorException {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public <T> Map<K, EntryProcessorResult<T>> invokeAll(final Set<? extends K> ks, final EntryProcessor<K, V, T> kvtEntryProcessor, final Object... objects) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public String getName() {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public CacheManager getCacheManager() {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
   public boolean isClosed() {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public <T> T unwrap(final Class<T> tClass) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public void registerCacheEntryListener(final CacheEntryListenerConfiguration<K, V> kvCacheEntryListenerConfiguration) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public void deregisterCacheEntryListener(final CacheEntryListenerConfiguration<K, V> kvCacheEntryListenerConfiguration) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
@@ -123,12 +166,12 @@ public class HeapCache<K, V> implements Cache<K, V> {
   }
 
   @Override
-  public Future<Void> loadAll(final Set<? extends K> keys, final boolean replaceExistingValues) {
+  public void loadAll(final Set<? extends K> ks, final boolean b, final CompletionListener completionListener) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public void close() throws IOException {
+  public void close() {
     throw new UnsupportedOperationException("Implement me!");
   }
 
