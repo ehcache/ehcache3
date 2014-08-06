@@ -1,0 +1,3 @@
+dependencies {
+  compile 'javax.cache:cache-api:1.0.0'
+}
