@@ -21,12 +21,10 @@ import java.util.Collection;
 import java.util.Collections;
 import org.ehcache.spi.service.ServiceConfiguration;
 
-import javax.cache.configuration.Configuration;
-
 /**
  * @author Alex Snaps
  */
-public final class CacheConfiguration<K, V> implements Configuration<K, V> {
+public final class CacheConfiguration<K, V> {
 
   private final Class<K> keyType;
   private final Class<V> valueType;
@@ -50,8 +48,4 @@ public final class CacheConfiguration<K, V> implements Configuration<K, V> {
     return valueType;
   }
 
-  @Override
-  public boolean isStoreByValue() {
-    throw new UnsupportedOperationException("Implement me!");
-  }
 }
