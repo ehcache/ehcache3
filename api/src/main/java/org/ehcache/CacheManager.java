@@ -16,9 +16,16 @@
 
 package org.ehcache;
 
+import org.ehcache.config.CacheConfiguration;
+
 /**
  * @author Alex Snaps
  */
-public interface CacheManager extends javax.cache.CacheManager {
+public interface CacheManager {
 
+  <K, V> Cache<K, V> createCache(final String alias, final CacheConfiguration<K, V> config);
+
+  <K, V> Cache<K, V> getCache(final String s);
+
+  void close();
 }

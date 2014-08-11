@@ -15,6 +15,49 @@
  */
 package org.ehcache;
 
-public interface Cache<K, V> extends javax.cache.Cache<K, V> {
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
+public interface Cache<K, V> {
+
+  V get(K key);
+
+  void put(K key, V value);
+
+  boolean containsKey(K key);
+
+  boolean remove(K key);
+
+  V getAndRemove(K key);
+
+  V getAndPut(K key, V value);
+
+  Map<K, V> getAll(Set<? extends K> keys);
+
+  void removeAll(Set<? extends K> keys);
+
+  void putAll(Map<? extends K, ? extends V> map);
+
+  boolean putIfAbsent(final K key, final V value);
+
+  boolean remove(final K key, final V oldValue);
+
+  boolean replace(final K key, final V oldValue, final V newValue);
+
+  boolean replace(final K key, final V value);
+
+  V getAndReplace(final K key, final V value);
+
+  void removeAll();
+
+  void clear();
+
+  void close();
+
+  Iterator<Entry<K, V>> iterator();
+
+  interface Entry<K, V> {
+
+  }
 }

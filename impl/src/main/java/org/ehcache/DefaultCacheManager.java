@@ -22,14 +22,11 @@ import org.ehcache.internal.HeapResource;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.ServiceProvider;
 
-import java.net.URI;
 import java.util.Collection;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import javax.cache.spi.CachingProvider;
 
 /**
  * @author Alex Snaps
@@ -63,7 +60,7 @@ public final class DefaultCacheManager implements CacheManager {
   }
 
   @Override
-  public <K, V, C extends javax.cache.configuration.Configuration<K, V>> javax.cache.Cache<K, V> createCache(final String alias, final C config) throws IllegalArgumentException {
+  public <K, V> Cache<K, V> createCache(final String alias, final CacheConfiguration<K, V> config) throws IllegalArgumentException {
     Class<K> keyType = config.getKeyType();
     Class<V> valueType = config.getValueType();
     Collection<ServiceConfiguration<?>> serviceConfigs = ((CacheConfiguration)config).getServiceConfigurations();
@@ -91,57 +88,7 @@ public final class DefaultCacheManager implements CacheManager {
   }
 
   @Override
-  public CachingProvider getCachingProvider() {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public URI getURI() {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public ClassLoader getClassLoader() {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public Properties getProperties() {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public <K, V> javax.cache.Cache<K, V> getCache(final String s) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public Iterable<String> getCacheNames() {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public void destroyCache(final String s) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public void enableManagement(final String s, final boolean b) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public void enableStatistics(final String s, final boolean b) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public boolean isClosed() {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public <T> T unwrap(final Class<T> tClass) {
+  public <K, V> Cache<K, V> getCache(final String s) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
