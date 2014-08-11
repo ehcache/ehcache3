@@ -19,6 +19,7 @@ subprojects {
 
   jar {
     manifest.attributes provider: 'gradle'
+    archiveName = "ehcache-${baseName}-${version}.${extension}"
   }
 
   task sourceJar(type: Jar, dependsOn: classes) {
