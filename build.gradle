@@ -1,9 +1,11 @@
 subprojects {
   apply plugin: 'java'
-  apply plugin: 'maven'
+  apply plugin: 'maven-publish'
 
   group = 'org.ehcache.modules'
   version = '3.0.0-SNAPSHOT'
+
+  archivesBaseName = "ehcache-${project.name}"
 
   sourceCompatibility = 1.6
 
@@ -17,6 +19,33 @@ subprojects {
 
   jar {
     manifest.attributes provider: 'gradle'
+  }
+
+  task sourceJar(type: Jar, dependsOn: classes) {
+    from sourceSets.main.allJava
+  }
+
+  task javadocJar(type: Jar, dependsOn: javadoc) {
+    from javadoc.destinationDir
+  }
+
+  publishing {
+    publications {
+      mavenJava(MavenPublication) {
+
+        artifactId archivesBaseName
+
+        from components.java
+
+        artifact sourceJar {
+          classifier 'sources'
+        }
+
+        artifact javadocJar {
+          classifier 'javadoc'
+        }
+      }
+    }
   }
 }
 
