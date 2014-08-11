@@ -18,7 +18,15 @@ subprojects {
   }
 
   jar {
-    manifest.attributes provider: 'gradle'
+    manifest.attributes(
+            'provider': 'gradle',
+            'Implementation-Title': "ehcache-${project.name}",
+            'Implementation-Version': project.version,
+            'Built-By': System.getProperty('user.name'),
+            'Built-JDK': System.getProperty('java.version'),
+            'Build-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+    )
+    archiveName = "ehcache-${baseName}-${version}.${extension}"
   }
 
   task sourceJar(type: Jar, dependsOn: classes) {
