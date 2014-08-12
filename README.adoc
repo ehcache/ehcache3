@@ -1,0 +1,3 @@
+= Welcome!
+
+For more information, you might want to go check the https://github.com/ehcache/ehcache3/wiki[wiki].
