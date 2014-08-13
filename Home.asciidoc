@@ -8,8 +8,6 @@ This wiki contains all design documents and other related material to doing deve
 
 == How to contribute?
 
-
-
 === Process
 
 On paper (or on this screen), it's pretty straight forward:
@@ -19,7 +17,7 @@ On paper (or on this screen), it's pretty straight forward:
  . If the task exists already and isn't assigned: drop us an email on the https://groups.google.com/forum/#!forum/ehcache-dev[developer mailing list] about it and we'll make sure we help you getting started and we'll assign the task/issue to you;
  . If nothing matches in the existing issue list, create a bug as such; or, if we're talking about a larger task or feature, https://groups.google.com/forum/#!forum/ehcache-dev[drop us a message] first, and we'll see how to tackle it;
  . https://github.com/ehcache/ehcache3/fork[Fork] the project to your own repository and get started (you probably want to work on a dedicated branch);
- . Rebase your fork and do a pull request. We'll use that to code review it;
+ . Rebase your fork and do a pull request. We'll use that to code review it (see link:dev.git[git usage page])
  . Be rich and famous!
 
 Now, the doing the work part might be a little more challenging, and we don't provide any guarantees as to becoming rich... but you'll be famous to us!
