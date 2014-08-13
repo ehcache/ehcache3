@@ -46,7 +46,7 @@ The code core of Ehcache is split in three core modules:
 
 +org.ehcache.config.CacheConfiguration+, +org.ehcache.spi.service.ServiceConfiguration+, +org.ehcache.config.xml.XmlConfigurationParser+
 
-NOTE: For more information on how the configuration is parsed, resolved and services are then bootstrapped, please read the link:design.bootstrapping[Bootstrapping design doc].
+NOTE: For more information on how the configuration is parsed, resolved and services are then bootstrapped, please read the link:design.bootstrapping#configuration[Bootstrapping design doc].
 
 == How to extend?
 

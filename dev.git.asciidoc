@@ -1,0 +1,38 @@
+= Git usage
+
+:toc:
+
+== Fork on me GitHub!
+
+ . If you don't have an account on github, create one now and fork your own copy of Ehcache to your account;
+ . +git clone+ that to your computer;
+ . +git remote add+ the ehcache/ehcache3 repository as +upstream+;
+ . You'll have to keep your (both on your computer and the one on your github, which defaults to +origin+) +master+ branch in sync with the one from +upstream+ (see below)
+ . +git branch+ to start working on some issue. We recommend you name the branch after the issue you work on. You can have multiple branches for different issues you maybe working on. Commit as you see fit on each of these branches (we recommend small commits often);
+ . Once done, you may want to re-organize you commits by doing a +git rebase -i HEAD~n+ where +n+ is how many commits you'd be ahead when done;
+
+== Pull request
+
+ . Right before sharing your changes, make sure you +git pull upstream+ and +git rebase+ both your +master+ and your working branch;
+ . Finally, +git push origin+ your branch to your copy on github.
+ . You then need to create a pull request, using the UI on github;
+ . Someone from our team is then going to review your change set.
+
+== Review
+
+ . The pull request will be reviewed for:
+ .. 'Code style': Needs to match the style of the project;
+ .. 'Correctness of the fix/implementation': the changeset should only be about the issue addressed;
+ .. 'Test coverage': all changes need to have appropriate test coverage.
+ . The could be some back and forth between you and the 'reviewer' in that process. Keep in mind that during that time +upstream/master+ may drift, you'd then need to +git pull upstream+ and +git rebase upstream/master+ your master, and +git rebase master+ your branch. Finally +git push --force origin+ your branch.
+
+== Merging a pull request
+
+If you are a reviewer (i.e. have commit rights to the ehcache/ehcache3 repo) to someone else's pull request, don't use the github UI to merge
+
+ . +git remote add+ the contributor's ehcache3 repository to your local copy;
+ . +git pull+ the branch from there;
+ . +git cherry-pick+ or +git rebase+ +upstream/master+ with the changes from that branch;
+ . +git push upstream master+ to the main repository.
+
+That way we keep a single timeline (where everything as a single 'parent', à la subversion).
