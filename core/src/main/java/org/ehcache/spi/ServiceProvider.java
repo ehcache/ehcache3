@@ -150,7 +150,7 @@ public final class ServiceProvider implements ServiceLocator {
   }
 
   public <T extends Service> T findService(Class<T> serviceType, ServiceConfiguration<T> config) {
-    T service = (T) services.get(serviceType);
+    T service = serviceType.cast(services.get(serviceType));
     if (service == null) {
       return discoverService(serviceType, config);
     } else {
@@ -162,7 +162,7 @@ public final class ServiceProvider implements ServiceLocator {
     Collection<T> matches = new ArrayList<T>();
     for (Object instance : instances) {
       if(clazz.isAssignableFrom(instance.getClass())) {
-        matches.add((T)instance);
+        matches.add(clazz.cast(instance));
       }
     }
     return Collections.unmodifiableCollection(matches);
