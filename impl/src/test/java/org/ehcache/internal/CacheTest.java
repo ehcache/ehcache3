@@ -28,7 +28,7 @@ public class CacheTest {
   @Test
   public void testHeapCache() throws CacheAccessException {
     final HeapResource heapResource = new HeapResource();
-    final Cache<String, String> cachingTier = heapResource.createCache(String.class, String.class, null);
+    final Cache<String, String> cachingTier = heapResource.createCache(String.class, String.class);
     Cache<String, String> cache = new TieredCache<String, String>(cachingTier,
         String.class, String.class, new ServiceProvider(heapResource), new HeapResourceCacheConfiguration(1000));
     cache.put("foo", "bar");
@@ -41,7 +41,8 @@ public class CacheTest {
     final SerializingResource serializingResource = new SerializingResource();
     final SerializationProvider serialization = new JavaSerializationProvider();
     final ServiceProvider serviceProvider = new ServiceProvider(serialization);
-    final Cache<String, String> cachingTier = serializingResource.createCache(String.class, String.class, serviceProvider);
+    serializingResource.start(serviceProvider);
+    final Cache<String, String> cachingTier = serializingResource.createCache(String.class, String.class);
     Cache<String, String> cache = new TieredCache<String, String>(cachingTier, String.class, String.class, new ServiceProvider(heapResource), new HeapResourceCacheConfiguration(1000));
     cache.put("foo", "bar");
     assertThat(cache, hasEntry("foo", "bar"));
@@ -53,8 +54,8 @@ public class CacheTest {
     final SerializingResource serializingResource = new SerializingResource();
     final SerializationProvider serialization = new JavaSerializationProvider();
     final ServiceProvider serviceProvider = new ServiceProvider(serialization);
-
-    final Cache<String, Serializable> cachingTier = serializingResource.createCache(String.class, Serializable.class, serviceProvider);
+    serializingResource.start(serviceProvider);
+    final Cache<String, Serializable> cachingTier = serializingResource.createCache(String.class, Serializable.class);
     Cache<String, Serializable> cache = new TieredCache<String, Serializable>(cachingTier, String.class, Serializable.class, new ServiceProvider(heapResource), new HeapResourceCacheConfiguration(1000));
     try {
       cache.put("foo", new Object[] { new Object() });

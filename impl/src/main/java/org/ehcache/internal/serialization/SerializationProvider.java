@@ -26,5 +26,5 @@ import org.ehcache.spi.ServiceProvider;
  */
 public interface SerializationProvider extends Service {
  
-  <T> Serializer<T> createSerializer(Class<T> clazz, ServiceLocator serviceProvider, ServiceConfiguration<?> ... config);
+  <T> Serializer<T> createSerializer(Class<T> clazz, ServiceConfiguration<?>... config);
 }

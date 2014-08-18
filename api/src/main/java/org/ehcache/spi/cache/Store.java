@@ -28,7 +28,7 @@ public interface Store<K, V> {
 
   public interface Provider {
 
-    <K, V> Store<K, V> createStore(Class<K> keyClazz, Class<V> valueClazz, ServiceLocator serviceProvider, ServiceConfiguration<?>... config);
+    <K, V> Store<K, V> createStore(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config);
 
     void releaseStore(Store<?, ?> resource);
 

@@ -11,7 +11,6 @@ import org.ehcache.internal.serialization.SerializationProvider;
 import org.ehcache.internal.serialization.Serializer;
 import org.ehcache.spi.cache.CacheProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.ServiceProvider;
 import org.ehcache.internal.util.ServiceUtil;
 
 /**
@@ -20,10 +19,12 @@ import org.ehcache.internal.util.ServiceUtil;
  */
 public class SerializingResource implements CacheProvider {
 
+  private volatile ServiceLocator serviceLocator;
+
   @Override
-  public <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceLocator serviceProvider, ServiceConfiguration<?>... config) {
-    SerializationProvider serialization = serviceProvider.findService(SerializationProvider.class);
-    Serializer<V> serializer = serialization.createSerializer(valueClazz, serviceProvider);
+  public <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
+    SerializationProvider serialization = serviceLocator.findService(SerializationProvider.class);
+    Serializer<V> serializer = serialization.createSerializer(valueClazz);
     return new SerializingCache(serializer);
   }
 
@@ -33,7 +34,8 @@ public class SerializingResource implements CacheProvider {
   }
 
   @Override
-  public Future<?> start() {
+  public Future<?> start(final ServiceLocator serviceLocator) {
+    this.serviceLocator = serviceLocator;
     return ServiceUtil.completeFuture();
   }
 

@@ -67,7 +67,7 @@ interface FooProvider extends Service {
 class ParentTestService implements FooProvider {
 
   @Override
-  public Future<?> start() {
+  public Future<?> start(final ServiceLocator serviceLocator) {
     throw new UnsupportedOperationException();
   }
 
@@ -84,7 +84,7 @@ class ChildTestService extends ParentTestService {
 class FancyCacheProvider implements CacheProvider {
 
   @Override
-  public <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceLocator serviceProvider, ServiceConfiguration<?>... config) {
+  public <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
     return null;
   }
 
@@ -94,7 +94,7 @@ class FancyCacheProvider implements CacheProvider {
   }
 
   @Override
-  public Future<?> start() {
+  public Future<?> start(final ServiceLocator serviceLocator) {
     throw new UnsupportedOperationException();
   }
 
@@ -106,7 +106,7 @@ class FancyCacheProvider implements CacheProvider {
 
 class DullCacheProvider implements CacheProvider {
   @Override
-  public <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceLocator serviceProvider, ServiceConfiguration<?>... config) {
+  public <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
     return null;
   }
 
@@ -116,7 +116,7 @@ class DullCacheProvider implements CacheProvider {
   }
 
   @Override
-  public Future<?> start() {
+  public Future<?> start(final ServiceLocator serviceLocator) {
     throw new UnsupportedOperationException();
   }
 

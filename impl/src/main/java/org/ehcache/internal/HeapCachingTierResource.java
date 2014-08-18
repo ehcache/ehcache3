@@ -43,7 +43,7 @@ public class HeapCachingTierResource implements CachingTierProvider {
   }
 
   @Override
-  public <K, V> CachingTier<K> createCachingTier(Class<K> keyClazz, Class<V> valueClazz, ServiceLocator serviceProvider, ServiceConfiguration<?>... configs) {
+  public <K, V> CachingTier<K> createCachingTier(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... configs) {
     final HeapResourceCacheConfiguration config = findSingletonAmongst(HeapResourceCacheConfiguration.class, configs);
     return new ClockEvictingHeapCachingTier<K>(config.getMaxOnHeapEntryCount());
   }
@@ -54,7 +54,7 @@ public class HeapCachingTierResource implements CachingTierProvider {
   }
 
   @Override
-  public Future<?> start() {
+  public Future<?> start(final ServiceLocator serviceLocator) {
     return ServiceUtil.completeFuture();
   }
 

@@ -4,6 +4,7 @@
 
 package org.ehcache.spi;
 
+import org.ehcache.internal.ServiceLocator;
 import org.ehcache.spi.service.Service;
 import org.junit.AfterClass;
 import org.junit.Test;
@@ -83,7 +84,7 @@ public class ServiceProviderLifecycleTest {
       this.unit = unit;
     }
     @Override
-    public Future<?> start() {
+    public Future<?> start(final ServiceLocator serviceLocator) {
       return EXECUTOR.submit(new DummyTask(time, unit));
     }
 

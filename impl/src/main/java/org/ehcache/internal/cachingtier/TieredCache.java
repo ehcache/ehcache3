@@ -38,7 +38,7 @@ public class TieredCache<K, V> implements Cache<K, V> {
   public TieredCache(Cache<K, V> authority, Class<K> keyClazz, Class<V> valueClazz, ServiceLocator serviceProvider, ServiceConfiguration<?>... configs) {
     this.authority = authority;
     this.cachingTier = serviceProvider.findService(CachingTierProvider.class)
-        .createCachingTier(keyClazz, valueClazz, serviceProvider, configs);
+        .createCachingTier(keyClazz, valueClazz, configs);
   }
 
   @Override

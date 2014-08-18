@@ -32,9 +32,11 @@ import static org.ehcache.internal.HeapCachingTierResource.wrapCacheWithCachingT
  */
 public class HeapResource implements CacheProvider {
 
+  private volatile ServiceLocator serviceLocator;
+
   @Override
-  public <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceLocator serviceProvider, ServiceConfiguration<?>... config) {
-    return wrapCacheWithCachingTierIfConfigured(new HeapCache<K, V>(), keyClazz, valueClazz, serviceProvider, config);
+  public <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
+    return wrapCacheWithCachingTierIfConfigured(new HeapCache<K, V>(), keyClazz, valueClazz, serviceLocator, config);
   }
 
   @Override
@@ -43,7 +45,8 @@ public class HeapResource implements CacheProvider {
   }
 
   @Override
-  public Future<?> start() {
+  public Future<?> start(final ServiceLocator serviceLocator) {
+    this.serviceLocator = serviceLocator;
     return ServiceUtil.completeFuture();
   }
 

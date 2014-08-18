@@ -96,7 +96,8 @@ public final class ServiceProvider implements ServiceLocator {
         try {
           while (true) {
             try {
-              service.start().get();
+              service.start(this).get();
+              return;
             } catch (InterruptedException ex) {
               interrupted = true;
             } catch (ExecutionException ex) {
@@ -184,7 +185,7 @@ public final class ServiceProvider implements ServiceLocator {
     try {
       Collection<Future<?>> starts = new ArrayList<Future<?>>();
       for (Service service : services.values()) {
-        starts.add(service.start());
+        starts.add(service.start(this));
       }
 
       for (Future<?> start : starts) {

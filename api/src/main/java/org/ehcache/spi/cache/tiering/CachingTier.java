@@ -17,6 +17,7 @@
 package org.ehcache.spi.cache.tiering;
 
 import org.ehcache.internal.ServiceLocator;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
@@ -26,9 +27,9 @@ public interface CachingTier<K> {
 
   // Add CachingTier methods
 
-  public interface Provider {
+  public interface Provider extends Service {
 
-    <K> CachingTier<K> createCachingTier(Class<K> keyClazz, ServiceLocator serviceProvider, ServiceConfiguration<?>... config);
+    <K> CachingTier<K> createCachingTier(Class<K> keyClazz, ServiceConfiguration<?>... config);
 
     void releaseCachingTier(CachingTier<?> resource);
 

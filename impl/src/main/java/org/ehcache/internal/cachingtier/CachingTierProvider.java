@@ -27,7 +27,7 @@ import org.ehcache.spi.ServiceProvider;
  */
 public interface CachingTierProvider extends Service {
   
-  <K, V> CachingTier<K> createCachingTier(Class<K> keyClazz, Class<V> valueClazz, ServiceLocator serviceProvider, ServiceConfiguration<?>... config);
+  <K, V> CachingTier<K> createCachingTier(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config);
 
   void releaseCachingTier(CachingTier<?> resource);
 }

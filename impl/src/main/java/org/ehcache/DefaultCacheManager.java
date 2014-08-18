@@ -42,12 +42,12 @@ public final class DefaultCacheManager implements CacheManager {
         throw new IllegalArgumentException();
       }
     }
-    
+
+    serviceProvider.startAllServices();
+
     for (Entry<String, CacheConfiguration<?, ?>> cacheConfigurationEntry : config.getCacheConfigurations().entrySet()) {
       createCache(cacheConfigurationEntry.getKey(), cacheConfigurationEntry.getValue());
     }
-
-    serviceProvider.startAllServices();
   }
 
     public <K, V> Cache<K, V> getCache(String alias, Class<K> keyType, Class<V> valueType) {
@@ -66,7 +66,7 @@ public final class DefaultCacheManager implements CacheManager {
     Collection<ServiceConfiguration<?>> serviceConfigs = ((CacheConfiguration)config).getServiceConfigurations();
     ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
     final Cache<K, V> cache = serviceProvider.findService(HeapResource.class)
-        .createCache(keyType, valueType, serviceProvider, serviceConfigArray);
+        .createCache(keyType, valueType, serviceConfigArray);
     return addCache(alias, keyType, valueType, cache);
   }
 

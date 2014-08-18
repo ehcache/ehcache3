@@ -18,6 +18,7 @@ package org.ehcache.spi.cache.tiering;
 
 import org.ehcache.internal.ServiceLocator;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
@@ -27,9 +28,9 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
 
   // Add AuthoritativeTier methods here
 
-  public interface Provider {
+  public interface Provider extends Service {
 
-    <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Class<K> keyClazz, Class<V> valueClazz, ServiceLocator serviceProvider, ServiceConfiguration<?>... config);
+    <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config);
 
     void releaseAuthoritativeTier(AuthoritativeTier<?, ?> resource);
 
