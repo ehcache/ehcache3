@@ -16,9 +16,7 @@
 package org.ehcache.internal.serialization;
 
 import java.io.Serializable;
-import java.util.concurrent.Future;
 
-import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.internal.util.ServiceUtil;
 
@@ -37,12 +35,7 @@ public class JavaSerializationProvider implements SerializationProvider {
   }
 
   @Override
-  public Future<?> start(final ServiceLocator serviceLocator) {
-    return ServiceUtil.completeFuture();
-  }
-
-  @Override
-  public Future<?> stop() {
-    return ServiceUtil.completeFuture();
+  public void stop() {
+    //no-op
   }
 }

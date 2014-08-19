@@ -15,6 +15,7 @@
  */
 package org.ehcache.internal.serialization;
 
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
@@ -25,7 +26,7 @@ import org.ehcache.spi.service.ServiceFactory;
 public class JavaSerializationProviderFactory implements ServiceFactory<SerializationProvider> {
 
   @Override
-  public SerializationProvider create(ServiceConfiguration<SerializationProvider> serviceConfiguration) {
+  public SerializationProvider create(ServiceConfiguration<SerializationProvider> serviceConfiguration, final ServiceLocator serviceLocator) {
     return new JavaSerializationProvider();
   }
 

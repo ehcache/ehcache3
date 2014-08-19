@@ -16,12 +16,14 @@
 
 package org.ehcache.spi.service;
 
+import org.ehcache.spi.ServiceLocator;
+
 /**
  * @author Alex Snaps
  */
 public interface ServiceFactory<T extends Service> {
 
-  T create(final ServiceConfiguration<T> serviceConfiguration);
+  T create(final ServiceConfiguration<T> serviceConfiguration, final ServiceLocator serviceLocator);
   
   Class<T> getServiceType();
 }

@@ -16,6 +16,7 @@
 
 package org.ehcache.internal;
 
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
@@ -25,8 +26,8 @@ import org.ehcache.spi.service.ServiceFactory;
 public class HeapResourceFactory implements ServiceFactory<HeapResource> {
 
   @Override
-  public HeapResource create(final ServiceConfiguration<HeapResource> serviceConfiguration) {
-    return new HeapResource();
+  public HeapResource create(final ServiceConfiguration<HeapResource> serviceConfiguration, final ServiceLocator serviceLocator) {
+    return new HeapResource(serviceLocator);
   }
 
   @Override

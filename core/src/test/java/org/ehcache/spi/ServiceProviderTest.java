@@ -4,8 +4,6 @@
 
 package org.ehcache.spi;
 
-import java.util.concurrent.Future;
-
 import org.ehcache.spi.cache.CacheProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -66,12 +64,7 @@ interface FooProvider extends Service {
 class ParentTestService implements FooProvider {
 
   @Override
-  public Future<?> start(final ServiceLocator serviceLocator) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Future<?> stop() {
+  public void stop() {
     throw new UnsupportedOperationException();
   }
 }
@@ -93,12 +86,7 @@ class FancyCacheProvider implements CacheProvider {
   }
 
   @Override
-  public Future<?> start(final ServiceLocator serviceLocator) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Future<?> stop() {
+  public void stop() {
     throw new UnsupportedOperationException();
   }
 }
@@ -115,12 +103,7 @@ class DullCacheProvider implements CacheProvider {
   }
 
   @Override
-  public Future<?> start(final ServiceLocator serviceLocator) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Future<?> stop() {
+  public void stop() {
     throw new UnsupportedOperationException();
   }
 }

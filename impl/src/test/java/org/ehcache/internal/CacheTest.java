@@ -27,7 +27,7 @@ public class CacheTest {
   
   @Test
   public void testHeapCache() throws CacheAccessException {
-    final HeapResource heapResource = new HeapResource();
+    final HeapResource heapResource = new HeapResource(null);
     final Cache<String, String> cachingTier = heapResource.createCache(String.class, String.class);
     Cache<String, String> cache = new TieredCache<String, String>(cachingTier,
         String.class, String.class, new ServiceProvider(heapResource), new HeapResourceCacheConfiguration(1000));
@@ -37,11 +37,10 @@ public class CacheTest {
 
   @Test
   public void testSerializingCache() throws CacheAccessException {
-    final HeapResource heapResource = new HeapResource();
-    final SerializingResource serializingResource = new SerializingResource();
     final SerializationProvider serialization = new JavaSerializationProvider();
     final ServiceProvider serviceProvider = new ServiceProvider(serialization);
-    serializingResource.start(serviceProvider);
+    final SerializingResource serializingResource = new SerializingResource(serviceProvider);
+    final HeapResource heapResource = new HeapResource(serviceProvider);
     final Cache<String, String> cachingTier = serializingResource.createCache(String.class, String.class);
     Cache<String, String> cache = new TieredCache<String, String>(cachingTier, String.class, String.class, new ServiceProvider(heapResource), new HeapResourceCacheConfiguration(1000));
     cache.put("foo", "bar");
@@ -50,11 +49,10 @@ public class CacheTest {
 
   @Test
   public void testSerializingCacheWithNonSerializableType() throws CacheAccessException {
-    final HeapResource heapResource = new HeapResource();
-    final SerializingResource serializingResource = new SerializingResource();
     final SerializationProvider serialization = new JavaSerializationProvider();
     final ServiceProvider serviceProvider = new ServiceProvider(serialization);
-    serializingResource.start(serviceProvider);
+    final SerializingResource serializingResource = new SerializingResource(serviceProvider);
+    final HeapResource heapResource = new HeapResource(serviceProvider);
     final Cache<String, Serializable> cachingTier = serializingResource.createCache(String.class, Serializable.class);
     Cache<String, Serializable> cache = new TieredCache<String, Serializable>(cachingTier, String.class, Serializable.class, new ServiceProvider(heapResource), new HeapResourceCacheConfiguration(1000));
     try {

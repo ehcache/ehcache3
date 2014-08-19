@@ -25,8 +25,6 @@ import org.ehcache.internal.util.ServiceUtil;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceConfiguration;
 
-import java.util.concurrent.Future;
-
 import static org.ehcache.spi.ServiceProvider.findAmongst;
 import static org.ehcache.spi.ServiceProvider.findSingletonAmongst;
 
@@ -55,12 +53,7 @@ public class HeapCachingTierResource implements CachingTierProvider {
   }
 
   @Override
-  public Future<?> start(final ServiceLocator serviceLocator) {
-    return ServiceUtil.completeFuture();
-  }
-
-  @Override
-  public Future<?> stop() {
-    return ServiceUtil.completeFuture();
+  public void stop() {
+    //no-op
   }
 }

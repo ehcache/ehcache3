@@ -16,16 +16,10 @@
 
 package org.ehcache.spi.service;
 
-import org.ehcache.spi.ServiceLocator;
-
-import java.util.concurrent.Future;
-
 /**
  * @author Alex Snaps
  */
 public interface Service {
 
-  Future<?> start(final ServiceLocator serviceLocator);
-  
-  Future<?> stop();
+  void stop();
 }

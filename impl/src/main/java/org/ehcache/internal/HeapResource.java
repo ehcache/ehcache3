@@ -22,8 +22,6 @@ import org.ehcache.spi.cache.CacheProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.internal.util.ServiceUtil;
 
-import java.util.concurrent.Future;
-
 import static org.ehcache.internal.HeapCachingTierResource.wrapCacheWithCachingTierIfConfigured;
 
 /**
@@ -33,7 +31,9 @@ import static org.ehcache.internal.HeapCachingTierResource.wrapCacheWithCachingT
  */
 public class HeapResource implements CacheProvider {
 
-  private volatile ServiceLocator serviceLocator;
+  private final ServiceLocator serviceLocator;
+
+  public HeapResource(final ServiceLocator serviceLocator) {this.serviceLocator = serviceLocator;}
 
   @Override
   public <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
@@ -46,13 +46,7 @@ public class HeapResource implements CacheProvider {
   }
 
   @Override
-  public Future<?> start(final ServiceLocator serviceLocator) {
-    this.serviceLocator = serviceLocator;
-    return ServiceUtil.completeFuture();
-  }
-
-  @Override
-  public Future<?> stop() {
-    return ServiceUtil.completeFuture();
+  public void stop() {
+    //no-op
   }
 }

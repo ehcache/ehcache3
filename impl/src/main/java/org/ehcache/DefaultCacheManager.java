@@ -36,14 +36,12 @@ public final class DefaultCacheManager implements CacheManager {
   private final ServiceProvider serviceProvider = new ServiceProvider();
   private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<String, CacheHolder>();
 
-  public DefaultCacheManager(Configuration config) throws InterruptedException {
+  public DefaultCacheManager(Configuration config) {
     for (ServiceConfiguration<?> serviceConfig : config.getServiceConfigurations()) {
       if (serviceProvider.discoverService(serviceConfig) == null) {
         throw new IllegalArgumentException();
       }
     }
-
-    serviceProvider.startAllServices();
 
     for (Entry<String, CacheConfiguration<?, ?>> cacheConfigurationEntry : config.getCacheConfigurations().entrySet()) {
       createCache(cacheConfigurationEntry.getKey(), cacheConfigurationEntry.getValue());

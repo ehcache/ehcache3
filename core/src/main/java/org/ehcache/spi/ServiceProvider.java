@@ -43,8 +43,7 @@ public final class ServiceProvider implements ServiceLocator {
   private final ServiceLoader<ServiceFactory> serviceFactory = ServiceLoader.load(ServiceFactory.class);
 
   private final ReadWriteLock runningLock = new ReentrantReadWriteLock();
-  private boolean running = false;
-  
+
   public ServiceProvider(Service ... services) {
     for (Service service : services) {
       addService(service);
@@ -59,7 +58,7 @@ public final class ServiceProvider implements ServiceLocator {
     // TODO Fix me!
     for (ServiceFactory<T> factory : serviceFactory) {
       if (serviceClass.isAssignableFrom(factory.getServiceType())) {
-        T service = factory.create(config);
+        T service = factory.create(config, this);
         addService(service);
         return service;
       }
@@ -85,36 +84,6 @@ public final class ServiceProvider implements ServiceLocator {
 
       if (serviceClazzes.isEmpty()) {
         throw new IllegalArgumentException("Service implements no service interfaces.");
-      }
-
-      /*
-      * Also deal with races here
-      */
-      if (running) {
-        boolean interrupted = false;
-        try {
-          while (true) {
-            try {
-              service.start(this).get();
-              return;
-            } catch (InterruptedException ex) {
-              interrupted = true;
-            } catch (ExecutionException ex) {
-              Throwable t = ex.getCause();
-              if (t instanceof RuntimeException) {
-                throw (RuntimeException) t;
-              } else if (t instanceof Error) {
-                throw (Error) t;
-              } else {
-                throw new RuntimeException(t);
-              }
-            }
-          }
-        } finally {
-          if (interrupted) {
-            Thread.currentThread().interrupt();
-          }
-        }
       }
 
       HashSet<Class<?>> existingServices = new HashSet<Class<?>>(serviceClazzes);
@@ -178,59 +147,13 @@ public final class ServiceProvider implements ServiceLocator {
     }
   }
 
-  public void startAllServices() throws InterruptedException {
-    Lock lock = runningLock.writeLock();
-    lock.lock();
-    try {
-      Collection<Future<?>> starts = new ArrayList<Future<?>>();
-      for (Service service : services.values()) {
-        starts.add(service.start(this));
-      }
-
-      for (Future<?> start : starts) {
-        try {
-          start.get();
-        } catch (ExecutionException ex) {
-          Throwable t = ex.getCause();
-          if (t instanceof RuntimeException) {
-            throw (RuntimeException) t;
-          } else if (t instanceof Error) {
-            throw (Error) t;
-          } else {
-            throw new RuntimeException(t);
-          }
-        }
-      }    
-      running = true;
-    } finally {
-      lock.unlock();
-    }
-  }
-  
   public void stopAllServices() throws InterruptedException {
     Lock lock = runningLock.writeLock();
     lock.lock();
     try {
-      Collection<Future<?>> stops = new ArrayList<Future<?>>();
       for (Service service : services.values()) {
-        stops.add(service.stop());
+        service.stop();
       }
-
-      for (Future<?> stop : stops) {
-        try {
-          stop.get();
-        } catch (ExecutionException ex) {
-          Throwable t = ex.getCause();
-          if (t instanceof RuntimeException) {
-            throw (RuntimeException) t;
-          } else if (t instanceof Error) {
-            throw (Error) t;
-          } else {
-            throw new RuntimeException(t);
-          }
-        }
-      }
-      running = false;
     } finally {
       lock.unlock();
     }

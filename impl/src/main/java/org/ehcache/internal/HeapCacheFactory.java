@@ -15,6 +15,7 @@
  */
 package org.ehcache.internal;
 
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
@@ -24,7 +25,7 @@ import org.ehcache.spi.service.ServiceFactory;
 public class HeapCacheFactory implements ServiceFactory<HeapCachingTierResource> {
 
   @Override
-  public HeapCachingTierResource create(final ServiceConfiguration<HeapCachingTierResource> serviceConfiguration) {
+  public HeapCachingTierResource create(final ServiceConfiguration<HeapCachingTierResource> serviceConfiguration, final ServiceLocator serviceLocator) {
     return new HeapCachingTierResource();
   }
 

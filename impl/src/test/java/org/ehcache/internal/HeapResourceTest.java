@@ -6,6 +6,7 @@ package org.ehcache.internal;
 
 import org.ehcache.Cache;
 import org.ehcache.DefaultCacheManager;
+import org.ehcache.spi.ServiceProvider;
 import org.junit.Test;
 import org.ehcache.internal.cachingtier.TieredCache;
 import org.ehcache.config.Configuration;
@@ -24,7 +25,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class HeapResourceTest {
 
   @Test
-  public void testGetsConfig() throws IOException, SAXException, ClassNotFoundException, InterruptedException {
+  public void testGetsConfig() throws IOException, SAXException, ClassNotFoundException {
     XmlConfiguration xmlConfiguration = new XmlConfiguration();
     final Configuration configuration =
         xmlConfiguration.parseConfiguration(HeapResourceTest.class.getResource("/configs/cachingtier-cache.xml"));
