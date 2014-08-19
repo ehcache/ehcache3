@@ -4,7 +4,6 @@
 
 package org.ehcache.spi;
 
-import org.ehcache.internal.ServiceLocator;
 import org.ehcache.spi.service.Service;
 import org.junit.AfterClass;
 import org.junit.Test;

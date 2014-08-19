@@ -16,7 +16,7 @@
 
 package org.ehcache.spi.service;
 
-import org.ehcache.internal.ServiceLocator;
+import org.ehcache.spi.ServiceLocator;
 
 import java.util.concurrent.Future;
 

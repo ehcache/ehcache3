@@ -18,7 +18,7 @@ package org.ehcache.internal.serialization;
 import java.io.Serializable;
 import java.util.concurrent.Future;
 
-import org.ehcache.internal.ServiceLocator;
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.internal.util.ServiceUtil;
 

@@ -9,6 +9,7 @@ import java.util.concurrent.Future;
 import org.ehcache.Cache;
 import org.ehcache.internal.serialization.SerializationProvider;
 import org.ehcache.internal.serialization.Serializer;
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.CacheProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.internal.util.ServiceUtil;

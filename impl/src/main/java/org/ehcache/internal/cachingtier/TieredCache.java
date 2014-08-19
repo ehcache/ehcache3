@@ -18,7 +18,7 @@ package org.ehcache.internal.cachingtier;
 
 import org.ehcache.Cache;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.internal.ServiceLocator;
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collections;

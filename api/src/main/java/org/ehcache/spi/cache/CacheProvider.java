@@ -17,7 +17,6 @@
 package org.ehcache.spi.cache;
 
 import org.ehcache.Cache;
-import org.ehcache.internal.ServiceLocator;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 

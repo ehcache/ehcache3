@@ -16,7 +16,6 @@
 
 package org.ehcache.spi.cache.tiering;
 
-import org.ehcache.internal.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
