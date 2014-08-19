@@ -39,7 +39,7 @@ public final class DefaultCacheManager implements CacheManager {
   public DefaultCacheManager(Configuration config) {
     for (ServiceConfiguration<?> serviceConfig : config.getServiceConfigurations()) {
       if (serviceProvider.discoverService(serviceConfig) == null) {
-        throw new IllegalArgumentException();
+        throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
       }
     }
 
@@ -53,7 +53,7 @@ public final class DefaultCacheManager implements CacheManager {
     if(cacheHolder == null) {
       return null;
     } else {
-      return cacheHolder.retrieve(keyType, valueType);
+      return cacheHolder.retrieve(alias, keyType, valueType);
     }
   }
 
@@ -70,7 +70,7 @@ public final class DefaultCacheManager implements CacheManager {
 
   public <K, V> Cache<K, V> addCache(String alias, Class<K> keyType, Class<V> valueType, Cache<K, V> cache) {
     if (caches.putIfAbsent(alias, new CacheHolder(keyType, valueType, cache)) != null) {
-      throw new IllegalArgumentException();
+      throw new IllegalArgumentException("Cache '" + alias +"' already exists");
     }
     return cache;
   }
@@ -101,11 +101,13 @@ public final class DefaultCacheManager implements CacheManager {
       this.cache = cache;
     }
     
-    <K, V> Cache<K, V> retrieve(Class<K> refKeyType, Class<V> refValueType) {
+    <K, V> Cache<K, V> retrieve(String alias, Class<K> refKeyType, Class<V> refValueType) {
       if (keyType == refKeyType && valueType == refValueType) {
         return (Cache<K, V>)cache;
       } else {
-        throw new IllegalArgumentException();
+        throw new IllegalArgumentException("Cache '" + alias + "' type is <" + keyType.getName() + ", " + valueType.getName() +
+                                           ">, but you retrieved it with <" + refKeyType.getName() + ", " +
+                                           refValueType.getName() +">");
       }
     }
 
