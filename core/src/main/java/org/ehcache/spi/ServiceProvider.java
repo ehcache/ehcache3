@@ -147,7 +147,7 @@ public final class ServiceProvider implements ServiceLocator {
     }
   }
 
-  public void stopAllServices() throws InterruptedException {
+  public void stopAllServices() {
     Lock lock = runningLock.writeLock();
     lock.lock();
     try {

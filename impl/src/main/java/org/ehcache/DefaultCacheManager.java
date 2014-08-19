@@ -77,17 +77,7 @@ public final class DefaultCacheManager implements CacheManager {
 
   @Override
   public void close() {
-    try {
-      serviceProvider.stopAllServices();
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException(e);
-    }
-  }
-
-  @Override
-  public <K, V> Cache<K, V> getCache(final String s) {
-    throw new UnsupportedOperationException("Implement me!");
+    serviceProvider.stopAllServices();
   }
 
   private static final class CacheHolder {

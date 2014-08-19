@@ -25,7 +25,7 @@ public interface CacheManager {
 
   <K, V> Cache<K, V> createCache(final String alias, final CacheConfiguration<K, V> config);
 
-  <K, V> Cache<K, V> getCache(final String s);
+  <K, V> Cache<K, V> getCache(final String s, Class<K> keyType, Class<V> valueType);
 
   void close();
 }
