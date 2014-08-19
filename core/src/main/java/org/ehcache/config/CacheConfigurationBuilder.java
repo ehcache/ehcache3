@@ -48,7 +48,7 @@ public class CacheConfigurationBuilder {
   }
 
   public <K, V> CacheConfiguration<K, V> buildConfig(Class<K> keyType, Class<V> valueType) {
-    return new CacheConfiguration<K, V>(keyType, valueType, serviceConfigurations.toArray(
+    return new BaseCacheConfiguration<K, V>(keyType, valueType, serviceConfigurations.toArray(
         new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
