@@ -2,16 +2,20 @@
 
 :toc:
 
+== Aug 28, 2014 - Hangout on Air
+
+Public on https://plus.google.com/u/0/events/c77o4t7tvm6nb4j120f1lcrr4t8[Google plus Hangout] at 8pm CET / 2pm EST / 11am PST
+
 == Aug 21, 2014 - Hangout on Air
+
+Recording available https://www.youtube.com/watch?v=rUI4SsPRGQ4[here on YouTube]
 
 === +org.ehcache.Cache+ vs. +org.ehcache.spi.cache.Store+
 
-Both those interfaces exist today. Yet what is each's concerns aren't well identified.
+==== +Cache<K, V>+ backed by a +Store<K, Element<V>>+
 
-==== +Cache<K, V>+ backed by a +Store<K, Element<V>>+ ?
-
- . Rename +Element+ ?
- . +Store<K, Element<V>>+ vs. +Store<Element<K, V>>+ ?
+ . Rename +Element+
+ . Try +Store<K, Element<V>>+ for now
 
 ==== Roles
 
@@ -27,3 +31,15 @@ How much can be solved by having the +Cache+ call into some +Store.process(K, En
  .. Store by Value vs. Ref.
  .. Eviction & (private) EvictionListeners
 
+=== Other items
+
+==== Integrate 107 TCK
+
+Created issue #21
+
+==== What's with the sizeof modules ?
+
+ . *Hibernate* to be integrated within the h2lc module there
+ . *Groovy*, either:
+ .. @candrews takes ownership, or
+ .. we find someone within TC/SAG to do so (unidentified yet though)
