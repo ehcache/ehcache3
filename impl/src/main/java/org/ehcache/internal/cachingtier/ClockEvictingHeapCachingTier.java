@@ -16,6 +16,8 @@
 
 package org.ehcache.internal.cachingtier;
 
+import org.ehcache.spi.cache.tiering.CachingTier;
+
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;

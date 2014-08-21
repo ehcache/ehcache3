@@ -24,7 +24,17 @@ import org.ehcache.spi.service.ServiceConfiguration;
  */
 public interface CachingTier<K> {
 
-  // Add CachingTier methods
+  Object get(K key);
+
+  Object putIfAbsent(K key, Object value);
+
+  void remove(K key);
+
+  void remove(K key, Object value);
+
+  boolean replace(K key, Object oldValue, Object newValue);
+
+  long getMaxCacheSize();
 
   public interface Provider extends Service {
 

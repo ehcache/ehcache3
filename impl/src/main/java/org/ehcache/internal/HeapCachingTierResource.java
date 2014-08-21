@@ -17,12 +17,10 @@
 package org.ehcache.internal;
 
 import org.ehcache.Cache;
-import org.ehcache.internal.cachingtier.CachingTier;
-import org.ehcache.internal.cachingtier.CachingTierProvider;
 import org.ehcache.internal.cachingtier.ClockEvictingHeapCachingTier;
 import org.ehcache.internal.cachingtier.TieredCache;
-import org.ehcache.internal.util.ServiceUtil;
 import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import static org.ehcache.spi.ServiceProvider.findAmongst;
@@ -31,7 +29,7 @@ import static org.ehcache.spi.ServiceProvider.findSingletonAmongst;
 /**
  * @author Alex Snaps
  */
-public class HeapCachingTierResource implements CachingTierProvider {
+public class HeapCachingTierResource implements CachingTier.Provider {
 
   public static <K, V> Cache<K, V> wrapCacheWithCachingTierIfConfigured(final Cache<K, V> cache, final Class<K> keyClazz, final Class<V> valueClazz, final ServiceLocator serviceProvider, final ServiceConfiguration<?>[] config) {
     if(findAmongst(HeapResourceCacheConfiguration.class, config).size() > 0) {
@@ -42,7 +40,7 @@ public class HeapCachingTierResource implements CachingTierProvider {
   }
 
   @Override
-  public <K, V> CachingTier<K> createCachingTier(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... configs) {
+  public <K> CachingTier<K> createCachingTier(Class<K> keyClazz, ServiceConfiguration<?>... configs) {
     final HeapResourceCacheConfiguration config = findSingletonAmongst(HeapResourceCacheConfiguration.class, configs);
     return new ClockEvictingHeapCachingTier<K>(config.getMaxOnHeapEntryCount());
   }

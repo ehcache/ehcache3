@@ -19,6 +19,7 @@ package org.ehcache.internal.cachingtier;
 import org.ehcache.Cache;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collections;
@@ -37,8 +38,8 @@ public class TieredCache<K, V> implements Cache<K, V> {
 
   public TieredCache(Cache<K, V> authority, Class<K> keyClazz, Class<V> valueClazz, ServiceLocator serviceProvider, ServiceConfiguration<?>... configs) {
     this.authority = authority;
-    this.cachingTier = serviceProvider.findService(CachingTierProvider.class)
-        .createCachingTier(keyClazz, valueClazz, configs);
+    this.cachingTier = serviceProvider.findService(CachingTier.Provider.class)
+        .createCachingTier(keyClazz, configs);
   }
 
   @Override
