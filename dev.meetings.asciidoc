@@ -18,16 +18,12 @@ Both those interfaces exist today. Yet what is each's concerns aren't well ident
 How much can be solved by having the +Cache+ call into some +Store.process(K, EntryProcessor<K, V, T>): T+ equivalent?
 
  . +Cache+ Roles
- .. Store by Value vs. Ref.
- .. Expiry ?
+ .. Expiry
+ .. Public EntryListeners
  .. Cache lifecycle
- .. +BootstrapCacheLoader+
  .. CacheLoaders
  .. CacheWriters
- .. Listeners ?
-.. Stats ?
  . +Store+ Roles
- .. Eviction
- .. Expiry ?
- .. Listeners ?
- .. Stats ?
+ .. Store by Value vs. Ref.
+ .. Eviction & (private) EvictionListeners
+
