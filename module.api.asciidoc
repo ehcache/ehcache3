@@ -4,3 +4,12 @@
 
 == API Module
 
+Contains all the interfaces, as well as exceptions, an Ehcache user would use explicitly. This includes:
+
+ . Core types
+ .. +CacheManager+
+ .. +Cache+
+ . Configuration types
+ .. +CacheConfiguration+
+ .. +ServiceConfiguration+
+ . Exceptions

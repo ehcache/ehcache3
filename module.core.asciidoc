@@ -4,3 +4,16 @@
 
 == Core Module
 
+Contains the +ServiceLocator+, as well as core SPI interfaces.
+
+=== Services
+
+==== ServiceProvider
+
+=== SPI's
+
+==== CacheProvider
+
+==== Cache Store
+
+==== Tiering interfaces

@@ -1,0 +1,33 @@
+= Meet up notes
+
+:toc:
+
+== Aug 21, 2014 - Hangout on Air
+
+=== +org.ehcache.Cache+ vs. +org.ehcache.spi.cache.Store+
+
+Both those interfaces exist today. Yet what is each's concerns aren't well identified.
+
+==== +Cache<K, V>+ backed by a +Store<K, Element<V>>+ ?
+
+ . Rename +Element+ ?
+ . +Store<K, Element<V>>+ vs. +Store<Element<K, V>>+ ?
+
+==== Roles
+
+How much can be solved by having the +Cache+ call into some +Store.process(K, EntryProcessor<K, V, T>): T+ equivalent?
+
+ . +Cache+ Roles
+ .. Store by Value vs. Ref.
+ .. Expiry ?
+ .. Cache lifecycle
+ .. +BootstrapCacheLoader+
+ .. CacheLoaders
+ .. CacheWriters
+ .. Listeners ?
+.. Stats ?
+ . +Store+ Roles
+ .. Eviction
+ .. Expiry ?
+ .. Listeners ?
+ .. Stats ?

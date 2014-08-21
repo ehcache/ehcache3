@@ -38,7 +38,9 @@ The code core of Ehcache is split in three core modules:
 
 === Modular approach
 
-+org.ehcache.spi.ServiceProvider+, +org.ehcache.spi.service.Service+
++org.ehcache.spi.service.ServiceFactory+ are used to create +org.ehcache.spi.service.Service+, configured through +org.ehcache.spi.service.ServiceConfiguration+. Each of those services can be about anything.
+
+A special kind of +Service+ is the +org.ehcache.spi.cache.CacheProvider+, which is used by the +CacheManager+ to create all caches. 
 
 === Configuration
 
