@@ -23,7 +23,16 @@ import org.ehcache.spi.service.ServiceConfiguration;
  */
 public interface Store<K, V> {
 
+  ValueHolder<V> get(K key);
+
   // Add Store methods here
+
+  public interface ValueHolder<V> {
+
+    V value();
+
+    long lastAccessTime();
+  }
 
   public interface Provider {
 
@@ -32,5 +41,4 @@ public interface Store<K, V> {
     void releaseStore(Store<?, ?> resource);
 
   }
-
 }
