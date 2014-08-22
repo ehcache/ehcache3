@@ -57,7 +57,6 @@ public class ConfigurationParser {
   public ConfigurationParser(String xml, URL... sources) throws IOException, SAXException {
     Collection<Source> schemaSources = new ArrayList<Source>();
     for (XmlConfigurationParser parser : ServiceLoader.load(XmlConfigurationParser.class)) {
-      System.out.println(parser.getNamespace());
       schemaSources.add(parser.getXmlSchema());
       xmlParsers.put(parser.getNamespace(), parser);
     }

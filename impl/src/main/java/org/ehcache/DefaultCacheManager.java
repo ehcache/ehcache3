@@ -48,7 +48,7 @@ public final class DefaultCacheManager implements CacheManager {
     }
   }
 
-    public <K, V> Cache<K, V> getCache(String alias, Class<K> keyType, Class<V> valueType) {
+  public <K, V> Cache<K, V> getCache(String alias, Class<K> keyType, Class<V> valueType) {
     final CacheHolder cacheHolder = caches.get(alias);
     if(cacheHolder == null) {
       return null;
@@ -96,7 +96,7 @@ public final class DefaultCacheManager implements CacheManager {
       this.valueType = valueType;
       this.cache = cache;
     }
-    
+
     <K, V> Cache<K, V> retrieve(Class<K> refKeyType, Class<V> refValueType) {
       if (keyType == refKeyType && valueType == refValueType) {
         return (Cache<K, V>)cache;
