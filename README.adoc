@@ -1,3 +1,5 @@
-= Welcome!
+= The Ehcache 3.x line is currently the development line.
+
+Status of the build: image:https://travis-ci.org/ehcache/ehcache3.svg?branch=master["Build Status", link="https://travis-ci.org/ehcache/ehcache3"]
 
 For more information, you might want to go check the https://github.com/ehcache/ehcache3/wiki[wiki].
