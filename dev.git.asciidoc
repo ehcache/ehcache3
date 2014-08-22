@@ -36,7 +36,12 @@
 
 == Merging a pull request
 
-If you are a reviewer (i.e. have commit rights to the ehcache/ehcache3 repo), *don't use the github UI to merge*, instead:
+If you are a reviewer (i.e. have commit rights to the ehcache/ehcache3 repo), *don't use the github UI to merge*. The way we are looking at this is:
+
+ - When working on an issue, you are the author of a contribution, but you don't have commit rights on the main repo;
+ - When you are code reviewing someone else's contribution, you do have commit rights.
+
+As such, every contribution gets reviewed by a committer, that effectively commits the changes to Ehcache's repository for the author. As a reviewer/committer, you do the following:
 
  . +git remote add '<contributor>' '<url'>+ the contributor's ehcache3 repository;
  . +git fetch '<contributor>' issue-'<id>'+;
@@ -46,4 +51,4 @@ If you are a reviewer (i.e. have commit rights to the ehcache/ehcache3 repo), *d
  . +git cherry-pick ..issue-'<id>'+;
  . +git push ehcache master+ to the main repository.
 
-That way we keep a linear timeline (where commits have a single parent, à la subversion).
+The changes are now recorded as authored by the contributor, but committed by the reviewer. That way we also keep a linear timeline on master (where commits have a single parent, à la subversion).
