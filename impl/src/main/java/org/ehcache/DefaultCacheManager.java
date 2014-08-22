@@ -53,7 +53,13 @@ public final class DefaultCacheManager implements CacheManager {
     if(cacheHolder == null) {
       return null;
     } else {
-      return cacheHolder.retrieve(alias, keyType, valueType);
+      try {
+        return cacheHolder.retrieve(keyType, valueType);
+      } catch (IllegalArgumentException e) {
+        throw new IllegalArgumentException("Cache '" + alias + "' type is <" + cacheHolder.keyType.getName() + ", "
+                                           + cacheHolder.valueType.getName() + ">, but you retrieved it with <"
+                                           + keyType.getName() + ", " + valueType.getName() +">");
+      }
     }
   }
 
@@ -91,13 +97,11 @@ public final class DefaultCacheManager implements CacheManager {
       this.cache = cache;
     }
     
-    <K, V> Cache<K, V> retrieve(String alias, Class<K> refKeyType, Class<V> refValueType) {
+    <K, V> Cache<K, V> retrieve(Class<K> refKeyType, Class<V> refValueType) {
       if (keyType == refKeyType && valueType == refValueType) {
         return (Cache<K, V>)cache;
       } else {
-        throw new IllegalArgumentException("Cache '" + alias + "' type is <" + keyType.getName() + ", " + valueType.getName() +
-                                           ">, but you retrieved it with <" + refKeyType.getName() + ", " +
-                                           refValueType.getName() +">");
+        throw new IllegalArgumentException();
       }
     }
 
