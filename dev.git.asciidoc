@@ -38,10 +38,12 @@
 
 If you are a reviewer (i.e. have commit rights to the ehcache/ehcache3 repo), *don't use the github UI to merge*, instead:
 
- . +git remote add '<contributor>'+ the contributor's ehcache3 repository;
- . +git pull '<contributor>'/issue-'<id>'+;
+ . +git remote add '<contributor>' '<url'>+ the contributor's ehcache3 repository;
+ . +git fetch '<contributor>' issue-'<id>'+;
+ . +git checkout -b '<contributor>'/issue-'<id>'+;
  . 'do the actual review';
- . +git cherry-pick+ or +git rebase issue-'<id>'+ onto +master+ with the changes;
+ . +git checkout master+;
+ . +git cherry-pick ..issue-'<id>'+;
  . +git push ehcache master+ to the main repository.
 
 That way we keep a linear timeline (where commits have a single parent, à la subversion).
