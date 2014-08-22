@@ -29,6 +29,7 @@ import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +81,7 @@ public class ConfigurationParser {
     config = domBuilder.parse(xml).getDocumentElement();
   }
 
-  public ServiceConfiguration[] getServiceConfigurations() {
+  public Iterable<ServiceConfiguration> getServiceConfigurations() {
     final ArrayList<ServiceConfiguration> serviceConfigurations = new ArrayList<ServiceConfiguration>();
     NodeList serviceElements = config.getElementsByTagNameNS(CORE_NAMESPACE_URI, "service");
     for (int i = 0; i < serviceElements.getLength(); i++) {
@@ -91,7 +92,7 @@ public class ConfigurationParser {
         serviceConfigurations.add(serviceConfiguration);
       }
     }
-    return serviceConfigurations.toArray(new ServiceConfiguration[serviceConfigurations.size()]);
+    return Collections.unmodifiableList(serviceConfigurations);
   }
 
   public Iterable<CacheElement> getCacheElements() {
@@ -131,7 +132,7 @@ public class ConfigurationParser {
       });
     }
 
-    return cacheCfgs;
+    return Collections.unmodifiableList(cacheCfgs);
   }
 
   private ServiceConfiguration<?> parseExtension(final Element element) {
