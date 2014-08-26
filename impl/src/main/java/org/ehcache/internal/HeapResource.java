@@ -20,7 +20,6 @@ import org.ehcache.Cache;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.CacheProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.internal.util.ServiceUtil;
 
 import static org.ehcache.internal.HeapCachingTierResource.wrapCacheWithCachingTierIfConfigured;
 
