@@ -6,6 +6,11 @@
 
 Public on https://plus.google.com/u/0/events/c77o4t7tvm6nb4j120f1lcrr4t8[Google plus Hangout] at 8pm CET / 2pm EST / 11am PST
 
+=== Agenda
+
+ . +CacheManagerBuilder+ and +CacheBuilder+
+ . +CacheManager+-less +Cache+ instances
+
 == Aug 21, 2014 - Hangout on Air
 
 Recording available https://www.youtube.com/watch?v=rUI4SsPRGQ4[here on YouTube]
