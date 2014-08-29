@@ -2,14 +2,52 @@
 
 :toc:
 
-== Aug 28, 2014 - Hangout on Air
+== Sep 4, 2014 - Hangout on Air
 
-Public on https://plus.google.com/u/0/events/c77o4t7tvm6nb4j120f1lcrr4t8[Google plus Hangout] at 8pm CET / 2pm EST / 11am PST
+Next public meeting on https://plus.google.com/u/0/events/ccupvimv7vg6pkark9a4t4bbul4[G+ Hangout on Air] at 11:30 IST / 8pm CET / 2pm EST / 11am PST
 
 === Agenda
 
- . +CacheManagerBuilder+ and +CacheBuilder+
- . +CacheManager+-less +Cache+ instances
+'*to be defined* —' visit https://groups.google.com/forum/#!forum/ehcache-dev[the ehcache developer mailing list] to provide input by next Wednesday – Sep 3, 2014.
+
+== Aug 28, 2014 - Hangout on Air
+
+Recording available https://www.youtube.com/watch?v=_S2cn4nf0_U&list=UU43PVCp2j0b2og2DtxNOU1A[here on YouTube]
+
+=== +CacheManagerBuilder+ and +CacheBuilder+
+
+Let's try to introduce a type hierarchy for both +Cache+ and +CacheManager+ that the builder would actually build, narrowing the type down à la Quartz 2.0 builders.
+
+----
+PersistentCache cache = newCacheBuilder() // <1>
+  .diskPersistent(
+    cfg // <3>
+  ) // <2>
+  .build(); // <4>
+----
+
+<1> static method that creates a builder: +Builder<Cache>+
+<2> narrows to the builder's type down to +Builder<PersistentCache>+
+<3> +cfg+ actually defines the mode to use for persistence, eg: expect data on disk; expect none; use data if there; wipe data if there; wipe data on +Cache.close()+
+<4> actually builds the +PersistentCache+
+
+Alex to make an actual proposal by next week.
+
+=== +CacheManager+-less +Cache+ instances
+
+ - Keep these, where the user is actually responsible to provide services
+ - Only these +Cache+'s type would expose +.close()+
+ - +CacheManager+ managed +Cache+ instances would be 'closed' through the +CacheManager+
+ - To further lifecycle +PersistentCache+ instance, managed by a +CacheManager+, the latter could expose some method to retrieve +DiskPersisted+ (interface with minimal lifecycle methods) instances; e.g.
+
+----
+Iterable<Map.Entry<String, DiskPersisted>> it = cacheManager.getManaged(DiskPersisted.class);
+it.next().value() // <1>
+ .deleteOnDiskFiles(); // <2>
+----
+
+<1> +DiskPersisted+ could expose methods around lifecycling the data on disk only. No +Cache+ methods
+<2> Implies +Cache.close()+, i.e. clear all 'VM transient' data and delete data from disk.
 
 == Aug 21, 2014 - Hangout on Air
 
