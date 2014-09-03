@@ -8,7 +8,28 @@ Next public meeting on https://plus.google.com/u/0/events/ccupvimv7vg6pkark9a4t4
 
 === Agenda
 
-'*to be defined* —' visit https://groups.google.com/forum/#!forum/ehcache-dev[the ehcache developer mailing list] to provide input by next Wednesday – Sep 3, 2014.
+==== Review some proposal on +CacheManager+ and +Cache+ subtyping & their matching +Builder+
+
+----
+    final CacheManager cacheManager = newCacheManagerBuilder().build();
+
+    final PersistentCacheManager pCacheManager = newCacheManagerBuilder()
+        .as(
+            diskPersistent(OVERRIDING)
+                .persistTo(File.createTempFile("ehcache", ".data"))
+        )
+        .build();
+
+    final PersistentCache<String, Object> pCache = newCacheBuilder(String.class, Object.class)
+        .as(
+            persistent(String.class, Object.class)
+        )
+        .build();
+----
+
+==== Initial API issue break down
+
+See link:../../issues[issues] as well as https://waffle.io/ehcache/ehcache3[waffle.io].
 
 == Aug 28, 2014 - Hangout on Air
 
