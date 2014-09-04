@@ -2,37 +2,47 @@
 
 :toc:
 
-== Sep 4, 2014 - Hangout on Air
+== Sep 11, 2014 - Hangout on Air
 
-Next public meeting on https://plus.google.com/u/0/events/ccupvimv7vg6pkark9a4t4bbul4[G+ Hangout on Air] at 11:30 IST / 8pm CET / 2pm EST / 11am PST
+Next public meeting on https://plus.google.com/events/cmnhmhlsrini6s3380tqopa5jdo[G+ Hangout on Air] at 11:30pm IST / 8pm CET / 2pm EST / 11am PST
 
 === Agenda
 
-==== Review some proposal on +CacheManager+ and +Cache+ subtyping & their matching +Builder+
+*to be defined* — send ideas to the https://groups.google.com/forum/#!forum/ehcache-dev[Google groups]
 
-[source,java]
-----
-final CacheManager cacheManager = newCacheManagerBuilder().build();
+== Sep 4, 2014 - Hangout on Air
 
-final PersistentCacheManager pCacheManager = newCacheManagerBuilder()
-    .as(
-        diskPersistent(OVERRIDING)
-            .persistTo(File.createTempFile("ehcache", ".data"))
-    )
-    .build();
+Recording available https://www.youtube.com/watch?v=iehQ9Wxx204&list=UU43PVCp2j0b2og2DtxNOU1A[here on YouTube]
 
-final PersistentCache<String, Object> pCache = newCacheBuilder(String.class, Object.class)
-    .as(
-        persistent(String.class, Object.class)
-    )
-    .build();
-----
+=== Review some proposal on +CacheManager+ and +Cache+ subtyping & their matching +Builder+
 
-==== Initial API issue break down
+We want +CacheBuilder+ to create instances of types:
 
-See link:../../issues[issues] as well as https://waffle.io/ehcache/ehcache3[waffle.io].
+ . +Unmanaged(ShortLived)Cache+
+ . +UnmanagedLongLivedCache+
 
-==== CIaaS
+While +CacheManagerBuilder+ create:
+
+ . +(ShortLived)CacheManager+
+ . +LongLivedCacheManager+
+
+which manages +Cache+, i.e. not +Unmanaged+ ones. +LongLived+ exposes the methods to delete 'persistent' data (i.e. that outlives the life of the JVM). A +Cache+ is closed or destroyed through the +CacheManager+.
+
+=== Initial API issue break down
+
+Issues are now ordered on https://waffle.io/ehcache/ehcache3[waffle.io]:
+
+ . 'API' labeled issues for public API require
+ .. JavaDoc
+ . 'API' labeled issues that are about SPI, require
+ .. JavaDoc
+ .. Tester of some kind, that
+ . 'Enhancement' labeled issues require
+ .. JavaDoc, as required
+ .. Unit tests
+ .. If ported from the 2.x line, best is to have decent coverage on the responsibilities the class will keep, prior to refactoring it; then refactor and add/tweak tests as required
+
+=== CIaaS
 
   . drone.io 'failed'
   . codeship.io 'failed'
