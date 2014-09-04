@@ -32,6 +32,13 @@ final PersistentCache<String, Object> pCache = newCacheBuilder(String.class, Obj
 
 See link:../../issues[issues] as well as https://waffle.io/ehcache/ehcache3[waffle.io].
 
+==== CIaaS
+
+  . drone.io 'failed'
+  . codeship.io 'failed'
+  . travis-ci.org 'testing...'
+  . cloudbees.com 'todo'
+
 == Aug 28, 2014 - Hangout on Air
 
 Recording available https://www.youtube.com/watch?v=_S2cn4nf0_U&list=UU43PVCp2j0b2og2DtxNOU1A[here on YouTube]
