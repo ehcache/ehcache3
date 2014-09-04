@@ -10,21 +10,22 @@ Next public meeting on https://plus.google.com/u/0/events/ccupvimv7vg6pkark9a4t4
 
 ==== Review some proposal on +CacheManager+ and +Cache+ subtyping & their matching +Builder+
 
+[source,java]
 ----
-    final CacheManager cacheManager = newCacheManagerBuilder().build();
+final CacheManager cacheManager = newCacheManagerBuilder().build();
 
-    final PersistentCacheManager pCacheManager = newCacheManagerBuilder()
-        .as(
-            diskPersistent(OVERRIDING)
-                .persistTo(File.createTempFile("ehcache", ".data"))
-        )
-        .build();
+final PersistentCacheManager pCacheManager = newCacheManagerBuilder()
+    .as(
+        diskPersistent(OVERRIDING)
+            .persistTo(File.createTempFile("ehcache", ".data"))
+    )
+    .build();
 
-    final PersistentCache<String, Object> pCache = newCacheBuilder(String.class, Object.class)
-        .as(
-            persistent(String.class, Object.class)
-        )
-        .build();
+final PersistentCache<String, Object> pCache = newCacheBuilder(String.class, Object.class)
+    .as(
+        persistent(String.class, Object.class)
+    )
+    .build();
 ----
 
 ==== Initial API issue break down
@@ -39,6 +40,7 @@ Recording available https://www.youtube.com/watch?v=_S2cn4nf0_U&list=UU43PVCp2j0
 
 Let's try to introduce a type hierarchy for both +Cache+ and +CacheManager+ that the builder would actually build, narrowing the type down à la Quartz 2.0 builders.
 
+[source,java]
 ----
 PersistentCache cache = newCacheBuilder() // <1>
   .diskPersistent(
