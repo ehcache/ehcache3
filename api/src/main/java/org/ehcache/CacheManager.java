@@ -23,9 +23,11 @@ import org.ehcache.config.CacheConfiguration;
  */
 public interface CacheManager {
 
-  <K, V> Cache<K, V> createCache(final String alias, final CacheConfiguration<K, V> config);
+  <K, V> Cache<K, V> createCache(String alias, CacheConfiguration<K, V> config);
 
-  <K, V> Cache<K, V> getCache(final String s, Class<K> keyType, Class<V> valueType);
+  <K, V> Cache<K, V> getCache(String alias, Class<K> keyType, Class<V> valueType);
+
+  void removeCache(String alias);
 
   void close();
 }

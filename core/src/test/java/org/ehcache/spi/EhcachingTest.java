@@ -16,7 +16,7 @@
 
 package org.ehcache.spi;
 
-import org.ehcache.CacheManager;
+import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.Configuration;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,7 +34,7 @@ public class EhcachingTest implements Ehcaching {
   }
 
   @Override
-  public CacheManager createCacheManager(final Configuration configuration, final ServiceProvider serviceProvider) {
+  public PersistentCacheManager createCacheManager(final Configuration configuration, final ServiceProvider serviceProvider) {
     creationCounter.getAndIncrement();
     return null;
   }

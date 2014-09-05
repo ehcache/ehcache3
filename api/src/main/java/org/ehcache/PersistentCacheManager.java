@@ -1,4 +1,4 @@
-/*
+package org.ehcache;/*
  * Copyright Terracotta, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,14 +14,11 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi;
-
-import org.ehcache.PersistentCacheManager;
-import org.ehcache.config.Configuration;
-
 /**
  * @author Alex Snaps
  */
-public interface Ehcaching {
-  PersistentCacheManager createCacheManager(Configuration configuration, ServiceProvider serviceProvider);
+public interface PersistentCacheManager extends CacheManager {
+
+  void destroyCache(String alias);
+
 }

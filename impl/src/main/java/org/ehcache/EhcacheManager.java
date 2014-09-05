@@ -31,7 +31,7 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * @author Alex Snaps
  */
-public final class EhcacheManager implements CacheManager {
+public final class EhcacheManager implements PersistentCacheManager {
 
   private final ServiceProvider serviceProvider = new ServiceProvider();
   private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<String, CacheHolder>();
@@ -64,6 +64,11 @@ public final class EhcacheManager implements CacheManager {
   }
 
   @Override
+  public void removeCache(final String alias) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
   public <K, V> Cache<K, V> createCache(final String alias, final CacheConfiguration<K, V> config) throws IllegalArgumentException {
     Class<K> keyType = config.getKeyType();
     Class<V> valueType = config.getValueType();
@@ -84,6 +89,11 @@ public final class EhcacheManager implements CacheManager {
   @Override
   public void close() {
     serviceProvider.stopAllServices();
+  }
+
+  @Override
+  public void destroyCache(final String alias) {
+    throw new UnsupportedOperationException("Implement me!");
   }
 
   private static final class CacheHolder {
