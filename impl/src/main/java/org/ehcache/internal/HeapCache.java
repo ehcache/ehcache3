@@ -110,7 +110,6 @@ public class HeapCache<K, V> implements Cache<K, V> {
     return underlying.containsKey(key);
   }
 
-  @Override
   public void close() {
     throw new UnsupportedOperationException("Implement me!");
   }
