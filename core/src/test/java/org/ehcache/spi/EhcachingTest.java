@@ -16,7 +16,9 @@
 
 package org.ehcache.spi;
 
+import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,14 +38,42 @@ public class EhcachingTest implements Ehcaching {
   @Override
   public PersistentCacheManager createCacheManager(final Configuration configuration, final ServiceProvider serviceProvider) {
     creationCounter.getAndIncrement();
-    return null;
+    return new TestCacheManager();
   }
 
-  public static int getCreationCount() {
-    return creationCounter.get();
+  public static int getCreationCountAndReset() {
+    return creationCounter.getAndSet(0);
   }
 
-  public static int getInstantiationCount() {
-    return instantiationCounter.get();
+  public static int getInstantiationCountAndReset() {
+    return instantiationCounter.getAndSet(0);
+  }
+
+  public static class TestCacheManager implements PersistentCacheManager {
+
+    @Override
+    public void destroyCache(final String alias) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public <K, V> Cache<K, V> createCache(final String alias, final CacheConfiguration<K, V> config) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public <K, V> Cache<K, V> getCache(final String alias, final Class<K> keyType, final Class<V> valueType) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public void removeCache(final String alias) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public void close() {
+      throw new UnsupportedOperationException("Implement me!");
+    }
   }
 }
