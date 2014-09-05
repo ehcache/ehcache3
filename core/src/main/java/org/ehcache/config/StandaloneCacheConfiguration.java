@@ -14,22 +14,15 @@
  * limitations under the License.
  */
 
-package org.ehcache;
+package org.ehcache.config;
 
-import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.CacheProvider;
+import org.ehcache.StandaloneCacheBuilder;
+import org.ehcache.StandaloneCache;
 
 /**
  * @author Alex Snaps
  */
-public final class CacheBuilder {
+public interface StandaloneCacheConfiguration<K, V, T extends StandaloneCache<K, V>> {
 
-  <K, V> StandaloneCache<K, V> build(ServiceProvider serviceProvider, Class<K> keyType, Class<V> valueType) {
-    return serviceProvider.findService(CacheProvider.class).createCache(keyType, valueType);
-  }
-
-  public <K, V> StandaloneCache<K, V> build(Class<K> keyType, Class<V> valueType) {
-    return build(new ServiceProvider(), keyType, valueType);
-  }
-
+  StandaloneCacheBuilder<K, V, T> builder(StandaloneCacheBuilder<K, V, ? extends StandaloneCache<K, V>> builder);
 }
