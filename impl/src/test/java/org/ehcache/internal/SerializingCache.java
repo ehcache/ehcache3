@@ -16,7 +16,7 @@
 
 package org.ehcache.internal;
 
-import org.ehcache.Cache;
+import org.ehcache.Ehcache;
 import org.ehcache.internal.serialization.Serializer;
 
 import java.io.IOException;
@@ -29,7 +29,7 @@ import java.util.Set;
 /**
  * @author cdennis
  */
-class SerializingCache<K, V> implements Cache<K, V> {
+class SerializingCache<K, V> extends Ehcache<K, V> {
 
   private final Serializer<V> valueSerializer;
   private final HeapCache<K, ByteBuffer> cheat;
@@ -140,6 +140,11 @@ class SerializingCache<K, V> implements Cache<K, V> {
 
   @Override
   public Iterator<Entry<K, V>> iterator() {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public void destroy() {
     throw new UnsupportedOperationException("Implement me!");
   }
 }

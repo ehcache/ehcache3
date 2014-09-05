@@ -16,7 +16,7 @@
 
 package org.ehcache.internal;
 
-import org.ehcache.Cache;
+import org.ehcache.Ehcache;
 import org.ehcache.internal.serialization.SerializationProvider;
 import org.ehcache.internal.serialization.Serializer;
 import org.ehcache.spi.ServiceLocator;
@@ -34,14 +34,14 @@ public class SerializingResource implements CacheProvider {
   public SerializingResource(final ServiceLocator serviceLocator) {this.serviceLocator = serviceLocator;}
 
   @Override
-  public <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
+  public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
     SerializationProvider serialization = serviceLocator.findService(SerializationProvider.class);
     Serializer<V> serializer = serialization.createSerializer(valueClazz);
-    return (Cache<K,V>) new SerializingCache(serializer);
+    return new SerializingCache(serializer);
   }
 
   @Override
-  public void releaseCache(Cache<?, ?> resource) {
+  public void releaseCache(Ehcache<?, ?> resource) {
     throw new UnsupportedOperationException("Not supported yet.");
   }
 

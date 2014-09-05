@@ -16,11 +16,11 @@
 
 package org.ehcache.spi;
 
+import org.ehcache.Ehcache;
 import org.ehcache.spi.cache.CacheProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
-import org.ehcache.Cache;
 
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
@@ -88,12 +88,12 @@ class ChildTestService extends ParentTestService {
 class FancyCacheProvider implements CacheProvider {
 
   @Override
-  public <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
+  public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
     return null;
   }
 
   @Override
-  public void releaseCache(final Cache<?, ?> resource) {
+  public void releaseCache(final Ehcache<?, ?> resource) {
     //
   }
 
@@ -105,12 +105,12 @@ class FancyCacheProvider implements CacheProvider {
 
 class DullCacheProvider implements CacheProvider {
   @Override
-  public <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
+  public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
     return null;
   }
 
   @Override
-  public void releaseCache(final Cache<?, ?> resource) {
+  public void releaseCache(final Ehcache<?, ?> resource) {
     //
   }
 

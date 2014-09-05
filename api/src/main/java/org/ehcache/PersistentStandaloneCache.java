@@ -16,20 +16,10 @@
 
 package org.ehcache;
 
-import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.CacheProvider;
-
 /**
  * @author Alex Snaps
  */
-public final class CacheBuilder {
+public interface PersistentStandaloneCache<K, V> extends StandaloneCache<K, V> {
 
-  <K, V> StandaloneCache<K, V> build(ServiceProvider serviceProvider, Class<K> keyType, Class<V> valueType) {
-    return serviceProvider.findService(CacheProvider.class).createCache(keyType, valueType);
-  }
-
-  public <K, V> StandaloneCache<K, V> build(Class<K> keyType, Class<V> valueType) {
-    return build(new ServiceProvider(), keyType, valueType);
-  }
-
+  void destroy();
 }
