@@ -53,8 +53,6 @@ public interface Cache<K, V> {
 
   void clear();
 
-  void close();
-
   Iterator<Entry<K, V>> iterator();
 
   interface Entry<K, V> {
