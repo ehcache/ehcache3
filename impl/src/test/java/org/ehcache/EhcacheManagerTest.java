@@ -17,7 +17,6 @@
 package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -30,7 +29,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class DefaultCacheManagerTest {
+public class EhcacheManagerTest {
 
   @Test
   public void testConstructorThrowsWhenNotBeingToResolveService() {
@@ -41,7 +40,7 @@ public class DefaultCacheManagerTest {
       }
     }).build();
     try {
-      new DefaultCacheManager(config);
+      new EhcacheManager(config);
       fail("Should have thrown...");
     } catch (IllegalArgumentException e) {
       assertTrue(e.getMessage().contains(NoSuchService.class.getName()));
@@ -50,14 +49,14 @@ public class DefaultCacheManagerTest {
 
   @Test
   public void testReturnsNullForNonExistCache() {
-    DefaultCacheManager cacheManager = new DefaultCacheManager(newConfigurationBuilder().build());
+    EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder().build());
     assertThat(cacheManager.getCache("foo", Object.class, Object.class), nullValue());
   }
 
   @Test
   public void testThrowsWhenAddingExistingCache() {
     final CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder().buildConfig(Object.class, Object.class);
-    DefaultCacheManager cacheManager = new DefaultCacheManager(newConfigurationBuilder().addCache("bar",
+    EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder().addCache("bar",
         cacheConfiguration)
         .build());
     final Cache<Object, Object> cache = cacheManager.getCache("bar", Object.class, Object.class);
@@ -72,7 +71,7 @@ public class DefaultCacheManagerTest {
   @Test
   public void testThrowsWhenRetrievingCacheWithWrongTypes() {
     final CacheConfiguration<Integer, String> cacheConfiguration = newCacheConfigurationBuilder().buildConfig(Integer.class, String.class);
-    DefaultCacheManager cacheManager = new DefaultCacheManager(newConfigurationBuilder().addCache("bar",
+    EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder().addCache("bar",
         cacheConfiguration)
         .build());
     cacheManager.getCache("bar", Integer.class, String.class);
