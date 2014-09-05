@@ -16,7 +16,7 @@
 
 package org.ehcache.internal;
 
-import org.ehcache.Cache;
+import org.ehcache.Ehcache;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author cdennis
  */
-public class HeapCache<K, V> implements Cache<K, V> {
+public class HeapCache<K, V> extends Ehcache<K, V> {
 
   private final Map<K, V> underlying = new ConcurrentHashMap<K, V>();
 
@@ -116,6 +116,11 @@ public class HeapCache<K, V> implements Cache<K, V> {
 
   @Override
   public Iterator<Entry<K, V>> iterator() {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public void destroy() {
     throw new UnsupportedOperationException("Implement me!");
   }
 }

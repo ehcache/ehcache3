@@ -16,20 +16,13 @@
 
 package org.ehcache;
 
-import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.CacheProvider;
-
 /**
+ * Represents a Cache that is not managed by a CacheManager
+ *
  * @author Alex Snaps
  */
-public final class CacheBuilder {
+public interface StandaloneCache<K, V> extends Cache<K, V> {
 
-  <K, V> StandaloneCache<K, V> build(ServiceProvider serviceProvider, Class<K> keyType, Class<V> valueType) {
-    return serviceProvider.findService(CacheProvider.class).createCache(keyType, valueType);
-  }
-
-  public <K, V> StandaloneCache<K, V> build(Class<K> keyType, Class<V> valueType) {
-    return build(new ServiceProvider(), keyType, valueType);
-  }
+  void close();
 
 }

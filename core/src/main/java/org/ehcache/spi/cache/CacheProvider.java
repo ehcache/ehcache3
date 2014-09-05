@@ -16,7 +16,7 @@
 
 package org.ehcache.spi.cache;
 
-import org.ehcache.Cache;
+import org.ehcache.Ehcache;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -26,7 +26,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
  */
 public interface CacheProvider extends Service {
 
-  <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config);
+  <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config);
 
-  void releaseCache(Cache<?, ?> resource);
+  void releaseCache(Ehcache<?, ?> resource);
 }

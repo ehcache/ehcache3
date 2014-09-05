@@ -16,12 +16,10 @@
 
 package org.ehcache.internal;
 
-import org.ehcache.Cache;
+import org.ehcache.Ehcache;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.CacheProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
-
-import static org.ehcache.internal.HeapCachingTierResource.wrapCacheWithCachingTierIfConfigured;
 
 /**
  *
@@ -35,12 +33,12 @@ public class HeapResource implements CacheProvider {
   public HeapResource(final ServiceLocator serviceLocator) {this.serviceLocator = serviceLocator;}
 
   @Override
-  public <K, V> Cache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
-    return wrapCacheWithCachingTierIfConfigured(new HeapCache<K, V>(), keyClazz, valueClazz, serviceLocator, config);
+  public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
+    return new HeapCache<K, V>();
   }
 
   @Override
-  public void releaseCache(Cache<?, ?> resource) {
+  public void releaseCache(Ehcache<?, ?> resource) {
     //no-op
   }
 
