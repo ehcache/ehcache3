@@ -18,7 +18,6 @@ package org.ehcache.internal.serialization;
 import java.io.Serializable;
 
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.internal.util.ServiceUtil;
 
 /**
  *
