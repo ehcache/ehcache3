@@ -31,12 +31,12 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * @author Alex Snaps
  */
-public final class DefaultCacheManager implements CacheManager {
+public final class EhcacheManager implements CacheManager {
 
   private final ServiceProvider serviceProvider = new ServiceProvider();
   private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<String, CacheHolder>();
 
-  public DefaultCacheManager(Configuration config) {
+  public EhcacheManager(Configuration config) {
     for (ServiceConfiguration<?> serviceConfig : config.getServiceConfigurations()) {
       if (serviceProvider.discoverService(serviceConfig) == null) {
         throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
