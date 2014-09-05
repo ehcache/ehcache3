@@ -16,21 +16,45 @@
 
 package org.ehcache;
 
+import org.ehcache.config.CacheManagerConfiguration;
 import org.ehcache.spi.EhcachingTest;
 import org.junit.Test;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.junit.Assert.assertThat;
 
 public class CacheManagerBuilderTest {
 
   @Test
   public void testLoadsTheEhcache() {
-    final CacheManager build = CacheManagerBuilder.newCacheManagerBuilder().build();
-    assertThat(build, nullValue());
-    assertThat(EhcachingTest.getInstantiationCount(), is(1));
-    assertThat(EhcachingTest.getCreationCount(), is(1));
+    final CacheManager build = newCacheManagerBuilder().build();
+    assertThat(build, notNullValue());
+    assertThat(EhcachingTest.getInstantiationCountAndReset(), is(1));
+    assertThat(EhcachingTest.getCreationCountAndReset(), is(1));
   }
 
+  @Test
+  public void testIsExtensible() {
+
+    final AtomicInteger counter = new AtomicInteger(0);
+
+    final EhcachingTest.TestCacheManager cacheManager = newCacheManagerBuilder().with(new CacheManagerConfiguration<EhcachingTest.TestCacheManager>() {
+      @Override
+      public CacheManagerBuilder<EhcachingTest.TestCacheManager> builder(final CacheManagerBuilder<? extends CacheManager> other) {
+        counter.getAndIncrement();
+        return new CacheManagerBuilder<EhcachingTest.TestCacheManager>();
+      }
+    }).build();
+
+    assertThat(cacheManager, notNullValue());
+    assertThat(cacheManager, is(instanceOf(EhcachingTest.TestCacheManager.class)));
+    assertThat(EhcachingTest.getInstantiationCountAndReset(), is(1));
+    assertThat(EhcachingTest.getCreationCountAndReset(), is(1));
+    assertThat(counter.get(), is(1));
+  }
 }
