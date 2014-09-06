@@ -21,12 +21,27 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import java.util.Collection;
 
 /**
+ * Represents the minimal read-only configuration for a Cache to be, or an already existing one
+ *
  * @author Alex Snaps
  */
 public interface CacheConfiguration<K, V> {
+
+  /**
+   * Not sure whether this should be exposed on this interface really
+   * @return unmodifiable collection of service configuration related to this cache
+   */
   Collection<ServiceConfiguration<?>> getServiceConfigurations();
 
+  /**
+   * The type of the key for this cache
+   * @return a non null value, where Object.class is the widest type
+   */
   Class<K> getKeyType();
 
+  /**
+   * The type of the value held in this cache
+   * @return a non null value, where Object.class is the widest type
+   */
   Class<V> getValueType();
 }
