@@ -17,12 +17,16 @@
 package org.ehcache;
 
 /**
- * Represents a Cache that is not managed by a CacheManager
+ * Represents a Cache that is not managed by a {@link org.ehcache.CacheManager}, as such that needs to
+ * have {@link #close()} invoked in order to release all its resources.
  *
  * @author Alex Snaps
  */
 public interface StandaloneCache<K, V> extends Cache<K, V> {
 
+  /**
+   * Releases all resources locally held by this {@link Cache} data or associated {@link org.ehcache.spi.service.Service}
+   */
   void close();
 
 }

@@ -17,9 +17,15 @@
 package org.ehcache;
 
 /**
+ * A {@link org.ehcache.StandaloneCache} that holds data that outlives the JVM's process
+ *
  * @author Alex Snaps
  */
 public interface PersistentStandaloneCache<K, V> extends StandaloneCache<K, V> {
 
+  /**
+   * Destroy all persistent data managed by this {@link org.ehcache.CacheManager},
+   * like persistent {@link Cache} data
+   */
   void destroy();
 }

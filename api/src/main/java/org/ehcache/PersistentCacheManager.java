@@ -1,4 +1,4 @@
-package org.ehcache;/*
+/*
  * Copyright Terracotta, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,11 +14,21 @@ package org.ehcache;/*
  * limitations under the License.
  */
 
+package org.ehcache;
+
 /**
+ * A CacheManager that knows how to lifecycle {@link org.ehcache.Cache} data that outlive the JVM's process existence.
+ *
  * @author Alex Snaps
  */
 public interface PersistentCacheManager extends CacheManager {
 
+  /**
+   * Destroys all data persistent data associated with the aliased {@link Cache} instance managed
+   * by this {@link org.ehcache.CacheManager}
+   *
+   * @param alias the {@link org.ehcache.Cache}'s alias to destroy all persistent data from
+   */
   void destroyCache(String alias);
 
 }
