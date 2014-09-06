@@ -6,7 +6,7 @@ jdk:
 notifications:
   email:
     recipients:
-      - ehcache-dev@googlegroups.com
+      - "ehcache-dev@googlegroups.com"
     on_success: change
     on_failure: always
   irc:
