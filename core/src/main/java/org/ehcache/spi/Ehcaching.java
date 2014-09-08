@@ -23,5 +23,5 @@ import org.ehcache.config.Configuration;
  * @author Alex Snaps
  */
 public interface Ehcaching {
-  PersistentCacheManager createCacheManager(Configuration configuration, ServiceProvider serviceProvider);
+  PersistentCacheManager createCacheManager(Configuration configuration, ServiceLocator serviceLocator);
 }

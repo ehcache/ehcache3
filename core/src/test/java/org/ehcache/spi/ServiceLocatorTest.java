@@ -30,11 +30,11 @@ import static org.junit.Assert.fail;
 /**
  * @author Alex Snaps
  */
-public class ServiceProviderTest {
+public class ServiceLocatorTest {
 
   @Test
   public void testClassHierarchies() {
-    ServiceProvider provider = new ServiceProvider();
+    ServiceLocator provider = new ServiceLocator();
     final Service service = new ChildTestService();
     provider.addService(service);
     assertThat(provider.findService(FooProvider.class), sameInstance(service));
@@ -45,7 +45,7 @@ public class ServiceProviderTest {
 
   @Test
   public void testThrowsWhenMultipleIdenticalServicesAdded() {
-    ServiceProvider provider = new ServiceProvider();
+    ServiceLocator provider = new ServiceLocator();
     final Service service = new FancyCacheProvider();
     provider.addService(service);
 

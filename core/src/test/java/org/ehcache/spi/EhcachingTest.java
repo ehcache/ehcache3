@@ -36,7 +36,7 @@ public class EhcachingTest implements Ehcaching {
   }
 
   @Override
-  public PersistentCacheManager createCacheManager(final Configuration configuration, final ServiceProvider serviceProvider) {
+  public PersistentCacheManager createCacheManager(final Configuration configuration, final ServiceLocator serviceLocator) {
     creationCounter.getAndIncrement();
     return new TestCacheManager();
   }

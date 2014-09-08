@@ -20,7 +20,7 @@ import org.ehcache.internal.cachingtier.ClockEvictingHeapCachingTier;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
 
-import static org.ehcache.spi.ServiceProvider.findSingletonAmongst;
+import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * @author Alex Snaps
