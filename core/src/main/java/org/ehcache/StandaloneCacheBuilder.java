@@ -17,7 +17,7 @@
 package org.ehcache;
 
 import org.ehcache.config.StandaloneCacheConfiguration;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.CacheProvider;
 
 /**
@@ -33,12 +33,12 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     this.valueType = valueType;
   }
 
-  T build(ServiceProvider serviceProvider) {
-    return (T)serviceProvider.findService(CacheProvider.class).createCache(keyType, valueType);
+  T build(ServiceLocator serviceLocator) {
+    return (T)serviceLocator.findService(CacheProvider.class).createCache(keyType, valueType);
   }
 
   public final T build() {
-    return build(new ServiceProvider());
+    return build(new ServiceLocator());
   }
 
   public final <N extends T> StandaloneCacheBuilder<K, V, N> with(StandaloneCacheConfiguration<K, V, N> cfg) {

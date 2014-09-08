@@ -17,9 +17,9 @@
 package org.ehcache.config;
 
 import org.ehcache.internal.HeapResource;
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.CacheProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.ServiceProvider;
 import org.junit.Test;
 import org.ehcache.Cache;
 import org.ehcache.exceptions.CacheAccessException;
@@ -40,10 +40,10 @@ public class CachingTierConfigurationBuilderTest {
   @Test
   public void testNothing() throws CacheAccessException {
 
-    final ServiceProvider serviceProvider = new ServiceProvider();
+    final ServiceLocator serviceLocator = new ServiceLocator();
     final CacheConfiguration<String, String> config = newCacheConfigurationBuilder()
     .buildCacheConfig(String.class, String.class);
-    CacheProvider cacheProvider = serviceProvider.findService(HeapResource.class);
+    CacheProvider cacheProvider = serviceLocator.findService(HeapResource.class);
     Class<String> keyType = config.getKeyType();
     Class<String> valueType = config.getValueType();
     Collection<ServiceConfiguration<?>> serviceConfigs = config.getServiceConfigurations();

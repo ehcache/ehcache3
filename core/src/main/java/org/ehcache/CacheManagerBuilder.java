@@ -20,7 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheManagerConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.spi.Ehcaching;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.ServiceLocator;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -36,7 +36,7 @@ public class CacheManagerBuilder<T extends CacheManager> {
   private Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
 
   public T build() {
-    ServiceProvider serviceProvider = new ServiceProvider();
+    ServiceLocator serviceLocator = new ServiceLocator();
     Configuration configuration = new Configuration(caches);
     final Iterator<Ehcaching> iterator = cachingProviders.iterator();
     if(!iterator.hasNext()) {
@@ -46,7 +46,7 @@ public class CacheManagerBuilder<T extends CacheManager> {
     if(iterator.hasNext()) {
       throw new IllegalStateException("Multiple cachingProviders on the classpath!");
     }
-    return (T)theOneToRuleThemAll.createCacheManager(configuration, serviceProvider);
+    return (T)theOneToRuleThemAll.createCacheManager(configuration, serviceLocator);
   }
 
   public <N extends T> CacheManagerBuilder<N> with(CacheManagerConfiguration<N> cfg) {

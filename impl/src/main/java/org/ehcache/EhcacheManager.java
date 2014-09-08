@@ -19,8 +19,8 @@ package org.ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.internal.HeapResource;
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.ServiceProvider;
 
 import java.util.Collection;
 import java.util.Map.Entry;
@@ -33,12 +33,12 @@ import java.util.concurrent.ConcurrentMap;
  */
 public final class EhcacheManager implements PersistentCacheManager {
 
-  private final ServiceProvider serviceProvider = new ServiceProvider();
+  private final ServiceLocator serviceLocator = new ServiceLocator();
   private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<String, CacheHolder>();
 
   public EhcacheManager(Configuration config) {
     for (ServiceConfiguration<?> serviceConfig : config.getServiceConfigurations()) {
-      if (serviceProvider.discoverService(serviceConfig) == null) {
+      if (serviceLocator.discoverService(serviceConfig) == null) {
         throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
       }
     }
@@ -74,7 +74,7 @@ public final class EhcacheManager implements PersistentCacheManager {
     Class<V> valueType = config.getValueType();
     Collection<ServiceConfiguration<?>> serviceConfigs = ((CacheConfiguration)config).getServiceConfigurations();
     ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
-    final Cache<K, V> cache = serviceProvider.findService(HeapResource.class)
+    final Cache<K, V> cache = serviceLocator.findService(HeapResource.class)
         .createCache(keyType, valueType, serviceConfigArray);
     return addCache(alias, keyType, valueType, cache);
   }
@@ -88,7 +88,7 @@ public final class EhcacheManager implements PersistentCacheManager {
 
   @Override
   public void close() {
-    serviceProvider.stopAllServices();
+    serviceLocator.stopAllServices();
   }
 
   @Override
