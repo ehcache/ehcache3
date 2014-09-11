@@ -8,7 +8,12 @@ Next public meeting on https://plus.google.com/events/cmnhmhlsrini6s3380tqopa5jd
 
 === Agenda
 
-*to be defined* — send ideas to the https://groups.google.com/forum/#!forum/ehcache-dev[Google groups]
+ . CRUD operations & 107
+ . Resilient +Cache+ ?
+ . CIaaS: travis-ci
+ . Eclipse & Gradle
+
+Use the https://plus.google.com/events/cmnhmhlsrini6s3380tqopa5jdo[Q&A app] on the Hangout on Air for additional ideas or thoughts...
 
 == Sep 4, 2014 - Hangout on Air
 
