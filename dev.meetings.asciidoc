@@ -2,18 +2,40 @@
 
 :toc:
 
-== Sep 11, 2014 - Hangout on Air
+== Sep 18, 2014 - Hangout on Air
 
-Next public meeting on https://plus.google.com/events/cmnhmhlsrini6s3380tqopa5jdo[G+ Hangout on Air] at 11:30pm IST / 8pm CET / 2pm EST / 11am PST
+Next public meeting on https://plus.google.com/u/0/events/cst4usni73q4qkd315qtm8p6rm8[G+ Hangout on Air] at 11:30pm IST / 8pm CET / 2pm EST / 11am PST
 
 === Agenda
 
- . CRUD operations & 107
- . Resilient +Cache+ ?
- . CIaaS: travis-ci
- . Eclipse & Gradle
+*To be defined*
 
-Use the https://plus.google.com/events/cmnhmhlsrini6s3380tqopa5jdo[Q&A app] on the Hangout on Air for additional ideas or thoughts...
+== Sep 11, 2014 - Hangout on Air
+
+Recording available https://www.youtube.com/watch?v=PPiS6Y9Fzh4&list=UU43PVCp2j0b2og2DtxNOU1A[here on YouTube]
+
+=== CRUD operations
+
+ - Let's implement the void ones (e.g. +remove(K): void+) for now, we may do more later. It's a cache, no real reason to wanting the old value ever...
+
+=== Resilience of +Ehcache+
+
+ - Stick to +ResilienceStrategy+ and have +Ehcache+ be resilient:
+ * No issues for on-heap +Store+ implementations
+ * Persistent ones will cope just fine (i.e. recover)
+ * Distributed ones will force some +.dealWithUnconsistentCache()+ cases
+ - Have a checked, do it all yourself, interface of some kind
+ - Postponing the work until all CRUD operations are implemented
+
+=== Travis CI
+
+ - Lacks archiving, more work for us to do, but that's the work we'd want to be part of the _S_ in CIaaS
+ - Louis to take ownership and most probably move to cloudbees...
+
+=== Eclipse & Gradle
+
+ - Hung to check the Gradle plugin
+ - Eclipse plugin in gradle build is on master now
 
 == Sep 4, 2014 - Hangout on Air
 
