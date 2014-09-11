@@ -2,6 +2,7 @@ subprojects {
   apply plugin: 'java'
   apply plugin: 'maven'
   apply plugin: 'signing'
+  apply plugin: 'eclipse'
 
   group = 'org.ehcache.modules'
   version = '3.0.0-SNAPSHOT'
