@@ -77,6 +77,26 @@ class SerializingCache<K, V> extends Ehcache<K, V> {
     return cheat.containsKey(key);
   }
 
+  @Override
+  public V putIfAbsent(K key, V value) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public boolean remove(K key, V value) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public V replace(K key, V value) throws NullPointerException {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public boolean replace(K key, V oldValue, V newValue) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
   public void close() {
     throw new UnsupportedOperationException("Implement me!");
   }
