@@ -16,8 +16,6 @@
 package org.ehcache;
 
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Basic interface to a cache, defines all operational methods to crete, access,
@@ -28,41 +26,79 @@ import java.util.Set;
  */
 public interface Cache<K, V> {
 
+  /**
+   * Retrieve the value currently mapped to the provided key
+   *
+   * @param key the key to query the value for
+   * @return the value mapped to the key, null if none
+   *
+   * @throws java.lang.NullPointerException if the provided key is null
+   */
   V get(K key);
 
+  /**
+   * Associates the provided value to the given key
+   *
+   * @param key the key, may not be null
+   * @param value the value, may not be null
+   *
+   * @throws java.lang.NullPointerException if either key or value is null
+   */
   void put(K key, V value);
 
+  /**
+   * Checks whether a mapping for the given key is present, without retrieving the associated value
+   *
+   * @param key the key
+   * @return true if a mapping is present, false otherwise
+   *
+   * @throws java.lang.NullPointerException if the provided key is null
+   */
   boolean containsKey(K key);
 
-  boolean remove(K key);
+  /**
+   * Removes the value, if any, associated with the provided key
+   *
+   * @param key the key to remove the value for
+   *
+   * @throws java.lang.NullPointerException if the provided key is null
+   */
+  void remove(K key);
 
-  V getAndRemove(K key);
-
-  V getAndPut(K key, V value);
-
-  Map<K, V> getAll(Set<? extends K> keys);
-
-  void removeAll(Set<? extends K> keys);
-
-  void putAll(Map<? extends K, ? extends V> map);
-
-  boolean putIfAbsent(final K key, final V value);
-
-  boolean remove(final K key, final V oldValue);
-
-  boolean replace(final K key, final V oldValue, final V newValue);
-
-  boolean replace(final K key, final V value);
-
-  V getAndReplace(final K key, final V value);
-
+  /**
+   * Removes all mapping currently present in the Cache. This is not an atomic operation and can be very costly operation as well...
+   */
   void removeAll();
 
-  void clear();
-
+  /**
+   * Returns an iterator of all mappings currently held in the Cache.
+   * No mapping would be returned twice, but the iterator doesn't represent a "snapshot" of the Cache, it operates on the live set.
+   *
+   * @return the iterator
+   */
   Iterator<Entry<K, V>> iterator();
 
+  /**
+   * Represent a mapping of key to value held in a Cache
+   *
+   * @param <K> the key type
+   * @param <V> the value type
+   */
   interface Entry<K, V> {
+
+    /**
+     * Accessor to the key of this mapping
+     *
+     * @return the key, not null
+     */
+    K getKey();
+
+    /**
+     * Accessor to the value of this mapping
+     *
+     * @return the value, not null
+     */
+    V getValue();
 
   }
 }
