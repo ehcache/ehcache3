@@ -106,7 +106,7 @@ public class TieredCache<K, V> implements Cache<K, V> {
   }
 
   @Override
-  public void removeAll() {
+  public void clear() {
     throw new UnsupportedOperationException("Implement me!");
   }
 
