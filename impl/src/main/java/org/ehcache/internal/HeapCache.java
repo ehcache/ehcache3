@@ -20,6 +20,7 @@ import org.ehcache.Ehcache;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -71,6 +72,26 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
 
   @Override
   public boolean replace(K key, V oldValue, V newValue) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public Map<K, V> getAll(Iterable<? extends K> keys) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public void putAll(Iterable<Entry<? extends K, ? extends V>> entries) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public Set<K> containsKeys(Iterable<? extends K> keys) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public void removeAll(Iterable<? extends K> keys) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
