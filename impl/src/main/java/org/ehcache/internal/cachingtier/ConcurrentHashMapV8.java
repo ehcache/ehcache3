@@ -1993,7 +1993,7 @@ class ConcurrentHashMapV8<K, V> {
    * reflected in the set, and vice-versa.  The set supports element
    * removal, which removes the corresponding mapping from the map,
    * via the {@code Iterator.remove}, {@code Set.remove},
-   * {@code removeAll}, {@code retainAll}, and {@code clear}
+   * {@code clear}, {@code retainAll}, and {@code clear}
    * operations.  It does not support the {@code add} or
    * {@code addAll} operations.
    * <p/>

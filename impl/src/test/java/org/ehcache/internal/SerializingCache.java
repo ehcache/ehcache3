@@ -68,7 +68,7 @@ class SerializingCache<K, V> extends Ehcache<K, V> {
   }
 
   @Override
-  public void removeAll() {
+  public void clear() {
     throw new UnsupportedOperationException("Implement me!");
   }
 

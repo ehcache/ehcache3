@@ -15,8 +15,6 @@
  */
 package org.ehcache;
 
-import java.util.Iterator;
-
 /**
  * Basic interface to a cache, defines all operational methods to crete, access,
  * update or delete mappings of key to value
@@ -24,7 +22,7 @@ import java.util.Iterator;
  * @param <K> the type of the keys used to access data within this cache
  * @param <V> the type of the values held within this cache
  */
-public interface Cache<K, V> {
+public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
 
   /**
    * Retrieve the value currently mapped to the provided key
@@ -68,15 +66,7 @@ public interface Cache<K, V> {
   /**
    * Removes all mapping currently present in the Cache. This is not an atomic operation and can be very costly operation as well...
    */
-  void removeAll();
-
-  /**
-   * Returns an iterator of all mappings currently held in the Cache.
-   * No mapping would be returned twice, but the iterator doesn't represent a "snapshot" of the Cache, it operates on the live set.
-   *
-   * @return the iterator
-   */
-  Iterator<Entry<K, V>> iterator();
+  void clear();
 
   /**
    * Represent a mapping of key to value held in a Cache

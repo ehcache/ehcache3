@@ -87,7 +87,7 @@ public class StandaloneCacheBuilderTest {
     }
 
     @Override
-    public void removeAll() {
+    public void clear() {
       throw new UnsupportedOperationException("Implement me!");
     }
 
