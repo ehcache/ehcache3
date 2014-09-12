@@ -45,7 +45,7 @@ As such, every contribution gets reviewed by a committer, that effectively commi
 
  . +git remote add '<contributor>' '<url'>+ the contributor's ehcache3 repository;
  . +git fetch '<contributor>' issue-'<id>'+;
- . +git checkout -b '<contributor>'/issue-'<id>'+;
+ . +git checkout -b issue-'<id>' '<contributor>'/issue-'<id>'+;
  . 'do the actual review';
  . +git checkout master+;
  . +git cherry-pick ..issue-'<id>'+;
