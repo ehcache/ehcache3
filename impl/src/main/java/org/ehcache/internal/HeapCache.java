@@ -17,6 +17,7 @@
 package org.ehcache.internal;
 
 import org.ehcache.Ehcache;
+import org.ehcache.spi.cache.Store;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -29,6 +30,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class HeapCache<K, V> extends Ehcache<K, V> {
 
   private final Map<K, V> underlying = new ConcurrentHashMap<K, V>();
+
+  public HeapCache() {
+    super(null);
+  }
 
   @Override
   public V get(K key) {

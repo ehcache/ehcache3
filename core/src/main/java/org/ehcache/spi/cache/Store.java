@@ -16,6 +16,8 @@
 
 package org.ehcache.spi.cache;
 
+import org.ehcache.Cache;
+import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
@@ -23,13 +25,27 @@ import org.ehcache.spi.service.ServiceConfiguration;
  */
 public interface Store<K, V> {
 
-  ValueHolder<V> get(K key);
+  ValueHolder<V> get(K key) throws CacheAccessException;
 
-  // Add Store methods here
+  boolean containsKey(K key) throws CacheAccessException;
+
+  void put(K key, ValueHolder<V> value) throws CacheAccessException;
+
+  void remove(K key) throws CacheAccessException;
+
+  void clear() throws CacheAccessException;
+
+  void destroy() throws CacheAccessException;
+
+  void close() throws CacheAccessException;
+
+  Store.Iterator<Cache.Entry<K, ValueHolder<V>>> iterator();
 
   public interface ValueHolder<V> {
 
-    V value();
+    V value(); // deserializes
+
+    long creationTime();
 
     long lastAccessTime();
   }
@@ -39,6 +55,14 @@ public interface Store<K, V> {
     <K, V> Store<K, V> createStore(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config);
 
     void releaseStore(Store<?, ?> resource);
+
+  }
+
+  public interface Iterator<T> {
+
+    boolean hasNext() throws CacheAccessException;
+
+    T next() throws CacheAccessException;
 
   }
 }

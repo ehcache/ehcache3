@@ -35,6 +35,7 @@ class SerializingCache<K, V> extends Ehcache<K, V> {
   private final HeapCache<K, ByteBuffer> cheat;
 
   public SerializingCache(Serializer<V> valueSerializer) {
+    super(null);
     this.valueSerializer = valueSerializer;
     this.cheat = new HeapCache<K, ByteBuffer>();
   }
