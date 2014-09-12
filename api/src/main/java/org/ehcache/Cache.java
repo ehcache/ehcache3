@@ -15,6 +15,9 @@
  */
 package org.ehcache;
 
+import java.util.Map;
+import java.util.Set;
+
 /**
  * Basic interface to a cache, defines all operational methods to crete, access,
  * update or delete mappings of key to value
@@ -63,6 +66,44 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    */
   void remove(K key);
 
+  /**
+   * Retrieves all values associated with the given keys.
+   * 
+   * @param keys keys to query for
+   * @return a map from keys to values for all mapped keys
+   * 
+   * @throws NullPointerException if the {@code Iterable} or any of the returned keys are {@code null}.
+   */
+  Map<K, V> getAll(Iterable<? extends K> keys);
+
+  /**
+   * Associates all the provided key:value pairs.
+   * 
+   * @param entries key:value pairs to associate
+   * 
+   * @throws NullPointerException if the {@code Iterable} or any of the returned keys are {@code null}.
+   */
+  void putAll(Iterable<Entry<? extends K, ? extends V>> entries);
+
+  /**
+   * Checks which of the given keys are present.
+   * 
+   * @param keys keys to query for
+   * @return a set containing all present keys
+   * 
+   * @throws NullPointerException if the {@code Iterable} or any of the returned keys are {@code null}.
+   */
+  Set<K> containsKeys(Iterable<? extends K> keys);
+  
+  /**
+   * Removes any associates for the given keys.
+   * 
+   * @param keys keys to remove values for
+   * 
+   * @throws NullPointerException if the {@code Iterable} or any of the returned keys are {@code null}.
+   */
+  void removeAll(Iterable<? extends K> keys);
+  
   /**
    * Removes all mapping currently present in the Cache. This is not an atomic operation and can be very costly operation as well...
    */

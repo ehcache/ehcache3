@@ -21,6 +21,8 @@ import org.ehcache.spi.ServiceLocator;
 import org.junit.Test;
 
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -113,6 +115,26 @@ public class StandaloneCacheBuilderTest {
 
     @Override
     public boolean replace(K key, V oldValue, V newValue) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public Map<K, V> getAll(Iterable<? extends K> keys) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public void putAll(Iterable<Entry<? extends K, ? extends V>> entries) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public Set<K> containsKeys(Iterable<? extends K> keys) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public void removeAll(Iterable<? extends K> keys) {
       throw new UnsupportedOperationException("Implement me!");
     }
   }
