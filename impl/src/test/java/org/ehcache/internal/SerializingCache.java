@@ -22,9 +22,6 @@ import org.ehcache.internal.serialization.Serializer;
 import java.io.IOException;
 import java.io.NotSerializableException;
 import java.nio.ByteBuffer;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * @author cdennis
@@ -71,66 +68,7 @@ class SerializingCache<K, V> extends Ehcache<K, V> {
   }
 
   @Override
-  public void clear() {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
   public boolean containsKey(K key) {
     return cheat.containsKey(key);
-  }
-
-  @Override
-  public V putIfAbsent(K key, V value) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public boolean remove(K key, V value) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public V replace(K key, V value) throws NullPointerException {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public boolean replace(K key, V oldValue, V newValue) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public Map<K, V> getAll(Iterable<? extends K> keys) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public void putAll(Iterable<Entry<? extends K, ? extends V>> entries) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public Set<K> containsKeys(Iterable<? extends K> keys) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public void removeAll(Iterable<? extends K> keys) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  public void close() {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public Iterator<Entry<K, V>> iterator() {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public void destroy() {
-    throw new UnsupportedOperationException("Implement me!");
   }
 }

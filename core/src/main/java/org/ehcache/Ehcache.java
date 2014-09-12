@@ -20,6 +20,8 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
 
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Alex Snaps
@@ -103,6 +105,46 @@ public abstract class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V
   @Override
   public Iterator<Entry<K, V>> iterator() {
     return new CacheEntryIterator(store.iterator());
+  }
+
+  @Override
+  public Map<K, V> getAll(final Iterable<? extends K> keys) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public void putAll(final Iterable<Entry<? extends K, ? extends V>> entries) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public Set<K> containsKeys(final Iterable<? extends K> keys) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public void removeAll(final Iterable<? extends K> keys) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public V putIfAbsent(final K key, final V value) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public boolean remove(final K key, final V value) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public V replace(final K key, final V value) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public boolean replace(final K key, final V oldValue, final V newValue) {
+    throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
