@@ -10,3 +10,5 @@ build/
 
 *.iml
 .idea
+
+.nb-gradle
