@@ -22,11 +22,7 @@ import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * @author cdennis
@@ -101,95 +97,16 @@ public class TieredCache<K, V> implements Cache<K, V> {
   }
 
   @Override
-  public boolean remove(K key) {
+  public void remove(K key) {
     try {
-      return authority.remove(key);
+      authority.remove(key);
     } finally {
       cachingTier.remove(key);
     }
-  }
-
-  @Override
-  public V getAndRemove(K key) {
-    try {
-      return authority.getAndRemove(key);
-    } finally {
-      cachingTier.remove(key);
-    }
-  }
-
-  @Override
-  public V getAndPut(K key, V value) {
-    boolean cleanRun = false;
-    V oldValue = null;
-    try {
-      oldValue = authority.getAndPut(key, value);
-      cleanRun = true;
-    } finally {
-      if (!cleanRun) {
-        cachingTier.remove(key);
-      } else if (oldValue != null && !cachingTier.replace(key, oldValue, value)) {
-        cachingTier.remove(key);
-      }
-    }
-    return oldValue;
-  }
-
-  @Override
-  public Map<K, V> getAll(Set<? extends K> keys) {
-    Map<K, V> result = new HashMap<K, V>(keys.size(), 1);
-    for (K k : keys) {
-      result.put(k, get(k));
-    }
-    return Collections.unmodifiableMap(result);
-  }
-
-  @Override
-  public void removeAll(Set<? extends K> keys) {
-    for (K k : keys) {
-      remove(k);
-    }
-  }
-
-  @Override
-  public void putAll(Map<? extends K, ? extends V> map) {
-    for (Map.Entry<? extends K, ? extends V> entry : map.entrySet()) {
-      put(entry.getKey(), entry.getValue());
-    }
-  }
-
-  @Override
-  public boolean putIfAbsent(final K key, final V value) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public boolean remove(final K key, final V oldValue) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public boolean replace(final K key, final V oldValue, final V newValue) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public boolean replace(final K key, final V value) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public V getAndReplace(final K key, final V value) {
-    throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
   public void removeAll() {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public void clear() {
     throw new UnsupportedOperationException("Implement me!");
   }
 

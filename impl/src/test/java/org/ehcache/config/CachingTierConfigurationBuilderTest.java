@@ -51,7 +51,7 @@ public class CachingTierConfigurationBuilderTest {
     final Cache<String, String> cache = cacheProvider.createCache(keyType, valueType, serviceConfigArray);
 
     assertThat(cache, not(hasKey("key")));
-    assertThat(cache.getAndPut("key", "value"), nullValue());
+    cache.put("key", "value");
     assertThat(cache, hasKey("key"));
   }
 }

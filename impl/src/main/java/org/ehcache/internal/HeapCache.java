@@ -20,7 +20,6 @@ import org.ehcache.Ehcache;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -41,67 +40,12 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
   }
 
   @Override
-  public V getAndRemove(K key) {
-    throw new UnsupportedOperationException("Not supported yet.");
-  }
-
-  @Override
-  public boolean replace(final K key, final V oldValue, final V newValue) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public boolean replace(final K key, final V value) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public V getAndReplace(final K key, final V value) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public V getAndPut(K key, V value) {
-    return underlying.put(key, value);
-  }
-
-  @Override
-  public Map<K, V> getAll(Set<? extends K> keys) {
-    throw new UnsupportedOperationException("Not supported yet.");
-  }
-
-  @Override
-  public void removeAll(Set<? extends K> keys) {
-    throw new UnsupportedOperationException("Not supported yet.");
-  }
-
-  @Override
   public void removeAll() {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public void clear() {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public void putAll(Map<? extends K, ? extends V> entries) {
-    throw new UnsupportedOperationException("Not supported yet.");
-  }
-
-  @Override
-  public boolean putIfAbsent(final K key, final V value) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public boolean remove(final K key) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public boolean remove(final K key, final V oldValue) {
+  public void remove(final K key) {
     throw new UnsupportedOperationException("Implement me!");
   }
 

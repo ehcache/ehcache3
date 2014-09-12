@@ -21,8 +21,6 @@ import org.ehcache.spi.ServiceLocator;
 import org.junit.Test;
 
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -84,67 +82,12 @@ public class StandaloneCacheBuilderTest {
     }
 
     @Override
-    public boolean remove(final K key) {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-
-    @Override
-    public V getAndRemove(final K key) {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-
-    @Override
-    public V getAndPut(final K key, final V value) {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-
-    @Override
-    public Map<K, V> getAll(final Set<? extends K> keys) {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-
-    @Override
-    public void removeAll(final Set<? extends K> keys) {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-
-    @Override
-    public void putAll(final Map<? extends K, ? extends V> map) {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-
-    @Override
-    public boolean putIfAbsent(final K key, final V value) {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-
-    @Override
-    public boolean remove(final K key, final V oldValue) {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-
-    @Override
-    public boolean replace(final K key, final V oldValue, final V newValue) {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-
-    @Override
-    public boolean replace(final K key, final V value) {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-
-    @Override
-    public V getAndReplace(final K key, final V value) {
+    public void remove(final K key) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
     public void removeAll() {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-
-    @Override
-    public void clear() {
       throw new UnsupportedOperationException("Implement me!");
     }
 
