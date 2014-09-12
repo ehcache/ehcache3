@@ -99,7 +99,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * 
    * @throws NullPointerException if either key or value is null
    */
-  V replace(K key, V value) throws NullPointerException;
+  V replace(K key, V value);
   
   /**
    * If the provided key is associated with {@code oldValue}, then replace that value with {@code newValue}.
