@@ -106,6 +106,26 @@ public class TieredCache<K, V> implements Cache<K, V> {
   }
 
   @Override
+  public V putIfAbsent(K key, V value) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public boolean remove(K key, V value) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public V replace(K key, V value) throws NullPointerException {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public boolean replace(K key, V oldValue, V newValue) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
   public void clear() {
     throw new UnsupportedOperationException("Implement me!");
   }

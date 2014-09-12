@@ -95,5 +95,25 @@ public class StandaloneCacheBuilderTest {
     public Iterator<Entry<K, V>> iterator() {
       throw new UnsupportedOperationException("Implement me!");
     }
+
+    @Override
+    public V putIfAbsent(K key, V value) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public boolean remove(K key, V value) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public V replace(K key, V value) throws NullPointerException {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public boolean replace(K key, V oldValue, V newValue) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
   }
 }

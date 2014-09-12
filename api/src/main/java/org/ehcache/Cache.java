@@ -69,6 +69,51 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
   void clear();
 
   /**
+   * If the provided key is not associated with a value, then associate it with the provided value.
+   * 
+   * @param key the key to be associated with
+   * @param value the value to associate
+   * @return the value that was associated with the key, or {@code null} if none
+   * 
+   * @throws NullPointerException if either key or value is null
+   */
+  V putIfAbsent(K key, V value);
+
+  /**
+   * If the provided key is associated with the provided value then remove the entry.
+   * 
+   * @param key the key to remove
+   * @param value the value to check against
+   * @return {@code true} if the entry was removed
+   * 
+   * @throws NullPointerException if either key or value is null
+   */
+  boolean remove(K key, V value);
+
+  /**
+   * If the provided key is associated with a value, then replace that value with the provided value.
+   * 
+   * @param key the key to be associated with
+   * @param value the value to associate
+   * @return the value that was associated with the key, or {@code null} if none
+   * 
+   * @throws NullPointerException if either key or value is null
+   */
+  V replace(K key, V value) throws NullPointerException;
+  
+  /**
+   * If the provided key is associated with {@code oldValue}, then replace that value with {@code newValue}.
+   * 
+   * @param key the key to be associated with
+   * @param oldValue the value to check against
+   * @param newValue the value to associate
+   * @return {@code true} if the value was replaced
+   * 
+   * @throws NullPointerException if any of the values, or the key is null
+   */
+  boolean replace(K key, V oldValue, V newValue);
+  
+  /**
    * Represent a mapping of key to value held in a Cache
    *
    * @param <K> the key type
