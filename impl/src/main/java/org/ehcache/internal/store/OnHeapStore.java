@@ -101,6 +101,11 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     }
 
     @Override
+    public <K, V> OnHeapStore<K, V> createStore(final Class<K> keyClazz, final Class<V> valueClazz, final Comparable<Long> capacityConstraint, final ServiceConfiguration<?>... config) {
+      return new OnHeapStore<K, V>();
+    }
+    
+    @Override
     public void releaseStore(final Store<?, ?> resource) {
       try {
         resource.clear();

@@ -28,11 +28,13 @@ class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
 
   private final Class<K> keyType;
   private final Class<V> valueType;
+  private final Comparable<Long> capacityConstraint;
   private final Collection<ServiceConfiguration<?>> serviceConfigurations;
 
-  public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType, ServiceConfiguration<?>... serviceConfigurations) {
+  public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint, ServiceConfiguration<?>... serviceConfigurations) {
     this.keyType = keyType;
     this.valueType = valueType;
+    this.capacityConstraint = capacityConstraint;
     this.serviceConfigurations = Collections.unmodifiableCollection(Arrays.asList(serviceConfigurations));
   }
 
@@ -51,4 +53,8 @@ class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
     return valueType;
   }
 
+  @Override
+  public Comparable<Long> getCapacityConstraint() {
+    return capacityConstraint;
+  }
 }

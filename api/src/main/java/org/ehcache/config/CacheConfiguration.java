@@ -44,4 +44,11 @@ public interface CacheConfiguration<K, V> {
    * @return a non null value, where Object.class is the widest type
    */
   Class<V> getValueType();
+  
+  /**
+   * The capacity constraint in place on this cache
+   * 
+   * @return the maximal capacity of this cache, or {@code null} if their is no constraint
+   */
+  Comparable<Long> getCapacityConstraint();
 }

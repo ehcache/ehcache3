@@ -169,6 +169,19 @@ public interface Store<K, V> {
     <K, V> Store<K, V> createStore(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config);
 
     /**
+     * Creates a new Store instance
+     *
+     * @param keyClazz the {@link java.lang.Class type} of the keys this Store holds
+     * @param valueClazz the {@link java.lang.Class type} of the values this Store holds
+     * @param capacityConstraint the capacity constraint to be enforced by this Store
+     * @param config the configurations the Provider may need to configure the Store
+     * @param <K> key type
+     * @param <V> value type
+     * @return the Store honoring the configurations passed in
+     */
+    <K, V> Store<K, V> createStore(Class<K> keyClazz, Class<V> valueClazz, Comparable<Long> capacityConstraint, ServiceConfiguration<?>... config);
+
+    /**
      * Informs this Provider, a Store it created is being disposed (i.e. closed)
      * @param resource
      */
