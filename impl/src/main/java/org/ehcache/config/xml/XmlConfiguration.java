@@ -45,10 +45,11 @@ public class XmlConfiguration {
 
       Class<?> keyType = getClassForName(cacheElement.keyType());
       Class<?> valueType = getClassForName(cacheElement.valueType());
+      Long capacityConstraint = cacheElement.capacityConstraint();
       for (ServiceConfiguration<?> serviceConfig : cacheElement.serviceConfigs()) {
         builder.addServiceConfig(serviceConfig);
       }
-      configBuilder.addCache(cacheElement.alias(), builder.buildConfig(keyType, valueType));
+      configBuilder.addCache(cacheElement.alias(), builder.buildConfig(keyType, valueType, capacityConstraint));
     }
 
     return configBuilder.build();

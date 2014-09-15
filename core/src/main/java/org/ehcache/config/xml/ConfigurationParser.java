@@ -116,6 +116,11 @@ public class ConfigurationParser {
         }
 
         @Override
+        public Long capacityConstraint() {
+          return getElementLongContext(cacheElement, "capacity-constraint", null);
+        }
+        
+        @Override
         public Iterable<ServiceConfiguration<?>> serviceConfigs() {
           Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
           for (Node child = cacheElement.getFirstChild(); child != null; child = child.getNextSibling()) {
@@ -169,16 +174,37 @@ public class ConfigurationParser {
     String keyType();
 
     String valueType();
+    
+    Long capacityConstraint();
 
     Iterable<ServiceConfiguration<?>> serviceConfigs();
   }
 
+  private static Long getElementLongContext(Element element, String name, Long def) {
+    String text = getElementTextContent(element, name, null);
+    if (text == null) {
+      return def;
+    } else {
+      return Long.parseLong(text);
+    }
+  }
+  
   private static String getElementTextContent(Element element, String name) {
+    String text = getElementTextContent(element, name, null);
+    if (text == null) {
+      throw new AssertionError();
+    } else {
+      return text;
+    }
+  }
+  
+  private static String getElementTextContent(Element element, String name, String def) {
     NodeList matches = element.getElementsByTagNameNS(CORE_NAMESPACE_URI, name);
     if (matches.getLength() == 1) {
       return matches.item(0).getTextContent();
     } else {
-      throw new AssertionError();
+      return def;
     }
   }
+  
 }
