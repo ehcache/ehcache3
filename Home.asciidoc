@@ -13,7 +13,7 @@ This wiki contains all design documents and other related material to doing deve
 On paper (or on this screen), it's pretty straight forward:
 
  . Join the https://groups.google.com/forum/#!forum/ehcache-dev[developer mailing list] and say hello!
- . Check the https://github.com/ehcache/ehcache3/issues[issues] and verify what you want isn't yet planned or could even already being worked on by someone;
+ . Check the https://github.com/ehcache/ehcache3/issues[issues] and verify what you want isn't yet planned or could even already being worked on by someone; We're also using a board on https://waffle.io/ehcache/ehcache3[waffle.io], where work for the current milestone is prioritized;
  . If the task exists already and isn't assigned: drop us an email on the https://groups.google.com/forum/#!forum/ehcache-dev[developer mailing list] about it and we'll make sure we help you getting started and we'll assign the task/issue to you;
  . If nothing matches in the existing issue list, create a bug as such; or, if we're talking about a larger task or feature, https://groups.google.com/forum/#!forum/ehcache-dev[drop us a message] first, and we'll see how to tackle it;
  . https://github.com/ehcache/ehcache3/fork[Fork] the project to your own repository and get started (you probably want to work on a dedicated branch);
@@ -40,7 +40,7 @@ The code core of Ehcache is split in three core modules:
 
 +org.ehcache.spi.service.ServiceFactory+ are used to create +org.ehcache.spi.service.Service+, configured through +org.ehcache.spi.service.ServiceConfiguration+. Each of those services can be about anything.
 
-A special kind of +Service+ is the +org.ehcache.spi.cache.CacheProvider+, which is used by the +CacheManager+ to create all caches. 
+A special kind of +Service+ is the +org.ehcache.spi.cache.CacheProvider+, which is used by the +CacheManager+ to create all caches.
 
 === Configuration
 
