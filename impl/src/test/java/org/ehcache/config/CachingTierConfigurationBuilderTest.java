@@ -16,21 +16,20 @@
 
 package org.ehcache.config;
 
-import org.ehcache.internal.EhcacheProvider;
-import org.ehcache.spi.ServiceLocator;
-import org.ehcache.spi.cache.CacheProvider;
-import org.ehcache.spi.service.ServiceConfiguration;
-import org.junit.Test;
 import org.ehcache.Cache;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.internal.HeapCache;
+import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.junit.Test;
 
 import java.util.Collection;
 
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.internal.util.Matchers.hasKey;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThat;
 
 /**
  * @author Alex Snaps
@@ -43,12 +42,11 @@ public class CachingTierConfigurationBuilderTest {
     final ServiceLocator serviceLocator = new ServiceLocator();
     final CacheConfiguration<String, String> config = newCacheConfigurationBuilder()
     .buildCacheConfig(String.class, String.class);
-    CacheProvider cacheProvider = serviceLocator.findService(EhcacheProvider.class);
-    Class<String> keyType = config.getKeyType();
-    Class<String> valueType = config.getValueType();
+    final Store.Provider service = serviceLocator.findService(Store.Provider.class);
     Collection<ServiceConfiguration<?>> serviceConfigs = config.getServiceConfigurations();
     ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
-    final Cache<String, String> cache = cacheProvider.createCache(keyType, valueType, serviceConfigArray);
+    final Store<String, String> store = service.createStore(config.getKeyType(), config.getValueType(), serviceConfigArray);
+    final Cache<String, String> cache = new HeapCache<String, String>(store);
 
     assertThat(cache, not(hasKey("key")));
     cache.put("key", "value");

@@ -51,11 +51,11 @@ public interface Store<K, V> {
     long lastAccessTime();
   }
 
-  public interface Provider<T extends Store<?,?>> extends Service {
+  public interface Provider extends Service {
 
     <K, V> Store<K, V> createStore(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config);
 
-    void releaseStore(T resource);
+    void releaseStore(Store<?, ?> resource);
 
   }
 

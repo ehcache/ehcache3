@@ -74,7 +74,7 @@ public final class EhcacheManager implements PersistentCacheManager {
     Class<V> valueType = config.getValueType();
     Collection<ServiceConfiguration<?>> serviceConfigs = ((CacheConfiguration)config).getServiceConfigurations();
     ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
-    final Store.Provider<Store<K, V>> service = serviceLocator.findService(Store.Provider.class);
+    final Store.Provider service = serviceLocator.findService(Store.Provider.class);
     final Store<K, V> store = service.createStore(keyType, valueType);
     final Cache<K, V> cache = new Ehcache<K, V>(store, serviceConfigArray);
     return addCache(alias, keyType, valueType, cache);

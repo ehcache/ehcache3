@@ -17,6 +17,8 @@
 package org.ehcache.internal;
 
 import org.ehcache.Ehcache;
+import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.spi.cache.Store;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,15 +26,59 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author cdennis
  */
+@Deprecated
 public class HeapCache<K, V> extends Ehcache<K, V> {
 
   private final Map<K, V> underlying = new ConcurrentHashMap<K, V>();
 
   public HeapCache() {
-    super(null);
+    this(new Store<K, V>() {
+      @Override
+      public ValueHolder<V> get(final K key) throws CacheAccessException {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public boolean containsKey(final K key) throws CacheAccessException {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public void put(final K key, final ValueHolder<V> value) throws CacheAccessException {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public void remove(final K key) throws CacheAccessException {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public void clear() throws CacheAccessException {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public void destroy() throws CacheAccessException {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public void close() throws CacheAccessException {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public Iterator<Entry<K, ValueHolder<V>>> iterator() {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+    });
   }
 
-  @Override
+  public HeapCache(final Store<K, V> store) {
+    super(store);
+  }
+
   public V get(K key) {
     return underlying.get(key);
   }

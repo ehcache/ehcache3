@@ -94,14 +94,14 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     };
   }
 
-  public static class Provider implements Store.Provider<OnHeapStore<?,?>> {
+  public static class Provider implements Store.Provider {
     @Override
-    public <K, V> Store<K, V> createStore(final Class<K> keyClazz, final Class<V> valueClazz, final ServiceConfiguration<?>... config) {
+    public <K, V> OnHeapStore<K, V> createStore(final Class<K> keyClazz, final Class<V> valueClazz, final ServiceConfiguration<?>... config) {
       return new OnHeapStore<K, V>();
     }
 
     @Override
-    public void releaseStore(final OnHeapStore<?, ?> resource) {
+    public void releaseStore(final Store<?, ?> resource) {
       try {
         resource.clear();
       } catch (CacheAccessException e) {
