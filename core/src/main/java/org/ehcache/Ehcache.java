@@ -18,6 +18,8 @@ package org.ehcache;
 
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -26,11 +28,11 @@ import java.util.Set;
 /**
  * @author Alex Snaps
  */
-public abstract class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, PersistentStandaloneCache<K, V> {
+public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, PersistentStandaloneCache<K, V> {
 
   private final Store<K, V> store;
 
-  protected Ehcache(Store<K, V> store) {
+  protected Ehcache(Store<K, V> store, ServiceConfiguration<? extends Service>... configs) {
     this.store = store;
   }
 

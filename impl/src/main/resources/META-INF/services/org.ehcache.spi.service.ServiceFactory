@@ -1,3 +1,4 @@
+org.ehcache.internal.store.OnHeapStoreProviderFactory
 org.ehcache.internal.HeapResourceFactory
 org.ehcache.internal.HeapCacheFactory
 org.ehcache.internal.serialization.JavaSerializationProviderFactory

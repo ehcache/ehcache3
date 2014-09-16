@@ -18,6 +18,7 @@ package org.ehcache.spi.cache;
 
 import org.ehcache.Cache;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
@@ -50,11 +51,11 @@ public interface Store<K, V> {
     long lastAccessTime();
   }
 
-  public interface Provider {
+  public interface Provider<T extends Store<?,?>> extends Service {
 
     <K, V> Store<K, V> createStore(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config);
 
-    void releaseStore(Store<?, ?> resource);
+    void releaseStore(T resource);
 
   }
 
