@@ -1,10 +1,28 @@
 /*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-package java.util.concurrent;
+package org.ehcache.internal.concurrent;
+
+import org.ehcache.internal.concurrent.JSR166Helper.*;
 
 /**
  * A {@link ForkJoinTask} with a completion action performed when
@@ -380,7 +398,7 @@ package java.util.concurrent;
  * @since 1.8
  * @author Doug Lea
  */
-public abstract class CountedCompleter<T> extends ForkJoinTask<T> {
+abstract class CountedCompleter<T> extends ForkJoinTask<T> {
     private static final long serialVersionUID = 5232453752276485070L;
 
     /** This task's completer, or null if none */
@@ -725,11 +743,11 @@ public abstract class CountedCompleter<T> extends ForkJoinTask<T> {
     protected void setRawResult(T t) { }
 
     // Unsafe mechanics
-    private static final sun.misc.Unsafe U;
+    private static final Unsafe U;
     private static final long PENDING;
     static {
         try {
-            U = sun.misc.Unsafe.getUnsafe();
+            U = Unsafe.getUnsafe();
             PENDING = U.objectFieldOffset
                 (CountedCompleter.class.getDeclaredField("pending"));
         } catch (Exception e) {

@@ -1,13 +1,31 @@
 /*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-package java.util.concurrent;
+package org.ehcache.internal.concurrent;
 
 import java.security.AccessControlContext;
 import java.security.ProtectionDomain;
+
+import org.ehcache.internal.concurrent.JSR166Helper.*;
 
 /**
  * A thread managed by a {@link ForkJoinPool}, which executes
@@ -23,7 +41,7 @@ import java.security.ProtectionDomain;
  * @since 1.7
  * @author Doug Lea
  */
-public class ForkJoinWorkerThread extends Thread {
+class ForkJoinWorkerThread extends Thread {
     /*
      * ForkJoinWorkerThreads are managed by ForkJoinPools and perform
      * ForkJoinTasks. For explanation, see the internal documentation
@@ -156,13 +174,13 @@ public class ForkJoinWorkerThread extends Thread {
     }
 
     // Set up to allow setting thread fields in constructor
-    private static final sun.misc.Unsafe U;
+    private static final Unsafe U;
     private static final long THREADLOCALS;
     private static final long INHERITABLETHREADLOCALS;
     private static final long INHERITEDACCESSCONTROLCONTEXT;
     static {
         try {
-            U = sun.misc.Unsafe.getUnsafe();
+            U = Unsafe.getUnsafe();
             Class<?> tk = Thread.class;
             THREADLOCALS = U.objectFieldOffset
                 (tk.getDeclaredField("threadLocals"));
@@ -222,7 +240,7 @@ public class ForkJoinWorkerThread extends Thread {
          */
         private static ThreadGroup createThreadGroup() {
             try {
-                sun.misc.Unsafe u = sun.misc.Unsafe.getUnsafe();
+                Unsafe u = Unsafe.getUnsafe();
                 Class<?> tk = Thread.class;
                 Class<?> gk = ThreadGroup.class;
                 long tg = u.objectFieldOffset(tk.getDeclaredField("group"));
