@@ -1,27 +1,43 @@
 /*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-package java.util.concurrent;
+package org.ehcache.internal.concurrent;
 
 import java.io.ObjectStreamField;
 import java.net.NetworkInterface;
 import java.util.Enumeration;
 import java.util.Random;
-import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.DoubleConsumer;
-import java.util.function.IntConsumer;
-import java.util.function.LongConsumer;
-import java.util.stream.DoubleStream;
-import java.util.stream.IntStream;
-import java.util.stream.LongStream;
-import java.util.stream.StreamSupport;
+
+import org.ehcache.internal.concurrent.JSR166Helper.*;
 
 /**
+ * <b>*** WARNING IF YOU'RE USING THIS CLASS WITH JDK 8 OR ABOVE ***
+ * <br/>
+ * BY ALL MEANS, DO <u>NOT</u> USE THE <code>ints()</code>, <code>longs()</code> or <code>doubles()</code> METHODS.
+ * USE THE <code>_ints()</code>, <code>_longs()</code> or <code>_doubles()</code> ONES INSTEAD.
+ * </b>
+ * <p/>
  * A random number generator isolated to the current thread.  Like the
  * global {@link java.util.Random} generator used by the {@link
  * java.lang.Math} class, a {@code ThreadLocalRandom} is initialized
@@ -52,7 +68,7 @@ import java.util.stream.StreamSupport;
  * @since 1.7
  * @author Doug Lea
  */
-public class ThreadLocalRandom extends Random {
+class ThreadLocalRandom extends Random {
     /*
      * This class implements the java.util.Random API (and subclasses
      * Random) using a single static instance that accesses random
@@ -170,7 +186,7 @@ public class ThreadLocalRandom extends Random {
 
     /** Rarely-used holder for the second of a pair of Gaussians */
     private static final ThreadLocal<Double> nextLocalGaussian =
-        new ThreadLocal<>();
+        new ThreadLocal<Double>();
 
     private static long mix64(long z) {
         z = (z ^ (z >>> 33)) * 0xff51afd7ed558ccdL;
@@ -208,9 +224,8 @@ public class ThreadLocalRandom extends Random {
         int p = probeGenerator.addAndGet(PROBE_INCREMENT);
         int probe = (p == 0) ? 1 : p; // skip 0
         long seed = mix64(seeder.getAndAdd(SEEDER_INCREMENT));
-        Thread t = Thread.currentThread();
-        UNSAFE.putLong(t, SEED, seed);
-        UNSAFE.putInt(t, PROBE, probe);
+        SEED.set(seed);
+        PROBE.set(probe);
     }
 
     /**
@@ -219,7 +234,7 @@ public class ThreadLocalRandom extends Random {
      * @return the current thread's {@code ThreadLocalRandom}
      */
     public static ThreadLocalRandom current() {
-        if (UNSAFE.getInt(Thread.currentThread(), PROBE) == 0)
+        if (PROBE.get() == 0)
             localInit();
         return instance;
     }
@@ -237,9 +252,8 @@ public class ThreadLocalRandom extends Random {
     }
 
     final long nextSeed() {
-        Thread t; long r; // read and update per-thread seed
-        UNSAFE.putLong(t = Thread.currentThread(), SEED,
-                       r = UNSAFE.getLong(t, SEED) + GAMMA);
+        long r; // read and update per-thread seed
+        SEED.set(r = SEED.get() + GAMMA);
         return r;
     }
 
@@ -527,7 +541,7 @@ public class ThreadLocalRandom extends Random {
      *         less than zero
      * @since 1.8
      */
-    public IntStream ints(long streamSize) {
+    public IntStream _ints(long streamSize) {
         if (streamSize < 0L)
             throw new IllegalArgumentException(BadSize);
         return StreamSupport.intStream
@@ -546,7 +560,7 @@ public class ThreadLocalRandom extends Random {
      * @return a stream of pseudorandom {@code int} values
      * @since 1.8
      */
-    public IntStream ints() {
+    public IntStream _ints() {
         return StreamSupport.intStream
             (new RandomIntsSpliterator
              (0L, Long.MAX_VALUE, Integer.MAX_VALUE, 0),
@@ -568,7 +582,7 @@ public class ThreadLocalRandom extends Random {
      *         is greater than or equal to {@code randomNumberBound}
      * @since 1.8
      */
-    public IntStream ints(long streamSize, int randomNumberOrigin,
+    public IntStream _ints(long streamSize, int randomNumberOrigin,
                           int randomNumberBound) {
         if (streamSize < 0L)
             throw new IllegalArgumentException(BadSize);
@@ -596,7 +610,7 @@ public class ThreadLocalRandom extends Random {
      *         is greater than or equal to {@code randomNumberBound}
      * @since 1.8
      */
-    public IntStream ints(int randomNumberOrigin, int randomNumberBound) {
+    public IntStream _ints(int randomNumberOrigin, int randomNumberBound) {
         if (randomNumberOrigin >= randomNumberBound)
             throw new IllegalArgumentException(BadRange);
         return StreamSupport.intStream
@@ -615,7 +629,7 @@ public class ThreadLocalRandom extends Random {
      *         less than zero
      * @since 1.8
      */
-    public LongStream longs(long streamSize) {
+    public LongStream _longs(long streamSize) {
         if (streamSize < 0L)
             throw new IllegalArgumentException(BadSize);
         return StreamSupport.longStream
@@ -634,7 +648,7 @@ public class ThreadLocalRandom extends Random {
      * @return a stream of pseudorandom {@code long} values
      * @since 1.8
      */
-    public LongStream longs() {
+    public LongStream _longs() {
         return StreamSupport.longStream
             (new RandomLongsSpliterator
              (0L, Long.MAX_VALUE, Long.MAX_VALUE, 0L),
@@ -656,7 +670,7 @@ public class ThreadLocalRandom extends Random {
      *         is greater than or equal to {@code randomNumberBound}
      * @since 1.8
      */
-    public LongStream longs(long streamSize, long randomNumberOrigin,
+    public LongStream _longs(long streamSize, long randomNumberOrigin,
                             long randomNumberBound) {
         if (streamSize < 0L)
             throw new IllegalArgumentException(BadSize);
@@ -684,7 +698,7 @@ public class ThreadLocalRandom extends Random {
      *         is greater than or equal to {@code randomNumberBound}
      * @since 1.8
      */
-    public LongStream longs(long randomNumberOrigin, long randomNumberBound) {
+    public LongStream _longs(long randomNumberOrigin, long randomNumberBound) {
         if (randomNumberOrigin >= randomNumberBound)
             throw new IllegalArgumentException(BadRange);
         return StreamSupport.longStream
@@ -704,7 +718,7 @@ public class ThreadLocalRandom extends Random {
      *         less than zero
      * @since 1.8
      */
-    public DoubleStream doubles(long streamSize) {
+    public DoubleStream _doubles(long streamSize) {
         if (streamSize < 0L)
             throw new IllegalArgumentException(BadSize);
         return StreamSupport.doubleStream
@@ -724,7 +738,7 @@ public class ThreadLocalRandom extends Random {
      * @return a stream of pseudorandom {@code double} values
      * @since 1.8
      */
-    public DoubleStream doubles() {
+    public DoubleStream _doubles() {
         return StreamSupport.doubleStream
             (new RandomDoublesSpliterator
              (0L, Long.MAX_VALUE, Double.MAX_VALUE, 0.0),
@@ -747,7 +761,7 @@ public class ThreadLocalRandom extends Random {
      *         is greater than or equal to {@code randomNumberBound}
      * @since 1.8
      */
-    public DoubleStream doubles(long streamSize, double randomNumberOrigin,
+    public DoubleStream _doubles(long streamSize, double randomNumberOrigin,
                                 double randomNumberBound) {
         if (streamSize < 0L)
             throw new IllegalArgumentException(BadSize);
@@ -775,7 +789,7 @@ public class ThreadLocalRandom extends Random {
      *         is greater than or equal to {@code randomNumberBound}
      * @since 1.8
      */
-    public DoubleStream doubles(double randomNumberOrigin, double randomNumberBound) {
+    public DoubleStream _doubles(double randomNumberOrigin, double randomNumberBound) {
         if (!(randomNumberOrigin < randomNumberBound))
             throw new IllegalArgumentException(BadRange);
         return StreamSupport.doubleStream
@@ -978,7 +992,7 @@ public class ThreadLocalRandom extends Random {
      * can be used to force initialization on zero return.
      */
     static final int getProbe() {
-        return UNSAFE.getInt(Thread.currentThread(), PROBE);
+        return PROBE.get();
     }
 
     /**
@@ -989,7 +1003,7 @@ public class ThreadLocalRandom extends Random {
         probe ^= probe << 13;   // xorshift
         probe ^= probe >>> 17;
         probe ^= probe << 5;
-        UNSAFE.putInt(Thread.currentThread(), PROBE, probe);
+        PROBE.set(probe);
         return probe;
     }
 
@@ -998,15 +1012,14 @@ public class ThreadLocalRandom extends Random {
      */
     static final int nextSecondarySeed() {
         int r;
-        Thread t = Thread.currentThread();
-        if ((r = UNSAFE.getInt(t, SECONDARY)) != 0) {
+        if ((r = SECONDARY.get()) != 0) {
             r ^= r << 13;   // xorshift
             r ^= r >>> 17;
             r ^= r << 5;
         }
         else if ((r = mix32(seeder.getAndAdd(SEEDER_INCREMENT))) == 0)
             r = 1; // avoid zero
-        UNSAFE.putInt(t, SECONDARY, r);
+        SECONDARY.set(r);
         return r;
     }
 
@@ -1034,7 +1047,7 @@ public class ThreadLocalRandom extends Random {
         throws java.io.IOException {
 
         java.io.ObjectOutputStream.PutField fields = s.putFields();
-        fields.put("rnd", UNSAFE.getLong(Thread.currentThread(), SEED));
+        fields.put("rnd", SEED.get());
         fields.put("initialized", true);
         s.writeFields();
     }
@@ -1047,23 +1060,26 @@ public class ThreadLocalRandom extends Random {
         return current();
     }
 
-    // Unsafe mechanics
-    private static final sun.misc.Unsafe UNSAFE;
-    private static final long SEED;
-    private static final long PROBE;
-    private static final long SECONDARY;
-    static {
-        try {
-            UNSAFE = sun.misc.Unsafe.getUnsafe();
-            Class<?> tk = Thread.class;
-            SEED = UNSAFE.objectFieldOffset
-                (tk.getDeclaredField("threadLocalRandomSeed"));
-            PROBE = UNSAFE.objectFieldOffset
-                (tk.getDeclaredField("threadLocalRandomProbe"));
-            SECONDARY = UNSAFE.objectFieldOffset
-                (tk.getDeclaredField("threadLocalRandomSecondarySeed"));
-        } catch (Exception e) {
-            throw new Error(e);
+    // JDK6 compatible replacement of the Unsafe mechanics
+    // Note that in the original impl, these fields actually are in the Thread
+    // class and marked with @sun.misc.Contended("tlr").
+    private static final ThreadLocal<Long> SEED = new ThreadLocal<Long>() {
+        @Override
+        protected Long initialValue() {
+            return 0L;
         }
-    }
+    };
+    private static final ThreadLocal<Integer> PROBE = new ThreadLocal<Integer>() {
+        @Override
+        protected Integer initialValue() {
+            return 0;
+        }
+    };
+    private static final ThreadLocal<Integer> SECONDARY = new ThreadLocal<Integer>() {
+        @Override
+        protected Integer initialValue() {
+            return 0;
+        }
+    };
+
 }

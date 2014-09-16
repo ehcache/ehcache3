@@ -1,10 +1,26 @@
 /*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-package java.util.concurrent;
+package org.ehcache.internal.concurrent;
 
 import java.io.ObjectStreamField;
 import java.io.Serializable;
@@ -13,7 +29,6 @@ import java.lang.reflect.Type;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -21,29 +36,23 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.Spliterator;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.BinaryOperator;
-import java.util.function.Consumer;
-import java.util.function.DoubleBinaryOperator;
-import java.util.function.Function;
-import java.util.function.IntBinaryOperator;
-import java.util.function.LongBinaryOperator;
-import java.util.function.ToDoubleBiFunction;
-import java.util.function.ToDoubleFunction;
-import java.util.function.ToIntBiFunction;
-import java.util.function.ToIntFunction;
-import java.util.function.ToLongBiFunction;
-import java.util.function.ToLongFunction;
-import java.util.stream.Stream;
+
+import org.ehcache.internal.concurrent.JSR166Helper.*;
+
 
 /**
+ * <b>*** WARNING IF YOU'RE USING THIS CLASS WITH JDK 8 OR ABOVE ***
+ * <br/>
+ * BY ALL MEANS, DO <u>NOT</u> USE THE <code>spliterator()</code> METHOD
+ * OF THE <code>keySet()</code>, <code>values()</code> or
+ * <code>entrySet()</code> RETURNED OBJECTS. USE THE
+ * <code>_spliterator()</code> ONE INSTEAD.
+ * </b>
+ * <p/>
  * A hash table supporting full concurrency of retrievals and
  * high expected concurrency for updates. This class obeys the
  * same functional specification as {@link java.util.Hashtable}, and
@@ -2477,7 +2486,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * A padded cell for distributing counts.  Adapted from LongAdder
      * and Striped64.  See their internal docs for explanation.
      */
-    @sun.misc.Contended static final class CounterCell {
+    static final class CounterCell {
         volatile long value;
         CounterCell(long x) { value = x; }
     }
@@ -3214,11 +3223,11 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             return true;
         }
 
-        private static final sun.misc.Unsafe U;
+        private static final Unsafe U;
         private static final long LOCKSTATE;
         static {
             try {
-                U = sun.misc.Unsafe.getUnsafe();
+                U = Unsafe.getUnsafe();
                 Class<?> k = TreeBin.class;
                 LOCKSTATE = U.objectFieldOffset
                     (k.getDeclaredField("lockState"));
@@ -4606,7 +4615,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                      (containsAll(c) && c.containsAll(this))));
         }
 
-        public Spliterator<K> spliterator() {
+        public Spliterator<K> _spliterator() {
             Node<K,V>[] t;
             ConcurrentHashMap<K,V> m = map;
             long n = m.sumCount();
@@ -4664,7 +4673,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             throw new UnsupportedOperationException();
         }
 
-        public Spliterator<V> spliterator() {
+        public Spliterator<V> _spliterator() {
             Node<K,V>[] t;
             ConcurrentHashMap<K,V> m = map;
             long n = m.sumCount();
@@ -4752,7 +4761,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                      (containsAll(c) && c.containsAll(this))));
         }
 
-        public Spliterator<Map.Entry<K,V>> spliterator() {
+        public Spliterator<Map.Entry<K,V>> _spliterator() {
             Node<K,V>[] t;
             ConcurrentHashMap<K,V> m = map;
             long n = m.sumCount();
@@ -6249,7 +6258,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     }
 
     // Unsafe mechanics
-    private static final sun.misc.Unsafe U;
+    private static final Unsafe U;
     private static final long SIZECTL;
     private static final long TRANSFERINDEX;
     private static final long BASECOUNT;
@@ -6260,7 +6269,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
 
     static {
         try {
-            U = sun.misc.Unsafe.getUnsafe();
+            U = Unsafe.getUnsafe();
             Class<?> k = ConcurrentHashMap.class;
             SIZECTL = U.objectFieldOffset
                 (k.getDeclaredField("sizeCtl"));
