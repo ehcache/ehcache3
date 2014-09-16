@@ -1,10 +1,26 @@
 /*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-package java.util.concurrent;
+package org.ehcache.internal.concurrent;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
@@ -18,12 +34,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RunnableFuture;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.security.AccessControlContext;
 import java.security.ProtectionDomain;
 import java.security.Permissions;
+
+import org.ehcache.internal.concurrent.JSR166Helper.*;
 
 /**
  * An {@link ExecutorService} for running {@link ForkJoinTask}s.
@@ -140,8 +157,7 @@ import java.security.Permissions;
  * @since 1.7
  * @author Doug Lea
  */
-@sun.misc.Contended
-public class ForkJoinPool extends AbstractExecutorService {
+class ForkJoinPool extends AbstractExecutorService {
 
     /*
      * Implementation Overview
@@ -772,7 +788,6 @@ public class ForkJoinPool extends AbstractExecutorService {
      * arrays sharing cache lines. The @Contended annotation alerts
      * JVMs to try to keep instances apart.
      */
-    @sun.misc.Contended
     static final class WorkQueue {
 
         /**
@@ -1228,7 +1243,7 @@ public class ForkJoinPool extends AbstractExecutorService {
         }
 
         // Unsafe mechanics. Note that some are (and must be) the same as in FJP
-        private static final sun.misc.Unsafe U;
+        private static final Unsafe U;
         private static final int  ABASE;
         private static final int  ASHIFT;
         private static final long QTOP;
@@ -1236,7 +1251,7 @@ public class ForkJoinPool extends AbstractExecutorService {
         private static final long QCURRENTSTEAL;
         static {
             try {
-                U = sun.misc.Unsafe.getUnsafe();
+                U = Unsafe.getUnsafe();
                 Class<?> wk = WorkQueue.class;
                 Class<?> ak = ForkJoinTask[].class;
                 QTOP = U.objectFieldOffset
@@ -2728,7 +2743,7 @@ public class ForkJoinPool extends AbstractExecutorService {
         // In previous versions of this class, this method constructed
         // a task to run ForkJoinTask.invokeAll, but now external
         // invocation of multiple tasks is at least as efficient.
-        ArrayList<Future<T>> futures = new ArrayList<>(tasks.size());
+        ArrayList<Future<T>> futures = new ArrayList<Future<T>>(tasks.size());
 
         boolean done = false;
         try {
@@ -3353,7 +3368,7 @@ public class ForkJoinPool extends AbstractExecutorService {
     }
 
     // Unsafe mechanics
-    private static final sun.misc.Unsafe U;
+    private static final Unsafe U;
     private static final int  ABASE;
     private static final int  ASHIFT;
     private static final long CTL;
@@ -3370,7 +3385,7 @@ public class ForkJoinPool extends AbstractExecutorService {
     static {
         // initialize field offsets for CAS etc
         try {
-            U = sun.misc.Unsafe.getUnsafe();
+            U = Unsafe.getUnsafe();
             Class<?> k = ForkJoinPool.class;
             CTL = U.objectFieldOffset
                 (k.getDeclaredField("ctl"));
@@ -3483,7 +3498,7 @@ public class ForkJoinPool extends AbstractExecutorService {
                 });
         }
 
-        public final ForkJoinWorkerThread newThread(ForkJoinPool pool) {
+        public final ForkJoinWorkerThread newThread(final ForkJoinPool pool) {
             return (ForkJoinWorkerThread.InnocuousForkJoinWorkerThread)
                 java.security.AccessController.doPrivileged(
                     new java.security.PrivilegedAction<ForkJoinWorkerThread>() {
