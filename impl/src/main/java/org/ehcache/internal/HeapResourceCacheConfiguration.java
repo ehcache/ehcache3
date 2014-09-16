@@ -21,7 +21,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 /**
  * @author Alex Snaps
  */
-public class HeapResourceCacheConfiguration implements ServiceConfiguration<HeapResource> {
+public class HeapResourceCacheConfiguration implements ServiceConfiguration<EhcacheProvider> {
 
   private final long maxOnHeapEntryCount;
 
@@ -34,7 +34,7 @@ public class HeapResourceCacheConfiguration implements ServiceConfiguration<Heap
   }
 
   @Override
-  public Class<HeapResource> getServiceType() {
-    return HeapResource.class;
+  public Class<EhcacheProvider> getServiceType() {
+    return EhcacheProvider.class;
   }
 }

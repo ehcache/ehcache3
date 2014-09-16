@@ -23,15 +23,15 @@ import org.ehcache.spi.service.ServiceFactory;
 /**
  * @author Alex Snaps
  */
-public class HeapResourceFactory implements ServiceFactory<HeapResource> {
+public class HeapResourceFactory implements ServiceFactory<EhcacheProvider> {
 
   @Override
-  public HeapResource create(final ServiceConfiguration<HeapResource> serviceConfiguration, final ServiceLocator serviceLocator) {
-    return new HeapResource(serviceLocator);
+  public EhcacheProvider create(final ServiceConfiguration<EhcacheProvider> serviceConfiguration, final ServiceLocator serviceLocator) {
+    return new EhcacheProvider(serviceLocator);
   }
 
   @Override
-  public Class<HeapResource> getServiceType() {
-    return HeapResource.class;
+  public Class<EhcacheProvider> getServiceType() {
+    return EhcacheProvider.class;
   }
 }

@@ -16,7 +16,7 @@
 
 package org.ehcache.config.xml;
 
-import org.ehcache.internal.HeapResource;
+import org.ehcache.internal.EhcacheProvider;
 import org.ehcache.internal.HeapResourceCacheConfiguration;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.w3c.dom.Element;
@@ -31,7 +31,7 @@ import javax.xml.transform.stream.StreamSource;
 /**
  * @author Alex Snaps
  */
-public class HeapResourceParser implements XmlConfigurationParser<HeapResource> {
+public class HeapResourceParser implements XmlConfigurationParser<EhcacheProvider> {
 
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/cachingtier");
   private static final URL XML_SCHEMA = HeapResourceParser.class.getResource("/ehcache-cachingtier.xsd");
@@ -47,7 +47,7 @@ public class HeapResourceParser implements XmlConfigurationParser<HeapResource> 
   }
 
   @Override
-  public ServiceConfiguration<HeapResource> parse(final Element heapConfig) {
+  public ServiceConfiguration<EhcacheProvider> parse(final Element heapConfig) {
     final long maxOnHeapEntryCount = Long.parseLong(heapConfig.getAttribute("size"));
     return new HeapResourceCacheConfiguration(maxOnHeapEntryCount);
   }

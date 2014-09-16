@@ -16,7 +16,7 @@
 
 package org.ehcache.config;
 
-import org.ehcache.internal.HeapResource;
+import org.ehcache.internal.EhcacheProvider;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.CacheProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -43,7 +43,7 @@ public class CachingTierConfigurationBuilderTest {
     final ServiceLocator serviceLocator = new ServiceLocator();
     final CacheConfiguration<String, String> config = newCacheConfigurationBuilder()
     .buildCacheConfig(String.class, String.class);
-    CacheProvider cacheProvider = serviceLocator.findService(HeapResource.class);
+    CacheProvider cacheProvider = serviceLocator.findService(EhcacheProvider.class);
     Class<String> keyType = config.getKeyType();
     Class<String> valueType = config.getValueType();
     Collection<ServiceConfiguration<?>> serviceConfigs = config.getServiceConfigurations();

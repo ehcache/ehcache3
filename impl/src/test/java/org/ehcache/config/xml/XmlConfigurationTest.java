@@ -64,7 +64,7 @@ public class XmlConfigurationTest {
       fail();
     } catch (SAXParseException e) {
       assertThat(e.getLineNumber(), is(5));
-      assertThat(e.getColumnNumber(), is(74));
+      assertThat(e.getColumnNumber(), is(77));
     }
   }
   

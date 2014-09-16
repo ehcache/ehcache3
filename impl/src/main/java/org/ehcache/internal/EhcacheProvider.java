@@ -26,11 +26,11 @@ import org.ehcache.spi.service.ServiceConfiguration;
  * @author Alex Snaps
  * @author Chris Dennis
  */
-public class HeapResource implements CacheProvider {
+public class EhcacheProvider implements CacheProvider {
 
   private final ServiceLocator serviceLocator;
 
-  public HeapResource(final ServiceLocator serviceLocator) {this.serviceLocator = serviceLocator;}
+  public EhcacheProvider(final ServiceLocator serviceLocator) {this.serviceLocator = serviceLocator;}
 
   @Override
   public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {

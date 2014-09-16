@@ -18,7 +18,7 @@ package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
-import org.ehcache.internal.HeapResource;
+import org.ehcache.internal.EhcacheProvider;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -74,7 +74,7 @@ public final class EhcacheManager implements PersistentCacheManager {
     Class<V> valueType = config.getValueType();
     Collection<ServiceConfiguration<?>> serviceConfigs = ((CacheConfiguration)config).getServiceConfigurations();
     ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
-    final Cache<K, V> cache = serviceLocator.findService(HeapResource.class)
+    final Cache<K, V> cache = serviceLocator.findService(EhcacheProvider.class)
         .createCache(keyType, valueType, serviceConfigArray);
     return addCache(alias, keyType, valueType, cache);
   }
