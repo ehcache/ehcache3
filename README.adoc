@@ -1,7 +1,7 @@
 = The Ehcache 3.x line is currently the development line.
 
-Status of the build: image:https://ehcache.ci.cloudbees.com/buildStatus/icon?job=ehcache3
+Status of the build: image:https://ehcache.ci.cloudbees.com/buildStatus/icon?job=ehcache3[Ehcache@Cloudbees, link="https://ehcache.ci.cloudbees.com/job/ehcache3/"]
 
 For more information, you might want to go check the https://github.com/ehcache/ehcache3/wiki[wiki].
 
-image:http://cloudbees.prod.acquia-sites.com/sites/default/files/styles/large/public/Button-Built-on-CB-1.png?itok=3Tnkun-C
+image:http://cloudbees.prod.acquia-sites.com/sites/default/files/styles/large/public/Button-Powered-by-CB.png?itok=uMDWINfY[Cloudbees, link="http://www.cloudbees.com/resources/foss"]
