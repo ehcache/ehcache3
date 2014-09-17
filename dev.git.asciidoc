@@ -61,6 +61,7 @@ As such, every contribution gets reviewed by a committer, that effectively commi
 [start=5]
  . +git checkout master+;
  . +git merge --no-ff issue-'<id>'+;
+   - If this results in something else than having to edit a commit comment - something's wrong, you need to _STOP_
  . +git push ehcache master+ to the main repository.
 
 Both of these methods will create a merge commit, indicating who accepted the change in the main code line. It will also make sure the resulting history is linear equivalent.
