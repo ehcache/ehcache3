@@ -18,10 +18,10 @@ package org.ehcache.internal;
 
 import org.ehcache.Ehcache;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.cache.Store;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author cdennis
