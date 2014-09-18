@@ -16,6 +16,7 @@
 
 package org.ehcache;
 
+import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.StandaloneCacheConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
@@ -37,9 +38,9 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   T build(ServiceLocator serviceLocator) {
     Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
     if (capacityConstraint == null) {
-      return (T) new Ehcache(storeProvider.createStore(keyType, valueType));
+      return (T) new Ehcache(storeProvider.createStore(new StoreConfigurationImpl(keyType, valueType)));
     } else {
-      return (T) new Ehcache(storeProvider.createStore(keyType, valueType, capacityConstraint));
+      return (T) new Ehcache(storeProvider.createStore(new StoreConfigurationImpl(keyType, valueType, capacityConstraint)));
     }
   }
 

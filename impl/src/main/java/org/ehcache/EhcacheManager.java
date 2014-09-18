@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import org.ehcache.config.StoreConfigurationImpl;
 
 
 /**
@@ -75,7 +76,7 @@ public final class EhcacheManager implements PersistentCacheManager {
     Collection<ServiceConfiguration<?>> serviceConfigs = ((CacheConfiguration)config).getServiceConfigurations();
     ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
     final Store.Provider service = serviceLocator.findService(Store.Provider.class);
-    final Store<K, V> store = service.createStore(keyType, valueType);
+    final Store<K, V> store = service.createStore(new StoreConfigurationImpl(keyType, valueType));
     final Cache<K, V> cache = new Ehcache<K, V>(store, serviceConfigArray);
     return addCache(alias, keyType, valueType, cache);
   }

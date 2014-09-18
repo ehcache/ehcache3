@@ -96,12 +96,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
   public static class Provider implements Store.Provider {
     @Override
-    public <K, V> OnHeapStore<K, V> createStore(final Class<K> keyClazz, final Class<V> valueClazz, final ServiceConfiguration<?>... config) {
-      return new OnHeapStore<K, V>();
-    }
-
-    @Override
-    public <K, V> OnHeapStore<K, V> createStore(final Class<K> keyClazz, final Class<V> valueClazz, final Comparable<Long> capacityConstraint, final ServiceConfiguration<?>... config) {
+    public <K, V> OnHeapStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
       return new OnHeapStore<K, V>();
     }
     
