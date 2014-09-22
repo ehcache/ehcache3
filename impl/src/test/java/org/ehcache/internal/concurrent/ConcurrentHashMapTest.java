@@ -18,50 +18,13 @@ package org.ehcache.internal.concurrent;
 
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
-
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 /**
  * @author Alex Snaps
  */
 public class ConcurrentHashMapTest {
-
-    private static final int ENTRIES = 10000;
-
-    @Test
-    public void testRandomValuesWithObjects() {
-
-        ConcurrentHashMap<Object, KeyHolder<Object>> map = new ConcurrentHashMap<Object, KeyHolder<Object>>();
-
-        for(int i = 0; i < ENTRIES; i++) {
-            final Object o = new Object();
-            map.put(o, new KeyHolder<Object>(o));
-        }
-
-        assertThings(map);
-    }
-
-    @Test
-    public void testRandomValuesWithComparable() {
-        ConcurrentHashMap<Comparable, KeyHolder<Object>> map = new ConcurrentHashMap<Comparable, KeyHolder<Object>>();
-
-        for(int i = 0; i < ENTRIES; i++) {
-            final EvilComparableKey o = new EvilComparableKey(UUID.randomUUID().toString());
-            map.put(o, new KeyHolder<Object>(o));
-        }
-
-        assertThings(map);
-    }
 
     @Test
     public void testReplaceWithWeirdBehavior() {
@@ -76,55 +39,6 @@ public class ConcurrentHashMapTest {
         stringMap.put("key", initialString);
         assertThat(stringMap.replace("key", initialString, new String(initialString)), is(true));
         assertThat(stringMap.replace("key", initialString, new String(initialString)), is(true));
-    }
-
-    @Test
-    public void testRandomValues() {
-        ConcurrentHashMap<Object, KeyHolder<Object>> map = new ConcurrentHashMap<Object, KeyHolder<Object>>();
-        final long seed = System.nanoTime();
-        System.out.println("SEED: " + seed);
-        final Random random = new Random(seed);
-
-        for(int i = 0; i < ENTRIES; i++) {
-            final Object o;
-            switch(i % 4) {
-                case 0:
-                    final int hashCode = random.nextInt();
-                    o = new Object() {
-                        @Override
-                        public int hashCode() {
-                            return hashCode;
-                        }
-                    };
-                    break;
-                case 1:
-                    o = new EvilKey(Integer.toString(i));
-                    break;
-                default:
-                    o = new EvilComparableKey(Integer.toString(i));
-
-            }
-            assertThat(map.put(o, new KeyHolder<Object>(o)) == null, is(true));
-        }
-
-        for (Object o : map.keySet()) {
-            assertThat(o.toString(), map.containsKey(o), is(true));
-            assertThat(o.toString(), map.get(o), notNullValue());
-        }
-
-        assertThings(map);
-    }
-
-    @Test
-    public void testRandomValuesWithCollisions() {
-        ConcurrentHashMap<Object, KeyHolder<Object>> map = new ConcurrentHashMap<Object, KeyHolder<Object>>();
-
-        for(int i = 0; i < ENTRIES; i++) {
-            final EvilKey o = new EvilKey(UUID.randomUUID().toString());
-            map.put(o, new KeyHolder<Object>(o));
-        }
-
-        assertThings(map);
     }
 
     @Test
@@ -149,106 +63,14 @@ public class ConcurrentHashMapTest {
         assertThat(map.replace(key, elementValueAgain, elementValue), is(true));
     }
 
-    @Test
-    public void testActuallyWorks() throws InterruptedException {
-        final long top = 100000000;
-        final String key = "counter";
-        final ConcurrentHashMap<String, Long> map = new ConcurrentHashMap<String, Long>();
-        map.put(key, 0L);
+    static class Element {
+        private final Object key;
+        private final Object value;
 
-        final Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                for(Long val = map.get(key); val < top && map.replace(key, val, val + 1); val = map.get(key));
-            }
-        };
-
-        Thread[] threads = new Thread[Runtime.getRuntime().availableProcessors() * 2];
-        for (int i = 0, threadsLength = threads.length; i < threadsLength; ) {
-            threads[i] = new Thread(runnable);
-            threads[i].setName("Mutation thread #" + ++i);
-            threads[i - 1].start();
-        }
-
-        for (Thread thread : threads) {
-            thread.join();
-        }
-
-        assertThat(map.get(key), is(top));
-
-    }
-
-    private void assertThings(final ConcurrentHashMap<?, ?> map) {
-        assertThat(map.size(), is(ENTRIES));
-
-        for(int i = 0; i < 100; i ++) {
-            final HashSet randomValues = new HashSet(getRandomValues(map, ENTRIES));
-            assertThat(randomValues.size(), is(ENTRIES));
-            for (Object randomValue : randomValues) {
-                assertThat(randomValue, instanceOf(KeyHolder.class));
-                final Object key = ((KeyHolder)randomValue).key;
-                assertThat("Missing " + key, map.containsKey(key), is(true));
-            }
+        Element(final Object key, final Object value) {
+            this.key = key;
+            this.value = value;
         }
     }
 
-    private static List<?> getRandomValues(Map<?, ?> map, int amount) {
-        List<?> values = new ArrayList<Object>(map.values());
-        Collections.shuffle(values);
-        return values.subList(0, amount);
-    }
-
-}
-
-class KeyHolder<K> {
-    final K key;
-
-    KeyHolder(final K key) {
-        this.key = key;
-    }
-}
-
-class EvilKey {
-    final String value;
-
-    EvilKey(final String value) {
-        this.value = value;
-    }
-
-    @Override
-    public int hashCode() {
-        return this.value.hashCode() & 1;
-    }
-
-    @Override
-    public boolean equals(final Object obj) {
-        return obj != null && obj.getClass() == this.getClass() && ((EvilKey)obj).value.equals(value);
-    }
-
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName() + " { " + value + " }";
-    }
-}
-
-class EvilComparableKey extends EvilKey implements Comparable<EvilComparableKey> {
-
-    EvilComparableKey(final String value) {
-        super(value);
-    }
-
-    @Override
-    public int compareTo(final EvilComparableKey o) {
-        return value.compareTo(o != null ? o.value : null);
-    }
-}
-
-class Element {
-    private final Object key;
-    private final Object value;
-
-    Element(final Object key, final Object value) {
-        this.key = key;
-        this.value = value;
-    }
 }
