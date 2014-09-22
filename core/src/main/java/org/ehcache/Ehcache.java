@@ -24,12 +24,14 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Alex Snaps
  */
 public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, PersistentStandaloneCache<K, V> {
 
+  private static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
   private final Store<K, V> store;
 
   protected Ehcache(Store<K, V> store, ServiceConfiguration<? extends Service>... configs) {
@@ -175,13 +177,13 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
 
       @Override
-      public long creationTime() {
-        return now;
+      public long creationTime(TimeUnit unit) {
+        return DEFAULT_TIME_UNIT.convert(now, unit);
       }
 
       @Override
-      public long lastAccessTime() {
-        return now;
+      public long lastAccessTime(TimeUnit unit) {
+        return DEFAULT_TIME_UNIT.convert(now, unit);
       }
     };
   }

@@ -21,6 +21,8 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * The Service Provider Interface is what a {@link org.ehcache.Cache Cache} instance requires to be able to store
  * Cache entries (i.e. mappings of key to value, including all metadata).
@@ -136,16 +138,18 @@ public interface Store<K, V> {
     /**
      * Accessor to the creation time of this ValueHolder
      *
-     * @return the creation time in ... seconds, millis, nano? since epoch
+     * @param unit the timeUnit to return the creation time in
+     * @return the last access time according to unit
      */
-    long creationTime();
+    long creationTime(TimeUnit unit);
 
     /**
      * Accessor to the last access time of the Value held in this ValueHolder?
      *
-     * @return the last access time in ... seconds, millis, nano? since epoch
+     * @param unit the timeUnit to return the last access time in
+     * @return the last access time according to unit
      */
-    long lastAccessTime();
+    long lastAccessTime(TimeUnit unit);
   }
 
   /**
