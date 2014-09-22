@@ -63,7 +63,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public void close() throws CacheAccessException {
+  public void close() {
     map.clear();
   }
 

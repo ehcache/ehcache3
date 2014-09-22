@@ -107,9 +107,8 @@ public interface Store<K, V> {
    * Closes the store instance, releasing all transient resources locally held by it.
    * The instance can't be used any further upon the method returning.
    * Data held remotely or on some persistent storage remains untouched and can be accessed by creating a new Store
-   * @throws CacheAccessException
    */
-  void close() throws CacheAccessException;
+  void close();
 
   /**
    * Returns an iterator over the elements in this set.  The elements are

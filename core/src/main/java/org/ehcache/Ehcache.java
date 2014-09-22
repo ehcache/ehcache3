@@ -153,11 +153,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public void close() {
-    try {
-      store.close();
-    } catch (CacheAccessException e) {
-      throw new RuntimeException("Couldn't close Cache", e);
-    }
+    store.close();
   }
 
   @Override
