@@ -2,13 +2,62 @@
 
 :toc:
 
-== Sep 18, 2014 - Hangout on Air
+== Sep 25, 2014 - Hangout on Air
 
-Next public meeting on https://plus.google.com/u/0/events/cst4usni73q4qkd315qtm8p6rm8[G+ Hangout on Air] at 11:30pm IST / 8pm CET / 2pm EST / 11am PST
+Next public meeting on https://plus.google.com/u/0/events/cfllsv3gi2p7dmg0l8o28hmmk7c[G+ Hangout on Air] at 11:30pm IST / 8pm CET / 2pm EST / 11am PST
 
 === Agenda
 
-*To be defined*
+ * Release https://github.com/ehcache/ehcache3/milestones[milestones]:
+ ** 107 Alpha
+ ** OSS Beta
+ * more TBD on the https://groups.google.com/forum/#!forum/ehcache-dev[Ehcache Developer Google Group]
+
+== Sep 18, 2014 - Hangout on Air
+
+Recording available https://www.youtube.com/watch?v=51PLWgRRLaE&list=UU43PVCp2j0b2og2DtxNOU1A[here on YouTube]
+
+=== Moved to Cloudbees
+
+Our build infrastructure is now on Cloudbees here:
+https://ehcache.ci.cloudbees.com
+
+Still need to publish +-SNAPSHOT+ to Sonatype though
+
+=== Git workflow
+
+We said we should not +git push --force+ to a branch that's currently under review (because of the PR associated); but rather closing the PR and creating a new one.
+
+WARNING: This decision has been invalidated since: it's okay to do it, but be vocal about it. One case where you just want to do it, is rebasing your branch should some other PR been merged in between.
+
+If you do changes based on the feedback from the PR, they probably should be a commit on their own atop of the other
+
+=== ConcurrentHashMap v8 port
+
+Is ported from jsr-166 cvs (revision information is recorded in the commit). Still uses +Unsafe+, but lets leave it like that for now (won't work on GAE for instance though).
+
+Need to have the CHMv8 tests not run everytime (at least not as they stand).
+
++JSR166Wrapper+ contains all interfaces to please +javac+
+
+Actually make use of CHMv8 in +OnHeapStore+ is still work that's still pending
+
+Also have a +Unsafe+ wrapper that adds the methods not present in 1.6
+
+=== SPI Testing strategy (discussed https://www.youtube.com/watch?v=51PLWgRRLaE&list=UU43PVCp2j0b2og2DtxNOU1A#t=1503[here])
+
+Hung is currently working on a proposal, based on this here: https://gist.github.com/alexsnaps/f42557d008e2ed37f2b1
+
+Acceptance criteria:
+
+ * Not runtime dependency on a given testing framework (e.g. junit)
+ ** but can provide support for testing framework (e.g. to provide nice reporting)
+ * SPI tester should report a complete run, not stop on first failure it encounters
+ * A given SPI tester doesn't know about any given implementation, but implementations pull the SPI tester in
+ * Probably want to make the SPI testers available through maven using some qualifier (e.g. +core:SpiTesters+)
+ * The https://jcp.org/aboutJava/communityprocess/ec-public/TCK-docs/tsdg.pdf[Java™ Technology Test Suite
+Development Guide 1.2] would probably contain some good input on writing actual SPI tests
+ * SPI tests are probably somewhat easier to write, given that we know where and how (UTSL!) a given SPI is actually used
 
 == Sep 11, 2014 - Hangout on Air
 
