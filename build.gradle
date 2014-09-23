@@ -19,8 +19,8 @@ subprojects {
 
   sourceSets {
     integrationTest {
-      java.srcDir file('src/integration-test/java')
-      resources.srcDir file('src/integration-test/resources')
+      java.srcDir 'src/integration-test/java'
+      resources.srcDir 'src/integration-test/resources'
       compileClasspath += sourceSets.test.compileClasspath
       runtimeClasspath += sourceSets.test.runtimeClasspath
     }
@@ -44,6 +44,10 @@ subprojects {
   task integrationTest(type: Test) {
     testClassesDir = sourceSets.integrationTest.output.classesDir
     classpath += sourceSets.integrationTest.runtimeClasspath
+
+    binResultsDir file("$buildDir/integration-tests-results/binary/$name")
+    reports.junitXml.destination = "$buildDir/integration-tests-results"
+    reports.html.destination = "$buildDir/reports/integration-tests"
   }
 
   task sourceJar(type: Jar, dependsOn: classes) {
