@@ -5,11 +5,12 @@ import java.lang.reflect.Method;
 
 import org.ehcache.spi.cache.Store;
 
-public class SPITester<K, V> {
-  protected final Store<K, V> store;
+public abstract class SPITester<T> {
 
-  public SPITester(Store<K, V> store) {
-    this.store = store;
+  protected final Factory<T> factory;
+
+  public SPITester(final Factory<T> factory) {
+    this.factory = factory;
   }
 
   public Result runTestSuite() {
