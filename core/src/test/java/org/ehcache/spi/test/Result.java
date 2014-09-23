@@ -1,23 +1,21 @@
 package org.ehcache.spi.test;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class Result {
   private long                startTime;
   private long                endTime;
   private long                runTime;
-  private AtomicInteger       runCount = new AtomicInteger(0);
-  private final List<Failure> failures = Collections.synchronizedList(new ArrayList<Failure>());
+  private int                 runCount;
+  private final List<Failure> failures = new ArrayList<Failure>();
 
   public Result() {
     //
   }
 
   public int getRunCount() {
-    return runCount.get();
+    return runCount;
   }
 
   public int getFailureCount() {
@@ -38,7 +36,7 @@ public class Result {
   }
 
   public void testFinished() {
-    runCount.incrementAndGet();
+    runCount++;
   }
 
   public void testFailure(Failure failure) {
