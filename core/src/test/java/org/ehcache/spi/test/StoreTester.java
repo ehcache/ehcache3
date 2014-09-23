@@ -2,21 +2,25 @@ package org.ehcache.spi.test;
 
 import org.ehcache.spi.cache.Store;
 
-public class StoreTester<K, V> extends SPITester<Store<K, V>> {
+public class StoreTester extends SPITester<Store<?, ?>> {
 
-  public StoreTester(final Factory<Store<K, V>> factory) {
+  final StoreFactory storeFactory;
+
+  public StoreTester(final StoreFactory factory) {
     super(factory);
+    this.storeFactory = factory;
   }
 
   @SPITest
   public void test1() {
-    final Store<K, V> kvStore = factory.newInstance();
     System.out.println("running test1");
+    final Store<?, ?> kvStore = factory.newInstance();
   }
   
   @SPITest
   public void test2() {
     System.out.println("running test2");
+    final Store<Integer, String> store = storeFactory.newStore(Integer.class, String.class);
     throw new RuntimeException("foced failure");
   }
   
