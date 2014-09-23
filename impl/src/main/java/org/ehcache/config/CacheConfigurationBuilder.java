@@ -48,11 +48,16 @@ public class CacheConfigurationBuilder {
   }
 
   public <K, V> CacheConfiguration<K, V> buildConfig(Class<K> keyType, Class<V> valueType) {
-    return new BaseCacheConfiguration<K, V>(keyType, valueType, serviceConfigurations.toArray(
+    return new BaseCacheConfiguration<K, V>(keyType, valueType, null, serviceConfigurations.toArray(
         new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
-    public <K, V> CacheConfiguration<K, V> buildCacheConfig(Class<K> keyType, Class<V> valueType) {
+  public <K, V> CacheConfiguration<K, V> buildConfig(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint) {
+    return new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, serviceConfigurations.toArray(
+        new ServiceConfiguration<?>[serviceConfigurations.size()]));
+  }
+  
+  public <K, V> CacheConfiguration<K, V> buildCacheConfig(Class<K> keyType, Class<V> valueType) {
     return buildConfig(keyType, valueType);
   }
 }

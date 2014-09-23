@@ -16,31 +16,30 @@
 
 package org.ehcache.config;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.cache.Store;
 
 /**
- * @author Alex Snaps
+ *
+ * @author Chris Dennis
  */
-class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
-
+public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
+  
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final Comparable<Long> capacityConstraint;
-  private final Collection<ServiceConfiguration<?>> serviceConfigurations;
 
-  public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint, ServiceConfiguration<?>... serviceConfigurations) {
+  public StoreConfigurationImpl(CacheConfiguration<K, V> cacheConfig) {
+    this(cacheConfig.getKeyType(), cacheConfig.getValueType(), cacheConfig.getCapacityConstraint());
+  }
+
+  public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType) {
+    this(keyType, valueType, null);
+  }
+  
+  public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.capacityConstraint = capacityConstraint;
-    this.serviceConfigurations = Collections.unmodifiableCollection(Arrays.asList(serviceConfigurations));
-  }
-
-  @Override
-  public Collection<ServiceConfiguration<?>> getServiceConfigurations() {
-    return serviceConfigurations;
   }
 
   @Override

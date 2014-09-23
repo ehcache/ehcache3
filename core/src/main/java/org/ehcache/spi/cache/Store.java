@@ -159,14 +159,13 @@ public interface Store<K, V> {
     /**
      * Creates a new Store instance
      *
-     * @param keyClazz the {@link java.lang.Class type} of the keys this Store holds
-     * @param valueClazz the {@link java.lang.Class type} of the values this Store holds
-     * @param config the configurations the Provider may need to configure the Store
+     * @param storeConfig the basic configuration for the Store
+     * @param serviceConfigs the configurations the Provider may need to configure the Store
      * @param <K> key type
      * @param <V> value type
      * @return the Store honoring the configurations passed in
      */
-    <K, V> Store<K, V> createStore(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config);
+    <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
 
     /**
      * Informs this Provider, a Store it created is being disposed (i.e. closed)
@@ -174,6 +173,36 @@ public interface Store<K, V> {
      */
     void releaseStore(Store<?, ?> resource);
 
+  }
+
+  /**
+   * The basic configuration for a Store.
+   * 
+   * @param <K> key type
+   * @param <V> value type
+   */
+  public interface Configuration<K, V> {
+
+    /**
+     * The {@link java.lang.Class type} of the keys that a Store will hold.
+     * 
+     * @return the key type
+     */
+    Class<K> getKeyType();
+    
+    /**
+     * The {@link java.lang.Class type} of the values that a Store will hold.
+     * 
+     * @return the value type
+     */
+    Class<V> getValueType();
+    
+    /**
+     * The capacity constraint that will be enforced by a Store.
+     * 
+     * @return the capacity constraint
+     */
+    Comparable<Long> getCapacityConstraint();
   }
 
   /**

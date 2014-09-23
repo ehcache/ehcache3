@@ -16,6 +16,7 @@
 
 package org.ehcache;
 
+import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.StandaloneCacheConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
@@ -27,16 +28,20 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
 
   private final Class<K> keyType;
   private final Class<V> valueType;
-
+  private Comparable<Long> capacityConstraint;
+  
   public StandaloneCacheBuilder(final Class<K> keyType, final Class<V> valueType) {
     this.keyType = keyType;
     this.valueType = valueType;
   }
 
   T build(ServiceLocator serviceLocator) {
-    final Store.Provider service = serviceLocator.findService(Store.Provider.class);
-    final Store<K, V> store = service.createStore(keyType, valueType);
-    return (T) new Ehcache<K,V>(store);
+    Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
+    if (capacityConstraint == null) {
+      return (T) new Ehcache(storeProvider.createStore(new StoreConfigurationImpl(keyType, valueType)));
+    } else {
+      return (T) new Ehcache(storeProvider.createStore(new StoreConfigurationImpl(keyType, valueType, capacityConstraint)));
+    }
   }
 
   public final T build() {
@@ -47,6 +52,11 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     return cfg.builder(this);
   }
 
+  public final StandaloneCacheBuilder<K, V, T> withCapacity(Comparable<Long> constraint) {
+    capacityConstraint = constraint;
+    return this;
+  }
+  
   public static <K, V, T extends StandaloneCache<K, V>> StandaloneCacheBuilder<K, V, T> newCacheBuilder(Class<K> keyType, Class<V> valueType) {
     return new StandaloneCacheBuilder<K, V, T>(keyType, valueType);
   }
