@@ -3,6 +3,9 @@ package org.ehcache.spi.test;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * @author Hung Huynh
+ */
 public class Result {
   private long                startTime;
   private long                endTime;
@@ -53,15 +56,20 @@ public class Result {
 
   public void reportAndThrow() throws Exception {
     System.out.println("* " + (getRunCount() + failures.size()) + " tests ran, took "
-        + getRunTime() + " ms. " + getRunCount() + " successful. " + failures.size() + " failed.");
+        + runtimeAsString() + ". Passed: " + getRunCount() + ". Failed: " + failures.size());
     if (!wasSuccessful()) {
+      System.out.println();
       for (Failure failure : failures) {
-        System.out.println("*** " + failure.getTestMethod() + " failed: "
+        System.out.println("* " + failure.getTestMethod() + " failed: "
             + failure.getThrownException().getMessage());
         System.out.println(failure.getTrace());
-        System.out.println("*********************************");
+        System.out.println();
       }
       throw new Exception(failures.get(0).getThrownException());
     }
+  }
+  
+  private String runtimeAsString() {
+    return (runTime > 1000) ? String.format("%.1f s", (runTime / 1000.0)) : runTime + " ms";
   }
 }

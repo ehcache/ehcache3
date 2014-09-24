@@ -7,7 +7,7 @@ import java.lang.annotation.Target;
 
 /**
  * Indicates the annotated method is a SPI test method
- * @author hhuynh
+ * @author Hung Huynh
  *
  */
 @Retention(RetentionPolicy.RUNTIME)
