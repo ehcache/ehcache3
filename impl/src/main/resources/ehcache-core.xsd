@@ -36,6 +36,8 @@
       <xs:element name="key-type" type="xs:string" minOccurs="1" maxOccurs="1"/>
       <xs:element name="value-type" type="xs:string" minOccurs="1" maxOccurs="1"/>
       <xs:element name="capacity" type="xs:positiveInteger" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="eviction-veto" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="eviction-prioritizer" type="xs:string" minOccurs="0" maxOccurs="1"/>
       <xs:element name="store" type="ehcache:store-type" minOccurs="0" maxOccurs="1"/>
       <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>

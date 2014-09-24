@@ -14,22 +14,20 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.eviction;
-
-import org.ehcache.spi.cache.Store;
+package org.ehcache.function;
 
 /**
- * Cache eviction predicate.
+ * A predicate function.
  * 
  * @author Chris Dennis
  */
-public interface EvictionPredicate<V> {
+public interface Predicate<V> {
   
   /**
-   * Returns {@code true} if the candidate is eligible for eviction.
+   * Returns {@code true} if the argument passes the predicate.
    * 
-   * @param candidate eviction candidate
-   * @return {@code true} is eligible for eviction
+   * @param argument the predicate argument
+   * @return {@code true} for a passing argument
    */
-  boolean test(Store.ValueHolder<V> candidate);
+  boolean test(V argument);
 }

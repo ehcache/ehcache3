@@ -16,12 +16,14 @@
 
 package org.ehcache.spi.cache;
 
+import java.util.Comparator;
 import org.ehcache.Cache;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.concurrent.TimeUnit;
+import org.ehcache.function.Predicate;
 
 /**
  * The Service Provider Interface is what a {@link org.ehcache.Cache Cache} instance requires to be able to store
@@ -203,6 +205,10 @@ public interface Store<K, V> {
      * @return the capacity constraint
      */
     Comparable<Long> getCapacityConstraint();
+    
+    Predicate<Cache.Entry<K, V>> getEvictionVeto();
+    
+    Comparator<Cache.Entry<K, V>> getEvictionPrioritizer();
   }
 
   /**

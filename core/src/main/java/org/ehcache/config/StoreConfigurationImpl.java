@@ -16,6 +16,9 @@
 
 package org.ehcache.config;
 
+import java.util.Comparator;
+import org.ehcache.Cache;
+import org.ehcache.function.Predicate;
 import org.ehcache.spi.cache.Store;
 
 /**
@@ -27,19 +30,25 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final Comparable<Long> capacityConstraint;
+  private final Predicate<Cache.Entry<K, V>> evictionVeto;
+  private final Comparator<Cache.Entry<K, V>> evictionPrioritizer;
 
   public StoreConfigurationImpl(CacheConfiguration<K, V> cacheConfig) {
-    this(cacheConfig.getKeyType(), cacheConfig.getValueType(), cacheConfig.getCapacityConstraint());
+    this(cacheConfig.getKeyType(), cacheConfig.getValueType(), cacheConfig.getCapacityConstraint(),
+            cacheConfig.getEvictionVeto(), cacheConfig.getEvictionPrioritizer());
   }
 
   public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType) {
-    this(keyType, valueType, null);
+    this(keyType, valueType, null, null, null);
   }
-  
-  public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint) {
+          
+  public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
+          Predicate<Cache.Entry<K, V>> evictionVeto, Comparator<Cache.Entry<K, V>> evictionPrioritizer) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.capacityConstraint = capacityConstraint;
+    this.evictionVeto = evictionVeto;
+    this.evictionPrioritizer = evictionPrioritizer;
   }
 
   @Override
@@ -55,5 +64,15 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   @Override
   public Comparable<Long> getCapacityConstraint() {
     return capacityConstraint;
+  }
+
+  @Override
+  public Predicate<Cache.Entry<K, V>> getEvictionVeto() {
+    return evictionVeto;
+  }
+
+  @Override
+  public Comparator<Cache.Entry<K, V>> getEvictionPrioritizer() {
+    return evictionPrioritizer;
   }
 }

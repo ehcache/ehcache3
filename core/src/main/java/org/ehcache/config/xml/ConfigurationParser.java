@@ -119,6 +119,16 @@ public class ConfigurationParser {
         public Long capacityConstraint() {
           return getElementLongContext(cacheElement, "capacity-constraint", null);
         }
+
+        @Override
+        public String evictionVeto() {
+          return getElementTextContent(cacheElement, "eviction-veto", null);
+        }
+
+        @Override
+        public String evictionPrioritizer() {
+          return getElementTextContent(cacheElement, "eviction-prioritizer", null);
+        }
         
         @Override
         public Iterable<ServiceConfiguration<?>> serviceConfigs() {
@@ -177,6 +187,10 @@ public class ConfigurationParser {
     
     Long capacityConstraint();
 
+    String evictionVeto();
+    
+    String evictionPrioritizer();
+    
     Iterable<ServiceConfiguration<?>> serviceConfigs();
   }
 

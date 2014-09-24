@@ -19,7 +19,10 @@ package org.ehcache.config;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
+import org.ehcache.Cache;
+import org.ehcache.function.Predicate;
 
 /**
  * @author Alex Snaps
@@ -48,12 +51,13 @@ public class CacheConfigurationBuilder {
   }
 
   public <K, V> CacheConfiguration<K, V> buildConfig(Class<K> keyType, Class<V> valueType) {
-    return new BaseCacheConfiguration<K, V>(keyType, valueType, null, serviceConfigurations.toArray(
+    return new BaseCacheConfiguration<K, V>(keyType, valueType, null, null, null, serviceConfigurations.toArray(
         new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
-  public <K, V> CacheConfiguration<K, V> buildConfig(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint) {
-    return new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, serviceConfigurations.toArray(
+  public <K, V> CacheConfiguration<K, V> buildConfig(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
+          Predicate<Cache.Entry<K, V>> evictionVeto, Comparator<Cache.Entry<K, V>> evictionPrioritizer) {
+    return new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer, serviceConfigurations.toArray(
         new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
   

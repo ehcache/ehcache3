@@ -16,9 +16,12 @@
 
 package org.ehcache.config;
 
+import org.ehcache.Cache;
+import org.ehcache.function.Predicate;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
+import java.util.Comparator;
 
 /**
  * Represents the minimal read-only configuration for a Cache to be, or an already existing one
@@ -51,4 +54,23 @@ public interface CacheConfiguration<K, V> {
    * @return the maximal capacity of this cache, or {@code null} if their is no constraint
    */
   Comparable<Long> getCapacityConstraint();
+
+  /**
+   * The eviction veto predicate function.
+   * <p>
+   * Entries which pass this predicate must be ignored by the eviction process.
+   * 
+   * @return the eviction veto predicate
+   */
+  Predicate<Cache.Entry<K, V>> getEvictionVeto();
+
+  /**
+   * The eviction prioritization comparator.
+   * <p>
+   * This comparator function determines the order in which entries are considered
+   * for eviction.
+   * 
+   * @return the eviction prioritizer
+   */
+  Comparator<Cache.Entry<K, V>> getEvictionPrioritizer();
 }
