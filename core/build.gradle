@@ -1,4 +1,10 @@
 dependencies {
   compile project(':api')
-  testCompile project(':spi-tester')
+  spiTestCompile project(':spi-tester')
 }
+
+artifacts {
+  archives spiTestJar
+}
+
+build.dependsOn spiTestJar
