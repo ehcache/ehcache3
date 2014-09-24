@@ -3,6 +3,9 @@ package org.ehcache.spi.test;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
+/**
+ * @author Hung Huynh
+ */
 public class Failure {
   private final String    testMethod;
   private final Throwable thrownException;

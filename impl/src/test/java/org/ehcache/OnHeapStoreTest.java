@@ -6,13 +6,16 @@ import org.ehcache.spi.test.StoreFactory;
 import org.ehcache.spi.test.StoreTester;
 import org.junit.Test;
 
+/**
+ * @author Hung Huynh
+ */
 public class OnHeapStoreTest {
 
   @Test
   public void test() throws Exception {
     StoreTester tester = new StoreTester(new StoreFactory() {
       @Override
-      public Store<String, String> newInstance() {
+      public Store<?, ?> newInstance() {
         return new OnHeapStore<String, String>();
       }
 

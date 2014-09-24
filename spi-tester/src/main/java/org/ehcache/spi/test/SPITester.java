@@ -3,8 +3,9 @@ package org.ehcache.spi.test;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import org.ehcache.spi.cache.Store;
-
+/**
+ * @author Hung Huynh
+ */
 public abstract class SPITester<T> {
 
   protected final Factory<T> factory;
@@ -19,10 +20,6 @@ public abstract class SPITester<T> {
     for (Method m : getClass().getDeclaredMethods()) {
       if (m.isAnnotationPresent(SPITest.class)) {
         try {
-          //Class<?> testClass = m.getClass();
-          // Constructor<?> ctor =
-          // testClass.getConstructor(ServiceFactory.class);
-          // Object object = ctor.newInstance(new Object[] { factory });
           m.invoke(this, (Object[]) null);
           result.testFinished();
         } catch (InvocationTargetException wrappedExc) {
