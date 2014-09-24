@@ -4,6 +4,7 @@ build/
 /.gradle/
 
 .project
+.classpath
 .settings/org.eclipse.m2e.core.prefs
 */.classpath
 *.prefs
