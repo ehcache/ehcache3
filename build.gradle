@@ -67,6 +67,11 @@ subprojects {
     classifier = 'javadoc'
   }
 
+  task spiTestJar(type: Jar, dependsOn: spiTestClasses) {
+    from sourceSets.spiTest.output
+    classifier = 'spi-test'
+  }
+
   artifacts {
     archives jar
 
