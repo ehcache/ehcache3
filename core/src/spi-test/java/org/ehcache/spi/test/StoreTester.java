@@ -21,7 +21,6 @@ public class StoreTester extends SPITester<Store<?, ?>> {
   public void test2() {
     System.out.println("running test2");
     final Store<Integer, String> store = storeFactory.newStore(Integer.class, String.class);
-    throw new RuntimeException("foced failure");
   }
   
   @SPITest
