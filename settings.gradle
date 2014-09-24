@@ -1,1 +1,1 @@
-include "api", "core", "impl", "107"
+include "api", "spi-tester", "core", "impl", "107"

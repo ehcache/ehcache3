@@ -24,6 +24,13 @@ subprojects {
       compileClasspath += sourceSets.test.compileClasspath
       runtimeClasspath += sourceSets.test.runtimeClasspath
     }
+    
+    spiTest {
+      java.srcDir 'src/spi-test/java'
+      resources.srcDir 'src/spi-test/resources'
+      compileClasspath += sourceSets.test.compileClasspath
+      runtimeClasspath += sourceSets.test.runtimeClasspath
+    }
   }
 
   dependencies {
