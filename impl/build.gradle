@@ -1,3 +1,4 @@
 dependencies {
   compile project(':api'), project(':core')
+  testCompile project(path: ':core', configuration: 'spiTestArtifacts')
 }
