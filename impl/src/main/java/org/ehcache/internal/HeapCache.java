@@ -19,7 +19,6 @@ package org.ehcache.internal;
 import org.ehcache.Ehcache;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -34,6 +33,28 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
   public HeapCache() {
     this(new Store<K, V>() {
       @Override
+      public ValueHolder<V> putIfAbsent(K key, ValueHolder<V> value)
+          throws CacheAccessException {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public boolean remove(K key, ValueHolder<V> value) throws CacheAccessException {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public ValueHolder<V> replace(K key, ValueHolder<V> value)
+          throws CacheAccessException {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public boolean replace(K key, ValueHolder<V> oldValue, ValueHolder<V> newValue)
+          throws CacheAccessException {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
       public ValueHolder<V> get(final K key) throws CacheAccessException {
         throw new UnsupportedOperationException("Implement me!");
       }

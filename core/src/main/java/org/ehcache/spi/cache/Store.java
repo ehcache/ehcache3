@@ -81,6 +81,7 @@ public interface Store<K, V> {
    */
   void put(K key, V value) throws CacheAccessException;
 
+  ValueHolder<V> putIfAbsent(K key, ValueHolder<V> value) throws CacheAccessException;
   /**
    * Removes the key (and its corresponding value) from this store.
    * This method does nothing if the key is not mapped.
@@ -92,6 +93,12 @@ public interface Store<K, V> {
    */
   void remove(K key) throws CacheAccessException;
 
+  boolean remove(K key, ValueHolder<V> value) throws CacheAccessException;
+  
+  ValueHolder<V> replace(K key, ValueHolder<V> value) throws CacheAccessException;
+  
+  boolean replace(K key, ValueHolder<V> oldValue, ValueHolder<V> newValue) throws CacheAccessException;
+  
   /**
    * Removes all of the mappings from this map.
    * This method provides no guarantee in terms of atomicity.

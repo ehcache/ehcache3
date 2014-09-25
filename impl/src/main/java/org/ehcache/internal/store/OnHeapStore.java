@@ -80,6 +80,25 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   }
 
   @Override
+  public ValueHolder<V> putIfAbsent(K key, ValueHolder<V> value) throws CacheAccessException {
+    return map.putIfAbsent(key, value);
+  }
+
+  @Override
+  public boolean remove(K key, ValueHolder<V> value) throws CacheAccessException {
+    return map.remove(key, value);
+  }
+
+  @Override
+  public ValueHolder<V> replace(K key, ValueHolder<V> value) throws CacheAccessException {
+    return map.replace(key, value);
+  }
+
+  @Override
+  public boolean replace(K key, ValueHolder<V> oldValue, ValueHolder<V> newValue) throws CacheAccessException {
+    return map.replace(key, oldValue, newValue);
+  }
+
   public void clear() throws CacheAccessException {
     map.clear();
   }

@@ -20,6 +20,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoaderException;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
+import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -144,23 +145,62 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   }
 
   @Override
-  public V putIfAbsent(final K key, final V value) throws CacheLoaderException {
-    throw new UnsupportedOperationException("Implement me!");
+  public V putIfAbsent(final K key, final V value) {
+    Store.ValueHolder<V> old = null;
+    Store.ValueHolder<V> wrapped = newValueHolder(value, System.currentTimeMillis());
+    try {
+      old = store.putIfAbsent(key, wrapped);
+    } catch (CacheAccessException e) {
+      try {
+        store.remove(key);
+        // fire an event? eviction?
+      } catch (CacheAccessException e1) {
+        // fall back to strategy? test rolledBack and decide
+      }
+    }
+    return old == null ? null : old.value();
   }
 
   @Override
-  public boolean remove(final K key, final V value) throws CacheLoaderException {
-    throw new UnsupportedOperationException("Implement me!");
+  public boolean remove(final K key, final V value) {
+    boolean res = false;
+    try {
+      res = store.remove(key, newValueHolder(value, System.currentTimeMillis()));
+    } catch (CacheAccessException e) {
+        // fall back to strategy?
+    }
+    return res;
   }
 
   @Override
-  public V replace(final K key, final V value) throws CacheLoaderException {
-    throw new UnsupportedOperationException("Implement me!");
+  public V replace(final K key, final V value) {
+    Store.ValueHolder<V> old = null;
+    try {
+      old = store.replace(key, newValueHolder(value, System.currentTimeMillis()));
+    } catch (CacheAccessException e) {
+      try {
+        store.remove(key);
+      } catch (CacheAccessException e1) {
+        // TODO
+      }
+    }
+    return old == null ? null : old.value();
   }
 
   @Override
-  public boolean replace(final K key, final V oldValue, final V newValue) throws CacheLoaderException {
-    throw new UnsupportedOperationException("Implement me!");
+  public boolean replace(final K key, final V oldValue, final V newValue) {
+    boolean success = false;
+    try {
+      long now = System.currentTimeMillis();
+      success = store.replace(key, newValueHolder(oldValue, now), newValueHolder(newValue, now));
+    } catch (CacheAccessException e) {
+      try {
+        store.remove(key);
+      } catch (CacheAccessException e1) {
+        // TODO
+      }
+    }
+    return success;
   }
 
   @Override
