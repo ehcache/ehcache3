@@ -36,15 +36,10 @@
 
 == Merging a pull request
 
-If you are a reviewer (i.e. have commit rights to the ehcache/ehcache3 repo), the way we are looking at this is:
+If you are a reviewer (i.e. have commit rights to the ehcache/ehcache3 repo), *don't use the github UI to merge*. The way we are looking at this is:
 
  - When working on an issue, you are the author of a contribution, but you don't have commit rights on the main repo;
  - When you are code reviewing someone else's contribution, you do have commit rights.
-
-As a reviewer, you are expected to verify the following:
-
- . Branch to be merged is up-to-date with master
- . Branch to be merged is pristine - it has not been used in a previous pull request
 
 As such, every contribution gets reviewed by a committer, that effectively commits the changes to Ehcache's repository for the author. As a reviewer/committer, you do the following:
 
@@ -52,17 +47,8 @@ As such, every contribution gets reviewed by a committer, that effectively commi
  . +git fetch '<contributor>' issue-'<id>'+;
  . +git checkout -b issue-'<id>' '<contributor>'/issue-'<id>'+;
  . 'do the actual review';
-
--- THEN --
-[start=5]
- . Use the GitHub UI to do the merge
-
--- OR --
-[start=5]
  . +git checkout master+;
- . +git merge --no-ff issue-'<id>'+;
-   - If this results in something else than having to edit a commit comment - something's wrong, you need to _STOP_
+ . +git cherry-pick ..issue-'<id>'+;
  . +git push ehcache master+ to the main repository.
 
-Both of these methods will create a merge commit, indicating who accepted the change in the main code line. It will also make sure the resulting history is linear equivalent.
-Always use a reference to the issue id in the commit message of the merge.
+The changes are now recorded as authored by the contributor, but committed by the reviewer. That way we also keep a linear timeline on master (where commits have a single parent, à la subversion).

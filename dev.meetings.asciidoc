@@ -11,6 +11,8 @@ Next public meeting on https://plus.google.com/u/0/events/cfllsv3gi2p7dmg0l8o28h
  * Release https://github.com/ehcache/ehcache3/milestones[milestones]:
  ** 107 Alpha
  ** OSS Beta
+ * Recap on SPI Testing
+ * +CacheLoader+ & +CacheWriter+ lifecycle in +StandaloneCache+ vs. managed ones
  * more TBD on the https://groups.google.com/forum/#!forum/ehcache-dev[Ehcache Developer Google Group]
 
 == Sep 18, 2014 - Hangout on Air
