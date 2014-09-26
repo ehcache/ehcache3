@@ -15,7 +15,7 @@ public class OnHeapStoreTest {
   public void test() throws Exception {
     StoreTester tester = new StoreTester(new StoreFactory() {
       @Override
-      public <K, V> Store<K, V> newStore(final Class<K> keyType, final Class<V> valueType) {
+      public <K, V> Store<K, V> newStore(Store.Configuration<K, V> config) {
         return new OnHeapStore<K, V>();
       }
     });

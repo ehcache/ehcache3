@@ -23,5 +23,5 @@ import org.ehcache.spi.cache.Store;
  */
 public interface StoreFactory {
 
-  <K, V> Store<K, V> newStore(Class<K> keyType, Class<V> valueType);
+  <K, V> Store<K, V> newStore(Store.Configuration<K, V> config);
 }
