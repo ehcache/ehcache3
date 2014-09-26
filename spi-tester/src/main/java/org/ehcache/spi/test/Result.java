@@ -51,17 +51,16 @@ public class Result {
   }
 
   public boolean wasSuccessful() {
-    return failures.size() == 0;
+    return failures.isEmpty();
   }
 
   public void reportAndThrow() throws Exception {
-    System.out.println("* " + (getRunCount() + failures.size()) + " tests ran, took "
+    System.out.println("* SPITester: " + (getRunCount() + failures.size()) + " tests ran, took "
         + runtimeAsString() + ". Passed: " + getRunCount() + ". Failed: " + failures.size());
     if (!wasSuccessful()) {
       System.out.println();
       for (Failure failure : failures) {
-        System.out.println("* " + failure.getTestMethod() + " failed: "
-            + failure.getThrownException().getMessage());
+        System.out.println("* " + failure.getTestMethod() + " failed: ");
         System.out.println(failure.getTrace());
         System.out.println();
       }
