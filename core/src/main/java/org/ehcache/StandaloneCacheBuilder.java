@@ -16,10 +16,12 @@
 
 package org.ehcache;
 
+import java.util.Comparator;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.StandaloneCacheConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.function.Predicate;
 
 /**
  * @author Alex Snaps
@@ -29,6 +31,8 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   private final Class<K> keyType;
   private final Class<V> valueType;
   private Comparable<Long> capacityConstraint;
+  private Predicate<Cache.Entry<K, V>> evictionVeto;
+  private Comparator<Cache.Entry<K, V>> evictionPrioritizer;
   
   public StandaloneCacheBuilder(final Class<K> keyType, final Class<V> valueType) {
     this.keyType = keyType;
@@ -37,11 +41,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
 
   T build(ServiceLocator serviceLocator) {
     Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
-    if (capacityConstraint == null) {
-      return (T) new Ehcache(storeProvider.createStore(new StoreConfigurationImpl(keyType, valueType)));
-    } else {
-      return (T) new Ehcache(storeProvider.createStore(new StoreConfigurationImpl(keyType, valueType, capacityConstraint)));
-    }
+    return (T) new Ehcache(storeProvider.createStore(new StoreConfigurationImpl(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer)));
   }
 
   public final T build() {
@@ -57,6 +57,16 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     return this;
   }
   
+  public final StandaloneCacheBuilder<K, V, T> vetoEviction(Predicate<Cache.Entry<K, V>> predicate) {
+    this.evictionVeto = predicate;
+    return this;
+  }
+  
+  public final StandaloneCacheBuilder<K, V, T> prioritizeEviction(Comparator<Cache.Entry<K, V>> criteria) {
+    this.evictionPrioritizer = criteria;
+    return this;
+  }
+          
   public static <K, V, T extends StandaloneCache<K, V>> StandaloneCacheBuilder<K, V, T> newCacheBuilder(Class<K> keyType, Class<V> valueType) {
     return new StandaloneCacheBuilder<K, V, T>(keyType, valueType);
   }

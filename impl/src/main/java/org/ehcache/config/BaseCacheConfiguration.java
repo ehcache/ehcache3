@@ -19,6 +19,9 @@ package org.ehcache.config;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
+import org.ehcache.Cache;
+import org.ehcache.function.Predicate;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
@@ -29,12 +32,17 @@ class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final Comparable<Long> capacityConstraint;
+  private final Predicate<Cache.Entry<K, V>> evictionVeto;
+  private final Comparator<Cache.Entry<K, V>> evictionPrioritizer;
   private final Collection<ServiceConfiguration<?>> serviceConfigurations;
 
-  public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint, ServiceConfiguration<?>... serviceConfigurations) {
+  public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint, 
+          Predicate<Cache.Entry<K, V>> evictionVeto, Comparator<Cache.Entry<K, V>> evictionPrioritizer, ServiceConfiguration<?>... serviceConfigurations) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.capacityConstraint = capacityConstraint;
+    this.evictionVeto = evictionVeto;
+    this.evictionPrioritizer = evictionPrioritizer;
     this.serviceConfigurations = Collections.unmodifiableCollection(Arrays.asList(serviceConfigurations));
   }
 
@@ -56,5 +64,15 @@ class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   @Override
   public Comparable<Long> getCapacityConstraint() {
     return capacityConstraint;
+  }
+
+  @Override
+  public Predicate<Cache.Entry<K, V>> getEvictionVeto() {
+    return evictionVeto;
+  }
+
+  @Override
+  public Comparator<Cache.Entry<K, V>> getEvictionPrioritizer() {
+    return evictionPrioritizer;
   }
 }
