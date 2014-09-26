@@ -1,6 +1,6 @@
 dependencies {
   compile project(':api')
-  spiTestCompile project(':spi-tester')
+  testCompile project(':spi-tester')
 }
 
 configurations {
