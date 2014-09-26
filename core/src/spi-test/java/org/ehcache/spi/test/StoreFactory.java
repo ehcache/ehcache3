@@ -21,7 +21,7 @@ import org.ehcache.spi.cache.Store;
 /**
  * @author Alex Snaps
  */
-public interface StoreFactory extends Factory<Store<?, ?>> {
+public interface StoreFactory {
 
   <K, V> Store<K, V> newStore(Class<K> keyType, Class<V> valueType);
 }

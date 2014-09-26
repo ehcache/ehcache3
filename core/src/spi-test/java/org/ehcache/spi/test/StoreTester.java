@@ -2,19 +2,18 @@ package org.ehcache.spi.test;
 
 import org.ehcache.spi.cache.Store;
 
-public class StoreTester extends SPITester<Store<?, ?>> {
+public class StoreTester extends SPITester {
 
   final StoreFactory storeFactory;
 
   public StoreTester(final StoreFactory factory) {
-    super(factory);
     this.storeFactory = factory;
   }
 
   @SPITest
   public void test1() {
     System.out.println("running test1");
-    final Store<?, ?> kvStore = factory.newInstance();
+    final Store<String, String> store = storeFactory.newStore(String.class, String.class);
   }
   
   @SPITest

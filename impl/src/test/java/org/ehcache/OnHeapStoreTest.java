@@ -15,11 +15,6 @@ public class OnHeapStoreTest {
   public void test() throws Exception {
     StoreTester tester = new StoreTester(new StoreFactory() {
       @Override
-      public Store<?, ?> newInstance() {
-        return new OnHeapStore<String, String>();
-      }
-
-      @Override
       public <K, V> Store<K, V> newStore(final Class<K> keyType, final Class<V> valueType) {
         return new OnHeapStore<K, V>();
       }

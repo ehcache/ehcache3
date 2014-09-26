@@ -6,13 +6,7 @@ import java.lang.reflect.Method;
 /**
  * @author Hung Huynh
  */
-public abstract class SPITester<T> {
-
-  protected final Factory<T> factory;
-
-  public SPITester(final Factory<T> factory) {
-    this.factory = factory;
-  }
+public abstract class SPITester {
 
   public Result runTestSuite() {
     Result result = new Result();
