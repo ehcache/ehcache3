@@ -1,3 +1,15 @@
 dependencies {
   compile project(':api')
+  testCompile project(':spi-tester')
 }
+
+configurations {
+  spiTestArtifacts.extendsFrom spiTestRuntime
+}
+
+artifacts {
+  archives spiTestJar
+  spiTestArtifacts spiTestJar
+}
+
+build.dependsOn spiTestJar
