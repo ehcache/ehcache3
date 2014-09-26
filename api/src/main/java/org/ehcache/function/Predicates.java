@@ -14,28 +14,37 @@
  * limitations under the License.
  */
 
-package org.ehcache;
-
-import org.ehcache.internal.store.OnHeapStore;
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.test.StoreFactory;
-import org.ehcache.spi.test.StoreTester;
-import org.junit.Test;
+package org.ehcache.function;
 
 /**
- * @author Hung Huynh
+ *
+ * @author cdennis
  */
-public class OnHeapStoreTest {
-
-  @Test
-  public void test() throws Exception {
-    StoreTester tester = new StoreTester(new StoreFactory() {
-      @Override
-      public <K, V> Store<K, V> newStore(Store.Configuration<K, V> config) {
-        return new OnHeapStore<K, V>(config);
-      }
-    });
-    tester.runTestSuite().reportAndThrow();
+public final class Predicates {
+  
+  private static final Predicate<?> ALL = new Predicate<Object>() {
+    @Override
+    public boolean test(Object argument) {
+      return true;
+    }
+  };
+  
+  private static final Predicate<?> NONE = new Predicate<Object>() {
+    @Override
+    public boolean test(Object argument) {
+      return false;
+    }
+  };
+  
+  private Predicates() {
+    //no instances
+  }
+  
+  public static <T> Predicate<T> all() {
+    return (Predicate<T>) ALL;
   }
 
+  public static <T> Predicate<T> none() {
+    return (Predicate<T>) NONE;
+  }
 }

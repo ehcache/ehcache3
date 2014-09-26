@@ -27,12 +27,12 @@ import java.io.Serializable;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
@@ -43,6 +43,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
+import org.ehcache.function.Predicate;
 
 import org.ehcache.internal.concurrent.JSR166Helper.*;
 
@@ -6296,8 +6297,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         }
     }
 
-    public Collection<V> getRandomValues(Random rndm, int size) {
-        Collection<V> sampled = new ArrayList<V>(size);
+    public Set<Entry<K, V>> getRandomValues(Random rndm, int size, Predicate<? super Entry<K, V>> veto) {
+        Set<Entry<K, V>> sampled = new HashSet<Entry<K, V>>(size);
 
         Node<K,V>[] tab = table;
         if (tab == null || size == 0) {
@@ -6311,18 +6312,19 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
           if (next == null) {
             break;
           } else {
-            sampled.add(next.val);
-            if (sampled.size() == size) {
-              int terminalIndex = t1.index;
-              while (t1.index == terminalIndex) {
-                next = t1.advance();
-                if (next == null) {
-                  return sampled;
-                } else {
-                  sampled.add(next.val);
+            if (add(sampled, veto, new MapEntry<K, V>(next.key, next.val, this))) {
+              if (sampled.size() == size) {
+                int terminalIndex = t1.index;
+                while (t1.index == terminalIndex) {
+                  next = t1.advance();
+                  if (next == null) {
+                    return sampled;
+                  } else {
+                    add(sampled, veto, new MapEntry<K, V>(next.key, next.val, this));
+                  }
                 }
+                return sampled;
               }
-              return sampled;
             }
           }
         }
@@ -6332,15 +6334,16 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
           if (next == null) {
             break;
           } else {
-            sampled.add(next.val);
-            if (sampled.size() == size) {
-              int terminalIndex = t2.index;
-              while (t2.index == terminalIndex) {
-                next = t2.advance();
-                if (next == null) {
-                  return sampled;
-                } else {
-                  sampled.add(next.val);
+            if (add(sampled, veto, new MapEntry<K, V>(next.key, next.val, this))) {
+              if (sampled.size() == size) {
+                int terminalIndex = t2.index;
+                while (t2.index == terminalIndex) {
+                  next = t2.advance();
+                  if (next == null) {
+                    return sampled;
+                  } else {
+                    add(sampled, veto, new MapEntry<K, V>(next.key, next.val, this));
+                  }
                 }
                 return sampled;
               }
@@ -6348,5 +6351,9 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
           }
         }
         return sampled;
+    }
+    
+    private static <T> boolean add(Set<? super T> to, Predicate<? super T> veto, T value) {
+      return !veto.test(value) && to.add(value);
     }
 }

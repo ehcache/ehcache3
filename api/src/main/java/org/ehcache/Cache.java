@@ -17,6 +17,7 @@ package org.ehcache;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Basic interface to a cache, defines all operational methods to crete, access,
@@ -176,5 +177,28 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
      */
     V getValue();
 
+    /**
+     * Accessor to the creation time of this mapping.
+     *
+     * @param unit the timeUnit to return the creation time in
+     * @return the creation time in the specified unit
+     */
+    long getCreationTime(TimeUnit unit);
+
+    /**
+     * Accessor to the last access time of this mapping.
+     *
+     * @param unit the timeUnit to return the last access time in
+     * @return the last access time in the specified unit
+     */
+    long getLastAccessTime(TimeUnit unit);
+
+    /**
+     * Accessor to the hit rate of this mapping.
+     *
+     * @param unit the time unit to return the rate in
+     * @return the hit rate in the specified unit
+     */
+    float getHitRate(TimeUnit unit);
   }
 }

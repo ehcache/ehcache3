@@ -17,7 +17,10 @@
 package org.ehcache.internal.concurrent;
 
 import java.util.Collection;
+import java.util.Map.Entry;
 import java.util.Random;
+import org.ehcache.function.Predicate;
+import org.ehcache.function.Predicates;
 
 import org.junit.Test;
 
@@ -25,7 +28,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -36,23 +38,25 @@ public class ConcurrentHashMapTest {
     @Test
     public void testRandomSampleOnEmptyMap() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
-        assertThat(map.getRandomValues(new Random(), 1), empty());
+        assertThat(map.getRandomValues(new Random(), 1, Predicates.none()), empty());
     }
     
     @Test
     public void testEmptyRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
         map.put("foo", "bar");
-        assertThat(map.getRandomValues(new Random(), 0), empty());
+        assertThat(map.getRandomValues(new Random(), 0, Predicates.none()), empty());
     }
     
     @Test
     public void testOversizedRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
         map.put("foo", "bar");
-        Collection<String> sample = map.getRandomValues(new Random(), 2);
+        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 2, Predicates.none());
         assertThat(sample, hasSize(1));
-        assertThat(sample, hasItem("bar"));
+        Entry<String, String> e = sample.iterator().next();
+        assertThat(e.getKey(), is("foo"));
+        assertThat(e.getValue(), is("bar"));
     }
     
     @Test
@@ -61,8 +65,34 @@ public class ConcurrentHashMapTest {
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Collection<String> sample = map.getRandomValues(new Random(), 2);
+        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 2, Predicates.none());
         assertThat(sample, hasSize(greaterThanOrEqualTo(2)));
+    }
+    
+    @Test
+    public void testFullyVetoedRandomSample() {
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
+        for (int i = 0; i < 1000; i++) {
+          map.put(Integer.toString(i), Integer.toString(i));
+        }
+        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 2, Predicates.all());
+        assertThat(sample, empty());
+    }
+    
+    @Test
+    public void testSelectivelyVetoedRandomSample() {
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
+        for (int i = 0; i < 1000; i++) {
+          map.put(Integer.toString(i), Integer.toString(i));
+        }
+        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 20, new Predicate<Entry<String, String>>() {
+
+          @Override
+          public boolean test(Entry<String, String> argument) {
+            return argument.getKey().length() > 1;
+          }
+        });
+        assertThat(sample, hasSize(10));
     }
     
     @Test

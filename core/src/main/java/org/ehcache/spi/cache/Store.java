@@ -155,6 +155,14 @@ public interface Store<K, V> {
      * @return the last access time in the given unit
      */
     long lastAccessTime(TimeUnit unit);
+
+    /**
+     * Accessor to the hit rate of the Value held in this ValueHolder?
+     *
+     * @param unit the timeUnit to return the rate in
+     * @return the hit rate in the given unit
+     */
+    float hitRate(TimeUnit unit);
   }
 
   /**
