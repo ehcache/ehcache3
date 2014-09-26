@@ -27,14 +27,17 @@ import java.io.Serializable;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
@@ -6291,5 +6294,59 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         } catch (Exception e) {
             throw new Error(e);
         }
+    }
+
+    public Collection<V> getRandomValues(Random rndm, int size) {
+        Collection<V> sampled = new ArrayList<V>(size);
+
+        Node<K,V>[] tab = table;
+        if (tab == null || size == 0) {
+          return Collections.emptySet();
+        }
+        int n = tab.length;
+        int start = rndm.nextInt(n);
+        Traverser<K, V> t1 = new Traverser<K, V>(tab, n, start, n);
+        while (true) {
+          Node<K,V> next = t1.advance();
+          if (next == null) {
+            break;
+          } else {
+            sampled.add(next.val);
+            if (sampled.size() == size) {
+              int terminalIndex = t1.index;
+              while (t1.index == terminalIndex) {
+                next = t1.advance();
+                if (next == null) {
+                  return sampled;
+                } else {
+                  sampled.add(next.val);
+                }
+              }
+              return sampled;
+            }
+          }
+        }
+        Traverser<K, V> t2 = new Traverser<K, V>(tab, n, 0, start);
+        while (true) {
+          Node<K,V> next = t2.advance();
+          if (next == null) {
+            break;
+          } else {
+            sampled.add(next.val);
+            if (sampled.size() == size) {
+              int terminalIndex = t2.index;
+              while (t2.index == terminalIndex) {
+                next = t2.advance();
+                if (next == null) {
+                  return sampled;
+                } else {
+                  sampled.add(next.val);
+                }
+                return sampled;
+              }
+            }
+          }
+        }
+        return sampled;
     }
 }

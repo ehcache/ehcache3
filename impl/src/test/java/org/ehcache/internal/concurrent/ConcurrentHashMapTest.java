@@ -16,9 +16,16 @@
 
 package org.ehcache.internal.concurrent;
 
+import java.util.Collection;
+import java.util.Random;
+
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+import static org.hamcrest.collection.IsEmptyCollection.empty;
+import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -26,6 +33,38 @@ import static org.junit.Assert.assertThat;
  */
 public class ConcurrentHashMapTest {
 
+    @Test
+    public void testRandomSampleOnEmptyMap() {
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
+        assertThat(map.getRandomValues(new Random(), 1), empty());
+    }
+    
+    @Test
+    public void testEmptyRandomSample() {
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
+        map.put("foo", "bar");
+        assertThat(map.getRandomValues(new Random(), 0), empty());
+    }
+    
+    @Test
+    public void testOversizedRandomSample() {
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
+        map.put("foo", "bar");
+        Collection<String> sample = map.getRandomValues(new Random(), 2);
+        assertThat(sample, hasSize(1));
+        assertThat(sample, hasItem("bar"));
+    }
+    
+    @Test
+    public void testUndersizedRandomSample() {
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
+        for (int i = 0; i < 1000; i++) {
+          map.put(Integer.toString(i), Integer.toString(i));
+        }
+        Collection<String> sample = map.getRandomValues(new Random(), 2);
+        assertThat(sample, hasSize(greaterThanOrEqualTo(2)));
+    }
+    
     @Test
     public void testReplaceWithWeirdBehavior() {
         ConcurrentHashMap<String, Element> elementMap = new ConcurrentHashMap<String, Element>();
