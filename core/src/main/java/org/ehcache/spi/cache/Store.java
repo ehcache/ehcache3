@@ -39,32 +39,34 @@ public interface Store<K, V> {
    * Returns the {@link org.ehcache.spi.cache.Store.ValueHolder ValueHolder} to
    * which the specified key is mapped, or {@code null} if this store contains no
    * mapping for the key or if it got evicted since it was initially installed.
-   * <p/>
+   * <p>
    * More formally, if this store contains a mapping from a key
    * {@code k} to a {@link org.ehcache.spi.cache.Store.ValueHolder ValueHolder}
    * {@code v} such that {@code key.equals(k)},
    * then this method returns {@code v}; otherwise it returns
    * {@code null}.  (There can be at most one such mapping.)
-   *
+   * 
    * @throws NullPointerException if the specified key is null
+   * @throws ClassCastException if the specified key is not an instance of {@code K}
    * @throws CacheAccessException if the mapping can't be retrieved
    */
   ValueHolder<V> get(K key) throws CacheAccessException;
 
   /**
-   * Returns <tt>true</tt> if this set contains the specified key.
-   * More formally, returns <tt>true</tt> if and only if this set
-   * contains an element <tt>e</tt> such that <tt>(o.equals(e))</tt>.
+   * Returns <tt>true</tt> if this store contains the specified key.
+   * More formally, returns <tt>true</tt> if and only if this store
+   * contains a key <tt>k</tt> such that <tt>(o.equals(k))</tt>.
    *
-   * @param key element whose presence in this set is to be tested
-   * @return <tt>true</tt> if this set contains the specified element
+   * @param key key whose presence in this store is to be tested
+   * @return <tt>true</tt> if this store contains the specified element
    * @throws NullPointerException if the specified key is null
+   * @throws ClassCastException if the specified key is not an instance of {@code K}
    * @throws CacheAccessException if the presence can't be tested for
    */
   boolean containsKey(K key) throws CacheAccessException;
 
   /**
-   * Maps the specified key to the specified ValueHolder in this table.
+   * Maps the specified key to the specified ValueHolder in this store.
    * Neither the key nor the value can be null.
    * <p/>
    * The ValueHolder can be retrieved by calling the {@code get} method
@@ -74,6 +76,7 @@ public interface Store<K, V> {
    * @param value ValueHolder to be associated with the specified key, holding both the value and
    *              the metadata for the mapping
    * @throws NullPointerException if the specified key or value is null
+   * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {{@code V})
    * @throws CacheAccessException if the mapping can't be installed
    */
   void put(K key, ValueHolder<V> value) throws CacheAccessException;
@@ -84,6 +87,7 @@ public interface Store<K, V> {
    *
    * @param key the key that needs to be removed
    * @throws NullPointerException if the specified key is null
+   * @throws ClassCastException if the specified key is not an instance of {@code K}
    * @throws CacheAccessException if the mapping can't be removed
    */
   void remove(K key) throws CacheAccessException;
@@ -113,7 +117,7 @@ public interface Store<K, V> {
   void close();
 
   /**
-   * Returns an iterator over the elements in this set.  The elements are
+   * Returns an iterator over the elements in this store.  The elements are
    * returned in no particular order (unless this set is an instance of some
    * class that provides a guarantee).
    *
@@ -129,7 +133,7 @@ public interface Store<K, V> {
   public interface ValueHolder<V> {
 
     /**
-     * (Lazy?) Accessor to the value held by this mapping.
+     * Accessor to the value held by this mapping.
      *
      * @return The value
      * @throws Exception when something goes wrong... e.g. deserialization?
@@ -140,7 +144,7 @@ public interface Store<K, V> {
      * Accessor to the creation time of this ValueHolder
      *
      * @param unit the timeUnit to return the creation time in
-     * @return the last access time according to unit
+     * @return the creation time in the given unit
      */
     long creationTime(TimeUnit unit);
 
@@ -148,7 +152,7 @@ public interface Store<K, V> {
      * Accessor to the last access time of the Value held in this ValueHolder?
      *
      * @param unit the timeUnit to return the last access time in
-     * @return the last access time according to unit
+     * @return the last access time in the given unit
      */
     long lastAccessTime(TimeUnit unit);
   }

@@ -1,5 +1,6 @@
 package org.ehcache.spi.test;
 
+import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.spi.cache.Store;
 
 public class StoreTester extends SPITester {
@@ -13,13 +14,13 @@ public class StoreTester extends SPITester {
   @SPITest
   public void test1() {
     System.out.println("running test1");
-    final Store<String, String> store = storeFactory.newStore(String.class, String.class);
+    final Store<String, String> store = storeFactory.newStore(new StoreConfigurationImpl<String, String>(String.class, String.class));
   }
   
   @SPITest
   public void test2() {
     System.out.println("running test2");
-    final Store<Integer, String> store = storeFactory.newStore(Integer.class, String.class);
+    final Store<Integer, String> store = storeFactory.newStore(new StoreConfigurationImpl<Integer, String>(Integer.class, String.class));
   }
   
   @SPITest
