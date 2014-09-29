@@ -20,6 +20,7 @@ subprojects {
   apply plugin: 'signing'
   apply plugin: 'eclipse'
   apply plugin: 'checkstyle'
+  apply plugin: 'findbugs'
 
   group = 'org.ehcache.modules'
   version = '3.0.0-SNAPSHOT'
@@ -42,7 +43,7 @@ subprojects {
       runtimeClasspath += sourceSets.test.runtimeClasspath
     }
     
-  spiTest {
+    spiTest {
       java.srcDir 'src/spi-test/java'
       resources.srcDir 'src/spi-test/resources'
       compileClasspath += sourceSets.test.compileClasspath
@@ -158,6 +159,12 @@ subprojects {
     configFile = file("$rootDir/config/checkstyle.xml")
     configProperties = ['projectDir':projectDir]
     toolVersion = '5.7'
+  }
+
+  findbugs {
+    ignoreFailures = true
+    sourceSets = [sourceSets.main]
+    toolVersion = '2.0.3'
   }
 }
 
