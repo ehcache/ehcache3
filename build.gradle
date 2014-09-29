@@ -21,6 +21,7 @@ subprojects {
   apply plugin: 'eclipse'
   apply plugin: 'checkstyle'
   apply plugin: 'findbugs'
+  apply plugin: 'jacoco'
 
   group = 'org.ehcache.modules'
   version = '3.0.0-SNAPSHOT'
@@ -165,6 +166,17 @@ subprojects {
     ignoreFailures = true
     sourceSets = [sourceSets.main]
     toolVersion = '2.0.3'
+  }
+
+  jacoco {
+    toolVersion = '0.7.1.201405082137'
+  }
+
+  jacocoTestReport {
+    reports {
+      xml.enabled false
+      csv.enabled false
+    }
   }
 }
 
