@@ -17,7 +17,9 @@
 package org.ehcache;
 
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CacheLoaderException;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -32,13 +34,19 @@ import java.util.concurrent.TimeUnit;
 public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, PersistentStandaloneCache<K, V> {
 
   private final Store<K, V> store;
+  private final CacheLoader<? super K, ? extends V> cacheLoader;
 
-  protected Ehcache(Store<K, V> store, ServiceConfiguration<? extends Service>... configs) {
+  public Ehcache(final Store store, ServiceConfiguration<? extends Service>... configs) {
+    this(store, null, configs);
+  }
+
+  public Ehcache(Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader, ServiceConfiguration<? extends Service>... configs) {
     this.store = store;
+    this.cacheLoader = cacheLoader;
   }
 
   @Override
-  public V get(final K key) {
+  public V get(final K key) throws CacheLoaderException {
     final Store.ValueHolder<V> valueHolder;
     try {
       valueHolder = store.get(key);
@@ -52,7 +60,12 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       return null;
     }
     if(valueHolder == null) {
-      return null;
+      // TODO this should populate obviously!
+      if(cacheLoader != null) {
+        return cacheLoader.load(key);
+      } else {
+        return null;
+      }
     }
     // Check for expiry first:
     return valueHolder.value();
@@ -131,22 +144,22 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   }
 
   @Override
-  public V putIfAbsent(final K key, final V value) {
+  public V putIfAbsent(final K key, final V value) throws CacheLoaderException {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public boolean remove(final K key, final V value) {
+  public boolean remove(final K key, final V value) throws CacheLoaderException {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public V replace(final K key, final V value) {
+  public V replace(final K key, final V value) throws CacheLoaderException {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public boolean replace(final K key, final V oldValue, final V newValue) {
+  public boolean replace(final K key, final V oldValue, final V newValue) throws CacheLoaderException {
     throw new UnsupportedOperationException("Implement me!");
   }
 

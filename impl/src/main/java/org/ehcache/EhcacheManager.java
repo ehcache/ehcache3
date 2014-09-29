@@ -20,6 +20,8 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.loader.CacheLoader;
+import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
@@ -34,10 +36,15 @@ import org.ehcache.config.StoreConfigurationImpl;
  */
 public final class EhcacheManager implements PersistentCacheManager {
 
-  private final ServiceLocator serviceLocator = new ServiceLocator();
+  private final ServiceLocator serviceLocator;
   private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<String, CacheHolder>();
 
   public EhcacheManager(Configuration config) {
+    this(config, new ServiceLocator());
+  }
+
+  public EhcacheManager(Configuration config, ServiceLocator serviceLocator) {
+    this.serviceLocator = serviceLocator;
     for (ServiceConfiguration<?> serviceConfig : config.getServiceConfigurations()) {
       if (serviceLocator.discoverService(serviceConfig) == null) {
         throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
@@ -73,11 +80,19 @@ public final class EhcacheManager implements PersistentCacheManager {
   public <K, V> Cache<K, V> createCache(final String alias, final CacheConfiguration<K, V> config) throws IllegalArgumentException {
     Class<K> keyType = config.getKeyType();
     Class<V> valueType = config.getValueType();
-    Collection<ServiceConfiguration<?>> serviceConfigs = ((CacheConfiguration)config).getServiceConfigurations();
-    ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
-    final Store.Provider service = serviceLocator.findService(Store.Provider.class);
-    final Store<K, V> store = service.createStore(new StoreConfigurationImpl(keyType, valueType));
-    final Cache<K, V> cache = new Ehcache<K, V>(store, serviceConfigArray);
+    Collection<ServiceConfiguration<?>> serviceConfigs = config.getServiceConfigurations();
+    ServiceConfiguration<?>[] serviceConfigArray = new ServiceConfiguration[0];
+    if (serviceConfigs != null) {
+      serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
+    }
+    final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
+    final CacheLoaderFactory cacheLoaderFactory = serviceLocator.findService(CacheLoaderFactory.class);
+    final Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(keyType, valueType));
+    CacheLoader<? super K, ? extends V> loader = null;
+    if(cacheLoaderFactory != null) {
+      loader = cacheLoaderFactory.createLoader(alias, config);
+    }
+    final Cache<K, V> cache = new Ehcache<K, V>(store, loader, serviceConfigArray);
     return addCache(alias, keyType, valueType, cache);
   }
 

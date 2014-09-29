@@ -22,6 +22,7 @@ import org.ehcache.config.StandaloneCacheConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.function.Predicate;
+import org.ehcache.spi.loader.CacheLoader;
 
 /**
  * @author Alex Snaps
@@ -33,7 +34,8 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   private Comparable<Long> capacityConstraint;
   private Predicate<Cache.Entry<K, V>> evictionVeto;
   private Comparator<Cache.Entry<K, V>> evictionPrioritizer;
-  
+  private CacheLoader<? super K, ? extends V> cacheLoader;
+
   public StandaloneCacheBuilder(final Class<K> keyType, final Class<V> valueType) {
     this.keyType = keyType;
     this.valueType = valueType;
@@ -41,7 +43,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
 
   T build(ServiceLocator serviceLocator) {
     Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
-    return (T) new Ehcache(storeProvider.createStore(new StoreConfigurationImpl(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer)));
+    return (T) new Ehcache(storeProvider.createStore(new StoreConfigurationImpl(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer)), cacheLoader);
   }
 
   public final T build() {
@@ -64,6 +66,11 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   
   public final StandaloneCacheBuilder<K, V, T> prioritizeEviction(Comparator<Cache.Entry<K, V>> criteria) {
     this.evictionPrioritizer = criteria;
+    return this;
+  }
+
+  public final StandaloneCacheBuilder<K, V, T> loadingWith(CacheLoader<? super K, ? extends V> cacheLoader) {
+    this.cacheLoader = cacheLoader;
     return this;
   }
           

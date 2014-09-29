@@ -18,9 +18,14 @@ package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.internal.store.OnHeapStore;
+import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
+
+import java.util.HashMap;
 
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.ConfigurationBuilder.newConfigurationBuilder;
@@ -28,6 +33,8 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class EhcacheManagerTest {
 
@@ -91,6 +98,25 @@ public class EhcacheManagerTest {
       assertTrue(e.getMessage().contains("<java.lang.Integer, java.lang.String>"));
       assertTrue(e.getMessage().contains("<java.lang.String, java.lang.String>"));
     }
+  }
+
+  @Test
+  public void testPlaysNicelyWithCacheLoaders() {
+
+    final CacheLoaderFactory cacheLoaderFactory = mock(CacheLoaderFactory.class);
+
+    final CacheConfiguration<Long, Long> barConfig = mock(CacheConfiguration.class);
+    final CacheConfiguration<Integer, CharSequence> fooConfig = mock(CacheConfiguration.class);
+
+    final Configuration cfg = new Configuration(new HashMap<String, CacheConfiguration<?, ?>>() {{
+      put("bar", barConfig);
+      put("foo", fooConfig);
+    }});
+
+    new EhcacheManager(cfg, new ServiceLocator(cacheLoaderFactory, new OnHeapStore.Provider()));
+
+    verify(cacheLoaderFactory).createLoader("bar", barConfig);
+    verify(cacheLoaderFactory).createLoader("foo", fooConfig);
   }
 
   static class NoSuchService implements Service {
