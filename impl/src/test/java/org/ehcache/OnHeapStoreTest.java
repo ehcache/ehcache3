@@ -19,23 +19,29 @@ package org.ehcache;
 import org.ehcache.internal.store.OnHeapStore;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.StoreFactory;
+import org.ehcache.spi.test.StoreGetTest;
 import org.ehcache.spi.test.StoreTester;
 import org.junit.Test;
 
 /**
- * @author Hung Huynh
+ * Test the {@link org.ehcache.internal.store.OnHeapStore} compliance to the
+ * {@link org.ehcache.spi.cache.Store} contract.
+ *
+ * @author Aurelien Broszniowski
  */
 public class OnHeapStoreTest {
 
   @Test
-  public void test() throws Exception {
-    StoreTester tester = new StoreTester(new StoreFactory() {
+  public void testGet() throws Exception {
+    StoreGetTest<Object, Object> getTest = new StoreGetTest<Object, Object>(new StoreFactory() {
+
       @Override
       public <K, V> Store<K, V> newStore(Store.Configuration<K, V> config) {
         return new OnHeapStore<K, V>(config);
       }
-    });
-    tester.runTestSuite().reportAndThrow();
+    }, Object.class, Object.class);
+    getTest.runTestSuite().reportAndThrow();
+
   }
 
 }
