@@ -44,7 +44,7 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
       }
 
       @Override
-      public void put(final K key, final ValueHolder<V> value) throws CacheAccessException {
+      public void put(final K key, final V value) throws CacheAccessException {
         throw new UnsupportedOperationException("Implement me!");
       }
 

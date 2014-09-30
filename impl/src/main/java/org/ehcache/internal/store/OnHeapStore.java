@@ -24,6 +24,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Alex Snaps
@@ -31,6 +32,7 @@ import java.util.concurrent.ConcurrentMap;
 public class OnHeapStore<K, V> implements Store<K, V> {
 
   ConcurrentMap<K, Store.ValueHolder<V>> map = new ConcurrentHashMap<K, ValueHolder<V>>();
+  private static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
 
   @Override
   public ValueHolder<V> get(final K key) throws CacheAccessException {
@@ -43,8 +45,8 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public void put(final K key, final ValueHolder<V> value) throws CacheAccessException {
-    map.put(key, value);
+  public void put(final K key, final V value) throws CacheAccessException {
+    map.put(key, newValueHolder(value, System.currentTimeMillis()));
   }
 
   @Override
@@ -90,6 +92,25 @@ public class OnHeapStore<K, V> implements Store<K, V> {
             return next.getValue();
           }
         };
+      }
+    };
+  }
+
+  private static <T> Store.ValueHolder<T> newValueHolder(final T value, final long now) {
+    return new Store.ValueHolder<T>() {
+      @Override
+      public T value() {
+        return value;
+      }
+  
+      @Override
+      public long creationTime(TimeUnit unit) {
+        return DEFAULT_TIME_UNIT.convert(now, unit);
+      }
+  
+      @Override
+      public long lastAccessTime(TimeUnit unit) {
+        return DEFAULT_TIME_UNIT.convert(now, unit);
       }
     };
   }
