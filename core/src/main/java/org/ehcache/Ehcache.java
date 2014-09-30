@@ -24,14 +24,12 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author Alex Snaps
  */
 public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, PersistentStandaloneCache<K, V> {
 
-  private static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
   private final Store<K, V> store;
 
   protected Ehcache(Store<K, V> store, ServiceConfiguration<? extends Service>... configs) {
@@ -62,7 +60,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   @Override
   public void put(final K key, final V value) {
     try {
-      store.put(key, newValueHolder(value, System.currentTimeMillis()));
+      store.put(key, value);
     } catch (CacheAccessException e) {
       try {
         store.remove(key);
@@ -163,25 +161,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     } catch (CacheAccessException e) {
       throw new RuntimeException("Couldn't destroy Cache", e);
     }
-  }
-
-  private static <T> Store.ValueHolder<T> newValueHolder(final T value, final long now) {
-    return new Store.ValueHolder<T>() {
-      @Override
-      public T value() {
-        return value;
-      }
-
-      @Override
-      public long creationTime(TimeUnit unit) {
-        return DEFAULT_TIME_UNIT.convert(now, unit);
-      }
-
-      @Override
-      public long lastAccessTime(TimeUnit unit) {
-        return DEFAULT_TIME_UNIT.convert(now, unit);
-      }
-    };
   }
 
   private class CacheEntryIterator implements Iterator<Entry<K, V>> {

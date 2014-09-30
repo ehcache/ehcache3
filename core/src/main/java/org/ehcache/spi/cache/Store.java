@@ -66,7 +66,7 @@ public interface Store<K, V> {
   boolean containsKey(K key) throws CacheAccessException;
 
   /**
-   * Maps the specified key to the specified ValueHolder in this store.
+   * Maps the specified key to the specified value in this store.
    * Neither the key nor the value can be null.
    * <p/>
    * The ValueHolder can be retrieved by calling the {@code get} method
@@ -79,7 +79,7 @@ public interface Store<K, V> {
    * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {{@code V})
    * @throws CacheAccessException if the mapping can't be installed
    */
-  void put(K key, ValueHolder<V> value) throws CacheAccessException;
+  void put(K key, V value) throws CacheAccessException;
 
   /**
    * Removes the key (and its corresponding value) from this store.
