@@ -26,12 +26,22 @@ public final class Comparables {
     public int compareTo(Object t) {
       return 1;
     }
+
+    @Override
+    public boolean equals(final Object obj) {
+      return false;
+    }
   };
   
   private static final Comparable<?> SMALLEST = new Comparable<Object>() {
     @Override
     public int compareTo(Object t) {
       return -1;
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+      return false;
     }
   };
   

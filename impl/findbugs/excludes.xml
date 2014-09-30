@@ -1,0 +1,7 @@
+<FindBugsFilter>
+  <Match>
+    <Class name="org.ehcache.internal.concurrent.ConcurrentHashMap"/>
+    <Method name="getRandomValues"/>
+    <Bug pattern="SA_FIELD_SELF_COMPARISON"/>
+  </Match>
+</FindBugsFilter>
