@@ -21,6 +21,11 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
+ * A factory {@link org.ehcache.spi.service.Service} that will create {@link org.ehcache.spi.loader.CacheLoader}
+ * instances for a given {@link org.ehcache.Cache} managed by a {@link org.ehcache.CacheManager}
+ *
+ * The {@link org.ehcache.CacheManager} will an instance of this Class prior to
+ *
  * @author Alex Snaps
  */
 public interface CacheLoaderFactory extends Service {

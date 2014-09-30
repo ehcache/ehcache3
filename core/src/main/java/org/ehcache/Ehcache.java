@@ -177,6 +177,10 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
   }
 
+  CacheLoader<? super K, ? extends V> getCacheLoader() {
+    return cacheLoader;
+  }
+
   private class CacheEntryIterator implements Iterator<Entry<K, V>> {
 
     private Store.Iterator<Entry<K, Store.ValueHolder<V>>> iterator;

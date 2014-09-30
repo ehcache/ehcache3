@@ -20,10 +20,13 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.internal.store.OnHeapStore;
 import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
+import org.mockito.Matchers;
+import org.mockito.Mockito;
 
 import java.util.HashMap;
 
@@ -34,7 +37,9 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class EhcacheManagerTest {
 
@@ -101,22 +106,31 @@ public class EhcacheManagerTest {
   }
 
   @Test
-  public void testPlaysNicelyWithCacheLoaders() {
+  public void testLifeCyclesCacheLoaders() {
 
     final CacheLoaderFactory cacheLoaderFactory = mock(CacheLoaderFactory.class);
 
     final CacheConfiguration<Long, Long> barConfig = mock(CacheConfiguration.class);
     final CacheConfiguration<Integer, CharSequence> fooConfig = mock(CacheConfiguration.class);
 
+    CacheLoader fooLoader = mock(CacheLoader.class);
+
+    when(cacheLoaderFactory.createLoader("foo", fooConfig)).thenReturn(fooLoader);
+
     final Configuration cfg = new Configuration(new HashMap<String, CacheConfiguration<?, ?>>() {{
       put("bar", barConfig);
       put("foo", fooConfig);
     }});
 
-    new EhcacheManager(cfg, new ServiceLocator(cacheLoaderFactory, new OnHeapStore.Provider()));
+    final EhcacheManager manager = new EhcacheManager(cfg, new ServiceLocator(cacheLoaderFactory, new OnHeapStore.Provider()));
 
     verify(cacheLoaderFactory).createLoader("bar", barConfig);
     verify(cacheLoaderFactory).createLoader("foo", fooConfig);
+
+    manager.removeCache("bar");
+    verify(cacheLoaderFactory, never()).releaseCacheLoader((CacheLoader<?, ?>)Mockito.anyObject());
+    manager.removeCache("foo");
+    verify(cacheLoaderFactory).releaseCacheLoader(fooLoader);
   }
 
   static class NoSuchService implements Service {

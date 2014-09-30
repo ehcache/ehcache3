@@ -73,7 +73,17 @@ public final class EhcacheManager implements PersistentCacheManager {
 
   @Override
   public void removeCache(final String alias) {
-    throw new UnsupportedOperationException("Implement me!");
+    // TODO Probably should be all done using proper lifecycle when we get to that
+    final CacheHolder cacheHolder = caches.remove(alias);
+    if(cacheHolder != null) {
+      // ... and probably shouldn't be a blind cast neither. Make Ehcache Closeable?
+      final Ehcache ehcache = (Ehcache)cacheHolder.cache;
+      ehcache.close();
+      final CacheLoader cacheLoader = ehcache.getCacheLoader();
+      if (cacheLoader != null) {
+        serviceLocator.findService(CacheLoaderFactory.class).releaseCacheLoader(cacheLoader);
+      }
+    }
   }
 
   @Override
@@ -105,6 +115,10 @@ public final class EhcacheManager implements PersistentCacheManager {
 
   @Override
   public void close() {
+    // TODO this needs to be made thread safe when addressing lifecycle
+    for (String alias : caches.keySet()) {
+      removeCache(alias);
+    }
     serviceLocator.stopAllServices();
   }
 
