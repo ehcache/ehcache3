@@ -26,6 +26,7 @@ import org.xml.sax.SAXException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Comparator;
+import org.ehcache.eviction.EvictionPrioritizer;
 
 /**
  * @author cdennis
@@ -50,7 +51,14 @@ public class XmlConfiguration {
       Class valueType = getClassForName(cacheElement.valueType());
       Long capacityConstraint = cacheElement.capacityConstraint();
       Predicate evictionVeto = getInstanceOfName(cacheElement.evictionVeto(), Predicate.class);
-      Comparator evictionPrioritizer = getInstanceOfName(cacheElement.evictionPrioritizer(), Comparator.class);
+      Comparator evictionPrioritizer;
+      try {
+        evictionPrioritizer = EvictionPrioritizer.valueOf(cacheElement.evictionPrioritizer());
+      } catch (IllegalArgumentException e) {
+        evictionPrioritizer = getInstanceOfName(cacheElement.evictionPrioritizer(), Comparator.class);
+      } catch (NullPointerException e) {
+        evictionPrioritizer = null;
+      }
       for (ServiceConfiguration<?> serviceConfig : cacheElement.serviceConfigs()) {
         builder.addServiceConfig(serviceConfig);
       }

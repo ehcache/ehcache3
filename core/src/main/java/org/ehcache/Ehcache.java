@@ -24,6 +24,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Alex Snaps
@@ -197,6 +198,21 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         @Override
         public V getValue() {
           return next.getValue().value();
+        }
+
+        @Override
+        public long getCreationTime(TimeUnit unit) {
+          return next.getCreationTime(unit);
+        }
+
+        @Override
+        public long getLastAccessTime(TimeUnit unit) {
+          return next.getLastAccessTime(unit);
+        }
+
+        @Override
+        public float getHitRate(TimeUnit unit) {
+          return next.getHitRate(unit);
         }
       };
     }
