@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.cachingtier;
 
+import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.cache.tiering.CachingTier;
 
 import java.util.Iterator;
@@ -29,7 +30,7 @@ public class ClockEvictingHeapCachingTier<K> implements CachingTier<K> {
 
   private static final int MAX_EVICTION = 5;
 
-  private final ConcurrentHashMapV8<K, ClockEvictableEntry> map = new ConcurrentHashMapV8<K, ClockEvictableEntry>();
+  private final ConcurrentHashMap<K, ClockEvictableEntry> map = new ConcurrentHashMap<K, ClockEvictableEntry>();
   private volatile AtomicReference<Iterator<Map.Entry<K, ClockEvictableEntry>>> iterator
       = new AtomicReference<Iterator<Map.Entry<K,ClockEvictableEntry>>>(map.entrySet().iterator());
 
@@ -80,9 +81,11 @@ public class ClockEvictingHeapCachingTier<K> implements CachingTier<K> {
 
   private Map.Entry<K, ClockEvictableEntry> next() {
     final Iterator<Map.Entry<K, ClockEvictableEntry>> iterator = this.iterator.get();
-    Map.Entry<K, ClockEvictableEntry> next = iterator.next();
-    if (next == null) {
+    Map.Entry<K, ClockEvictableEntry> next;
+    if(!iterator.hasNext()) {
       next = newIterator(iterator);
+    } else {
+      next = iterator.next();
     }
     return next;
   }
@@ -94,12 +97,12 @@ public class ClockEvictingHeapCachingTier<K> implements CachingTier<K> {
 
   @Override
   public void remove(final K key, final Object value) {
-    map.remove(key, value);
+    map.remove(key, new ClockEvictableEntry(value));
   }
 
   @Override
   public boolean replace(final K key, final Object oldValue, final Object newValue) {
-    return map.replace(key, oldValue, new ClockEvictableEntry(newValue));
+    return map.replace(key, new ClockEvictableEntry(oldValue), new ClockEvictableEntry(newValue));
   }
 
   @Override
