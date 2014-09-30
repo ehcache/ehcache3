@@ -174,7 +174,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     if (values.isEmpty()) {
       return false;
     } else {
-      Map.Entry<K, ValueHolder<V>> evict = Collections.min(values, evictionPrioritizer);
+      Map.Entry<K, ValueHolder<V>> evict = Collections.max(values, evictionPrioritizer);
       if (map.remove(evict.getKey(), evict.getValue())) {
         //Eventually we'll need to fire a listener here.
         return true;
