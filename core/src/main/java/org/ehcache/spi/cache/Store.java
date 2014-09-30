@@ -30,7 +30,7 @@ import org.ehcache.function.Predicate;
  * Cache entries (i.e. mappings of key to value, including all metadata).
  * It is basically a {@link java.util.concurrent.ConcurrentMap} with built in eviction. Possibly, it represents a view
  * on data held on some persistent and/or remote storage.
- *
+ * 
  * @author Alex Snaps
  */
 public interface Store<K, V> {
@@ -172,7 +172,7 @@ public interface Store<K, V> {
 
     /**
      * Creates a new Store instance
-     *
+     * 
      * @param storeConfig the basic configuration for the Store
      * @param serviceConfigs the configurations the Provider may need to configure the Store
      * @param <K> key type
@@ -212,14 +212,26 @@ public interface Store<K, V> {
     Class<V> getValueType();
     
     /**
-     * The capacity constraint that will be enforced by a Store.
+     * The capacity constraint that must be enforced by a Store.
      * 
      * @return the capacity constraint
      */
     Comparable<Long> getCapacityConstraint();
     
+    /**
+     * A predicate function that, if it passes an entry, must prevent that entry
+     * from being evicted by the store.
+     * 
+     * @return the eviction veto predicate
+     */
     Predicate<Cache.Entry<K, V>> getEvictionVeto();
-    
+
+    /**
+     * An entry comparator that may be used by the store to order a selected set
+     * of eviction candidates.
+     * 
+     * @return the eviction prioritizer
+     */
     Comparator<Cache.Entry<K, V>> getEvictionPrioritizer();
   }
 
