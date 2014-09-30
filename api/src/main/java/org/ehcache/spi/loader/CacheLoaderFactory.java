@@ -31,8 +31,8 @@ import org.ehcache.spi.service.ServiceConfiguration;
 public interface CacheLoaderFactory extends Service {
 
   /**
-   *
-   * @param alias
+   * Invoked by the {@link org.ehcache.CacheManager} when a {@link org.ehcache.Cache} is being added to it.
+   * @param alias the {@link org.ehcache.Cache} instance's alias in the CacheManager
    * @param cacheConfiguration
    * @param <K>
    * @param <V>
@@ -41,7 +41,7 @@ public interface CacheLoaderFactory extends Service {
   <K, V> CacheLoader<? super K, ? extends V> createLoader(String alias, CacheConfiguration<K, V> cacheConfiguration);
 
   /**
-   *
+   * Invoked by {@link org.ehcache.CacheManager} when a {@link org.ehcache.Cache} is being removed from it.
    * @param cacheLoader
    */
   void releaseCacheLoader(CacheLoader<?, ?> cacheLoader);
