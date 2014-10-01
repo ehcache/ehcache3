@@ -18,16 +18,19 @@ package org.ehcache;
 
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoaderException;
+import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriter;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Alex Snaps
@@ -54,28 +57,50 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public V get(final K key) throws CacheLoaderException {
-    final Store.ValueHolder<V> valueHolder;
+
+    final AtomicReference<V> loadedValue = new AtomicReference<V>();
+
     try {
-      valueHolder = store.get(key);
+      final Store.ValueHolder<V> valueHolder = store.computeIfAbsent(key, new Function<K, V>() {
+        @Override
+        public V apply(final K k) {
+          V loaded = null;
+          try {
+            if (cacheLoader != null) {
+              loaded = cacheLoader.load(k);
+            }
+          } catch (RuntimeException e) {
+            throw new CacheLoaderException(e);
+          }
+          loadedValue.set(loaded);
+          return loaded;
+        }
+      });
+
+      // Check for expiry first
+      return valueHolder == null ? null : valueHolder.value();
+
     } catch (CacheAccessException e) {
+
+      // So we either didn't load, or that's a miss in the SoR as well
       try {
+        // If the former, let's clean up
         store.remove(key);
         // fire an event? eviction?
       } catch (CacheAccessException e1) {
         // fall back to strategy?
       }
-      return null;
-    }
-    if(valueHolder == null) {
-      // TODO this should populate obviously!
-      if(cacheLoader != null) {
-        return cacheLoader.load(key);
-      } else {
-        return null;
+
+      // This means we either couldn't retrieve the value, or install the new mapping.
+      final V loaded = loadedValue.get();
+      if (loaded != null) {
+        // we did load? then let's assume the installment of the mapping failed
+        return loaded;
       }
+
+      // May want to populate here (putIfAbsent?)
+      return cacheLoader != null ? cacheLoader.load(key) : null;
     }
-    // Check for expiry first:
-    return valueHolder.value();
   }
 
   @Override
