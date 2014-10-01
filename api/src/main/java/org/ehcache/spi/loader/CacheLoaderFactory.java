@@ -24,7 +24,12 @@ import org.ehcache.spi.service.ServiceConfiguration;
  * A factory {@link org.ehcache.spi.service.Service} that will create {@link org.ehcache.spi.loader.CacheLoader}
  * instances for a given {@link org.ehcache.Cache} managed by a {@link org.ehcache.CacheManager}
  *
- * The {@link org.ehcache.CacheManager} will an instance of this Class prior to
+ * The {@link org.ehcache.CacheManager} will request an instance of this Class prior to creating any
+ * {@link org.ehcache.Cache} instances. It'll then use this instance to create
+ * {@link org.ehcache.spi.loader.CacheLoader} instances for each {@link org.ehcache.Cache} it manages by
+ * invoking the {@link #createLoader(String, org.ehcache.config.CacheConfiguration)} method. For any non {@code null}
+ * value returned, the {@link org.ehcache.Cache} will be configured to use the
+ * {@link org.ehcache.spi.loader.CacheLoader} instance returned.
  *
  * @author Alex Snaps
  */
@@ -32,17 +37,18 @@ public interface CacheLoaderFactory extends Service {
 
   /**
    * Invoked by the {@link org.ehcache.CacheManager} when a {@link org.ehcache.Cache} is being added to it.
-   * @param alias the {@link org.ehcache.Cache} instance's alias in the CacheManager
-   * @param cacheConfiguration
-   * @param <K>
-   * @param <V>
-   * @return
+   * @param alias the {@link org.ehcache.Cache} instance's alias in the {@link org.ehcache.CacheManager}
+   * @param cacheConfiguration the configuration instance that will be used to create the {@link org.ehcache.Cache}
+   * @param <K> the key type for the associated {@link org.ehcache.Cache}
+   * @param <V> the value type for the associated {@link org.ehcache.Cache}
+   * @return the {@link org.ehcache.spi.loader.CacheLoader} to be used by the {@link org.ehcache.Cache} or null if none
    */
   <K, V> CacheLoader<? super K, ? extends V> createLoader(String alias, CacheConfiguration<K, V> cacheConfiguration);
 
   /**
    * Invoked by {@link org.ehcache.CacheManager} when a {@link org.ehcache.Cache} is being removed from it.
-   * @param cacheLoader
+   * @param cacheLoader the {@link org.ehcache.spi.loader.CacheLoader} that was initially associated with
+   *                    the {@link org.ehcache.Cache} being removed
    */
   void releaseCacheLoader(CacheLoader<?, ?> cacheLoader);
 
