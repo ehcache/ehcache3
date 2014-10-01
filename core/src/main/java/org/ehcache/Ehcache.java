@@ -36,7 +36,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   private final Store<K, V> store;
   private final CacheLoader<? super K, ? extends V> cacheLoader;
 
-  public Ehcache(final Store store, ServiceConfiguration<? extends Service>... configs) {
+  public Ehcache(final Store<K, V> store, ServiceConfiguration<? extends Service>... configs) {
     this(store, null, configs);
   }
 
