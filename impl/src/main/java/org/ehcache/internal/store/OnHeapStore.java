@@ -18,6 +18,8 @@ package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.function.BiFunction;
+import org.ehcache.function.Function;
 import org.ehcache.function.Predicate;
 import org.ehcache.function.Predicates;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
@@ -153,7 +155,37 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       }
     };
   }
- 
+
+  @Override
+  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+    return map.compute(key, new BiFunction<K, ValueHolder<V>, ValueHolder<V>>() {
+      @Override
+      public ValueHolder<V> apply(final K k, final ValueHolder<V> vValueHolder) {
+        return new OnHeapStoreValueHolder<V>(remappingFunction.apply(k, vValueHolder.value()));
+      }
+    });
+  }
+
+  @Override
+  public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) {
+    return map.computeIfAbsent(key, new Function<K, ValueHolder<V>>() {
+      @Override
+      public ValueHolder<V> apply(final K k) {
+        return new OnHeapStoreValueHolder<V>(mappingFunction.apply(k));
+      }
+    });
+  }
+
+  @Override
+  public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+    return map.computeIfPresent(key, new BiFunction<K, ValueHolder<V>, ValueHolder<V>>() {
+      @Override
+      public ValueHolder<V> apply(final K k, final ValueHolder<V> vValueHolder) {
+        return new OnHeapStoreValueHolder<V>(remappingFunction.apply(k, vValueHolder.value()));
+      }
+    });
+  }
+
   private void enforceCapacity(int delta) {
     for (int attempts = 0, evicted = 0; attempts < ATTEMPT_RATIO * delta && evicted < EVICTION_RATIO * delta
             && capacityConstraint.compareTo((long) map.size()) < 0; attempts++) {

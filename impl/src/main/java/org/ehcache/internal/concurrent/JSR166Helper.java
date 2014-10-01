@@ -26,8 +26,6 @@ public final class JSR166Helper {
     }
 
     public interface BiConsumer<A,B> { void accept(A a, B b); }
-    public interface Function<A,T> { T apply(A a); }
-    public interface BiFunction<A,B,T> { T apply(A a, B b); }
     public interface Consumer<A> { void accept(A a); }
     public interface ToLongFunction<A> { long applyAsLong(A a); }
     public interface ToLongBiFunction<A,B> { long applyAsLong(A a, B b); }

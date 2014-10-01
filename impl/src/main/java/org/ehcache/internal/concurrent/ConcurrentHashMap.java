@@ -43,6 +43,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.ehcache.function.BiFunction;
+import org.ehcache.function.Function;
 import org.ehcache.function.Predicate;
 
 import org.ehcache.internal.concurrent.JSR166Helper.*;
