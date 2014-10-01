@@ -15,6 +15,9 @@
  */
 package org.ehcache;
 
+import org.ehcache.exceptions.BulkCacheLoaderException;
+import org.ehcache.exceptions.CacheLoaderException;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -35,8 +38,10 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return the value mapped to the key, null if none
    *
    * @throws java.lang.NullPointerException if the provided key is null
+   * @throws org.ehcache.exceptions.CacheLoaderException if the {@link org.ehcache.spi.loader.CacheLoader CacheLoader}
+   * associated with this cache threw a {@link java.lang.RuntimeException}
    */
-  V get(K key);
+  V get(K key) throws CacheLoaderException;
 
   /**
    * Associates the provided value to the given key
@@ -74,8 +79,9 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return a map from keys to values for all mapped keys
    * 
    * @throws NullPointerException if the {@code Iterable} or any of the returned keys are {@code null}.
+   * @throws BulkCacheLoaderException if loading some or all values failed
    */
-  Map<K, V> getAll(Iterable<? extends K> keys);
+  Map<K, V> getAll(Iterable<? extends K> keys) throws BulkCacheLoaderException;
 
   /**
    * Associates all the provided key:value pairs.
@@ -118,8 +124,11 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return the value that was associated with the key, or {@code null} if none
    * 
    * @throws NullPointerException if either key or value is null
+   * @throws org.ehcache.exceptions.CacheLoaderException if the {@link org.ehcache.spi.loader.CacheLoader CacheLoader}
+   * associated with this cache was invoked and threw a {@link java.lang.RuntimeException} while loading
+   * the value for the key
    */
-  V putIfAbsent(K key, V value);
+  V putIfAbsent(K key, V value) throws CacheLoaderException;
 
   /**
    * If the provided key is associated with the provided value then remove the entry.
@@ -129,8 +138,11 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return {@code true} if the entry was removed
    * 
    * @throws NullPointerException if either key or value is null
+   * @throws org.ehcache.exceptions.CacheLoaderException if the {@link org.ehcache.spi.loader.CacheLoader CacheLoader}
+   * associated with this cache was invoked and threw a {@link java.lang.RuntimeException} while loading
+   * the value for the key
    */
-  boolean remove(K key, V value);
+  boolean remove(K key, V value) throws CacheLoaderException;
 
   /**
    * If the provided key is associated with a value, then replace that value with the provided value.
@@ -140,8 +152,11 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return the value that was associated with the key, or {@code null} if none
    * 
    * @throws NullPointerException if either key or value is null
+   * @throws org.ehcache.exceptions.CacheLoaderException if the {@link org.ehcache.spi.loader.CacheLoader CacheLoader}
+   * associated with this cache was invoked and threw a {@link java.lang.RuntimeException} while loading
+   * the value for the key
    */
-  V replace(K key, V value);
+  V replace(K key, V value) throws CacheLoaderException;
   
   /**
    * If the provided key is associated with {@code oldValue}, then replace that value with {@code newValue}.
@@ -152,8 +167,11 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return {@code true} if the value was replaced
    * 
    * @throws NullPointerException if any of the values, or the key is null
+   * @throws org.ehcache.exceptions.CacheLoaderException if the {@link org.ehcache.spi.loader.CacheLoader CacheLoader}
+   * associated with this cache was invoked and threw a {@link java.lang.RuntimeException} while loading
+   * the value for the key
    */
-  boolean replace(K key, V oldValue, V newValue);
+  boolean replace(K key, V oldValue, V newValue) throws CacheLoaderException;
   
   /**
    * Represent a mapping of key to value held in a Cache

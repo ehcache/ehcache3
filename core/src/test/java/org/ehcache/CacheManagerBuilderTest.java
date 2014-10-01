@@ -16,13 +16,24 @@
 
 package org.ehcache;
 
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheManagerConfiguration;
+import org.ehcache.function.Predicate;
 import org.ehcache.spi.EhcachingTest;
+import org.ehcache.spi.loader.CacheLoader;
+import org.ehcache.spi.loader.CacheLoaderFactory;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -57,4 +68,5 @@ public class CacheManagerBuilderTest {
     assertThat(EhcachingTest.getCreationCountAndReset(), is(1));
     assertThat(counter.get(), is(1));
   }
+
 }
