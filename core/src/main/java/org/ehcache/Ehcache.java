@@ -22,6 +22,7 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.writer.CacheWriter;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -35,14 +36,20 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   private final Store<K, V> store;
   private final CacheLoader<? super K, ? extends V> cacheLoader;
+  private final CacheWriter<? super K, ? extends V> cacheWriter;
 
   public Ehcache(final Store<K, V> store, ServiceConfiguration<? extends Service>... configs) {
     this(store, null, configs);
   }
 
   public Ehcache(Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader, ServiceConfiguration<? extends Service>... configs) {
+    this(store, cacheLoader, null, configs);
+  }
+
+  public Ehcache(Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader, CacheWriter<? super K, ? extends V> cacheWriter, ServiceConfiguration<? extends Service>... configs) {
     this.store = store;
     this.cacheLoader = cacheLoader;
+    this.cacheWriter = cacheWriter;
   }
 
   @Override
