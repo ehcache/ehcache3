@@ -33,13 +33,23 @@ public class OnHeapStoreTest {
 
   @Test
   public void testGet() throws Exception {
-    StoreGetTest<Object, Object> getTest = new StoreGetTest<Object, Object>(new StoreFactory() {
+    StoreGetTest<Object, Object> getTest = new StoreGetTest<Object, Object>(new StoreFactory<Object, Object>() {
 
       @Override
-      public <K, V> Store<K, V> newStore(Store.Configuration<K, V> config) {
-        return new OnHeapStore<K, V>(config);
+      public Store<Object, Object> newStore(final Store.Configuration<Object, Object> config) {
+        return new OnHeapStore<Object, Object>(config);
       }
-    }, Object.class, Object.class);
+
+      @Override
+      public Class<Object> getKeyType() {
+        return Object.class;
+      }
+
+      @Override
+      public Class<Object> getValueType() {
+        return Object.class;
+      }
+    });
     getTest.runTestSuite().reportAndThrow();
 
   }

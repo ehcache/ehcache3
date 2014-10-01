@@ -1,5 +1,6 @@
 package org.ehcache.spi.test;
 
+import org.ehcache.Cache;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
@@ -24,22 +25,18 @@ import static org.junit.Assert.fail;
 
 public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
 
-  private final Class<K> keyClass;
-  private final Class<V> valueClass;
-
-  public StoreGetTest(final StoreFactory factory, Class<K> keyClass, Class<V> valueClass) {
+  public StoreGetTest(final StoreFactory<K, V> factory) {
     super(factory);
-    this.keyClass = keyClass;
-    this.valueClass = valueClass;
   }
 
   @SPITest
   public void existingKeyMappedInStoreReturnsValueHolder()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore  = storeFactory.newStore(new StoreConfigurationImpl<K, V>(keyClass, valueClass));
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
+        factory.getKeyType(), factory.getValueType(), null, new AlwaysTruePredicate<Cache.Entry<K, V>>(), null));
 
-    K key = keyClass.newInstance();
-    V value = valueClass.newInstance();
+    K key = factory.getKeyType().newInstance();
+    V value = factory.getValueType().newInstance();
 
     kvStore.put(key, value);
 
@@ -49,9 +46,10 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void keyNotMappedInStoreReturnsNull()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore  = storeFactory.newStore(new StoreConfigurationImpl<K, V>(keyClass, valueClass));
+    final Store<K, V> kvStore = factory.newStore(
+        new StoreConfigurationImpl<K, V>(this.factory.getKeyType(), this.factory.getValueType()));
 
-    K key = keyClass.newInstance();
+    K key = factory.getKeyType().newInstance();
 
     assertThat(kvStore.get(key), is(nullValue()));
   }
@@ -59,10 +57,11 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void existingKeyMappedInStoreReturnsCorrectValueHolder()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore  = storeFactory.newStore(new StoreConfigurationImpl<K, V>(keyClass, valueClass));
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
+        factory.getKeyType(), factory.getValueType(), null, new AlwaysTruePredicate<Cache.Entry<K, V>>(), null));
 
-    K key = keyClass.newInstance();
-    V value = valueClass.newInstance();
+    K key = factory.getKeyType().newInstance();
+    V value = factory.getValueType().newInstance();
 
     kvStore.put(key, value);
     ValueHolder<V> returnedValueHolder = kvStore.get(key);
@@ -73,7 +72,8 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void nullKeyThrowsException()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore  = storeFactory.newStore(new StoreConfigurationImpl<K, V>(keyClass, valueClass));
+    final Store<K, V> kvStore = factory.newStore(
+        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
 
     K key = null;
 
@@ -89,27 +89,28 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings("unchecked")
   public void wrongKeyTypeThrowsException()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
-    final Store kvStore  = storeFactory.newStore(new StoreConfigurationImpl<K, V>(keyClass, valueClass));
+    final Store kvStore = factory.newStore(
+        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
 
     try {
-      if (keyClass == String.class) {
+      if (this.factory.getKeyType() == String.class) {
         kvStore.get(1.0f);
       } else {
         kvStore.get("key");
       }
       fail("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
-      System.out.println("------/." + e.getMessage());
-      assertThat(e.getMessage(), is(equalTo("Argument foo is not valid!")));
+      //TODO : consider adding some assertion on the exception getMessage() when the test passes
     }
   }
 
   @SPITest
   public void retrievalCanThrowException()
       throws IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore  = storeFactory.newStore(new StoreConfigurationImpl<K, V>(keyClass, valueClass));
+    final Store<K, V> kvStore = factory.newStore(
+        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
 
-    K key = keyClass.newInstance();
+    K key = factory.getKeyType().newInstance();
 
     try {
       kvStore.get(key);

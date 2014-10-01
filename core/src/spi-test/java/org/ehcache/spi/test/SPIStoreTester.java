@@ -14,10 +14,10 @@ import java.util.concurrent.TimeUnit;
 
 public class SPIStoreTester<K, V> extends SPITester {
 
-  final StoreFactory storeFactory;
+  final StoreFactory<K,V> factory;
 
-  public SPIStoreTester(final StoreFactory factory) {
-    this.storeFactory = factory;
+  public SPIStoreTester(final StoreFactory<K,V> factory) {
+    this.factory = factory;
   }
   
 }
