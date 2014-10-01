@@ -73,14 +73,38 @@ public interface Store<K, V> {
    * with a key that is equal to the original key.
    *
    * @param key   key with which the specified value is to be associated
-   * @param value ValueHolder to be associated with the specified key, holding both the value and
-   *              the metadata for the mapping
+   * @param value value to be associated with the specified key
    * @throws NullPointerException if the specified key or value is null
-   * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {{@code V})
+   * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {@code V})
    * @throws CacheAccessException if the mapping can't be installed
    */
   void put(K key, V value) throws CacheAccessException;
 
+  /**
+   * Maps the specified key to the specified value in this store, unless a mapping already 
+   * exists. This is equivalent to
+   * <pre>
+   *   if (!store.containsKey(key))
+   *       store.put(key, value);
+   *       return null;
+   *   else
+   *       return store.get(key);</pre>
+   * except that the action is performed atomically.
+   * The ValueHolder can be retrieved by calling the {@code get} method
+   * with a key that is equal to the original key.
+   *<p/>
+   * Neither the key nor the value can be null.
+   *
+   * @param key   key with which the specified value is to be associated
+   * @param value value to be associated with the specified key
+   * @return the {@link org.ehcache.spi.cache.Store.ValueHolder ValueHolder} to
+   * which the specified key was previously mapped, or {@code null} if no such mapping existed
+   * @throws NullPointerException if the specified key or value is null
+   * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {@code V})
+   * @throws CacheAccessException if the mapping can't be installed
+   */
+  ValueHolder<V> putIfAbsent(K key, V value) throws CacheAccessException;
+  
   /**
    * Removes the key (and its corresponding value) from this store.
    * This method does nothing if the key is not mapped.
@@ -92,6 +116,66 @@ public interface Store<K, V> {
    */
   void remove(K key) throws CacheAccessException;
 
+  /**
+   * Removes the entry for a key only if currently mapped to a given value.
+   * This is equivalent to
+   * <pre>
+   *   if (store.containsKey(key) &amp;&amp; store.get(key).equals(value)) {
+   *       store.remove(key);
+   *       return true;
+   *   } else return false;</pre>
+   * except that the action is performed atomically.
+   *
+   * @param key key with which the specified value is associated
+   * @param value value expected to be associated with the specified key
+   * @return <tt>true</tt> if the value was removed
+   * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {@code V})
+   * @throws NullPointerException if the specified key or value is null
+   * @throws CacheAccessException if the mapping can't be removed
+   */
+  boolean remove(K key, V value) throws CacheAccessException;
+  
+  /**
+   * Replaces the entry for a key only if currently mapped to some value.
+   * This is equivalent to
+   * <pre>
+   *   V oldValue = store.get(key);
+   *   if (oldValue != null) {
+   *     map.put(key, value);
+   *   }
+   *   return oldValue; </pre>
+   * except that the action is performed atomically.
+   *
+   * @param key key with which the specified value is associated
+   * @param value value expected to be associated with the specified key
+   * @return the {@link org.ehcache.spi.cache.Store.ValueHolder ValueHolder} to
+   * which the specified key was previously mapped, or {@code null} if no such mapping existed
+   * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {@code V})
+   * @throws NullPointerException if the specified key or value is null
+   * @throws CacheAccessException if the mapping can't be replaced
+   */
+  ValueHolder<V> replace(K key, V value) throws CacheAccessException;
+  
+  /**
+   * Replaces the entry for a key only if currently mapped to a given value.
+   * This is equivalent to
+   * <pre>
+   *   if (store.containsKey(key) &amp;&amp; store.get(key).equals(oldValue)) {
+   *       store.put(key, newValue);
+   *       return true;
+   *   } else return false;</pre>
+   * except that the action is performed atomically.
+   *
+   * @param key key with which the specified value is associated
+   * @param oldValue value expected to be associated with the specified key
+   * @param newValue value to be associated with the specified key
+   * @return <tt>true</tt> if the value was replaced
+   * @throws ClassCastException if the specified key or values are not of the correct types ({@code K} or {@code V})
+   * @throws NullPointerException if the specified key or value is null
+   * @throws CacheAccessException if the mapping can't be replaced
+   */
+  boolean replace(K key, V oldValue, V newValue) throws CacheAccessException;
+  
   /**
    * Removes all of the mappings from this map.
    * This method provides no guarantee in terms of atomicity.
