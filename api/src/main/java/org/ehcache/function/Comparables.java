@@ -27,7 +27,7 @@ public final class Comparables {
       return 1;
     }
   };
-  
+
   private static final Comparable<?> SMALLEST = new Comparable<Object>() {
     @Override
     public int compareTo(Object t) {

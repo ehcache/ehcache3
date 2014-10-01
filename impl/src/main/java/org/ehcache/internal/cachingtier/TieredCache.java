@@ -195,13 +195,13 @@ public class TieredCache<K, V> implements Cache<K, V> {
             Thread.currentThread().interrupt();
           }
         }
-      }
 
-      if (throwable != null) {
-        throw new RuntimeException("Faulting from underlying cache failed on other thread", throwable);
-      }
+        if (throwable != null) {
+          throw new RuntimeException("Faulting from underlying cache failed on other thread", throwable);
+        }
 
-      return value;
+        return value;
+      }
     }
 
     void fail(final Throwable t) {

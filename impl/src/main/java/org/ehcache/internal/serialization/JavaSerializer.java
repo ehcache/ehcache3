@@ -51,9 +51,15 @@ public class JavaSerializer<T extends Serializable> implements Serializer<T> {
     try {
       bin = new ByteBufferInputStream(entry);
       ObjectInputStream oin = new ObjectInputStream(bin);
-      return (T)oin.readObject();
+      try {
+        return (T)oin.readObject();
+      } finally {
+        oin.close();
+      }
     } finally {
-      bin.close();
+      if (bin != null) {
+        bin.close();
+      }
     }
   }
 
