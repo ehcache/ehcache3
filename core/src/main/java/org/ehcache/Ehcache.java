@@ -20,7 +20,6 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoaderException;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
-import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -147,15 +146,14 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   @Override
   public V putIfAbsent(final K key, final V value) {
     Store.ValueHolder<V> old = null;
-    Store.ValueHolder<V> wrapped = newValueHolder(value, System.currentTimeMillis());
     try {
-      old = store.putIfAbsent(key, wrapped);
+      old = store.putIfAbsent(key, value);
     } catch (CacheAccessException e) {
       try {
-        store.remove(key);
-        // fire an event? eviction?
+        // roll back if changed
+        store.remove(key, value); 
       } catch (CacheAccessException e1) {
-        // fall back to strategy? test rolledBack and decide
+        // fall back to strategy? 
       }
     }
     return old == null ? null : old.value();
@@ -165,9 +163,13 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   public boolean remove(final K key, final V value) {
     boolean res = false;
     try {
-      res = store.remove(key, newValueHolder(value, System.currentTimeMillis()));
+      res = store.remove(key, value);
     } catch (CacheAccessException e) {
+      try {
+        store.putIfAbsent(key, value);
+      } catch (CacheAccessException e1) {
         // fall back to strategy?
+      }
     }
     return res;
   }
@@ -176,12 +178,16 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   public V replace(final K key, final V value) {
     Store.ValueHolder<V> old = null;
     try {
-      old = store.replace(key, newValueHolder(value, System.currentTimeMillis()));
+      old = store.get(key);
+      old = store.replace(key, value);
     } catch (CacheAccessException e) {
+      // roll back
       try {
-        store.remove(key);
+        if (old != null) {
+          store.replace(key, value, old.value());
+        }
       } catch (CacheAccessException e1) {
-        // TODO
+        // fall back to strategy
       }
     }
     return old == null ? null : old.value();
@@ -191,13 +197,12 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   public boolean replace(final K key, final V oldValue, final V newValue) {
     boolean success = false;
     try {
-      long now = System.currentTimeMillis();
-      success = store.replace(key, newValueHolder(oldValue, now), newValueHolder(newValue, now));
+      success = store.replace(key, oldValue, newValue);
     } catch (CacheAccessException e) {
       try {
-        store.remove(key);
+        store.replace(key, newValue, oldValue);
       } catch (CacheAccessException e1) {
-        // TODO
+        // fall back to strategy
       }
     }
     return success;

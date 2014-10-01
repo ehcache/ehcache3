@@ -33,24 +33,24 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
   public HeapCache() {
     this(new Store<K, V>() {
       @Override
-      public ValueHolder<V> putIfAbsent(K key, ValueHolder<V> value)
+      public ValueHolder<V> putIfAbsent(K key, V value)
           throws CacheAccessException {
         throw new UnsupportedOperationException("Implement me!");
       }
 
       @Override
-      public boolean remove(K key, ValueHolder<V> value) throws CacheAccessException {
+      public boolean remove(K key, V value) throws CacheAccessException {
         throw new UnsupportedOperationException("Implement me!");
       }
 
       @Override
-      public ValueHolder<V> replace(K key, ValueHolder<V> value)
+      public ValueHolder<V> replace(K key, V value)
           throws CacheAccessException {
         throw new UnsupportedOperationException("Implement me!");
       }
 
       @Override
-      public boolean replace(K key, ValueHolder<V> oldValue, ValueHolder<V> newValue)
+      public boolean replace(K key, V oldValue, V newValue)
           throws CacheAccessException {
         throw new UnsupportedOperationException("Implement me!");
       }

@@ -69,6 +69,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   }
 
   public void put(final K key, final V value) throws CacheAccessException {
+    if (key == null || value == null) throw new NullPointerException();
     if (map.put(key, newValueHolder(value, System.currentTimeMillis())) == null) {
       enforceCapacity(1);
     }
@@ -80,23 +81,28 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> putIfAbsent(K key, ValueHolder<V> value) throws CacheAccessException {
-    return map.putIfAbsent(key, value);
+  public ValueHolder<V> putIfAbsent(K key, V value) throws CacheAccessException {
+    if (key == null || value == null) throw new NullPointerException();
+    return map.putIfAbsent(key, newValueHolder(value, System.currentTimeMillis()));
   }
 
   @Override
-  public boolean remove(K key, ValueHolder<V> value) throws CacheAccessException {
-    return map.remove(key, value);
+  public boolean remove(K key, V value) throws CacheAccessException {
+    if (key == null || value == null) throw new NullPointerException();
+    return map.remove(key, newValueHolder(value, System.currentTimeMillis()));
   }
 
   @Override
-  public ValueHolder<V> replace(K key, ValueHolder<V> value) throws CacheAccessException {
-    return map.replace(key, value);
+  public ValueHolder<V> replace(K key, V value) throws CacheAccessException {
+    if (key == null || value == null) throw new NullPointerException();
+    return map.replace(key, newValueHolder(value, System.currentTimeMillis()));
   }
 
   @Override
-  public boolean replace(K key, ValueHolder<V> oldValue, ValueHolder<V> newValue) throws CacheAccessException {
-    return map.replace(key, oldValue, newValue);
+  public boolean replace(K key, V oldValue, V newValue) throws CacheAccessException {
+    if (key == null || oldValue == null || newValue == null) throw new NullPointerException();
+    long now = System.currentTimeMillis();
+    return map.replace(key, newValueHolder(oldValue, now), newValueHolder(newValue, now));
   }
 
   public void clear() throws CacheAccessException {
@@ -157,8 +163,11 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
   private static <T> Store.ValueHolder<T> newValueHolder(final T value, final long now) {
     return new Store.ValueHolder<T>() {
+      private volatile long accessTime = now;
+      
       @Override
       public T value() {
+        accessTime = System.currentTimeMillis();
         return value;
       }
   
@@ -169,7 +178,19 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   
       @Override
       public long lastAccessTime(TimeUnit unit) {
-        return DEFAULT_TIME_UNIT.convert(now, unit);
+        return DEFAULT_TIME_UNIT.convert(accessTime, unit);
+      }
+      
+      @Override
+      public boolean equals(Object o) {
+        if (o == this) return true;
+        if (!(o instanceof ValueHolder)) return false;
+        return value.equals(((ValueHolder<T>)o).value());
+      }
+      
+      @Override
+      public int hashCode() {
+        return value.hashCode();
       }
 
       @Override
