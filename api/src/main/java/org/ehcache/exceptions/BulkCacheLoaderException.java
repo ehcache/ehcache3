@@ -16,6 +16,7 @@
 
 package org.ehcache.exceptions;
 
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -23,17 +24,17 @@ import java.util.Map;
  */
 public class BulkCacheLoaderException extends CacheLoaderException {
 
-  private final Map<Object, Exception> failures;
-  private final Map<Object, Object> successes;
+  private final Map<?, Exception> failures;
+  private final Map<?, ?> successes;
 
   /**
    *
    * @param failures
    * @param successes
    */
-  public BulkCacheLoaderException(final Map<Object, Exception> failures, final Map<Object, Object> successes) {
-    this.failures = failures;
-    this.successes = successes;
+  public BulkCacheLoaderException(final Map<?, Exception> failures, final Map<?, ?> successes) {
+    this.failures = Collections.unmodifiableMap(failures);
+    this.successes = Collections.unmodifiableMap(successes);
   }
 
   /**
@@ -44,15 +45,15 @@ public class BulkCacheLoaderException extends CacheLoaderException {
    */
   public BulkCacheLoaderException(final String message, final Map<Object, Exception> failures, final Map<Object, Object> successes) {
     super(message);
-    this.failures = failures;
-    this.successes = successes;
+    this.failures = Collections.unmodifiableMap(failures);
+    this.successes = Collections.unmodifiableMap(successes);
   }
 
   /**
    *
    * @return
    */
-  public Map<Object, Exception> getFailures() {
+  public Map<?, Exception> getFailures() {
     return failures;
   }
 
@@ -60,7 +61,7 @@ public class BulkCacheLoaderException extends CacheLoaderException {
    *
    * @return
    */
-  public Map<Object, Object> getSuccesses() {
+  public Map<?, ?> getSuccesses() {
     return successes;
   }
 }
