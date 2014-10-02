@@ -25,6 +25,10 @@ public class Functions {
     return new MemoizingFunction<A, T>(f);
   }
 
+  public static <A, B, T> BiFunction<A, B, T> memoize(BiFunction<A, B, T> f) {
+    return new MemoizingBiFunction<A, B, T>(f);
+  }
+
   private static final class MemoizingFunction<A, T> implements Function<A, T> {
 
     private final Function<A, T> function;
@@ -43,6 +47,28 @@ public class Functions {
       value = function.apply(a);
       computed = true;
       return value;
+    }
+  }
+
+  private static final class MemoizingBiFunction<A, B, T> implements BiFunction<A, B, T> {
+
+    private final BiFunction<A, B, T> function;
+    private boolean computed;
+    private T value;
+
+    private MemoizingBiFunction(final BiFunction<A, B, T> function) {
+      this.function = function;
+    }
+
+    @Override
+    public T apply(final A a, final B b) {
+      if (computed) {
+        return value;
+      }
+      computed = true;
+      value = function.apply(a, b);
+      return value;
+
     }
   }
 }

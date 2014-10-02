@@ -18,6 +18,8 @@ package org.ehcache;
 
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoaderException;
+import org.ehcache.exceptions.CacheWriterException;
+import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
@@ -39,7 +41,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   private final Store<K, V> store;
   private final CacheLoader<? super K, ? extends V> cacheLoader;
-  private final CacheWriter<? super K, ? extends V> cacheWriter;
+  private final CacheWriter<? super K, ? super V> cacheWriter;
 
   public Ehcache(final Store<K, V> store, ServiceConfiguration<? extends Service>... configs) {
     this(store, null, configs);
@@ -49,7 +51,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     this(store, cacheLoader, null, configs);
   }
 
-  public Ehcache(Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader, CacheWriter<? super K, ? extends V> cacheWriter, ServiceConfiguration<? extends Service>... configs) {
+  public Ehcache(Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader, CacheWriter<? super K, ? super V> cacheWriter, ServiceConfiguration<? extends Service>... configs) {
     this.store = store;
     this.cacheLoader = cacheLoader;
     this.cacheWriter = cacheWriter;
@@ -97,14 +99,40 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public void put(final K key, final V value) {
+
+    final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
+      @Override
+      public V apply(final K key, final V previousValue) {
+        try {
+          if (cacheWriter != null) {
+            cacheWriter.write(key, value);
+          }
+        } catch (RuntimeException e) {
+          throw new CacheWriterException(e);
+        }
+        return value;
+      }
+    });
+
     try {
-      store.put(key, value);
+      store.compute(key, remappingFunction);
     } catch (CacheAccessException e) {
       try {
+        // just in case the write didn't happen:
+        remappingFunction.apply(key, value);
         store.remove(key);
-        // fire an event? eviction?
+        // strategy.recoveredFrom(READ, e);
       } catch (CacheAccessException e1) {
-        // fall back to strategy?
+        // strategy.PANIC(e, e1);
+      }
+    } catch(CacheWriterException e) {
+      try {
+        store.remove(key); // may not invoke listeners, not deserialize the thing back...
+        // strategy.recoveredFrom(WRITE, e);
+        throw e;
+      } catch (CacheAccessException e1) {
+        // strategy.PANIC((ObliteratingThing) store, key, e1, e);
+        // where ObliteratingThing only has only one method: obliterate(K)
       }
     }
   }
