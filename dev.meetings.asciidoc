@@ -2,11 +2,22 @@
 
 :toc:
 
-== Sep 25, 2014 - Hangout on Air
+== Oct 2, 2014 - Hangout on Air
 
-Next public meeting on https://plus.google.com/u/0/events/cfllsv3gi2p7dmg0l8o28hmmk7c[G+ Hangout on Air] at 11:30pm IST / 8pm CET / 2pm EST / 11am PST
+Next public meeting on https://plus.google.com/u/0/events/chnb8fkd2afivtn7h6h9v8f06ng[G+ Hangout on Air] at 11:30pm IST / 8pm CET / 2pm EST / 11am PST
 
 === Agenda
+
+ * What should a +Cache+ if everything gets veto'ed from being evicted?
+ * +CacheLoader+ & +CacheWriter+ only for implementing the Cache Through pattern?
+ ** Some background https://www.youtube.com/watch?v=a8LzwqZNfYE&list=UU43PVCp2j0b2og2DtxNOU1A[here in this previous meeting]
+ * Mocking time in tests
+
+== Sep 25, 2014 - Hangout on Air
+
+Recording available https://www.youtube.com/watch?v=KaOagtwTHyw&index=2&list=UU43PVCp2j0b2og2DtxNOU1A[here on YouTube]
+
+=== Agenda (sorry, hadn't had time to review it yet)
 
  * Release https://github.com/ehcache/ehcache3/milestones[milestones]:
  ** 107 Alpha
