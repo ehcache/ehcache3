@@ -25,12 +25,12 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriter;
 
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+
+import static org.ehcache.function.Functions.memoize;
 
 /**
  * @author Alex Snaps
@@ -58,24 +58,24 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   @Override
   public V get(final K key) throws CacheLoaderException {
 
-    final AtomicReference<V> loadedValue = new AtomicReference<V>();
+    final Function<K, V> mappingFunction = memoize(
+        new Function<K, V>() {
+          @Override
+          public V apply(final K k) {
+            V loaded = null;
+            try {
+              if (cacheLoader != null) {
+                loaded = cacheLoader.load(k);
+              }
+            } catch (RuntimeException e) {
+              throw new CacheLoaderException(e);
+            }
+            return loaded;
+          }
+        });
 
     try {
-      final Store.ValueHolder<V> valueHolder = store.computeIfAbsent(key, new Function<K, V>() {
-        @Override
-        public V apply(final K k) {
-          V loaded = null;
-          try {
-            if (cacheLoader != null) {
-              loaded = cacheLoader.load(k);
-            }
-          } catch (RuntimeException e) {
-            throw new CacheLoaderException(e);
-          }
-          loadedValue.set(loaded);
-          return loaded;
-        }
-      });
+      final Store.ValueHolder<V> valueHolder = store.computeIfAbsent(key, mappingFunction);
 
       // Check for expiry first
       return valueHolder == null ? null : valueHolder.value();
@@ -91,15 +91,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         // fall back to strategy?
       }
 
-      // This means we either couldn't retrieve the value, or install the new mapping.
-      final V loaded = loadedValue.get();
-      if (loaded != null) {
-        // we did load? then let's assume the installment of the mapping failed
-        return loaded;
-      }
-
-      // May want to populate here (putIfAbsent?)
-      return cacheLoader != null ? cacheLoader.load(key) : null;
+      return mappingFunction.apply(key);
     }
   }
 
