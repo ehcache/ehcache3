@@ -211,18 +211,63 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public V putIfAbsent(final K key, final V value) {
-    Store.ValueHolder<V> old = null;
+    V old = null;
+
+    final Function<K, V> mappingFunction = memoize(
+        new Function<K, V>() {
+          @Override
+          public V apply(final K k) {
+            V loaded = null;
+            try {
+              try {
+                if (cacheLoader != null) {
+                  loaded = cacheLoader.load(k);
+                }
+              } catch (RuntimeException e) {
+                throw new CacheLoaderException(e);
+              }
+            } catch (RuntimeException e) {
+              throw new CacheLoaderException(e);
+            }
+
+            if(loaded != null) {
+              return loaded;
+            }
+
+            try {
+              if (cacheWriter != null) {
+                cacheWriter.write(k, value);
+              }
+            } catch (RuntimeException e) {
+              throw new CacheWriterException(e);
+            }
+            return value;
+          }
+        });
+
     try {
-      old = store.putIfAbsent(key, value);
+      final Store.ValueHolder<V> holder = store.computeIfAbsent(key, mappingFunction);
+      if(holder != null) {
+        old = holder.value();
+      }
     } catch (CacheAccessException e) {
       try {
-        // roll back if changed
-        store.remove(key, value); 
+        old = mappingFunction.apply(key);
+        if(cacheLoader != null && cacheWriter != null) {
+          store.remove(key);
+        } else {
+          final Store.ValueHolder<V> holder = store.get(key);
+          if(holder == null) {
+            resilienceStrategy.possiblyInconsistent(key, e);
+          } else {
+            return holder.value();
+          }
+        }
       } catch (CacheAccessException e1) {
-        // fall back to strategy? 
+        resilienceStrategy.possiblyInconsistent(key, e, e1);
       }
     }
-    return old == null ? null : old.value();
+    return old;
   }
 
   @Override
