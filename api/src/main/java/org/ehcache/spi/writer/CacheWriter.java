@@ -25,7 +25,9 @@ public interface CacheWriter<K, V> {
 
   void writeAll(K key, V value);
 
-  void delete(K key, V value);
+  boolean delete(K key);
+
+  boolean delete(K key, V value);
 
   void deleteAll();
 

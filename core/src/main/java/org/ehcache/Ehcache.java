@@ -32,6 +32,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.ehcache.function.Functions.memoize;
 
@@ -219,12 +220,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
           public V apply(final K k) {
             V loaded = null;
             try {
-              try {
-                if (cacheLoader != null) {
-                  loaded = cacheLoader.load(k);
-                }
-              } catch (RuntimeException e) {
-                throw new CacheLoaderException(e);
+              if (cacheLoader != null) {
+                loaded = cacheLoader.load(k);
               }
             } catch (RuntimeException e) {
               throw new CacheLoaderException(e);
@@ -272,17 +269,38 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public boolean remove(final K key, final V value) {
-    boolean res = false;
+    final AtomicBoolean removed = new AtomicBoolean();
+    final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
+      @Override
+      public V apply(final K k, final V inCache) {
+        if (inCache != null) {
+          if (inCache.equals(value)) {
+            if (cacheWriter != null) {
+              cacheWriter.delete(k);
+            }
+            removed.set(true);
+            return null;
+          }
+          return inCache;
+        } else {
+          if (cacheWriter != null) {
+            removed.set(cacheWriter.delete(k, value));
+          }
+          return null;
+        }
+      }
+    });
     try {
-      res = store.remove(key, value);
+      store.compute(key, remappingFunction);
     } catch (CacheAccessException e) {
+      remappingFunction.apply(key, null);
       try {
-        store.putIfAbsent(key, value);
+        store.remove(key);
       } catch (CacheAccessException e1) {
-        // fall back to strategy?
+        resilienceStrategy.possiblyInconsistent(key, e, e1);
       }
     }
-    return res;
+    return removed.get();
   }
 
   @Override
