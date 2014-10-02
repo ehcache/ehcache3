@@ -1,11 +1,27 @@
+/*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.ehcache.spi.test;
 
 import org.ehcache.Cache;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.function.Predicates;
 import org.ehcache.spi.cache.Store;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.ehcache.spi.cache.Store.ValueHolder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -13,7 +29,6 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
-
 
 /**
  * Test the {@link org.ehcache.spi.cache.Store#get(K key)} contract of the
@@ -33,7 +48,7 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
   public void existingKeyMappedInStoreReturnsValueHolder()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, new AlwaysTruePredicate<Cache.Entry<K, V>>(), null));
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K,V>>all(), null));
 
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
@@ -58,7 +73,7 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
   public void existingKeyMappedInStoreReturnsCorrectValueHolder()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, new AlwaysTruePredicate<Cache.Entry<K, V>>(), null));
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K,V>>all(), null));
 
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
@@ -100,7 +115,7 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
       }
       fail("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
-      //TODO : consider adding some assertion on the exception getMessage() when the test passes
+      // expected
     }
   }
 

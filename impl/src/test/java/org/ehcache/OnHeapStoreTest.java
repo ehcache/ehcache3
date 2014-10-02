@@ -20,7 +20,6 @@ import org.ehcache.internal.store.OnHeapStore;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.StoreFactory;
 import org.ehcache.spi.test.StoreGetTest;
-import org.ehcache.spi.test.StoreTester;
 import org.junit.Test;
 
 /**
