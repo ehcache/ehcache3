@@ -21,6 +21,7 @@ import org.ehcache.exceptions.CacheLoaderException;
 import org.ehcache.exceptions.CacheWriterException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
+import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.Service;
@@ -42,6 +43,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   private final Store<K, V> store;
   private final CacheLoader<? super K, ? extends V> cacheLoader;
   private final CacheWriter<? super K, ? super V> cacheWriter;
+  private final ResilienceStrategy<K, V> resilienceStrategy;
 
   public Ehcache(final Store<K, V> store, ServiceConfiguration<? extends Service>... configs) {
     this(store, null, configs);
@@ -55,6 +57,17 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     this.store = store;
     this.cacheLoader = cacheLoader;
     this.cacheWriter = cacheWriter;
+    this.resilienceStrategy = new ResilienceStrategy<K, V>() {
+      @Override
+      public void recoveredFrom(final K key, final Exception e) {
+        // ignore
+      }
+
+      @Override
+      public void possiblyInconsistent(final K key, final CacheAccessException root, final Exception... otherExceptions) {
+        // ignore
+      }
+    };
   }
 
   @Override
@@ -88,9 +101,10 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       try {
         // If the former, let's clean up
         store.remove(key);
+        resilienceStrategy.recoveredFrom(key, e);
         // fire an event? eviction?
       } catch (CacheAccessException e1) {
-        // fall back to strategy?
+        resilienceStrategy.possiblyInconsistent(key, e1, e);
       }
 
       return mappingFunction.apply(key);
@@ -121,18 +135,18 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         // just in case the write didn't happen:
         remappingFunction.apply(key, value);
         store.remove(key);
-        // strategy.recoveredFrom(READ, e);
+        resilienceStrategy.recoveredFrom(key, e);
       } catch (CacheAccessException e1) {
-        // strategy.PANIC(e, e1);
+        resilienceStrategy.possiblyInconsistent(key, e, e1);
       }
     } catch(CacheWriterException e) {
       try {
-        store.remove(key); // may not invoke listeners, not deserialize the thing back...
-        // strategy.recoveredFrom(WRITE, e);
+        store.remove(key);
+        resilienceStrategy.recoveredFrom(key, e);
         throw e;
       } catch (CacheAccessException e1) {
-        // strategy.PANIC((ObliteratingThing) store, key, e1, e);
-        // where ObliteratingThing only has only one method: obliterate(K)
+        // Should we pass the Store as a `ObliteratingThing` type that has only one method: obliterate(K)?
+        resilienceStrategy.possiblyInconsistent(key, e1, e);
       }
     }
   }
