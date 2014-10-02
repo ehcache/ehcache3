@@ -8,6 +8,7 @@ Next public meeting on https://plus.google.com/u/0/events/chnb8fkd2afivtn7h6h9v8
 
 === Agenda
 
+ * Project structure and especially the spi-tester sources
  * What should a +Cache+ if everything gets veto'ed from being evicted?
  * +CacheLoader+ & +CacheWriter+ only for implementing the Cache Through pattern?
  ** Some background https://www.youtube.com/watch?v=a8LzwqZNfYE&list=UU43PVCp2j0b2og2DtxNOU1A[here in this previous meeting]
