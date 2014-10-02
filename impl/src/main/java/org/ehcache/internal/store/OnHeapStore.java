@@ -39,7 +39,6 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
   private static final int ATTEMPT_RATIO = 4;
   private static final int EVICTION_RATIO = 2;
-  private static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
   
   private final ConcurrentHashMap<K, Store.ValueHolder<V>> map = new ConcurrentHashMap<K, ValueHolder<V>>();
 
@@ -69,8 +68,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   }
 
   public void put(final K key, final V value) throws CacheAccessException {
-    if (key == null || value == null) throw new NullPointerException();
-    if (map.put(key, newValueHolder(value, System.currentTimeMillis())) == null) {
+    if (map.put(key, new OnHeapStoreValueHolder<V>(value)) == null) {
       enforceCapacity(1);
     }
   }
@@ -82,27 +80,22 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
   @Override
   public ValueHolder<V> putIfAbsent(K key, V value) throws CacheAccessException {
-    if (key == null || value == null) throw new NullPointerException();
-    return map.putIfAbsent(key, newValueHolder(value, System.currentTimeMillis()));
+    return map.putIfAbsent(key, new OnHeapStoreValueHolder<V>(value));
   }
 
   @Override
   public boolean remove(K key, V value) throws CacheAccessException {
-    if (key == null || value == null) throw new NullPointerException();
-    return map.remove(key, newValueHolder(value, System.currentTimeMillis()));
+    return map.remove(key, new OnHeapStoreValueHolder<V>(value));
   }
 
   @Override
   public ValueHolder<V> replace(K key, V value) throws CacheAccessException {
-    if (key == null || value == null) throw new NullPointerException();
-    return map.replace(key, newValueHolder(value, System.currentTimeMillis()));
+    return map.replace(key, new OnHeapStoreValueHolder<V>(value));
   }
 
   @Override
   public boolean replace(K key, V oldValue, V newValue) throws CacheAccessException {
-    if (key == null || oldValue == null || newValue == null) throw new NullPointerException();
-    long now = System.currentTimeMillis();
-    return map.replace(key, newValueHolder(oldValue, now), newValueHolder(newValue, now));
+    return map.replace(key, new OnHeapStoreValueHolder<V>(oldValue), new OnHeapStoreValueHolder<V>(newValue));
   }
 
   public void clear() throws CacheAccessException {
@@ -160,46 +153,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       }
     };
   }
-
-  private static <T> Store.ValueHolder<T> newValueHolder(final T value, final long now) {
-    return new Store.ValueHolder<T>() {
-      private volatile long accessTime = now;
-      
-      @Override
-      public T value() {
-        accessTime = System.currentTimeMillis();
-        return value;
-      }
-  
-      @Override
-      public long creationTime(TimeUnit unit) {
-        return DEFAULT_TIME_UNIT.convert(now, unit);
-      }
-  
-      @Override
-      public long lastAccessTime(TimeUnit unit) {
-        return DEFAULT_TIME_UNIT.convert(accessTime, unit);
-      }
-      
-      @Override
-      public boolean equals(Object o) {
-        if (o == this) return true;
-        if (!(o instanceof ValueHolder)) return false;
-        return value.equals(((ValueHolder<T>)o).value());
-      }
-      
-      @Override
-      public int hashCode() {
-        return value.hashCode();
-      }
-
-      @Override
-      public float hitRate(TimeUnit unit) {
-        return 0.0f;
-      }
-    };
-  }
-  
+ 
   private void enforceCapacity(int delta) {
     for (int attempts = 0, evicted = 0; attempts < ATTEMPT_RATIO * delta && evicted < EVICTION_RATIO * delta
             && capacityConstraint.compareTo((long) map.size()) < 0; attempts++) {
