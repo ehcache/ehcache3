@@ -161,7 +161,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     return map.compute(key, new BiFunction<K, ValueHolder<V>, ValueHolder<V>>() {
       @Override
       public ValueHolder<V> apply(final K k, final ValueHolder<V> vValueHolder) {
-        return new OnHeapStoreValueHolder<V>(remappingFunction.apply(k, vValueHolder.value()));
+        return nullSafeValueHolder(remappingFunction.apply(k, vValueHolder.value()));
       }
     });
   }
@@ -171,7 +171,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     return map.computeIfAbsent(key, new Function<K, ValueHolder<V>>() {
       @Override
       public ValueHolder<V> apply(final K k) {
-        return new OnHeapStoreValueHolder<V>(mappingFunction.apply(k));
+        return nullSafeValueHolder(mappingFunction.apply(k));
       }
     });
   }
@@ -181,9 +181,13 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     return map.computeIfPresent(key, new BiFunction<K, ValueHolder<V>, ValueHolder<V>>() {
       @Override
       public ValueHolder<V> apply(final K k, final ValueHolder<V> vValueHolder) {
-        return new OnHeapStoreValueHolder<V>(remappingFunction.apply(k, vValueHolder.value()));
+        return nullSafeValueHolder(remappingFunction.apply(k, vValueHolder.value()));
       }
     });
+  }
+
+  private OnHeapStoreValueHolder<V> nullSafeValueHolder(final V value) {
+    return value == null ? null : new OnHeapStoreValueHolder<V>(value);
   }
 
   private void enforceCapacity(int delta) {
