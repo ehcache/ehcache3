@@ -57,7 +57,7 @@ final class OnHeapStoreValueHolder<V> implements ValueHolder<V> {
   public boolean equals(Object o) {
     if (o == this) return true;
     if (!(o instanceof ValueHolder)) return false;
-    return value.equals(((ValueHolder<V>)o).value());
+    return value.equals(((ValueHolder<?>)o).value());
   }
   
   @Override
