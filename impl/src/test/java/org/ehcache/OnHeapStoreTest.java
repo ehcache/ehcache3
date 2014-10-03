@@ -21,6 +21,7 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.StoreContainsKeyTest;
 import org.ehcache.spi.test.StoreFactory;
 import org.ehcache.spi.test.StoreGetTest;
+import org.ehcache.spi.test.StorePutIfAbsentTest;
 import org.ehcache.spi.test.StorePutTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -71,6 +72,12 @@ public class OnHeapStoreTest {
   @Test
   public void testPutKey() throws Exception {
     StorePutTest<Object, Object> testSuite = new StorePutTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
+  public void testPutIfAbsentKey() throws Exception {
+    StorePutIfAbsentTest<Object, Object> testSuite = new StorePutIfAbsentTest<Object, Object>(storeFactory);
     testSuite.runTestSuite().reportAndThrow();
   }
 
