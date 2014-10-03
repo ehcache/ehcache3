@@ -25,7 +25,7 @@ import java.util.Map;
  * <p>
  * Instances of this class have to be thread safe.
  * <p>
- * Any {@link java.lang.RuntimeException} thrown by methods of this interface will be wrapped into a
+ * Any {@link java.lang.Exception} thrown by methods of this interface will be wrapped into a
  * {@link org.ehcache.exceptions.CacheLoaderException} by the {@link org.ehcache.Cache} and will need to be handled by
  * the user.
  *
@@ -41,7 +41,7 @@ public interface CacheLoader<K, V> {
    * @param key the key that will map to the {@code value} returned
    * @return the value to be mapped
    */
-  V load(K key);
+  V load(K key) throws Exception;
 
   /**
    * Loads the values to be associated with the keys in the {@link org.ehcache.Cache} using this
@@ -52,6 +52,6 @@ public interface CacheLoader<K, V> {
    * @param keys the keys that will be mapped to the values returned in the map
    * @return the {@link java.util.Map} of values for each key passed in, where no mapping means no value to map.
    */
-  Map<K, V> loadAll(Iterable<? extends K> keys);
+  Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception;
 
 }

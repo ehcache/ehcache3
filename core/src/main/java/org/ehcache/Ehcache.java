@@ -83,7 +83,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
               if (cacheLoader != null) {
                 loaded = cacheLoader.load(k);
               }
-            } catch (RuntimeException e) {
+            } catch (Exception e) {
               throw new CacheLoaderException(e);
             }
             return loaded;
@@ -229,7 +229,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
               if (cacheLoader != null) {
                 loaded = cacheLoader.load(k);
               }
-            } catch (RuntimeException e) {
+            } catch (Exception e) {
               throw new CacheLoaderException(e);
             }
 
