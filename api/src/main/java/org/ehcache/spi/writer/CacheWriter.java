@@ -26,7 +26,7 @@ import java.util.Set;
  * <p>
  * Instances of this class have to be thread safe.
  * <p>
- * Any {@link java.lang.RuntimeException} thrown by methods of this interface will be wrapped into a
+ * Any {@link java.lang.Exception} thrown by methods of this interface will be wrapped into a
  * {@link org.ehcache.exceptions.CacheWriterException} by the {@link org.ehcache.Cache} and will need to be handled by
  * the user.
  *
@@ -43,7 +43,7 @@ public interface CacheWriter<K, V> {
    *
    * @see org.ehcache.Cache#put(Object, Object)
    */
-  void write(K key, V value);
+  void write(K key, V value) throws Exception;
 
 
   /**
@@ -59,7 +59,7 @@ public interface CacheWriter<K, V> {
    * @see org.ehcache.Cache#replace(Object, Object, Object)
    * @see org.ehcache.Cache#replace(Object, Object)
    */
-  void write(K key, V oldValue, V newValue);
+  void write(K key, V oldValue, V newValue) throws Exception;
 
   /**
    * Writes multiple entries to the underlying system of record. These can either be new entries or updates to
@@ -70,7 +70,7 @@ public interface CacheWriter<K, V> {
    *
    * @see org.ehcache.Cache#putAll(Iterable)
    */
-  Set<K> writeAll(Iterable<Cache.Entry<? extends K, ? extends V>> entries);
+  Set<K> writeAll(Iterable<Cache.Entry<? extends K, ? extends V>> entries) throws Exception;
 
   /**
    * Deletes a single entry from the underlying system of record.
@@ -80,7 +80,7 @@ public interface CacheWriter<K, V> {
    *
    * @see org.ehcache.Cache#remove(Object)
    */
-  boolean delete(K key);
+  boolean delete(K key) throws Exception;
 
   /**
    * Deletes a single entry from the underlying system of record, when the expected value if known.
@@ -91,7 +91,7 @@ public interface CacheWriter<K, V> {
    *
    * @see org.ehcache.Cache#remove(K, V)
    */
-  boolean delete(K key, V value);
+  boolean delete(K key, V value) throws Exception;
 
   /**
    * Deletes a set of entry from the underlying system of record.
@@ -101,6 +101,6 @@ public interface CacheWriter<K, V> {
    *
    * @see org.ehcache.Cache#removeAll(Iterable)
    */
-  Set<K> deleteAll(Iterable<K> keys);
+  Set<K> deleteAll(Iterable<K> keys) throws Exception;
 
 }

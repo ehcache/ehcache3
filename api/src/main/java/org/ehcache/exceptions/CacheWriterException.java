@@ -18,7 +18,7 @@ package org.ehcache.exceptions;
 
 /**
  * Exception thrown by a {@link org.ehcache.Cache} when the {@link org.ehcache.spi.writer.CacheWriter} it uses threw an
- * {@link java.lang.RuntimeException} while writing a value for a given key
+ * {@link java.lang.Exception} while writing a value for a given key
  *
  * @author Alex Snaps
  */

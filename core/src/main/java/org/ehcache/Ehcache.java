@@ -122,7 +122,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
           if (cacheWriter != null) {
             cacheWriter.write(key, value);
           }
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
           throw new CacheWriterException(e);
         }
         return value;
@@ -239,7 +239,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
             try {
               if (cacheWriter != null) {
-                cacheWriter.write(k, null, value);
+                try {
+                  cacheWriter.write(k, null, value);
+                } catch (Exception e) {
+                  throw new CacheWriterException(e);
+                }
               }
             } catch (RuntimeException e) {
               throw new CacheWriterException(e);
@@ -283,8 +287,12 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         if (inCache != null) {
           if (inCache.equals(value)) {
             if (cacheWriter != null) {
-              if(!cacheWriter.delete(k, value)) {
-                // TODO ARGH!?!!! WHAT?!
+              try {
+                if(!cacheWriter.delete(k, value)) {
+                  // TODO ARGH!?!!! WHAT?!
+                }
+              } catch (Exception e) {
+                throw new CacheWriterException(e);
               }
             }
             removed.set(true);
@@ -293,7 +301,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
           return inCache;
         } else {
           if (cacheWriter != null) {
-            removed.set(cacheWriter.delete(k, value));
+            try {
+              removed.set(cacheWriter.delete(k, value));
+            } catch (Exception e) {
+              throw new CacheWriterException(e);
+            }
           }
           return null;
         }
