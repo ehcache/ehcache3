@@ -18,15 +18,23 @@ package org.ehcache;
 
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoaderException;
+import org.ehcache.exceptions.CacheWriterException;
+import org.ehcache.function.BiFunction;
+import org.ehcache.function.Function;
+import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.writer.CacheWriter;
 
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.ehcache.Functions.memoize;
 
 /**
  * @author Alex Snaps
@@ -35,58 +43,118 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   private final Store<K, V> store;
   private final CacheLoader<? super K, ? extends V> cacheLoader;
+  private final CacheWriter<? super K, ? super V> cacheWriter;
+  private final ResilienceStrategy<K, V> resilienceStrategy;
 
   public Ehcache(final Store<K, V> store, ServiceConfiguration<? extends Service>... configs) {
     this(store, null, configs);
   }
 
   public Ehcache(Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader, ServiceConfiguration<? extends Service>... configs) {
+    this(store, cacheLoader, null, configs);
+  }
+
+  public Ehcache(Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader, CacheWriter<? super K, ? super V> cacheWriter, ServiceConfiguration<? extends Service>... configs) {
     this.store = store;
     this.cacheLoader = cacheLoader;
+    this.cacheWriter = cacheWriter;
+    this.resilienceStrategy = new ResilienceStrategy<K, V>() {
+      @Override
+      public void recoveredFrom(final K key, final Exception e) {
+        // ignore
+      }
+
+      @Override
+      public void possiblyInconsistent(final K key, final CacheAccessException root, final Exception... otherExceptions) {
+        // ignore
+      }
+    };
   }
 
   @Override
   public V get(final K key) throws CacheLoaderException {
-    final Store.ValueHolder<V> valueHolder;
+    checkNonNull(key);
+    final Function<K, V> mappingFunction = memoize(
+        new Function<K, V>() {
+          @Override
+          public V apply(final K k) {
+            V loaded = null;
+            try {
+              if (cacheLoader != null) {
+                loaded = cacheLoader.load(k);
+              }
+            } catch (RuntimeException e) {
+              throw new CacheLoaderException(e);
+            }
+            return loaded;
+          }
+        });
+
     try {
-      valueHolder = store.get(key);
+      final Store.ValueHolder<V> valueHolder = store.computeIfAbsent(key, mappingFunction);
+
+      // Check for expiry first
+      return valueHolder == null ? null : valueHolder.value();
+
     } catch (CacheAccessException e) {
+
+      // So we either didn't load, or that's a miss in the SoR as well
       try {
+        // If the former, let's clean up
         store.remove(key);
+        resilienceStrategy.recoveredFrom(key, e);
         // fire an event? eviction?
       } catch (CacheAccessException e1) {
-        // fall back to strategy?
+        resilienceStrategy.possiblyInconsistent(key, e1, e);
       }
-      return null;
+
+      return mappingFunction.apply(key);
     }
-    if(valueHolder == null) {
-      // TODO this should populate obviously!
-      if(cacheLoader != null) {
-        return cacheLoader.load(key);
-      } else {
-        return null;
-      }
-    }
-    // Check for expiry first:
-    return valueHolder.value();
   }
 
   @Override
   public void put(final K key, final V value) {
+    checkNonNull(key, value);
+    final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
+      @Override
+      public V apply(final K key, final V previousValue) {
+        try {
+          if (cacheWriter != null) {
+            cacheWriter.write(key, value);
+          }
+        } catch (RuntimeException e) {
+          throw new CacheWriterException(e);
+        }
+        return value;
+      }
+    });
+
     try {
-      store.put(key, value);
+      store.compute(key, remappingFunction);
     } catch (CacheAccessException e) {
       try {
+        // just in case the write didn't happen:
+        remappingFunction.apply(key, value);
         store.remove(key);
-        // fire an event? eviction?
+        resilienceStrategy.recoveredFrom(key, e);
       } catch (CacheAccessException e1) {
-        // fall back to strategy?
+        resilienceStrategy.possiblyInconsistent(key, e, e1);
+      }
+    } catch(CacheWriterException e) {
+      try {
+        store.remove(key);
+        resilienceStrategy.recoveredFrom(key, e);
+        throw e;
+      } catch (CacheAccessException e1) {
+        // Should we pass the Store as a `ObliteratingThing` type that has only one method: obliterate(K)?
+        resilienceStrategy.possiblyInconsistent(key, e1, e);
       }
     }
   }
 
   @Override
   public boolean containsKey(final K key) {
+    checkNonNull(key);
     try {
       return store.containsKey(key);
     } catch (CacheAccessException e) {
@@ -102,6 +170,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public void remove(final K key) {
+    checkNonNull(key);
     try {
       store.remove(key);
     } catch (CacheAccessException e) {
@@ -145,37 +214,102 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public V putIfAbsent(final K key, final V value) {
-    Store.ValueHolder<V> old = null;
+    checkNonNull(key, value);
+    V old = null;
+
+    final Function<K, V> mappingFunction = memoize(
+        new Function<K, V>() {
+          @Override
+          public V apply(final K k) {
+            V loaded = null;
+            try {
+              if (cacheLoader != null) {
+                loaded = cacheLoader.load(k);
+              }
+            } catch (RuntimeException e) {
+              throw new CacheLoaderException(e);
+            }
+
+            if(loaded != null) {
+              return loaded;
+            }
+
+            try {
+              if (cacheWriter != null) {
+                cacheWriter.write(k, value);
+              }
+            } catch (RuntimeException e) {
+              throw new CacheWriterException(e);
+            }
+            return value;
+          }
+        });
+
     try {
-      old = store.putIfAbsent(key, value);
+      final Store.ValueHolder<V> holder = store.computeIfAbsent(key, mappingFunction);
+      if(holder != null) {
+        old = holder.value();
+      }
     } catch (CacheAccessException e) {
       try {
-        // roll back if changed
-        store.remove(key, value); 
+        old = mappingFunction.apply(key);
+        if(cacheLoader != null && cacheWriter != null) {
+          store.remove(key);
+        } else {
+          final Store.ValueHolder<V> holder = store.get(key);
+          if(holder == null) {
+            resilienceStrategy.possiblyInconsistent(key, e);
+          } else {
+            return holder.value();
+          }
+        }
       } catch (CacheAccessException e1) {
-        // fall back to strategy? 
+        resilienceStrategy.possiblyInconsistent(key, e, e1);
       }
     }
-    return old == null ? null : old.value();
+    return old;
   }
 
   @Override
   public boolean remove(final K key, final V value) {
-    boolean res = false;
+    checkNonNull(key, value);
+    final AtomicBoolean removed = new AtomicBoolean();
+    final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
+      @Override
+      public V apply(final K k, final V inCache) {
+        if (inCache != null) {
+          if (inCache.equals(value)) {
+            if (cacheWriter != null) {
+              cacheWriter.delete(k);
+            }
+            removed.set(true);
+            return null;
+          }
+          return inCache;
+        } else {
+          if (cacheWriter != null) {
+            removed.set(cacheWriter.delete(k, value));
+          }
+          return null;
+        }
+      }
+    });
     try {
-      res = store.remove(key, value);
+      store.compute(key, remappingFunction);
     } catch (CacheAccessException e) {
+      remappingFunction.apply(key, null);
       try {
-        store.putIfAbsent(key, value);
+        store.remove(key);
       } catch (CacheAccessException e1) {
-        // fall back to strategy?
+        resilienceStrategy.possiblyInconsistent(key, e, e1);
       }
     }
-    return res;
+    return removed.get();
   }
 
   @Override
   public V replace(final K key, final V value) {
+    checkNonNull(key, value);
     Store.ValueHolder<V> old = null;
     try {
       old = store.get(key);
@@ -195,6 +329,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public boolean replace(final K key, final V oldValue, final V newValue) {
+    checkNonNull(key, oldValue, newValue);
     boolean success = false;
     try {
       success = store.replace(key, oldValue, newValue);
@@ -219,6 +354,14 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       store.destroy();
     } catch (CacheAccessException e) {
       throw new RuntimeException("Couldn't destroy Cache", e);
+    }
+  }
+
+  private static void checkNonNull(Object... things) {
+    for (Object thing : things) {
+      if(thing == null) {
+        throw new NullPointerException();
+      }
     }
   }
 

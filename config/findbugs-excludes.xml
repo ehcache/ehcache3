@@ -13,6 +13,11 @@
     <Bug pattern="SA_FIELD_SELF_COMPARISON"/>
   </Match>
   <Match>
+    <Class name="org.ehcache.internal.concurrent.ConcurrentHashMap"/>
+    <Method name="compute"/>
+    <Bug pattern="NP_NULL_PARAM_DEREF_ALL_TARGETS_DANGEROUS"/>
+  </Match>
+  <Match>
     <Class name="org.ehcache.internal.concurrent.ConcurrentHashMap$TreeBin"/>
     <Method name="removeTreeNode"/>
     <Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"/>

@@ -19,6 +19,8 @@ package org.ehcache.spi.cache;
 import java.util.Comparator;
 import org.ehcache.Cache;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.function.BiFunction;
+import org.ehcache.function.Function;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -208,6 +210,12 @@ public interface Store<K, V> {
    * @return an iterator over the mappings in this set
    */
   Store.Iterator<Cache.Entry<K, ValueHolder<V>>> iterator();
+
+  ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException;
+
+  ValueHolder<V> computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) throws CacheAccessException;
+
+  ValueHolder<V> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException;
 
   /**
    * Holds both a value, and all the metadata associated with a mapping in a Store.

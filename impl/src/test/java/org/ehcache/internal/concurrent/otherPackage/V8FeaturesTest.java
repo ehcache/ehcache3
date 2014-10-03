@@ -16,6 +16,8 @@
 
 package org.ehcache.internal.concurrent.otherPackage;
 
+import org.ehcache.function.BiFunction;
+import org.ehcache.function.Function;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.concurrent.JSR166Helper;
 import org.junit.Test;
@@ -43,7 +45,7 @@ public class V8FeaturesTest {
         chm.put("two", 2);
         chm.put("three", 3);
 
-        Integer result = chm.compute("three", new JSR166Helper.BiFunction<String, Integer, Integer>() {
+        Integer result = chm.compute("three", new BiFunction<String, Integer, Integer>() {
             @Override
             public Integer apply(String s, Integer i) {
                 return -i;
@@ -58,21 +60,21 @@ public class V8FeaturesTest {
 
         assertThat(chm.get("four"), is(nullValue()));
 
-        chm.computeIfAbsent("four", new JSR166Helper.Function<String, AtomicInteger>() {
+        chm.computeIfAbsent("four", new Function<String, AtomicInteger>() {
             @Override
             public AtomicInteger apply(String s) {
                 return new AtomicInteger(0);
             }
         }).incrementAndGet();
         assertThat(chm.get("four").get(), equalTo(1));
-        chm.computeIfAbsent("four", new JSR166Helper.Function<String, AtomicInteger>() {
+        chm.computeIfAbsent("four", new Function<String, AtomicInteger>() {
             @Override
             public AtomicInteger apply(String s) {
                 return new AtomicInteger(0);
             }
         }).incrementAndGet();
         assertThat(chm.get("four").get(), equalTo(2));
-        chm.computeIfAbsent("four", new JSR166Helper.Function<String, AtomicInteger>() {
+        chm.computeIfAbsent("four", new Function<String, AtomicInteger>() {
             @Override
             public AtomicInteger apply(String s) {
                 return new AtomicInteger(0);
@@ -88,21 +90,21 @@ public class V8FeaturesTest {
 
         assertThat(chm.get("four"), equalTo(0));
 
-        chm.computeIfPresent("four", new JSR166Helper.BiFunction<String, Integer, Integer>() {
+        chm.computeIfPresent("four", new BiFunction<String, Integer, Integer>() {
             @Override
             public Integer apply(String s, Integer i) {
                 return i + 1;
             }
         });
         assertThat(chm.get("four"), equalTo(1));
-        chm.computeIfPresent("four", new JSR166Helper.BiFunction<String, Integer, Integer>() {
+        chm.computeIfPresent("four", new BiFunction<String, Integer, Integer>() {
             @Override
             public Integer apply(String s, Integer i) {
                 return i + 1;
             }
         });
         assertThat(chm.get("four"), equalTo(2));
-        chm.computeIfPresent("four", new JSR166Helper.BiFunction<String, Integer, Integer>() {
+        chm.computeIfPresent("four", new BiFunction<String, Integer, Integer>() {
             @Override
             public Integer apply(String s, Integer i) {
                 return i + 1;
@@ -118,7 +120,7 @@ public class V8FeaturesTest {
         chm.put(2, "two");
         chm.put(3, "three");
 
-        String result = chm.merge(1, "un", new JSR166Helper.BiFunction<String, String, String>() {
+        String result = chm.merge(1, "un", new BiFunction<String, String, String>() {
             @Override
             public String apply(String s, String s2) {
                 return s + "#" + s2;
@@ -135,7 +137,7 @@ public class V8FeaturesTest {
         chm.put(2, "two");
         chm.put(3, "three");
 
-        chm.replaceAll(new JSR166Helper.BiFunction<Integer, String, String>() {
+        chm.replaceAll(new BiFunction<Integer, String, String>() {
             @Override
             public String apply(Integer i, String s) {
                 if (i == 1) return "un";
@@ -211,7 +213,7 @@ public class V8FeaturesTest {
         chm.put("SD", new Entry("CA", "San Diego", 50));
         chm.put("SC", new Entry("CA", "Sacramento", 30));
 
-        Integer result = chm.reduce(4, new JSR166Helper.BiFunction<String, Entry, Integer>() {
+        Integer result = chm.reduce(4, new BiFunction<String, Entry, Integer>() {
             @Override
             public Integer apply(String s, Entry entry) {
                 if (entry.state.equals("CA")) {
@@ -219,7 +221,7 @@ public class V8FeaturesTest {
                 }
                 return null;
             }
-        }, new JSR166Helper.BiFunction<Integer, Integer, Integer>() {
+        }, new BiFunction<Integer, Integer, Integer>() {
             @Override
             public Integer apply(Integer temp1, Integer temp2) {
                 return (temp1 + temp2) / 2;

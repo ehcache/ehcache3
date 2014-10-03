@@ -18,6 +18,8 @@ package org.ehcache.internal;
 
 import org.ehcache.Ehcache;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.function.BiFunction;
+import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -91,6 +93,21 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
 
       @Override
       public Iterator<Entry<K, ValueHolder<V>>> iterator() {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
         throw new UnsupportedOperationException("Implement me!");
       }
     });
