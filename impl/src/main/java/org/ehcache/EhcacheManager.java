@@ -106,7 +106,7 @@ public final class EhcacheManager implements PersistentCacheManager {
     return addCache(alias, keyType, valueType, cache);
   }
 
-  public <K, V> Cache<K, V> addCache(String alias, Class<K> keyType, Class<V> valueType, Cache<K, V> cache) {
+  private <K, V> Cache<K, V> addCache(String alias, Class<K> keyType, Class<V> valueType, Cache<K, V> cache) {
     if (caches.putIfAbsent(alias, new CacheHolder(keyType, valueType, cache)) != null) {
       throw new IllegalArgumentException("Cache '" + alias +"' already exists");
     }

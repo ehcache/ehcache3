@@ -73,7 +73,7 @@ public class EhcacheManagerTest {
         .build());
     final Cache<Object, Object> cache = cacheManager.getCache("bar", Object.class, Object.class);
     try {
-      cacheManager.addCache("bar", Object.class, Object.class, cache);
+      cacheManager.createCache("bar", cacheConfiguration);
       fail("Should have thrown");
     } catch (IllegalArgumentException e) {
       assertTrue(e.getMessage().contains("bar"));
