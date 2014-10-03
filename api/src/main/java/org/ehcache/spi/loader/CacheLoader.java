@@ -24,7 +24,12 @@ import java.util.Map;
  * Cache misses.
  * <p>
  * Instances of this class have to be thread safe.
+ * <p>
+ * Any {@link java.lang.RuntimeException} thrown by methods of this interface will be wrapped into a
+ * {@link org.ehcache.exceptions.CacheLoaderException} by the {@link org.ehcache.Cache} and will need to be handled by
+ * the user.
  *
+ * @see org.ehcache.exceptions.CacheLoaderException
  * @author Alex Snaps
  */
 public interface CacheLoader<K, V> {
