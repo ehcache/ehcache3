@@ -161,7 +161,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     return map.compute(key, new BiFunction<K, ValueHolder<V>, ValueHolder<V>>() {
       @Override
       public ValueHolder<V> apply(final K k, final ValueHolder<V> vValueHolder) {
-        return nullSafeValueHolder(remappingFunction.apply(k, vValueHolder.value()));
+        return nullSafeValueHolder(remappingFunction.apply(k, vValueHolder == null ? null : vValueHolder.value()));
       }
     });
   }

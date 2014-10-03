@@ -73,7 +73,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public V get(final K key) throws CacheLoaderException {
-
+    throwIfAnyNull(key);
     final Function<K, V> mappingFunction = memoize(
         new Function<K, V>() {
           @Override
@@ -114,7 +114,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public void put(final K key, final V value) {
-
+    throwIfAnyNull(key, value);
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
       @Override
       public V apply(final K key, final V previousValue) {
@@ -154,6 +154,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public boolean containsKey(final K key) {
+    throwIfAnyNull(key);
     try {
       return store.containsKey(key);
     } catch (CacheAccessException e) {
@@ -169,6 +170,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public void remove(final K key) {
+    throwIfAnyNull(key);
     try {
       store.remove(key);
     } catch (CacheAccessException e) {
@@ -212,6 +214,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public V putIfAbsent(final K key, final V value) {
+    throwIfAnyNull(key, value);
     V old = null;
 
     final Function<K, V> mappingFunction = memoize(
@@ -269,6 +272,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public boolean remove(final K key, final V value) {
+    throwIfAnyNull(key, value);
     final AtomicBoolean removed = new AtomicBoolean();
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
       @Override
@@ -305,6 +309,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public V replace(final K key, final V value) {
+    throwIfAnyNull(key, value);
     Store.ValueHolder<V> old = null;
     try {
       old = store.get(key);
@@ -324,6 +329,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public boolean replace(final K key, final V oldValue, final V newValue) {
+    throwIfAnyNull(key, oldValue, newValue);
     boolean success = false;
     try {
       success = store.replace(key, oldValue, newValue);
@@ -348,6 +354,14 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       store.destroy();
     } catch (CacheAccessException e) {
       throw new RuntimeException("Couldn't destroy Cache", e);
+    }
+  }
+
+  private static void throwIfAnyNull(Object... things) {
+    for (Object thing : things) {
+      if(thing == null) {
+        throw new NullPointerException();
+      }
     }
   }
 
