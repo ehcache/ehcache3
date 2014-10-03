@@ -23,7 +23,9 @@ import org.ehcache.spi.test.StoreFactory;
 import org.ehcache.spi.test.StoreGetTest;
 import org.ehcache.spi.test.StorePutIfAbsentTest;
 import org.ehcache.spi.test.StorePutTest;
-import org.ehcache.spi.test.StoreRemoveTest;
+import org.ehcache.spi.test.StoreRemoveKeyTest;
+import org.ehcache.spi.test.StoreRemoveKeyTest;
+import org.ehcache.spi.test.StoreRemoveKeyValueTest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -84,7 +86,13 @@ public class OnHeapStoreTest {
 
   @Test
   public void testRemoveKey() throws Exception {
-    StoreRemoveTest<Object, Object> testSuite = new StoreRemoveTest<Object, Object>(storeFactory);
+    StoreRemoveKeyTest<Object, Object> testSuite = new StoreRemoveKeyTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
+  public void testRemoveKeyValue() throws Exception {
+    StoreRemoveKeyValueTest<Object, Object> testSuite = new StoreRemoveKeyValueTest<Object, Object>(storeFactory);
     testSuite.runTestSuite().reportAndThrow();
   }
 

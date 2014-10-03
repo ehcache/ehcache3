@@ -24,7 +24,6 @@ import org.ehcache.spi.cache.Store;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
 
 /**
@@ -35,9 +34,9 @@ import static org.junit.Assert.fail;
  * @author Aurelien Broszniowski
  */
 
-public class StoreRemoveTest<K, V> extends SPIStoreTester<K, V> {
+public class StoreRemoveKeyTest<K, V> extends SPIStoreTester<K, V> {
 
-  public StoreRemoveTest(final StoreFactory<K, V> factory) {
+  public StoreRemoveKeyTest(final StoreFactory<K, V> factory) {
     super(factory);
   }
 

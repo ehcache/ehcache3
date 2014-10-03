@@ -139,7 +139,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       if (this.factory.getValueType() == String.class) {
         kvStore.putIfAbsent(key, 1.0f);
       } else {
-        kvStore.putIfAbsent(key, "key");
+        kvStore.putIfAbsent(key, "value");
       }
       fail("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException e) {
