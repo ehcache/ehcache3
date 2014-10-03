@@ -130,8 +130,7 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
     try {
       kvStore.get(key);
     } catch (CacheAccessException e) {
-      // This will not compile if the CacheAccessException is not thrown by the get(K key) method
+      // This will not compile if the CacheAccessException is not thrown
     }
   }
-
 }

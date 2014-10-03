@@ -185,4 +185,20 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       // expected
     }
   }
+
+  @SPITest
+  public void mappingCantBeRemovedCanThrowException()
+      throws IllegalAccessException, InstantiationException {
+    final Store<K, V> kvStore = factory.newStore(
+        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
+
+    K key = factory.getKeyType().newInstance();
+    V value = factory.getValueType().newInstance();
+
+    try {
+      kvStore.remove(key, value);
+    } catch (CacheAccessException e) {
+      // This will not compile if the CacheAccessException is not thrown
+    }
+  }
 }
