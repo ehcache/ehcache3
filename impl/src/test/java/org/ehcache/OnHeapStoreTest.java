@@ -20,6 +20,7 @@ import org.ehcache.internal.store.OnHeapStore;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.StoreClearTest;
 import org.ehcache.spi.test.StoreContainsKeyTest;
+import org.ehcache.spi.test.StoreDestroyTest;
 import org.ehcache.spi.test.StoreFactory;
 import org.ehcache.spi.test.StoreGetTest;
 import org.ehcache.spi.test.StorePutIfAbsentTest;
@@ -99,6 +100,12 @@ public class OnHeapStoreTest {
   @Test
   public void testClear() throws Exception {
     StoreClearTest<Object, Object> testSuite = new StoreClearTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
+  public void testDestroy() throws Exception {
+    StoreDestroyTest<Object, Object> testSuite = new StoreDestroyTest<Object, Object>(storeFactory);
     testSuite.runTestSuite().reportAndThrow();
   }
 

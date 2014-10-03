@@ -26,45 +26,50 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#clear()} contract of the
+ * Test the {@link org.ehcache.spi.cache.Store#close()} contract of the
  * {@link org.ehcache.spi.cache.Store Store} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
  */
 
-public class StoreClearTest<K, V> extends SPIStoreTester<K, V> {
+public class StoreCloseTest<K, V> extends SPIStoreTester<K, V> {
 
-  public StoreClearTest(final StoreFactory<K, V> factory) {
+  public StoreCloseTest(final StoreFactory<K, V> factory) {
     super(factory);
   }
 
   @SPITest
-  public void valueHolderCanBeRetrievedWithEqualKey()
+  public void closedStoreCantBeUsed()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K,V>>all(), null));
+    Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
+
+    kvStore.close();
+
+    K key = factory.getKeyType().newInstance();
+    V value = factory.getValueType().newInstance();
+
+    kvStore.put(key, value);
+    // TODO : should an operation throw an exception after the store being closed?
+  }
+
+  @SPITest
+  public void reopenedClosedStoreCanBeAccessed()
+      throws CacheAccessException, IllegalAccessException, InstantiationException {
+    Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
 
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
 
     kvStore.put(key, value);
 
-    kvStore.clear();
+    kvStore.close();
 
-    assertThat(kvStore.containsKey(key), is(false));
-  }
+    kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
 
-  @SPITest
-  public void storeCantBeClearedCanThrowException()
-      throws IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
-
-    try {
-      kvStore.clear();
-    } catch (CacheAccessException e) {
-      // This will not compile if the CacheAccessException is not thrown
-    }
+    assertThat(kvStore.containsKey(key), is(true));
   }
 }

@@ -26,43 +26,43 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#clear()} contract of the
+ * Test the {@link org.ehcache.spi.cache.Store#destroy()} contract of the
  * {@link org.ehcache.spi.cache.Store Store} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
  */
 
-public class StoreClearTest<K, V> extends SPIStoreTester<K, V> {
+public class StoreDestroyTest<K, V> extends SPIStoreTester<K, V> {
 
-  public StoreClearTest(final StoreFactory<K, V> factory) {
+  public StoreDestroyTest(final StoreFactory<K, V> factory) {
     super(factory);
   }
 
   @SPITest
-  public void valueHolderCanBeRetrievedWithEqualKey()
+  public void noDataCanBeRecoveredFromDestroyedStore()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K,V>>all(), null));
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
 
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
 
     kvStore.put(key, value);
 
-    kvStore.clear();
+    kvStore.destroy();
 
     assertThat(kvStore.containsKey(key), is(false));
   }
 
   @SPITest
-  public void storeCantBeClearedCanThrowException()
+  public void storeCantBeDestroyedCanThrowException()
       throws IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(
         new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
 
     try {
-      kvStore.clear();
+      kvStore.destroy();
     } catch (CacheAccessException e) {
       // This will not compile if the CacheAccessException is not thrown
     }
