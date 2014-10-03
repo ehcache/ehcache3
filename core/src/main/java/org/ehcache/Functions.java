@@ -20,14 +20,35 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 
 /**
+ * A set of utilities methods and Classes around Functions
+ *
  * @author Alex Snaps
  */
 class Functions {
 
+  /**
+   * Will transform the passed in {@link org.ehcache.function.Function} in a apply once and only once Function.
+   * Irrespectively of the argument passed in! And isn't thread safe. Basically acts as a dumb cache.
+   *
+   * @param f the function to memoize
+   * @param <A> the function's input param type
+   * @param <T> the function's output type
+   * @return the memoized function
+   */
   static <A, T> Function<A, T> memoize(Function<A, T> f) {
     return new MemoizingFunction<A, T>(f);
   }
 
+  /**
+   * Will transform the passed in {@link org.ehcache.function.BiFunction} in a apply once and only once BiFunction.
+   * Irrespectively of the arguments passed in! And isn't thread safe. Basically acts as a dumb cache.
+   *
+   * @param f the bifunction to memoize
+   * @param <A> the bifunction's first input param type
+   * @param <B> the bifunction's second input param type
+   * @param <T> the function's output type
+   * @return the memoized bifunction
+   */
   static <A, B, T> BiFunction<A, B, T> memoize(BiFunction<A, B, T> f) {
     return new MemoizingBiFunction<A, B, T>(f);
   }
