@@ -34,7 +34,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.ehcache.function.Functions.memoize;
+import static org.ehcache.Functions.memoize;
 
 /**
  * @author Alex Snaps

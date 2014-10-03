@@ -14,18 +14,21 @@
  * limitations under the License.
  */
 
-package org.ehcache.function;
+package org.ehcache;
+
+import org.ehcache.function.BiFunction;
+import org.ehcache.function.Function;
 
 /**
  * @author Alex Snaps
  */
-public class Functions {
+class Functions {
 
-  public static <A, T> Function<A, T> memoize(Function<A, T> f) {
+  static <A, T> Function<A, T> memoize(Function<A, T> f) {
     return new MemoizingFunction<A, T>(f);
   }
 
-  public static <A, B, T> BiFunction<A, B, T> memoize(BiFunction<A, B, T> f) {
+  static <A, B, T> BiFunction<A, B, T> memoize(BiFunction<A, B, T> f) {
     return new MemoizingBiFunction<A, B, T>(f);
   }
 
@@ -68,7 +71,6 @@ public class Functions {
       computed = true;
       value = function.apply(a, b);
       return value;
-
     }
   }
 }
