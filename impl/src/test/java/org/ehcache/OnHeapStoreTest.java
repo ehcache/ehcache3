@@ -20,6 +20,7 @@ import org.ehcache.internal.store.OnHeapStore;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.StoreFactory;
 import org.ehcache.spi.test.StoreGetTest;
+import org.junit.Before;
 import org.junit.Test;
 
 /**
@@ -30,9 +31,11 @@ import org.junit.Test;
  */
 public class OnHeapStoreTest {
 
-  @Test
-  public void testGet() throws Exception {
-    StoreGetTest<Object, Object> getTest = new StoreGetTest<Object, Object>(new StoreFactory<Object, Object>() {
+  private StoreFactory<Object, Object> storeFactory;
+
+  @Before
+  public void setUp() {
+    storeFactory = new StoreFactory<Object, Object>() {
 
       @Override
       public Store<Object, Object> newStore(final Store.Configuration<Object, Object> config) {
@@ -48,9 +51,19 @@ public class OnHeapStoreTest {
       public Class<Object> getValueType() {
         return Object.class;
       }
-    });
-    getTest.runTestSuite().reportAndThrow();
+    };
+  }
 
+  @Test
+  public void testGet() throws Exception {
+    StoreGetTest<Object, Object> testSuite = new StoreGetTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
+  public void testContainsKey() throws Exception {
+    StoreGetTest<Object, Object> testSuite = new StoreGetTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
   }
 
 }
