@@ -17,6 +17,7 @@
 package org.ehcache.spi.test;
 
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author Alex Snaps
@@ -27,8 +28,11 @@ public interface StoreFactory<K, V> {
 
   Store.ValueHolder<V> newValueHolder(V value);
 
+  Store.Provider newProvider();
+
   Class<K> getKeyType();
 
   Class<V> getValueType();
 
+  ServiceConfiguration[] getServiceConfigurations();
 }

@@ -16,35 +16,35 @@
 
 package org.ehcache.internal.store;
 
+import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
-
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store.ValueHolder#lastAccessTime(java.util.concurrent.TimeUnit)} contract of the
- * {@link org.ehcache.spi.cache.Store Store.ValueHolder} interface.
+ * Test the {@link org.ehcache.spi.cache.Store.Provider#createStore(org.ehcache.spi.cache.Store.Configuration, org.ehcache.spi.service.ServiceConfiguration[])} contract of the
+ * {@link org.ehcache.spi.cache.Store Store.Provider} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
  */
 
-public class StoreValueHolderLastAccessTimeTest<K, V> extends SPIStoreTester<K, V> {
+public class StoreProviderCreateStoreTest<K, V> extends SPIStoreTester<K, V> {
 
-  public StoreValueHolderLastAccessTimeTest(final StoreFactory<K, V> factory) {
+  public StoreProviderCreateStoreTest(final StoreFactory<K, V> factory) {
     super(factory);
   }
 
   @SPITest
-  public void lastAccessTimeCanBeReturned()
-      throws IllegalAccessException, InstantiationException {
-    Store.ValueHolder<V> valueHolder = factory.newValueHolder(factory.getValueType().newInstance());
+  public void createStore() throws IllegalAccessException, InstantiationException {
+    Store.Provider provider = factory.newProvider();
 
-    assertThat(valueHolder.lastAccessTime(TimeUnit.MILLISECONDS), is(notNullValue()));
+    Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType());
+    Store<K, V> store = provider.createStore(storeConfig, factory.getServiceConfigurations());
+
+    assertThat(store, is(notNullValue()));
   }
-
 }

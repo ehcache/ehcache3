@@ -16,7 +16,9 @@
 
 package org.ehcache.internal.store;
 
+import org.ehcache.internal.HeapResourceCacheConfiguration;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -46,6 +48,11 @@ public class OnHeapStoreSPITest {
       }
 
       @Override
+      public Store.Provider newProvider() {
+        return new OnHeapStore.Provider();
+      }
+
+      @Override
       public Class<Object> getKeyType() {
         return Object.class;
       }
@@ -53,6 +60,11 @@ public class OnHeapStoreSPITest {
       @Override
       public Class<Object> getValueType() {
         return Object.class;
+      }
+
+      @Override
+      public ServiceConfiguration[] getServiceConfigurations() {
+        return new ServiceConfiguration[] { new HeapResourceCacheConfiguration(100) };
       }
     };
   }
@@ -154,6 +166,13 @@ public class OnHeapStoreSPITest {
   public void testValueHolderHitRate() throws Exception {
     StoreValueHolderHitRateTest<Object, Object> testSuite =
         new StoreValueHolderHitRateTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
+  public void testProviderCreateStore() throws Exception {
+    StoreProviderCreateStoreTest<Object, Object> testSuite =
+        new StoreProviderCreateStoreTest<Object, Object>(storeFactory);
     testSuite.runTestSuite().reportAndThrow();
   }
 }

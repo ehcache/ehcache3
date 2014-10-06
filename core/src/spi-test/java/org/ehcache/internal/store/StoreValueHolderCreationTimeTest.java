@@ -17,9 +17,7 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.spi.cache.Store;
-import org.ehcache.internal.store.SPIStoreTester;
-import org.ehcache.internal.store.StoreFactory;
-import org.junit.Test;
+import org.ehcache.spi.test.SPITest;
 
 import java.util.concurrent.TimeUnit;
 
@@ -41,7 +39,7 @@ public class StoreValueHolderCreationTimeTest<K, V> extends SPIStoreTester<K, V>
     super(factory);
   }
 
-  @Test
+  @SPITest
   public void creationTimeCanBeReturned()
       throws IllegalAccessException, InstantiationException {
     Store.ValueHolder<V> valueHolder = factory.newValueHolder(factory.getValueType().newInstance());

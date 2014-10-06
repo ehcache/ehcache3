@@ -17,8 +17,7 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.spi.cache.Store;
-import org.ehcache.internal.store.SPIStoreTester;
-import org.ehcache.internal.store.StoreFactory;
+import org.ehcache.spi.test.SPITest;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -39,7 +38,7 @@ public class StoreValueHolderValueTest<K, V> extends SPIStoreTester<K, V> {
     super(factory);
   }
 
-  @Test
+  @SPITest
   public void valueIsHeldByValueHolder()
       throws IllegalAccessException, InstantiationException {
     V value = factory.getValueType().newInstance();
@@ -48,7 +47,7 @@ public class StoreValueHolderValueTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(valueHolder.value(), is(equalTo(value)));
   }
 
-  @Test
+  @SPITest
   public void valueHolderCanThrowException()
       throws IllegalAccessException, InstantiationException {
     V value = factory.getValueType().newInstance();

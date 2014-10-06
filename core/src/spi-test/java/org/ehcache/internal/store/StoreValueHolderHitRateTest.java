@@ -17,10 +17,8 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.spi.cache.Store;
-import org.junit.Test;
+import org.ehcache.spi.test.SPITest;
 
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -41,7 +39,7 @@ public class StoreValueHolderHitRateTest<K, V> extends SPIStoreTester<K, V> {
     super(factory);
   }
 
-  @Test
+  @SPITest
   public void hitRateCanBeReturned()
       throws IllegalAccessException, InstantiationException {
     Store.ValueHolder<V> valueHolder = factory.newValueHolder(factory.getValueType().newInstance());
