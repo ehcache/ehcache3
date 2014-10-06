@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package org.ehcache;
+package org.ehcache.internal.store;
 
-import org.ehcache.internal.store.OnHeapStore;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.store.StoreClearTest;
 import org.ehcache.spi.test.store.StoreCloseTest;
@@ -51,6 +50,11 @@ public class OnHeapStoreTest {
       @Override
       public Store<Object, Object> newStore(final Store.Configuration<Object, Object> config) {
         return new OnHeapStore<Object, Object>(config);
+      }
+
+      @Override
+      public Store.ValueHolder<Object> newValueHolder(final Object value) {
+        return new OnHeapStoreValueHolder<Object>(value);
       }
 
       @Override
@@ -125,15 +129,15 @@ public class OnHeapStoreTest {
     testSuite.runTestSuite().reportAndThrow();
   }
 
- @Test
+  @Test
   public void testClose() throws Exception {
     StoreCloseTest<Object, Object> testSuite = new StoreCloseTest<Object, Object>(storeFactory);
     testSuite.runTestSuite().reportAndThrow();
   }
 
- @Test
+  @Test
   public void testIterator() throws Exception {
-   StoreIteratorTest<Object, Object> testSuite = new StoreIteratorTest<Object, Object>(storeFactory);
+    StoreIteratorTest<Object, Object> testSuite = new StoreIteratorTest<Object, Object>(storeFactory);
     testSuite.runTestSuite().reportAndThrow();
   }
 

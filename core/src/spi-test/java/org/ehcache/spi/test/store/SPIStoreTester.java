@@ -28,7 +28,7 @@ import org.ehcache.spi.test.SPITester;
 
 public class SPIStoreTester<K, V> extends SPITester {
 
-  final StoreFactory<K,V> factory;
+  protected final StoreFactory<K,V> factory;
 
   public SPIStoreTester(final StoreFactory<K,V> factory) {
     this.factory = factory;

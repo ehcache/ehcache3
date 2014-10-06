@@ -25,6 +25,8 @@ public interface StoreFactory<K, V> {
 
   Store<K, V> newStore(Store.Configuration<K, V> config);
 
+  Store.ValueHolder<V> newValueHolder(V value);
+
   Class<K> getKeyType();
 
   Class<V> getValueType();
