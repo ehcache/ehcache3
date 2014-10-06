@@ -17,26 +17,14 @@
 package org.ehcache.exceptions;
 
 /**
- * Exception thrown by a {@link org.ehcache.Cache} when the {@link org.ehcache.spi.writer.CacheWriter} it uses threw an
- * {@link java.lang.Exception} while writing a value for a given key
- *
  * @author Alex Snaps
  */
-public class CacheWriterException extends RuntimeException {
+public class ExceptionFactory {
 
-  CacheWriterException() {
-    super();
+  public static CacheWriterException newCacheWriterException(Exception e) {
+    return new CacheWriterException(e);
   }
-
-  CacheWriterException(final String message) {
-    super(message);
-  }
-
-  CacheWriterException(final String message, final Throwable cause) {
-    super(message, cause);
-  }
-
-  CacheWriterException(final Throwable cause) {
-    super(cause);
+  public static CacheLoaderException newCacheLoaderException(Exception e) {
+    return new CacheLoaderException(e);
   }
 }

@@ -35,6 +35,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.ehcache.Functions.memoize;
+import static org.ehcache.exceptions.ExceptionFactory.newCacheLoaderException;
+import static org.ehcache.exceptions.ExceptionFactory.newCacheWriterException;
 
 /**
  * @author Alex Snaps
@@ -84,7 +86,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
                 loaded = cacheLoader.load(k);
               }
             } catch (Exception e) {
-              throw new CacheLoaderException(e);
+              throw newCacheLoaderException(e);
             }
             return loaded;
           }
@@ -123,7 +125,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
             cacheWriter.write(key, value);
           }
         } catch (Exception e) {
-          throw new CacheWriterException(e);
+          throw newCacheWriterException(e);
         }
         return value;
       }
@@ -230,7 +232,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
                 loaded = cacheLoader.load(k);
               }
             } catch (Exception e) {
-              throw new CacheLoaderException(e);
+              throw newCacheLoaderException(e);
             }
 
             if(loaded != null) {
@@ -242,11 +244,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
                 try {
                   cacheWriter.write(k, null, value);
                 } catch (Exception e) {
-                  throw new CacheWriterException(e);
+                  throw newCacheWriterException(e);
                 }
               }
             } catch (RuntimeException e) {
-              throw new CacheWriterException(e);
+              throw newCacheWriterException(e);
             }
             return value;
           }
@@ -292,7 +294,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
                   // TODO ARGH!?!!! WHAT?!
                 }
               } catch (Exception e) {
-                throw new CacheWriterException(e);
+                throw newCacheWriterException(e);
               }
             }
             removed.set(true);
@@ -304,7 +306,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
             try {
               removed.set(cacheWriter.delete(k, value));
             } catch (Exception e) {
-              throw new CacheWriterException(e);
+              throw newCacheWriterException(e);
             }
           }
           return null;

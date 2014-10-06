@@ -23,31 +23,19 @@ package org.ehcache.exceptions;
  */
 public class CacheLoaderException extends RuntimeException {
 
-  /**
-   * {@inheritDoc}
-   */
-  public CacheLoaderException() {
+  CacheLoaderException() {
     super();
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  public CacheLoaderException(final String message) {
+  CacheLoaderException(final String message) {
     super(message);
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  public CacheLoaderException(final String message, final Throwable cause) {
+  CacheLoaderException(final String message, final Throwable cause) {
     super(message, cause);
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  public CacheLoaderException(final Throwable cause) {
+  CacheLoaderException(final Throwable cause) {
     super(cause);
   }
 
