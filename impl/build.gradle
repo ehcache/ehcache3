@@ -16,5 +16,5 @@
 
 dependencies {
   compile project(':api'), project(':core')
-  testCompile project(path: ':core', configuration: 'spiTestArtifacts'), project(':spi-tester')
+  testCompile project(path: ':core-spi-test')
 }

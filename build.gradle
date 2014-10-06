@@ -43,13 +43,6 @@ subprojects {
       compileClasspath += sourceSets.test.compileClasspath
       runtimeClasspath += sourceSets.test.runtimeClasspath
     }
-    
-    spiTest {
-      java.srcDir 'src/spi-test/java'
-      resources.srcDir 'src/spi-test/resources'
-      compileClasspath += sourceSets.test.compileClasspath
-      runtimeClasspath += sourceSets.test.runtimeClasspath
-    }
   }
 
   dependencies {
@@ -84,11 +77,6 @@ subprojects {
   task javadocJar(type: Jar, dependsOn: javadoc) {
     from javadoc.destinationDir
     classifier = 'javadoc'
-  }
-
-  task spiTestJar(type: Jar, dependsOn: spiTestClasses) {
-    from sourceSets.spiTest.output
-    classifier = 'spi-test'
   }
 
   artifacts {
