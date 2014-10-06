@@ -18,7 +18,6 @@ package org.ehcache.spi.loader;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * A factory {@link org.ehcache.spi.service.Service} that will create {@link org.ehcache.spi.loader.CacheLoader}
@@ -27,7 +26,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
  * The {@link org.ehcache.CacheManager} will request an instance of this Class prior to creating any
  * {@link org.ehcache.Cache} instances. It'll then use this instance to create
  * {@link org.ehcache.spi.loader.CacheLoader} instances for each {@link org.ehcache.Cache} it manages by
- * invoking the {@link #createLoader(String, org.ehcache.config.CacheConfiguration)} method. For any non {@code null}
+ * invoking the {@link #createCacheLoader(String, org.ehcache.config.CacheConfiguration)} method. For any non {@code null}
  * value returned, the {@link org.ehcache.Cache} will be configured to use the
  * {@link org.ehcache.spi.loader.CacheLoader} instance returned.
  *
@@ -43,7 +42,7 @@ public interface CacheLoaderFactory extends Service {
    * @param <V> the value type for the associated {@link org.ehcache.Cache}
    * @return the {@link org.ehcache.spi.loader.CacheLoader} to be used by the {@link org.ehcache.Cache} or null if none
    */
-  <K, V> CacheLoader<? super K, ? extends V> createLoader(String alias, CacheConfiguration<K, V> cacheConfiguration);
+  <K, V> CacheLoader<? super K, ? extends V> createCacheLoader(String alias, CacheConfiguration<K, V> cacheConfiguration);
 
   /**
    * Invoked by {@link org.ehcache.CacheManager} when a {@link org.ehcache.Cache} is being removed from it.

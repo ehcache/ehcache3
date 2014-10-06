@@ -35,6 +35,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.ehcache.Functions.memoize;
+import static org.ehcache.exceptions.ExceptionFactory.newCacheLoaderException;
+import static org.ehcache.exceptions.ExceptionFactory.newCacheWriterException;
 
 /**
  * @author Alex Snaps
@@ -83,8 +85,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
               if (cacheLoader != null) {
                 loaded = cacheLoader.load(k);
               }
-            } catch (RuntimeException e) {
-              throw new CacheLoaderException(e);
+            } catch (Exception e) {
+              throw newCacheLoaderException(e);
             }
             return loaded;
           }
@@ -122,8 +124,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
           if (cacheWriter != null) {
             cacheWriter.write(key, value);
           }
-        } catch (RuntimeException e) {
-          throw new CacheWriterException(e);
+        } catch (Exception e) {
+          throw newCacheWriterException(e);
         }
         return value;
       }
@@ -171,6 +173,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   @Override
   public void remove(final K key) {
     checkNonNull(key);
+
+    // cacheWriter.delete(key);
+
     try {
       store.remove(key);
     } catch (CacheAccessException e) {
@@ -226,8 +231,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
               if (cacheLoader != null) {
                 loaded = cacheLoader.load(k);
               }
-            } catch (RuntimeException e) {
-              throw new CacheLoaderException(e);
+            } catch (Exception e) {
+              throw newCacheLoaderException(e);
             }
 
             if(loaded != null) {
@@ -236,10 +241,14 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
             try {
               if (cacheWriter != null) {
-                cacheWriter.write(k, value);
+                try {
+                  cacheWriter.write(k, null, value);
+                } catch (Exception e) {
+                  throw newCacheWriterException(e);
+                }
               }
             } catch (RuntimeException e) {
-              throw new CacheWriterException(e);
+              throw newCacheWriterException(e);
             }
             return value;
           }
@@ -280,7 +289,13 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         if (inCache != null) {
           if (inCache.equals(value)) {
             if (cacheWriter != null) {
-              cacheWriter.delete(k);
+              try {
+                if(!cacheWriter.delete(k, value)) {
+                  // TODO ARGH!?!!! WHAT?!
+                }
+              } catch (Exception e) {
+                throw newCacheWriterException(e);
+              }
             }
             removed.set(true);
             return null;
@@ -288,7 +303,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
           return inCache;
         } else {
           if (cacheWriter != null) {
-            removed.set(cacheWriter.delete(k, value));
+            try {
+              removed.set(cacheWriter.delete(k, value));
+            } catch (Exception e) {
+              throw newCacheWriterException(e);
+            }
           }
           return null;
         }
@@ -311,6 +330,10 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   public V replace(final K key, final V value) {
     checkNonNull(key, value);
     Store.ValueHolder<V> old = null;
+
+    // cacheLoader.load(key);
+    // cacheWriter.write(key, oldValue, newValue); ?
+
     try {
       old = store.get(key);
       old = store.replace(key, value);
@@ -330,6 +353,10 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   @Override
   public boolean replace(final K key, final V oldValue, final V newValue) {
     checkNonNull(key, oldValue, newValue);
+
+    // cacheLoader.load(key); Though should we always load? Or can we be lazy...
+    // cacheWriter.write(key, oldValue, newValue); ?
+
     boolean success = false;
     try {
       success = store.replace(key, oldValue, newValue);

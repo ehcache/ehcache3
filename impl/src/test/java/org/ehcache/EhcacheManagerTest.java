@@ -25,7 +25,6 @@ import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
-import org.mockito.Matchers;
 import org.mockito.Mockito;
 
 import java.util.HashMap;
@@ -115,7 +114,7 @@ public class EhcacheManagerTest {
 
     CacheLoader fooLoader = mock(CacheLoader.class);
 
-    when(cacheLoaderFactory.createLoader("foo", fooConfig)).thenReturn(fooLoader);
+    when(cacheLoaderFactory.createCacheLoader("foo", fooConfig)).thenReturn(fooLoader);
 
     final Configuration cfg = new Configuration(new HashMap<String, CacheConfiguration<?, ?>>() {{
       put("bar", barConfig);
@@ -124,8 +123,8 @@ public class EhcacheManagerTest {
 
     final EhcacheManager manager = new EhcacheManager(cfg, new ServiceLocator(cacheLoaderFactory, new OnHeapStore.Provider()));
 
-    verify(cacheLoaderFactory).createLoader("bar", barConfig);
-    verify(cacheLoaderFactory).createLoader("foo", fooConfig);
+    verify(cacheLoaderFactory).createCacheLoader("bar", barConfig);
+    verify(cacheLoaderFactory).createCacheLoader("foo", fooConfig);
 
     manager.removeCache("bar");
     verify(cacheLoaderFactory, never()).releaseCacheLoader((CacheLoader<?, ?>)Mockito.anyObject());

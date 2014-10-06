@@ -100,7 +100,7 @@ public final class EhcacheManager implements PersistentCacheManager {
     final Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(keyType, valueType));
     CacheLoader<? super K, ? extends V> loader = null;
     if(cacheLoaderFactory != null) {
-      loader = cacheLoaderFactory.createLoader(alias, config);
+      loader = cacheLoaderFactory.createCacheLoader(alias, config);
     }
     final Cache<K, V> cache = new Ehcache<K, V>(store, loader, serviceConfigArray);
     return addCache(alias, keyType, valueType, cache);
