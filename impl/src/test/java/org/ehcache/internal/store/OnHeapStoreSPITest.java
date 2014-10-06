@@ -101,7 +101,8 @@ public class OnHeapStoreSPITest {
 
   @Test
   public void testReplaceKeyValueValue() throws Exception {
-    StoreReplaceKeyValueValueTest<Object, Object> testSuite = new StoreReplaceKeyValueValueTest<Object, Object>(storeFactory);
+    StoreReplaceKeyValueValueTest<Object, Object> testSuite =
+        new StoreReplaceKeyValueValueTest<Object, Object>(storeFactory);
     testSuite.runTestSuite().reportAndThrow();
   }
 
@@ -137,9 +138,15 @@ public class OnHeapStoreSPITest {
 
   @Test
   public void testValueHolderCreationTime() throws Exception {
-    StoreValueHolderCreationTimeTest<Object, Object> testSuite = new StoreValueHolderCreationTimeTest<Object, Object>(storeFactory);
+    StoreValueHolderCreationTimeTest<Object, Object> testSuite =
+        new StoreValueHolderCreationTimeTest<Object, Object>(storeFactory);
     testSuite.runTestSuite().reportAndThrow();
   }
 
-
+  @Test
+  public void testValueHolderLastAccessTime() throws Exception {
+    StoreValueHolderLastAccessTimeTest<Object, Object> testSuite =
+        new StoreValueHolderLastAccessTimeTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
 }
