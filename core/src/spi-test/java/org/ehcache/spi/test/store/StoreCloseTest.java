@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.test;
+package org.ehcache.spi.test.store;
 
 import org.ehcache.Cache;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Predicates;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.test.SPITest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

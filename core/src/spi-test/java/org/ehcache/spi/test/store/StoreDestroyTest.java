@@ -14,35 +14,35 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.test;
+package org.ehcache.spi.test.store;
 
 import org.ehcache.Cache;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Predicates;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.test.SPITest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.fail;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#containsKey(K key)} contract of the
+ * Test the {@link org.ehcache.spi.cache.Store#destroy()} contract of the
  * {@link org.ehcache.spi.cache.Store Store} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
  */
 
-public class StoreContainsKeyTest<K, V> extends SPIStoreTester<K, V> {
+public class StoreDestroyTest<K, V> extends SPIStoreTester<K, V> {
 
-  public StoreContainsKeyTest(final StoreFactory<K, V> factory) {
+  public StoreDestroyTest(final StoreFactory<K, V> factory) {
     super(factory);
   }
 
   @SPITest
-  public void storeContainsKey()
-      throws IllegalAccessException, InstantiationException, CacheAccessException {
+  public void noDataCanBeRecoveredFromDestroyedStore()
+      throws CacheAccessException, IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
         factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
 
@@ -51,54 +51,19 @@ public class StoreContainsKeyTest<K, V> extends SPIStoreTester<K, V> {
 
     kvStore.put(key, value);
 
-    assertThat(kvStore.containsKey(key), is(true));
+    kvStore.destroy();
+
+    assertThat(kvStore.containsKey(key), is(false));
   }
 
   @SPITest
-  public void nullKeyThrowsException()
-      throws IllegalAccessException, InstantiationException, CacheAccessException {
-    final Store<K, V> kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
-
-    K key = null;
-
-    try {
-      kvStore.containsKey(key);
-      fail("Expected NullPointerException because the key is null");
-    } catch (NullPointerException e) {
-      // expected
-    }
-  }
-
-  @SPITest
-  @SuppressWarnings("unchecked")
-  public void wrongKeyTypeThrowsException()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
-    final Store kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
-
-    try {
-      if (this.factory.getKeyType() == String.class) {
-        kvStore.containsKey(1.0f);
-      } else {
-        kvStore.containsKey("key");
-      }
-      fail("Expected ClassCastException because the key is of the wrong type");
-    } catch (ClassCastException e) {
-      // expected
-    }
-  }
-
-  @SPITest
-  public void cantBeTestedForCanThrowException()
+  public void storeCantBeDestroyedCanThrowException()
       throws IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(
         new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
 
-    K key = factory.getKeyType().newInstance();
-
     try {
-      kvStore.containsKey(key);
+      kvStore.destroy();
     } catch (CacheAccessException e) {
       // This will not compile if the CacheAccessException is not thrown
     }

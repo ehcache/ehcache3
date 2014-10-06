@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.test;
+package org.ehcache.spi.test.store;
 
 import org.ehcache.Cache;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.test.SPITest;
 
 import java.util.ArrayList;
 import java.util.List;

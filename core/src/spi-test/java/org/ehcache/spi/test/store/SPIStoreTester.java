@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.test;
+package org.ehcache.spi.test.store;
+
+import org.ehcache.spi.test.SPITester;
 
 /**
  * Parent class for all Store tester classes.

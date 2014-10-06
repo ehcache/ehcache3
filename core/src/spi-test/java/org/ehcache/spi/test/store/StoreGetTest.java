@@ -14,69 +14,39 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.test;
+package org.ehcache.spi.test.store;
 
 import org.ehcache.Cache;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Predicates;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.test.SPITest;
 
+import static org.ehcache.spi.cache.Store.ValueHolder;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#put(K key, V value)} contract of the
+ * Test the {@link org.ehcache.spi.cache.Store#get(K key)} contract of the
  * {@link org.ehcache.spi.cache.Store Store} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
  */
 
-public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
+public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
 
-  public StorePutTest(final StoreFactory<K, V> factory) {
+  public StoreGetTest(final StoreFactory<K, V> factory) {
     super(factory);
   }
 
   @SPITest
-  public void nullKeyThrowsException()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
-
-    K key = null;
-    V value = factory.getValueType().newInstance();
-
-    try {
-      kvStore.put(key, value);
-      fail("Expected NullPointerException because the key is null");
-    } catch (NullPointerException e) {
-      // expected
-    }
-  }
-
-  @SPITest
-  public void nullValueThrowsException()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
-
-    K key = factory.getKeyType().newInstance();
-    V value = null;
-
-    try {
-      kvStore.put(key, value);
-      fail("Expected NullPointerException because the value is null");
-    } catch (NullPointerException e) {
-      // expected
-    }
-  }
-
-  @SPITest
-  public void valueHolderCanBeRetrievedWithEqualKey()
+  public void existingKeyMappedInStoreReturnsValueHolder()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
         factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K,V>>all(), null));
@@ -86,7 +56,49 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
 
     kvStore.put(key, value);
 
-    assertThat(kvStore.get(key), is(instanceOf(Store.ValueHolder.class)));
+    assertThat(kvStore.get(key), is(instanceOf(ValueHolder.class)));
+  }
+
+  @SPITest
+  public void keyNotMappedInStoreReturnsNull()
+      throws CacheAccessException, IllegalAccessException, InstantiationException {
+    final Store<K, V> kvStore = factory.newStore(
+        new StoreConfigurationImpl<K, V>(this.factory.getKeyType(), this.factory.getValueType()));
+
+    K key = factory.getKeyType().newInstance();
+
+    assertThat(kvStore.get(key), is(nullValue()));
+  }
+
+  @SPITest
+  public void existingKeyMappedInStoreReturnsCorrectValueHolder()
+      throws CacheAccessException, IllegalAccessException, InstantiationException {
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K,V>>all(), null));
+
+    K key = factory.getKeyType().newInstance();
+    V value = factory.getValueType().newInstance();
+
+    kvStore.put(key, value);
+    ValueHolder<V> returnedValueHolder = kvStore.get(key);
+
+    assertThat(returnedValueHolder.value(), is(equalTo(value)));
+  }
+
+  @SPITest
+  public void nullKeyThrowsException()
+      throws CacheAccessException, IllegalAccessException, InstantiationException {
+    final Store<K, V> kvStore = factory.newStore(
+        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
+
+    K key = null;
+
+    try {
+      kvStore.get(key);
+      fail("Expected NullPointerException because the key is null");
+    } catch (NullPointerException e) {
+      // expected
+    }
   }
 
   @SPITest
@@ -96,13 +108,11 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
     final Store kvStore = factory.newStore(
         new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
 
-    V value = factory.getValueType().newInstance();
-
     try {
       if (this.factory.getKeyType() == String.class) {
-        kvStore.put(1.0f, value);
+        kvStore.get(1.0f);
       } else {
-        kvStore.put("key", value);
+        kvStore.get("key");
       }
       fail("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
@@ -111,37 +121,15 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  @SuppressWarnings("unchecked")
-  public void wrongValueTypeThrowsException()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
-    final Store kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
-
-    K key = factory.getKeyType().newInstance();
-
-    try {
-      if (this.factory.getValueType() == String.class) {
-        kvStore.put(key, 1.0f);
-      } else {
-        kvStore.put(key, "value");
-      }
-      fail("Expected ClassCastException because the value is of the wrong type");
-    } catch (ClassCastException e) {
-      // expected
-    }
-  }
-
-  @SPITest
-  public void mappingCantBeInstalledCanThrowException()
+  public void retrievalCanThrowException()
       throws IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(
         new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
 
     K key = factory.getKeyType().newInstance();
-    V value = factory.getValueType().newInstance();
 
     try {
-      kvStore.put(key, value);
+      kvStore.get(key);
     } catch (CacheAccessException e) {
       // This will not compile if the CacheAccessException is not thrown
     }
