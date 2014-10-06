@@ -19,6 +19,7 @@ package org.ehcache;
 import org.ehcache.internal.store.OnHeapStore;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.StoreClearTest;
+import org.ehcache.spi.test.StoreCloseTest;
 import org.ehcache.spi.test.StoreContainsKeyTest;
 import org.ehcache.spi.test.StoreDestroyTest;
 import org.ehcache.spi.test.StoreFactory;
@@ -27,6 +28,8 @@ import org.ehcache.spi.test.StorePutIfAbsentTest;
 import org.ehcache.spi.test.StorePutTest;
 import org.ehcache.spi.test.StoreRemoveKeyTest;
 import org.ehcache.spi.test.StoreRemoveKeyValueTest;
+import org.ehcache.spi.test.StoreReplaceKeyValueTest;
+import org.ehcache.spi.test.StoreReplaceKeyValueValueTest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -98,6 +101,18 @@ public class OnHeapStoreTest {
   }
 
   @Test
+  public void testReplaceKeyValue() throws Exception {
+    StoreReplaceKeyValueTest<Object, Object> testSuite = new StoreReplaceKeyValueTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
+  public void testReplaceKeyValueValue() throws Exception {
+    StoreReplaceKeyValueValueTest<Object, Object> testSuite = new StoreReplaceKeyValueValueTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
   public void testClear() throws Exception {
     StoreClearTest<Object, Object> testSuite = new StoreClearTest<Object, Object>(storeFactory);
     testSuite.runTestSuite().reportAndThrow();
@@ -108,5 +123,12 @@ public class OnHeapStoreTest {
     StoreDestroyTest<Object, Object> testSuite = new StoreDestroyTest<Object, Object>(storeFactory);
     testSuite.runTestSuite().reportAndThrow();
   }
+
+ @Test
+  public void testClose() throws Exception {
+    StoreCloseTest<Object, Object> testSuite = new StoreCloseTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
 
 }
