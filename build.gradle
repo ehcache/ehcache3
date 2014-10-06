@@ -165,7 +165,7 @@ subprojects {
   findbugs {
     ignoreFailures = false
     sourceSets = [sourceSets.main]
-    excludeFilter = file("$rootDir/config/findbugs-excludes.xml")
+    excludeFilter = file("$projectDir/config/findbugs-excludes.xml")
     toolVersion = '2.0.3'
   }
 
