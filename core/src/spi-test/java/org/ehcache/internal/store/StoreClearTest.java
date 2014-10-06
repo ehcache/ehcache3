@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.test.store;
+package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
 import org.ehcache.config.StoreConfigurationImpl;
@@ -27,43 +27,43 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#destroy()} contract of the
+ * Test the {@link org.ehcache.spi.cache.Store#clear()} contract of the
  * {@link org.ehcache.spi.cache.Store Store} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
  */
 
-public class StoreDestroyTest<K, V> extends SPIStoreTester<K, V> {
+public class StoreClearTest<K, V> extends SPIStoreTester<K, V> {
 
-  public StoreDestroyTest(final StoreFactory<K, V> factory) {
+  public StoreClearTest(final StoreFactory<K, V> factory) {
     super(factory);
   }
 
   @SPITest
-  public void noDataCanBeRecoveredFromDestroyedStore()
+  public void valueHolderCanBeRetrievedWithEqualKey()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K,V>>all(), null));
 
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
 
     kvStore.put(key, value);
 
-    kvStore.destroy();
+    kvStore.clear();
 
     assertThat(kvStore.containsKey(key), is(false));
   }
 
   @SPITest
-  public void storeCantBeDestroyedCanThrowException()
+  public void storeCantBeClearedCanThrowException()
       throws IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(
         new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
 
     try {
-      kvStore.destroy();
+      kvStore.clear();
     } catch (CacheAccessException e) {
       // This will not compile if the CacheAccessException is not thrown
     }

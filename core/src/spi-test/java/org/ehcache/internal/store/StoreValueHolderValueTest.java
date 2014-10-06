@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.test.store.valueholder;
+package org.ehcache.internal.store;
 
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.test.store.SPIStoreTester;
-import org.ehcache.spi.test.store.StoreFactory;
+import org.ehcache.internal.store.SPIStoreTester;
+import org.ehcache.internal.store.StoreFactory;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;

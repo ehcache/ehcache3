@@ -17,21 +17,6 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.test.store.StoreClearTest;
-import org.ehcache.spi.test.store.StoreCloseTest;
-import org.ehcache.spi.test.store.StoreContainsKeyTest;
-import org.ehcache.spi.test.store.StoreDestroyTest;
-import org.ehcache.spi.test.store.StoreFactory;
-import org.ehcache.spi.test.store.StoreGetTest;
-import org.ehcache.spi.test.store.StoreIteratorTest;
-import org.ehcache.spi.test.store.StorePutIfAbsentTest;
-import org.ehcache.spi.test.store.StorePutTest;
-import org.ehcache.spi.test.store.StoreRemoveKeyTest;
-import org.ehcache.spi.test.store.StoreRemoveKeyValueTest;
-import org.ehcache.spi.test.store.StoreReplaceKeyValueTest;
-import org.ehcache.spi.test.store.StoreReplaceKeyValueValueTest;
-import org.ehcache.spi.test.store.valueholder.StoreValueHolderCreationTimeTest;
-import org.ehcache.spi.test.store.valueholder.StoreValueHolderValueTest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,6 +26,7 @@ import org.junit.Test;
  *
  * @author Aurelien Broszniowski
  */
+
 public class OnHeapStoreSPITest {
 
   private StoreFactory<Object, Object> storeFactory;

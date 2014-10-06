@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.test.store;
+package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
 import org.ehcache.config.StoreConfigurationImpl;
@@ -23,126 +23,98 @@ import org.ehcache.function.Predicates;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
 
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#remove(K key, V value)} contract of the
+ * Test the {@link org.ehcache.spi.cache.Store#replace(K key, V value, V value)} contract of the
  * {@link org.ehcache.spi.cache.Store Store} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
  */
 
-public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
+public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
 
-  public StoreRemoveKeyValueTest(final StoreFactory<K, V> factory) {
+  public StoreReplaceKeyValueValueTest(final StoreFactory<K, V> factory) {
     super(factory);
   }
 
   @SPITest
-  public void removeEntryForKeyIfMappedToValue()
-      throws IllegalAccessException, InstantiationException, CacheAccessException {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
-
-    K key = factory.getKeyType().newInstance();
-    V value = factory.getValueType().newInstance();
-
-    kvStore.put(key, value);
-
-    assertThat(kvStore.containsKey(key), is(true));
-
-    kvStore.remove(key, value);
-
-    assertThat(kvStore.containsKey(key), is(false));
-  }
-
-  @SPITest
-  public void doNothingForKeyNotMappedToValue()
-      throws IllegalAccessException, InstantiationException, CacheAccessException {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
-
-    K key = factory.getKeyType().newInstance();
-    V value = factory.getValueType().newInstance();
-
-    assertThat(kvStore.containsKey(key), is(false));
-
-    try {
-      kvStore.remove(key, value);
-    } catch (CacheAccessException e) {
-      throw new AssertionError(e);
-    }
-  }
-
-  @SPITest
-  public void returnTrueIfValueWasRemoved()
+  public void replaceCorrectKeyAndValue()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
         factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K,V>>all(), null));
 
     K key = factory.getKeyType().newInstance();
-    V value = factory.getValueType().newInstance();
+    V originalValue = factory.getValueType().newInstance();
 
-    kvStore.put(key, value);
+    kvStore.put(key, originalValue);
 
-    assertThat(kvStore.containsKey(key), is(true));
+    V newValue = factory.getValueType().newInstance();
 
-    boolean removed = kvStore.remove(key, value);
+    kvStore.replace(key, originalValue, newValue);
 
-    assertThat(removed, is(true));
+    assertThat(kvStore.get(key).value(), is(equalTo(newValue)));
   }
 
   @SPITest
-  public void returnFalseIfValueWasNotRemoved()
+  public void replaceCorrectKeyAndWrongValue()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
         factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K,V>>all(), null));
 
     K key = factory.getKeyType().newInstance();
-    V value = factory.getValueType().newInstance();
+    V originalValue = factory.getValueType().newInstance();
 
-    assertThat(kvStore.containsKey(key), is(false));
+    kvStore.put(key, originalValue);
 
-    boolean removed = kvStore.remove(key, value);
+    V wrongValue = factory.getValueType().newInstance();
+    V newValue = factory.getValueType().newInstance();
 
-    assertThat(removed, is(false));
+    kvStore.replace(key, wrongValue, newValue);
+
+    assertThat(kvStore.get(key).value(), is(not(equalTo(wrongValue))));
   }
 
   @SPITest
-  public void nullKeyThrowsException()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
-
-    K key = null;
-    V value = factory.getValueType().newInstance();
-
-    try {
-      kvStore.remove(key, value);
-      fail("Expected NullPointerException because the key is null");
-    } catch (NullPointerException e) {
-      // expected
-    }
-  }
-
-  @SPITest
-  public void nullValueThrowsException()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
+  public void successfulReplaceReturnsTrue()
+      throws IllegalAccessException, InstantiationException, CacheAccessException {
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K,V>>all(), null));
 
     K key = factory.getKeyType().newInstance();
-    V value = null;
+    V originalValue = factory.getValueType().newInstance();
 
-    try {
-      kvStore.remove(key, value);
-      fail("Expected NullPointerException because the value is null");
-    } catch (NullPointerException e) {
-      // expected
-    }
+    kvStore.put(key, originalValue);
+
+    V newValue = factory.getValueType().newInstance();
+
+    boolean successfulReplace = kvStore.replace(key, originalValue, newValue);
+
+    assertThat(successfulReplace, is(true));
+  }
+
+  @SPITest
+  public void unsuccessfulReplaceReturnsTrue()
+      throws IllegalAccessException, InstantiationException, CacheAccessException {
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K,V>>all(), null));
+
+    K key = factory.getKeyType().newInstance();
+    V originalValue = factory.getValueType().newInstance();
+
+    kvStore.put(key, originalValue);
+
+    V wrongValue = factory.getValueType().newInstance();
+    V newValue = factory.getValueType().newInstance();
+
+    boolean successfulReplace = kvStore.replace(key, wrongValue, newValue);
+
+    assertThat(successfulReplace, is(false));
   }
 
   @SPITest
@@ -152,13 +124,14 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     final Store kvStore = factory.newStore(
         new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
 
-    V value = factory.getValueType().newInstance();
+    V originalValue = factory.getValueType().newInstance();
+    V newValue = factory.getValueType().newInstance();
 
     try {
       if (this.factory.getKeyType() == String.class) {
-        kvStore.remove(1.0f, value);
+        kvStore.replace(1.0f, originalValue);
       } else {
-        kvStore.remove("key", value);
+        kvStore.replace("key", originalValue, newValue);
       }
       fail("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
@@ -168,18 +141,19 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   @SuppressWarnings("unchecked")
-  public void wrongValueTypeThrowsException()
+  public void wrongOriginalValueTypeThrowsException()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
     final Store kvStore = factory.newStore(
         new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
 
     K key = factory.getKeyType().newInstance();
+    V newValue = factory.getValueType().newInstance();
 
     try {
       if (this.factory.getKeyType() == String.class) {
-        kvStore.remove(key, 1.0f);
+        kvStore.replace(key, 1.0f, newValue);
       } else {
-        kvStore.remove(key, "value");
+        kvStore.replace(key, "value", newValue);
       }
       fail("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException e) {
@@ -188,16 +162,39 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  public void mappingCantBeRemovedCanThrowException()
+  @SuppressWarnings("unchecked")
+  public void wrongNewValueTypeThrowsException()
+      throws CacheAccessException, IllegalAccessException, InstantiationException {
+    final Store kvStore = factory.newStore(
+        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
+
+    K key = factory.getKeyType().newInstance();
+    V originalValue = factory.getValueType().newInstance();
+
+    try {
+      if (this.factory.getKeyType() == String.class) {
+        kvStore.replace(key, originalValue, 1.0f);
+      } else {
+        kvStore.replace(key, originalValue, "value");
+      }
+      fail("Expected ClassCastException because the value is of the wrong type");
+    } catch (ClassCastException e) {
+      // expected
+    }
+  }
+
+  @SPITest
+  public void mappingCantBeReplacedCanThrowException()
       throws IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(
         new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
 
     K key = factory.getKeyType().newInstance();
-    V value = factory.getValueType().newInstance();
+    V originalValue = factory.getValueType().newInstance();
+    V newValue = factory.getValueType().newInstance();
 
     try {
-      kvStore.remove(key, value);
+      kvStore.replace(key, originalValue, newValue);
     } catch (CacheAccessException e) {
       // This will not compile if the CacheAccessException is not thrown
     }

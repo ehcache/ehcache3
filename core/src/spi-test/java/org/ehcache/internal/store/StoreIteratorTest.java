@@ -14,58 +14,57 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.test.store;
+package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.Predicates;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#clear()} contract of the
+ * Test the {@link org.ehcache.spi.cache.Store#iterator()} contract of the
  * {@link org.ehcache.spi.cache.Store Store} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
  */
 
-public class StoreClearTest<K, V> extends SPIStoreTester<K, V> {
+public class StoreIteratorTest<K, V> extends SPIStoreTester<K, V> {
 
-  public StoreClearTest(final StoreFactory<K, V> factory) {
+  public StoreIteratorTest(final StoreFactory<K, V> factory) {
     super(factory);
   }
 
   @SPITest
-  public void valueHolderCanBeRetrievedWithEqualKey()
+  public void iterableContainsValuesInAnyOrder()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K,V>>all(), null));
-
-    K key = factory.getKeyType().newInstance();
-    V value = factory.getValueType().newInstance();
-
-    kvStore.put(key, value);
-
-    kvStore.clear();
-
-    assertThat(kvStore.containsKey(key), is(false));
-  }
-
-  @SPITest
-  public void storeCantBeClearedCanThrowException()
-      throws IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(
         new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
 
-    try {
-      kvStore.clear();
-    } catch (CacheAccessException e) {
-      // This will not compile if the CacheAccessException is not thrown
+    V value1 = factory.getValueType().newInstance();
+    V value2 = factory.getValueType().newInstance();
+    V value3 = factory.getValueType().newInstance();
+
+    kvStore.put(factory.getKeyType().newInstance(), value1);
+    kvStore.put(factory.getKeyType().newInstance(), value2);
+    kvStore.put(factory.getKeyType().newInstance(), value3);
+
+    Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();
+    List<V> values = new ArrayList<V>();
+    while(iterator.hasNext()) {
+      Cache.Entry<K, Store.ValueHolder<V>> nextEntry = iterator.next();
+      values.add(nextEntry.getValue().value());
     }
+    assertThat(values, containsInAnyOrder(equalTo(value1), equalTo(value2), equalTo(value3)));
   }
+
+
 }
