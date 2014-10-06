@@ -175,4 +175,11 @@ public class OnHeapStoreSPITest {
         new StoreProviderCreateStoreTest<Object, Object>(storeFactory);
     testSuite.runTestSuite().reportAndThrow();
   }
+
+  @Test
+  public void testProviderReleaseStore() throws Exception {
+    StoreProviderReleaseStoreTest<Object, Object> testSuite =
+        new StoreProviderReleaseStoreTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
 }
