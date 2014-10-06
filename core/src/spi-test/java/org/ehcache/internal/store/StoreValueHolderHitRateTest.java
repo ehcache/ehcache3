@@ -19,6 +19,8 @@ package org.ehcache.internal.store;
 import org.ehcache.spi.cache.Store;
 import org.junit.Test;
 
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -26,25 +28,24 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store.ValueHolder#lastAccessTime(java.util.concurrent.TimeUnit)} contract of the
+ * Test the {@link org.ehcache.spi.cache.Store.ValueHolder#hitRate(java.util.concurrent.TimeUnit)} contract of the
  * {@link org.ehcache.spi.cache.Store Store.ValueHolder} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
  */
 
-public class StoreValueHolderLastAccessTimeTest<K, V> extends SPIStoreTester<K, V> {
+public class StoreValueHolderHitRateTest<K, V> extends SPIStoreTester<K, V> {
 
-  public StoreValueHolderLastAccessTimeTest(final StoreFactory<K, V> factory) {
+  public StoreValueHolderHitRateTest(final StoreFactory<K, V> factory) {
     super(factory);
   }
 
   @Test
-  public void lastAccessTimeCanBeReturned()
+  public void hitRateCanBeReturned()
       throws IllegalAccessException, InstantiationException {
     Store.ValueHolder<V> valueHolder = factory.newValueHolder(factory.getValueType().newInstance());
 
-    assertThat(valueHolder.lastAccessTime(TimeUnit.MILLISECONDS), is(notNullValue()));
+    assertThat(valueHolder.hitRate(TimeUnit.MILLISECONDS), is(notNullValue()));
   }
-
 }

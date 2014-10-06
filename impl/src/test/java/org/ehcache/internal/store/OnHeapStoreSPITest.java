@@ -149,4 +149,11 @@ public class OnHeapStoreSPITest {
         new StoreValueHolderLastAccessTimeTest<Object, Object>(storeFactory);
     testSuite.runTestSuite().reportAndThrow();
   }
+
+  @Test
+  public void testValueHolderHitRate() throws Exception {
+    StoreValueHolderHitRateTest<Object, Object> testSuite =
+        new StoreValueHolderHitRateTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
 }
