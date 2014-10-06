@@ -30,6 +30,8 @@ import org.ehcache.spi.test.store.StoreRemoveKeyTest;
 import org.ehcache.spi.test.store.StoreRemoveKeyValueTest;
 import org.ehcache.spi.test.store.StoreReplaceKeyValueTest;
 import org.ehcache.spi.test.store.StoreReplaceKeyValueValueTest;
+import org.ehcache.spi.test.store.valueholder.StoreValueHolderCreationTimeTest;
+import org.ehcache.spi.test.store.valueholder.StoreValueHolderValueTest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -39,7 +41,7 @@ import org.junit.Test;
  *
  * @author Aurelien Broszniowski
  */
-public class OnHeapStoreTest {
+public class OnHeapStoreSPITest {
 
   private StoreFactory<Object, Object> storeFactory;
 
@@ -138,6 +140,18 @@ public class OnHeapStoreTest {
   @Test
   public void testIterator() throws Exception {
     StoreIteratorTest<Object, Object> testSuite = new StoreIteratorTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
+  public void testValueHolderValue() throws Exception {
+    StoreValueHolderValueTest<Object, Object> testSuite = new StoreValueHolderValueTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
+  public void testValueHolderCreationTime() throws Exception {
+    StoreValueHolderCreationTimeTest<Object, Object> testSuite = new StoreValueHolderCreationTimeTest<Object, Object>(storeFactory);
     testSuite.runTestSuite().reportAndThrow();
   }
 

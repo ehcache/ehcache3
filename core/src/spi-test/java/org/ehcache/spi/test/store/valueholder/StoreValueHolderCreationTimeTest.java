@@ -21,42 +21,33 @@ import org.ehcache.spi.test.store.SPIStoreTester;
 import org.ehcache.spi.test.store.StoreFactory;
 import org.junit.Test;
 
+import java.util.concurrent.TimeUnit;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store.ValueHolder#value()} contract of the
+ * Test the {@link org.ehcache.spi.cache.Store.ValueHolder#creationTime(java.util.concurrent.TimeUnit)} contract of the
  * {@link org.ehcache.spi.cache.Store Store.ValueHolder} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
  */
 
-public class StoreValueHolderValueTest<K, V> extends SPIStoreTester<K, V> {
+public class StoreValueHolderCreationTimeTest<K, V> extends SPIStoreTester<K, V> {
 
-  public StoreValueHolderValueTest(final StoreFactory<K, V> factory) {
+  public StoreValueHolderCreationTimeTest(final StoreFactory<K, V> factory) {
     super(factory);
   }
 
   @Test
-  public void valueIsHeldByValueHolder()
+  public void creationTimeCanBeReturned()
       throws IllegalAccessException, InstantiationException {
-    V value = factory.getValueType().newInstance();
-    Store.ValueHolder<V> valueHolder = factory.newValueHolder(value);
+    Store.ValueHolder<V> valueHolder = factory.newValueHolder(factory.getValueType().newInstance());
 
-    assertThat(valueHolder.value(), is(equalTo(value)));
+    assertThat(valueHolder.creationTime(TimeUnit.MILLISECONDS), is(notNullValue()));
   }
 
-  @Test
-  public void valueHolderCanThrowException()
-      throws IllegalAccessException, InstantiationException {
-    V value = factory.getValueType().newInstance();
-    try {
-      Store.ValueHolder<V> valueHolder = factory.newValueHolder(value);
-    } catch (Exception e) {
-      // This will not compile if the Exception is not thrown
-      // TODO to update with relevant exception when javadoc is defined
-    }
-  }
 }
