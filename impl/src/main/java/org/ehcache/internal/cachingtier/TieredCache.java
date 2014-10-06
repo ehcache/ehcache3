@@ -17,6 +17,7 @@
 package org.ehcache.internal.cachingtier;
 
 import org.ehcache.Cache;
+import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.tiering.CachingTier;
@@ -124,6 +125,11 @@ public class TieredCache<K, V> implements Cache<K, V> {
 
   @Override
   public boolean replace(K key, V oldValue, V newValue) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public CacheRuntimeConfiguration<K, V> getRuntimeConfiguration() {
     throw new UnsupportedOperationException("Implement me!");
   }
 

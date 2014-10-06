@@ -17,11 +17,15 @@
 package org.ehcache.config;
 
 import org.ehcache.Cache;
+import org.ehcache.event.CacheEventListener;
+import org.ehcache.event.EventFiring;
+import org.ehcache.event.EventOrdering;
 import org.ehcache.function.Predicate;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Set;
 
 /**
  * Represents the minimal read-only configuration for a Cache to be, or an already existing one
@@ -73,4 +77,6 @@ public interface CacheConfiguration<K, V> {
    * @return the eviction prioritizer
    */
   Comparator<Cache.Entry<K, V>> getEvictionPrioritizer();
+
+  Set<CacheEventListener<?, ?>> getEventListeners();
 }
