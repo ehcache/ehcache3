@@ -19,7 +19,11 @@ package org.ehcache.exceptions;
 /**
  * @author Alex Snaps
  */
-public class ExceptionFactory {
+public final class ExceptionFactory {
+
+  private ExceptionFactory() {
+    throw new UnsupportedOperationException("Thou shalt not instantiate me!");
+  }
 
   public static CacheWriterException newCacheWriterException(Exception e) {
     return new CacheWriterException(e);
