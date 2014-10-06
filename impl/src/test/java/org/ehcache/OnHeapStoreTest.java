@@ -24,6 +24,7 @@ import org.ehcache.spi.test.StoreContainsKeyTest;
 import org.ehcache.spi.test.StoreDestroyTest;
 import org.ehcache.spi.test.StoreFactory;
 import org.ehcache.spi.test.StoreGetTest;
+import org.ehcache.spi.test.StoreIteratorTest;
 import org.ehcache.spi.test.StorePutIfAbsentTest;
 import org.ehcache.spi.test.StorePutTest;
 import org.ehcache.spi.test.StoreRemoveKeyTest;
@@ -127,6 +128,12 @@ public class OnHeapStoreTest {
  @Test
   public void testClose() throws Exception {
     StoreCloseTest<Object, Object> testSuite = new StoreCloseTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+ @Test
+  public void testIterator() throws Exception {
+   StoreIteratorTest<Object, Object> testSuite = new StoreIteratorTest<Object, Object>(storeFactory);
     testSuite.runTestSuite().reportAndThrow();
   }
 
