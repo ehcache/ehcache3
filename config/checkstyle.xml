@@ -20,6 +20,6 @@
   </module>
   
   <module name="SuppressionFilter">
-    <property name="file" value="${projectDir}/config/suppressions.xml"/>
+    <property name="file" value="${projectDir}/config/checkstyle-suppressions.xml"/>
   </module>
 </module>
