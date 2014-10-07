@@ -30,6 +30,8 @@ public interface StoreFactory<K, V> {
 
   Store.Provider newProvider();
 
+  Store.Configuration<K, V> newConfiguration(Class<K> keyType, Class<V> valueType);
+
   Class<K> getKeyType();
 
   Class<V> getValueType();

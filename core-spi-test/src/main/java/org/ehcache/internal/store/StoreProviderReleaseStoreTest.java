@@ -22,7 +22,7 @@ import org.ehcache.spi.test.SPITest;
 
 /**
  * Test the {@link org.ehcache.spi.cache.Store.Provider#releaseStore(org.ehcache.spi.cache.Store)} contract of the
- * {@link org.ehcache.spi.cache.Store Store.Provider} interface.
+ * {@link org.ehcache.spi.cache.Store.Provider Store.Provider} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski

@@ -26,7 +26,7 @@ import static org.hamcrest.core.Is.is;
 
 /**
  * Test the {@link org.ehcache.spi.cache.Store.Provider#createStore(org.ehcache.spi.cache.Store.Configuration, org.ehcache.spi.service.ServiceConfiguration[])} contract of the
- * {@link org.ehcache.spi.cache.Store Store.Provider} interface.
+ * {@link org.ehcache.spi.cache.Store.Provider Store.Provider} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski

@@ -19,31 +19,28 @@ package org.ehcache.internal.store;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
 
-import java.util.concurrent.TimeUnit;
-
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store.ValueHolder#hitRate(java.util.concurrent.TimeUnit)} contract of the
- * {@link org.ehcache.spi.cache.Store.ValueHolder Store.ValueHolder} interface.
+ * Test the {@link org.ehcache.spi.cache.Store.Configuration#getKeyType()} contract of the
+ * {@link org.ehcache.spi.cache.Store.Configuration Store.Configuration} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
  */
 
-public class StoreValueHolderHitRateTest<K, V> extends SPIStoreTester<K, V> {
+public class StoreConfigurationGetKeyTypeTest<K, V> extends SPIStoreTester<K, V> {
 
-  public StoreValueHolderHitRateTest(final StoreFactory<K, V> factory) {
+  public StoreConfigurationGetKeyTypeTest(final StoreFactory<K, V> factory) {
     super(factory);
   }
 
   @SPITest
-  public void hitRateCanBeReturned()
-      throws IllegalAccessException, InstantiationException {
-    Store.ValueHolder<V> valueHolder = factory.newValueHolder(factory.getValueType().newInstance());
+  public void returnCorrectKeyType() throws IllegalAccessException, InstantiationException {
+    Store.Configuration<K, V> kvConfiguration = factory.newConfiguration(factory.getKeyType(), factory.getValueType());
 
-    assertThat(valueHolder.hitRate(TimeUnit.MILLISECONDS), is(notNullValue()));
+    assertThat(kvConfiguration.getKeyType(), is(equalTo(factory.getKeyType())));
   }
 }

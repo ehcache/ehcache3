@@ -27,7 +27,7 @@ import static org.hamcrest.core.Is.is;
 
 /**
  * Test the {@link org.ehcache.spi.cache.Store.ValueHolder#lastAccessTime(java.util.concurrent.TimeUnit)} contract of the
- * {@link org.ehcache.spi.cache.Store Store.ValueHolder} interface.
+ * {@link org.ehcache.spi.cache.Store.ValueHolder Store.ValueHolder} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski

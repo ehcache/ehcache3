@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.store;
 
+import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.internal.HeapResourceCacheConfiguration;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -50,6 +51,11 @@ public class OnHeapStoreSPITest {
       @Override
       public Store.Provider newProvider() {
         return new OnHeapStore.Provider();
+      }
+
+      @Override
+      public Store.Configuration<Object, Object> newConfiguration(Class<Object> keyType, Class<Object> valueType) {
+        return new StoreConfigurationImpl<Object, Object>(keyType, valueType);
       }
 
       @Override
@@ -180,6 +186,13 @@ public class OnHeapStoreSPITest {
   public void testProviderReleaseStore() throws Exception {
     StoreProviderReleaseStoreTest<Object, Object> testSuite =
         new StoreProviderReleaseStoreTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
+  public void testConfigurationGetKeyType() throws Exception {
+    StoreConfigurationGetKeyTypeTest<Object, Object> testSuite =
+        new StoreConfigurationGetKeyTypeTest<Object, Object>(storeFactory);
     testSuite.runTestSuite().reportAndThrow();
   }
 }
