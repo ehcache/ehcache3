@@ -23,9 +23,34 @@ import org.ehcache.Cache;
  */
 public interface CacheEvent<K, V> {
 
+  /**
+   * The type of mutative event
+   *
+   * @return the @{link EventType}
+   */
   EventType getType();
 
+  /**
+   * The {@link Cache.Entry} affected by the mutative event
+   *
+   * @return {@link Cache.Entry Entry} affected by the mutative event
+   */
   Cache.Entry<K, V> getEntry();
 
+  /**
+   * Returns the value associated with the mapping prior to the mutation being applied
+   *
+   * @return the previous value associated to the key, prior the update
+   */
   V getPreviousValue();
+
+  /**
+   * The cache originating this event
+   * <p>
+   * Don't ever call back into this cache to perform any further operations!
+   *
+   * @return the cache you should only use to identify the source, not to use it!
+   */
+  @Deprecated
+  Cache getSource();
 }

@@ -21,6 +21,13 @@ package org.ehcache.event;
  */
 public interface CacheEventListener<K, V> {
 
+  /**
+   * Invoked on any {@link org.ehcache.event.CacheEvent} matching the {@link org.ehcache.event.EventType} constrain used
+   * when the listener was registered. This method is invoked according to the {@link org.ehcache.event.EventOrdering}
+   * and {@link org.ehcache.event.EventFiring} requirement desired at registration time.
+   *
+   * @param event the actual {@link org.ehcache.event.CacheEvent}
+   */
   void onEvent(CacheEvent<K, V> event);
 
 }

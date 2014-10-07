@@ -21,7 +21,13 @@ package org.ehcache.event;
  */
 public enum EventFiring {
 
+  /**
+   * Event will fire asynchronously, on a different thread than the thread that cause the mutation
+   */
   ASYNCHRONOUS,
 
+  /**
+   * Event will fire synchronously, on the same thread that cause the mutation, blocking its execution
+   */
   SYNCHRONOUS
 }

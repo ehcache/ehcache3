@@ -21,7 +21,13 @@ package org.ehcache.event;
  */
 public enum EventOrdering {
 
+  /**
+   * No ordering requirement necessary
+   */
   UNORDERED,
 
+  /**
+   * Events for a given key will always fire in the same order they actually occurred
+   */
   ORDERED
 }

@@ -21,9 +21,29 @@ package org.ehcache.event;
  */
 public enum EventType {
 
+  /**
+   * Represents a {@link org.ehcache.Cache.Entry} being evicted
+   */
+  EVICTED,
+
+  /**
+   * Represents a {@link org.ehcache.Cache.Entry} expiring
+   */
+  EXPIRED,
+
+  /**
+   * Represents a {@link org.ehcache.Cache.Entry} being removed
+   */
+  REMOVED,
+
+  /**
+   * Represents a new {@link org.ehcache.Cache.Entry} being installed for a given key
+   */
   CREATED,
+
+  /**
+   * Represents an existing {@link org.ehcache.Cache.Entry} being updated for a given key
+   */
   UPDATED,
-  EVICTION,
-  EXPIRY,
-  REMOVED
+
 }

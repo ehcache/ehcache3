@@ -78,5 +78,10 @@ public interface CacheConfiguration<K, V> {
    */
   Comparator<Cache.Entry<K, V>> getEvictionPrioritizer();
 
+  /**
+   * Returns a immutable Set of {@link org.ehcache.event.CacheEventListener} currently registered
+   *
+   * @return the Set of listeners, empty if none
+   */
   Set<CacheEventListener<?, ?>> getEventListeners();
 }

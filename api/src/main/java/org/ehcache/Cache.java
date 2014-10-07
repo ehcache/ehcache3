@@ -176,8 +176,9 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
   boolean replace(K key, V oldValue, V newValue) throws CacheLoaderException;
 
   /**
+   * Exposes the {@link org.ehcache.config.CacheRuntimeConfiguration} associated with this Cache instance.
    *
-   * @return
+   * @return the configuration currently in sue
    */
   CacheRuntimeConfiguration<K, V> getRuntimeConfiguration();
   
