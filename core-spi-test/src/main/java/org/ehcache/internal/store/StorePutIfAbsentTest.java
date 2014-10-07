@@ -24,22 +24,51 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.fail;
+import static org.hamcrest.Matchers.nullValue;
+
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#put(K key, V value)} contract of the
+ * Test the {@link org.ehcache.spi.cache.Store#putIfAbsent(K key, V value)} contract of the
  * {@link org.ehcache.spi.cache.Store Store} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
  */
 
-public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
+public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
-  public StorePutTest(final StoreFactory<K, V> factory) {
+  public StorePutIfAbsentTest(final StoreFactory<K, V> factory) {
     super(factory);
+  }
+
+  @SPITest
+  public void mapsKeyToValueWhenMappingDoesntExist()
+      throws CacheAccessException, IllegalAccessException, InstantiationException {
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
+
+    K key = factory.getKeyType().newInstance();
+    V value = factory.getValueType().newInstance();
+
+    Store.ValueHolder<V> returnedValueHolder = kvStore.putIfAbsent(key, value);
+
+    assertThat(returnedValueHolder, is(nullValue()));
+  }
+
+  @SPITest
+  public void mapsKeyToValueWhenMappingExists()
+      throws CacheAccessException, IllegalAccessException, InstantiationException {
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
+
+    K key = factory.getKeyType().newInstance();
+    V value = factory.getValueType().newInstance();
+
+    Store.ValueHolder<V> returnedValueHolder = kvStore.putIfAbsent(key, value);
+
+    assertThat(returnedValueHolder.value(), is(equalTo(value)));
   }
 
   @SPITest
@@ -52,8 +81,8 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
     V value = factory.getValueType().newInstance();
 
     try {
-      kvStore.put(key, value);
-      fail("Expected NullPointerException because the key is null");
+      kvStore.putIfAbsent(key, value);
+      throw new AssertionError("Expected NullPointerException because the key is null");
     } catch (NullPointerException e) {
       // expected
     }
@@ -69,25 +98,11 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
     V value = null;
 
     try {
-      kvStore.put(key, value);
-      fail("Expected NullPointerException because the value is null");
+      kvStore.putIfAbsent(key, value);
+      throw new AssertionError("Expected NullPointerException because the value is null");
     } catch (NullPointerException e) {
       // expected
     }
-  }
-
-  @SPITest
-  public void valueHolderCanBeRetrievedWithEqualKey()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K,V>>all(), null));
-
-    K key = factory.getKeyType().newInstance();
-    V value = factory.getValueType().newInstance();
-
-    kvStore.put(key, value);
-
-    assertThat(kvStore.get(key), is(instanceOf(Store.ValueHolder.class)));
   }
 
   @SPITest
@@ -101,11 +116,11 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       if (this.factory.getKeyType() == String.class) {
-        kvStore.put(1.0f, value);
+        kvStore.putIfAbsent(1.0f, value);
       } else {
-        kvStore.put("key", value);
+        kvStore.putIfAbsent("key", value);
       }
-      fail("Expected ClassCastException because the key is of the wrong type");
+      throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
       // expected
     }
@@ -122,11 +137,11 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       if (this.factory.getValueType() == String.class) {
-        kvStore.put(key, 1.0f);
+        kvStore.putIfAbsent(key, 1.0f);
       } else {
-        kvStore.put(key, "value");
+        kvStore.putIfAbsent(key, "value");
       }
-      fail("Expected ClassCastException because the value is of the wrong type");
+      throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException e) {
       // expected
     }
@@ -142,7 +157,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
     V value = factory.getValueType().newInstance();
 
     try {
-      kvStore.put(key, value);
+      kvStore.putIfAbsent(key, value);
     } catch (CacheAccessException e) {
       // This will not compile if the CacheAccessException is not thrown
     }

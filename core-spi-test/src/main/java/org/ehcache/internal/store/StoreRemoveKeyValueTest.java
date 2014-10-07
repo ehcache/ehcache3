@@ -25,7 +25,6 @@ import org.ehcache.spi.test.SPITest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.fail;
 
 /**
  * Test the {@link org.ehcache.spi.cache.Store#remove(K key, V value)} contract of the
@@ -122,7 +121,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.remove(key, value);
-      fail("Expected NullPointerException because the key is null");
+      throw new AssertionError("Expected NullPointerException because the key is null");
     } catch (NullPointerException e) {
       // expected
     }
@@ -139,7 +138,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.remove(key, value);
-      fail("Expected NullPointerException because the value is null");
+      throw new AssertionError("Expected NullPointerException because the value is null");
     } catch (NullPointerException e) {
       // expected
     }
@@ -160,7 +159,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       } else {
         kvStore.remove("key", value);
       }
-      fail("Expected ClassCastException because the key is of the wrong type");
+      throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
       // expected
     }
@@ -181,7 +180,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       } else {
         kvStore.remove(key, "value");
       }
-      fail("Expected ClassCastException because the value is of the wrong type");
+      throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException e) {
       // expected
     }

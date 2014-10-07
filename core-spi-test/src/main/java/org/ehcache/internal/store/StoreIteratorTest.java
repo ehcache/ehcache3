@@ -59,7 +59,7 @@ public class StoreIteratorTest<K, V> extends SPIStoreTester<K, V> {
 
     Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();
     List<V> values = new ArrayList<V>();
-    while(iterator.hasNext()) {
+    while (iterator.hasNext()) {
       Cache.Entry<K, Store.ValueHolder<V>> nextEntry = iterator.next();
       values.add(nextEntry.getValue().value());
     }

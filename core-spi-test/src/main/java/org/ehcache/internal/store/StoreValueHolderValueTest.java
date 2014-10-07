@@ -18,7 +18,6 @@ package org.ehcache.internal.store;
 
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
-import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;

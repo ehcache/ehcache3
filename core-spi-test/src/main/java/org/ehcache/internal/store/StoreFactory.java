@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.test;
+package org.ehcache.internal.store;
 
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
