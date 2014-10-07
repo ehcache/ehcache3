@@ -29,24 +29,24 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store.Configuration#getKeyType()} contract of the
+ * Test the {@link org.ehcache.spi.cache.Store.Configuration#getValueType()} contract of the
  * {@link org.ehcache.spi.cache.Store.Configuration Store.Configuration} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
  */
 
-public class StoreConfigurationGetKeyTypeTest<K, V> extends SPIStoreTester<K, V> {
+public class StoreConfigurationGetValueTypeTest<K, V> extends SPIStoreTester<K, V> {
 
-  public StoreConfigurationGetKeyTypeTest(final StoreFactory<K, V> factory) {
+  public StoreConfigurationGetValueTypeTest(final StoreFactory<K, V> factory) {
     super(factory);
   }
 
   @SPITest
-  public void returnCorrectKeyType() throws IllegalAccessException, InstantiationException {
+  public void returnCorrectValueType() throws IllegalAccessException, InstantiationException {
     Store.Configuration<K, V> kvConfiguration = factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         null, null, null);
 
-    assertThat(kvConfiguration.getKeyType(), is(equalTo(factory.getKeyType())));
+    assertThat(kvConfiguration.getValueType(), is(equalTo(factory.getValueType())));
   }
 }

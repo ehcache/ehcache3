@@ -16,12 +16,18 @@
 
 package org.ehcache.internal.store;
 
+import org.ehcache.Cache;
 import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.eviction.EvictionPrioritizer;
+import org.ehcache.function.Predicate;
+import org.ehcache.function.Predicates;
 import org.ehcache.internal.HeapResourceCacheConfiguration;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Comparator;
 
 /**
  * Test the {@link org.ehcache.internal.store.OnHeapStore} compliance to the
@@ -54,8 +60,11 @@ public class OnHeapStoreSPITest {
       }
 
       @Override
-      public Store.Configuration<Object, Object> newConfiguration(Class<Object> keyType, Class<Object> valueType) {
-        return new StoreConfigurationImpl<Object, Object>(keyType, valueType);
+      public Store.Configuration<Object, Object> newConfiguration(
+          final Class<Object> keyType, final Class<Object> valueType, final Comparable<Long> capacityConstraint,
+          final Predicate<Cache.Entry<Object, Object>> evictionVeto, final Comparator<Cache.Entry<Object, Object>> evictionPrioritizer) {
+        return new StoreConfigurationImpl<Object, Object>(keyType, valueType, capacityConstraint,
+            evictionVeto, evictionPrioritizer);
       }
 
       @Override
@@ -193,6 +202,13 @@ public class OnHeapStoreSPITest {
   public void testConfigurationGetKeyType() throws Exception {
     StoreConfigurationGetKeyTypeTest<Object, Object> testSuite =
         new StoreConfigurationGetKeyTypeTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
+  public void testConfigurationGetValueType() throws Exception {
+    StoreConfigurationGetValueTypeTest<Object, Object> testSuite =
+        new StoreConfigurationGetValueTypeTest<Object, Object>(storeFactory);
     testSuite.runTestSuite().reportAndThrow();
   }
 }
