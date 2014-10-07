@@ -16,37 +16,34 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.Cache;
-import org.ehcache.eviction.EvictionPrioritizer;
-import org.ehcache.function.Predicates;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
 
-import java.util.Comparator;
-
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store.Configuration#getValueType()} contract of the
+ * Test the {@link org.ehcache.spi.cache.Store.Configuration#getCapacityConstraint()} contract of the
  * {@link org.ehcache.spi.cache.Store.Configuration Store.Configuration} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
  */
 
-public class StoreConfigurationGetValueTypeTest<K, V> extends SPIStoreTester<K, V> {
+public class StoreConfigurationGetCapacityConstraintTest<K, V> extends SPIStoreTester<K, V> {
 
-  public StoreConfigurationGetValueTypeTest(final StoreFactory<K, V> factory) {
+  public StoreConfigurationGetCapacityConstraintTest(final StoreFactory<K, V> factory) {
     super(factory);
   }
 
   @SPITest
-  public void returnsCorrectValueType() throws IllegalAccessException, InstantiationException {
+  public void returnsCorrectCapacityConstraint() throws IllegalAccessException, InstantiationException {
+    Long capacityConstraint = 100L;
     Store.Configuration<K, V> kvConfiguration = factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        null, null, null);
+        capacityConstraint, null, null);
 
-    assertThat(kvConfiguration.getValueType(), is(equalTo(factory.getValueType())));
+    assertThat(capacityConstraint, is(equalTo((kvConfiguration.getCapacityConstraint()))));
   }
 }

@@ -43,7 +43,7 @@ public class StoreConfigurationGetKeyTypeTest<K, V> extends SPIStoreTester<K, V>
   }
 
   @SPITest
-  public void returnCorrectKeyType() throws IllegalAccessException, InstantiationException {
+  public void returnsCorrectKeyType() throws IllegalAccessException, InstantiationException {
     Store.Configuration<K, V> kvConfiguration = factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         null, null, null);
 

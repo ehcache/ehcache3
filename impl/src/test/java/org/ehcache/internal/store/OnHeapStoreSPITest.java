@@ -211,4 +211,13 @@ public class OnHeapStoreSPITest {
         new StoreConfigurationGetValueTypeTest<Object, Object>(storeFactory);
     testSuite.runTestSuite().reportAndThrow();
   }
+
+  @Test
+  public void testConfigurationGetCapacityConstraint() throws Exception {
+    StoreConfigurationGetCapacityConstraintTest<Object, Object> testSuite =
+        new StoreConfigurationGetCapacityConstraintTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+
 }
