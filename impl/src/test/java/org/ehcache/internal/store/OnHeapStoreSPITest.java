@@ -226,5 +226,12 @@ public class OnHeapStoreSPITest {
     testSuite.runTestSuite().reportAndThrow();
   }
 
+  @Test
+  public void testConfigurationGetEvictionPrioritizer() throws Exception {
+    StoreConfigurationGetEvictionPrioritizerTest<Object, Object> testSuite =
+        new StoreConfigurationGetEvictionPrioritizerTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
 
 }
