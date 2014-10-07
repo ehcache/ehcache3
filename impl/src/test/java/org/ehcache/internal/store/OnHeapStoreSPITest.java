@@ -219,5 +219,12 @@ public class OnHeapStoreSPITest {
     testSuite.runTestSuite().reportAndThrow();
   }
 
+  @Test
+  public void testConfigurationGetEvictionVeto() throws Exception {
+    StoreConfigurationGetEvictionVetoTest<Object, Object> testSuite =
+        new StoreConfigurationGetEvictionVetoTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
 
 }
