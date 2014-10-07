@@ -34,9 +34,9 @@ public interface StoreFactory<K, V> {
 
   Store.Provider newProvider();
 
-  Store.Configuration<K, V> newConfiguration(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
-                                             Predicate<Cache.Entry<K, V>> evictionVeto,
-                                             Comparator<Cache.Entry<K, V>> evictionPrioritizer);
+  Store.Configuration<K, V> newConfiguration(
+      Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
+      Predicate<Cache.Entry<K, V>> evictionVeto, Comparator<Cache.Entry<K, V>> evictionPrioritizer);
 
   Class<K> getKeyType();
 

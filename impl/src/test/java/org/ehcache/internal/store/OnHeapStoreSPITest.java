@@ -233,5 +233,12 @@ public class OnHeapStoreSPITest {
     testSuite.runTestSuite().reportAndThrow();
   }
 
+  @Test
+  public void testIteratorHasNext() throws Exception {
+    StoreIteratorHasNextTest<Object, Object> testSuite =
+        new StoreIteratorHasNextTest<Object, Object>(storeFactory);
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
 
 }
