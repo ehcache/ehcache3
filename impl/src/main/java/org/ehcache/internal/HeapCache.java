@@ -107,6 +107,16 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
       }
 
       @Override
+      public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Iterable<? extends K> keys, Function<Iterable<? extends K>, Map<K, V>> mappingFunction) throws CacheAccessException {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public Map<K, ValueHolder<V>> bulkCompute(Iterable<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
       public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
         throw new UnsupportedOperationException("Implement me!");
       }

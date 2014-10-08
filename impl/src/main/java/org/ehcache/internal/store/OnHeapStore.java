@@ -28,6 +28,8 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -184,6 +186,51 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         return nullSafeValueHolder(remappingFunction.apply(k, vValueHolder.value()));
       }
     });
+  }
+
+  @Override
+  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Iterable<? extends K> keys, Function<Iterable<? extends K>, Map<K, V>> mappingFunction) throws CacheAccessException {
+    Set<K> missingKeys = new HashSet<K>();
+    for (K key : keys) {
+      if (!map.containsKey(key)) {
+        missingKeys.add(key);
+      }
+    }
+    Map<K, V> computedMappings = mappingFunction.apply(missingKeys);
+
+    Map<K, ValueHolder<V>> computedMappingsWithValueHolders = new HashMap<K, ValueHolder<V>>();
+    for (Map.Entry<K, V> entry : computedMappings.entrySet()) {
+      OnHeapStoreValueHolder<V> valueHolder = nullSafeValueHolder(entry.getValue());
+      if (valueHolder != null && missingKeys.contains(entry.getKey()) && map.putIfAbsent(entry.getKey(), valueHolder) == null) {
+        computedMappingsWithValueHolders.put(entry.getKey(), valueHolder);
+      }
+    }
+    return computedMappingsWithValueHolders.isEmpty() ? null : computedMappingsWithValueHolders;
+  }
+
+  @Override
+  public Map<K, ValueHolder<V>> bulkCompute(Iterable<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
+    Map<K, V> oldEntries = new HashMap<K, V>();
+    for (K key : keys) {
+      ValueHolder<V> vValueHolder = map.get(key);
+      oldEntries.put(key, vValueHolder == null ? null : vValueHolder.value());
+    }
+    Iterable<? extends Map.Entry<? extends K, ? extends V>> remappedEntries = remappingFunction.apply(oldEntries.entrySet());
+
+    Map<K, ValueHolder<V>> computedMappingsWithValueHolders = new HashMap<K, ValueHolder<V>>();
+    for (Map.Entry<? extends K, ? extends V> remappedEntry : remappedEntries) {
+      K key = remappedEntry.getKey();
+      if (oldEntries.containsKey(key)) {
+        OnHeapStoreValueHolder<V> valueHolder = nullSafeValueHolder(remappedEntry.getValue());
+        if (valueHolder != null) {
+          map.put(key, valueHolder);
+          computedMappingsWithValueHolders.put(key, valueHolder);
+        } else {
+          map.remove(key);
+        }
+      }
+    }
+    return computedMappingsWithValueHolders.isEmpty() ? null : computedMappingsWithValueHolders;
   }
 
   private OnHeapStoreValueHolder<V> nullSafeValueHolder(final V value) {

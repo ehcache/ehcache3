@@ -102,6 +102,6 @@ public interface CacheWriter<K, V> {
    *
    * @see org.ehcache.Cache#removeAll(Iterable)
    */
-  Set<K> deleteAll(Iterable<K> keys) throws Exception;
+  Set<K> deleteAll(Iterable<? extends K> keys) throws Exception;
 
 }
