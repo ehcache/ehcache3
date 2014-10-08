@@ -91,7 +91,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * 
    * @throws NullPointerException if the {@code Iterable} or any of the returned keys are {@code null}.
    */
-  void putAll(Iterable<Entry<? extends K, ? extends V>> entries);
+  void putAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries);
 
   /**
    * Removes any associates for the given keys.

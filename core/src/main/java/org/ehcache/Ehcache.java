@@ -203,7 +203,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   }
 
   @Override
-  public void putAll(final Iterable<Entry<? extends K, ? extends V>> entries) {
+  public void putAll(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
     throw new UnsupportedOperationException("Implement me!");
   }
 

@@ -125,7 +125,7 @@ public class StandaloneCacheBuilderTest {
     }
 
     @Override
-    public void putAll(Iterable<Entry<? extends K, ? extends V>> entries) {
+    public void putAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
