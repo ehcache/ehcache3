@@ -21,7 +21,6 @@ import org.ehcache.exceptions.BulkCacheLoaderException;
 import org.ehcache.exceptions.CacheLoaderException;
 
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -94,16 +93,6 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    */
   void putAll(Iterable<Entry<? extends K, ? extends V>> entries);
 
-  /**
-   * Checks which of the given keys are present.
-   * 
-   * @param keys keys to query for
-   * @return a set containing all present keys
-   * 
-   * @throws NullPointerException if the {@code Iterable} or any of the returned keys are {@code null}.
-   */
-  Set<K> containsKeys(Iterable<? extends K> keys);
-  
   /**
    * Removes any associates for the given keys.
    * 

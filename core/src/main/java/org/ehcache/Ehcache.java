@@ -31,7 +31,6 @@ import org.ehcache.spi.writer.CacheWriter;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -205,11 +204,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public void putAll(final Iterable<Entry<? extends K, ? extends V>> entries) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public Set<K> containsKeys(final Iterable<? extends K> keys) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
