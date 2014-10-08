@@ -29,6 +29,7 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriter;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -199,17 +200,28 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public Map<K, V> getAll(final Iterable<? extends K> keys) {
-    throw new UnsupportedOperationException("Implement me!");
+    Map<K, V> result = new HashMap<K, V>();
+    for (K key : keys) {
+      V value = get(key);
+      if (value != null) {
+        result.put(key, value);
+      }
+    }
+    return result;
   }
 
   @Override
   public void putAll(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-    throw new UnsupportedOperationException("Implement me!");
+    for (Map.Entry<? extends K, ? extends V> entry : entries) {
+      put(entry.getKey(), entry.getValue());
+    }
   }
 
   @Override
   public void removeAll(final Iterable<? extends K> keys) {
-    throw new UnsupportedOperationException("Implement me!");
+    for (K key : keys) {
+      remove(key);
+    }
   }
 
   @Override
