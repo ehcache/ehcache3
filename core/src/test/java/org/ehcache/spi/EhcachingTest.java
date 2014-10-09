@@ -18,6 +18,7 @@ package org.ehcache.spi;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 
@@ -73,6 +74,11 @@ public class EhcachingTest implements Ehcaching {
 
     @Override
     public void close() {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public Status getStatus() {
       throw new UnsupportedOperationException("Implement me!");
     }
   }

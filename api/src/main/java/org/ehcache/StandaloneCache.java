@@ -29,4 +29,6 @@ public interface StandaloneCache<K, V> extends Cache<K, V> {
    */
   void close();
 
+  Status getStatus();
+
 }

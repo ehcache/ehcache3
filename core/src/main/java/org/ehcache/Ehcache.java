@@ -456,6 +456,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   }
 
   @Override
+  public Status getStatus() {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
   public void destroy() {
     try {
       store.destroy();

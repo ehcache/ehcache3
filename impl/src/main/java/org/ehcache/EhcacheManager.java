@@ -123,6 +123,11 @@ public final class EhcacheManager implements PersistentCacheManager {
   }
 
   @Override
+  public Status getStatus() {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
   public void destroyCache(final String alias) {
     throw new UnsupportedOperationException("Implement me!");
   }

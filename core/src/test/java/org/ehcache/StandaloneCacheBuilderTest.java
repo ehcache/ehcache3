@@ -65,6 +65,11 @@ public class StandaloneCacheBuilderTest {
     }
 
     @Override
+    public Status getStatus() {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
     public V get(final K key) {
       throw new UnsupportedOperationException("Implement me!");
     }
