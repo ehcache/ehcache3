@@ -14,16 +14,20 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.service;
-
-import org.ehcache.spi.loader.CacheLoaderFactory;
+package org.ehcache.event;
 
 /**
  * @author Alex Snaps
  */
-public class CacheLoaderConfiguration<T extends Service> implements ServiceConfiguration<CacheLoaderFactory> {
-  @Override
-  public Class<CacheLoaderFactory> getServiceType() {
-    return CacheLoaderFactory.class;
-  }
+public enum EventOrdering {
+
+  /**
+   * No ordering requirement necessary
+   */
+  UNORDERED,
+
+  /**
+   * Events for a given key will always fire in the same order they actually occurred
+   */
+  ORDERED
 }

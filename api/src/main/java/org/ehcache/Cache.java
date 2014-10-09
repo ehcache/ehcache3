@@ -15,6 +15,8 @@
  */
 package org.ehcache;
 
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.exceptions.BulkCacheLoaderException;
 import org.ehcache.exceptions.CacheLoaderException;
 
@@ -172,6 +174,13 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * the value for the key
    */
   boolean replace(K key, V oldValue, V newValue) throws CacheLoaderException;
+
+  /**
+   * Exposes the {@link org.ehcache.config.CacheRuntimeConfiguration} associated with this Cache instance.
+   *
+   * @return the configuration currently in sue
+   */
+  CacheRuntimeConfiguration<K, V> getRuntimeConfiguration();
   
   /**
    * Represent a mapping of key to value held in a Cache

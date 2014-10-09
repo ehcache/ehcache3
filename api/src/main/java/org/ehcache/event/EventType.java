@@ -14,21 +14,36 @@
  * limitations under the License.
  */
 
-package org.ehcache.exceptions;
+package org.ehcache.event;
 
 /**
  * @author Alex Snaps
  */
-public final class ExceptionFactory {
+public enum EventType {
 
-  private ExceptionFactory() {
-    throw new UnsupportedOperationException("Thou shalt not instantiate me!");
-  }
+  /**
+   * Represents a {@link org.ehcache.Cache.Entry} being evicted
+   */
+  EVICTED,
 
-  public static CacheWriterException newCacheWriterException(Exception e) {
-    return new CacheWriterException(e);
-  }
-  public static CacheLoaderException newCacheLoaderException(Exception e) {
-    return new CacheLoaderException(e);
-  }
+  /**
+   * Represents a {@link org.ehcache.Cache.Entry} expiring
+   */
+  EXPIRED,
+
+  /**
+   * Represents a {@link org.ehcache.Cache.Entry} being removed
+   */
+  REMOVED,
+
+  /**
+   * Represents a new {@link org.ehcache.Cache.Entry} being installed for a given key
+   */
+  CREATED,
+
+  /**
+   * Represents an existing {@link org.ehcache.Cache.Entry} being updated for a given key
+   */
+  UPDATED,
+
 }

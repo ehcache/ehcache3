@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-package org.ehcache.exceptions;
+package org.ehcache.event;
+
+import org.ehcache.spi.service.ServiceConfiguration;
+
+import java.util.EnumSet;
 
 /**
  * @author Alex Snaps
  */
-public final class ExceptionFactory {
+public interface CacheEventListenerConfiguration extends ServiceConfiguration<CacheEventListenerFactory> {
 
-  private ExceptionFactory() {
-    throw new UnsupportedOperationException("Thou shalt not instantiate me!");
-  }
+  EventFiring firingMode();
 
-  public static CacheWriterException newCacheWriterException(Exception e) {
-    return new CacheWriterException(e);
-  }
-  public static CacheLoaderException newCacheLoaderException(Exception e) {
-    return new CacheLoaderException(e);
-  }
+  EventOrdering orderingMode();
+
+  EnumSet<EventType> fireOn();
+
 }

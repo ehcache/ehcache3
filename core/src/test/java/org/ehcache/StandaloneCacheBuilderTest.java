@@ -16,6 +16,7 @@
 
 package org.ehcache;
 
+import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.StandaloneCacheConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.junit.Test;
@@ -115,6 +116,11 @@ public class StandaloneCacheBuilderTest {
 
     @Override
     public boolean replace(K key, V oldValue, V newValue) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public CacheRuntimeConfiguration<K, V> getRuntimeConfiguration() {
       throw new UnsupportedOperationException("Implement me!");
     }
 

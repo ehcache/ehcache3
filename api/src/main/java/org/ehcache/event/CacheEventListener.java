@@ -14,21 +14,20 @@
  * limitations under the License.
  */
 
-package org.ehcache.exceptions;
+package org.ehcache.event;
 
 /**
  * @author Alex Snaps
  */
-public final class ExceptionFactory {
+public interface CacheEventListener<K, V> {
 
-  private ExceptionFactory() {
-    throw new UnsupportedOperationException("Thou shalt not instantiate me!");
-  }
+  /**
+   * Invoked on any {@link org.ehcache.event.CacheEvent} matching the {@link org.ehcache.event.EventType} constrain used
+   * when the listener was registered. This method is invoked according to the {@link org.ehcache.event.EventOrdering}
+   * and {@link org.ehcache.event.EventFiring} requirement desired at registration time.
+   *
+   * @param event the actual {@link org.ehcache.event.CacheEvent}
+   */
+  void onEvent(CacheEvent<K, V> event);
 
-  public static CacheWriterException newCacheWriterException(Exception e) {
-    return new CacheWriterException(e);
-  }
-  public static CacheLoaderException newCacheLoaderException(Exception e) {
-    return new CacheLoaderException(e);
-  }
 }

@@ -16,6 +16,7 @@
 
 package org.ehcache;
 
+import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoaderException;
 import org.ehcache.exceptions.CacheWriterException;
@@ -368,6 +369,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     }
     return success;
+  }
+
+  @Override
+  public CacheRuntimeConfiguration<K, V> getRuntimeConfiguration() {
+    throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
