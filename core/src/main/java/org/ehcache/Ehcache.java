@@ -202,19 +202,19 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   @Override
   public Map<K, V> getAll(Iterable<? extends K> keys) {
     checkNonNull(keys);
-    Function<Iterable<? extends K>, Map<K, V>> mappingFunction = new Function<Iterable<? extends K>, Map<K, V>>() {
+    Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction = new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
       @Override
-      public Map<K, V> apply(Iterable<? extends K> keys) {
+      public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> keys) {
         if (cacheLoader != null) {
           Map<K, V> loaded;
           try {
-            loaded = new HashMap<K, V>((Map<? extends K, ? extends V>)cacheLoader.loadAll(keys));
+            loaded = (Map<K, V>)cacheLoader.loadAll(keys);
           } catch (Exception e) {
             throw newCacheLoaderException(e);
           }
-          return loaded;
+          return loaded.entrySet();
         }
-        return Collections.emptyMap();
+        return Collections.<K, V>emptyMap().entrySet();
       }
     };
 
@@ -243,12 +243,15 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
       @Override
       public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-        try {
-          cacheWriter.writeAll(entries);
-        } catch (Exception e) {
-          throw newCacheWriterException(e);
+        if (cacheWriter != null) {
+          try {
+            cacheWriter.writeAll(entries);
+          } catch (Exception e) {
+            throw newCacheWriterException(e);
+          }
+          return entries;
         }
-        return entries;
+        return Collections.<K, V>emptyMap().entrySet();
       }
     };
 
@@ -268,12 +271,15 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-          try {
-            cacheWriter.deleteAll(new KeysIterable(entries));
-          } catch (Exception e) {
-            throw newCacheWriterException(e);
+          if (cacheWriter != null) {
+            try {
+              cacheWriter.deleteAll(new KeysIterable(entries));
+            } catch (Exception e) {
+              throw newCacheWriterException(e);
+            }
+            return new NullValuesIterable(entries);
           }
-          return new NullValuesIterable(entries);
+          return Collections.<K, V>emptyMap().entrySet();
         }
       };
 

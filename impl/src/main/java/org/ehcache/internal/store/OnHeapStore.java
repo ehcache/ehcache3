@@ -189,23 +189,31 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Iterable<? extends K> keys, Function<Iterable<? extends K>, Map<K, V>> mappingFunction) throws CacheAccessException {
+  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Iterable<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
+    Set<K> presentKeys = new HashSet<K>();
     Set<K> missingKeys = new HashSet<K>();
     for (K key : keys) {
-      if (!map.containsKey(key)) {
+      if (map.containsKey(key)) {
+        presentKeys.add(key);
+      } else {
         missingKeys.add(key);
       }
     }
-    Map<K, V> computedMappings = mappingFunction.apply(missingKeys);
+    Iterable<? extends Map.Entry<? extends K, ? extends V>> computedMappings = mappingFunction.apply(missingKeys);
 
-    Map<K, ValueHolder<V>> computedMappingsWithValueHolders = new HashMap<K, ValueHolder<V>>();
-    for (Map.Entry<K, V> entry : computedMappings.entrySet()) {
-      OnHeapStoreValueHolder<V> valueHolder = nullSafeValueHolder(entry.getValue());
-      if (valueHolder != null && missingKeys.contains(entry.getKey()) && map.putIfAbsent(entry.getKey(), valueHolder) == null) {
-        computedMappingsWithValueHolders.put(entry.getKey(), valueHolder);
+    Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
+    if (computedMappings != null) {
+      for (Map.Entry<? extends K, ? extends V> entry : computedMappings) {
+        OnHeapStoreValueHolder<V> valueHolder = nullSafeValueHolder(entry.getValue());
+        if (valueHolder != null && missingKeys.contains(entry.getKey()) && map.putIfAbsent(entry.getKey(), valueHolder) == null) {
+          result.put(entry.getKey(), valueHolder);
+        }
       }
     }
-    return computedMappingsWithValueHolders.isEmpty() ? null : computedMappingsWithValueHolders;
+    for (K key : presentKeys) {
+      result.put(key, map.get(key));
+    }
+    return result;
   }
 
   @Override
@@ -217,20 +225,22 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     }
     Iterable<? extends Map.Entry<? extends K, ? extends V>> remappedEntries = remappingFunction.apply(oldEntries.entrySet());
 
-    Map<K, ValueHolder<V>> computedMappingsWithValueHolders = new HashMap<K, ValueHolder<V>>();
-    for (Map.Entry<? extends K, ? extends V> remappedEntry : remappedEntries) {
-      K key = remappedEntry.getKey();
-      if (oldEntries.containsKey(key)) {
-        OnHeapStoreValueHolder<V> valueHolder = nullSafeValueHolder(remappedEntry.getValue());
-        if (valueHolder != null) {
-          map.put(key, valueHolder);
-          computedMappingsWithValueHolders.put(key, valueHolder);
-        } else {
-          map.remove(key);
+    Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
+    if (remappedEntries != null) {
+      for (Map.Entry<? extends K, ? extends V> remappedEntry : remappedEntries) {
+        K key = remappedEntry.getKey();
+        if (oldEntries.containsKey(key)) {
+          OnHeapStoreValueHolder<V> valueHolder = nullSafeValueHolder(remappedEntry.getValue());
+          if (valueHolder != null) {
+            map.put(key, valueHolder);
+          } else {
+            map.remove(key);
+          }
+          result.put(key, valueHolder);
         }
       }
     }
-    return computedMappingsWithValueHolders.isEmpty() ? null : computedMappingsWithValueHolders;
+    return result;
   }
 
   private OnHeapStoreValueHolder<V> nullSafeValueHolder(final V value) {
