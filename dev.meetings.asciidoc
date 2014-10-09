@@ -2,9 +2,18 @@
 
 :toc:
 
+== Oct 9, 2014 - Hangout on Air
+
+Next public meeting on https://plus.google.com/u/0/events/cj6gm8bll8ckvqsm8te64nt7pio[G+ Hangout on Air] at 11:30pm IST / 8pm CET / 2pm EST / 11am PST
+
+=== Agenda
+
+ * +EhcacheManager+ & +Ehcache+ implicit contract nailed ?
+ * Lifecycle and state transitions
+
 == Oct 2, 2014 - Hangout on Air
 
-Next public meeting on https://plus.google.com/u/0/events/chnb8fkd2afivtn7h6h9v8f06ng[G+ Hangout on Air] at 11:30pm IST / 8pm CET / 2pm EST / 11am PST
+Recording available https://www.youtube.com/watch?v=YgfsRhQPT7k&list=UU43PVCp2j0b2og2DtxNOU1A[here on YouTube]
 
 === Agenda
 
