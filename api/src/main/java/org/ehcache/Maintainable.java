@@ -19,22 +19,9 @@ package org.ehcache;
 /**
  * @author Alex Snaps
  */
-public enum Status {
+public interface Maintainable {
 
-  /**
-   *
-   */
-  UNINITIALIZED,
+  void create();
 
-  /**
-   *
-   */
-  MAINTENANCE,
-
-  /**
-   *
-   */
-  AVAILABLE,;
-
-
+  void destroy();
 }

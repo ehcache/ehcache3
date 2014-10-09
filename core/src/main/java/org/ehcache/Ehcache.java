@@ -35,6 +35,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.Functions.memoize;
 import static org.ehcache.exceptions.ExceptionFactory.newCacheLoaderException;
@@ -49,6 +50,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   private final CacheLoader<? super K, ? extends V> cacheLoader;
   private final CacheWriter<? super K, ? super V> cacheWriter;
   private final ResilienceStrategy<K, V> resilienceStrategy;
+  private final AtomicReference<Status> currentStatus;
 
   public Ehcache(final Store<K, V> store, ServiceConfiguration<? extends Service>... configs) {
     this(store, null, configs);
@@ -73,6 +75,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         // ignore
       }
     };
+    currentStatus = new AtomicReference<Status>(Status.UNINITIALIZED);
   }
 
   @Override
@@ -450,6 +453,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     throw new UnsupportedOperationException("Implement me!");
   }
 
+  public void init() {
+  }
+
   @Override
   public void close() {
     store.close();
@@ -457,7 +463,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public Status getStatus() {
-    throw new UnsupportedOperationException("Implement me!");
+    return this.currentStatus.get();
   }
 
   @Override

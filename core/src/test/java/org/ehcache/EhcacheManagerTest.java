@@ -33,6 +33,7 @@ import java.util.HashMap;
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.ConfigurationBuilder.newConfigurationBuilder;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -44,15 +45,16 @@ import static org.mockito.Mockito.when;
 public class EhcacheManagerTest {
 
   @Test
-  public void testConstructorThrowsWhenNotBeingToResolveService() {
+  public void testInitThrowsWhenNotBeingToResolveService() {
     final Configuration config = newConfigurationBuilder().addService(new ServiceConfiguration<NoSuchService>() {
       @Override
       public Class<NoSuchService> getServiceType() {
         return NoSuchService.class;
       }
     }).build();
+    final EhcacheManager ehcacheManager = new EhcacheManager(config);
     try {
-      new EhcacheManager(config);
+      ehcacheManager.init();
       fail("Should have thrown...");
     } catch (IllegalArgumentException e) {
       assertTrue(e.getMessage().contains(NoSuchService.class.getName()));
@@ -62,6 +64,7 @@ public class EhcacheManagerTest {
   @Test
   public void testReturnsNullForNonExistCache() {
     EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder().build());
+    cacheManager.init();
     assertThat(cacheManager.getCache("foo", Object.class, Object.class), nullValue());
   }
 
@@ -73,6 +76,7 @@ public class EhcacheManagerTest {
     EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder().addCache("bar",
         cacheConfiguration)
         .build(), new ServiceLocator(mock));
+    cacheManager.init();
     final Cache<Object, Object> cache = cacheManager.getCache("bar", Object.class, Object.class);
     try {
       cacheManager.createCache("bar", cacheConfiguration);
@@ -82,6 +86,36 @@ public class EhcacheManagerTest {
     }
   }
 
+  @Test
+  public void testThrowsWhenNotInitialized() {
+    final Store.Provider storeProvider = mock(Store.Provider.class);
+    final Store mock = mock(Store.class);
+    when(storeProvider
+        .createStore(Matchers.<Store.Configuration>anyObject(), Matchers.<ServiceConfiguration[]>anyVararg())).thenReturn(mock);
+
+    final CacheConfiguration<Integer, String> cacheConfiguration = newCacheConfigurationBuilder().buildConfig(Integer.class, String.class);
+    EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder().addCache("bar",
+        cacheConfiguration)
+        .build(), new ServiceLocator(storeProvider));
+    try {
+      cacheManager.removeCache("foo");
+      fail();
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage().contains(Status.UNINITIALIZED.name()), is(true));
+    }
+    try {
+      cacheManager.createCache("foo", null);
+      fail();
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage().contains(Status.UNINITIALIZED.name()), is(true));
+    }
+    try {
+      cacheManager.getCache("foo", Object.class, Object.class);
+      fail();
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage().contains(Status.UNINITIALIZED.name()), is(true));
+    }
+  }
   @Test
   public void testThrowsWhenRetrievingCacheWithWrongTypes() {
     final Store.Provider storeProvider = mock(Store.Provider.class);
@@ -93,6 +127,7 @@ public class EhcacheManagerTest {
     EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder().addCache("bar",
         cacheConfiguration)
         .build(), new ServiceLocator(storeProvider));
+    cacheManager.init();
     cacheManager.getCache("bar", Integer.class, String.class);
     try {
       cacheManager.getCache("bar", Integer.class, Integer.class);
@@ -135,6 +170,7 @@ public class EhcacheManagerTest {
         .createStore(Matchers.<Store.Configuration>anyObject(), Matchers.<ServiceConfiguration[]>anyVararg())).thenReturn(mock);
 
     final EhcacheManager manager = new EhcacheManager(cfg, new ServiceLocator(cacheLoaderFactory, storeProvider));
+    manager.init();
 
     verify(cacheLoaderFactory).createCacheLoader("bar", barConfig);
     verify(cacheLoaderFactory).createCacheLoader("foo", fooConfig);

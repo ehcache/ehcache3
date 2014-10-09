@@ -28,6 +28,8 @@ import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.ehcache.config.StoreConfigurationImpl;
 
 
@@ -37,6 +39,10 @@ import org.ehcache.config.StoreConfigurationImpl;
 public final class EhcacheManager implements PersistentCacheManager {
 
   private final ServiceLocator serviceLocator;
+  private final AtomicReference<InternalStatus.Transition> currentState;
+  private final Configuration configuration;
+  private volatile Thread maintenanceLease;
+
   private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<String, CacheHolder>();
 
   public EhcacheManager(Configuration config) {
@@ -45,18 +51,12 @@ public final class EhcacheManager implements PersistentCacheManager {
 
   public EhcacheManager(Configuration config, ServiceLocator serviceLocator) {
     this.serviceLocator = serviceLocator;
-    for (ServiceConfiguration<?> serviceConfig : config.getServiceConfigurations()) {
-      if (serviceLocator.discoverService(serviceConfig) == null) {
-        throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
-      }
-    }
-
-    for (Entry<String, CacheConfiguration<?, ?>> cacheConfigurationEntry : config.getCacheConfigurations().entrySet()) {
-      createCache(cacheConfigurationEntry.getKey(), cacheConfigurationEntry.getValue());
-    }
+    this.configuration = config;
+    this.currentState = new AtomicReference<InternalStatus.Transition>(InternalStatus.initial());
   }
 
   public <K, V> Cache<K, V> getCache(String alias, Class<K> keyType, Class<V> valueType) {
+    checkAvailable();
     final CacheHolder cacheHolder = caches.get(alias);
     if(cacheHolder == null) {
       return null;
@@ -73,7 +73,7 @@ public final class EhcacheManager implements PersistentCacheManager {
 
   @Override
   public void removeCache(final String alias) {
-    // TODO Probably should be all done using proper lifecycle when we get to that
+    checkAvailable();
     final CacheHolder cacheHolder = caches.remove(alias);
     if(cacheHolder != null) {
       // ... and probably shouldn't be a blind cast neither. Make Ehcache Closeable?
@@ -88,6 +88,7 @@ public final class EhcacheManager implements PersistentCacheManager {
 
   @Override
   public <K, V> Cache<K, V> createCache(final String alias, final CacheConfiguration<K, V> config) throws IllegalArgumentException {
+    checkAvailable();
     Class<K> keyType = config.getKeyType();
     Class<V> valueType = config.getValueType();
     Collection<ServiceConfiguration<?>> serviceConfigs = config.getServiceConfigurations();
@@ -102,7 +103,8 @@ public final class EhcacheManager implements PersistentCacheManager {
     if(cacheLoaderFactory != null) {
       loader = cacheLoaderFactory.createCacheLoader(alias, config);
     }
-    final Cache<K, V> cache = new Ehcache<K, V>(store, loader, serviceConfigArray);
+    final Ehcache<K, V> cache = new Ehcache<K, V>(store, loader, serviceConfigArray);
+    cache.init();
     return addCache(alias, keyType, valueType, cache);
   }
 
@@ -113,18 +115,93 @@ public final class EhcacheManager implements PersistentCacheManager {
     return cache;
   }
 
-  @Override
-  public void close() {
-    // TODO this needs to be made thread safe when addressing lifecycle
-    for (String alias : caches.keySet()) {
-      removeCache(alias);
+  public void init() {
+    InternalStatus.Transition st;
+    for (InternalStatus.Transition cs; !currentState.compareAndSet(cs = currentState.get(), st = cs.get().init()););
+
+    try {
+      for (ServiceConfiguration<?> serviceConfig : configuration.getServiceConfigurations()) {
+        if (serviceLocator.discoverService(serviceConfig) == null) {
+          throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
+        }
+      }
+      for (Entry<String, CacheConfiguration<?, ?>> cacheConfigurationEntry : configuration.getCacheConfigurations().entrySet()) {
+        createCache(cacheConfigurationEntry.getKey(), cacheConfigurationEntry.getValue());
+      }
+      st.succeeded();
+    } catch (RuntimeException e) {
+      st.failed();
+      throw e;
     }
-    serviceLocator.stopAllServices();
   }
 
   @Override
   public Status getStatus() {
-    throw new UnsupportedOperationException("Implement me!");
+    return currentState.get().get().toPublicStatus();
+  }
+
+  @Override
+  public void close() {
+    InternalStatus.Transition st;
+    for (InternalStatus.Transition cs; !currentState.compareAndSet(cs = currentState.get(), st = cs.get().close()););
+
+    if(maintenanceLease != null && Thread.currentThread() != maintenanceLease) {
+      st.failed();
+      throw new IllegalStateException("You don't own this maintenance lease");
+    }
+
+    try {
+      for (String alias : caches.keySet()) {
+        removeCache(alias);
+      }
+      serviceLocator.stopAllServices();
+      maintenanceLease = null;
+      st.succeeded();
+    } catch (RuntimeException e) {
+      st.failed();
+      throw e;
+    }
+  }
+
+  public Maintainable toMaintenance() {
+    InternalStatus.Transition st;
+    for (InternalStatus.Transition cs; !currentState.compareAndSet(cs = currentState.get(), st = cs.get().maintenance()););
+    try {
+      final Maintainable maintainable = new Maintainable() {
+        @Override
+        public void create() {
+          EhcacheManager.this.create();
+        }
+
+        @Override
+        public void destroy() {
+          EhcacheManager.this.destroy();
+        }
+      };
+      st.succeeded();
+      maintenanceLease = Thread.currentThread();
+      return maintainable;
+    } catch (RuntimeException e) {
+      st.failed();
+      throw e;
+    }
+  }
+
+  void create() {
+    // create stuff
+  }
+
+  void destroy() {
+    // destroy stuff
+  }
+
+  void checkAvailable() {
+    final Status status = getStatus();
+    if(status == Status.MAINTENANCE && Thread.currentThread() != maintenanceLease) {
+      throw new IllegalStateException("State is " + status + ", yet you don't own it!");
+    } else if(status == Status.UNINITIALIZED) {
+      throw new IllegalStateException("State is " + status);
+    }
   }
 
   @Override

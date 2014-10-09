@@ -38,7 +38,9 @@ public class CacheManagerBuilder<T extends CacheManager> {
   public T build() {
     ServiceLocator serviceLocator = new ServiceLocator(services.toArray(new Service[services.size()]));
     Configuration configuration = new Configuration(caches);
-    return (T) new EhcacheManager(configuration,serviceLocator);
+    final EhcacheManager ehcacheManager = new EhcacheManager(configuration, serviceLocator);
+    ehcacheManager.init();
+    return (T)ehcacheManager;
   }
 
   public <K, V> CacheManagerBuilder<T> withCache(String alias, CacheConfiguration<K, V> configuration) {
