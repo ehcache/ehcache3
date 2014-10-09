@@ -18,13 +18,14 @@ package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
-import org.ehcache.internal.store.OnHeapStore;
 import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.mockito.Mockito;
 
 import java.util.HashMap;
@@ -67,9 +68,11 @@ public class EhcacheManagerTest {
   @Test
   public void testThrowsWhenAddingExistingCache() {
     final CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder().buildConfig(Object.class, Object.class);
+    final Store.Provider mock = mock(Store.Provider.class);
+
     EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder().addCache("bar",
         cacheConfiguration)
-        .build());
+        .build(), new ServiceLocator(mock));
     final Cache<Object, Object> cache = cacheManager.getCache("bar", Object.class, Object.class);
     try {
       cacheManager.createCache("bar", cacheConfiguration);
@@ -81,10 +84,15 @@ public class EhcacheManagerTest {
 
   @Test
   public void testThrowsWhenRetrievingCacheWithWrongTypes() {
+    final Store.Provider storeProvider = mock(Store.Provider.class);
+    final Store mock = mock(Store.class);
+    when(storeProvider
+        .createStore(Matchers.<Store.Configuration>anyObject(), Matchers.<ServiceConfiguration[]>anyVararg())).thenReturn(mock);
+
     final CacheConfiguration<Integer, String> cacheConfiguration = newCacheConfigurationBuilder().buildConfig(Integer.class, String.class);
     EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder().addCache("bar",
         cacheConfiguration)
-        .build());
+        .build(), new ServiceLocator(storeProvider));
     cacheManager.getCache("bar", Integer.class, String.class);
     try {
       cacheManager.getCache("bar", Integer.class, Integer.class);
@@ -121,7 +129,12 @@ public class EhcacheManagerTest {
       put("foo", fooConfig);
     }});
 
-    final EhcacheManager manager = new EhcacheManager(cfg, new ServiceLocator(cacheLoaderFactory, new OnHeapStore.Provider()));
+    final Store.Provider storeProvider = mock(Store.Provider.class);
+    final Store mock = mock(Store.class);
+    when(storeProvider
+        .createStore(Matchers.<Store.Configuration>anyObject(), Matchers.<ServiceConfiguration[]>anyVararg())).thenReturn(mock);
+
+    final EhcacheManager manager = new EhcacheManager(cfg, new ServiceLocator(cacheLoaderFactory, storeProvider));
 
     verify(cacheLoaderFactory).createCacheLoader("bar", barConfig);
     verify(cacheLoaderFactory).createCacheLoader("foo", fooConfig);
