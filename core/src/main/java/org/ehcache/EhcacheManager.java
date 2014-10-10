@@ -19,6 +19,7 @@ package org.ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.events.CacheManagerListener;
+import org.ehcache.events.StateChangeListener;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
@@ -111,6 +112,17 @@ public final class EhcacheManager implements PersistentCacheManager {
     }
     final Ehcache<K, V> cache = new Ehcache<K, V>(store, loader, serviceConfigArray);
     cache.init();
+    // TODO This is probably NOT what we want... how would the cache be restarted?! See #75
+    if (cacheLoaderFactory != null) {
+      cache.registerListener(new StateChangeListener() {
+        @Override
+        public void stateTransition(final Status from, final Status to) {
+          if(cache.getCacheLoader() != null && from == Status.AVAILABLE && to == Status.UNINITIALIZED) {
+            cacheLoaderFactory.releaseCacheLoader(cache.getCacheLoader());
+          }
+        }
+      });
+    }
     return addCache(alias, keyType, valueType, cache);
   }
 
