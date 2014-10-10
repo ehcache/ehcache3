@@ -72,11 +72,14 @@ public class EhcacheManagerTest {
   @Test
   public void testThrowsWhenAddingExistingCache() {
     final CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder().buildConfig(Object.class, Object.class);
-    final Store.Provider mock = mock(Store.Provider.class);
+    final Store.Provider storeProvider = mock(Store.Provider.class);
+    final Store mock = mock(Store.class);
+    when(storeProvider
+        .createStore(Matchers.<Store.Configuration>anyObject(), Matchers.<ServiceConfiguration[]>anyVararg())).thenReturn(mock);
 
     EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder().addCache("bar",
         cacheConfiguration)
-        .build(), new ServiceLocator(mock));
+        .build(), new ServiceLocator(storeProvider));
     cacheManager.init();
     final Cache<Object, Object> cache = cacheManager.getCache("bar", Object.class, Object.class);
     try {

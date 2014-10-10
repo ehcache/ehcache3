@@ -55,7 +55,7 @@ public class StandaloneCacheBuilderTest {
 
   private class TestStandaloneCache<K, V> implements PersistentStandaloneCache<K, V> {
     @Override
-    public void destroy() {
+    public Maintainable toMaintenance() {
       throw new UnsupportedOperationException("Implement me!");
     }
 

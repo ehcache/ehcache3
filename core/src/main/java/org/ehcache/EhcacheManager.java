@@ -216,7 +216,15 @@ public final class EhcacheManager implements PersistentCacheManager {
 
   @Override
   public void destroyCache(final String alias) {
-    throw new UnsupportedOperationException("Implement me!");
+    final CacheHolder cacheHolder = caches.get(alias);
+    if(cacheHolder == null) {
+      throw new IllegalArgumentException("No Cache associated with alias " + alias);
+    }
+    final Ehcache<?, ?> ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
+    if(ehcache.getStatus() == Status.AVAILABLE) {
+      ehcache.close();
+    }
+    ehcache.toMaintenance().destroy();
   }
 
   private static final class CacheHolder {

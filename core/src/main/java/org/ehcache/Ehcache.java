@@ -464,27 +464,71 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   }
 
   public void init() {
-    statusTransitioner.init();
+    final StatusTransitioner.Transition st = statusTransitioner.init();
+    try {
+      store.init();
+      st.succeeded();
+    } catch (RuntimeException e) {
+      st.failed();
+      throw e;
+    }
   }
 
   @Override
   public void close() {
-    statusTransitioner.close();
-    store.close();
+    final StatusTransitioner.Transition st = statusTransitioner.close();
+    try {
+      store.close();
+      st.succeeded();
+    } catch (RuntimeException e) {
+      st.failed();
+      throw e;
+    }
   }
 
-  @Override
-  public Status getStatus() {
-    return statusTransitioner.currentStatus();
+  public Maintainable toMaintenance() {
+    final StatusTransitioner.Transition st = statusTransitioner.maintenance();
+    try {
+      final Maintainable maintainable = new Maintainable() {
+        @Override
+        public void create() {
+          Ehcache.this.create();
+        }
+
+        @Override
+        public void destroy() {
+          Ehcache.this.destroy();
+        }
+      };
+      st.succeeded();
+      return maintainable;
+    } catch (RuntimeException e) {
+      st.failed();
+      throw e;
+    }
   }
 
-  @Override
-  public void destroy() {
+  void create() {
+    statusTransitioner.checkMaintenance();
+    try {
+      store.create();
+    } catch (CacheAccessException e) {
+      throw new RuntimeException("Couldn't destroy Cache", e);
+    }
+  }
+
+  void destroy() {
+    statusTransitioner.checkMaintenance();
     try {
       store.destroy();
     } catch (CacheAccessException e) {
       throw new RuntimeException("Couldn't destroy Cache", e);
     }
+  }
+
+  @Override
+  public Status getStatus() {
+    return statusTransitioner.currentStatus();
   }
 
   void registerListener(StateChangeListener listener) {
