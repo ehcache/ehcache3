@@ -19,6 +19,10 @@ package org.ehcache;
 import org.ehcache.events.StateChangeListener;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -37,6 +41,22 @@ public class StatusTransitionerTest {
     transitioner.deregisterListener(listener);
     transitioner.close().succeeded();
     verify(listener, never()).stateTransition(Status.AVAILABLE, Status.UNINITIALIZED);
+  }
+
+  @Test
+  public void testFinishesTransitionOnListenerThrowing() {
+    StatusTransitioner transitioner = new StatusTransitioner();
+    final StateChangeListener listener = mock(StateChangeListener.class);
+    final RuntimeException runtimeException = new RuntimeException();
+    doThrow(runtimeException).when(listener).stateTransition(Status.UNINITIALIZED, Status.AVAILABLE);
+    transitioner.registerListener(listener);
+    try {
+      transitioner.init().succeeded();
+      fail();
+    } catch (RuntimeException e) {
+      assertThat(e, is(runtimeException));
+    }
+    assertThat(transitioner.currentStatus(), is(Status.AVAILABLE));
   }
 
 }

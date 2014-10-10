@@ -112,9 +112,12 @@ final class StatusTransitioner {
     }
 
     public void succeeded() {
-      maintenanceLease = thread;
-      fireTransitionEvent(st.from().toPublicStatus(), st.to().toPublicStatus());
-      st.succeeded();
+      try {
+        fireTransitionEvent(st.from().toPublicStatus(), st.to().toPublicStatus());
+      } finally {
+        maintenanceLease = thread;
+        st.succeeded();
+      }
     }
 
     public void failed() {
