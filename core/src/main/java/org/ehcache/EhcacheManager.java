@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.ehcache.config.StoreConfigurationImpl;
 
@@ -38,10 +37,10 @@ import org.ehcache.config.StoreConfigurationImpl;
  */
 public final class EhcacheManager implements PersistentCacheManager {
 
+  private final StatusTransitioner statusTransitioner = new StatusTransitioner();
+
   private final ServiceLocator serviceLocator;
-  private final AtomicReference<InternalStatus.Transition> currentState;
   private final Configuration configuration;
-  private volatile Thread maintenanceLease;
 
   private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<String, CacheHolder>();
 
@@ -52,11 +51,10 @@ public final class EhcacheManager implements PersistentCacheManager {
   public EhcacheManager(Configuration config, ServiceLocator serviceLocator) {
     this.serviceLocator = serviceLocator;
     this.configuration = config;
-    this.currentState = new AtomicReference<InternalStatus.Transition>(InternalStatus.initial());
   }
 
   public <K, V> Cache<K, V> getCache(String alias, Class<K> keyType, Class<V> valueType) {
-    checkAvailable();
+    statusTransitioner.checkAvailable();
     final CacheHolder cacheHolder = caches.get(alias);
     if(cacheHolder == null) {
       return null;
@@ -73,7 +71,7 @@ public final class EhcacheManager implements PersistentCacheManager {
 
   @Override
   public void removeCache(final String alias) {
-    checkAvailable();
+    statusTransitioner.checkAvailable();
     final CacheHolder cacheHolder = caches.remove(alias);
     if(cacheHolder != null) {
       // ... and probably shouldn't be a blind cast neither. Make Ehcache Closeable?
@@ -88,7 +86,7 @@ public final class EhcacheManager implements PersistentCacheManager {
 
   @Override
   public <K, V> Cache<K, V> createCache(final String alias, final CacheConfiguration<K, V> config) throws IllegalArgumentException {
-    checkAvailable();
+    statusTransitioner.checkAvailable();
     Class<K> keyType = config.getKeyType();
     Class<V> valueType = config.getValueType();
     Collection<ServiceConfiguration<?>> serviceConfigs = config.getServiceConfigurations();
@@ -116,8 +114,7 @@ public final class EhcacheManager implements PersistentCacheManager {
   }
 
   public void init() {
-    InternalStatus.Transition st;
-    for (InternalStatus.Transition cs; !currentState.compareAndSet(cs = currentState.get(), st = cs.get().init()););
+    final StatusTransitioner.Transition st = statusTransitioner.init();
 
     try {
       for (ServiceConfiguration<?> serviceConfig : configuration.getServiceConfigurations()) {
@@ -137,25 +134,18 @@ public final class EhcacheManager implements PersistentCacheManager {
 
   @Override
   public Status getStatus() {
-    return currentState.get().get().toPublicStatus();
+    return statusTransitioner.currentStatus();
   }
 
   @Override
   public void close() {
-    InternalStatus.Transition st;
-    for (InternalStatus.Transition cs; !currentState.compareAndSet(cs = currentState.get(), st = cs.get().close()););
-
-    if(maintenanceLease != null && Thread.currentThread() != maintenanceLease) {
-      st.failed();
-      throw new IllegalStateException("You don't own this maintenance lease");
-    }
+    final StatusTransitioner.Transition st = statusTransitioner.close();
 
     try {
       for (String alias : caches.keySet()) {
         removeCache(alias);
       }
       serviceLocator.stopAllServices();
-      maintenanceLease = null;
       st.succeeded();
     } catch (RuntimeException e) {
       st.failed();
@@ -164,8 +154,7 @@ public final class EhcacheManager implements PersistentCacheManager {
   }
 
   public Maintainable toMaintenance() {
-    InternalStatus.Transition st;
-    for (InternalStatus.Transition cs; !currentState.compareAndSet(cs = currentState.get(), st = cs.get().maintenance()););
+    final StatusTransitioner.Transition st = statusTransitioner.maintenance();
     try {
       final Maintainable maintainable = new Maintainable() {
         @Override
@@ -179,7 +168,6 @@ public final class EhcacheManager implements PersistentCacheManager {
         }
       };
       st.succeeded();
-      maintenanceLease = Thread.currentThread();
       return maintainable;
     } catch (RuntimeException e) {
       st.failed();
@@ -188,20 +176,11 @@ public final class EhcacheManager implements PersistentCacheManager {
   }
 
   void create() {
-    // create stuff
+    statusTransitioner.checkMaintenance();
   }
 
   void destroy() {
-    // destroy stuff
-  }
-
-  void checkAvailable() {
-    final Status status = getStatus();
-    if(status == Status.MAINTENANCE && Thread.currentThread() != maintenanceLease) {
-      throw new IllegalStateException("State is " + status + ", yet you don't own it!");
-    } else if(status == Status.UNINITIALIZED) {
-      throw new IllegalStateException("State is " + status);
-    }
+    statusTransitioner.checkMaintenance();
   }
 
   @Override

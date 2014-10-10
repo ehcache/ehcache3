@@ -96,7 +96,7 @@ public enum InternalStatus {
       if(done != null) {
         return done;
       } else if(owner == Thread.currentThread()) {
-        return to.compareTo(InternalStatus.this) > 0 ? to : InternalStatus.this;
+        return to.compareTo(from()) > 0 ? to : from();
       }
       synchronized (this) {
         boolean interrupted = false;
@@ -123,8 +123,16 @@ public enum InternalStatus {
     }
 
     public synchronized void failed() {
-      done = InternalStatus.this;
+      done = from();
       notifyAll();
+    }
+
+    public InternalStatus from() {
+      return InternalStatus.this;
+    }
+
+    public InternalStatus to() {
+      return to;
     }
   }
 
