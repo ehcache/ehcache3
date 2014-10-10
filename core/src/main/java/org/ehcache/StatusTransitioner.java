@@ -36,8 +36,12 @@ final class StatusTransitioner {
     this.currentState = new AtomicReference<InternalStatus.Transition>(InternalStatus.initial());
   }
 
-  public Status currentStatus() {
+  Status currentStatus() {
     return currentState.get().get().toPublicStatus();
+  }
+
+  boolean isTransitioning() {
+    return !currentState.get().done();
   }
 
   void checkAvailable() {

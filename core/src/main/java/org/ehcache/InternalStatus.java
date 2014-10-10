@@ -134,6 +134,10 @@ public enum InternalStatus {
     public InternalStatus to() {
       return to;
     }
+
+    public boolean done() {
+      return done != null;
+    }
   }
 
   public static Transition initial() {

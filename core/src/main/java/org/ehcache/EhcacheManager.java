@@ -18,6 +18,7 @@ package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.events.CacheManagerListener;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
@@ -28,6 +29,7 @@ import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.ehcache.config.StoreConfigurationImpl;
 
@@ -43,6 +45,8 @@ public final class EhcacheManager implements PersistentCacheManager {
   private final Configuration configuration;
 
   private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<String, CacheHolder>();
+
+  private final CopyOnWriteArrayList<CacheManagerListener> listeners = new CopyOnWriteArrayList<CacheManagerListener>();
 
   public EhcacheManager(Configuration config) {
     this(config, new ServiceLocator());
@@ -74,8 +78,12 @@ public final class EhcacheManager implements PersistentCacheManager {
     statusTransitioner.checkAvailable();
     final CacheHolder cacheHolder = caches.remove(alias);
     if(cacheHolder != null) {
-      // ... and probably shouldn't be a blind cast neither. Make Ehcache Closeable?
-      final Ehcache ehcache = (Ehcache)cacheHolder.cache;
+      final Ehcache ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
+      if(!statusTransitioner.isTransitioning()) {
+        for (CacheManagerListener listener : listeners) {
+          listener.cacheRemoved(alias, ehcache);
+        }
+      }
       ehcache.close();
       final CacheLoader cacheLoader = ehcache.getCacheLoader();
       if (cacheLoader != null) {
@@ -106,11 +114,34 @@ public final class EhcacheManager implements PersistentCacheManager {
     return addCache(alias, keyType, valueType, cache);
   }
 
-  private <K, V> Cache<K, V> addCache(String alias, Class<K> keyType, Class<V> valueType, Cache<K, V> cache) {
-    if (caches.putIfAbsent(alias, new CacheHolder(keyType, valueType, cache)) != null) {
+  private <K, V> Cache<K, V> addCache(String alias, Class<K> keyType, Class<V> valueType, Ehcache<K, V> cache) {
+    final CacheHolder value = new CacheHolder(keyType, valueType, null);
+    if (caches.putIfAbsent(alias, value) != null) {
       throw new IllegalArgumentException("Cache '" + alias +"' already exists");
     }
+    try {
+      if(!statusTransitioner.isTransitioning()) {
+        for (CacheManagerListener listener : listeners) {
+          listener.cacheAdded(alias, cache);
+        }
+      }
+    } finally {
+      value.setCache(cache);
+    }
     return cache;
+  }
+
+  public void registerListener(CacheManagerListener listener) {
+    if(!listeners.contains(listener)) {
+      listeners.add(listener);
+      statusTransitioner.registerListener(listener);
+    }
+  }
+
+  public void deregisterListener(CacheManagerListener listener) {
+    if(listeners.remove(listener)) {
+      statusTransitioner.deregisterListener(listener);
+    }
   }
 
   public void init() {
@@ -191,21 +222,43 @@ public final class EhcacheManager implements PersistentCacheManager {
   private static final class CacheHolder {
     private final Class<?> keyType;
     private final Class<?> valueType;
-    private final Cache<?, ?> cache;
+    private volatile Ehcache<?, ?> cache;
 
-    CacheHolder(Class<?> keyType, Class<?> valueType, Cache<?, ?> cache) {
+    CacheHolder(Class<?> keyType, Class<?> valueType, Ehcache<?, ?> cache) {
       this.keyType = keyType;
       this.valueType = valueType;
       this.cache = cache;
     }
 
-    <K, V> Cache<K, V> retrieve(Class<K> refKeyType, Class<V> refValueType) {
+    <K, V> Ehcache<K, V> retrieve(Class<K> refKeyType, Class<V> refValueType) {
       if (keyType == refKeyType && valueType == refValueType) {
-        return (Cache<K, V>)cache;
+        if(cache == null) {
+          synchronized (this) {
+            boolean interrupted = false;
+            try {
+              while(cache == null) {
+                try {
+                  wait();
+                } catch (InterruptedException e) {
+                  interrupted = true;
+                }
+              }
+            } finally {
+              if(interrupted) {
+                Thread.currentThread().interrupt();
+              }
+            }
+          }
+        }
+        return (Ehcache<K, V>)cache;
       } else {
         throw new IllegalArgumentException();
       }
     }
 
+    public synchronized void setCache(final Ehcache<?, ?> cache) {
+      this.cache = cache;
+      notifyAll();
+    }
   }
 }

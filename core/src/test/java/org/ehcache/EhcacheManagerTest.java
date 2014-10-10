@@ -18,6 +18,7 @@ package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.events.CacheManagerListener;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
@@ -179,6 +180,54 @@ public class EhcacheManagerTest {
     verify(cacheLoaderFactory, never()).releaseCacheLoader((CacheLoader<?, ?>)Mockito.anyObject());
     manager.removeCache("foo");
     verify(cacheLoaderFactory).releaseCacheLoader(fooLoader);
+  }
+
+  @Test
+  public void testDoesNotifyAboutCache() {
+    final CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder().buildConfig(Object.class, Object.class);
+    final Store.Provider mock = mock(Store.Provider.class);
+    when(mock.createStore(Matchers.<Store.Configuration>anyObject())).thenReturn(mock(Store.class));
+    EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder()
+        .build(), new ServiceLocator(mock));
+    final CacheManagerListener listener = mock(CacheManagerListener.class);
+    cacheManager.registerListener(listener);
+    cacheManager.init();
+    final String cacheAlias = "bar";
+    cacheManager.createCache(cacheAlias, cacheConfiguration);
+    final Cache<Object, Object> bar = cacheManager.getCache(cacheAlias, Object.class, Object.class);
+    verify(listener).cacheAdded(cacheAlias, bar);
+    cacheManager.removeCache(cacheAlias);
+    verify(listener).cacheRemoved(cacheAlias, bar);
+  }
+
+  @Test
+  public void testDoesNotNotifyAboutCacheOnInitOrClose() {
+    final CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder().buildConfig(Object.class, Object.class);
+    final Store.Provider mock = mock(Store.Provider.class);
+    when(mock.createStore(Matchers.<Store.Configuration>anyObject())).thenReturn(mock(Store.class));
+    final String cacheAlias = "bar";
+    EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder().addCache(cacheAlias,
+        cacheConfiguration)
+        .build(), new ServiceLocator(mock));
+    final CacheManagerListener listener = mock(CacheManagerListener.class);
+    cacheManager.registerListener(listener);
+    cacheManager.init();
+    final Cache<Object, Object> bar = cacheManager.getCache(cacheAlias, Object.class, Object.class);
+    verify(listener, never()).cacheAdded(cacheAlias, bar);
+    cacheManager.close();
+    verify(listener, never()).cacheRemoved(cacheAlias, bar);
+  }
+
+  @Test
+  public void testDoesNotifyAboutLifecycle() {
+    EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder()
+        .build(), new ServiceLocator());
+    final CacheManagerListener listener = mock(CacheManagerListener.class);
+    cacheManager.registerListener(listener);
+    cacheManager.init();
+    verify(listener).stateTransition(Status.UNINITIALIZED, Status.AVAILABLE);
+    cacheManager.close();
+    verify(listener).stateTransition(Status.AVAILABLE, Status.UNINITIALIZED);
   }
 
   static class NoSuchService implements Service {
