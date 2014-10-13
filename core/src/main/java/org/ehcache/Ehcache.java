@@ -210,6 +210,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public Map<K, V> getAll(Iterable<? extends K> keys) {
+    statusTransitioner.checkAvailable();
     checkNonNull(keys);
     Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction = new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
       @Override
@@ -247,6 +248,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public void putAll(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+    statusTransitioner.checkAvailable();
     checkNonNull(entries);
     Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction =
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
@@ -275,6 +277,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public void removeAll(final Iterable<? extends K> keys) {
+    statusTransitioner.checkAvailable();
     checkNonNull(keys);
     Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> removalFunction =
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
@@ -608,6 +611,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
     @Override
     public void remove() {
+      statusTransitioner.checkAvailable();
       Ehcache.this.remove(next.getKey(), next.getValue().value());
     }
   }
