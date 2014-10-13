@@ -32,23 +32,26 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   private final Comparable<Long> capacityConstraint;
   private final Predicate<Cache.Entry<K, V>> evictionVeto;
   private final Comparator<Cache.Entry<K, V>> evictionPrioritizer;
+  private final ClassLoader classLoader;
 
   public StoreConfigurationImpl(CacheConfiguration<K, V> cacheConfig) {
     this(cacheConfig.getKeyType(), cacheConfig.getValueType(), cacheConfig.getCapacityConstraint(),
-            cacheConfig.getEvictionVeto(), cacheConfig.getEvictionPrioritizer());
+            cacheConfig.getEvictionVeto(), cacheConfig.getEvictionPrioritizer(), cacheConfig.getClassLoader());
   }
 
-  public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType) {
-    this(keyType, valueType, null, null, null);
+  public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType, ClassLoader classLoader) {
+    this(keyType, valueType, null, null, null, classLoader);
   }
           
   public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
-          Predicate<Cache.Entry<K, V>> evictionVeto, Comparator<Cache.Entry<K, V>> evictionPrioritizer) {
+          Predicate<Cache.Entry<K, V>> evictionVeto, Comparator<Cache.Entry<K, V>> evictionPrioritizer,
+          ClassLoader classLoader) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.capacityConstraint = capacityConstraint;
     this.evictionVeto = evictionVeto;
     this.evictionPrioritizer = evictionPrioritizer;
+    this.classLoader = classLoader;
   }
 
   @Override
@@ -74,5 +77,10 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   @Override
   public Comparator<Cache.Entry<K, V>> getEvictionPrioritizer() {
     return evictionPrioritizer;
+  }
+
+  @Override
+  public ClassLoader getClassLoader() {
+    return this.classLoader;
   }
 }

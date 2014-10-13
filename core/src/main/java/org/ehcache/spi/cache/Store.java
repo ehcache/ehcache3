@@ -368,6 +368,11 @@ public interface Store<K, V> {
      * @return the eviction prioritizer
      */
     Comparator<Cache.Entry<K, V>> getEvictionPrioritizer();
+    
+    /**
+     * The Classloader for this store. This classloader will be used to deserialize cache entries when required
+     */
+    ClassLoader getClassLoader();
   }
 
   /**

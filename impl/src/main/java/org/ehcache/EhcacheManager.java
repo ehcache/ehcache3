@@ -16,6 +16,7 @@
 
 package org.ehcache;
 
+import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.spi.ServiceLocator;
@@ -23,11 +24,13 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.util.ClassLoading;
 
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
 import org.ehcache.config.StoreConfigurationImpl;
 
 
@@ -38,6 +41,7 @@ public final class EhcacheManager implements PersistentCacheManager {
 
   private final ServiceLocator serviceLocator;
   private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<String, CacheHolder>();
+  private final ClassLoader cacheManagerClassLoader;
 
   public EhcacheManager(Configuration config) {
     this(config, new ServiceLocator());
@@ -45,6 +49,8 @@ public final class EhcacheManager implements PersistentCacheManager {
 
   public EhcacheManager(Configuration config, ServiceLocator serviceLocator) {
     this.serviceLocator = serviceLocator;
+    this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
+    
     for (ServiceConfiguration<?> serviceConfig : config.getServiceConfigurations()) {
       if (serviceLocator.discoverService(serviceConfig) == null) {
         throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
@@ -90,19 +96,28 @@ public final class EhcacheManager implements PersistentCacheManager {
   public <K, V> Cache<K, V> createCache(final String alias, final CacheConfiguration<K, V> config) throws IllegalArgumentException {
     Class<K> keyType = config.getKeyType();
     Class<V> valueType = config.getValueType();
-    Collection<ServiceConfiguration<?>> serviceConfigs = config.getServiceConfigurations();
-    ServiceConfiguration<?>[] serviceConfigArray = new ServiceConfiguration[0];
-    if (serviceConfigs != null) {
-      serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
+    
+    ClassLoader cacheClassLoader = config.getClassLoader();
+    if (cacheClassLoader == null) {
+      cacheClassLoader = cacheManagerClassLoader;
     }
+    
     final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
     final CacheLoaderFactory cacheLoaderFactory = serviceLocator.findService(CacheLoaderFactory.class);
-    final Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(keyType, valueType));
+    final Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(keyType, valueType, cacheClassLoader));
     CacheLoader<? super K, ? extends V> loader = null;
     if(cacheLoaderFactory != null) {
       loader = cacheLoaderFactory.createCacheLoader(alias, config);
     }
-    final Cache<K, V> cache = new Ehcache<K, V>(store, loader, serviceConfigArray);
+    
+    CacheConfiguration<K, V> adjustedConfig = new BaseCacheConfiguration<K, V>(
+        keyType, valueType, config.getCapacityConstraint(),
+        config.getEvictionVeto(), config.getEvictionPrioritizer(), cacheClassLoader,
+        config.getServiceConfigurations().toArray(new ServiceConfiguration<?>[config.getServiceConfigurations().size()])
+        );
+    
+    
+    final Cache<K, V> cache = new Ehcache<K, V>(adjustedConfig, store, loader);
     return addCache(alias, keyType, valueType, cache);
   }
 
@@ -125,6 +140,11 @@ public final class EhcacheManager implements PersistentCacheManager {
   @Override
   public void destroyCache(final String alias) {
     throw new UnsupportedOperationException("Implement me!");
+  }
+  
+  // for tests at the moment
+  ClassLoader getClassLoader() {
+    return cacheManagerClassLoader;
   }
 
   private static final class CacheHolder {

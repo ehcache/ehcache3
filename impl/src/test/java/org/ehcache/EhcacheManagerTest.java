@@ -18,12 +18,14 @@ package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.ConfigurationBuilder;
 import org.ehcache.internal.store.OnHeapStore;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.util.ClassLoading;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -32,6 +34,8 @@ import java.util.HashMap;
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.ConfigurationBuilder.newConfigurationBuilder;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -57,6 +61,53 @@ public class EhcacheManagerTest {
       assertTrue(e.getMessage().contains(NoSuchService.class.getName()));
     }
   }
+  
+  @Test
+  public void testNoClassLoaderSpecified() {
+    ConfigurationBuilder builder = newConfigurationBuilder();
+    builder.addCache("foo", newCacheConfigurationBuilder().buildCacheConfig(Object.class, Object.class));
+    EhcacheManager cacheManager = new EhcacheManager(builder.build());
+    assertSame(ClassLoading.getDefaultClassLoader(), cacheManager.getClassLoader());
+    assertSame(cacheManager.getClassLoader(), cacheManager.getCache("foo", Object.class, Object.class).getRuntimeConfiguration().getClassLoader());
+    
+    // explicit null
+    builder = newConfigurationBuilder();
+    builder.withClassLoader(null);
+    builder.addCache("foo", newCacheConfigurationBuilder().buildCacheConfig(Object.class, Object.class));
+    cacheManager = new EhcacheManager(builder.build());
+    assertSame(ClassLoading.getDefaultClassLoader(), cacheManager.getClassLoader());
+    assertSame(cacheManager.getClassLoader(), cacheManager.getCache("foo", Object.class, Object.class).getRuntimeConfiguration().getClassLoader());  
+  }
+  
+  @Test
+  public void testClassLoaderSpecified() {
+    ClassLoader cl1 = new ClassLoader() {
+      //
+    };
+    
+    ClassLoader cl2 = new ClassLoader() {
+      //
+    };
+    
+    assertNotSame(cl1, cl2);
+    assertNotSame(cl1.getClass(), cl2.getClass());
+    
+    ConfigurationBuilder builder = newConfigurationBuilder().withClassLoader(cl1);
+    
+    // these caches should inherit the cache manager classloader
+    builder.addCache("foo1", newCacheConfigurationBuilder().buildConfig(Object.class, Object.class));
+    builder.addCache("foo2", newCacheConfigurationBuilder().withClassLoader(null).buildConfig(Object.class, Object.class));
+    
+    // this cache specifies its own unique classloader
+    builder.addCache("foo3", newCacheConfigurationBuilder().withClassLoader(cl2).buildConfig(Object.class, Object.class));
+    
+    EhcacheManager cacheManager = new EhcacheManager(builder.build());
+    assertSame(cl1, cacheManager.getClassLoader());
+    assertSame(cl1, cacheManager.getCache("foo1", Object.class, Object.class).getRuntimeConfiguration().getClassLoader());
+    assertSame(cl1, cacheManager.getCache("foo2", Object.class, Object.class).getRuntimeConfiguration().getClassLoader());
+    assertSame(cl2, cacheManager.getCache("foo3", Object.class, Object.class).getRuntimeConfiguration().getClassLoader());
+  }
+  
 
   @Test
   public void testReturnsNullForNonExistCache() {
@@ -116,10 +167,13 @@ public class EhcacheManagerTest {
 
     when(cacheLoaderFactory.createCacheLoader("foo", fooConfig)).thenReturn(fooLoader);
 
-    final Configuration cfg = new Configuration(new HashMap<String, CacheConfiguration<?, ?>>() {{
-      put("bar", barConfig);
-      put("foo", fooConfig);
-    }});
+    final Configuration cfg = new Configuration(
+        new HashMap<String, CacheConfiguration<?, ?>>() {{
+          put("bar", barConfig);
+          put("foo", fooConfig);
+        }},
+        getClass().getClassLoader()
+    );
 
     final EhcacheManager manager = new EhcacheManager(cfg, new ServiceLocator(cacheLoaderFactory, new OnHeapStore.Provider()));
 

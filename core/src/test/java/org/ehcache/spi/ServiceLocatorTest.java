@@ -16,6 +16,10 @@
 
 package org.ehcache.spi;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.Enumeration;
+
 import org.ehcache.Ehcache;
 import org.ehcache.spi.cache.CacheProvider;
 import org.ehcache.spi.service.Service;
@@ -64,6 +68,20 @@ public class ServiceLocatorTest {
     }
     assertThat(provider.findService(FooProvider.class), nullValue());
     assertThat(provider.findService(CacheProvider.class), sameInstance(service));
+  }
+  
+  
+  @Test
+  public void testDoesNotUseTCCL() {
+    Thread.currentThread().setContextClassLoader(new ClassLoader() {
+      @Override
+      public Enumeration<URL> getResources(String name) throws IOException {
+        throw new AssertionError();
+      }
+    });
+    
+    ServiceLocator serviceLocator = new ServiceLocator();
+    serviceLocator.discoverService(Service.class);
   }
 }
 

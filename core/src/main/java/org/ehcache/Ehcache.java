@@ -16,23 +16,33 @@
 
 package org.ehcache;
 
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
+import org.ehcache.event.CacheEventListener;
+import org.ehcache.event.EventFiring;
+import org.ehcache.event.EventOrdering;
+import org.ehcache.event.EventType;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoaderException;
 import org.ehcache.exceptions.CacheWriterException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
+import org.ehcache.function.Predicate;
 import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriter;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -49,16 +59,17 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   private final CacheLoader<? super K, ? extends V> cacheLoader;
   private final CacheWriter<? super K, ? super V> cacheWriter;
   private final ResilienceStrategy<K, V> resilienceStrategy;
+  private final RuntimeConfiguration<K, V> runtimeConfiguration;
 
-  public Ehcache(final Store<K, V> store, ServiceConfiguration<? extends Service>... configs) {
-    this(store, null, configs);
+  public Ehcache(CacheConfiguration<K, V> config, final Store<K, V> store) {
+    this(config, store, null);
   }
 
-  public Ehcache(Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader, ServiceConfiguration<? extends Service>... configs) {
-    this(store, cacheLoader, null, configs);
+  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader) {
+    this(config, store, cacheLoader, null);
   }
 
-  public Ehcache(Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader, CacheWriter<? super K, ? super V> cacheWriter, ServiceConfiguration<? extends Service>... configs) {
+  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader, CacheWriter<? super K, ? super V> cacheWriter) {
     this.store = store;
     this.cacheLoader = cacheLoader;
     this.cacheWriter = cacheWriter;
@@ -73,6 +84,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         // ignore
       }
     };
+    
+    this.runtimeConfiguration = new RuntimeConfiguration<K, V>(config);
   }
 
   @Override
@@ -447,7 +460,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public CacheRuntimeConfiguration<K, V> getRuntimeConfiguration() {
-    throw new UnsupportedOperationException("Implement me!");
+    return runtimeConfiguration;
   }
 
   @Override
@@ -476,6 +489,101 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     return cacheLoader;
   }
 
+  private static class RuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, V> {
+    
+    private final Collection<ServiceConfiguration<?>> serviceConfigurations;
+    private final Class<K> keyType;
+    private final Class<V> valueType;
+    private final Comparable<Long> capacityConstraint;
+    private final Predicate<Cache.Entry<K, V>> evictionVeto;
+    private final Comparator<Cache.Entry<K, V>> evictionPrioritizer;
+    private final Set<CacheEventListener<?, ?>> eventListeners;
+    private final ClassLoader classLoader;
+
+    RuntimeConfiguration(CacheConfiguration<K, V> config) {
+      this.serviceConfigurations = copy(config.getServiceConfigurations());
+      this.keyType = config.getKeyType();
+      this.valueType = config.getValueType();
+      this.capacityConstraint = config.getCapacityConstraint();
+      this.evictionVeto = config.getEvictionVeto();
+      this.evictionPrioritizer = config.getEvictionPrioritizer();
+      this.eventListeners = copy(config.getEventListeners());
+      this.classLoader = config.getClassLoader();
+    }
+    
+    private static <T> Set<T> copy(Set<T> set) {
+      if (set == null) {
+        return null;
+      }
+    
+      return Collections.unmodifiableSet(new HashSet<T>(set));
+    }
+    
+    private static <T> Collection<T> copy(Collection<T> collection) {
+      if (collection == null) {
+        return null;
+      }
+      
+      return Collections.unmodifiableCollection(new ArrayList<T>(collection));
+    }
+
+    @Override
+    public Collection<ServiceConfiguration<?>> getServiceConfigurations() {
+      return this.serviceConfigurations;
+    }
+
+    @Override
+    public Class<K> getKeyType() {
+      return this.keyType;
+    }
+
+    @Override
+    public Class<V> getValueType() {
+      return this.valueType;
+    }
+
+    @Override
+    public Comparable<Long> getCapacityConstraint() {
+      return this.capacityConstraint;
+    }
+
+    @Override
+    public Predicate<Cache.Entry<K, V>> getEvictionVeto() {
+      return this.evictionVeto;
+    }
+
+    @Override
+    public Comparator<Cache.Entry<K, V>> getEvictionPrioritizer() {
+      return this.evictionPrioritizer;
+    }
+
+    @Override
+    public Set<CacheEventListener<?, ?>> getEventListeners() {
+      return this.eventListeners;
+    }
+
+    @Override
+    public ClassLoader getClassLoader() {
+      return this.classLoader;
+    }
+    
+    @Override
+    public void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener) {
+      throw new UnsupportedOperationException("implement me!"); // XXX:
+    }
+    
+    @Override
+    public void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering,
+        EventFiring firing, Set<EventType> forEventTypes) {
+      throw new UnsupportedOperationException("implement me!"); // XXX:
+    }
+    
+    @Override
+    public void setCapacityConstraint(Comparable<Long> constraint) {
+      throw new UnsupportedOperationException("implement me!"); // XXX:
+    }    
+  }
+  
   private class CacheEntryIterator implements Iterator<Entry<K, V>> {
 
     private Store.Iterator<Entry<K, Store.ValueHolder<V>>> iterator;

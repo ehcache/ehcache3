@@ -22,6 +22,7 @@ import org.ehcache.config.Configuration;
 import org.ehcache.spi.Ehcaching;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.Service;
+import org.ehcache.util.ClassLoading;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,13 +36,14 @@ import java.util.Set;
  */
 public class CacheManagerBuilder<T extends CacheManager> {
 
-  private final ServiceLoader<Ehcaching> cachingProviders = ServiceLoader.load(Ehcaching.class);
+  private final ServiceLoader<Ehcaching> cachingProviders = ClassLoading.libraryServiceLoaderFor(Ehcaching.class);
   private final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
   private final Set<Service> services = new HashSet<Service>();
+  private ClassLoader classLoader = null;
 
   public T build() {
     ServiceLocator serviceLocator = new ServiceLocator(services.toArray(new Service[services.size()]));
-    Configuration configuration = new Configuration(caches);
+    Configuration configuration = new Configuration(caches, classLoader);
     final Iterator<Ehcaching> iterator = cachingProviders.iterator();
     if(!iterator.hasNext()) {
       throw new IllegalStateException("No cachingProvider on the classpath!");
@@ -64,6 +66,11 @@ public class CacheManagerBuilder<T extends CacheManager> {
 
   public CacheManagerBuilder<T> using(Service service) {
     services.add(service);
+    return this;
+  }
+  
+  public CacheManagerBuilder<T> withClassLoader(ClassLoader classLoader) {
+    this.classLoader = classLoader;
     return this;
   }
 
