@@ -48,6 +48,7 @@ public class EhcacheBulkMethodsTest {
     Store<Number, CharSequence> store = mock(Store.class);
 
     Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(store);
+    ehcache.init();
 
     ehcache.putAll(new HashMap<Number, CharSequence>() {{
       put(1, "one");
@@ -72,6 +73,7 @@ public class EhcacheBulkMethodsTest {
     CacheWriter<Number, CharSequence> cacheWriter = mock(CacheWriter.class);
 
     Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(store, null, cacheWriter);
+    ehcache.init();
 
     ehcache.putAll(new HashMap<Number, CharSequence>() {{
       put(3, "three");
@@ -88,6 +90,7 @@ public class EhcacheBulkMethodsTest {
     Store<Number, CharSequence> store = mock(Store.class);
 
     Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(store);
+    ehcache.init();
     Map<Number, CharSequence> result = ehcache.getAll(Arrays.asList(1, 2, 3));
 
     assertThat(result, equalTo(Collections.<Number, CharSequence>emptyMap()));
@@ -108,6 +111,7 @@ public class EhcacheBulkMethodsTest {
     CacheLoader<Number, CharSequence> cacheLoader = mock(CacheLoader.class);
 
     Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(store, cacheLoader);
+    ehcache.init();
     Map<Number, CharSequence> result = ehcache.getAll(Arrays.asList(1, 2, 3));
 
     assertThat(result, equalTo(Collections.<Number, CharSequence>emptyMap()));
@@ -120,6 +124,7 @@ public class EhcacheBulkMethodsTest {
     Store<Number, CharSequence> store = mock(Store.class);
 
     Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(store);
+    ehcache.init();
     ehcache.removeAll(Arrays.asList(1, 2, 3));
 
     verify(store).bulkCompute(argThat(hasItems(1, 2, 3)), any(Function.class));
@@ -139,6 +144,7 @@ public class EhcacheBulkMethodsTest {
     CacheWriter<Number, CharSequence> cacheWriter = mock(CacheWriter.class);
 
     Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(store, null, cacheWriter);
+    ehcache.init();
     ehcache.removeAll(Arrays.asList(1, 2, 3));
 
     verify(store).bulkCompute(argThat(hasItems(1, 2, 3)), any(Function.class));
