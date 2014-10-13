@@ -116,10 +116,13 @@ public class EhcacheManagerTest {
 
     when(cacheLoaderFactory.createCacheLoader("foo", fooConfig)).thenReturn(fooLoader);
 
-    final Configuration cfg = new Configuration(new HashMap<String, CacheConfiguration<?, ?>>() {{
-      put("bar", barConfig);
-      put("foo", fooConfig);
-    }});
+    final Configuration cfg = new Configuration(
+        new HashMap<String, CacheConfiguration<?, ?>>() {{
+          put("bar", barConfig);
+          put("foo", fooConfig);
+        }},
+        getClass().getClassLoader()
+    );
 
     final EhcacheManager manager = new EhcacheManager(cfg, new ServiceLocator(cacheLoaderFactory, new OnHeapStore.Provider()));
 
