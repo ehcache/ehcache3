@@ -25,7 +25,6 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * @author cdennis
@@ -139,12 +138,7 @@ public class TieredCache<K, V> implements Cache<K, V> {
   }
 
   @Override
-  public void putAll(Iterable<Entry<? extends K, ? extends V>> entries) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public Set<K> containsKeys(Iterable<? extends K> keys) {
+  public void putAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
     throw new UnsupportedOperationException("Implement me!");
   }
 

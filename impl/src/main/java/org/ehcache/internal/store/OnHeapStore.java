@@ -28,6 +28,8 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -184,6 +186,61 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         return nullSafeValueHolder(remappingFunction.apply(k, vValueHolder.value()));
       }
     });
+  }
+
+  @Override
+  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Iterable<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
+    Set<K> presentKeys = new HashSet<K>();
+    Set<K> missingKeys = new HashSet<K>();
+    for (K key : keys) {
+      if (map.containsKey(key)) {
+        presentKeys.add(key);
+      } else {
+        missingKeys.add(key);
+      }
+    }
+    Iterable<? extends Map.Entry<? extends K, ? extends V>> computedMappings = mappingFunction.apply(missingKeys);
+
+    Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
+    if (computedMappings != null) {
+      for (Map.Entry<? extends K, ? extends V> entry : computedMappings) {
+        OnHeapStoreValueHolder<V> valueHolder = nullSafeValueHolder(entry.getValue());
+        if (valueHolder != null && missingKeys.contains(entry.getKey()) && map.putIfAbsent(entry.getKey(), valueHolder) == null) {
+          result.put(entry.getKey(), valueHolder);
+        }
+      }
+    }
+    for (K key : presentKeys) {
+      result.put(key, map.get(key));
+    }
+    return result;
+  }
+
+  @Override
+  public Map<K, ValueHolder<V>> bulkCompute(Iterable<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
+    Map<K, V> oldEntries = new HashMap<K, V>();
+    for (K key : keys) {
+      ValueHolder<V> vValueHolder = map.get(key);
+      oldEntries.put(key, vValueHolder == null ? null : vValueHolder.value());
+    }
+    Iterable<? extends Map.Entry<? extends K, ? extends V>> remappedEntries = remappingFunction.apply(oldEntries.entrySet());
+
+    Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
+    if (remappedEntries != null) {
+      for (Map.Entry<? extends K, ? extends V> remappedEntry : remappedEntries) {
+        K key = remappedEntry.getKey();
+        if (oldEntries.containsKey(key)) {
+          OnHeapStoreValueHolder<V> valueHolder = nullSafeValueHolder(remappedEntry.getValue());
+          if (valueHolder != null) {
+            map.put(key, valueHolder);
+          } else {
+            map.remove(key);
+          }
+          result.put(key, valueHolder);
+        }
+      }
+    }
+    return result;
   }
 
   private OnHeapStoreValueHolder<V> nullSafeValueHolder(final V value) {

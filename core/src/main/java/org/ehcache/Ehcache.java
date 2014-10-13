@@ -29,9 +29,10 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriter;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -199,23 +200,96 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   }
 
   @Override
-  public Map<K, V> getAll(final Iterable<? extends K> keys) {
-    throw new UnsupportedOperationException("Implement me!");
+  public Map<K, V> getAll(Iterable<? extends K> keys) {
+    checkNonNull(keys);
+    Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction = new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+      @Override
+      public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> keys) {
+        if (cacheLoader != null) {
+          Map<K, V> loaded;
+          try {
+            loaded = (Map<K, V>)cacheLoader.loadAll(keys);
+          } catch (Exception e) {
+            throw newCacheLoaderException(e);
+          }
+          return loaded.entrySet();
+        }
+        return Collections.<K, V>emptyMap().entrySet();
+      }
+    };
+
+    try {
+      Map<K, Store.ValueHolder<V>> computedMap = store.bulkComputeIfAbsent(keys, mappingFunction);
+      if (computedMap == null) {
+        return Collections.emptyMap();
+      }
+
+      Map<K, V> result = new HashMap<K, V>();
+      for (Map.Entry<K, Store.ValueHolder<V>> entry : computedMap.entrySet()) {
+        result.put(entry.getKey(), entry.getValue().value());
+      }
+      return result;
+    } catch (CacheAccessException e) {
+      throw new RuntimeException(e);
+    } catch (CacheLoaderException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
-  public void putAll(final Iterable<Entry<? extends K, ? extends V>> entries) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
+  public void putAll(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+    checkNonNull(entries);
+    Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction =
+      new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+      @Override
+      public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+        if (cacheWriter != null) {
+          try {
+            cacheWriter.writeAll(entries);
+          } catch (Exception e) {
+            throw newCacheWriterException(e);
+          }
+          return entries;
+        }
+        return Collections.<K, V>emptyMap().entrySet();
+      }
+    };
 
-  @Override
-  public Set<K> containsKeys(final Iterable<? extends K> keys) {
-    throw new UnsupportedOperationException("Implement me!");
+    try {
+      store.bulkCompute(new KeysIterable(entries), remappingFunction);
+    } catch (CacheAccessException e) {
+      throw new RuntimeException(e);
+    } catch(CacheWriterException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
   public void removeAll(final Iterable<? extends K> keys) {
-    throw new UnsupportedOperationException("Implement me!");
+    checkNonNull(keys);
+    Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> removalFunction =
+      new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+        @Override
+        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+          if (cacheWriter != null) {
+            try {
+              cacheWriter.deleteAll(new KeysIterable(entries));
+            } catch (Exception e) {
+              throw newCacheWriterException(e);
+            }
+            return new NullValuesIterable(entries);
+          }
+          return Collections.<K, V>emptyMap().entrySet();
+        }
+      };
+
+    try {
+      store.bulkCompute(keys, removalFunction);
+    } catch (CacheAccessException e) {
+      throw new RuntimeException(e);
+    } catch(CacheWriterException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
@@ -458,6 +532,95 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     @Override
     public void remove() {
       Ehcache.this.remove(next.getKey(), next.getValue().value());
+    }
+  }
+
+
+  private class KeysIterable implements Iterable<K> {
+    private final Iterable<? extends Map.Entry<? extends K, ? extends V>> entriesIterable;
+
+    public KeysIterable(Iterable<? extends Map.Entry<? extends K, ? extends V>> entriesIterable) {
+      this.entriesIterable = entriesIterable;
+    }
+
+    @Override
+    public Iterator<K> iterator() {
+      return new KeysIterator(entriesIterable.iterator());
+    }
+  }
+
+  private class KeysIterator implements Iterator<K> {
+    private final Iterator<? extends Map.Entry<? extends K, ? extends V>> entriesIterator;
+
+    public KeysIterator(Iterator<? extends Map.Entry<? extends K, ? extends V>> entriesIterator) {
+      this.entriesIterator = entriesIterator;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return entriesIterator.hasNext();
+    }
+
+    @Override
+    public K next() {
+      return entriesIterator.next().getKey();
+    }
+
+    @Override
+    public void remove() {
+      entriesIterator.remove();
+    }
+  }
+
+  private class NullValuesIterable implements Iterable<Map.Entry<K, V>> {
+    private final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries;
+
+    public NullValuesIterable(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+      this.entries = entries;
+    }
+
+    @Override
+    public Iterator<Map.Entry<K, V>> iterator() {
+      return new NullValuesIterator(entries.iterator());
+    }
+  }
+
+  private class NullValuesIterator implements Iterator<Map.Entry<K, V>> {
+    private final Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator;
+
+    public NullValuesIterator(Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator) {
+      this.iterator = iterator;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return iterator.hasNext();
+    }
+
+    @Override
+    public Map.Entry<K, V> next() {
+      final Map.Entry<? extends K, ? extends V> next = iterator.next();
+      return new Map.Entry<K, V>() {
+        @Override
+        public K getKey() {
+          return next.getKey();
+        }
+
+        @Override
+        public V getValue() {
+          return null;
+        }
+
+        @Override
+        public V setValue(V value) {
+          return null;
+        }
+      };
+    }
+
+    @Override
+    public void remove() {
+      iterator.remove();
     }
   }
 }

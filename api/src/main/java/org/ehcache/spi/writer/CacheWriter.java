@@ -18,6 +18,7 @@ package org.ehcache.spi.writer;
 
 import org.ehcache.Cache;
 
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -70,7 +71,7 @@ public interface CacheWriter<K, V> {
    *
    * @see org.ehcache.Cache#putAll(Iterable)
    */
-  Set<K> writeAll(Iterable<Cache.Entry<? extends K, ? extends V>> entries) throws Exception;
+  Set<K> writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws Exception;
 
   /**
    * Deletes a single entry from the underlying system of record.
@@ -101,6 +102,6 @@ public interface CacheWriter<K, V> {
    *
    * @see org.ehcache.Cache#removeAll(Iterable)
    */
-  Set<K> deleteAll(Iterable<K> keys) throws Exception;
+  Set<K> deleteAll(Iterable<? extends K> keys) throws Exception;
 
 }

@@ -23,11 +23,6 @@ import org.junit.Test;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
 
 public class StandaloneCacheBuilderTest {
 
@@ -130,12 +125,7 @@ public class StandaloneCacheBuilderTest {
     }
 
     @Override
-    public void putAll(Iterable<Entry<? extends K, ? extends V>> entries) {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-
-    @Override
-    public Set<K> containsKeys(Iterable<? extends K> keys) {
+    public void putAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
