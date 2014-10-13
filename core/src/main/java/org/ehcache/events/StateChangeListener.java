@@ -23,5 +23,12 @@ import org.ehcache.Status;
  */
 public interface StateChangeListener {
 
+  /**
+   * Is notified when a state transition occurred.
+   * Any exception thrown by this listener will not affect the transition.
+   *
+   * @param from previous state
+   * @param to new state
+   */
   void stateTransition(Status from, Status to);
 }
