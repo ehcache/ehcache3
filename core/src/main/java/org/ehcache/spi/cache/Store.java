@@ -218,8 +218,46 @@ public interface Store<K, V> {
 
   ValueHolder<V> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException;
 
+  /**
+   * Compute a value for every key passed in the {@link Iterable} <code>keys</code> argument using the <code>remappingFunction</code>
+   * function to compute the value.
+   *
+   * The function gets a {@link Iterable} of {@link Map.Entry} key / value pairs, with the entry's value being the currently stored value,
+   * or null if nothing is stored under the key. It is expected that the function should return a {@link Iterable} of {@link Map.Entry}
+   * key / value pairs containing an entry per each entry that was passed to it. Every missing entry in the returned {@link Iterable} will be
+   * ignored and its current value (or lack thereof) will be left in place. If the entry's value is null, the mapping will be removed from the store.
+   *
+   * The function may be called multiple times per <code>bulkCompute</code> call, depending on how the store wants or do not want to batch computations.
+   *
+   * Note: this method does not guarantee atomicity of the computations between each other. Each computation is atomic but the store may be concurrently
+   * modified between each computed key.
+   *
+   * @param keys the keys to compute a new value for.
+   * @param remappingFunction the function that generates new values.
+   * @return a {@link Map} of key / value pairs for each key in <code>keys</code> that are in the store after bulk computing is done.
+   * @throws CacheAccessException
+   */
   Map<K, ValueHolder<V>> bulkCompute(Iterable<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException;
 
+  /**
+   * Compute a value for every key passed in the {@link Iterable} <code>keys</code> argument using the <code>mappingFunction</code>
+   * function to compute the value.
+   *
+   * The function gets a {@link Iterable} of {@link Map.Entry} key / value pairs, with the entry's value being the currently stored value
+   * for each key that is not mapped in the store. It is expected that the function should return a {@link Iterable} of {@link Map.Entry}
+   * key / value pairs containing an entry per each entry that was passed to it. Every missing entry in the returned {@link Iterable} will be
+   * ignored and the store will be left untouched for that key, much like if the entry's return value is null.
+   *
+   * The function may be called multiple times per <code>bulkComputeIfAbsent</code> call, depending on how the store wants or do not want to batch computations.
+   *
+   * Note: this method does not guarantee atomicity of the computations between each other. Each computation is atomic but the store may be concurrently
+   * modified between each computed key.
+   *
+   * @param keys the keys to compute a new value for, if they're not in the store.
+   * @param remappingFunction the function that generates new values.
+   * @return a {@link Map} of key / value pairs for each key in <code>keys</code> that are in the store after bulk computing is done.
+   * @throws CacheAccessException
+   */
   Map<K, ValueHolder<V>> bulkComputeIfAbsent(Iterable<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException;
 
   /**
