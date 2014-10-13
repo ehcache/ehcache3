@@ -34,10 +34,11 @@ public class CacheManagerBuilder<T extends CacheManager> {
 
   private final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
   private final Set<Service> services = new HashSet<Service>();
+  private ClassLoader classLoader = null;
 
   public T build() {
     ServiceLocator serviceLocator = new ServiceLocator(services.toArray(new Service[services.size()]));
-    Configuration configuration = new Configuration(caches);
+    Configuration configuration = new Configuration(caches, classLoader);
     final EhcacheManager ehcacheManager = new EhcacheManager(configuration, serviceLocator);
     ehcacheManager.init();
     return (T)ehcacheManager;
@@ -54,6 +55,11 @@ public class CacheManagerBuilder<T extends CacheManager> {
 
   public CacheManagerBuilder<T> using(Service service) {
     services.add(service);
+    return this;
+  }
+  
+  public CacheManagerBuilder<T> withClassLoader(ClassLoader classLoader) {
+    this.classLoader = classLoader;
     return this;
   }
 

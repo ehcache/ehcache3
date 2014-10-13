@@ -17,6 +17,7 @@
 package org.ehcache.config.xml;
 
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.util.ClassLoading;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -56,7 +57,7 @@ public class ConfigurationParser {
 
   public ConfigurationParser(String xml, URL... sources) throws IOException, SAXException {
     Collection<Source> schemaSources = new ArrayList<Source>();
-    for (XmlConfigurationParser parser : ServiceLoader.load(XmlConfigurationParser.class)) {
+    for (XmlConfigurationParser parser : ClassLoading.libraryServiceLoaderFor(XmlConfigurationParser.class)) {
       schemaSources.add(parser.getXmlSchema());
       xmlParsers.put(parser.getNamespace(), parser);
     }

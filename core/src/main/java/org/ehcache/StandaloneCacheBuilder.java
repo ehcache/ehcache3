@@ -24,6 +24,7 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.function.Predicate;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.util.ClassLoading;
 
 /**
  * @author Alex Snaps
@@ -32,6 +33,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
 
   private final Class<K> keyType;
   private final Class<V> valueType;
+  private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
   private Comparable<Long> capacityConstraint;
   private Predicate<Cache.Entry<K, V>> evictionVeto;
   private Comparator<Cache.Entry<K, V>> evictionPrioritizer;
@@ -45,7 +47,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   T build(ServiceLocator serviceLocator) {
     Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
     final StoreConfigurationImpl<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType,
-        capacityConstraint, evictionVeto, evictionPrioritizer);
+        capacityConstraint, evictionVeto, evictionPrioritizer, classLoader);
     final Store<K, V> store = storeProvider.createStore(storeConfig);
     final Ehcache<K, V> ehcache = new Ehcache<K, V>(store, cacheLoader, (ServiceConfiguration<?>[]) null);
     return (T) ehcache;
@@ -76,6 +78,11 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
 
   public final StandaloneCacheBuilder<K, V, T> loadingWith(CacheLoader<? super K, ? extends V> cacheLoader) {
     this.cacheLoader = cacheLoader;
+    return this;
+  }
+  
+  public final StandaloneCacheBuilder<K, V, T> withClassLoader(ClassLoader classLoader) {
+    this.classLoader = classLoader;
     return this;
   }
           

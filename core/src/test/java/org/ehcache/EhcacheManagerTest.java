@@ -168,10 +168,13 @@ public class EhcacheManagerTest {
 
     when(cacheLoaderFactory.createCacheLoader("foo", fooConfig)).thenReturn(fooLoader);
 
-    final Configuration cfg = new Configuration(new HashMap<String, CacheConfiguration<?, ?>>() {{
-      put("bar", barConfig);
-      put("foo", fooConfig);
-    }});
+    final Configuration cfg = new Configuration(
+        new HashMap<String, CacheConfiguration<?, ?>>() {{
+          put("bar", barConfig);
+          put("foo", fooConfig);
+        }},
+        getClass().getClassLoader()
+    );
 
     final Store.Provider storeProvider = mock(Store.Provider.class);
     final Store mock = mock(Store.class);
@@ -240,8 +243,9 @@ public class EhcacheManagerTest {
         .build(), new ServiceLocator(storeProvider)) {
 
       @Override
-      <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config, final Class<K> keyType, final Class<V> valueType) {
-        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
+      <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
+                                            final Class<K> keyType, final Class<V> valueType, final ClassLoader cacheClassLoader) {
+        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType, cacheClassLoader);
         caches.add(ehcache);
         if(caches.size() == 1) {
           when(storeProvider.createStore(Matchers.<Store.Configuration<K,V>>anyObject(),
@@ -282,8 +286,9 @@ public class EhcacheManagerTest {
         .build(), new ServiceLocator(storeProvider)) {
 
       @Override
-      <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config, final Class<K> keyType, final Class<V> valueType) {
-        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
+      <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
+                                            final Class<K> keyType, final Class<V> valueType, final ClassLoader cacheClassLoader) {
+        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType, cacheClassLoader);
         caches.add(alias);
         return ehcache;
       }

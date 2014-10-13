@@ -15,17 +15,19 @@
  */
 package org.ehcache.config.xml;
 
-import org.ehcache.Cache;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.ConfigurationBuilder;
 import org.ehcache.function.Predicate;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.util.ClassLoading;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.Map;
 import org.ehcache.eviction.EvictionPrioritizer;
 
 /**
@@ -33,12 +35,26 @@ import org.ehcache.eviction.EvictionPrioritizer;
  */
 public class XmlConfiguration {
 
-
   private static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
 
   public Configuration parseConfiguration(URL xml) throws ClassNotFoundException, IOException, SAXException, InstantiationException, IllegalAccessException {
+    return parseConfiguration(xml, null);
+  }
+  
+  public Configuration parseConfiguration(URL xml, ClassLoader classLoader)
+      throws ClassNotFoundException, IOException, SAXException, InstantiationException, IllegalAccessException {
+    Map<String, ClassLoader> emptyMap = Collections.emptyMap();
+    return parseConfiguration(xml, classLoader, emptyMap);
+  }
+  
+  public Configuration parseConfiguration(URL xml, ClassLoader classLoader, Map<String, ClassLoader> cacheClassLoaders)
+      throws ClassNotFoundException, IOException, SAXException, InstantiationException, IllegalAccessException {
     ConfigurationParser configurationParser = new ConfigurationParser(xml.toExternalForm(), CORE_SCHEMA_URL);
     ConfigurationBuilder configBuilder = new ConfigurationBuilder();
+    
+    if (classLoader != null) {
+      configBuilder.withClassLoader(classLoader);
+    }
 
     for (ServiceConfiguration serviceConfiguration : configurationParser.getServiceConfigurations()) {
       configBuilder.addService(serviceConfiguration);
@@ -46,30 +62,45 @@ public class XmlConfiguration {
 
     for (ConfigurationParser.CacheElement cacheElement : configurationParser.getCacheElements()) {
       CacheConfigurationBuilder builder = new CacheConfigurationBuilder();
-
-      Class keyType = getClassForName(cacheElement.keyType());
-      Class valueType = getClassForName(cacheElement.valueType());
+      String alias = cacheElement.alias();
+      
+      
+      ClassLoader cacheClassLoader = cacheClassLoaders.get(alias);
+      if (cacheClassLoader != null) {
+        builder.withClassLoader(cacheClassLoader);
+      }
+      
+      if (cacheClassLoader == null) {
+        if (classLoader != null) {
+          cacheClassLoader = classLoader;
+        } else {
+          cacheClassLoader = ClassLoading.getDefaultClassLoader();
+        }
+      }
+      
+      Class keyType = getClassForName(cacheElement.keyType(), cacheClassLoader);
+      Class valueType = getClassForName(cacheElement.valueType(), cacheClassLoader);
       Long capacityConstraint = cacheElement.capacityConstraint();
-      Predicate evictionVeto = getInstanceOfName(cacheElement.evictionVeto(), Predicate.class);
+      Predicate evictionVeto = getInstanceOfName(cacheElement.evictionVeto(), cacheClassLoader, Predicate.class);
       Comparator evictionPrioritizer;
       try {
         evictionPrioritizer = EvictionPrioritizer.valueOf(cacheElement.evictionPrioritizer());
       } catch (IllegalArgumentException e) {
-        evictionPrioritizer = getInstanceOfName(cacheElement.evictionPrioritizer(), Comparator.class);
+        evictionPrioritizer = getInstanceOfName(cacheElement.evictionPrioritizer(), cacheClassLoader, Comparator.class);
       } catch (NullPointerException e) {
         evictionPrioritizer = null;
       }
       for (ServiceConfiguration<?> serviceConfig : cacheElement.serviceConfigs()) {
         builder.addServiceConfig(serviceConfig);
       }
-      configBuilder.addCache(cacheElement.alias(), builder.buildConfig(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer));
+      configBuilder.addCache(alias, builder.buildConfig(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer));
     }
 
     return configBuilder.build();
   }
 
-  private static <T> T getInstanceOfName(String name, Class<T> type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
-    Class<?> klazz = getClassForName(name, null);
+  private static <T> T getInstanceOfName(String name, ClassLoader classLoader, Class<T> type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+    Class<?> klazz = getClassForName(name, classLoader, null);
     if (klazz == null) {
       return null;
     } else {
@@ -77,29 +108,20 @@ public class XmlConfiguration {
     }
   }
   
-  private static Class<?> getClassForName(String name, Class<?> or) {
+  private static Class<?> getClassForName(String name, ClassLoader classLoader, Class<?> or) {
     if (name == null) {
       return or;
     } else {
       try {
-        return getClassForName(name);
+        return getClassForName(name, classLoader);
       } catch (ClassNotFoundException e) {
         return or;
       }
     }
   }
   
-  private static Class<?> getClassForName(String name) throws ClassNotFoundException {
-    ClassLoader tccl = Thread.currentThread().getContextClassLoader();
-    if (tccl == null) {
-      return Class.forName(name);
-    } else {
-      try {
-        return Class.forName(name, true, tccl);
-      } catch (ClassNotFoundException e) {
-        return Class.forName(name);
-      }
-    }
+  private static Class<?> getClassForName(String name, ClassLoader classLoader) throws ClassNotFoundException {
+    return Class.forName(name, true, classLoader);
   }
 
 }

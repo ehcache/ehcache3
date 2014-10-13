@@ -19,6 +19,7 @@ package org.ehcache.spi;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.util.ClassLoading;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -41,7 +42,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public final class ServiceLocator {
 
   private final ConcurrentMap<Class<? extends Service>, Service> services = new ConcurrentHashMap<Class<? extends Service>, Service>();
-  private final ServiceLoader<ServiceFactory> serviceFactory = ServiceLoader.load(ServiceFactory.class);
+  private final ServiceLoader<ServiceFactory> serviceFactory = ClassLoading.libraryServiceLoaderFor(ServiceFactory.class);
 
   private final ReadWriteLock runningLock = new ReentrantReadWriteLock();
 
