@@ -17,6 +17,7 @@
 package org.ehcache.config;
 
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.util.ClassLoading;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,6 +31,7 @@ public class ConfigurationBuilder {
 
   private final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
   private final List<ServiceConfiguration<?>> serviceConfigurations = new ArrayList<ServiceConfiguration<?>>();
+  private ClassLoader classLoader = null;
 
   public static ConfigurationBuilder newConfigurationBuilder() {
     return new ConfigurationBuilder();
@@ -39,7 +41,7 @@ public class ConfigurationBuilder {
   }
 
   public Configuration build() {
-    return new Configuration(caches, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
+    return new Configuration(caches, classLoader, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
   public ConfigurationBuilder addCache(String alias, CacheConfiguration<?, ?> config) {
@@ -59,6 +61,11 @@ public class ConfigurationBuilder {
 
   public ConfigurationBuilder removeService(ServiceConfiguration<?> serviceConfiguration) {
     serviceConfigurations.remove(serviceConfiguration);
+    return this;
+  }
+  
+  public ConfigurationBuilder withClassLoader(ClassLoader classLoader) {
+    this.classLoader = classLoader;
     return this;
   }
 }

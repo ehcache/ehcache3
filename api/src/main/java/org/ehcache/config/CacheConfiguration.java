@@ -84,4 +84,10 @@ public interface CacheConfiguration<K, V> {
    * @return the Set of listeners, empty if none
    */
   Set<CacheEventListener<?, ?>> getEventListeners();
+    
+  /**
+   * The Classloader for this cache. This classloader will be used to instantiate cache level services as well
+   * as deserializing cache entries when required
+   */
+  ClassLoader getClassLoader();
 }

@@ -31,10 +31,12 @@ public final class Configuration {
 
   private final Map<String,CacheConfiguration<?, ?>> caches;
   private final Collection<ServiceConfiguration<?>> services;
+  private final ClassLoader classLoader;
 
-  public Configuration(Map<String, CacheConfiguration<?, ?>> caches, ServiceConfiguration<?> ... services) {
+  public Configuration(Map<String, CacheConfiguration<?, ?>> caches, ClassLoader classLoader, ServiceConfiguration<?> ... services) {
     this.services = unmodifiableCollection(Arrays.asList(services));
     this.caches = unmodifiableMap(new HashMap<String,CacheConfiguration<?, ?>>(caches));
+    this.classLoader = classLoader;
   }
 
   public Map<String, CacheConfiguration<?, ?>> getCacheConfigurations() {
@@ -44,4 +46,8 @@ public final class Configuration {
   public Collection<ServiceConfiguration<?>> getServiceConfigurations() {
     return services;
   }
+  
+  public ClassLoader getClassLoader() {
+    return classLoader;
+  }  
 }
