@@ -20,6 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.events.CacheManagerListener;
 import org.ehcache.exceptions.StateTransitionException;
+import org.ehcache.config.ConfigurationBuilder;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
@@ -27,6 +28,7 @@ import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.CoreMatchers;
+import org.ehcache.util.ClassLoading;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
@@ -39,6 +41,8 @@ import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfiguration
 import static org.ehcache.config.ConfigurationBuilder.newConfigurationBuilder;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -66,6 +70,64 @@ public class EhcacheManagerTest {
       assertTrue(e.getCause().getMessage().contains(NoSuchService.class.getName()));
     }
   }
+  
+  @Test
+  public void testNoClassLoaderSpecified() {
+    ConfigurationBuilder builder = newConfigurationBuilder();
+    builder.addCache("foo", newCacheConfigurationBuilder().buildCacheConfig(Object.class, Object.class));
+    final Store.Provider storeProvider = mock(Store.Provider.class);
+    final Store mock = mock(Store.class);
+    when(storeProvider
+        .createStore(Matchers.<Store.Configuration>anyObject(), Matchers.<ServiceConfiguration[]>anyVararg())).thenReturn(mock);
+    EhcacheManager cacheManager = new EhcacheManager(builder.build(), new ServiceLocator(storeProvider));
+    cacheManager.init();
+    assertSame(ClassLoading.getDefaultClassLoader(), cacheManager.getClassLoader());
+    assertSame(cacheManager.getClassLoader(), cacheManager.getCache("foo", Object.class, Object.class).getRuntimeConfiguration().getClassLoader());
+    
+    // explicit null
+    builder = newConfigurationBuilder();
+    builder.withClassLoader(null);
+    builder.addCache("foo", newCacheConfigurationBuilder().buildCacheConfig(Object.class, Object.class));
+    cacheManager = new EhcacheManager(builder.build(), new ServiceLocator(storeProvider));
+    cacheManager.init();
+    assertSame(ClassLoading.getDefaultClassLoader(), cacheManager.getClassLoader());
+    assertSame(cacheManager.getClassLoader(), cacheManager.getCache("foo", Object.class, Object.class).getRuntimeConfiguration().getClassLoader());  
+  }
+  
+  @Test
+  public void testClassLoaderSpecified() {
+    ClassLoader cl1 = new ClassLoader() {
+      //
+    };
+    
+    ClassLoader cl2 = new ClassLoader() {
+      //
+    };
+    
+    assertNotSame(cl1, cl2);
+    assertNotSame(cl1.getClass(), cl2.getClass());
+    
+    ConfigurationBuilder builder = newConfigurationBuilder().withClassLoader(cl1);
+    
+    // these caches should inherit the cache manager classloader
+    builder.addCache("foo1", newCacheConfigurationBuilder().buildConfig(Object.class, Object.class));
+    builder.addCache("foo2", newCacheConfigurationBuilder().withClassLoader(null).buildConfig(Object.class, Object.class));
+    
+    // this cache specifies its own unique classloader
+    builder.addCache("foo3", newCacheConfigurationBuilder().withClassLoader(cl2).buildConfig(Object.class, Object.class));
+
+    final Store.Provider storeProvider = mock(Store.Provider.class);
+    final Store mock = mock(Store.class);
+    when(storeProvider
+        .createStore(Matchers.<Store.Configuration>anyObject(), Matchers.<ServiceConfiguration[]>anyVararg())).thenReturn(mock);
+    EhcacheManager cacheManager = new EhcacheManager(builder.build(), new ServiceLocator(storeProvider));
+    cacheManager.init();
+    assertSame(cl1, cacheManager.getClassLoader());
+    assertSame(cl1, cacheManager.getCache("foo1", Object.class, Object.class).getRuntimeConfiguration().getClassLoader());
+    assertSame(cl1, cacheManager.getCache("foo2", Object.class, Object.class).getRuntimeConfiguration().getClassLoader());
+    assertSame(cl2, cacheManager.getCache("foo3", Object.class, Object.class).getRuntimeConfiguration().getClassLoader());
+  }
+  
 
   @Test
   public void testReturnsNullForNonExistCache() {

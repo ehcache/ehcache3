@@ -16,6 +16,9 @@
 
 package org.ehcache.config.xml;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.ehcache.config.Configuration;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.core.IsCollectionContaining;
@@ -28,6 +31,9 @@ import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsSame.sameInstance;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -88,4 +94,51 @@ public class XmlConfigurationTest {
     
     assertThat(configTwo, not(sameInstance(configOne)));
   }
+  
+  @Test
+  public void testNoClassLoaderSpecified() throws Exception {
+    XmlConfiguration xmlConfig = new XmlConfiguration();
+
+    Configuration config = xmlConfig.parseConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
+    assertNull(config.getClassLoader());
+    assertNull(config.getCacheConfigurations().get("bar").getClassLoader());
+  }
+  
+  @Test
+  public void testClassLoaderSpecified() throws Exception {
+    ClassLoader cl = new ClassLoader() {
+      //
+    };
+    
+    XmlConfiguration xmlConfig = new XmlConfiguration();
+
+    Configuration config = xmlConfig.parseConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), cl);
+    assertSame(cl, config.getClassLoader());
+    assertNull(config.getCacheConfigurations().get("bar").getClassLoader());
+  }
+  
+  @Test
+  public void testCacheClassLoaderSpecified() throws Exception {
+    ClassLoader cl = new ClassLoader() {
+      //
+    };
+    
+    ClassLoader cl2 = new ClassLoader() {
+      //
+    };
+    
+    assertNotSame(cl, cl2);
+    
+    XmlConfiguration xmlConfig = new XmlConfiguration();
+    
+    Map<String, ClassLoader> loaders = new HashMap<String, ClassLoader>();
+    loaders.put("bar", cl2);
+
+    Configuration config = xmlConfig.parseConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), cl, loaders);
+    assertSame(cl, config.getClassLoader());
+    assertSame(cl2, config.getCacheConfigurations().get("bar").getClassLoader());
+  }
+  
+  
+  
 }

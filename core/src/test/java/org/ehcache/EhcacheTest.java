@@ -16,6 +16,7 @@
 
 package org.ehcache;
 
+import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.events.StateChangeListener;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.cache.Store;
@@ -38,7 +39,7 @@ public class EhcacheTest {
   @Test
   public void testTransistionsState() {
     Store store = mock(Store.class);
-    Ehcache ehcache = new Ehcache(store);
+    Ehcache ehcache = new Ehcache(new CacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
     assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
     ehcache.init();
     assertThat(ehcache.getStatus(), is(Status.AVAILABLE));
@@ -53,7 +54,7 @@ public class EhcacheTest {
   @Test
   public void testThrowsWhenNotAvailable() {
     Store store = mock(Store.class);
-    Ehcache ehcache = new Ehcache(store);
+    Ehcache ehcache = new Ehcache(new CacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
 
     try {
       ehcache.get("foo");
@@ -172,7 +173,7 @@ public class EhcacheTest {
   @Test
   public void testDelegatesLifecycleCallsToStore() {
     final Store store = mock(Store.class);
-    Ehcache ehcache = new Ehcache(store);
+    Ehcache ehcache = new Ehcache(new CacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
     ehcache.init();
     verify(store).init();
     ehcache.close();
@@ -184,7 +185,7 @@ public class EhcacheTest {
   @Test
   public void testFailingTransitionGoesToLowestStatus() {
     final Store store = mock(Store.class);
-    Ehcache ehcache = new Ehcache(store);
+    Ehcache ehcache = new Ehcache(new CacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
     doThrow(new RuntimeException()).when(store).init();
     try {
       ehcache.init();
@@ -227,7 +228,7 @@ public class EhcacheTest {
   @Test
   public void testFiresListener() {
     Store store = mock(Store.class);
-    Ehcache ehcache = new Ehcache(store);
+    Ehcache ehcache = new Ehcache(new CacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
 
     final StateChangeListener listener = mock(StateChangeListener.class);
     ehcache.registerListener(listener);

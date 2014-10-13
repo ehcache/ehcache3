@@ -17,6 +17,9 @@
 package org.ehcache;
 
 import java.util.Comparator;
+
+import org.ehcache.config.BaseCacheConfiguration;
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.StandaloneCacheConfiguration;
 import org.ehcache.spi.ServiceLocator;
@@ -49,7 +52,10 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     final StoreConfigurationImpl<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType,
         capacityConstraint, evictionVeto, evictionPrioritizer, classLoader);
     final Store<K, V> store = storeProvider.createStore(storeConfig);
-    final Ehcache<K, V> ehcache = new Ehcache<K, V>(store, cacheLoader, (ServiceConfiguration<?>[]) null);
+    
+    CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, new ServiceConfiguration<?>[]{});
+    
+    final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoader);
     return (T) ehcache;
   }
 
@@ -82,6 +88,10 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   }
   
   public final StandaloneCacheBuilder<K, V, T> withClassLoader(ClassLoader classLoader) {
+    if (classLoader == null) {
+      throw new IllegalArgumentException();
+    }
+    
     this.classLoader = classLoader;
     return this;
   }
