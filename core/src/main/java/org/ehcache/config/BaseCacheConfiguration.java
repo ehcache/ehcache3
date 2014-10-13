@@ -30,7 +30,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 /**
  * @author Alex Snaps
  */
-class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
+public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
 
   private final Class<K> keyType;
   private final Class<V> valueType;
@@ -84,7 +84,8 @@ class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
 
   @Override
   public Set<CacheEventListener<?, ?>> getEventListeners() {
-    throw new UnsupportedOperationException("Implement me!");
+    // XXX:
+    return Collections.emptySet();
   }
   
   @Override

@@ -16,6 +16,7 @@
 
 package org.ehcache;
 
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
@@ -42,12 +43,14 @@ import static org.mockito.Mockito.when;
  * @author Ludovic Orban
  */
 public class EhcacheBulkMethodsTest {
+  
+  private final CacheConfiguration<Number, CharSequence> cacheConfig = mock(CacheConfiguration.class);
 
   @Test
   public void testPutAll() throws Exception {
     Store<Number, CharSequence> store = mock(Store.class);
 
-    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(store);
+    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(cacheConfig, store);
 
     ehcache.putAll(new HashMap<Number, CharSequence>() {{
       put(1, "one");
@@ -71,7 +74,7 @@ public class EhcacheBulkMethodsTest {
     });
     CacheWriter<Number, CharSequence> cacheWriter = mock(CacheWriter.class);
 
-    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(store, null, cacheWriter);
+    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(cacheConfig, store, null, cacheWriter);
 
     ehcache.putAll(new HashMap<Number, CharSequence>() {{
       put(3, "three");
@@ -87,7 +90,7 @@ public class EhcacheBulkMethodsTest {
   public void testGetAll() throws Exception {
     Store<Number, CharSequence> store = mock(Store.class);
 
-    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(store);
+    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(cacheConfig, store);
     Map<Number, CharSequence> result = ehcache.getAll(Arrays.asList(1, 2, 3));
 
     assertThat(result, equalTo(Collections.<Number, CharSequence>emptyMap()));
@@ -107,7 +110,7 @@ public class EhcacheBulkMethodsTest {
     });
     CacheLoader<Number, CharSequence> cacheLoader = mock(CacheLoader.class);
 
-    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(store, cacheLoader);
+    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(cacheConfig, store, cacheLoader);
     Map<Number, CharSequence> result = ehcache.getAll(Arrays.asList(1, 2, 3));
 
     assertThat(result, equalTo(Collections.<Number, CharSequence>emptyMap()));
@@ -119,7 +122,7 @@ public class EhcacheBulkMethodsTest {
   public void testRemoveAll() throws Exception {
     Store<Number, CharSequence> store = mock(Store.class);
 
-    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(store);
+    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(cacheConfig, store);
     ehcache.removeAll(Arrays.asList(1, 2, 3));
 
     verify(store).bulkCompute(argThat(hasItems(1, 2, 3)), any(Function.class));
@@ -138,7 +141,7 @@ public class EhcacheBulkMethodsTest {
     });
     CacheWriter<Number, CharSequence> cacheWriter = mock(CacheWriter.class);
 
-    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(store, null, cacheWriter);
+    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(cacheConfig, store, null, cacheWriter);
     ehcache.removeAll(Arrays.asList(1, 2, 3));
 
     verify(store).bulkCompute(argThat(hasItems(1, 2, 3)), any(Function.class));
