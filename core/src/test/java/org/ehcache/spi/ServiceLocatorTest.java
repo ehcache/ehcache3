@@ -24,6 +24,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
@@ -80,7 +81,11 @@ public class ServiceLocatorTest {
     ServiceLocator locator = new ServiceLocator(s1, s2);
     try {
       locator.startAllServices();
+      fail();
     } catch (Exception e) {
+      // see org.ehcache.spi.ParentTestService.start()
+      assertThat(e, instanceOf(RuntimeException.class));
+      assertThat(e.getMessage(), is("Implement me!"));
     }
     assertThat(s2.startStopCounter, is(0));
   }

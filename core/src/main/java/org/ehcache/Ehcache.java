@@ -519,7 +519,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     try {
       store.create();
     } catch (CacheAccessException e) {
-      throw new RuntimeException("Couldn't destroy Cache", e);
+      throw new RuntimeException("Couldn't create Cache", e);
     }
   }
 

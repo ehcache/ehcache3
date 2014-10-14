@@ -36,8 +36,9 @@ public interface CacheManager {
    * {@link org.ehcache.spi.service.Service} instances managed by this {@link org.ehcache.CacheManager}, as well
    * as all {@link org.ehcache.Cache} pre registered with it.
    * <p>
-   * Should this throw, while the CacheManager isn't yet {@link org.ehcache.Status#AVAILABLE}, it will try to go back
-   * to go to {@link org.ehcache.Status#UNINITIALIZED} properly (i.e. closing all services it already started).
+   * Should this throw, while the CacheManager isn't yet {@link org.ehcache.Status#AVAILABLE}, it will go back
+   * to {@link org.ehcache.Status#UNINITIALIZED} properly (i.e. closing all services it already started,
+   * but which in turn may fail too).
    *
    * @throws java.lang.IllegalStateException if the CacheManager isn't in {@link org.ehcache.Status#UNINITIALIZED} state
    * @throws org.ehcache.exceptions.StateTransitionException if the CacheManager couldn't be made {@link org.ehcache.Status#AVAILABLE}
@@ -50,7 +51,7 @@ public interface CacheManager {
    * {@link org.ehcache.spi.service.Service} this instance provides to managed {@link Cache} instances.
    * <p>
    * Should this throw, while the CacheManager isn't yet {@link org.ehcache.Status#UNINITIALIZED}, it will keep on
-   * trying to {@link org.ehcache.Status#UNINITIALIZED} properly (i.e. closing all other services it didn't yet stop).
+   * trying to go to {@link org.ehcache.Status#UNINITIALIZED} properly (i.e. closing all other services it didn't yet stop).
    *
    * @throws org.ehcache.exceptions.StateTransitionException if the CacheManager couldn't be cleanly made
    *                                                         {@link org.ehcache.Status#UNINITIALIZED},

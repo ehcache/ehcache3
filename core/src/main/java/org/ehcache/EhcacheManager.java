@@ -261,7 +261,7 @@ public final class EhcacheManager implements PersistentCacheManager {
 
   @Override
   public void destroyCache(final String alias) {
-    final CacheHolder cacheHolder = caches.get(alias);
+    final CacheHolder cacheHolder = caches.remove(alias);
     if(cacheHolder == null) {
       throw new IllegalArgumentException("No Cache associated with alias " + alias);
     }
@@ -285,7 +285,7 @@ public final class EhcacheManager implements PersistentCacheManager {
 
     <K, V> Ehcache<K, V> retrieve(Class<K> refKeyType, Class<V> refValueType) {
       if (keyType == refKeyType && valueType == refValueType) {
-        if(cache == null) {
+        if (cache == null) {
           synchronized (this) {
             boolean interrupted = false;
             try {

@@ -30,7 +30,7 @@ final class StatusTransitioner {
   private final AtomicReference<InternalStatus.Transition> currentState;
   private volatile Thread maintenanceLease;
 
-  private CopyOnWriteArrayList<StateChangeListener> listeners = new CopyOnWriteArrayList<StateChangeListener>();
+  private final CopyOnWriteArrayList<StateChangeListener> listeners = new CopyOnWriteArrayList<StateChangeListener>();
 
   StatusTransitioner() {
     this.currentState = new AtomicReference<InternalStatus.Transition>(InternalStatus.initial());
