@@ -30,6 +30,7 @@ import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
+import org.mockito.exceptions.verification.junit.ArgumentsAreDifferent;
 
 import java.util.HashMap;
 
@@ -252,8 +253,17 @@ public class EhcacheManagerTest {
       assertThat(cacheManager.getStatus(), is(Status.UNINITIALIZED));
       assertThat(e.getCause(), CoreMatchers.<Throwable>sameInstance(thrown));
     }
+    verify(cacheLoaderFactory).createCacheLoader("foobar", cacheConfiguration);
     verify(cacheLoaderFactory).releaseCacheLoader(loaderFoobar);
-    verify(cacheLoaderFactory, never()).releaseCacheLoader(loaderBar);
+    boolean verify = true;
+    try {
+      verify(cacheLoaderFactory).createCacheLoader("bar", cacheConfiguration);
+    } catch (ArgumentsAreDifferent e) {
+      verify = false;
+    }
+    if (verify) {
+      verify(cacheLoaderFactory).releaseCacheLoader(loaderBar);
+    }
   }
 
   @Test
