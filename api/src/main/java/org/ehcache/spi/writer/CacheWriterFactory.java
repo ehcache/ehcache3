@@ -17,6 +17,7 @@
 package org.ehcache.spi.writer;
 
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.spi.service.Service;
 
 /**
  * A factory {@link org.ehcache.spi.service.Service} that will create {@link org.ehcache.spi.writer.CacheWriter}
@@ -31,7 +32,7 @@ import org.ehcache.config.CacheConfiguration;
  *
  * @author Alex Snaps
  */
-public interface CacheWriterFactory {
+public interface CacheWriterFactory extends Service {
 
   /**
    * Invoked by the {@link org.ehcache.CacheManager} when a {@link org.ehcache.Cache} is being added to it.
@@ -43,7 +44,7 @@ public interface CacheWriterFactory {
    *
    * @return the {@link org.ehcache.spi.writer.CacheWriter} to be used by the {@link org.ehcache.Cache} or null if none
    */
-  <K, V> CacheWriter<? super K, ? extends V> createCacheWriter(String alias, CacheConfiguration<K, V> cacheConfiguration);
+  <K, V> CacheWriter<? super K, ? super V> createCacheWriter(String alias, CacheConfiguration<K, V> cacheConfiguration);
 
   /**
    * Invoked by {@link org.ehcache.CacheManager} when a {@link org.ehcache.Cache} is being removed from it.

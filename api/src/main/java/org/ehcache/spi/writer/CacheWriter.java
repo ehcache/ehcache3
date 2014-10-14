@@ -60,7 +60,7 @@ public interface CacheWriter<K, V> {
    * @see org.ehcache.Cache#replace(Object, Object, Object)
    * @see org.ehcache.Cache#replace(Object, Object)
    */
-  void write(K key, V oldValue, V newValue) throws Exception;
+  boolean write(K key, V oldValue, V newValue) throws Exception;
 
   /**
    * Writes multiple entries to the underlying system of record. These can either be new entries or updates to

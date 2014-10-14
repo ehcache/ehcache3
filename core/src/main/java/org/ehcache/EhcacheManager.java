@@ -27,6 +27,8 @@ import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
+import org.ehcache.spi.writer.CacheWriter;
+import org.ehcache.spi.writer.CacheWriterFactory;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -99,6 +101,10 @@ public class EhcacheManager implements PersistentCacheManager {
     final CacheLoader cacheLoader = ehcache.getCacheLoader();
     if (cacheLoader != null) {
       serviceLocator.findService(CacheLoaderFactory.class).releaseCacheLoader(cacheLoader);
+    }
+    final CacheWriter<?, ?> cacheWriter = ehcache.getCacheWriter();
+    if (cacheWriter != null) {
+      serviceLocator.findService(CacheWriterFactory.class).releaseCacheWriter(cacheWriter);
     }
   }
 

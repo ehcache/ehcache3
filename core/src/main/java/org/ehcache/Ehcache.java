@@ -52,6 +52,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.Functions.memoize;
 import static org.ehcache.exceptions.ExceptionFactory.newCacheLoaderException;
@@ -175,24 +176,16 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     } catch (CacheAccessException e) {
       putObserver.end(PutOutcome.FAILURE);
       try {
-        // just in case the write didn't happen:
         remappingFunction.apply(key, value);
-        store.remove(key);
-        resilienceStrategy.recoveredFrom(key, e);
-      } catch (CacheAccessException e1) {
-        resilienceStrategy.possiblyInconsistent(key, e, e1);
+      } finally {
+        removeKeysWithStrategy(Collections.singleton(key), e);
       }
     } catch(CacheWriterException e) {
       putObserver.end(PutOutcome.FAILURE);
-      try {
-        store.remove(key);
-        resilienceStrategy.recoveredFrom(key, e);
-        throw e;
-      } catch (CacheAccessException e1) {
-        // Should we pass the Store as a `ObliteratingThing` type that has only one method: obliterate(K)?
-        resilienceStrategy.possiblyInconsistent(key, e1, e);
-      }
+      removeKeysWithStrategy(Collections.singleton(key), e);
+      throw e;
     }
+
   }
 
   @Override
@@ -218,14 +211,32 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     statusTransitioner.checkAvailable();
     checkNonNull(key);
 
-    // cacheWriter.delete(key);
+    final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
+      @Override
+      public V apply(final K key, final V previousValue) {
+        try {
+          if (cacheWriter != null) {
+            cacheWriter.delete(key);
+          }
+        } catch (Exception e) {
+          throw newCacheWriterException(e);
+        }
+        return null;
+      }
+    });
 
     try {
-      store.remove(key);
+      store.computeIfPresent(key, remappingFunction);
       removeObserver.end(RemoveOutcome.SUCCESS);
     } catch (CacheAccessException e) {
-      // fall back to strategy?
-      removeObserver.end(RemoveOutcome.FAILURE);
+      try {
+        remappingFunction.apply(key, null);
+      } finally {
+        removeKeysWithStrategy(Collections.singleton(key), e);
+      }
+    } catch(CacheWriterException e) {
+      removeKeysWithStrategy(Collections.singleton(key), e);
+      throw e;
     }
   }
 
@@ -287,28 +298,55 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   public void putAll(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
     statusTransitioner.checkAvailable();
     checkNonNull(entries);
+    final Map<K, V> lastMappedEntries = new HashMap<K, V>();
     Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction =
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
       @Override
       public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+        lastMappedEntries.clear();
+        for (Map.Entry<? extends K, ? extends V> entry: entries) {
+          lastMappedEntries.put(entry.getKey(), entry.getValue());
+        }
+
         if (cacheWriter != null) {
+          Set<Map.Entry<? extends K, ? extends V>> toWrite = new HashSet<Map.Entry<? extends K, ? extends V>>();
+          Set<K> toRemove = new HashSet<K>();
+          for (Map.Entry<? extends K, ? extends V> entry: entries) {
+            if (entry.getValue() == null) {
+              toRemove.add(entry.getKey());
+            } else {
+              toWrite.add(entry);
+            }
+          }
           try {
-            cacheWriter.writeAll(entries);
+            if (!toWrite.isEmpty()) {
+              cacheWriter.writeAll(toWrite);
+            } 
+            
+            if (!toRemove.isEmpty()) {
+              cacheWriter.deleteAll(toRemove);
+            }
           } catch (Exception e) {
             throw newCacheWriterException(e);
           }
-          return entries;
         }
-        return Collections.<K, V>emptyMap().entrySet();
+        return entries;
       }
     };
 
+    KeysIterable keys = new KeysIterable(entries);
     try {
-      store.bulkCompute(new KeysIterable(entries), remappingFunction);
+      store.bulkCompute(keys, remappingFunction);
     } catch (CacheAccessException e) {
-      throw new RuntimeException(e);
-    } catch(CacheWriterException e) {
-      throw new RuntimeException(e);
+      // just in case the write didn't happen:
+      try {
+        remappingFunction.apply(lastMappedEntries.entrySet());
+      } finally {
+        removeKeysWithStrategy(keys, e);
+      }
+    } catch (CacheWriterException e) {
+      removeKeysWithStrategy(keys, e);
+      throw e;
     }
   }
 
@@ -316,29 +354,44 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   public void removeAll(final Iterable<? extends K> keys) {
     statusTransitioner.checkAvailable();
     checkNonNull(keys);
+    final Map<K, V> lastMappedEntries = new HashMap<K, V>();
     Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> removalFunction =
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+          Iterable<Map.Entry<K, V>> ret = new NullValuesIterable(entries);
+          lastMappedEntries.clear();
+          for (Map.Entry<K, V> entry: ret) {
+            lastMappedEntries.put(entry.getKey(), entry.getValue());
+          }
+
           if (cacheWriter != null) {
             try {
-              cacheWriter.deleteAll(new KeysIterable(entries));
+              // XXX should the return value here be wrapped in NullValuesIterable and returned? This is a potential subset of "keys"
+              cacheWriter.deleteAll(new KeysIterable(entries)); 
             } catch (Exception e) {
               throw newCacheWriterException(e);
             }
-            return new NullValuesIterable(entries);
           }
-          return Collections.<K, V>emptyMap().entrySet();
+          
+          return ret;
         }
       };
 
     try {
       store.bulkCompute(keys, removalFunction);
     } catch (CacheAccessException e) {
-      throw new RuntimeException(e);
-    } catch(CacheWriterException e) {
-      throw new RuntimeException(e);
+      // just in case the write didn't happen:
+      try {
+        removalFunction.apply(lastMappedEntries.entrySet());
+      } finally {
+        removeKeysWithStrategy(keys, e);
+      }
+    } catch (CacheWriterException e) {
+      removeKeysWithStrategy(keys, e);
+      throw e;
     }
+
   }
 
   @Override
@@ -364,16 +417,12 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
               return loaded;
             }
 
-            try {
-              if (cacheWriter != null) {
-                try {
-                  cacheWriter.write(k, null, value);
-                } catch (Exception e) {
-                  throw newCacheWriterException(e);
-                }
+            if (cacheWriter != null) {
+              try {
+                cacheWriter.write(k, null, value);
+              } catch (Exception e) {
+                throw newCacheWriterException(e);
               }
-            } catch (RuntimeException e) {
-              throw newCacheWriterException(e);
             }
             return value;
           }
@@ -417,7 +466,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
             if (cacheWriter != null) {
               try {
                 if(!cacheWriter.delete(k, value)) {
-                  // TODO ARGH!?!!! WHAT?!
+                  // TODO: revisit for #52
+                  return null; // remove cached value but don't set success flag - this is an inline repair
                 }
               } catch (Exception e) {
                 throw newCacheWriterException(e);
@@ -442,12 +492,14 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     try {
       store.compute(key, remappingFunction);
     } catch (CacheAccessException e) {
-      remappingFunction.apply(key, null);
       try {
-        store.remove(key);
-      } catch (CacheAccessException e1) {
-        resilienceStrategy.possiblyInconsistent(key, e, e1);
+        remappingFunction.apply(key, null);
+      } finally {
+        removeKeysWithStrategy(Collections.singleton(key), e);
       }
+    } catch (CacheWriterException e) {
+      removeKeysWithStrategy(Collections.singleton(key), e);
+      throw e;
     }
     return removed.get();
   }
@@ -456,25 +508,37 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   public V replace(final K key, final V value) {
     statusTransitioner.checkAvailable();
     checkNonNull(key, value);
-    Store.ValueHolder<V> old = null;
-
-    // cacheLoader.load(key);
-    // cacheWriter.write(key, oldValue, newValue); ?
+    final AtomicReference<V> old = new AtomicReference<V>();
+    final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
+      @Override
+      public V apply(final K k, final V inCache) {
+        if (cacheWriter != null) { 
+          try {
+            // XXX this needs to be an update, and not a blind write, and write(key, old, new) is wrong too.
+            // TODO - revisit under #75
+            cacheWriter.write(key, value);
+          } catch (Exception e) {
+            throw newCacheWriterException(e);
+          }
+        } 
+        old.set(inCache); // XXX this isn't right too - the value of old should be based on result of write(), if any
+        return inCache == null ? null : value;
+      }
+    });
 
     try {
-      old = store.get(key);
-      old = store.replace(key, value);
+      store.computeIfPresent(key, remappingFunction);
     } catch (CacheAccessException e) {
-      // roll back
       try {
-        if (old != null) {
-          store.replace(key, value, old.value());
-        }
-      } catch (CacheAccessException e1) {
-        // fall back to strategy
+        remappingFunction.apply(key, null);
+      } finally {
+        removeKeysWithStrategy(Collections.singleton(key), e);
       }
+    } catch(CacheWriterException e) {
+      removeKeysWithStrategy(Collections.singleton(key), e);
+      throw e;
     }
-    return old == null ? null : old.value();
+    return old.get();
   }
 
   @Override
@@ -482,20 +546,54 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     statusTransitioner.checkAvailable();
     checkNonNull(key, oldValue, newValue);
 
-    // cacheLoader.load(key); Though should we always load? Or can we be lazy...
-    // cacheWriter.write(key, oldValue, newValue); ?
-
-    boolean success = false;
+    final AtomicBoolean success = new AtomicBoolean();
+    final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
+      @Override
+      public V apply(final K k, final V inCache) {
+        if (inCache != null) {
+          if (inCache.equals(oldValue)) {
+            if (cacheWriter != null) {
+              try {
+                success.set(cacheWriter.write(key, oldValue, newValue));
+                if (!success.get()) {
+                  // repair cache TODO: revisit under #52
+                  return cacheLoader != null ? cacheLoader.load(key) : null;
+                }
+              } catch (Exception e) {
+                throw newCacheWriterException(e);
+              }
+            } else {
+              success.set(true);
+            }
+            return newValue; 
+          }
+          return inCache;
+        } else {
+          if (cacheWriter != null) {
+            try {
+              success.set(cacheWriter.write(key, oldValue, newValue));
+            } catch (Exception e) {
+              throw newCacheWriterException(e);
+            }
+          }
+          return null;
+        }
+      }
+    });
     try {
-      success = store.replace(key, oldValue, newValue);
+      store.compute(key, remappingFunction);
     } catch (CacheAccessException e) {
       try {
-        store.replace(key, newValue, oldValue);
-      } catch (CacheAccessException e1) {
-        // fall back to strategy
+        remappingFunction.apply(key, null);
+      } finally {
+        removeKeysWithStrategy(Collections.singleton(key), e);
       }
+    } catch(CacheWriterException e) {
+      removeKeysWithStrategy(Collections.singleton(key), e);
+      throw e;
     }
-    return success;
+    return success.get();
+
   }
 
   @Override
@@ -592,6 +690,18 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
   }
 
+  private void removeKeysWithStrategy(Iterable<? extends K> keys, Exception e) {
+    for (K key: keys) {
+      try {
+        store.remove(key);
+        resilienceStrategy.recoveredFrom(key, e);
+      } catch (CacheAccessException e1) {
+        resilienceStrategy.possiblyInconsistent(key, e1, e);
+      }
+    }
+ 
+  }
+  
   CacheLoader<? super K, ? extends V> getCacheLoader() {
     return cacheLoader;
   }
@@ -599,6 +709,10 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   @Override
   public CacheStatistics getStatistics() {
     throw new UnsupportedOperationException("implement me!"); // XXX:
+  }
+
+  CacheWriter<? super K, ? super V> getCacheWriter() {
+    return cacheWriter;
   }
 
   private static class RuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, V> {

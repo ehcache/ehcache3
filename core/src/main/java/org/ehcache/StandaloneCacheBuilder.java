@@ -28,6 +28,7 @@ import org.ehcache.function.Predicate;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
+import org.ehcache.spi.writer.CacheWriter;
 
 /**
  * @author Alex Snaps
@@ -41,6 +42,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   private Predicate<Cache.Entry<K, V>> evictionVeto;
   private Comparator<Cache.Entry<K, V>> evictionPrioritizer;
   private CacheLoader<? super K, ? extends V> cacheLoader;
+  private CacheWriter<? super K, ? super V> cacheWriter;
 
   public StandaloneCacheBuilder(final Class<K> keyType, final Class<V> valueType) {
     this.keyType = keyType;
@@ -55,7 +57,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, new ServiceConfiguration<?>[]{});
     
-    final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoader);
+    final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoader, cacheWriter);
     return (T) ehcache;
   }
 
@@ -91,8 +93,12 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     if (classLoader == null) {
       throw new IllegalArgumentException();
     }
-    
     this.classLoader = classLoader;
+    return this;
+  }
+  
+  public final StandaloneCacheBuilder<K, V, T> writingWith(CacheWriter<? super K, ? super V> cacheWriter) {
+    this.cacheWriter = cacheWriter;
     return this;
   }
           
