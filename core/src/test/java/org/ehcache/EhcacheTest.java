@@ -24,7 +24,8 @@ import java.util.Collections;
 import java.util.Iterator;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -164,6 +165,18 @@ public class EhcacheTest {
     } catch (IllegalStateException e) {
       assertThat(e.getMessage().contains(Status.UNINITIALIZED.name()), is(true));
     }
+  }
+
+  @Test
+  public void testDelegatesLifecycleCallsToStore() {
+    final Store store = mock(Store.class);
+    Ehcache ehcache = new Ehcache(store);
+    ehcache.init();
+    verify(store).init();
+    ehcache.close();
+    verify(store).close();
+    ehcache.toMaintenance();
+    verify(store).maintenance();
   }
 
   @Test

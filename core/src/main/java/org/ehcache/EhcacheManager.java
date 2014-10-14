@@ -160,16 +160,27 @@ public final class EhcacheManager implements PersistentCacheManager {
           throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
         }
       }
-      serviceLocator.startAllServices();
-      Deque<Cache<?, ?>> initiatedCaches = new ArrayDeque<Cache<?, ?>>();
+      try {
+        serviceLocator.startAllServices();
+      } catch (Exception e) {
+        st.failed();
+        throw new StateTransitionException(e);
+      }
+      Deque<String> initiatedCaches = new ArrayDeque<String>();
       try {
         for (Entry<String, CacheConfiguration<?, ?>> cacheConfigurationEntry : configuration.getCacheConfigurations()
             .entrySet()) {
-          initiatedCaches.push(createCache(cacheConfigurationEntry.getKey(), cacheConfigurationEntry.getValue()));
+          final String alias = cacheConfigurationEntry.getKey();
+          createCache(alias, cacheConfigurationEntry.getValue());
+          initiatedCaches.push(alias);
         }
-      } catch (IllegalArgumentException e) {
+      } catch (RuntimeException e) {
         while (!initiatedCaches.isEmpty()) {
-          ((Ehcache)initiatedCaches.pop()).close();
+          try {
+            removeCache(initiatedCaches.pop());
+          } catch (Exception exceptionClosingCache) {
+            // todo probably should log these exceptions
+          }
         }
         throw e;
       }
@@ -189,16 +200,33 @@ public final class EhcacheManager implements PersistentCacheManager {
   public void close() {
     final StatusTransitioner.Transition st = statusTransitioner.close();
 
+    Exception firstException = null;
     try {
       for (String alias : caches.keySet()) {
-        removeCache(alias);
+        try {
+          removeCache(alias);
+        } catch (Exception e) {
+          if(firstException == null) {
+            firstException = e;
+          } else {
+            // todo probably should log these exceptions
+          }
+        }
       }
       serviceLocator.stopAllServices();
-    } catch (RuntimeException e) {
-      st.failed();
+    } catch (Exception e) {
+      if(firstException != null) {
+        e = firstException;
+      } else {
+        // todo probably should log these exceptions
+      }
       throw new StateTransitionException(e);
+    } finally {
+      st.succeeded();
     }
-    st.succeeded();
+    if(firstException != null) {
+      throw new StateTransitionException(firstException);
+    }
   }
 
   public Maintainable toMaintenance() {

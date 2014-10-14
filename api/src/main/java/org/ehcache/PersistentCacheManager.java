@@ -24,10 +24,10 @@ package org.ehcache;
 public interface PersistentCacheManager extends CacheManager {
 
   /**
-   * Returns
+   * Lets you manipulate the persistent data structures for this {@link org.ehcache.PersistentCacheManager}
    *
-   * @return
-   * @throws java.lang.IllegalStateException should the
+   * @return a {@link org.ehcache.Maintainable} for this {@link org.ehcache.PersistentCacheManager}
+   * @throws java.lang.IllegalStateException if state {@link org.ehcache.Status#MAINTENANCE} couldn't be reached
    */
   Maintainable toMaintenance();
 

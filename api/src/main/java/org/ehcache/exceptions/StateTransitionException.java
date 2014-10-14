@@ -21,7 +21,7 @@ package org.ehcache.exceptions;
  */
 public class StateTransitionException extends RuntimeException {
 
-  public StateTransitionException(final RuntimeException e) {
+  public StateTransitionException(final Exception e) {
     super(e.getMessage(), e);
   }
 }

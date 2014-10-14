@@ -486,11 +486,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     final StatusTransitioner.Transition st = statusTransitioner.close();
     try {
       store.close();
-    } catch (RuntimeException e) {
-      st.failed();
-      throw e;
+    } finally {
+      st.succeeded();
     }
-    st.succeeded();
   }
 
   public Maintainable toMaintenance() {
@@ -507,6 +505,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
           Ehcache.this.destroy();
         }
       };
+      store.maintenance();
       st.succeeded();
       return maintainable;
     } catch (RuntimeException e) {

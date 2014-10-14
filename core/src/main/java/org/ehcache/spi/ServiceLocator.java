@@ -152,7 +152,7 @@ public final class ServiceLocator {
     }
   }
 
-  public void startAllServices() {
+  public void startAllServices() throws Exception {
     Deque<Service> started = new ArrayDeque<Service>();
     final Lock lock = runningLock.writeLock();
     lock.lock();
@@ -164,17 +164,22 @@ public final class ServiceLocator {
         service.start();
         started.push(service);
       }
-    } catch (RuntimeException e) {
+    } catch (Exception e) {
       while(!started.isEmpty()) {
-        started.pop().stop();
+        try {
+          started.pop().stop();
+        } catch (Exception e1) {
+          // todo probably should log these exceptions
+        }
       }
+      throw e;
     } finally {
       lock.unlock();
     }
   }
 
-  public void stopAllServices() {
-    Deque<Service> stopped = new ArrayDeque<Service>();
+  public void stopAllServices() throws Exception {
+    Exception firstException = null;
     Lock lock = runningLock.writeLock();
     lock.lock();
     try {
@@ -182,15 +187,21 @@ public final class ServiceLocator {
         throw new IllegalStateException("Already stopped!");
       }
       for (Service service : services.values()) {
-        service.stop();
-        stopped.push(service);
-      }
-    } catch (RuntimeException e) {
-      while(!stopped.isEmpty()) {
-        stopped.pop().start();
+        try {
+          service.stop();
+        } catch (Exception e) {
+          if (firstException == null) {
+            firstException = e;
+          } else {
+            // todo probably should log these exceptions
+          }
+        }
       }
     } finally {
       lock.unlock();
+    }
+    if(firstException != null) {
+      throw firstException;
     }
   }
 }

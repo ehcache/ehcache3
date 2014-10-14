@@ -21,7 +21,17 @@ package org.ehcache;
  */
 public interface Maintainable {
 
+  /**
+   * Creates all persistent data structures required to function
+   *
+   * @throws java.lang.IllegalStateException if data structures exist already
+   */
   void create();
 
+  /**
+   * Destroys all persistent data structures
+   *
+   * @throws java.lang.IllegalStateException if data structures don't exist
+   */
   void destroy();
 }

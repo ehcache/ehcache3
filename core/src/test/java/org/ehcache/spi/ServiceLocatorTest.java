@@ -18,14 +18,20 @@ package org.ehcache.spi;
 
 import org.ehcache.Ehcache;
 import org.ehcache.spi.cache.CacheProvider;
+import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * @author Alex Snaps
@@ -65,6 +71,45 @@ public class ServiceLocatorTest {
     assertThat(provider.findService(FooProvider.class), nullValue());
     assertThat(provider.findService(CacheProvider.class), sameInstance(service));
   }
+
+  @Test
+  public void testAttemptsToStopStartedServicesOnInitFailure() {
+    Service s1 = new ParentTestService();
+    FancyCacheProvider s2 = new FancyCacheProvider();
+
+    ServiceLocator locator = new ServiceLocator(s1, s2);
+    try {
+      locator.startAllServices();
+    } catch (Exception e) {
+    }
+    assertThat(s2.startStopCounter, is(0));
+  }
+
+  @Test
+  public void testAttemptsToStopAllServicesOnCloseFailure() {
+    Service s1 = mock(CacheProvider.class);
+    Service s2 = mock(FooProvider.class);
+    Service s3 = mock(CacheLoaderFactory.class);
+
+    ServiceLocator locator = new ServiceLocator(s1, s2, s3);
+    try {
+      locator.startAllServices();
+    } catch (Exception e) {
+      fail();
+    }
+    final RuntimeException thrown = new RuntimeException();
+    doThrow(thrown).when(s1).stop();
+
+    try {
+      locator.stopAllServices();
+      fail();
+    } catch (Exception e) {
+      assertThat(e, CoreMatchers.<Exception>sameInstance(thrown));
+    }
+    verify(s1).stop();
+    verify(s2).stop();
+    verify(s3).stop();
+  }
 }
 
 interface FooProvider extends Service {
@@ -81,9 +126,8 @@ class ParentTestService implements FooProvider {
   }
 
   @Override
-  public void stop() {
-    throw new UnsupportedOperationException();
-  }
+  public void stop() { }
+
 }
 
 class ChildTestService extends ParentTestService {
@@ -95,6 +139,8 @@ class ChildTestService extends ParentTestService {
 }
 
 class FancyCacheProvider implements CacheProvider {
+
+  int startStopCounter = 0;
 
   @Override
   public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
@@ -108,12 +154,12 @@ class FancyCacheProvider implements CacheProvider {
 
   @Override
   public void start() {
-    throw new UnsupportedOperationException("Implement me!");
+    ++startStopCounter;
   }
 
   @Override
   public void stop() {
-    throw new UnsupportedOperationException();
+    --startStopCounter;
   }
 }
 

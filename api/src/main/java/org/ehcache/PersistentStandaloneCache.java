@@ -24,8 +24,10 @@ package org.ehcache;
 public interface PersistentStandaloneCache<K, V> extends StandaloneCache<K, V> {
 
   /**
-   * Destroy all persistent data managed by this {@link org.ehcache.CacheManager},
-   * like persistent {@link Cache} data
+   * Lets you manipulate the persistent data structures for this {@link org.ehcache.PersistentStandaloneCache}
+   *
+   * @return a {@link org.ehcache.Maintainable} for this {@link org.ehcache.PersistentStandaloneCache}
+   * @throws java.lang.IllegalStateException if state {@link org.ehcache.Status#MAINTENANCE} couldn't be reached
    */
   Maintainable toMaintenance();
 }
