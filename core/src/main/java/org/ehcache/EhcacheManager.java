@@ -19,13 +19,16 @@ package org.ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.events.CacheManagerListener;
+import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.service.ServiceConfiguration;
 
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -144,6 +147,10 @@ public final class EhcacheManager implements PersistentCacheManager {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public void init() {
     final StatusTransitioner.Transition st = statusTransitioner.init();
 
@@ -153,14 +160,24 @@ public final class EhcacheManager implements PersistentCacheManager {
           throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
         }
       }
-      for (Entry<String, CacheConfiguration<?, ?>> cacheConfigurationEntry : configuration.getCacheConfigurations().entrySet()) {
-        createCache(cacheConfigurationEntry.getKey(), cacheConfigurationEntry.getValue());
+      serviceLocator.startAllServices();
+      Deque<Cache<?, ?>> initiatedCaches = new ArrayDeque<Cache<?, ?>>();
+      try {
+        for (Entry<String, CacheConfiguration<?, ?>> cacheConfigurationEntry : configuration.getCacheConfigurations()
+            .entrySet()) {
+          initiatedCaches.push(createCache(cacheConfigurationEntry.getKey(), cacheConfigurationEntry.getValue()));
+        }
+      } catch (IllegalArgumentException e) {
+        while (!initiatedCaches.isEmpty()) {
+          ((Ehcache)initiatedCaches.pop()).close();
+        }
+        throw e;
       }
-      st.succeeded();
     } catch (RuntimeException e) {
       st.failed();
-      throw e;
+      throw new StateTransitionException(e);
     }
+    st.succeeded();
   }
 
   @Override
@@ -177,11 +194,11 @@ public final class EhcacheManager implements PersistentCacheManager {
         removeCache(alias);
       }
       serviceLocator.stopAllServices();
-      st.succeeded();
     } catch (RuntimeException e) {
       st.failed();
-      throw e;
+      throw new StateTransitionException(e);
     }
+    st.succeeded();
   }
 
   public Maintainable toMaintenance() {

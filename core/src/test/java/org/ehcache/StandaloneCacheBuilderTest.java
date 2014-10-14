@@ -60,6 +60,11 @@ public class StandaloneCacheBuilderTest {
     }
 
     @Override
+    public void init() {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
     public void close() {
       throw new UnsupportedOperationException("Implement me!");
     }

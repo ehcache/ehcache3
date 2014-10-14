@@ -32,6 +32,15 @@ public interface CacheManager {
   void removeCache(String alias);
 
   /**
+   * Attempts at having this CacheManager go to {@link org.ehcache.Status#AVAILABLE}, starting all
+   * {@link org.ehcache.spi.service.Service} instances managed by this {@link org.ehcache.CacheManager}, as well
+   * as all {@link org.ehcache.Cache} pre registered with it.
+   *
+   * @throws java.lang.IllegalStateException if the CacheManager isn't in {@link org.ehcache.Status#UNINITIALIZED} state
+   */
+  void init();
+
+  /**
    * Releases all data held in {@link Cache} instances managed by this {@link CacheManager}, as well as all
    * {@link org.ehcache.spi.service.Service} this instance provides to managed {@link Cache} instances.
    */

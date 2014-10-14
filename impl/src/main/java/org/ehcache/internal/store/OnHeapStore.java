@@ -302,6 +302,11 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     }
 
     @Override
+    public void start() {
+      // nothing to do
+    }
+
+    @Override
     public void stop() {
       // nothing to do
     }

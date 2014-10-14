@@ -24,6 +24,14 @@ package org.ehcache;
 public interface PersistentCacheManager extends CacheManager {
 
   /**
+   * Returns
+   *
+   * @return
+   * @throws java.lang.IllegalStateException should the
+   */
+  Maintainable toMaintenance();
+
+  /**
    * Destroys all data persistent data associated with the aliased {@link Cache} instance managed
    * by this {@link org.ehcache.CacheManager}
    *

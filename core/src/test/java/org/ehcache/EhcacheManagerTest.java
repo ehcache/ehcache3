@@ -19,6 +19,7 @@ package org.ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.events.CacheManagerListener;
+import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
@@ -57,8 +58,9 @@ public class EhcacheManagerTest {
     try {
       ehcacheManager.init();
       fail("Should have thrown...");
-    } catch (IllegalArgumentException e) {
+    } catch (StateTransitionException e) {
       assertTrue(e.getMessage().contains(NoSuchService.class.getName()));
+      assertTrue(e.getCause().getMessage().contains(NoSuchService.class.getName()));
     }
   }
 
@@ -234,6 +236,11 @@ public class EhcacheManagerTest {
   }
 
   static class NoSuchService implements Service {
+
+    @Override
+    public void start() {
+      throw new UnsupportedOperationException("Implement me!");
+    }
 
     @Override
     public void stop() {

@@ -76,6 +76,11 @@ interface FooProvider extends Service {
 class ParentTestService implements FooProvider {
 
   @Override
+  public void start() {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
   public void stop() {
     throw new UnsupportedOperationException();
   }
@@ -83,6 +88,10 @@ class ParentTestService implements FooProvider {
 
 class ChildTestService extends ParentTestService {
 
+  @Override
+  public void start() {
+    throw new UnsupportedOperationException("Implement me!");
+  }
 }
 
 class FancyCacheProvider implements CacheProvider {
@@ -95,6 +104,11 @@ class FancyCacheProvider implements CacheProvider {
   @Override
   public void releaseCache(final Ehcache<?, ?> resource) {
     //
+  }
+
+  @Override
+  public void start() {
+    throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
@@ -112,6 +126,11 @@ class DullCacheProvider implements CacheProvider {
   @Override
   public void releaseCache(final Ehcache<?, ?> resource) {
     //
+  }
+
+  @Override
+  public void start() {
+    throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override

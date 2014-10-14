@@ -466,15 +466,19 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     throw new UnsupportedOperationException("Implement me!");
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public void init() {
     final StatusTransitioner.Transition st = statusTransitioner.init();
     try {
       store.init();
-      st.succeeded();
     } catch (RuntimeException e) {
       st.failed();
       throw e;
     }
+    st.succeeded();
   }
 
   @Override
@@ -482,11 +486,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     final StatusTransitioner.Transition st = statusTransitioner.close();
     try {
       store.close();
-      st.succeeded();
     } catch (RuntimeException e) {
       st.failed();
       throw e;
     }
+    st.succeeded();
   }
 
   public Maintainable toMaintenance() {
