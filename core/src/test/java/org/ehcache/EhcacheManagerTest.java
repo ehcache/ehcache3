@@ -263,16 +263,16 @@ public class EhcacheManagerTest {
     final CacheLoaderFactory cacheLoaderFactory = mock(CacheLoaderFactory.class);
     when(storeProvider.createStore(Matchers.<Store.Configuration>anyObject())).thenReturn(mock(Store.class));
     EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder()
-        .addCache("foo", cacheConfiguration)
-        .addCache("bar", cacheConfiguration)
-        .addCache("foobar", cacheConfiguration)
+        .addCache("a", cacheConfiguration)
+        .addCache("b", cacheConfiguration)
+        .addCache("c", cacheConfiguration)
         .build(), new ServiceLocator(storeProvider, cacheLoaderFactory));
     final CacheLoader loaderFoobar = mock(CacheLoader.class);
     final CacheLoader loaderBar = mock(CacheLoader.class);
     final CacheLoader loaderFoo = mock(CacheLoader.class);
-    when(cacheLoaderFactory.createCacheLoader("foobar", cacheConfiguration)).thenReturn(loaderFoobar);
-    when(cacheLoaderFactory.createCacheLoader("bar", cacheConfiguration)).thenReturn(loaderBar);
-    when(cacheLoaderFactory.createCacheLoader("foo", cacheConfiguration)).thenReturn(loaderFoo);
+    when(cacheLoaderFactory.createCacheLoader("c", cacheConfiguration)).thenReturn(loaderFoobar);
+    when(cacheLoaderFactory.createCacheLoader("b", cacheConfiguration)).thenReturn(loaderBar);
+    when(cacheLoaderFactory.createCacheLoader("a", cacheConfiguration)).thenReturn(loaderFoo);
     cacheManager.init();
 
     final RuntimeException thrown = new RuntimeException();
