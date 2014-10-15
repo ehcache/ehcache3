@@ -17,6 +17,7 @@ package org.ehcache;
 
 import org.ehcache.exceptions.BulkCacheLoaderException;
 import org.ehcache.exceptions.CacheLoaderException;
+import org.ehcache.statistics.CacheStatistics;
 
 import java.util.Map;
 import java.util.Set;
@@ -172,6 +173,8 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * the value for the key
    */
   boolean replace(K key, V oldValue, V newValue) throws CacheLoaderException;
+  
+  CacheStatistics getStatistics();
   
   /**
    * Represent a mapping of key to value held in a Cache
