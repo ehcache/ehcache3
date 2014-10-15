@@ -19,6 +19,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.exceptions.BulkCacheLoaderException;
 import org.ehcache.exceptions.CacheLoaderException;
+import org.ehcache.statistics.CacheStatistics;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -170,6 +171,8 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return the configuration currently in sue
    */
   CacheRuntimeConfiguration<K, V> getRuntimeConfiguration();
+  
+  CacheStatistics getStatistics();
   
   /**
    * Represent a mapping of key to value held in a Cache

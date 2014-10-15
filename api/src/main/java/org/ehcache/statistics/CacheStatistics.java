@@ -14,7 +14,33 @@
  * limitations under the License.
  */
 
-dependencies {
-  compile project(':api'), 'org.terracotta.internal:statistics:1.0.3'
-  testCompile project(':spi-tester')
+package org.ehcache.statistics;
+
+/**
+ * 
+ * @author Hung Huynh
+ *
+ */
+public interface CacheStatistics {
+  long getCacheHits();
+  
+  float getCacheHitPercentage();
+
+  long getCacheMisses();
+
+  float getCacheMissPercentage();
+
+  long getCacheGets();
+
+  long getCachePuts();
+
+  long getCacheRemovals();
+
+  long getCacheEvictions();
+
+  float getAverageGetTime();
+
+  float getAveragePutTime();
+
+  float getAverageRemoveTime();
 }

@@ -28,6 +28,11 @@ import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriter;
+import org.ehcache.statistics.CacheStatistics;
+import org.ehcache.statistics.CacheOperationOutcomes.GetOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.PutOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.RemoveOutcome;
+import org.terracotta.statistics.observer.OperationObserver;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,6 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.ehcache.Functions.memoize;
 import static org.ehcache.exceptions.ExceptionFactory.newCacheLoaderException;
 import static org.ehcache.exceptions.ExceptionFactory.newCacheWriterException;
+import static org.terracotta.statistics.StatisticsBuilder.operation;
 
 /**
  * @author Alex Snaps
@@ -49,7 +55,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   private final CacheLoader<? super K, ? extends V> cacheLoader;
   private final CacheWriter<? super K, ? super V> cacheWriter;
   private final ResilienceStrategy<K, V> resilienceStrategy;
-
+  
+  private final OperationObserver<GetOutcome> getObserver = operation(GetOutcome.class).named("get").of(this).tag("cache").build();
+  private final OperationObserver<PutOutcome> putObserver = operation(PutOutcome.class).named("put").of(this).tag("cache").build();
+  private final OperationObserver<RemoveOutcome> removeObserver = operation(RemoveOutcome.class).named("remove").of(this).tag("cache").build();
+  
   public Ehcache(final Store<K, V> store, ServiceConfiguration<? extends Service>... configs) {
     this(store, null, configs);
   }
@@ -77,6 +87,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public V get(final K key) throws CacheLoaderException {
+    getObserver.begin();
     checkNonNull(key);
     final Function<K, V> mappingFunction = memoize(
         new Function<K, V>() {
@@ -98,10 +109,15 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       final Store.ValueHolder<V> valueHolder = store.computeIfAbsent(key, mappingFunction);
 
       // Check for expiry first
-      return valueHolder == null ? null : valueHolder.value();
-
+      if (valueHolder == null) {
+        getObserver.end(GetOutcome.MISS_NOT_FOUND);
+        return null;
+      } else {
+        getObserver.end(GetOutcome.HIT);
+        return valueHolder.value();
+      }
     } catch (CacheAccessException e) {
-
+      getObserver.end(GetOutcome.MISS_NOT_FOUND);
       // So we either didn't load, or that's a miss in the SoR as well
       try {
         // If the former, let's clean up
@@ -118,6 +134,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public void put(final K key, final V value) {
+    putObserver.begin();
     checkNonNull(key, value);
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
       @Override
@@ -135,6 +152,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
     try {
       store.compute(key, remappingFunction);
+      putObserver.end(PutOutcome.ADDED);
     } catch (CacheAccessException e) {
       try {
         // just in case the write didn't happen:
@@ -174,6 +192,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public void remove(final K key) {
+    removeObserver.begin();
     checkNonNull(key);
 
     // cacheWriter.delete(key);
@@ -182,6 +201,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       store.remove(key);
     } catch (CacheAccessException e) {
       // fall back to strategy?
+    } finally {
+      removeObserver.end(RemoveOutcome.SUCCESS);
     }
   }
 
@@ -474,6 +495,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   CacheLoader<? super K, ? extends V> getCacheLoader() {
     return cacheLoader;
+  }
+  
+  @Override
+  public CacheStatistics getStatistics() {
+    throw new UnsupportedOperationException("Implement me!");
   }
 
   private class CacheEntryIterator implements Iterator<Entry<K, V>> {

@@ -19,6 +19,7 @@ package org.ehcache;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.StandaloneCacheConfiguration;
 import org.ehcache.spi.ServiceLocator;
+import org.ehcache.statistics.CacheStatistics;
 import org.junit.Test;
 
 import java.util.Iterator;
@@ -131,6 +132,11 @@ public class StandaloneCacheBuilderTest {
 
     @Override
     public void removeAll(Iterable<? extends K> keys) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+    
+    @Override
+    public CacheStatistics getStatistics() {
       throw new UnsupportedOperationException("Implement me!");
     }
   }
