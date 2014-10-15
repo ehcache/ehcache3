@@ -21,6 +21,7 @@ import org.ehcache.events.StateChangeListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoaderException;
 import org.ehcache.exceptions.CacheWriterException;
+import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.resilience.ResilienceStrategy;
@@ -476,7 +477,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       store.init();
     } catch (RuntimeException e) {
       st.failed();
-      throw e;
+      throw new StateTransitionException(e);
     }
     st.succeeded();
   }
@@ -486,9 +487,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     final StatusTransitioner.Transition st = statusTransitioner.close();
     try {
       store.close();
-    } finally {
-      st.succeeded();
+    } catch (RuntimeException e) {
+      st.failed();
+      throw new StateTransitionException(e);
     }
+    st.succeeded();
   }
 
   public Maintainable toMaintenance() {
@@ -510,7 +513,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       return maintainable;
     } catch (RuntimeException e) {
       st.failed();
-      throw e;
+      throw new StateTransitionException(e);
     }
   }
 

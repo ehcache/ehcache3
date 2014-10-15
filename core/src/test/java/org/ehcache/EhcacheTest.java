@@ -17,6 +17,7 @@
 package org.ehcache;
 
 import org.ehcache.events.StateChangeListener;
+import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.cache.Store;
 import org.junit.Test;
 
@@ -26,6 +27,7 @@ import java.util.Iterator;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -177,6 +179,49 @@ public class EhcacheTest {
     verify(store).close();
     ehcache.toMaintenance();
     verify(store).maintenance();
+  }
+
+  @Test
+  public void testFailingTransitionGoesToLowestStatus() {
+    final Store store = mock(Store.class);
+    Ehcache ehcache = new Ehcache(store);
+    doThrow(new RuntimeException()).when(store).init();
+    try {
+      ehcache.init();
+      fail();
+    } catch (StateTransitionException e) {
+      assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
+    }
+
+    reset(store);
+    ehcache.init();
+    assertThat(ehcache.getStatus(), is(Status.AVAILABLE));
+    doThrow(new RuntimeException()).when(store).close();
+    try {
+      ehcache.close();
+      fail();
+    } catch (StateTransitionException e) {
+      assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
+    }
+
+    doThrow(new RuntimeException()).when(store).maintenance();
+    try {
+      ehcache.toMaintenance();
+      fail();
+    } catch (StateTransitionException e) {
+      assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
+    }
+
+    reset(store);
+    ehcache.toMaintenance();
+    assertThat(ehcache.getStatus(), is(Status.MAINTENANCE));
+    doThrow(new RuntimeException()).when(store).close();
+    try {
+      ehcache.close();
+      fail();
+    } catch (StateTransitionException e) {
+      assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
+    }
   }
 
   @Test
