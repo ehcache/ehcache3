@@ -123,7 +123,7 @@ public enum InternalStatus {
     }
 
     public synchronized void failed() {
-      done = from();
+      done = to.compareTo(from()) > 0 ? from() : to;
       notifyAll();
     }
 

@@ -215,18 +215,15 @@ public final class EhcacheManager implements PersistentCacheManager {
       }
       serviceLocator.stopAllServices();
     } catch (Exception e) {
-      if(firstException != null) {
-        e = firstException;
-      } else {
-        // todo probably should log these exceptions
+      if(firstException == null) {
+        firstException = e;
       }
-      throw new StateTransitionException(e);
-    } finally {
-      st.succeeded();
     }
     if(firstException != null) {
+      st.failed();
       throw new StateTransitionException(firstException);
     }
+    st.succeeded();
   }
 
   public Maintainable toMaintenance() {

@@ -31,6 +31,18 @@ import static org.mockito.Mockito.verify;
 public class StatusTransitionerTest {
 
   @Test
+  public void testTransitionsToLowestStateOnFailure() {
+    StatusTransitioner transitioner = new StatusTransitioner();
+    assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
+    transitioner.init().failed();
+    assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
+    transitioner.init().succeeded();
+    assertThat(transitioner.currentStatus(), is(Status.AVAILABLE));
+    transitioner.close().failed();
+    assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
+  }
+
+  @Test
   public void testFiresListeners() {
     StatusTransitioner transitioner = new StatusTransitioner();
     final StateChangeListener listener = mock(StateChangeListener.class);
