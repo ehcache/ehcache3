@@ -30,20 +30,18 @@ import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
-import org.mockito.exceptions.verification.junit.ArgumentsAreDifferent;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.ConfigurationBuilder.newConfigurationBuilder;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -230,22 +228,36 @@ public class EhcacheManagerTest {
 
   @Test
   public void testClosesStartedCachesDownWhenInitThrows() {
+    final Set<Cache<?,?>> caches = new HashSet<Cache<?, ?>>();
     final CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder().buildConfig(Object.class, Object.class);
     final Store.Provider storeProvider = mock(Store.Provider.class);
-    final CacheLoaderFactory cacheLoaderFactory = mock(CacheLoaderFactory.class);
+    final RuntimeException thrown = new RuntimeException();
     when(storeProvider.createStore(Matchers.<Store.Configuration>anyObject())).thenReturn(mock(Store.class));
     EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder()
         .addCache("foo", cacheConfiguration)
         .addCache("bar", cacheConfiguration)
         .addCache("foobar", cacheConfiguration)
-        .build(), new ServiceLocator(storeProvider, cacheLoaderFactory));
-    final CacheLoader loaderFoobar = mock(CacheLoader.class);
-    final CacheLoader loaderBar = mock(CacheLoader.class);
-    when(cacheLoaderFactory.createCacheLoader("foobar", cacheConfiguration)).thenReturn(loaderFoobar);
-    when(cacheLoaderFactory.createCacheLoader("bar", cacheConfiguration)).thenReturn(loaderBar);
+        .build(), new ServiceLocator(storeProvider)) {
 
-    final RuntimeException thrown = new RuntimeException();
-    when(cacheLoaderFactory.createCacheLoader("foo", cacheConfiguration)).thenThrow(thrown);
+      @Override
+      <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config, final Class<K> keyType, final Class<V> valueType) {
+        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
+        caches.add(ehcache);
+        if(caches.size() == 1) {
+          when(storeProvider.createStore(Matchers.<Store.Configuration<K,V>>anyObject(),
+              Matchers.<ServiceConfiguration<?>>anyVararg()))
+              .thenThrow(thrown);
+        }
+        return ehcache;
+      }
+
+      @Override
+      void closeEhcache(final String alias, final Ehcache ehcache) {
+        super.closeEhcache(alias, ehcache);
+        caches.remove(ehcache);
+      }
+    };
+
     try {
       cacheManager.init();
       fail();
@@ -253,40 +265,40 @@ public class EhcacheManagerTest {
       assertThat(cacheManager.getStatus(), is(Status.UNINITIALIZED));
       assertThat(e.getCause(), CoreMatchers.<Throwable>sameInstance(thrown));
     }
-    verify(cacheLoaderFactory).createCacheLoader("foobar", cacheConfiguration);
-    verify(cacheLoaderFactory).releaseCacheLoader(loaderFoobar);
-    boolean verify = true;
-    try {
-      verify(cacheLoaderFactory).createCacheLoader("bar", cacheConfiguration);
-    } catch (ArgumentsAreDifferent e) {
-      verify = false;
-    }
-    if (verify) {
-      verify(cacheLoaderFactory).releaseCacheLoader(loaderBar);
-    }
+    assertThat(caches.isEmpty(), is(true));
   }
 
   @Test
   public void testClosesAllCachesDownWhenCloseThrows() {
+    final Set<String> caches = new HashSet<String>();
     final CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder().buildConfig(Object.class, Object.class);
     final Store.Provider storeProvider = mock(Store.Provider.class);
-    final CacheLoaderFactory cacheLoaderFactory = mock(CacheLoaderFactory.class);
+    final RuntimeException thrown = new RuntimeException();
     when(storeProvider.createStore(Matchers.<Store.Configuration>anyObject())).thenReturn(mock(Store.class));
     EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder()
-        .addCache("a", cacheConfiguration)
-        .addCache("b", cacheConfiguration)
-        .addCache("c", cacheConfiguration)
-        .build(), new ServiceLocator(storeProvider, cacheLoaderFactory));
-    final CacheLoader loaderFoobar = mock(CacheLoader.class);
-    final CacheLoader loaderBar = mock(CacheLoader.class);
-    final CacheLoader loaderFoo = mock(CacheLoader.class);
-    when(cacheLoaderFactory.createCacheLoader("c", cacheConfiguration)).thenReturn(loaderFoobar);
-    when(cacheLoaderFactory.createCacheLoader("b", cacheConfiguration)).thenReturn(loaderBar);
-    when(cacheLoaderFactory.createCacheLoader("a", cacheConfiguration)).thenReturn(loaderFoo);
-    cacheManager.init();
+        .addCache("foo", cacheConfiguration)
+        .addCache("bar", cacheConfiguration)
+        .addCache("foobar", cacheConfiguration)
+        .build(), new ServiceLocator(storeProvider)) {
 
-    final RuntimeException thrown = new RuntimeException();
-    doThrow(thrown).when(cacheLoaderFactory).releaseCacheLoader(loaderFoobar);
+      @Override
+      <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config, final Class<K> keyType, final Class<V> valueType) {
+        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
+        caches.add(alias);
+        return ehcache;
+      }
+
+      @Override
+      void closeEhcache(final String alias, final Ehcache ehcache) {
+        super.closeEhcache(alias, ehcache);
+        if(alias.equals("foobar")) {
+          throw thrown;
+        }
+        caches.remove(alias);
+      }
+    };
+
+    cacheManager.init();
     try {
       cacheManager.close();
       fail();
@@ -294,8 +306,7 @@ public class EhcacheManagerTest {
       assertThat(cacheManager.getStatus(), is(Status.UNINITIALIZED));
       assertThat(e.getCause(), CoreMatchers.<Throwable>sameInstance(thrown));
     }
-    verify(cacheLoaderFactory).releaseCacheLoader(loaderBar);
-    verify(cacheLoaderFactory).releaseCacheLoader(loaderFoo);
+    assertThat(caches.contains("foobar"), is(true));
   }
 
   @Test

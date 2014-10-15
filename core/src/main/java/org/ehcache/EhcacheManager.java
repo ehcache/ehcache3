@@ -40,7 +40,7 @@ import org.ehcache.config.StoreConfigurationImpl;
 /**
  * @author Alex Snaps
  */
-public final class EhcacheManager implements PersistentCacheManager {
+public class EhcacheManager implements PersistentCacheManager {
 
   private final StatusTransitioner statusTransitioner = new StatusTransitioner();
 
@@ -87,11 +87,15 @@ public final class EhcacheManager implements PersistentCacheManager {
           listener.cacheRemoved(alias, ehcache);
         }
       }
-      ehcache.close();
-      final CacheLoader cacheLoader = ehcache.getCacheLoader();
-      if (cacheLoader != null) {
-        serviceLocator.findService(CacheLoaderFactory.class).releaseCacheLoader(cacheLoader);
-      }
+      closeEhcache(alias, ehcache);
+    }
+  }
+
+  void closeEhcache(final String alias, final Ehcache ehcache) {
+    ehcache.close();
+    final CacheLoader cacheLoader = ehcache.getCacheLoader();
+    if (cacheLoader != null) {
+      serviceLocator.findService(CacheLoaderFactory.class).releaseCacheLoader(cacheLoader);
     }
   }
 
@@ -100,6 +104,38 @@ public final class EhcacheManager implements PersistentCacheManager {
     statusTransitioner.checkAvailable();
     Class<K> keyType = config.getKeyType();
     Class<V> valueType = config.getValueType();
+    final CacheHolder value = new CacheHolder(keyType, valueType, null);
+    if (caches.putIfAbsent(alias, value) != null) {
+      throw new IllegalArgumentException("Cache '" + alias +"' already exists");
+    }
+    final Ehcache<K, V> cache = createNewEhcache(alias, config, keyType, valueType);
+
+    RuntimeException failure = null;
+    try {
+      cache.init();
+    } catch (RuntimeException e) {
+      failure = e;
+    }
+    if(failure == null) {
+      try {
+        if(!statusTransitioner.isTransitioning()) {
+          for (CacheManagerListener listener : listeners) {
+            listener.cacheAdded(alias, cache);
+          }
+        }
+      } finally {
+        value.setCache(cache);
+      }
+    } else {
+      caches.remove(alias);
+      value.setCache(null);
+      throw failure;
+    }
+    return cache;
+  }
+
+  <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
+                                                final Class<K> keyType, final Class<V> valueType) {
     Collection<ServiceConfiguration<?>> serviceConfigs = config.getServiceConfigurations();
     ServiceConfiguration<?>[] serviceConfigArray = new ServiceConfiguration[0];
     if (serviceConfigs != null) {
@@ -112,26 +148,7 @@ public final class EhcacheManager implements PersistentCacheManager {
     if(cacheLoaderFactory != null) {
       loader = cacheLoaderFactory.createCacheLoader(alias, config);
     }
-    final Ehcache<K, V> cache = new Ehcache<K, V>(store, loader, serviceConfigArray);
-    cache.init();
-    return addCache(alias, keyType, valueType, cache);
-  }
-
-  private <K, V> Cache<K, V> addCache(String alias, Class<K> keyType, Class<V> valueType, Ehcache<K, V> cache) {
-    final CacheHolder value = new CacheHolder(keyType, valueType, null);
-    if (caches.putIfAbsent(alias, value) != null) {
-      throw new IllegalArgumentException("Cache '" + alias +"' already exists");
-    }
-    try {
-      if(!statusTransitioner.isTransitioning()) {
-        for (CacheManagerListener listener : listeners) {
-          listener.cacheAdded(alias, cache);
-        }
-      }
-    } finally {
-      value.setCache(cache);
-    }
-    return cache;
+    return new Ehcache<K, V>(store, loader, serviceConfigArray);
   }
 
   public void registerListener(CacheManagerListener listener) {
@@ -221,6 +238,9 @@ public final class EhcacheManager implements PersistentCacheManager {
     }
     if(firstException != null) {
       st.failed();
+      if(firstException instanceof StateTransitionException) {
+        throw (StateTransitionException) firstException;
+      }
       throw new StateTransitionException(firstException);
     }
     st.succeeded();
@@ -273,6 +293,7 @@ public final class EhcacheManager implements PersistentCacheManager {
     private final Class<?> keyType;
     private final Class<?> valueType;
     private volatile Ehcache<?, ?> cache;
+    private volatile boolean isValueSet = false;
 
     CacheHolder(Class<?> keyType, Class<?> valueType, Ehcache<?, ?> cache) {
       this.keyType = keyType;
@@ -281,25 +302,25 @@ public final class EhcacheManager implements PersistentCacheManager {
     }
 
     <K, V> Ehcache<K, V> retrieve(Class<K> refKeyType, Class<V> refValueType) {
-      if (keyType == refKeyType && valueType == refValueType) {
-        if (cache == null) {
-          synchronized (this) {
-            boolean interrupted = false;
-            try {
-              while(cache == null) {
-                try {
-                  wait();
-                } catch (InterruptedException e) {
-                  interrupted = true;
-                }
+      if (!isValueSet) {
+        synchronized (this) {
+          boolean interrupted = false;
+          try {
+            while(!isValueSet) {
+              try {
+                wait();
+              } catch (InterruptedException e) {
+                interrupted = true;
               }
-            } finally {
-              if(interrupted) {
-                Thread.currentThread().interrupt();
-              }
+            }
+          } finally {
+            if(interrupted) {
+              Thread.currentThread().interrupt();
             }
           }
         }
+      }
+      if (keyType == refKeyType && valueType == refValueType) {
         return (Ehcache<K, V>)cache;
       } else {
         throw new IllegalArgumentException();
@@ -308,6 +329,7 @@ public final class EhcacheManager implements PersistentCacheManager {
 
     public synchronized void setCache(final Ehcache<?, ?> cache) {
       this.cache = cache;
+      this.isValueSet = true;
       notifyAll();
     }
   }
