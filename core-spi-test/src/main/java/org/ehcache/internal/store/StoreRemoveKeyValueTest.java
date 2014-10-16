@@ -51,9 +51,14 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
 
     kvStore.put(key, value);
 
-    assertThat(kvStore.containsKey(key), is(true));
+    K equalKey = factory.getKeyType().newInstance();
+    V equalValue = factory.getValueType().newInstance();
 
-    kvStore.remove(key, value);
+    //TODO : equality can not be guaranteed with generics - test is currently not reliable
+    assertThat(key.equals(equalKey), is(true));
+    assertThat(value.equals(equalValue), is(true));
+
+    kvStore.remove(equalKey, equalValue);
 
     assertThat(kvStore.containsKey(key), is(false));
   }
@@ -70,7 +75,32 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(kvStore.containsKey(key), is(false));
 
     try {
-      kvStore.remove(key, value);
+      boolean isRemoved = kvStore.remove(key, value);
+      assertThat(isRemoved, is(false));
+    } catch (CacheAccessException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  @SPITest
+  public void doNothingForWrongValue()
+      throws IllegalAccessException, InstantiationException, CacheAccessException {
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
+
+    K key = factory.getKeyType().newInstance();
+    V value = factory.getValueType().newInstance();
+
+    kvStore.put(key, value);
+
+    //TODO : non-equality can not be guaranteed here either - test is currently not reliable
+    V notEqualValue = factory.getValueType().newInstance();
+
+    assertThat(value.equals(notEqualValue), is(false));
+
+    try {
+      boolean isRemoved = kvStore.remove(key, value);
+      assertThat(isRemoved, is(false));
     } catch (CacheAccessException e) {
       throw new AssertionError(e);
     }
