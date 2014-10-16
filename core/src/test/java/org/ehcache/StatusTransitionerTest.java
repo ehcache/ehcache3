@@ -71,4 +71,46 @@ public class StatusTransitionerTest {
     assertThat(transitioner.currentStatus(), is(Status.AVAILABLE));
   }
 
+  @Test
+  public void testMaintenanceOnlyLetsTheOwningThreadInteract() throws InterruptedException {
+    final StatusTransitioner transitioner = new StatusTransitioner();
+    transitioner.maintenance().succeeded();
+    transitioner.checkMaintenance();
+    Thread thread = new Thread() {
+      @Override
+      public void run() {
+        try {
+          transitioner.checkMaintenance();
+          fail();
+        } catch (IllegalStateException e) {
+          assertThat(e.getMessage().contains(Status.MAINTENANCE.name()), is(true));
+          assertThat(e.getMessage().contains("own"), is(true));
+        }
+      }
+    };
+    thread.start();
+    thread.join();
+  }
+
+  @Test
+  public void testMaintenanceOnlyOwningThreadCanClose() throws InterruptedException {
+    final StatusTransitioner transitioner = new StatusTransitioner();
+    transitioner.maintenance().succeeded();
+    Thread thread = new Thread() {
+      @Override
+      public void run() {
+        try {
+          transitioner.close();
+          fail();
+        } catch (IllegalStateException e) {
+          assertThat(e.getMessage().contains(Status.MAINTENANCE.name()), is(true));
+          assertThat(e.getMessage().contains("own"), is(true));
+        }
+      }
+    };
+    thread.start();
+    thread.join();
+    transitioner.close();
+  }
+
 }

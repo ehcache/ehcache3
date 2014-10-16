@@ -57,7 +57,7 @@ final class StatusTransitioner {
     final Status status = currentStatus();
     if(status != Status.MAINTENANCE) {
       throw new IllegalStateException("State is " + status);
-    } else if(Thread.currentThread() == maintenanceLease) {
+    } else if(Thread.currentThread() != maintenanceLease) {
       throw new IllegalStateException("State is " + status + ", yet you don't own it!");
     }
   }
@@ -70,12 +70,10 @@ final class StatusTransitioner {
 
   Transition close() {
     InternalStatus.Transition st;
-    for (InternalStatus.Transition cs; !currentState.compareAndSet(cs = currentState.get(), st = cs.get().close()););
-
     if(maintenanceLease != null && Thread.currentThread() != maintenanceLease) {
-      st.failed();
-      throw new IllegalStateException("You don't own this maintenance lease");
+      throw new IllegalStateException("You don't own this MAINTENANCE lease");
     }
+    for (InternalStatus.Transition cs; !currentState.compareAndSet(cs = currentState.get(), st = cs.get().close()););
     return new Transition(st, null);
   }
 
