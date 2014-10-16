@@ -46,7 +46,7 @@ final class StatusTransitioner {
 
   void checkAvailable() {
     final Status status = currentStatus();
-    if(status == Status.MAINTENANCE && Thread.currentThread() == maintenanceLease) {
+    if(status == Status.MAINTENANCE && Thread.currentThread() != maintenanceLease) {
       throw new IllegalStateException("State is " + status + ", yet you don't own it!");
     } else if(status == Status.UNINITIALIZED) {
       throw new IllegalStateException("State is " + status);
@@ -55,10 +55,10 @@ final class StatusTransitioner {
 
   void checkMaintenance() {
     final Status status = currentStatus();
-    if(status != Status.MAINTENANCE) {
-      throw new IllegalStateException("State is " + status);
-    } else if(Thread.currentThread() != maintenanceLease) {
+    if(status == Status.MAINTENANCE && Thread.currentThread() != maintenanceLease) {
       throw new IllegalStateException("State is " + status + ", yet you don't own it!");
+    } else if (status != Status.MAINTENANCE) {
+      throw new IllegalStateException("State is " + status);
     }
   }
 

@@ -113,4 +113,26 @@ public class StatusTransitionerTest {
     transitioner.close();
   }
 
+  @Test
+  public void testCheckAvailableAccountsForThreadLease() throws InterruptedException {
+    final StatusTransitioner transitioner = new StatusTransitioner();
+    transitioner.maintenance().succeeded();
+    transitioner.checkAvailable();
+    Thread thread = new Thread() {
+      @Override
+      public void run() {
+        try {
+          transitioner.checkAvailable();
+          fail();
+        } catch (IllegalStateException e) {
+          assertThat(e.getMessage().contains(Status.MAINTENANCE.name()), is(true));
+          assertThat(e.getMessage().contains("own"), is(true));
+        }
+      }
+    };
+    thread.start();
+    thread.join();
+    transitioner.close();
+  }
+
 }
