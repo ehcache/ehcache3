@@ -43,6 +43,11 @@ public class EhcacheProvider implements CacheProvider {
   }
 
   @Override
+  public void start() {
+    //no-op
+  }
+
+  @Override
   public void stop() {
     //no-op
   }

@@ -39,6 +39,11 @@ public class HeapCachingTierResource implements CachingTier.Provider {
   }
 
   @Override
+  public void start() {
+    //no-op
+  }
+
+  @Override
   public void stop() {
     //no-op
   }

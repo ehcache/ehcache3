@@ -13,33 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.internal.serialization;
 
-import java.io.Serializable;
-
-import org.ehcache.spi.service.ServiceConfiguration;
+package org.ehcache;
 
 /**
- *
- * @author cdennis
+ * @author Alex Snaps
  */
-public class JavaSerializationProvider implements SerializationProvider {
+public interface Maintainable {
 
-  @Override
-  public <T> Serializer<T> createSerializer(Class<T> clazz, ServiceConfiguration<?>... config) {
-    if (!Serializable.class.isAssignableFrom(clazz)) {
-      throw new IllegalArgumentException();
-    }
-    return new JavaSerializer();
-  }
+  /**
+   * Creates all persistent data structures required to function
+   *
+   * @throws java.lang.IllegalStateException if data structures exist already
+   */
+  void create();
 
-  @Override
-  public void start() {
-    //no-op
-  }
-
-  @Override
-  public void stop() {
-    //no-op
-  }
+  /**
+   * Destroys all persistent data structures
+   *
+   * @throws java.lang.IllegalStateException if data structures don't exist
+   */
+  void destroy();
 }

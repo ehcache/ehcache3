@@ -13,33 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.internal.serialization;
 
-import java.io.Serializable;
-
-import org.ehcache.spi.service.ServiceConfiguration;
+package org.ehcache.exceptions;
 
 /**
- *
- * @author cdennis
+ * @author Alex Snaps
  */
-public class JavaSerializationProvider implements SerializationProvider {
+public class StateTransitionException extends RuntimeException {
 
-  @Override
-  public <T> Serializer<T> createSerializer(Class<T> clazz, ServiceConfiguration<?>... config) {
-    if (!Serializable.class.isAssignableFrom(clazz)) {
-      throw new IllegalArgumentException();
-    }
-    return new JavaSerializer();
-  }
-
-  @Override
-  public void start() {
-    //no-op
-  }
-
-  @Override
-  public void stop() {
-    //no-op
+  public StateTransitionException(final Exception e) {
+    super(e.getMessage(), e);
   }
 }

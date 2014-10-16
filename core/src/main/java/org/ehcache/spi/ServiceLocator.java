@@ -20,14 +20,17 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -41,6 +44,8 @@ public final class ServiceLocator {
   private final ServiceLoader<ServiceFactory> serviceFactory = ServiceLoader.load(ServiceFactory.class);
 
   private final ReadWriteLock runningLock = new ReentrantReadWriteLock();
+
+  private final AtomicBoolean running = new AtomicBoolean(false);
 
   public ServiceLocator(Service... services) {
     for (Service service : services) {
@@ -90,6 +95,8 @@ public final class ServiceLocator {
         for (Class<? extends Service> serviceClazz : serviceClazzes) {
           if (services.putIfAbsent(serviceClazz, service) != null) {
             throw new IllegalStateException("Racing registration for duplicate service " + serviceClazz.getName());
+          } else if (running.get()) {
+            service.start();
           }
         }
       } else {
@@ -145,15 +152,56 @@ public final class ServiceLocator {
     }
   }
 
-  public void stopAllServices() {
+  public void startAllServices() throws Exception {
+    Deque<Service> started = new ArrayDeque<Service>();
+    final Lock lock = runningLock.writeLock();
+    lock.lock();
+    try {
+      if (!running.compareAndSet(false, true)) {
+        throw new IllegalStateException("Already started!");
+      }
+      for (Service service : services.values()) {
+        service.start();
+        started.push(service);
+      }
+    } catch (Exception e) {
+      while(!started.isEmpty()) {
+        try {
+          started.pop().stop();
+        } catch (Exception e1) {
+          // todo probably should log these exceptions
+        }
+      }
+      throw e;
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  public void stopAllServices() throws Exception {
+    Exception firstException = null;
     Lock lock = runningLock.writeLock();
     lock.lock();
     try {
+      if(!running.compareAndSet(true, false)) {
+        throw new IllegalStateException("Already stopped!");
+      }
       for (Service service : services.values()) {
-        service.stop();
+        try {
+          service.stop();
+        } catch (Exception e) {
+          if (firstException == null) {
+            firstException = e;
+          } else {
+            // todo probably should log these exceptions
+          }
+        }
       }
     } finally {
       lock.unlock();
+    }
+    if(firstException != null) {
+      throw firstException;
     }
   }
 }

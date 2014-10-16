@@ -87,8 +87,23 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
       }
 
       @Override
+      public void create() throws CacheAccessException {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
       public void close() {
         throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public void init() {
+        // We don't care
+      }
+
+      @Override
+      public void maintenance() {
+        // We don't care
       }
 
       @Override

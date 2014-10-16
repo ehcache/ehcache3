@@ -196,12 +196,18 @@ public interface Store<K, V> {
    */
   void destroy() throws CacheAccessException;
 
+  void create() throws CacheAccessException;
+
   /**
    * Closes the store instance, releasing all transient resources locally held by it.
    * The instance can't be used any further upon the method returning.
    * Data held remotely or on some persistent storage remains untouched and can be accessed by creating a new Store
    */
   void close();
+
+  void init();
+
+  void maintenance();
 
   /**
    * Returns an iterator over the elements in this store.  The elements are

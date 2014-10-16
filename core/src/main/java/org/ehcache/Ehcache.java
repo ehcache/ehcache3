@@ -17,9 +17,11 @@
 package org.ehcache;
 
 import org.ehcache.config.CacheRuntimeConfiguration;
+import org.ehcache.events.StateChangeListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoaderException;
 import org.ehcache.exceptions.CacheWriterException;
+import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.resilience.ResilienceStrategy;
@@ -44,6 +46,8 @@ import static org.ehcache.exceptions.ExceptionFactory.newCacheWriterException;
  * @author Alex Snaps
  */
 public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, PersistentStandaloneCache<K, V> {
+
+  private final StatusTransitioner statusTransitioner = new StatusTransitioner();
 
   private final Store<K, V> store;
   private final CacheLoader<? super K, ? extends V> cacheLoader;
@@ -77,6 +81,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public V get(final K key) throws CacheLoaderException {
+    statusTransitioner.checkAvailable();
     checkNonNull(key);
     final Function<K, V> mappingFunction = memoize(
         new Function<K, V>() {
@@ -118,6 +123,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public void put(final K key, final V value) {
+    statusTransitioner.checkAvailable();
     checkNonNull(key, value);
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
       @Override
@@ -158,6 +164,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public boolean containsKey(final K key) {
+    statusTransitioner.checkAvailable();
     checkNonNull(key);
     try {
       return store.containsKey(key);
@@ -174,6 +181,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public void remove(final K key) {
+    statusTransitioner.checkAvailable();
     checkNonNull(key);
 
     // cacheWriter.delete(key);
@@ -187,6 +195,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public void clear() {
+    statusTransitioner.checkAvailable();
     try {
       store.clear();
     } catch (CacheAccessException e) {
@@ -196,11 +205,13 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public Iterator<Entry<K, V>> iterator() {
+    statusTransitioner.checkAvailable();
     return new CacheEntryIterator(store.iterator());
   }
 
   @Override
   public Map<K, V> getAll(Iterable<? extends K> keys) {
+    statusTransitioner.checkAvailable();
     checkNonNull(keys);
     Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction = new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
       @Override
@@ -238,6 +249,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public void putAll(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+    statusTransitioner.checkAvailable();
     checkNonNull(entries);
     Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction =
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
@@ -266,6 +278,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public void removeAll(final Iterable<? extends K> keys) {
+    statusTransitioner.checkAvailable();
     checkNonNull(keys);
     Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> removalFunction =
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
@@ -294,6 +307,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public V putIfAbsent(final K key, final V value) {
+    statusTransitioner.checkAvailable();
     checkNonNull(key, value);
     V old = null;
 
@@ -356,6 +370,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public boolean remove(final K key, final V value) {
+    statusTransitioner.checkAvailable();
     checkNonNull(key, value);
     final AtomicBoolean removed = new AtomicBoolean();
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
@@ -403,6 +418,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public V replace(final K key, final V value) {
+    statusTransitioner.checkAvailable();
     checkNonNull(key, value);
     Store.ValueHolder<V> old = null;
 
@@ -427,6 +443,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public boolean replace(final K key, final V oldValue, final V newValue) {
+    statusTransitioner.checkAvailable();
     checkNonNull(key, oldValue, newValue);
 
     // cacheLoader.load(key); Though should we always load? Or can we be lazy...
@@ -450,18 +467,85 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     throw new UnsupportedOperationException("Implement me!");
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
-  public void close() {
-    store.close();
+  public void init() {
+    final StatusTransitioner.Transition st = statusTransitioner.init();
+    try {
+      store.init();
+    } catch (RuntimeException e) {
+      st.failed();
+      throw new StateTransitionException(e);
+    }
+    st.succeeded();
   }
 
   @Override
-  public void destroy() {
+  public void close() {
+    final StatusTransitioner.Transition st = statusTransitioner.close();
+    try {
+      store.close();
+    } catch (RuntimeException e) {
+      st.failed();
+      throw new StateTransitionException(e);
+    }
+    st.succeeded();
+  }
+
+  public Maintainable toMaintenance() {
+    final StatusTransitioner.Transition st = statusTransitioner.maintenance();
+    try {
+      final Maintainable maintainable = new Maintainable() {
+        @Override
+        public void create() {
+          Ehcache.this.create();
+        }
+
+        @Override
+        public void destroy() {
+          Ehcache.this.destroy();
+        }
+      };
+      store.maintenance();
+      st.succeeded();
+      return maintainable;
+    } catch (RuntimeException e) {
+      st.failed();
+      throw new StateTransitionException(e);
+    }
+  }
+
+  void create() {
+    statusTransitioner.checkMaintenance();
+    try {
+      store.create();
+    } catch (CacheAccessException e) {
+      throw new RuntimeException("Couldn't create Cache", e);
+    }
+  }
+
+  void destroy() {
+    statusTransitioner.checkMaintenance();
     try {
       store.destroy();
     } catch (CacheAccessException e) {
       throw new RuntimeException("Couldn't destroy Cache", e);
     }
+  }
+
+  @Override
+  public Status getStatus() {
+    return statusTransitioner.currentStatus();
+  }
+
+  void registerListener(StateChangeListener listener) {
+    statusTransitioner.registerListener(listener);
+  }
+
+  void deregisterListener(StateChangeListener listener) {
+    statusTransitioner.deregisterListener(listener);
   }
 
   private static void checkNonNull(Object... things) {
@@ -487,6 +571,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
     @Override
     public boolean hasNext() {
+      statusTransitioner.checkAvailable();
       try {
         return iterator.hasNext();
       } catch (CacheAccessException e) {
@@ -496,6 +581,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
     @Override
     public Entry<K, V> next() {
+      statusTransitioner.checkAvailable();
       try {
         next = iterator.next();
       } catch (CacheAccessException e) {
@@ -531,6 +617,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
     @Override
     public void remove() {
+      statusTransitioner.checkAvailable();
       Ehcache.this.remove(next.getKey(), next.getValue().value());
     }
   }

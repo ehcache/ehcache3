@@ -25,8 +25,34 @@ package org.ehcache;
 public interface StandaloneCache<K, V> extends Cache<K, V> {
 
   /**
-   * Releases all resources locally held by this {@link Cache} data or associated {@link org.ehcache.spi.service.Service}
+   * Attempts at having this StandaloneCache go to {@link org.ehcache.Status#AVAILABLE}.
+   * <p>
+   * Should this throw, while the StandaloneCache isn't yet {@link org.ehcache.Status#AVAILABLE}, it will try to go back
+   * to {@link org.ehcache.Status#UNINITIALIZED} properly.
+   *
+   * @throws java.lang.IllegalStateException if the StandaloneCache isn't in {@link org.ehcache.Status#UNINITIALIZED} state
+   * @throws org.ehcache.exceptions.StateTransitionException if the StandaloneCache couldn't be made {@link org.ehcache.Status#AVAILABLE}
+   * @throws java.lang.RuntimeException if any exception is thrown, but still results in the StandaloneCache transitioning to {@link org.ehcache.Status#AVAILABLE}
+   */
+  void init();
+
+  /**
+   * Releases all data held in this StandaloneCache.
+   * <p>
+   * Should this throw, while the StandaloneCache isn't yet {@link org.ehcache.Status#UNINITIALIZED}, it will keep on
+   * trying to go to {@link org.ehcache.Status#UNINITIALIZED} properly.
+   *
+   * @throws org.ehcache.exceptions.StateTransitionException if the StandaloneCache couldn't be cleanly made
+   *                                                         {@link org.ehcache.Status#UNINITIALIZED},
+   *                                                         wrapping the first exception encountered
+   * @throws java.lang.RuntimeException if any exception is thrown, like from Listeners
    */
   void close();
+
+  /**
+   * Returns the current {@link org.ehcache.Status} for this CacheManager
+   * @return the current {@link org.ehcache.Status}
+   */
+  Status getStatus();
 
 }

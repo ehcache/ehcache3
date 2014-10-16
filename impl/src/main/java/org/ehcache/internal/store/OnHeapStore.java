@@ -112,8 +112,23 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   }
 
   @Override
+  public void create() throws CacheAccessException {
+    // Nothing we have to do here...
+  }
+
+  @Override
   public void close() {
     map.clear();
+  }
+
+  @Override
+  public void init() {
+    // Nothing we have to do here...
+  }
+
+  @Override
+  public void maintenance() {
+    // Nothing we have to do here...
   }
 
   @Override
@@ -284,6 +299,11 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       } catch (CacheAccessException e) {
         throw new RuntimeException(e);
       }
+    }
+
+    @Override
+    public void start() {
+      // nothing to do
     }
 
     @Override

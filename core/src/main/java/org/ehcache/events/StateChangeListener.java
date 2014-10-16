@@ -14,14 +14,21 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi;
+package org.ehcache.events;
 
-import org.ehcache.PersistentCacheManager;
-import org.ehcache.config.Configuration;
+import org.ehcache.Status;
 
 /**
  * @author Alex Snaps
  */
-public interface Ehcaching {
-  PersistentCacheManager createCacheManager(Configuration configuration, ServiceLocator serviceLocator);
+public interface StateChangeListener {
+
+  /**
+   * Is notified when a state transition occurred.
+   * Any exception thrown by this listener will not affect the transition.
+   *
+   * @param from previous state
+   * @param to new state
+   */
+  void stateTransition(Status from, Status to);
 }
