@@ -55,6 +55,7 @@ public interface CacheWriter<K, V> {
    * @param key the key of the mapping being installed or updated
    * @param oldValue the value as expected to exist in the SoR, {@code null} if excepted to be missing from the SoR
    * @param newValue the actual new value
+   * @return {@code true} if the SoR was modified
    *
    * @see org.ehcache.Cache#putIfAbsent(Object, Object)
    * @see org.ehcache.Cache#replace(Object, Object, Object)
