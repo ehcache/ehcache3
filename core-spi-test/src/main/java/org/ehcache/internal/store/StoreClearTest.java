@@ -42,7 +42,7 @@ public class StoreClearTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  public void valueHolderCanBeRetrievedWithEqualKey()
+  public void removesAllOfTheMappings ()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
         factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K,V>>all(), null));
