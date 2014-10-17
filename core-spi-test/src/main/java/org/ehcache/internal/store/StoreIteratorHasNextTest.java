@@ -24,7 +24,6 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 /**
@@ -43,7 +42,7 @@ public class StoreIteratorHasNextTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void hasNext()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
+      throws IllegalAccessException, InstantiationException, CacheAccessException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
         factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
 
@@ -55,33 +54,28 @@ public class StoreIteratorHasNextTest<K, V> extends SPIStoreTester<K, V> {
     Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();
 
     for (int i = 0; i < nbElements; i++) {
-      assertThat(iterator.hasNext(), is(true));
+      try {
+        assertThat(iterator.hasNext(), is(true));
+      } catch (CacheAccessException e) {
+        System.err.println("Warning, an exception is thrown due to the SPI test");
+        e.printStackTrace();
+      }
     }
   }
 
   @SPITest
   public void hasNextReturnsFalseIfNoElement()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
+      throws IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
         factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
 
     Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();
 
-    assertThat(iterator.hasNext(), is(false));
-  }
-
-  @SPITest
-  public void iteratorCanThrowException()
-      throws IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
-
-    Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();
-
     try {
-      iterator.hasNext();
+      assertThat(iterator.hasNext(), is(false));
     } catch (CacheAccessException e) {
-      // This will not compile if the CacheAccessException is not thrown
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
     }
   }
 }
