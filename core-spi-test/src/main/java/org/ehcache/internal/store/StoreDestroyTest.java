@@ -42,7 +42,7 @@ public class StoreDestroyTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void noDataCanBeRecoveredFromDestroyedStore()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
+      throws IllegalAccessException, InstantiationException, CacheAccessException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
         factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
 
@@ -54,22 +54,10 @@ public class StoreDestroyTest<K, V> extends SPIStoreTester<K, V> {
     try {
       kvStore.destroy();
     } catch (CacheAccessException e) {
-      // legal per contract
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
     }
 
     assertThat(kvStore.containsKey(key), is(false));
-  }
-
-  @SPITest
-  public void storeCantBeDestroyedCanThrowException()
-      throws IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
-
-    try {
-      kvStore.destroy();
-    } catch (CacheAccessException e) {
-      // This will not compile if the CacheAccessException is not thrown
-    }
   }
 }
