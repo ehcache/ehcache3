@@ -29,12 +29,14 @@ public abstract class SPITester {
     result.testRunStarted();
     for (Method m : getClass().getDeclaredMethods()) {
       if (m.isAnnotationPresent(SPITest.class)) {
-        try {
+        if (m.isAnnotationPresent(Ignore.class)) {
+          result.testSkipped(new ResultState(m.getName(), m.getAnnotation(Ignore.class).reason()));
+        }
+        else try {
           m.invoke(this, (Object[]) null);
           result.testFinished();
         } catch (InvocationTargetException wrappedExc) {
-          Failure failure = new Failure(m.getName(), wrappedExc.getCause());
-          result.testFailure(failure);
+          result.testFailed(new ResultState(m.getName(), wrappedExc.getCause()));
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
