@@ -43,18 +43,11 @@ public class StoreValueHolderValueTest<K, V> extends SPIStoreTester<K, V> {
     V value = factory.getValueType().newInstance();
     Store.ValueHolder<V> valueHolder = factory.newValueHolder(value);
 
-    assertThat(valueHolder.value(), is(equalTo(value)));
-  }
-
-  @SPITest
-  public void valueHolderCanThrowException()
-      throws IllegalAccessException, InstantiationException {
-    V value = factory.getValueType().newInstance();
     try {
-      Store.ValueHolder<V> valueHolder = factory.newValueHolder(value);
+      assertThat(valueHolder.value(), is(equalTo(value)));
     } catch (Exception e) {
-      // This will not compile if the Exception is not thrown
-      // TODO to update with relevant exception when javadoc is defined
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
     }
   }
 }
