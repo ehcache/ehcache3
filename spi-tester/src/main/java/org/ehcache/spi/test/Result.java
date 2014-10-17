@@ -77,7 +77,7 @@ public class Result {
 
   public void reportAndThrow() throws Exception {
     StringBuilder sb = new StringBuilder();
-    sb.append("* SPITester: ")
+    sb.append("***> SPITester: ")
         .append(getTotalRunCount()).append(" tests ran, ")
         .append("took ").append(runtimeAsString()).append(". ")
         .append("Passed: ").append(getRunCount()).append(". ")
@@ -87,9 +87,8 @@ public class Result {
 
     for (ResultState skippedTest : skippedTests) {
       sb = new StringBuilder();
-      sb.append("* ").append(skippedTest.getMethodName())
-          .append(" skipped: ").append(skippedTest.getReason())
-          .append(System.getProperty("line.separator"));
+      sb.append("* ").append(skippedTest.getName())
+          .append(" skipped: ").append(skippedTest.getReason());
       System.out.println(sb.toString());
     }
 
@@ -97,7 +96,7 @@ public class Result {
       System.out.println();
       for (ResultState failure : failedTests) {
         sb = new StringBuilder();
-        sb.append("* ").append(failure.getMethodName())
+        sb.append("* ").append(failure.getName())
             .append(" failed: ").append(failure.getReason())
             .append(System.getProperty("line.separator"));
         System.out.println(sb.toString());

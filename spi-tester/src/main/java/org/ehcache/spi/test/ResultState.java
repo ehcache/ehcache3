@@ -23,21 +23,24 @@ import java.io.StringWriter;
  * @author Hung Huynh
  */
 public class ResultState {
+  private final String className;
   private final String methodName;
   private final String reason;
 
-  public ResultState(String methodName, Throwable thrownException) {
+  public ResultState(Class testClass, String methodName, Throwable thrownException) {
+    this.className = testClass.getCanonicalName();
     this.methodName = methodName;
     this.reason = getStackTraceAsString(thrownException);
   }
 
-  public ResultState(String methodName, String reason) {
+  public ResultState(Class testClass, String methodName, String reason) {
+    this.className = testClass.getCanonicalName();
     this.methodName = methodName;
     this.reason = reason;
   }
 
-  public String getMethodName() {
-    return methodName;
+  public String getName() {
+    return this.className + "." + methodName;
   }
 
   public String getReason() {
