@@ -30,7 +30,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 /**
  * @author Alex Snaps
  */
-class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
+public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
 
   private final Class<K> keyType;
   private final Class<V> valueType;
@@ -38,14 +38,17 @@ class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   private final Predicate<Cache.Entry<K, V>> evictionVeto;
   private final Comparator<Cache.Entry<K, V>> evictionPrioritizer;
   private final Collection<ServiceConfiguration<?>> serviceConfigurations;
+  private final ClassLoader classLoader;
 
   public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint, 
-          Predicate<Cache.Entry<K, V>> evictionVeto, Comparator<Cache.Entry<K, V>> evictionPrioritizer, ServiceConfiguration<?>... serviceConfigurations) {
+          Predicate<Cache.Entry<K, V>> evictionVeto, Comparator<Cache.Entry<K, V>> evictionPrioritizer, 
+          ClassLoader classLoader, ServiceConfiguration<?>... serviceConfigurations) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.capacityConstraint = capacityConstraint;
     this.evictionVeto = evictionVeto;
     this.evictionPrioritizer = evictionPrioritizer;
+    this.classLoader = classLoader;
     this.serviceConfigurations = Collections.unmodifiableCollection(Arrays.asList(serviceConfigurations));
   }
 
@@ -81,6 +84,12 @@ class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
 
   @Override
   public Set<CacheEventListener<?, ?>> getEventListeners() {
-    throw new UnsupportedOperationException("Implement me!");
+    // XXX:
+    return Collections.emptySet();
   }
+  
+  @Override
+  public ClassLoader getClassLoader() {
+    return classLoader;
+  }  
 }

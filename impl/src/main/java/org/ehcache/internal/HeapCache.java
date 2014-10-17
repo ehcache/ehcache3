@@ -16,12 +16,21 @@
 
 package org.ehcache.internal;
 
+import org.ehcache.Cache;
 import org.ehcache.Ehcache;
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.event.CacheEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
+import org.ehcache.function.Predicate;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.service.ServiceConfiguration;
+
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -33,7 +42,48 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
   private final Map<K, V> underlying = new ConcurrentHashMap<K, V>();
 
   public HeapCache() {
-    this(new Store<K, V>() {
+    this(new CacheConfiguration<K, V>() {
+      @Override
+      public Collection<ServiceConfiguration<?>> getServiceConfigurations() {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public Class<K> getKeyType() {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public Class<V> getValueType() {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public Comparable<Long> getCapacityConstraint() {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public Predicate<Cache.Entry<K, V>> getEvictionVeto() {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public Comparator<Cache.Entry<K, V>> getEvictionPrioritizer() {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public Set<CacheEventListener<?, ?>> getEventListeners() {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public ClassLoader getClassLoader() {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+        },
+        new Store<K, V>() {
       @Override
       public ValueHolder<V> putIfAbsent(K key, V value)
           throws CacheAccessException {
@@ -138,8 +188,8 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
     });
   }
 
-  public HeapCache(final Store<K, V> store) {
-    super(store);
+  public HeapCache(CacheConfiguration<K, V> cacheConfig, final Store<K, V> store) {
+    super(cacheConfig, store);
   }
 
   public V get(K key) {

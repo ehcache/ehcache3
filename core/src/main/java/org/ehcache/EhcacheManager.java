@@ -16,6 +16,7 @@
 
 package org.ehcache;
 
+import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.events.CacheManagerListener;
@@ -25,9 +26,9 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.util.ClassLoading;
 
 import java.util.ArrayDeque;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,6 +49,7 @@ public class EhcacheManager implements PersistentCacheManager {
   private final Configuration configuration;
 
   private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<String, CacheHolder>();
+  private final ClassLoader cacheManagerClassLoader;
 
   private final CopyOnWriteArrayList<CacheManagerListener> listeners = new CopyOnWriteArrayList<CacheManagerListener>();
 
@@ -57,6 +59,7 @@ public class EhcacheManager implements PersistentCacheManager {
 
   public EhcacheManager(Configuration config, ServiceLocator serviceLocator) {
     this.serviceLocator = serviceLocator;
+    this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
     this.configuration = config;
   }
 
@@ -104,11 +107,17 @@ public class EhcacheManager implements PersistentCacheManager {
     statusTransitioner.checkAvailable();
     Class<K> keyType = config.getKeyType();
     Class<V> valueType = config.getValueType();
+    
+    ClassLoader cacheClassLoader = config.getClassLoader();
+    if (cacheClassLoader == null) {
+      cacheClassLoader = cacheManagerClassLoader;
+    }
+    
     final CacheHolder value = new CacheHolder(keyType, valueType, null);
     if (caches.putIfAbsent(alias, value) != null) {
       throw new IllegalArgumentException("Cache '" + alias +"' already exists");
     }
-    final Ehcache<K, V> cache = createNewEhcache(alias, config, keyType, valueType);
+    final Ehcache<K, V> cache = createNewEhcache(alias, config, keyType, valueType, cacheClassLoader);
 
     RuntimeException failure = null;
     try {
@@ -135,20 +144,24 @@ public class EhcacheManager implements PersistentCacheManager {
   }
 
   <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
-                                                final Class<K> keyType, final Class<V> valueType) {
-    Collection<ServiceConfiguration<?>> serviceConfigs = config.getServiceConfigurations();
-    ServiceConfiguration<?>[] serviceConfigArray = new ServiceConfiguration[0];
-    if (serviceConfigs != null) {
-      serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
-    }
+                                                final Class<K> keyType, final Class<V> valueType, 
+                                                final ClassLoader cacheClassLoader) {
     final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
     final CacheLoaderFactory cacheLoaderFactory = serviceLocator.findService(CacheLoaderFactory.class);
-    final Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(keyType, valueType));
+    final Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(keyType, valueType, cacheClassLoader));
     CacheLoader<? super K, ? extends V> loader = null;
     if(cacheLoaderFactory != null) {
       loader = cacheLoaderFactory.createCacheLoader(alias, config);
     }
-    return new Ehcache<K, V>(store, loader, serviceConfigArray);
+    
+    CacheConfiguration<K, V> adjustedConfig = new BaseCacheConfiguration<K, V>(
+        keyType, valueType, config.getCapacityConstraint(),
+        config.getEvictionVeto(), config.getEvictionPrioritizer(), cacheClassLoader,
+        config.getServiceConfigurations().toArray(new ServiceConfiguration<?>[config.getServiceConfigurations().size()])
+        );
+    
+    
+    return new Ehcache<K, V>(adjustedConfig, store, loader);
   }
 
   public void registerListener(CacheManagerListener listener) {
@@ -287,6 +300,11 @@ public class EhcacheManager implements PersistentCacheManager {
       ehcache.close();
     }
     ehcache.toMaintenance().destroy();
+  }
+  
+  // for tests at the moment
+  ClassLoader getClassLoader() {
+    return cacheManagerClassLoader;
   }
 
   private static final class CacheHolder {

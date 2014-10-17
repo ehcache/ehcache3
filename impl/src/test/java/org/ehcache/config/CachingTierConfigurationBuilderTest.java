@@ -30,6 +30,7 @@ import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfiguration
 import static org.ehcache.internal.util.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 /**
  * @author Alex Snaps
@@ -46,7 +47,7 @@ public class CachingTierConfigurationBuilderTest {
     Collection<ServiceConfiguration<?>> serviceConfigs = config.getServiceConfigurations();
     ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
     final Store<String, String> store = service.createStore(new StoreConfigurationImpl<String, String>(config), serviceConfigArray);
-    final Cache<String, String> cache = new HeapCache<String, String>(store);
+    final Cache<String, String> cache = new HeapCache<String, String>(mock(CacheConfiguration.class), store);
 
     assertThat(cache, not(hasKey("key")));
     cache.put("key", "value");
