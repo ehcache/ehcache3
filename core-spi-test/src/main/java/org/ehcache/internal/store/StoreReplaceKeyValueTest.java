@@ -49,12 +49,11 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
         factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
 
     K key = factory.getKeyType().newInstance();
-    V originalValue = factory.getValueType().newInstance();
+    V originalValue = factory.createValue(1L);
 
     kvStore.put(key, originalValue);
 
-    //TODO : need some way of enforcing that this newValue is distinct from the old value
-    V newValue = factory.getValueType().newInstance();
+    V newValue = factory.createValue(2L);
 
     kvStore.replace(key, newValue);
 

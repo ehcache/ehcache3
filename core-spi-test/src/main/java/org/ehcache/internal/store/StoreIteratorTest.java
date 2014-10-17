@@ -49,12 +49,12 @@ public class StoreIteratorTest<K, V> extends SPIStoreTester<K, V> {
     final Store<K, V> kvStore = factory.newStore(
         new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
 
-    K key1 = factory.getKeyType().newInstance();
-    K key2 = factory.getKeyType().newInstance();
-    K key3 = factory.getKeyType().newInstance();
-    V value1 = factory.getValueType().newInstance();
-    V value2 = factory.getValueType().newInstance();
-    V value3 = factory.getValueType().newInstance();
+    K key1 = factory.createKey(1L);
+    K key2 = factory.createKey(2L);
+    K key3 = factory.createKey(3L);
+    V value1 = factory.createValue(1L);
+    V value2 = factory.createValue(2L);
+    V value3 = factory.createValue(3L);
 
     kvStore.put(key1, value1);
     kvStore.put(key2, value2);

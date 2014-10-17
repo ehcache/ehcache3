@@ -52,25 +52,5 @@ public class StoreCloseTest<K, V> extends SPIStoreTester<K, V> {
     V value = factory.getValueType().newInstance();
 
     kvStore.put(key, value);
-    // TODO : should an operation throw an exception after the store being closed?
-  }
-
-  @SPITest
-  public void dataInReopenedClosedStoreCanBeAccessed()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
-    Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
-
-    K key = factory.getKeyType().newInstance();
-    V value = factory.getValueType().newInstance();
-
-    kvStore.put(key, value);
-
-    kvStore.close();
-
-    kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
-
-    assertThat(kvStore.containsKey(key), is(true));
   }
 }

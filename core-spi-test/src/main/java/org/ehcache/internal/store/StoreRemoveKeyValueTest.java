@@ -46,15 +46,14 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
         factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
 
-    K key = factory.getKeyType().newInstance();
-    V value = factory.getValueType().newInstance();
+    K key = factory.createKey(1L);
+    V value = factory.createValue(1L);
 
     kvStore.put(key, value);
 
-    K equalKey = factory.getKeyType().newInstance();
-    V equalValue = factory.getValueType().newInstance();
+    K equalKey = factory.createKey(1L);
+    V equalValue = factory.createValue(1L);
 
-    //TODO : equality can not be guaranteed with generics - test is currently not reliable
     assertThat(key.equals(equalKey), is(true));
     assertThat(value.equals(equalValue), is(true));
 
@@ -89,12 +88,11 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
         factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
 
     K key = factory.getKeyType().newInstance();
-    V value = factory.getValueType().newInstance();
+    V value = factory.createValue(1L);
 
     kvStore.put(key, value);
 
-    //TODO : non-equality can not be guaranteed here either - test is currently not reliable
-    V notEqualValue = factory.getValueType().newInstance();
+    V notEqualValue = factory.createValue(2L);
 
     assertThat(value.equals(notEqualValue), is(false));
 

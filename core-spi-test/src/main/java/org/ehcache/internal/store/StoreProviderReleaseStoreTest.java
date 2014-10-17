@@ -42,7 +42,5 @@ public class StoreProviderReleaseStoreTest<K, V> extends SPIStoreTester<K, V> {
     Store<K, V> store = provider.createStore(storeConfig, factory.getServiceConfigurations());
 
     provider.releaseStore(store);
-
-    // TODO : javadoc is missing information to know what to assert here (e.g. is exception thrown in case of subsequent operations such as store.get(key)?)
   }
 }

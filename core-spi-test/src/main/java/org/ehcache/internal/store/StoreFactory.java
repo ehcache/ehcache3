@@ -43,4 +43,8 @@ public interface StoreFactory<K, V> {
   Class<V> getValueType();
 
   ServiceConfiguration[] getServiceConfigurations();
+
+  K createKey(long seed);
+
+  V createValue(long seed);
 }

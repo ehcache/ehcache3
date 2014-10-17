@@ -67,13 +67,13 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
         factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
 
-    K key = factory.getKeyType().newInstance();
-    V originalValue = factory.getValueType().newInstance();
+    K key = factory.createKey(1L);
+    V originalValue = factory.createValue(1L);
 
     kvStore.put(key, originalValue);
 
-    V wrongValue = factory.getValueType().newInstance();
-    V newValue = factory.getValueType().newInstance();
+    V wrongValue = factory.createValue(2L);
+    V newValue = factory.createValue(3L);
 
     kvStore.replace(key, wrongValue, newValue);
 
