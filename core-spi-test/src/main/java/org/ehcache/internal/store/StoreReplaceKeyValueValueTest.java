@@ -56,7 +56,12 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
 
     V newValue = factory.getValueType().newInstance();
 
-    kvStore.replace(key, originalValue, newValue);
+    try {
+      kvStore.replace(key, originalValue, newValue);
+    } catch (CacheAccessException e) {
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
+    }
 
     assertThat(kvStore.get(key).value(), is(equalTo(newValue)));
   }
@@ -75,7 +80,12 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
     V wrongValue = factory.createValue(2L);
     V newValue = factory.createValue(3L);
 
-    kvStore.replace(key, wrongValue, newValue);
+    try {
+      kvStore.replace(key, wrongValue, newValue);
+    } catch (CacheAccessException e) {
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
+    }
 
     assertThat(kvStore.get(key).value(), is(not(equalTo(wrongValue))));
   }
@@ -93,9 +103,12 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
 
     V newValue = factory.getValueType().newInstance();
 
-    boolean successfulReplace = kvStore.replace(key, originalValue, newValue);
-
-    assertThat(successfulReplace, is(true));
+    try {
+      assertThat(kvStore.replace(key, originalValue, newValue), is(true));
+    } catch (CacheAccessException e) {
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
+    }
   }
 
   @SPITest
@@ -105,22 +118,25 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
         factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
 
     K key = factory.getKeyType().newInstance();
-    V originalValue = factory.getValueType().newInstance();
+    V originalValue = factory.createValue(1L);
 
     kvStore.put(key, originalValue);
 
-    V wrongValue = factory.getValueType().newInstance();
-    V newValue = factory.getValueType().newInstance();
+    V wrongValue = factory.createValue(2L);
+    V newValue = factory.createValue(3L);
 
-    boolean successfulReplace = kvStore.replace(key, wrongValue, newValue);
-
-    assertThat(successfulReplace, is(false));
+    try {
+      assertThat(kvStore.replace(key, wrongValue, newValue), is(false));
+    } catch (CacheAccessException e) {
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
+    }
   }
 
   @SPITest
   @SuppressWarnings("unchecked")
   public void wrongKeyTypeThrowsException()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
+      throws IllegalAccessException, InstantiationException {
     final Store kvStore = factory.newStore(
         new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
 
@@ -136,13 +152,16 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
       // expected
+    } catch (CacheAccessException e) {
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
     }
   }
 
   @SPITest
   @SuppressWarnings("unchecked")
   public void wrongOriginalValueTypeThrowsException()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
+      throws IllegalAccessException, InstantiationException {
     final Store kvStore = factory.newStore(
         new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
 
@@ -158,13 +177,16 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException e) {
       // expected
+    } catch (CacheAccessException e) {
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
     }
   }
 
   @SPITest
   @SuppressWarnings("unchecked")
   public void wrongNewValueTypeThrowsException()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
+      throws IllegalAccessException, InstantiationException {
     final Store kvStore = factory.newStore(
         new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
 
@@ -180,23 +202,9 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException e) {
       // expected
-    }
-  }
-
-  @SPITest
-  public void mappingCantBeReplacedCanThrowException()
-      throws IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
-
-    K key = factory.getKeyType().newInstance();
-    V originalValue = factory.getValueType().newInstance();
-    V newValue = factory.getValueType().newInstance();
-
-    try {
-      kvStore.replace(key, originalValue, newValue);
     } catch (CacheAccessException e) {
-      // This will not compile if the CacheAccessException is not thrown
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
     }
   }
 }
