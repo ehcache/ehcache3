@@ -46,5 +46,4 @@ public class StoreValueHolderLastAccessTimeTest<K, V> extends SPIStoreTester<K, 
 
     assertThat(valueHolder.lastAccessTime(TimeUnit.MILLISECONDS), is(notNullValue()));
   }
-
 }
