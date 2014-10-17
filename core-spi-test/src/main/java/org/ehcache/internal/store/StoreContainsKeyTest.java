@@ -45,7 +45,7 @@ public class StoreContainsKeyTest<K, V> extends SPIStoreTester<K, V> {
   public void storeContainsKey()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader()));
 
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
@@ -64,7 +64,7 @@ public class StoreContainsKeyTest<K, V> extends SPIStoreTester<K, V> {
   public void nullKeyThrowsException()
       throws IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
+        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType(), ClassLoader.getSystemClassLoader()));
 
     K key = null;
 
@@ -85,7 +85,7 @@ public class StoreContainsKeyTest<K, V> extends SPIStoreTester<K, V> {
   public void wrongKeyTypeThrowsException()
       throws IllegalAccessException, InstantiationException {
     final Store kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
+        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType(), ClassLoader.getSystemClassLoader()));
 
     try {
       if (this.factory.getKeyType() == String.class) {

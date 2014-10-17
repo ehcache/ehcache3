@@ -45,7 +45,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   public void removeEntryForKeyIfMappedToValue()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader()));
 
     K key = factory.createKey(1L);
     V value = factory.createValue(1L);
@@ -72,7 +72,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   public void doNothingForKeyNotMappedToValue()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader()));
 
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
@@ -91,7 +91,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   public void doNothingForWrongValue()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader()));
 
     K key = factory.getKeyType().newInstance();
     V value = factory.createValue(1L);
@@ -113,7 +113,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   public void returnTrueIfValueWasRemoved()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader()));
 
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
@@ -134,7 +134,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   public void returnFalseIfValueWasNotRemoved()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader()));
 
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
@@ -153,7 +153,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   public void nullKeyThrowsException()
       throws IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
+        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType(), ClassLoader.getSystemClassLoader()));
 
     K key = null;
     V value = factory.getValueType().newInstance();
@@ -173,7 +173,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   public void nullValueThrowsException()
       throws IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
+        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType(), ClassLoader.getSystemClassLoader()));
 
     K key = factory.getKeyType().newInstance();
     V value = null;
@@ -195,7 +195,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   public void wrongKeyTypeThrowsException()
       throws IllegalAccessException, InstantiationException {
     final Store kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
+        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType(), ClassLoader.getSystemClassLoader()));
 
     V value = factory.getValueType().newInstance();
 
@@ -220,7 +220,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   public void wrongValueTypeThrowsException()
       throws IllegalAccessException, InstantiationException {
     final Store kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
+        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType(), ClassLoader.getSystemClassLoader()));
 
     K key = factory.getKeyType().newInstance();
 

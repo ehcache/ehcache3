@@ -44,7 +44,7 @@ public class StoreCloseTest<K, V> extends SPIStoreTester<K, V> {
   public void closedStoreCantBeUsed()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
     Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader()));
 
     kvStore.close();
 

@@ -46,9 +46,9 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void mapsKeyToValueWhenMappingDoesntExist()
-      throws  IllegalAccessException, InstantiationException {
+      throws IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader()));
 
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
@@ -63,9 +63,9 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void doesntMapKeyToValueWhenMappingExists()
-      throws  IllegalAccessException, InstantiationException {
+      throws IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader()));
 
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
@@ -91,7 +91,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   public void nullKeyThrowsException()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
+        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType(), ClassLoader.getSystemClassLoader()));
 
     K key = null;
     V value = factory.getValueType().newInstance();
@@ -108,7 +108,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   public void nullValueThrowsException()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
+        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType(), ClassLoader.getSystemClassLoader()));
 
     K key = factory.getKeyType().newInstance();
     V value = null;
@@ -125,9 +125,9 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @Ignore(reason = "Failing test to fix")
   @SuppressWarnings("unchecked")
   public void wrongKeyTypeThrowsException()
-      throws   IllegalAccessException, InstantiationException {
+      throws IllegalAccessException, InstantiationException {
     final Store kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
+        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType(), ClassLoader.getSystemClassLoader()));
 
     V value = factory.getValueType().newInstance();
 
@@ -150,9 +150,9 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @Ignore(reason = "Failing test to fix")
   @SuppressWarnings("unchecked")
   public void wrongValueTypeThrowsException()
-      throws  IllegalAccessException, InstantiationException {
+      throws IllegalAccessException, InstantiationException {
     final Store kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
+        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType(), ClassLoader.getSystemClassLoader()));
 
     K key = factory.getKeyType().newInstance();
 

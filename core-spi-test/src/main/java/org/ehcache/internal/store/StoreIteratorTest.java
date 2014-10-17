@@ -47,7 +47,7 @@ public class StoreIteratorTest<K, V> extends SPIStoreTester<K, V> {
   public void iterableContainsValuesInAnyOrder()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
+        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType(), ClassLoader.getSystemClassLoader()));
 
     K key1 = factory.createKey(1L);
     K key2 = factory.createKey(2L);

@@ -64,7 +64,7 @@ public class OnHeapStoreSPITest {
           final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
           final Predicate<Cache.Entry<String, String>> evictionVeto, final Comparator<Cache.Entry<String, String>> evictionPrioritizer) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer);
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader());
       }
 
       @Override

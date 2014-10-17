@@ -38,7 +38,7 @@ public class StoreProviderReleaseStoreTest<K, V> extends SPIStoreTester<K, V> {
   public void releaseStore() throws IllegalAccessException, InstantiationException {
     Store.Provider provider = factory.newProvider();
 
-    Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType());
+    Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType(), ClassLoader.getSystemClassLoader());
     Store<K, V> store = provider.createStore(storeConfig, factory.getServiceConfigurations());
 
     provider.releaseStore(store);
