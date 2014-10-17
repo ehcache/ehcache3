@@ -22,6 +22,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.statistics.CacheStatistics;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -159,6 +160,11 @@ public class TieredCache<K, V> implements Cache<K, V> {
   @Override
   public Iterator<Entry<K, V>> iterator() {
     throw new UnsupportedOperationException("Implement me!");
+  }
+  
+  @Override
+  public CacheStatistics getStatistics() {
+    throw new UnsupportedOperationException("implement me!");
   }
 
   public long getMaxCacheSize() {
