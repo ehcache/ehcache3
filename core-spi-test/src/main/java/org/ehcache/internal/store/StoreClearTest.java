@@ -22,7 +22,6 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Predicates;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
-import org.hamcrest.MatcherAssert;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -42,31 +41,23 @@ public class StoreClearTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  public void removesAllOfTheMappings ()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
+  public void removesAllOfTheMappings()
+      throws IllegalAccessException, InstantiationException, CacheAccessException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K,V>>all(), null));
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
 
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
 
     kvStore.put(key, value);
 
-    kvStore.clear();
-
-    assertThat(kvStore.containsKey(key), is(false));
-  }
-
-  @SPITest
-  public void storeCantBeClearedCanThrowException()
-      throws IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore = factory.newStore(
-        new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
-
     try {
       kvStore.clear();
     } catch (CacheAccessException e) {
-      // This will not compile if the CacheAccessException is not thrown
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
     }
+
+    assertThat(kvStore.containsKey(key), is(false));
   }
 }
