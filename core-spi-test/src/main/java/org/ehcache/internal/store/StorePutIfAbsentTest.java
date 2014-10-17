@@ -58,7 +58,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  public void mapsKeyToValueWhenMappingExists()
+  public void doesntMapKeyToValueWhenMappingExists()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
         factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));
@@ -66,7 +66,11 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
 
-    Store.ValueHolder<V> returnedValueHolder = kvStore.putIfAbsent(key, value);
+    kvStore.put(key, value);
+
+    V updatedValue = factory.getValueType().newInstance();
+
+    Store.ValueHolder<V> returnedValueHolder = kvStore.putIfAbsent(key, updatedValue);
 
     assertThat(returnedValueHolder.value(), is(equalTo(value)));
   }

@@ -53,6 +53,7 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
 
     kvStore.put(key, originalValue);
 
+    //TODO : need some way of enforcing that this newValue is distinct from the old value
     V newValue = factory.getValueType().newInstance();
 
     kvStore.replace(key, newValue);
@@ -90,6 +91,7 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
 
     Store.ValueHolder<V> oldValue = kvStore.replace(key, newValue);
 
+    assertThat(kvStore.containsKey(key), is(false));
     assertThat(oldValue, is(nullValue()));
   }
 

@@ -49,22 +49,26 @@ public class StoreIteratorTest<K, V> extends SPIStoreTester<K, V> {
     final Store<K, V> kvStore = factory.newStore(
         new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType()));
 
+    K key1 = factory.getKeyType().newInstance();
+    K key2 = factory.getKeyType().newInstance();
+    K key3 = factory.getKeyType().newInstance();
     V value1 = factory.getValueType().newInstance();
     V value2 = factory.getValueType().newInstance();
     V value3 = factory.getValueType().newInstance();
 
-    kvStore.put(factory.getKeyType().newInstance(), value1);
-    kvStore.put(factory.getKeyType().newInstance(), value2);
-    kvStore.put(factory.getKeyType().newInstance(), value3);
+    kvStore.put(key1, value1);
+    kvStore.put(key2, value2);
+    kvStore.put(key3, value3);
 
     Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();
+    List<K> keys = new ArrayList<K>();
     List<V> values = new ArrayList<V>();
     while (iterator.hasNext()) {
       Cache.Entry<K, Store.ValueHolder<V>> nextEntry = iterator.next();
+      keys.add(nextEntry.getKey());
       values.add(nextEntry.getValue().value());
     }
+    assertThat(keys, containsInAnyOrder(equalTo(key1), equalTo(key2), equalTo(key3)));
     assertThat(values, containsInAnyOrder(equalTo(value1), equalTo(value2), equalTo(value3)));
   }
-
-
 }

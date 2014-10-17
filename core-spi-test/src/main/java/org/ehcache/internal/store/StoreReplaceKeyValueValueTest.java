@@ -99,7 +99,7 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  public void unsuccessfulReplaceReturnsTrue()
+  public void unsuccessfulReplaceReturnsFalse()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
         factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null));

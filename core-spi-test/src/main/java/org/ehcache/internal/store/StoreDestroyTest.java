@@ -51,7 +51,11 @@ public class StoreDestroyTest<K, V> extends SPIStoreTester<K, V> {
 
     kvStore.put(key, value);
 
-    kvStore.destroy();
+    try {
+      kvStore.destroy();
+    } catch (CacheAccessException e) {
+      // legal per contract
+    }
 
     assertThat(kvStore.containsKey(key), is(false));
   }
