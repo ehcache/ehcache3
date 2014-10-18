@@ -14,28 +14,24 @@
  * limitations under the License.
  */
 
-package org.ehcache;
+package org.ehcache.internal.store;
 
-import org.ehcache.internal.store.OnHeapStore;
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.test.StoreFactory;
-import org.ehcache.spi.test.StoreTester;
-import org.junit.Test;
+import org.ehcache.spi.test.SPITester;
 
 /**
- * @author Hung Huynh
+ * Parent class for all Store tester classes.
+ * It contains all common utility methods (e.g. instantiate a
+ * {@link org.ehcache.spi.cache.Store.ValueHolder Store.ValueHolder}).
+ * <p/>
+ * @author Aurelien Broszniowski
  */
-public class OnHeapStoreTest {
 
-  @Test
-  public void test() throws Exception {
-    StoreTester tester = new StoreTester(new StoreFactory() {
-      @Override
-      public <K, V> Store<K, V> newStore(Store.Configuration<K, V> config) {
-        return new OnHeapStore<K, V>(config);
-      }
-    });
-    tester.runTestSuite().reportAndThrow();
+public class SPIStoreTester<K, V> extends SPITester {
+
+  protected final StoreFactory<K,V> factory;
+
+  public SPIStoreTester(final StoreFactory<K,V> factory) {
+    this.factory = factory;
   }
-
+  
 }

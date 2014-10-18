@@ -16,12 +16,19 @@
 
 package org.ehcache.spi.test;
 
-import org.ehcache.spi.cache.Store;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * @author Alex Snaps
+ * Disable a SPI test method, optionally indicating the reason
+ *
+ * @author Aurelien Broszniowski
  */
-public interface StoreFactory {
 
-  <K, V> Store<K, V> newStore(Store.Configuration<K, V> config);
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface Ignore {
+  String reason() default "";
 }

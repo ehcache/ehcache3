@@ -22,29 +22,36 @@ import java.io.StringWriter;
 /**
  * @author Hung Huynh
  */
-public class Failure {
-  private final String    testMethod;
-  private final Throwable thrownException;
+public class ResultState {
+  private final String className;
+  private final String methodName;
+  private final String reason;
 
-  public Failure(String testMethod, Throwable thrownException) {
-    this.testMethod = testMethod;
-    this.thrownException = thrownException;
+  public ResultState(Class testClass, String methodName, Throwable thrownException) {
+    this.className = testClass.getCanonicalName();
+    this.methodName = methodName;
+    this.reason = getStackTraceAsString(thrownException);
   }
 
-  public String getTestMethod() {
-    return testMethod;
+  public ResultState(Class testClass, String methodName, String reason) {
+    this.className = testClass.getCanonicalName();
+    this.methodName = methodName;
+    this.reason = reason;
   }
 
-  public Throwable getThrownException() {
-    return thrownException;
+  public String getName() {
+    return this.className + "." + methodName;
   }
 
-  public String getTrace() {
+  public String getReason() {
+    return reason;
+  }
+
+  private String getStackTraceAsString(Throwable throwable) {
     StringWriter stringWriter = new StringWriter();
     PrintWriter writer = new PrintWriter(stringWriter);
-    thrownException.printStackTrace(writer);
+    throwable.printStackTrace(writer);
     StringBuffer buffer = stringWriter.getBuffer();
     return buffer.toString();
   }
-
 }

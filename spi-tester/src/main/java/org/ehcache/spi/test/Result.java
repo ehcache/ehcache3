@@ -23,11 +23,12 @@ import java.util.List;
  * @author Hung Huynh
  */
 public class Result {
-  private long                startTime;
-  private long                endTime;
-  private long                runTime;
-  private int                 runCount;
-  private final List<Failure> failures = new ArrayList<Failure>();
+  private       long              startTime;
+  private       long              endTime;
+  private       long              runTime;
+  private       int               runCount;
+  private final List<ResultState> failedTests  = new ArrayList<ResultState>();
+  private final List<ResultState> skippedTests = new ArrayList<ResultState>();
 
   public Result() {
     //
@@ -38,7 +39,7 @@ public class Result {
   }
 
   public int getFailureCount() {
-    return failures.size();
+    return failedTests.size();
   }
 
   public void testRunStarted() {
@@ -58,33 +59,58 @@ public class Result {
     runCount++;
   }
 
-  public void testFailure(Failure failure) {
-    failures.add(failure);
+  public void testFailed(ResultState failedTest) {
+    failedTests.add(failedTest);
   }
 
-  public List<Failure> getFailures() {
-    return failures;
+  public void testSkipped(ResultState skippedTest) {
+    skippedTests.add(skippedTest);
+  }
+
+  public List<ResultState> getFailedTests() {
+    return failedTests;
   }
 
   public boolean wasSuccessful() {
-    return failures.isEmpty();
+    return failedTests.isEmpty();
   }
 
   public void reportAndThrow() throws Exception {
-    System.out.println("* SPITester: " + (getRunCount() + failures.size()) + " tests ran, took "
-        + runtimeAsString() + ". Passed: " + getRunCount() + ". Failed: " + failures.size());
+    StringBuilder sb = new StringBuilder();
+    sb.append("***> SPITester: ")
+        .append(getTotalRunCount()).append(" tests ran, ")
+        .append("took ").append(runtimeAsString()).append(". ")
+        .append("Passed: ").append(getRunCount()).append(". ")
+        .append("Skipped: ").append(skippedTests.size()).append(". ")
+        .append("Failed: ").append(failedTests.size());
+    System.out.println(sb.toString());
+
+    for (ResultState skippedTest : skippedTests) {
+      sb = new StringBuilder();
+      sb.append("* ").append(skippedTest.getName())
+          .append(" skipped: ").append(skippedTest.getReason());
+      System.out.println(sb.toString());
+    }
+
     if (!wasSuccessful()) {
       System.out.println();
-      for (Failure failure : failures) {
-        System.out.println("* " + failure.getTestMethod() + " failed: ");
-        System.out.println(failure.getTrace());
-        System.out.println();
+      for (ResultState failure : failedTests) {
+        sb = new StringBuilder();
+        sb.append("* ").append(failure.getName())
+            .append(" failed: ").append(failure.getReason())
+            .append(System.getProperty("line.separator"));
+        System.out.println(sb.toString());
       }
-      throw new Exception(failures.get(0).getThrownException());
+      throw new Exception(failedTests.get(0).getReason());
     }
   }
-  
+
+  private int getTotalRunCount() {
+    return getRunCount() + skippedTests.size()+failedTests.size();
+  }
+
   private String runtimeAsString() {
     return (runTime > 1000) ? String.format("%.1f s", (runTime / 1000.0)) : runTime + " ms";
   }
+
 }
