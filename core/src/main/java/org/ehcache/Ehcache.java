@@ -298,16 +298,20 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   public void putAll(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
     statusTransitioner.checkAvailable();
     checkNonNull(entries);
-    final Map<K, V> lastMappedEntries = new HashMap<K, V>();
+    
+    final Map<K, V> entriesToRemap = new HashMap<K, V>();
+    for (Map.Entry<? extends K, ? extends V> entry: entries) {
+      entriesToRemap.put(entry.getKey(), entry.getValue());
+    }
+
     Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction =
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
       @Override
       public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-        lastMappedEntries.clear();
         for (Map.Entry<? extends K, ? extends V> entry: entries) {
-          lastMappedEntries.put(entry.getKey(), entry.getValue());
+          entriesToRemap.remove(entry.getKey());
         }
-
+        
         if (cacheWriter != null) {
           Set<Map.Entry<? extends K, ? extends V>> toWrite = new HashSet<Map.Entry<? extends K, ? extends V>>();
           Set<K> toRemove = new HashSet<K>();
@@ -340,7 +344,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     } catch (CacheAccessException e) {
       // just in case the write didn't happen:
       try {
-        remappingFunction.apply(lastMappedEntries.entrySet());
+        if (!entriesToRemap.isEmpty()) {
+          remappingFunction.apply(entriesToRemap.entrySet());
+        }
       } finally {
         removeKeysWithStrategy(keys, e);
       }
@@ -354,15 +360,19 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   public void removeAll(final Iterable<? extends K> keys) {
     statusTransitioner.checkAvailable();
     checkNonNull(keys);
-    final Map<K, V> lastMappedEntries = new HashMap<K, V>();
+    
+    final Map<K, ? extends V> entriesToRemove = new HashMap<K, V>();
+    for (K key: keys) {
+      entriesToRemove.put(key, null);
+    }
+    
     Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> removalFunction =
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
           Iterable<Map.Entry<K, V>> ret = new NullValuesIterable(entries);
-          lastMappedEntries.clear();
           for (Map.Entry<K, V> entry: ret) {
-            lastMappedEntries.put(entry.getKey(), entry.getValue());
+            entriesToRemove.remove(entry.getKey());
           }
 
           if (cacheWriter != null) {
@@ -383,7 +393,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     } catch (CacheAccessException e) {
       // just in case the write didn't happen:
       try {
-        removalFunction.apply(lastMappedEntries.entrySet());
+        if (!entriesToRemove.isEmpty()) {
+          removalFunction.apply(entriesToRemove.entrySet());
+        }
       } finally {
         removeKeysWithStrategy(keys, e);
       }
