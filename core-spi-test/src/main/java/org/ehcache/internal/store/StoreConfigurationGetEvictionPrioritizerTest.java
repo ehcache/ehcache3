@@ -18,8 +18,6 @@ package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
 import org.ehcache.eviction.EvictionPrioritizer;
-import org.ehcache.function.Predicate;
-import org.ehcache.function.Predicates;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
 
@@ -44,9 +42,9 @@ public class StoreConfigurationGetEvictionPrioritizerTest<K, V> extends SPIStore
   }
 
   @SPITest
+  @SuppressWarnings({ "cast", "unchecked" })
   public void returnsCorrectEvictionPrioritizer() throws IllegalAccessException, InstantiationException {
-
-    final Comparator<Cache.Entry<K, V>> evictionPrioritizer = (Comparator<Cache.Entry<K, V>>)EvictionPrioritizer.LFU;
+    final Comparator<Cache.Entry<K, V>> evictionPrioritizer = Comparator.class.cast(EvictionPrioritizer.LFU);
     Store.Configuration<K, V> kvConfiguration = factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         null, null, evictionPrioritizer);
 
