@@ -27,6 +27,8 @@ import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
+import org.ehcache.spi.writer.CacheWriter;
+import org.ehcache.spi.writer.CacheWriterFactory;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -96,9 +98,13 @@ public class EhcacheManager implements PersistentCacheManager {
 
   void closeEhcache(final String alias, final Ehcache ehcache) {
     ehcache.close();
-    final CacheLoader cacheLoader = ehcache.getCacheLoader();
+    final CacheLoader<?, ?> cacheLoader = ehcache.getCacheLoader();
     if (cacheLoader != null) {
       serviceLocator.findService(CacheLoaderFactory.class).releaseCacheLoader(cacheLoader);
+    }
+    final CacheWriter<?, ?> cacheWriter = ehcache.getCacheWriter();
+    if (cacheWriter != null) {
+      serviceLocator.findService(CacheWriterFactory.class).releaseCacheWriter(cacheWriter);
     }
   }
 
@@ -153,15 +159,19 @@ public class EhcacheManager implements PersistentCacheManager {
     if(cacheLoaderFactory != null) {
       loader = cacheLoaderFactory.createCacheLoader(alias, config);
     }
+    final CacheWriterFactory cacheWriterFactory = serviceLocator.findService(CacheWriterFactory.class);
+    CacheWriter<? super K, ? super V> writer = null;
+    if (cacheWriterFactory != null) {
+      writer = cacheWriterFactory.createCacheWriter(alias, config);
+    }
     
     CacheConfiguration<K, V> adjustedConfig = new BaseCacheConfiguration<K, V>(
         keyType, valueType, config.getCapacityConstraint(),
         config.getEvictionVeto(), config.getEvictionPrioritizer(), cacheClassLoader,
         config.getServiceConfigurations().toArray(new ServiceConfiguration<?>[config.getServiceConfigurations().size()])
-        );
-    
-    
-    return new Ehcache<K, V>(adjustedConfig, store, loader);
+    );
+
+    return new Ehcache<K, V>(adjustedConfig, store, loader, writer);
   }
 
   public void registerListener(CacheManagerListener listener) {
