@@ -25,6 +25,7 @@ import org.ehcache.function.Predicates;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.statistics.CacheOperationOutcomes.EvictionOutcome;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -34,7 +35,11 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
 import org.ehcache.function.Comparables;
+import org.terracotta.statistics.observer.OperationObserver;
+
+import static org.terracotta.statistics.StatisticsBuilder.operation;
 
 /**
  * @author Alex Snaps
@@ -49,6 +54,8 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   private final Comparable<Long> capacityConstraint;
   private final Predicate<Map.Entry<K, ValueHolder<V>>> evictionVeto;
   private final Comparator<Map.Entry<K, ValueHolder<V>>> evictionPrioritizer;
+  
+  private final OperationObserver<EvictionOutcome> evictionObserver = operation(EvictionOutcome.class).named("eviction").of(this).tag("onheap-store").build();
   
   public OnHeapStore(final Configuration<K, V> config) {
     Comparable<Long> capacity = config.getCapacityConstraint();
@@ -272,6 +279,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   }
 
   private boolean evict() {
+    evictionObserver.begin();
     Set<Map.Entry<K, ValueHolder<V>>> values = map.getRandomValues(new Random(), 8, evictionVeto);
     if (values.isEmpty()) {
       return false;
@@ -279,8 +287,10 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       Map.Entry<K, ValueHolder<V>> evict = Collections.max(values, evictionPrioritizer);
       if (map.remove(evict.getKey(), evict.getValue())) {
         //Eventually we'll need to fire a listener here.
+        evictionObserver.end(EvictionOutcome.SUCCESS);
         return true;
       } else {
+        evictionObserver.end(EvictionOutcome.FAILURE);
         return false;
       }
     }

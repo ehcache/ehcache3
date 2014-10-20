@@ -35,6 +35,11 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriter;
+import org.ehcache.statistics.CacheStatistics;
+import org.ehcache.statistics.CacheOperationOutcomes.GetOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.PutOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.RemoveOutcome;
+import org.terracotta.statistics.observer.OperationObserver;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -51,6 +56,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.ehcache.Functions.memoize;
 import static org.ehcache.exceptions.ExceptionFactory.newCacheLoaderException;
 import static org.ehcache.exceptions.ExceptionFactory.newCacheWriterException;
+import static org.terracotta.statistics.StatisticsBuilder.operation;
 
 /**
  * @author Alex Snaps
@@ -65,6 +71,10 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   private final ResilienceStrategy<K, V> resilienceStrategy;
   private final RuntimeConfiguration<K, V> runtimeConfiguration;
 
+  private final OperationObserver<GetOutcome> getObserver = operation(GetOutcome.class).named("get").of(this).tag("cache").build();
+  private final OperationObserver<PutOutcome> putObserver = operation(PutOutcome.class).named("put").of(this).tag("cache").build();
+  private final OperationObserver<RemoveOutcome> removeObserver = operation(RemoveOutcome.class).named("remove").of(this).tag("cache").build();
+  
   public Ehcache(CacheConfiguration<K, V> config, final Store<K, V> store) {
     this(config, store, null);
   }
@@ -94,6 +104,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public V get(final K key) throws CacheLoaderException {
+    getObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key);
     final Function<K, V> mappingFunction = memoize(
@@ -116,10 +127,15 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       final Store.ValueHolder<V> valueHolder = store.computeIfAbsent(key, mappingFunction);
 
       // Check for expiry first
-      return valueHolder == null ? null : valueHolder.value();
-
+      if (valueHolder == null) {
+        getObserver.end(GetOutcome.MISS_NOT_FOUND);
+        return null;
+      } else {
+        getObserver.end(GetOutcome.HIT);
+        return valueHolder.value();
+      }
     } catch (CacheAccessException e) {
-
+      getObserver.end(GetOutcome.FAILURE);
       // So we either didn't load, or that's a miss in the SoR as well
       try {
         // If the former, let's clean up
@@ -136,6 +152,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public void put(final K key, final V value) {
+    putObserver.begin();    
     statusTransitioner.checkAvailable();
     checkNonNull(key, value);
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
@@ -154,7 +171,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
     try {
       store.compute(key, remappingFunction);
+      putObserver.end(PutOutcome.ADDED);
     } catch (CacheAccessException e) {
+      putObserver.end(PutOutcome.FAILURE);
       try {
         // just in case the write didn't happen:
         remappingFunction.apply(key, value);
@@ -164,6 +183,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         resilienceStrategy.possiblyInconsistent(key, e, e1);
       }
     } catch(CacheWriterException e) {
+      putObserver.end(PutOutcome.FAILURE);
       try {
         store.remove(key);
         resilienceStrategy.recoveredFrom(key, e);
@@ -194,6 +214,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public void remove(final K key) {
+    removeObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key);
 
@@ -201,8 +222,10 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
     try {
       store.remove(key);
+      removeObserver.end(RemoveOutcome.SUCCESS);
     } catch (CacheAccessException e) {
       // fall back to strategy?
+      removeObserver.end(RemoveOutcome.FAILURE);
     }
   }
 
@@ -571,6 +594,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   CacheLoader<? super K, ? extends V> getCacheLoader() {
     return cacheLoader;
+  }
+  
+  @Override
+  public CacheStatistics getStatistics() {
+    throw new UnsupportedOperationException("implement me!"); // XXX:
   }
 
   private static class RuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, V> {
