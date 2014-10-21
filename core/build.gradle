@@ -15,6 +15,6 @@
  */
 
 dependencies {
-  compile project(':api'), 'org.terracotta.internal:statistics:1.0.3'
-  testCompile project(':spi-tester')
+  compile project(':api'), 'org.terracotta.internal:statistics:1.0.3', 'org.slf4j:slf4j-api:1.7.7'
+  testCompile project(':spi-tester'), 'org.slf4j:slf4j-simple:1.7.7'
 }
