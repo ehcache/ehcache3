@@ -2,13 +2,29 @@
 
 :toc:
 
-== Oct 16, 2014 - Hangout on Air
+== Oct 23, 2014 - Hangout on Air
 
-Next public meeting on https://plus.google.com/u/0/events/cljv4s8a52pqo36bh8r2afaiu1s[G+ Hangout on Air] at 11:30pm IST / 8pm CET / 2pm EST / 11am PST
+Next public meeting on https://plus.google.com/events/cdg21t736v4k8i57aacnlmdbnsc[G+ Hangout on Air] at 11:30pm IST / 8pm CET / 2pm EST / 11am PST
 
 === Agenda
 
- * tbd
+Candidates up for discussion this week so far, probably can't cover all of them though:
+
+ * Exception hierarchy
+ * Logging (levels, i18n, ...)
+ * XML Config
+
+== Oct 16, 2014 - Hangout on Air
+
+Recording available https://www.youtube.com/watch?v=HWi7H7glR_o&list=UU43PVCp2j0b2og2DtxNOU1A[here on YouTube]
+
+=== Agenda
+
+ * https://github.com/ehcache/ehcache3/pull/109[PR #109] on `ClassLoader` per `Cache`
+ ** Should it be a `Service` or do we want to keep it as in the PR?
+ ** Let's revisit this based on user sample code we plan on doing after the _107 Alpha_
+ * Update the `README` to explain how to get to this though _sonatype_
+ * _107 Alpha_ to be released as `3.0.0-Alpha` to central
 
 == Oct 9, 2014 - Hangout on Air
 
