@@ -260,7 +260,7 @@ public interface Store<K, V> {
    * modified between each computed key.
    *
    * @param keys the keys to compute a new value for, if they're not in the store.
-   * @param remappingFunction the function that generates new values.
+   * @param mappingFunction the function that generates new values.
    * @return a {@link Map} of key / value pairs for each key in <code>keys</code> that are in the store after bulk computing is done.
    * @throws CacheAccessException
    */
