@@ -34,6 +34,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Ludovic Orban
@@ -43,6 +44,8 @@ public class OnHeapStoreBulkMethodsTest {
   @Test
   public void testBulkComputeFunctionGetsValuesOfEntries() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mock(Store.Configuration.class);
+    when(configuration.getKeyType()).thenReturn(Number.class);
+    when(configuration.getValueType()).thenReturn(CharSequence.class);
 
     OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration);
     store.put(1, "one");
@@ -69,6 +72,8 @@ public class OnHeapStoreBulkMethodsTest {
   @Test
   public void testBulkComputeHappyPath() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mock(Store.Configuration.class);
+    when(configuration.getKeyType()).thenReturn(Number.class);
+    when(configuration.getValueType()).thenReturn(CharSequence.class);
 
     OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration);
     store.put(1, "one");
@@ -94,6 +99,8 @@ public class OnHeapStoreBulkMethodsTest {
   @Test
   public void testBulkComputeIgnoreFunctionReturnedUnspecifiedKeys() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mock(Store.Configuration.class);
+    when(configuration.getKeyType()).thenReturn(Number.class);
+    when(configuration.getValueType()).thenReturn(CharSequence.class);
 
     OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration);
 
@@ -118,6 +125,8 @@ public class OnHeapStoreBulkMethodsTest {
   @Test
   public void testBulkComputeDoNothingOnNullFunctionReturn() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mock(Store.Configuration.class);
+    when(configuration.getKeyType()).thenReturn(Number.class);
+    when(configuration.getValueType()).thenReturn(CharSequence.class);
 
     OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration);
     store.put(1, "one");
@@ -142,6 +151,8 @@ public class OnHeapStoreBulkMethodsTest {
   @Test
   public void testBulkComputeIgnoreEntriesMissingFromFunctionReturn() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mock(Store.Configuration.class);
+    when(configuration.getKeyType()).thenReturn(Number.class);
+    when(configuration.getValueType()).thenReturn(CharSequence.class);
 
     OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration);
     store.put(1, "one");
@@ -170,6 +181,8 @@ public class OnHeapStoreBulkMethodsTest {
   @Test
   public void testBulkComputeRemoveNullValueEntriesFromFunctionReturn() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mock(Store.Configuration.class);
+    when(configuration.getKeyType()).thenReturn(Number.class);
+    when(configuration.getValueType()).thenReturn(CharSequence.class);
 
     OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration);
     store.put(1, "one");
@@ -196,6 +209,8 @@ public class OnHeapStoreBulkMethodsTest {
   @Test
   public void testBulkComputeIfAbsentFunctionDoesNotGetPresentKeys() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mock(Store.Configuration.class);
+    when(configuration.getKeyType()).thenReturn(Number.class);
+    when(configuration.getValueType()).thenReturn(CharSequence.class);
 
     OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration);
     store.put(1, "one");
@@ -219,6 +234,8 @@ public class OnHeapStoreBulkMethodsTest {
   @Test
   public void testBulkComputeIfAbsentDoesNotOverridePresentKeys() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mock(Store.Configuration.class);
+    when(configuration.getKeyType()).thenReturn(Number.class);
+    when(configuration.getValueType()).thenReturn(CharSequence.class);
 
     OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration);
     store.put(1, "one");
@@ -255,9 +272,11 @@ public class OnHeapStoreBulkMethodsTest {
     assertThat(store.get(6).value(), Matchers.<CharSequence>equalTo("six"));
   }
 
-    @Test
+  @Test
   public void testBulkComputeIfAbsentIgnoreFunctionReturnedUnspecifiedKeys() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mock(Store.Configuration.class);
+    when(configuration.getKeyType()).thenReturn(Number.class);
+    when(configuration.getValueType()).thenReturn(CharSequence.class);
 
     OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration);
 
@@ -282,6 +301,8 @@ public class OnHeapStoreBulkMethodsTest {
   @Test
   public void testBulkComputeIfAbsentDoNothingOnNullFunctionReturn() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mock(Store.Configuration.class);
+    when(configuration.getKeyType()).thenReturn(Number.class);
+    when(configuration.getValueType()).thenReturn(CharSequence.class);
 
     OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration);
     store.put(1, "one");
@@ -308,6 +329,8 @@ public class OnHeapStoreBulkMethodsTest {
   @Test
   public void testBulkComputeIfAbsentIgnoreEntriesMissingFromFunctionReturn() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mock(Store.Configuration.class);
+    when(configuration.getKeyType()).thenReturn(Number.class);
+    when(configuration.getValueType()).thenReturn(CharSequence.class);
 
     OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration);
 

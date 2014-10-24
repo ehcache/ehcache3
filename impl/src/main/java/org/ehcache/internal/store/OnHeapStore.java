@@ -50,13 +50,15 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   private static final int EVICTION_RATIO = 2;
   
   private final ConcurrentHashMap<K, Store.ValueHolder<V>> map = new ConcurrentHashMap<K, ValueHolder<V>>();
+  private final Class<K> keyType;
+  private final Class<V> valueType;
 
   private final Comparable<Long> capacityConstraint;
   private final Predicate<Map.Entry<K, ValueHolder<V>>> evictionVeto;
   private final Comparator<Map.Entry<K, ValueHolder<V>>> evictionPrioritizer;
   
   private final OperationObserver<EvictionOutcome> evictionObserver = operation(EvictionOutcome.class).named("eviction").of(this).tag("onheap-store").build();
-  
+
   public OnHeapStore(final Configuration<K, V> config) {
     Comparable<Long> capacity = config.getCapacityConstraint();
     if (capacity == null) {
@@ -66,19 +68,25 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     }  
     this.evictionVeto = wrap(config.getEvictionVeto());
     this.evictionPrioritizer = wrap(config.getEvictionPrioritizer());
+    this.keyType = config.getKeyType();
+    this.valueType = config.getValueType();
   }
   
   @Override
   public ValueHolder<V> get(final K key) throws CacheAccessException {
+    checkKeyType(key);
     return map.get(key);
   }
 
   @Override
   public boolean containsKey(final K key) throws CacheAccessException {
+    checkKeyType(key);
     return map.containsKey(key);
   }
 
   public void put(final K key, final V value) throws CacheAccessException {
+    checkKeyType(key);
+    checkValueType(value);
     if (map.put(key, new OnHeapStoreValueHolder<V>(value)) == null) {
       enforceCapacity(1);
     }
@@ -86,26 +94,36 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
   @Override
   public void remove(final K key) throws CacheAccessException {
+    checkKeyType(key);
     map.remove(key);
   }
 
   @Override
   public ValueHolder<V> putIfAbsent(K key, V value) throws CacheAccessException {
+    checkKeyType(key);
+    checkValueType(value);
     return map.putIfAbsent(key, new OnHeapStoreValueHolder<V>(value));
   }
 
   @Override
   public boolean remove(K key, V value) throws CacheAccessException {
+    checkKeyType(key);
+    checkValueType(value);
     return map.remove(key, new OnHeapStoreValueHolder<V>(value));
   }
 
   @Override
   public ValueHolder<V> replace(K key, V value) throws CacheAccessException {
+    checkKeyType(key);
+    checkValueType(value);
     return map.replace(key, new OnHeapStoreValueHolder<V>(value));
   }
 
   @Override
   public boolean replace(K key, V oldValue, V newValue) throws CacheAccessException {
+    checkKeyType(key);
+    checkValueType(oldValue);
+    checkValueType(newValue);
     return map.replace(key, new OnHeapStoreValueHolder<V>(oldValue), new OnHeapStoreValueHolder<V>(newValue));
   }
 
@@ -182,6 +200,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
   @Override
   public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+    checkKeyType(key);
     return map.compute(key, new BiFunction<K, ValueHolder<V>, ValueHolder<V>>() {
       @Override
       public ValueHolder<V> apply(final K k, final ValueHolder<V> vValueHolder) {
@@ -192,6 +211,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
   @Override
   public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) {
+    checkKeyType(key);
     return map.computeIfAbsent(key, new Function<K, ValueHolder<V>>() {
       @Override
       public ValueHolder<V> apply(final K k) {
@@ -202,6 +222,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
   @Override
   public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+    checkKeyType(key);
     return map.computeIfPresent(key, new BiFunction<K, ValueHolder<V>, ValueHolder<V>>() {
       @Override
       public ValueHolder<V> apply(final K k, final ValueHolder<V> vValueHolder) {
@@ -293,6 +314,18 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         evictionObserver.end(EvictionOutcome.FAILURE);
         return false;
       }
+    }
+  }
+
+  private void checkKeyType(Object o) {
+    if (o != null && !keyType.isAssignableFrom(o.getClass())) {
+      throw new ClassCastException("Invalid key type, expected : " + keyType.getName() + " but was : " + o.getClass().getName());
+    }
+  }
+
+  private void checkValueType(Object o) {
+    if (o != null && !valueType.isAssignableFrom(o.getClass())) {
+      throw new ClassCastException("Invalid value type, expected : " + valueType.getName() + " but was : " + o.getClass().getName());
     }
   }
 
