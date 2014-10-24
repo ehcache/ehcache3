@@ -32,6 +32,7 @@
  .. 'Correctness': the pull request should wholly and only be about the related issue;
  .. 'Style': which needs to match the style of the project;
  .. 'Testing': all changes need to have appropriate test coverage, without breaking existing tests.
+ .. You can look up link:dev.guidelines[general developer guidelines] as well
  . There could be some back and forth between you and the 'reviewer' in that process. Keep in mind that during that time +ehcache/master+ may drift, you'd then need to follow §2.1 above, but finally +git push --force origin issue-'<id>'+ to keep the pull request updated.
 
 == Merging a pull request

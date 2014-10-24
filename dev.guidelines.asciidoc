@@ -1,0 +1,69 @@
+= Developer guidelines
+
+:toc:
+
+These are some things to consider when you add code to Ehcache, but certainly when you review a PR!
+
+== Formatting
+
+See what's there for now... Ping us on the https://groups.google.com/forum/#!forum/ehcache-dev[developer mailing list]. We'll export settings for majors IDEs here asap.
+
+== Unit testing
+
+All changes need to come with appropriate test coverage.
+
+=== Adding code
+
+All this new code you add should have test coverage.
+
+=== Breaking existing tests
+
+Should you break an existing test, take great care before touching the test code to "fix it". While it could definitively be that the test is wrong, it may be correct as well. Always assume the latter is true first. If in doubt, again, ping us on the https://groups.google.com/forum/#!forum/ehcache-dev[developer mailing list].
+
+Changing an existing test for it to pass, because of you recent changes, should really be the last resort. Other than for compilation obviously, or adding mocks and the like.
+
+=== SPI tests
+
+We have an SPI module that covers testing functionality that needs to be provided by a given SPI, e.g. `org.ehcache.spi.cache.Store`.
+
+WARNING: work in progress
+
+== Logging
+
+We use `slf4j` for all our logging here...
+
+=== Log levels
+
+What level should be used for logging should be dependent on whether you log for the user's benefit (e.g. lifecycle), debugging purposes (a standard `Cache.get(K): V` path). But we don't log `WARN` or `ERROR`.
+
+==== At `INFO` level
+
+We log things about lifecycle:
+
+ * Bootstrapping `CacheManager`,
+ * Adding, removing `Cache` to CacheManager
+ * ...
+
+Basically everything that would be informational to the end-user.
+
+==== Level `DEBUG` and below
+
+Helps us trace stuff, when some weird scenario is being debugged.
+
+ * Delegating to `CacheLoader`,
+ * Delegating to `ResilienceStrategy`,
+ * `Store` internals...
+
+==== Levels `WARN` & `ERROR`
+
+Nothing really, if that level is required, we would rather want to throw!
+
+== Javadoc
+
+=== Public types
+
+Needs to be fully Javadoc'ed
+
+=== Internal concrete classes
+
+Require at least class-level Javadoc. But we value clear method, arguments and variable names above all here.

@@ -2,17 +2,27 @@
 
 :toc:
 
-== Oct 23, 2014 - Hangout on Air
+== Oct 30, 2014 - Hangout on Air
 
-Next public meeting on https://plus.google.com/events/cdg21t736v4k8i57aacnlmdbnsc[G+ Hangout on Air] at 11:30pm IST / 8pm CET / 2pm EST / 11am PST
+Next public meeting on https://plus.google.com/u/0/events/caba2lh0jeheppd54tnsqv4jrrc[G+ Hangout on Air] at 11:30pm IST / 8pm CET / 2pm EST / 11am PST
 
 === Agenda
 
-Candidates up for discussion this week so far, probably can't cover all of them though:
+ * XML Configuration,
+ * send ideas to the https://groups.google.com/forum/#!forum/ehcache-dev[developer mailing list].
+
+== Oct 23, 2014 - Hangout on Air
+
+Recording available https://www.youtube.com/watch?v=Rf86ZxtYXaY&list=UU43PVCp2j0b2og2DtxNOU1A[here on YouTube]
+
+=== Agenda
 
  * Exception hierarchy
- * Logging (levels, i18n, ...)
- * XML Config
+ ** Conclusion being we postpone deciding what we do, until we tackle the OSS Beta milestone. 107 dictates what we need to do now anways
+ * https://www.youtube.com/watch?v=Rf86ZxtYXaY&list=UU43PVCp2j0b2og2DtxNOU1A#t=2387[Logging (levels, i18n, ...)]
+ ** `INFO`: Logs lifecycle stuff
+ ** `WARN`/`ERROR`: We don't log, but throw
+ ** `DEBUG`/`TRACE`: Regular ops stuff, including delegating to the `ResilienceStrategy`
 
 == Oct 16, 2014 - Hangout on Air
 
