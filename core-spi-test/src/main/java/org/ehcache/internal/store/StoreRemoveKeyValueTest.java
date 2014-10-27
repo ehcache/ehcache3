@@ -223,7 +223,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     K key = factory.getKeyType().newInstance();
 
     try {
-      if (this.factory.getKeyType() == String.class) {
+      if (this.factory.getValueType() == String.class) {
         kvStore.remove(key, 1.0f);
       } else {
         kvStore.remove(key, "value");
