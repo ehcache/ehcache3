@@ -122,7 +122,6 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  @Ignore(reason = "Failing test to fix")
   @SuppressWarnings("unchecked")
   public void wrongKeyTypeThrowsException()
       throws IllegalAccessException, InstantiationException {
@@ -147,7 +146,6 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  @Ignore(reason = "Failing test to fix")
   @SuppressWarnings("unchecked")
   public void wrongValueTypeThrowsException()
       throws IllegalAccessException, InstantiationException {
