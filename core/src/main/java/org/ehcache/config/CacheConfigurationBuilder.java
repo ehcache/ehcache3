@@ -23,6 +23,8 @@ import java.util.Comparator;
 import java.util.HashSet;
 
 import org.ehcache.Cache;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.function.Predicate;
 
 /**
@@ -31,6 +33,7 @@ import org.ehcache.function.Predicate;
 public class CacheConfigurationBuilder {
 
   private final Collection<ServiceConfiguration<?>> serviceConfigurations = new HashSet<ServiceConfiguration<?>>();
+  private Expiry expiry = Expirations.noExpiration();
   private ClassLoader classLoader = null;
 
   public static CacheConfigurationBuilder newCacheConfigurationBuilder() {
@@ -53,18 +56,28 @@ public class CacheConfigurationBuilder {
   }
 
   public <K, V> CacheConfiguration<K, V> buildConfig(Class<K> keyType, Class<V> valueType) {
-    return new BaseCacheConfiguration<K, V>(keyType, valueType, null, null, null, classLoader, 
+    return new BaseCacheConfiguration<K, V>(keyType, valueType, null, null, null, 
+        classLoader, expiry, 
         serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
   public <K, V> CacheConfiguration<K, V> buildConfig(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
           Predicate<Cache.Entry<K, V>> evictionVeto, Comparator<Cache.Entry<K, V>> evictionPrioritizer) {
-    return new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, 
+    return new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto,
+        evictionPrioritizer, classLoader, expiry,
         serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
   
   public CacheConfigurationBuilder withClassLoader(ClassLoader classLoader) {
     this.classLoader = classLoader;
+    return this;
+  }
+  
+  public CacheConfigurationBuilder withExpiry(Expiry expiry) {
+    if (expiry == null) {
+      throw new NullPointerException();
+    }
+    this.expiry = expiry;
     return this;
   }
   

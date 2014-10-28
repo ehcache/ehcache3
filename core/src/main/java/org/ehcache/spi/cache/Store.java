@@ -19,6 +19,7 @@ package org.ehcache.spi.cache;
 import java.util.Comparator;
 import org.ehcache.Cache;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.spi.service.Service;
@@ -56,12 +57,13 @@ public interface Store<K, V> {
   ValueHolder<V> get(K key) throws CacheAccessException;
 
   /**
-   * Returns <tt>true</tt> if this store contains the specified key.
+   * Returns <tt>true</tt> if this store contains the specified key
+   * and the mapping is not yet expired.
    * More formally, returns <tt>true</tt> if and only if this store
    * contains a key <tt>k</tt> such that <tt>(o.equals(k))</tt>.
    *
    * @param key key whose presence in this store is to be tested
-   * @return <tt>true</tt> if this store contains the specified element
+   * @return <tt>true</tt> if this store contains the specified non-expired element
    * @throws NullPointerException if the specified key is null
    * @throws ClassCastException if the specified key is not an instance of {@code K}
    * @throws CacheAccessException if the presence can't be tested for
@@ -215,8 +217,9 @@ public interface Store<K, V> {
    * class that provides a guarantee).
    *
    * @return an iterator over the mappings in this set
+   * @throws CacheAccessException
    */
-  Store.Iterator<Cache.Entry<K, ValueHolder<V>>> iterator();
+  Store.Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() throws CacheAccessException;
 
   ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException;
 
@@ -379,6 +382,8 @@ public interface Store<K, V> {
      * The Classloader for this store. This classloader will be used to deserialize cache entries when required
      */
     ClassLoader getClassLoader();
+    
+    Expiry<? super K, ? super V> getExpiry();
   }
 
   /**

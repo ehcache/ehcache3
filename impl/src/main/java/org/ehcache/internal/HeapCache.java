@@ -21,6 +21,7 @@ import org.ehcache.Ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.Predicate;
@@ -80,6 +81,11 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
 
       @Override
       public ClassLoader getClassLoader() {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+      
+      @Override
+      public Expiry<K, V> getExpiry() {
         throw new UnsupportedOperationException("Implement me!");
       }
         },

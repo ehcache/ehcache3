@@ -28,6 +28,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoaderException;
 import org.ehcache.exceptions.CacheWriterException;
 import org.ehcache.exceptions.StateTransitionException;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.Predicate;
@@ -249,7 +250,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   @Override
   public Iterator<Entry<K, V>> iterator() {
     statusTransitioner.checkAvailable();
-    return new CacheEntryIterator(store.iterator());
+    try {
+      return new CacheEntryIterator(store.iterator());
+    } catch (CacheAccessException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
@@ -772,6 +777,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     private final Comparator<Cache.Entry<K, V>> evictionPrioritizer;
     private final Set<CacheEventListener<?, ?>> eventListeners;
     private final ClassLoader classLoader;
+    private final Expiry<K, V> expiry;
 
     RuntimeConfiguration(CacheConfiguration<K, V> config) {
       this.serviceConfigurations = copy(config.getServiceConfigurations());
@@ -782,6 +788,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       this.evictionPrioritizer = config.getEvictionPrioritizer();
       this.eventListeners = copy(config.getEventListeners());
       this.classLoader = config.getClassLoader();
+      this.expiry = config.getExpiry();
     }
     
     private static <T> Set<T> copy(Set<T> set) {
@@ -838,6 +845,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     @Override
     public ClassLoader getClassLoader() {
       return this.classLoader;
+    }
+    
+    @Override
+    public Expiry<K, V> getExpiry() {
+      return expiry;
     }
     
     @Override
