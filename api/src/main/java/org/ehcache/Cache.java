@@ -19,6 +19,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.exceptions.BulkCacheLoaderException;
 import org.ehcache.exceptions.CacheLoaderException;
+import org.ehcache.exceptions.CacheWriterException;
 import org.ehcache.statistics.CacheStatistics;
 
 import java.util.Map;
@@ -40,8 +41,8 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return the value mapped to the key, null if none
    *
    * @throws java.lang.NullPointerException if the provided key is null
-   * @throws org.ehcache.exceptions.CacheLoaderException if the {@link org.ehcache.spi.loader.CacheLoader CacheLoader}
-   * associated with this cache threw a {@link java.lang.RuntimeException}
+   * @throws CacheLoaderException if the {@link org.ehcache.spi.loader.CacheLoader CacheLoader}
+   * associated with this cache was invoked and threw an {@link Exception}
    */
   V get(K key) throws CacheLoaderException;
 
@@ -52,8 +53,11 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @param value the value, may not be null
    *
    * @throws java.lang.NullPointerException if either key or value is null
+   * @throws CacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter} 
+   * associated with this cache threw an {@link Exception}
+   * while writing the value for the given key to underlying system of record.
    */
-  void put(K key, V value);
+  void put(K key, V value) throws CacheWriterException;
 
   /**
    * Checks whether a mapping for the given key is present, without retrieving the associated value
@@ -71,8 +75,11 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @param key the key to remove the value for
    *
    * @throws java.lang.NullPointerException if the provided key is null
+   * @throws CacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter}
+   * associated with this cache threw an {@link Exception}
+   * while removing the value for the given key from underlying system of record.
    */
-  void remove(K key);
+  void remove(K key) throws CacheWriterException;
 
   /**
    * Retrieves all values associated with the given keys.
@@ -91,8 +98,11 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @param entries key:value pairs to associate
    * 
    * @throws NullPointerException if the {@code Iterable} or any of the returned keys are {@code null}.
+   * @throws CacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter} 
+   * associated with this cache threw an {@link Exception}
+   * while writing given key:value pairs to underlying system of record.
    */
-  void putAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries);
+  void putAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws CacheWriterException;
 
   /**
    * Removes any associates for the given keys.
@@ -100,8 +110,11 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @param keys keys to remove values for
    * 
    * @throws NullPointerException if the {@code Iterable} or any of the returned keys are {@code null}.
+   * @throws CacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter} 
+   * associated with this cache threw an {@link Exception}
+   * while removing mappings for given keys from underlying system of record.
    */
-  void removeAll(Iterable<? extends K> keys);
+  void removeAll(Iterable<? extends K> keys) throws CacheWriterException;
   
   /**
    * Removes all mapping currently present in the Cache. This is not an atomic operation and can be very costly operation as well...
@@ -116,11 +129,14 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return the value that was associated with the key, or {@code null} if none
    * 
    * @throws NullPointerException if either key or value is null
-   * @throws org.ehcache.exceptions.CacheLoaderException if the {@link org.ehcache.spi.loader.CacheLoader CacheLoader}
-   * associated with this cache was invoked and threw a {@link java.lang.RuntimeException} while loading
+   * @throws CacheLoaderException if the {@link org.ehcache.spi.loader.CacheLoader CacheLoader}
+   * associated with this cache was invoked and threw an {@link Exception} while loading
    * the value for the key
+   * @throws CacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter} 
+   * associated with this cache threw an {@link Exception}
+   * while writing the value for the given key to underlying system of record.
    */
-  V putIfAbsent(K key, V value) throws CacheLoaderException;
+  V putIfAbsent(K key, V value) throws CacheLoaderException, CacheWriterException;
 
   /**
    * If the provided key is associated with the provided value then remove the entry.
@@ -130,11 +146,10 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return {@code true} if the entry was removed
    * 
    * @throws NullPointerException if either key or value is null
-   * @throws org.ehcache.exceptions.CacheLoaderException if the {@link org.ehcache.spi.loader.CacheLoader CacheLoader}
-   * associated with this cache was invoked and threw a {@link java.lang.RuntimeException} while loading
-   * the value for the key
+   * @throws CacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter}
+   * associated with this cache threw an {@link Exception} while removing the given key:value mapping
    */
-  boolean remove(K key, V value) throws CacheLoaderException;
+  boolean remove(K key, V value) throws CacheWriterException;
 
   /**
    * If the provided key is associated with a value, then replace that value with the provided value.
@@ -144,11 +159,14 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return the value that was associated with the key, or {@code null} if none
    * 
    * @throws NullPointerException if either key or value is null
-   * @throws org.ehcache.exceptions.CacheLoaderException if the {@link org.ehcache.spi.loader.CacheLoader CacheLoader}
-   * associated with this cache was invoked and threw a {@link java.lang.RuntimeException} while loading
+   * @throws CacheLoaderException if the {@link org.ehcache.spi.loader.CacheLoader CacheLoader}
+   * associated with this cache was invoked and threw an {@link Exception} while loading
    * the value for the key
+   * @throws CacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter}
+   * associated with this cache was invoked and threw an {@link Exception}
+   * while replacing value for given key on underlying system of record.
    */
-  V replace(K key, V value) throws CacheLoaderException;
+  V replace(K key, V value) throws CacheLoaderException, CacheWriterException;
   
   /**
    * If the provided key is associated with {@code oldValue}, then replace that value with {@code newValue}.
@@ -159,11 +177,14 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return {@code true} if the value was replaced
    * 
    * @throws NullPointerException if any of the values, or the key is null
-   * @throws org.ehcache.exceptions.CacheLoaderException if the {@link org.ehcache.spi.loader.CacheLoader CacheLoader}
-   * associated with this cache was invoked and threw a {@link java.lang.RuntimeException} while loading
+   * @throws CacheLoaderException if the {@link org.ehcache.spi.loader.CacheLoader CacheLoader}
+   * associated with this cache was invoked and threw an {@link Exception} while loading
    * the value for the key
-   */
-  boolean replace(K key, V oldValue, V newValue) throws CacheLoaderException;
+   * @throws CacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter}
+   * associated with this cache was invoked and threw an {@link Exception}
+   * while replacing value for given key on underlying system of record.
+  */
+  boolean replace(K key, V oldValue, V newValue) throws CacheLoaderException, CacheWriterException;
 
   /**
    * Exposes the {@link org.ehcache.config.CacheRuntimeConfiguration} associated with this Cache instance.

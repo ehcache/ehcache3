@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.store;
 
+import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 import org.hamcrest.Matchers;
@@ -31,6 +32,7 @@ import java.util.Set;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -351,6 +353,49 @@ public class OnHeapStoreBulkMethodsTest {
     assertThat(store.get(1), is(nullValue()));
     assertThat(store.get(2).value(), Matchers.<CharSequence>equalTo("deux"));
     assertThat(store.get(3).value(), Matchers.<CharSequence>equalTo("trois"));
+  }
+  
+  @Test
+  public void testBulkComputeIfAbsentPicksUpRacingChangesForMissingKeys() throws Exception {
+    Store.Configuration<Number, CharSequence> configuration = mock(Store.Configuration.class);
+    when(configuration.getKeyType()).thenReturn(Number.class);
+    when(configuration.getValueType()).thenReturn(CharSequence.class);
+
+    final OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration);
+    store.put(1, "one");
+    
+    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(Arrays.asList(1, 2, 3), 
+        new Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
+      @Override
+      public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Number> numbers) {
+        Set<? super Integer> missingKeys = makeSet(numbers);
+        assertThat(missingKeys.size(), is(2));
+        assertThat((Iterable<Integer>)missingKeys, hasItems(2, 3));
+
+        // Concurrent mutation of underlying store
+        try {
+          store.put(2, "two");
+          store.put(3, "three");
+        } catch (CacheAccessException e) {
+          throw new AssertionError(e);
+        }
+        
+        return new HashMap<Number, CharSequence>() {{
+          put(2, "deux");
+          put(3, "trois");
+        }}.entrySet();
+      }
+    });
+
+    assertThat(result.size(), is(3));
+    assertThat(result.get(1).value(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(result.get(2).value(), Matchers.<CharSequence>equalTo("two"));
+    assertThat(result.get(3).value(), Matchers.<CharSequence>equalTo("three"));
+
+    assertThat(store.get(1).value(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(store.get(2).value(), Matchers.<CharSequence>equalTo("two"));
+    assertThat(store.get(3).value(), Matchers.<CharSequence>equalTo("three"));
+    
   }
 
   public static <K, V> Map<K, V> makeMap(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {

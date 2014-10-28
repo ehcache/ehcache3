@@ -248,8 +248,9 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     if (computedMappings != null) {
       for (Map.Entry<? extends K, ? extends V> entry : computedMappings) {
         OnHeapStoreValueHolder<V> valueHolder = nullSafeValueHolder(entry.getValue());
-        if (valueHolder != null && missingKeys.contains(entry.getKey()) && map.putIfAbsent(entry.getKey(), valueHolder) == null) {
-          result.put(entry.getKey(), valueHolder);
+        if (valueHolder != null && missingKeys.contains(entry.getKey())) {
+          ValueHolder<V> racer = map.putIfAbsent(entry.getKey(), valueHolder);
+          result.put(entry.getKey(), racer != null ? racer : valueHolder);
         }
       }
     }
