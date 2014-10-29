@@ -5,3 +5,81 @@ Status of the build: image:https://ehcache.ci.cloudbees.com/buildStatus/icon?job
 For more information, you might want to go check the https://github.com/ehcache/ehcache3/wiki[wiki].
 
 image:http://cloudbees.prod.acquia-sites.com/sites/default/files/styles/large/public/Button-Powered-by-CB.png?itok=uMDWINfY[Cloudbees, link="http://www.cloudbees.com/resources/foss"]
+
+== Getting started with the new API
+
+WARNING: *This is still work in progress*. while this represents the API as it exists today, the plan is to only close it
+         down, when addressing the +OSS Beta+ milestone. Today, the focus is on the +107 Alpha+ milestone, which aims
+         at providing a TCK compliant on-heap implementation...
+
+[source,java]
+----
+final CacheManager cacheManager
+    = newCacheManagerBuilder() // <1>
+    .withCache("preConfigured", newCacheConfigurationBuilder().buildCacheConfig(Long.class, String.class)) // <2>
+    .build(); // <3>
+
+final Cache<Long, String> preConfigured = cacheManager.getCache("preConfigured", Long.class, String.class); // <4>
+
+final Cache<Long, String> myCache = cacheManager.createCache("myCache", // <5>
+    newCacheConfigurationBuilder().buildCacheConfig(Long.class, String.class));
+
+myCache.put(1L, "da one!"); // <6>
+final String value = myCache.get(1L); // <7>
+
+cacheManager.removeCache("preConfigured"); // <8>
+
+final StandaloneCache<Long, String> standaloneCache = newCacheBuilder(Long.class, String.class)
+    .build(); // <9>
+standaloneCache.init(); // <10>
+
+cacheManager.close(); // <11>
+
+standaloneCache.close(); // <12>
+----
+
+<1> Static method +org.ehcache.CacheManagerBuilder.newCacheManagerBuilder+ that returns a new +org.ehcache.CacheManagerBuilder+
+    instance;
+<2> Using the builder to register a pre-configured +Cache+ to be create when we +.build()+ the actual +CacheManager+.
+    The first +String+ argument is the alias to use to interact with the +Cache+ through the +CacheManager+; the second
+    argument is the +org.ehcache.config.CacheConfiguration+ to use to configure the +Cache+. We use the static
+    +.newCacheConfigurationBuilder()+ method on +org.ehcache.config.CacheConfigurationBuilder+ to create a default config;
+<3> finally, invoking +.build()+ returns a fully instantiated and initialized +CacheManager+ we can use.
+<4> We can retrieve the +preConfigured+ aliased +Cache+ we declared in step 2. For type-safety, we ask for both key and
+    value types to be passed in. If these differ from the ones we expect, the +CacheManager+ throws a +ClassCastException+
+    early in the application's lifecycle. It also guards the +Cache+ from being polluted by random types.
+<5> The +CacheManager+ can also be used to create new +Cache+ as needed. Just as in step 2, it requires passing in an
+    alias as well as a +CacheConfiguration+. The instantiated and fully initialized +Cache+ added will be returned and/or
+    can be accessed through the +CacheManager.getCache+ API.
+<6> We can now use the newly added +Cache+ to store and ...
+<7> ... retrieve data.
+<8> We can also +CacheManager.remove()+ a given +Cache+. The +CacheManager+ will not only remove it's reference to the
+    +Cache+, but will also close it. The +Cache+ releases all locally held transient resources (such as memory).
+    References held to this +Cache+ become unusable.
+<9> A new feature of Ehcache 3.0, is the ability to create +StandaloneCache+ instances, i.e. ones not managed by a +CacheManager+;
+<10> As there is nothing that manages them, it is up to you to +StandaloneCache.init()+ them, prior to using them.
+<11> In order to release all transient resources (memory, threads, ...) a +CacheManager+ provides to +Cache+ instances
+     it manages, you have to invoke +CacheManager.close()+, which in turns closes all +Cache+ instances known at the time.
+<12> In the same vein, a +StandaloneCache+ requires you to +StandaloneCache.close()+ it explicitly. The +CacheManager.close()+
+     in step #11, didn't affect our +StandaloneCache+ in any way.
+
+NOTE: This code example is lifted from link:impl/src/test/java/org/ehcache/GettingStarted.java#L34[GettingStarted#testWikiExample]
+
+== Current status & future development
+
+We currently have two main milestones planned, probably work leading into early next year until we have a GA release available. But here's how we are splitting the work:
+
+ * link:../milestones/107%20Alpha[107 Alpha] (on going): This is all the work to get a
+   https://jcp.org/en/jsr/detail?id=107[JSR-107] compliant on-heap implementation of the new Ehcache 3.0 line. The idea
+   being to lay the ground work for the future work, knowing we pass the TCK and maintain that set of test passing as we
+   move forward in the next milestone. Even though the focus is on 107, we still want to have our decisions as we move
+   along have the future work in mind.
+ * link:../milestones/OSS%20Beta[OSS Beta] (coming up next): All the work to get all the features we want to port from
+   the existing Ehcache 2.x line, exposed using the new API. This includes things not covered by the 107 spec, such as
+   _WriteBehind_, _DiskPersistence_, _EvictionListener_ et al.
+
+Additional tasks, as they come up, would only be targeted to the link:../milestones/107%20Alpha[107 Alpha] milestone,
+only if implementing it would mean not being able to pass the 107 TCK. Any other task gets assigned to
+link:../milestones/OSS%20Beta[OSS Beta].
+
+See the link:../milestones[milestones on github] for more details on the current status.
