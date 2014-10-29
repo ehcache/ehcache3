@@ -69,17 +69,17 @@ NOTE: This code example is lifted from link:impl/src/test/java/org/ehcache/Getti
 
 We currently have two main milestones planned, probably work leading into early next year until we have a GA release available. But here's how we are splitting the work:
 
- * link:../milestones/107%20Alpha[107 Alpha] (on going): This is all the work to get a
+ * link:../../milestones/107%20Alpha[107 Alpha] (on going): This is all the work to get a
    https://jcp.org/en/jsr/detail?id=107[JSR-107] compliant on-heap implementation of the new Ehcache 3.0 line. The idea
    being to lay the ground work for the future work, knowing we pass the TCK and maintain that set of test passing as we
    move forward in the next milestone. Even though the focus is on 107, we still want to have our decisions as we move
    along have the future work in mind.
- * link:../milestones/OSS%20Beta[OSS Beta] (coming up next): All the work to get all the features we want to port from
+ * link:../../milestones/OSS%20Beta[OSS Beta] (coming up next): All the work to get all the features we want to port from
    the existing Ehcache 2.x line, exposed using the new API. This includes things not covered by the 107 spec, such as
    _WriteBehind_, _DiskPersistence_, _EvictionListener_ et al.
 
-Additional tasks, as they come up, would only be targeted to the link:../milestones/107%20Alpha[107 Alpha] milestone,
+Additional tasks, as they come up, would only be targeted to the link:../../milestones/107%20Alpha[107 Alpha] milestone,
 only if implementing it would mean not being able to pass the 107 TCK. Any other task gets assigned to
-link:../milestones/OSS%20Beta[OSS Beta].
+link:../../milestones/OSS%20Beta[OSS Beta].
 
-See the link:../milestones[milestones on github] for more details on the current status.
+See the link:../../milestones[milestones on github] for more details on the current status.
