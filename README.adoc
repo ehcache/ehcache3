@@ -63,7 +63,7 @@ standaloneCache.close(); // <12>
 <12> In the same vein, a +StandaloneCache+ requires you to +StandaloneCache.close()+ it explicitly. The +CacheManager.close()+
      in step #11, didn't affect our +StandaloneCache+ in any way.
 
-NOTE: This code example is lifted from +org.ehcache.GettingStarted.testWikiExample+
+NOTE: This code example is lifted from link:impl/src/test/java/org/ehcache/GettingStarted.java#L34[GettingStarted#testWikiExample]
 
 == Current status & future development
 
