@@ -34,7 +34,9 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -42,6 +44,115 @@ import static org.mockito.Mockito.when;
  * @author Ludovic Orban
  */
 public class OnHeapStoreBulkMethodsTest {
+  
+  @SuppressWarnings({ "unchecked", "rawtypes" })
+  @Test
+  public void testBulkComputeFunctionWrongTypes() throws Exception {
+    Store.Configuration<Number, CharSequence> configuration = mock(Store.Configuration.class);
+    when(configuration.getKeyType()).thenReturn(Number.class);
+    when(configuration.getValueType()).thenReturn(CharSequence.class);
+    
+    // raw type reference to store
+    OnHeapStore store = new OnHeapStore<Number, CharSequence>(configuration);
+    store.put(1, "one");
+    
+    Set keys = new HashSet();
+    keys.add(this); // wrong key type
+    
+    try {
+      store.bulkCompute(keys, new Function() {
+        @Override
+        public Object apply(Object o) {
+          throw new AssertionError();
+        }
+      });
+      fail();
+    } catch (ClassCastException e) { // expected
+      assertThat(e.getMessage(), startsWith("Invalid key type"));
+    }
+ 
+    keys = new HashSet();
+    keys.add(1);
+    try {
+      store.bulkCompute(keys, new Function() {
+        @Override
+        public Object apply(Object o) {
+          return makeEntries(this, ""); // wrong key type
+        }
+      });
+      fail();
+    } catch (ClassCastException e) { // expected
+      assertThat(e.getMessage(), startsWith("Invalid key type"));
+    }
+    
+    keys = new HashSet();
+    keys.add(1);
+    try {
+      store.bulkCompute(keys, new Function() {
+        @Override
+        public Object apply(Object o) {
+          return makeEntries(1, this); // wrong value type
+        }
+      });
+      fail();
+    } catch (ClassCastException e) { // expected
+      assertThat(e.getMessage(), startsWith("Invalid value type"));
+    }
+  }  
+  
+  @SuppressWarnings({ "unchecked", "rawtypes" })
+  @Test
+  public void testBulkComputeIfAbsentFunctionWrongTypes() throws Exception {
+    Store.Configuration<Number, CharSequence> configuration = mock(Store.Configuration.class);
+    when(configuration.getKeyType()).thenReturn(Number.class);
+    when(configuration.getValueType()).thenReturn(CharSequence.class);
+    
+    // raw type reference to store
+    OnHeapStore store = new OnHeapStore<Number, CharSequence>(configuration);
+    
+    Set keys = new HashSet();
+    keys.add(this); // wrong key type
+    
+    try {
+      store.bulkComputeIfAbsent(keys, new Function() {
+        @Override
+        public Object apply(Object o) {
+          throw new AssertionError();
+        }
+      });
+      fail();
+    } catch (ClassCastException e) { // expected
+      assertThat(e.getMessage(), startsWith("Invalid key type"));
+    }
+ 
+    keys = new HashSet();
+    keys.add(1);
+    try {
+      store.bulkComputeIfAbsent(keys, new Function() {
+        @Override
+        public Object apply(Object o) {
+          return makeEntries(this, ""); // wrong key type
+        }
+      });
+      fail();
+    } catch (ClassCastException e) { // expected
+      assertThat(e.getMessage(), startsWith("Invalid key type"));
+    }
+    
+    keys = new HashSet();
+    keys.add(1);
+    try {
+      store.bulkComputeIfAbsent(keys, new Function() {
+        @Override
+        public Object apply(Object o) {
+          return makeEntries(1, this); // wrong value type
+        }
+      });
+      fail();
+    } catch (ClassCastException e) { // expected
+      assertThat(e.getMessage(), startsWith("Invalid value type"));
+    }
+  }
 
   @Test
   public void testBulkComputeFunctionGetsValuesOfEntries() throws Exception {
@@ -412,6 +523,10 @@ public class OnHeapStoreBulkMethodsTest {
       result.add(element);
     }
     return result;
+  }
+  
+  private static Iterable<Map.Entry<Object, Object>> makeEntries(Object key, Object value) {
+    return Collections.singletonMap(key, value).entrySet();
   }
 
 }

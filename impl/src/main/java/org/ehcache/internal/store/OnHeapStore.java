@@ -204,7 +204,9 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     return map.compute(key, new BiFunction<K, ValueHolder<V>, ValueHolder<V>>() {
       @Override
       public ValueHolder<V> apply(final K k, final ValueHolder<V> vValueHolder) {
-        return nullSafeValueHolder(remappingFunction.apply(k, vValueHolder == null ? null : vValueHolder.value()));
+        V computedValue = remappingFunction.apply(k, vValueHolder == null ? null : vValueHolder.value());
+        checkValueType(computedValue);
+        return nullSafeValueHolder(computedValue);
       }
     });
   }
@@ -215,7 +217,9 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     return map.computeIfAbsent(key, new Function<K, ValueHolder<V>>() {
       @Override
       public ValueHolder<V> apply(final K k) {
-        return nullSafeValueHolder(mappingFunction.apply(k));
+        V computedValue = mappingFunction.apply(k);
+        checkValueType(computedValue);
+        return nullSafeValueHolder(computedValue);
       }
     });
   }
@@ -226,7 +230,9 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     return map.computeIfPresent(key, new BiFunction<K, ValueHolder<V>, ValueHolder<V>>() {
       @Override
       public ValueHolder<V> apply(final K k, final ValueHolder<V> vValueHolder) {
-        return nullSafeValueHolder(remappingFunction.apply(k, vValueHolder.value()));
+        V computedValue = remappingFunction.apply(k, vValueHolder.value());
+        checkValueType(computedValue);
+        return nullSafeValueHolder(computedValue);
       }
     });
   }
@@ -236,6 +242,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     Set<K> presentKeys = new HashSet<K>();
     Set<K> missingKeys = new HashSet<K>();
     for (K key : keys) {
+      checkKeyType(key);
       if (map.containsKey(key)) {
         presentKeys.add(key);
       } else {
@@ -247,10 +254,15 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
     if (computedMappings != null) {
       for (Map.Entry<? extends K, ? extends V> entry : computedMappings) {
-        OnHeapStoreValueHolder<V> valueHolder = nullSafeValueHolder(entry.getValue());
-        if (valueHolder != null && missingKeys.contains(entry.getKey())) {
-          ValueHolder<V> racer = map.putIfAbsent(entry.getKey(), valueHolder);
-          result.put(entry.getKey(), racer != null ? racer : valueHolder);
+        K key = entry.getKey();
+        V value = entry.getValue();
+        checkKeyType(key);
+        checkValueType(value);
+        
+        OnHeapStoreValueHolder<V> valueHolder = nullSafeValueHolder(value);
+        if (valueHolder != null && missingKeys.contains(key)) {
+          ValueHolder<V> racer = map.putIfAbsent(key, valueHolder);
+          result.put(key, racer != null ? racer : valueHolder);
         }
       }
     }
@@ -264,6 +276,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   public Map<K, ValueHolder<V>> bulkCompute(Iterable<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
     Map<K, V> oldEntries = new HashMap<K, V>();
     for (K key : keys) {
+      checkKeyType(key);
       ValueHolder<V> vValueHolder = map.get(key);
       oldEntries.put(key, vValueHolder == null ? null : vValueHolder.value());
     }
@@ -273,8 +286,11 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     if (remappedEntries != null) {
       for (Map.Entry<? extends K, ? extends V> remappedEntry : remappedEntries) {
         K key = remappedEntry.getKey();
+        V value = remappedEntry.getValue();
+        checkKeyType(key);
+        checkValueType(value);
         if (oldEntries.containsKey(key)) {
-          OnHeapStoreValueHolder<V> valueHolder = nullSafeValueHolder(remappedEntry.getValue());
+          OnHeapStoreValueHolder<V> valueHolder = nullSafeValueHolder(value);
           if (valueHolder != null) {
             map.put(key, valueHolder);
           } else {
