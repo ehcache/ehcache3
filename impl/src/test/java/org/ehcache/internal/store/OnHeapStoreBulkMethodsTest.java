@@ -38,7 +38,9 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -402,6 +404,10 @@ public class OnHeapStoreBulkMethodsTest {
       result.add(element);
     }
     return result;
+  }
+  
+  private static Iterable<Map.Entry<Object, Object>> makeEntries(Object key, Object value) {
+    return Collections.singletonMap(key, value).entrySet();
   }
 
 }

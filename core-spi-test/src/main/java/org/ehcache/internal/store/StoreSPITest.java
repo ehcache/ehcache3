@@ -24,6 +24,24 @@ import org.junit.Test;
 public abstract class StoreSPITest<K, V> {
 
   protected abstract StoreFactory<K, V> getStoreFactory();
+  
+  @Test
+  public void testCompute() throws Exception {
+    StoreComputeTest<String, String> testSuite = new StoreComputeTest<String, String>(getStoreFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
+  
+  @Test
+  public void testComputeIfAbsent() throws Exception {
+    StoreComputeIfAbsentTest<String, String> testSuite = new StoreComputeIfAbsentTest<String, String>(getStoreFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
+  
+  @Test
+  public void testComputeIfPresent() throws Exception {
+    StoreComputeIfPresentTest<String, String> testSuite = new StoreComputeIfPresentTest<String, String>(getStoreFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
 
   @Test
   public void testGet() throws Exception {
