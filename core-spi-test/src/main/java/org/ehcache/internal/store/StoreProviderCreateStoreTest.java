@@ -16,7 +16,6 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
 
@@ -42,7 +41,7 @@ public class StoreProviderCreateStoreTest<K, V> extends SPIStoreTester<K, V> {
   public void createStore() throws IllegalAccessException, InstantiationException {
     Store.Provider provider = factory.newProvider();
 
-    Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory.getValueType(), ClassLoader.getSystemClassLoader());
+    Store.Configuration<K, V> storeConfig = factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null);
     Store<K, V> store = provider.createStore(storeConfig, factory.getServiceConfigurations());
 
     assertThat(store, is(notNullValue()));

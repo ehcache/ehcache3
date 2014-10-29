@@ -16,6 +16,7 @@
 
 package org.ehcache.config;
 
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
@@ -35,6 +36,7 @@ public class CacheConfigurationBuilder {
   private final Collection<ServiceConfiguration<?>> serviceConfigurations = new HashSet<ServiceConfiguration<?>>();
   private Expiry expiry = Expirations.noExpiration();
   private ClassLoader classLoader = null;
+  private SerializationProvider serializationProvider = null;
 
   public static CacheConfigurationBuilder newCacheConfigurationBuilder() {
     return new CacheConfigurationBuilder();
@@ -56,15 +58,15 @@ public class CacheConfigurationBuilder {
   }
 
   public <K, V> CacheConfiguration<K, V> buildConfig(Class<K> keyType, Class<V> valueType) {
-    return new BaseCacheConfiguration<K, V>(keyType, valueType, null, null, null, 
-        classLoader, expiry, 
+    return new BaseCacheConfiguration<K, V>(keyType, valueType, null, null, null,
+        classLoader, expiry, serializationProvider,
         serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
   public <K, V> CacheConfiguration<K, V> buildConfig(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
           Predicate<Cache.Entry<K, V>> evictionVeto, Comparator<Cache.Entry<K, V>> evictionPrioritizer) {
-    return new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto,
-        evictionPrioritizer, classLoader, expiry,
+    return new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto, 
+        evictionPrioritizer, classLoader, expiry, serializationProvider,
         serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
   
@@ -80,8 +82,14 @@ public class CacheConfigurationBuilder {
     this.expiry = expiry;
     return this;
   }
-  
+
+  public CacheConfigurationBuilder withSerializationProvider(SerializationProvider serializationProvider) {
+    this.serializationProvider = serializationProvider;
+    return this;
+  }
+
   public <K, V> CacheConfiguration<K, V> buildCacheConfig(Class<K> keyType, Class<V> valueType) {
     return buildConfig(keyType, valueType);
   }
+
 }

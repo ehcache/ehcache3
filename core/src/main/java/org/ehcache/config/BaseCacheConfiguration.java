@@ -26,6 +26,7 @@ import org.ehcache.Cache;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.Predicate;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
@@ -39,17 +40,19 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   private final Predicate<Cache.Entry<K, V>> evictionVeto;
   private final Comparator<Cache.Entry<K, V>> evictionPrioritizer;
   private final Collection<ServiceConfiguration<?>> serviceConfigurations;
+  private final SerializationProvider serializationProvider;
   private final ClassLoader classLoader;
   private final Expiry<K, V> expiry;
 
-  public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint, 
-          Predicate<Cache.Entry<K, V>> evictionVeto, Comparator<Cache.Entry<K, V>> evictionPrioritizer, 
-          ClassLoader classLoader, Expiry<K, V> expiry, ServiceConfiguration<?>... serviceConfigurations) {
+  public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
+          Predicate<Cache.Entry<K, V>> evictionVeto, Comparator<Cache.Entry<K, V>> evictionPrioritizer,
+          ClassLoader classLoader, Expiry<K, V> expiry, SerializationProvider serializationProvider, ServiceConfiguration<?>... serviceConfigurations) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.capacityConstraint = capacityConstraint;
     this.evictionVeto = evictionVeto;
     this.evictionPrioritizer = evictionPrioritizer;
+    this.serializationProvider = serializationProvider;
     this.classLoader = classLoader;
     this.expiry = expiry;
     this.serviceConfigurations = Collections.unmodifiableCollection(Arrays.asList(serviceConfigurations));
@@ -90,7 +93,12 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
     // XXX:
     return Collections.emptySet();
   }
-  
+
+  @Override
+  public SerializationProvider getSerializationProvider() {
+    return serializationProvider;
+  }
+
   @Override
   public ClassLoader getClassLoader() {
     return classLoader;

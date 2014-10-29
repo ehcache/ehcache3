@@ -39,6 +39,7 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.Iterator;
 import org.ehcache.spi.cache.Store.ValueHolder;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.junit.Test;
 
 public class OnHeapStoreTest {
@@ -694,6 +695,11 @@ public class OnHeapStoreTest {
       }
 
       @Override
+      public SerializationProvider getSerializationProvider() {
+        return null;
+      }
+
+      @Override
       public ClassLoader getClassLoader() {
         return getClass().getClassLoader();
       }
@@ -702,7 +708,7 @@ public class OnHeapStoreTest {
       public Expiry<? super String, ? super String> getExpiry() {
         return expiry;
       }
-    }, timeSource);
+    }, timeSource, false);
   }
 
 }

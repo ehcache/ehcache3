@@ -16,6 +16,7 @@
 package org.ehcache.internal.serialization;
 
 import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 

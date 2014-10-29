@@ -16,19 +16,6 @@
 
 package org.ehcache.internal.store;
 
-import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
-import static org.terracotta.statistics.StatisticsBuilder.operation;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.ehcache.Cache;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
@@ -42,10 +29,26 @@ import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.statistics.CacheOperationOutcomes.EvictionOutcome;
 import org.terracotta.statistics.observer.OperationObserver;
+
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
+import static org.terracotta.statistics.StatisticsBuilder.operation;
 
 /**
  * @author Alex Snaps
@@ -58,6 +61,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   private final ConcurrentHashMap<K, OnHeapValueHolder<V>> map = new ConcurrentHashMap<K, OnHeapValueHolder<V>>();
   private final Class<K> keyType;
   private final Class<V> valueType;
+  private final Serializer<V> serializer;
 
   private final Comparable<Long> capacityConstraint;
   private final Predicate<Map.Entry<K, OnHeapValueHolder<V>>> evictionVeto;
@@ -67,7 +71,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   
   private final OperationObserver<EvictionOutcome> evictionObserver = operation(EvictionOutcome.class).named("eviction").of(this).tag("onheap-store").build();
  
-  public OnHeapStore(final Configuration<K, V> config, TimeSource timeSource) {
+  public OnHeapStore(final Configuration<K, V> config, TimeSource timeSource, boolean storeByValue) {
     Comparable<Long> capacity = config.getCapacityConstraint();
     if (capacity == null) {
       this.capacityConstraint = Comparables.biggest();
@@ -80,6 +84,11 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     this.valueType = config.getValueType();
     this.expiry = config.getExpiry();
     this.timeSource = timeSource;
+    if (storeByValue) {
+      this.serializer = config.getSerializationProvider().createSerializer(valueType);
+    } else {
+      this.serializer = null;
+    }
   }
 
   @Override
@@ -357,7 +366,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     checkKey(key);
 
     final long now = timeSource.getTimeMillis();
-    
+
     return map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
@@ -459,10 +468,10 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     }
     return result;
   }
-  
+
   private void setAccessTimeAndExpiry(K key, OnHeapValueHolder<V> valueHolder, long now) {
     valueHolder.setAccessTimeMillis(now);
-    
+
     Duration duration = expiry.getExpiryForAccess(key, valueHolder.value());
     if (duration != null) {
       if (duration.isForever()) {
@@ -472,27 +481,35 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       }
     }
   }
-  
+
   private OnHeapValueHolder<V> nullSafeNewValueHolder(K key, V value, long now) {
     if (value == null) {
       return null;
     }
-    
+
     return newValueHolder(key, value, now);
   }
 
-  private OnHeapValueHolder<V> newValueHolder(K key, V value, long now) { 
+  private OnHeapValueHolder<V> newValueHolder(K key, V value, long now) {
     if (value == null) {
       throw new NullPointerException();
     }
-    
+
     Duration duration = expiry.getExpiryForCreation(key, value);
-    
-    if (duration.isForever()) {
-      return new TimeStampedOnHeapValueHolder<V>(value, now, TimeStampedOnHeapValueHolder.NO_EXPIRE);
+
+    if (serializer != null) {
+      if (duration.isForever()) {
+        return new TimeStampedOnHeapByValueValueHolder<V>(value, serializer, now, TimeStampedOnHeapValueHolder.NO_EXPIRE);
+      } else {
+        return new TimeStampedOnHeapByValueValueHolder<V>(value, serializer, now, safeExpireTime(now, duration));
+      }
     } else {
-      return new TimeStampedOnHeapValueHolder<V>(value, now, safeExpireTime(now, duration));
-    } 
+      if (duration.isForever()) {
+        return new TimeStampedOnHeapValueHolder<V>(value, now, TimeStampedOnHeapValueHolder.NO_EXPIRE);
+      } else {
+        return new TimeStampedOnHeapValueHolder<V>(value, now, safeExpireTime(now, duration));
+      }
+    }
   }
   
   private static long safeExpireTime(long now, Duration duration) {
@@ -557,10 +574,13 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   public static class Provider implements Store.Provider {
     @Override
     public <K, V> OnHeapStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
+      OnHeapStoreServiceConfig onHeapStoreServiceConfig = findSingletonAmongst(OnHeapStoreServiceConfig.class, serviceConfigs);
+      boolean storeByValue = onHeapStoreServiceConfig != null && onHeapStoreServiceConfig.storeByValue();
+
       TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[])serviceConfigs);
       TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
       
-      return new OnHeapStore<K, V>(storeConfig, timeSource);
+      return new OnHeapStore<K, V>(storeConfig, timeSource, storeByValue);
     }
 
     @Override

@@ -22,6 +22,7 @@ import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.Predicate;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
@@ -85,7 +86,14 @@ public interface CacheConfiguration<K, V> {
    * @return the Set of listeners, empty if none
    */
   Set<CacheEventListener<?, ?>> getEventListeners();
-    
+
+  /**
+   * Returns the serialization provider the cache is going to use to serialize mappings
+   *
+   * @return the serialization provider
+   */
+  SerializationProvider getSerializationProvider();
+
   /**
    * The Classloader for this cache. This classloader will be used to instantiate cache level services as well
    * as deserializing cache entries when required

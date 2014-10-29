@@ -497,7 +497,7 @@ public class EhcacheBulkMethodsITest {
   private static class CustomStoreProvider implements Store.Provider {
     @Override
     public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      return new OnHeapStore<K, V>(storeConfig, SystemTimeSource.INSTANCE) {
+      return new OnHeapStore<K, V>(storeConfig, SystemTimeSource.INSTANCE, false) {
         @Override
         public Map<K, ValueHolder<V>> bulkCompute(Iterable<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
           throw new CacheAccessException("Problem trying to bulk compute");

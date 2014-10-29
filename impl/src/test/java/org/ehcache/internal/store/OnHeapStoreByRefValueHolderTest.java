@@ -28,7 +28,7 @@ import org.junit.Test;
  * @author vfunshteyn
  *
  */
-public class OnHeapStoreValueHolderTest {
+public class OnHeapStoreByRefValueHolderTest {
 
   @Test
   public void testValue() {
@@ -43,7 +43,7 @@ public class OnHeapStoreValueHolderTest {
     ValueHolder<Integer> vh = newValueHolder(10);
     assertThat(newValueHolder(10), is(vh));
   }
-  
+
   @Test
   public void testNotEquals() {
     ValueHolder<Integer> vh = newValueHolder(10);
@@ -54,7 +54,7 @@ public class OnHeapStoreValueHolderTest {
   public void testNullValue() {
     newValueHolder(null);
   }
-  
+
   private static <V> TimeStampedOnHeapValueHolder<V> newValueHolder(V value) {
     return new TimeStampedOnHeapValueHolder<V>(value, System.currentTimeMillis(), TimeStampedOnHeapValueHolder.NO_EXPIRE);
   }
