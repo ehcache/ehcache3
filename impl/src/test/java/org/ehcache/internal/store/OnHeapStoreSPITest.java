@@ -33,7 +33,7 @@ import java.util.Comparator;
  * @author Aurelien Broszniowski
  */
 
-public class OnHeapStoreSPITest extends StoreSPITest {
+public class OnHeapStoreSPITest extends StoreSPITest<String, String> {
 
   private StoreFactory<String, String> storeFactory;
 
