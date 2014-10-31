@@ -23,11 +23,7 @@ import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.events.StateChangeListener;
-import org.ehcache.exceptions.BulkCacheLoaderException;
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.exceptions.CacheLoaderException;
-import org.ehcache.exceptions.CacheWriterException;
-import org.ehcache.exceptions.StateTransitionException;
+import org.ehcache.exceptions.*;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
@@ -52,6 +48,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -317,9 +315,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   public void putAll(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws CacheWriterException {
     statusTransitioner.checkAvailable();
     checkNonNull(entries);
+    final Map<K, V> successes = new HashMap<K, V>();
+    final Map<K, Exception> failures = new HashMap<K, Exception>();
 
     // Copy all entries to write into a Map
-    final Map<K, V> entriesToRemap = new HashMap<K, V>();
+    final ConcurrentMap<K, V> entriesToRemap = new ConcurrentHashMap<K, V>();
     for (Map.Entry<? extends K, ? extends V> entry: entries) {
       // If a value to map is null, throw NPE, nothing gets mutated
       if(entry.getValue() == null) {
@@ -348,11 +348,12 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
             if (!toWrite.isEmpty()) {
               // write all entries of this batch
               cacheWriter.writeAll(toWrite.entrySet());
+              successes.putAll(toWrite);
             }
           } catch (Exception e) {
-            // todo this should be a BulkCacheWriterException, see BulkCacheLoaderException
-            // failures to write is this toWrite batch... we'd need to record what we successfully wrote though!
-            throw newCacheWriterException(e);
+            for (K key: toWrite.keySet()) {
+              failures.put(key, e);
+            }
           }
         }
 
@@ -380,9 +381,10 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       } finally {
         removeKeysWithStrategy(keys, e);
       }
-    } catch (CacheWriterException e) {
-      removeKeysWithStrategy(keys, e);
-      throw e;
+    } finally {
+      if (!failures.isEmpty()) {
+        throw new BulkCacheWriterException(failures, successes);
+      }
     }
   }
 
