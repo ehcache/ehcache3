@@ -85,6 +85,10 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   
   @Override
   public ValueHolder<V> get(final K key) throws CacheAccessException {
+    return internalGet(key, true);
+  }
+  
+  private OnHeapValueHolder<V> internalGet(final K key, boolean updateAccess) throws CacheAccessException {
     checkKeyType(key);
 
     while (true) {
@@ -102,7 +106,9 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       
         continue; 
       } else {
-        setAccessTimeAndExpiry(key, existing, now);
+        if (updateAccess) {
+          setAccessTimeAndExpiry(key, existing, now);
+        }
         return existing;
       }
     }
@@ -110,29 +116,10 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   
   @Override
   public boolean containsKey(final K key) throws CacheAccessException {
-    checkKeyType(key);
-
-    while (true) {
-      OnHeapValueHolder<V> valueHolder = map.get(key);
-
-      if (valueHolder == null) {
-        return false;
-      }
-
-      final long now = timeSource.getTimeMillis();
-      if (valueHolder.isExpired(now)) {
-        boolean removed = map.remove(key, newIdentityValueHolder(valueHolder));
-        if (removed) {
-          return false;
-        }
-
-        continue;
-      }
-
-      return true;
-    }
+     return internalGet(key, false) != null;
   }
 
+  @Override
   public void put(final K key, final V value) throws CacheAccessException {
     checkKeyType(key);
     checkValueType(value);
@@ -180,23 +167,39 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     checkKeyType(key);
     checkValueType(value);
 
-    return map.remove(key, newLookupOnlyValueHolder(value));
+    // get the entry if exists and non-expired
+    OnHeapValueHolder<V> existing = internalGet(key, false);
+    if (existing == null) {
+      return false;
+    }
+    
+    if (value.equals(existing.value())) {
+      return map.remove(key, newIdentityValueHolder(existing));
+    } else {
+      return false;
+    }
   }
 
   @Override
   public ValueHolder<V> replace(K key, V value) throws CacheAccessException {
     checkKeyType(key);
     checkValueType(value);
-
-    final long now = timeSource.getTimeMillis();
-    
-    OnHeapValueHolder<V> existing = map.replace(key, newValueHolder(key, value, now));
-    if (existing == null) {
-      return null;
+   
+    while (true) {
+      OnHeapValueHolder<V> existing = internalGet(key, true);
+   
+      if (existing == null) {
+        return null;
+      } else {
+        final long now = timeSource.getTimeMillis();
+        OnHeapValueHolder<V> newValue = newValueHolder(key, value, now);
+        
+        boolean replaced = map.replace(key, newIdentityValueHolder(existing), newValue);
+        if (replaced) {
+          return existing;
+        }
+      }
     }
-    
-    setAccessTimeAndExpiry(key, existing, now);
-    return existing;
   }
 
   @Override
@@ -205,9 +208,20 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     checkValueType(oldValue);
     checkValueType(newValue);
 
-    return map.replace(key, newLookupOnlyValueHolder(oldValue), newValueHolder(key, newValue, timeSource.getTimeMillis()));
+    OnHeapValueHolder<V> existing = internalGet(key, false);
+
+    if (existing == null) {
+      return false;
+    } else if (oldValue.equals(existing.value())) {
+      final long now = timeSource.getTimeMillis();
+      OnHeapValueHolder<V> newValueHolder = newValueHolder(key, newValue, now);
+      return map.replace(key, newIdentityValueHolder(existing), newValueHolder);
+    } else {
+      return false;
+    }
   }
 
+  @Override
   public void clear() throws CacheAccessException {
     map.clear();
   }
@@ -520,10 +534,6 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
   private static <V> OnHeapValueHolder<V> newIdentityValueHolder(OnHeapValueHolder<V> valueHolder) {
     return new IdentityEqualsOnHeapValueHolder<V>(valueHolder.value());
-  }
-  
-  private static <V> OnHeapValueHolder<V> newLookupOnlyValueHolder(V value) {
-    return new LookupOnlyValueHolder<V>(value);
   }
 
   private void enforceCapacity(int delta) {
