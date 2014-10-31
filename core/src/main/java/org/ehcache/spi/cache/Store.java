@@ -31,7 +31,7 @@ import org.ehcache.function.Predicate;
 /**
  * The Service Provider Interface is what a {@link org.ehcache.Cache Cache} instance requires to be able to store
  * Cache entries (i.e. mappings of key to value, including all metadata).
- * It is basically a {@link java.util.concurrent.ConcurrentMap} with built in eviction. Possibly, it represents a view
+ * It is basically a {@link java.util.concurrent.ConcurrentMap} with built in eviction/expiration. Possibly, it represents a view
  * on data held on some persistent and/or remote storage.
  * 
  * @author Alex Snaps
@@ -41,9 +41,10 @@ public interface Store<K, V> {
   /**
    * Returns the {@link org.ehcache.spi.cache.Store.ValueHolder ValueHolder} to
    * which the specified key is mapped, or {@code null} if this store contains no
-   * mapping for the key or if it got evicted since it was initially installed.
+   * mapping for the key or if it was evicted (or became expired) since it was
+   * initially installed.
    * <p>
-   * More formally, if this store contains a mapping from a key
+   * More formally, if this store contains a non-expired mapping from a key
    * {@code k} to a {@link org.ehcache.spi.cache.Store.ValueHolder ValueHolder}
    * {@code v} such that {@code key.equals(k)},
    * then this method returns {@code v}; otherwise it returns
@@ -56,12 +57,13 @@ public interface Store<K, V> {
   ValueHolder<V> get(K key) throws CacheAccessException;
 
   /**
-   * Returns <tt>true</tt> if this store contains the specified key.
+   * Returns <tt>true</tt> if this store contains the specified key
+   * and the entry is not expired.
    * More formally, returns <tt>true</tt> if and only if this store
    * contains a key <tt>k</tt> such that <tt>(o.equals(k))</tt>.
    *
    * @param key key whose presence in this store is to be tested
-   * @return <tt>true</tt> if this store contains the specified element
+   * @return <tt>true</tt> if this store contains the specified non-expired element
    * @throws NullPointerException if the specified key is null
    * @throws ClassCastException if the specified key is not an instance of {@code K}
    * @throws CacheAccessException if the presence can't be tested for
@@ -84,8 +86,8 @@ public interface Store<K, V> {
   void put(K key, V value) throws CacheAccessException;
 
   /**
-   * Maps the specified key to the specified value in this store, unless a mapping already 
-   * exists. This is equivalent to
+   * Maps the specified key to the specified value in this store, unless a non-expired mapping
+   * already exists. This is equivalent to
    * <pre>
    *   if (!store.containsKey(key))
    *       store.put(key, value);
@@ -101,7 +103,7 @@ public interface Store<K, V> {
    * @param key   key with which the specified value is to be associated
    * @param value value to be associated with the specified key
    * @return the {@link org.ehcache.spi.cache.Store.ValueHolder ValueHolder} to
-   * which the specified key was previously mapped, or {@code null} if no such mapping existed
+   * which the specified key was previously mapped, or {@code null} if no such mapping existed or the mapping was expired
    * @throws NullPointerException if the specified key or value is null
    * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {@code V})
    * @throws CacheAccessException if the mapping can't be installed
@@ -120,7 +122,8 @@ public interface Store<K, V> {
   void remove(K key) throws CacheAccessException;
 
   /**
-   * Removes the entry for a key only if currently mapped to a given value.
+   * Removes the entry for a key only if currently mapped to a given value
+   * and the entry is not expired
    * This is equivalent to
    * <pre>
    *   if (store.containsKey(key) &amp;&amp; store.get(key).equals(value)) {
@@ -139,7 +142,8 @@ public interface Store<K, V> {
   boolean remove(K key, V value) throws CacheAccessException;
   
   /**
-   * Replaces the entry for a key only if currently mapped to some value.
+   * Replaces the entry for a key only if currently mapped to some value
+   * and the entry is not expired.
    * This is equivalent to
    * <pre>
    *   V oldValue = store.get(key);
@@ -160,7 +164,8 @@ public interface Store<K, V> {
   ValueHolder<V> replace(K key, V value) throws CacheAccessException;
   
   /**
-   * Replaces the entry for a key only if currently mapped to a given value.
+   * Replaces the entry for a key only if currently mapped to a given value
+   * and the entry is not expired.
    * This is equivalent to
    * <pre>
    *   if (store.containsKey(key) &amp;&amp; store.get(key).equals(oldValue)) {
@@ -218,10 +223,52 @@ public interface Store<K, V> {
    */
   Store.Iterator<Cache.Entry<K, ValueHolder<V>>> iterator();
 
-  ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException;
+  /**
+   * Compute the value for the given key by invoking the given function to produce the value.
+   * The entire operation is performed atomically.
+   * 
+   * @param key the key to operate on
+   * @param mappingFunction the function that will produce the value. The function will be supplied
+   *        with the key and existing value (or null if no entry exists) as parameters. The function should
+   *        return the desired new value for the entry or null to remove the entry. If the method throws
+   *        an unchecked exception the Store will not be modified (the caller will receive the exception)
+   * @return the new value associated with the key or null if none
+   * @throws ClassCastException If the specified key is not of the correct type ({@code K}) or if the
+   *         function returns a value that is not of type ({@code V})
+   * @throws CacheAccessException
+   */
+  ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException;
 
+  /**
+   * Compute the value for the given key (only if absent or expired) by invoking the given function to produce the value.
+   * The entire operation is performed atomically.
+   * 
+   * @param key the key to operate on
+   * @param mappingFunction the function that will produce the value. The function will be supplied
+   *        with the key as a parameter. The function return the desired new value for the entry or null to
+   *        remove the entry. If the method throws an unchecked exception the Store will not be modified
+   *        (the caller will receive the exception)
+   * @return the new value associated with the key or null if none
+   * @throws ClassCastException If the specified key is not of the correct type ({@code K}) or if the
+   *         function returns a value that is not of type ({@code V})
+   * @throws CacheAccessException
+   */
   ValueHolder<V> computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) throws CacheAccessException;
 
+  /**
+   * Compute the value for the given key (only if present and non-expired) by invoking the given function to produce the value.
+   * The entire operation is performed atomically.
+   * 
+   * @param key the key to operate on
+   * @param mappingFunction the function that will produce the value. The function will be supplied
+   *        with the key and existing value as parameters. The function should
+   *        return the desired new value for the entry or null to remove the entry. If the method throws
+   *        an unchecked exception the Store will not be modified (the caller will receive the exception)
+   * @return the new value associated with the key or null if none
+   * @throws ClassCastException If the specified key is not of the correct type ({@code K}) or if the
+   *         function returns a value that is not of type ({@code V})
+   * @throws CacheAccessException
+   */
   ValueHolder<V> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException;
 
   /**
@@ -241,6 +288,8 @@ public interface Store<K, V> {
    * @param keys the keys to compute a new value for.
    * @param remappingFunction the function that generates new values.
    * @return a {@link Map} of key / value pairs for each key in <code>keys</code> that are in the store after bulk computing is done.
+   * @throws ClassCastException if the specified key(s) are not of the correct type ({@code K}). Also thrown if the given function produces
+   *         entries with either incorrect key or value types
    * @throws CacheAccessException
    */
   Map<K, ValueHolder<V>> bulkCompute(Iterable<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException;
@@ -262,6 +311,8 @@ public interface Store<K, V> {
    * @param keys the keys to compute a new value for, if they're not in the store.
    * @param mappingFunction the function that generates new values.
    * @return a {@link Map} of key / value pairs for each key in <code>keys</code> that are in the store after bulk computing is done.
+   * @throws ClassCastException if the specified key(s) are not of the correct type ({@code K}). Also thrown if the given function produces
+   *         entries with either incorrect key or value types
    * @throws CacheAccessException
    */
   Map<K, ValueHolder<V>> bulkComputeIfAbsent(Iterable<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException;
