@@ -433,34 +433,24 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Iterable<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
-    Map<K, V> oldEntries = new HashMap<K, V>();
-    for (K key : keys) {
-      checkKey(key);
-      ValueHolder<V> valueHolder = get(key);
-      oldEntries.put(key, valueHolder == null ? null : valueHolder.value());
-    }
-    Iterable<? extends Map.Entry<? extends K, ? extends V>> remappedEntries = remappingFunction.apply(oldEntries.entrySet());
+  public Map<K, ValueHolder<V>> bulkCompute(Iterable<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
+
+    // The Store here is free to slice & dice the keys as it sees fit
+    // As this OnHeapStore doesn't operate in segments, the best it can do is do a "bulk" write in batches of... one!
 
     Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
-    if (remappedEntries != null) {
-      for (Map.Entry<? extends K, ? extends V> remappedEntry : remappedEntries) {
-        K key = remappedEntry.getKey();
-        V value = remappedEntry.getValue();
-        checkKey(key);
-        if (value != null) { 
-          checkValue(value);
+    for (K key : keys) {
+      final OnHeapValueHolder<V> newValue = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+        @Override
+        public OnHeapValueHolder<V> apply(final K k, final OnHeapValueHolder<V> oldValue) {
+          final Set<Map.Entry<K, V>> entrySet = Collections.singletonMap(k, oldValue == null ? null : oldValue.value())
+              .entrySet();
+          final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries = remappingFunction.apply(entrySet);
+          Map.Entry<? extends K, ? extends V> next = entries.iterator().next();
+          return nullSafeNewValueHolder(next.getKey(), next.getValue(), timeSource.getTimeMillis());
         }
-        if (oldEntries.containsKey(key)) {
-          OnHeapValueHolder<V> valueHolder = nullSafeNewValueHolder(remappedEntry.getKey(), remappedEntry.getValue(), timeSource.getTimeMillis());
-          if (valueHolder != null) {
-            put(key, valueHolder.value());
-          } else {
-            remove(key);
-          }
-          result.put(key, valueHolder);
-        }
-      }
+      });
+      result.put(key, newValue);
     }
     return result;
   }

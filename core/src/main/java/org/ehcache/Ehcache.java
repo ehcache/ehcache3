@@ -317,43 +317,54 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   public void putAll(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws CacheWriterException {
     statusTransitioner.checkAvailable();
     checkNonNull(entries);
-    
+
+    // Copy all entries to write into a Map
     final Map<K, V> entriesToRemap = new HashMap<K, V>();
     for (Map.Entry<? extends K, ? extends V> entry: entries) {
+      // If a value to map is null, throw NPE, nothing gets mutated
+      if(entry.getValue() == null) {
+        throw new NullPointerException();
+      }
       entriesToRemap.put(entry.getKey(), entry.getValue());
     }
 
+    // The remapping function that will return the keys to their NEW values, taking the keys to their old values as input;
+    // but this could happen in batches, i.e. not the same unique Set as passed to this method
     Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction =
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
       @Override
       public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-        for (Map.Entry<? extends K, ? extends V> entry: entries) {
-          entriesToRemap.remove(entry.getKey());
-        }
-        
+
+        // If we have a writer, first write this batch
         if (cacheWriter != null) {
-          Set<Map.Entry<? extends K, ? extends V>> toWrite = new HashSet<Map.Entry<? extends K, ? extends V>>();
-          Set<K> toRemove = new HashSet<K>();
+
+          // Can't use an iterable again, so flatting down to a Map
+          // todo might want to fix the typing here
+          Map<K, V> toWrite = new HashMap<K, V>();
           for (Map.Entry<? extends K, ? extends V> entry: entries) {
-            if (entry.getValue() == null) {
-              toRemove.add(entry.getKey());
-            } else {
-              toWrite.add(entry);
-            }
+            toWrite.put(entry.getKey(), entriesToRemap.get(entry.getKey()));
           }
           try {
             if (!toWrite.isEmpty()) {
-              cacheWriter.writeAll(toWrite);
-            } 
-            
-            if (!toRemove.isEmpty()) {
-              cacheWriter.deleteAll(toRemove);
+              // write all entries of this batch
+              cacheWriter.writeAll(toWrite.entrySet());
             }
           } catch (Exception e) {
+            // todo this should be a BulkCacheWriterException, see BulkCacheLoaderException
+            // failures to write is this toWrite batch... we'd need to record what we successfully wrote though!
             throw newCacheWriterException(e);
           }
         }
-        return entries;
+
+        Map<K, V> mutations = new HashMap<K, V>();
+
+        // then record we handled these mappings
+        for (Map.Entry<? extends K, ? extends V> entry: entries) {
+          mutations.put(entry.getKey(), entriesToRemap.remove(entry.getKey()));
+        }
+
+        // Finally return the values to be installed in the Cache's Store
+        return mutations.entrySet();
       }
     };
 
@@ -361,7 +372,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     try {
       store.bulkCompute(keys, remappingFunction);
     } catch (CacheAccessException e) {
-      // just in case the write didn't happen:
+      // just in case not all writes happened:
       try {
         if (!entriesToRemap.isEmpty()) {
           remappingFunction.apply(entriesToRemap.entrySet());
