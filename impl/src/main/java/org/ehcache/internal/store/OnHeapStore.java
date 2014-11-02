@@ -28,6 +28,7 @@ import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.ehcache.Cache;
@@ -85,44 +86,39 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   
   @Override
   public ValueHolder<V> get(final K key) throws CacheAccessException {
+    checkKey(key);
     return internalGet(key, true);
   }
   
-  private OnHeapValueHolder<V> internalGet(final K key, boolean updateAccess) throws CacheAccessException {
-    checkKeyType(key);
-
-    while (true) {
-      final OnHeapValueHolder<V> existing = map.get(key);
-      if (existing == null) {
-        return null;
-      }
+  private OnHeapValueHolder<V> internalGet(final K key, final boolean updateAccess) throws CacheAccessException {
+    final long now = timeSource.getTimeMillis();
     
-      final long now = timeSource.getTimeMillis();
-      if (existing.isExpired(now)) {
-        boolean removed = map.remove(key, newIdentityValueHolder(existing));
-        if (removed) {
+    return map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      @Override
+      public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+        if (mappedValue.isExpired(now)) {
           return null;
         }
-      
-        continue; 
-      } else {
+        
         if (updateAccess) {
-          setAccessTimeAndExpiry(key, existing, now);
+          setAccessTimeAndExpiry(key, mappedValue, now);
         }
-        return existing;
+        
+        return mappedValue;
       }
-    }
+    });
   }
   
   @Override
   public boolean containsKey(final K key) throws CacheAccessException {
-     return internalGet(key, false) != null;
+    checkKey(key); 
+    return internalGet(key, false) != null;
   }
 
   @Override
   public void put(final K key, final V value) throws CacheAccessException {
-    checkKeyType(key);
-    checkValueType(value);
+    checkKey(key);
+    checkValue(value);
 
     if (map.put(key, newValueHolder(key, value, timeSource.getTimeMillis())) == null) {
       enforceCapacity(1);
@@ -131,94 +127,106 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
   @Override
   public void remove(final K key) throws CacheAccessException {
-    checkKeyType(key);
+    checkKey(key);
     map.remove(key);
   }
 
   @Override
-  public ValueHolder<V> putIfAbsent(K key, V value) throws CacheAccessException {
-    checkKeyType(key);
-    checkValueType(value);
+  public ValueHolder<V> putIfAbsent(final K key, final V value) throws CacheAccessException {
+    checkKey(key);
+    checkValue(value);
 
-    while (true) {
-      final long now = timeSource.getTimeMillis();
-      OnHeapValueHolder<V> newValue = newValueHolder(key, value, now);
-      OnHeapValueHolder<V> existing = map.putIfAbsent(key, newValue);
-      if (existing == null) {
-        return null;
-      }
-     
-      if (existing.isExpired(now)) {
-        boolean replaced = map.replace(key, newIdentityValueHolder(existing), newValue);
-        if (replaced) {
-          return newValue;
-        } 
-        
-        continue;
-      } else {
-        setAccessTimeAndExpiry(key, existing, now);
-        return existing;
-      }
-    }
-  }
-
-  @Override
-  public boolean remove(K key, V value) throws CacheAccessException {
-    checkKeyType(key);
-    checkValueType(value);
-
-    // get the entry if exists and non-expired
-    OnHeapValueHolder<V> existing = internalGet(key, false);
-    if (existing == null) {
-      return false;
-    }
+    final AtomicReference<OnHeapValueHolder<V>> returnValue = new AtomicReference<OnHeapValueHolder<V>>(null);
+    final long now = timeSource.getTimeMillis();
     
-    if (value.equals(existing.value())) {
-      return map.remove(key, newIdentityValueHolder(existing));
-    } else {
-      return false;
-    }
+    map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      @Override
+      public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+        if (mappedValue == null || mappedValue.isExpired(now)) {
+          return newValueHolder(key, value, now);
+        }
+       
+        returnValue.set(mappedValue);
+        setAccessTimeAndExpiry(key, mappedValue, now);
+        return mappedValue;
+      }
+    });
+    
+    return returnValue.get();
   }
 
   @Override
-  public ValueHolder<V> replace(K key, V value) throws CacheAccessException {
-    checkKeyType(key);
-    checkValueType(value);
-   
-    while (true) {
-      OnHeapValueHolder<V> existing = internalGet(key, true);
-   
-      if (existing == null) {
-        return null;
-      } else {
-        final long now = timeSource.getTimeMillis();
-        OnHeapValueHolder<V> newValue = newValueHolder(key, value, now);
-        
-        boolean replaced = map.replace(key, newIdentityValueHolder(existing), newValue);
-        if (replaced) {
-          return existing;
+  public boolean remove(final K key, final V value) throws CacheAccessException {
+    checkKey(key);
+    checkValue(value);
+
+    final AtomicBoolean removed = new AtomicBoolean(false);
+    final long now = timeSource.getTimeMillis();
+    
+    map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      @Override
+      public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+        if (mappedValue.isExpired(now)) {
+          return null;
+        } else if (value.equals(mappedValue.value())) {
+          removed.set(true);
+          return null;
+        } else {
+          return mappedValue;
         }
       }
-    }
+    });
+    
+    return removed.get();
   }
 
   @Override
-  public boolean replace(K key, V oldValue, V newValue) throws CacheAccessException {
-    checkKeyType(key);
-    checkValueType(oldValue);
-    checkValueType(newValue);
+  public ValueHolder<V> replace(final K key, final V value) throws CacheAccessException {
+    checkKey(key);
+    checkValue(value);
+   
+    final AtomicReference<OnHeapValueHolder<V>> returnValue = new AtomicReference<OnHeapValueHolder<V>>(null);
+    final long now = timeSource.getTimeMillis();
+    
+    map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      @Override
+      public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+        if (mappedValue.isExpired(now)) {
+          return null;
+        } else {
+          returnValue.set(mappedValue);
+          return newValueHolder(key, value, now);
+        }
+      }
+    });
+    
+    return returnValue.get();
+  }
 
-    OnHeapValueHolder<V> existing = internalGet(key, false);
+  @Override
+  public boolean replace(final K key, final V oldValue, final V newValue) throws CacheAccessException {
+    checkKey(key);
+    checkValue(oldValue);
+    checkValue(newValue);
 
-    if (existing == null) {
-      return false;
-    } else if (oldValue.equals(existing.value())) {
-      final long now = timeSource.getTimeMillis();
-      OnHeapValueHolder<V> newValueHolder = newValueHolder(key, newValue, now);
-      return map.replace(key, newIdentityValueHolder(existing), newValueHolder);
-    } else {
-      return false;
-    }
+    final AtomicBoolean returnValue = new AtomicBoolean(false);
+    final long now = timeSource.getTimeMillis();
+    
+    map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      @Override
+      public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+        if (mappedValue.isExpired(now)) {
+          return null;
+        } else if (oldValue.equals(mappedValue.value())) {
+          returnValue.set(true);
+          return newValueHolder(key, newValue, now);
+        } else {
+          return mappedValue;
+        }
+      }
+    });
+    
+    return returnValue.get();
   }
 
   @Override
@@ -267,10 +275,9 @@ public class OnHeapStore<K, V> implements Store<K, V> {
           Map.Entry<K, OnHeapValueHolder<V>> entry = it.next();
           final long now = timeSource.getTimeMillis();
           if (entry.getValue().isExpired(now)) {
-            map.remove(entry.getKey(), newIdentityValueHolder(entry.getValue()));
+            it.remove();
             continue;
           }
-          
           
           next = entry;
         }
@@ -324,129 +331,73 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
   @Override
   public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-    checkKeyType(key);
+    checkKey(key);
 
+    final long now = timeSource.getTimeMillis();
+    
     return map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
-      public OnHeapValueHolder<V> apply(final K k, final OnHeapValueHolder<V> valueHolder) {
-        return nullSafeNewValueHolder(k, remappingFunction.apply(k, valueHolder == null ? null : valueHolder.value()), timeSource.getTimeMillis());
+      public OnHeapValueHolder<V> apply(final K mappedKey, OnHeapValueHolder<V> mappedValue) {
+        if (mappedValue != null && mappedValue.isExpired(now)) {
+          mappedValue = null;
+        }
+        
+        return nullSafeNewValueHolder(key, remappingFunction.apply(key, mappedValue == null ? null : mappedValue.value()), now);
       }
     });
   }
   
   @Override
   public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) {
-    checkKeyType(key);
+    checkKey(key);
 
-    while (true) {
-      final AtomicReference<OnHeapValueHolder<V>> computed = new AtomicReference<OnHeapValueHolder<V>>(null);
-
-      OnHeapValueHolder<V> computedOrExisting = map.computeIfAbsent(key, new Function<K, OnHeapValueHolder<V>>() {
-        @Override
-        public OnHeapValueHolder<V> apply(final K k) {
-          OnHeapValueHolder<V> value = nullSafeNewValueHolder(k, mappingFunction.apply(k), timeSource.getTimeMillis());
-          computed.set(value);
-          return value;
+    final long now = timeSource.getTimeMillis();
+    
+    return map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      @Override
+      public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+        if (mappedValue == null || mappedValue.isExpired(now)) {
+          return nullSafeNewValueHolder(key, mappingFunction.apply(key), now);
         }
-      });
-
-      if (computedOrExisting == null) {
-        return null;
+        
+        setAccessTimeAndExpiry(key, mappedValue, now);
+        return mappedValue;
       }
-
-      if (computed.get() == computedOrExisting) {
-        return computedOrExisting;
-      }
-
-      final long now = timeSource.getTimeMillis();
-      if (computedOrExisting.isExpired(now)) {
-        OnHeapValueHolder<V> newValue = nullSafeNewValueHolder(key, mappingFunction.apply(key), now);
-        if (newValue != null) {
-          boolean replaced = map.replace(key, newIdentityValueHolder(computedOrExisting), newValue);
-          if (replaced) {
-            return newValue;
-          } else {
-            continue;
-          }
-        } else {
-          boolean removed = map.remove(key, newIdentityValueHolder(computedOrExisting));
-          if (removed) {
-            return null;
-          } else {
-            continue;
-          }
-        }
-      } else {
-        setAccessTimeAndExpiry(key, computedOrExisting, now);
-        return computedOrExisting;
-      }
-    }
+    });
   }
 
   @Override
   public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-    checkKeyType(key);
+    checkKey(key);
+    
+    final long now = timeSource.getTimeMillis();
 
-    while (true) {
-      final AtomicReference<OnHeapValueHolder<V>> computed = new AtomicReference<OnHeapValueHolder<V>>(null);
-
-      OnHeapValueHolder<V> computedOrPresent = map.computeIfPresent(key,
-          new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
-            @Override
-            public OnHeapValueHolder<V> apply(final K k, final OnHeapValueHolder<V> valueHolder) {
-              OnHeapValueHolder<V> value = nullSafeNewValueHolder(k, remappingFunction.apply(k, valueHolder.value()), timeSource.getTimeMillis());
-              computed.set(value);
-              return value;
-            }
-          });
-
-      if (computedOrPresent == null) {
-        return null;
-      }
-
-      if (computed.get() == computedOrPresent) {
-        return computedOrPresent;
-      }
-
-      final long now = timeSource.getTimeMillis();
-      if (computedOrPresent.isExpired(now)) {
-        OnHeapValueHolder<V> newValue = nullSafeNewValueHolder(key, remappingFunction.apply(key, computedOrPresent.value()), now);
-        if (newValue != null) {
-          boolean replaced = map.replace(key, newIdentityValueHolder(computedOrPresent), newValue);
-          if (replaced) {
-            return newValue;
-          } else {
-            continue;
-          }
-        } else {
-          boolean removed = map.remove(key, newIdentityValueHolder(computedOrPresent));
-          if (removed) {
-            return null;
-          } else {
-            continue;
-          }
+    return map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      @Override
+      public OnHeapValueHolder<V> apply(K key, OnHeapValueHolder<V> mappedValue) {
+        if (mappedValue.isExpired(now)) {
+          return null;
         }
-      } else {
-        setAccessTimeAndExpiry(key, computedOrPresent, now);
-        return computedOrPresent;
+        
+        return nullSafeNewValueHolder(key, remappingFunction.apply(key, mappedValue.value()), now);
       }
-    }
+    });
   }
 
   @Override
   public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Iterable<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
-    Set<K> presentKeys = new HashSet<K>();
+    Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
     Set<K> missingKeys = new HashSet<K>();
     for (K key : keys) {
-      if (containsKey(key)) {
-        presentKeys.add(key);
+      ValueHolder<V> value = get(key);
+      if (value != null) {
+        result.put(key, value);
       } else {
         missingKeys.add(key);
       }
     }
     Iterable<? extends Map.Entry<? extends K, ? extends V>> computedMappings = mappingFunction.apply(missingKeys);
 
-    Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
     if (computedMappings != null) {
       for (Map.Entry<? extends K, ? extends V> entry : computedMappings) {
         OnHeapValueHolder<V> valueHolder = nullSafeNewValueHolder(entry.getKey(), entry.getValue(), timeSource.getTimeMillis());
@@ -456,9 +407,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         }
       }
     }
-    for (K key : presentKeys) {
-      result.put(key, get(key));
-    }
+    
     return result;
   }
 
@@ -532,10 +481,6 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     return result;
   }
 
-  private static <V> OnHeapValueHolder<V> newIdentityValueHolder(OnHeapValueHolder<V> valueHolder) {
-    return new IdentityEqualsOnHeapValueHolder<V>(valueHolder.value());
-  }
-
   private void enforceCapacity(int delta) {
     for (int attempts = 0, evicted = 0; attempts < ATTEMPT_RATIO * delta && evicted < EVICTION_RATIO * delta
             && capacityConstraint.compareTo((long) map.size()) < 0; attempts++) {
@@ -563,14 +508,20 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     }
   }
 
-  private void checkKeyType(Object o) {
-    if (o != null && !keyType.isAssignableFrom(o.getClass())) {
+  private void checkKey(Object o) {
+    if (o == null) {
+      throw new NullPointerException();
+    }
+    if (!keyType.isAssignableFrom(o.getClass())) {
       throw new ClassCastException("Invalid key type, expected : " + keyType.getName() + " but was : " + o.getClass().getName());
     }
   }
 
-  private void checkValueType(Object o) {
-    if (o != null && !valueType.isAssignableFrom(o.getClass())) {
+  private void checkValue(Object o) {
+    if (o == null) {
+      throw new NullPointerException();
+    }
+    if (!valueType.isAssignableFrom(o.getClass())) {
       throw new ClassCastException("Invalid value type, expected : " + valueType.getName() + " but was : " + o.getClass().getName());
     }
   }
