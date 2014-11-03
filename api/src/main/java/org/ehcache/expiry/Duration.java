@@ -25,27 +25,31 @@ import java.util.concurrent.TimeUnit;
 public final class Duration {
 
   /**
-   * Special Duration value that indicates an infinite amount of time. This constant should be
-   * used to express a lack of a concrete expiration time (ie. "eternal").
+   * Special Duration value that indicates an infinite amount of time. This
+   * constant should be used to express a lack of a concrete expiration time
+   * (ie. "eternal").
    */
   public static final Duration FOREVER = new Duration(0, null, true);
-  
+
   /**
    * Special Duration value to represent a zero length duration
    */
   public static final Duration ZERO = new Duration(0, TimeUnit.NANOSECONDS, false);
-  
+
   private final TimeUnit timeUnit;
   private final long amount;
 
-  
   /**
    * Construct a {@link Duration} instance
    * 
-   * @throws IllegalArgumentException if the given amount is less than zero
-   * @throws NullPointerException if the given time unit is null
-   * @param amount the amount of the given time unit
-   * @param timeUnit the time unit
+   * @throws IllegalArgumentException
+   *           if the given amount is less than zero
+   * @throws NullPointerException
+   *           if the given time unit is null
+   * @param amount
+   *          the amount of the given time unit
+   * @param timeUnit
+   *          the time unit
    */
   public Duration(long amount, TimeUnit timeUnit) {
     this(amount, timeUnit, false);
@@ -65,22 +69,24 @@ public final class Duration {
     this.amount = amount;
     this.timeUnit = timeUnit;
   }
-  
+
   /**
-   * Get the amount of {@link Duration#getTimeUnit()} this instance represents 
+   * Get the amount of {@link Duration#getTimeUnit()} this instance represents
    * 
-   * @throws IllegalStateException if this instance is {@link Duration#FOREVER}
+   * @throws IllegalStateException
+   *           if this instance is {@link Duration#FOREVER}
    * @return the amount of this instance
    */
   public long getAmount() {
     checkForever();
     return amount;
   }
-  
+
   /**
    * Get the {@link TimeUnit} of this instance
    * 
-   * @throws IllegalStateException if this instance is {@link Duration#FOREVER}
+   * @throws IllegalStateException
+   *           if this instance is {@link Duration#FOREVER}
    * @return timeunit the {@link TimeUnit} of this instance
    */
   public TimeUnit getTimeUnit() {
@@ -109,7 +115,14 @@ public final class Duration {
     final int prime = 31;
     int result = 1;
     result = prime * result + (int) (amount ^ (amount >>> 32));
-    result = prime * result + ((timeUnit == null) ? 0 : timeUnit.hashCode());
+
+    if (amount != 0) {
+      result = prime * result + ((timeUnit == null) ? 0 : timeUnit.hashCode());
+    } else {
+      // Differentiate zero from forever
+      result = prime * result + ((timeUnit == null) ? 0 : 1);
+    }
+    
     return result;
   }
 
