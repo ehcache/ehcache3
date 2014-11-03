@@ -91,11 +91,11 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   }
   
   private OnHeapValueHolder<V> internalGet(final K key, final boolean updateAccess) throws CacheAccessException {
-    final long now = timeSource.getTimeMillis();
-    
     return map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+        final long now = timeSource.getTimeMillis();
+        
         if (mappedValue.isExpired(now)) {
           return null;
         }
@@ -161,11 +161,12 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     checkValue(value);
 
     final AtomicBoolean removed = new AtomicBoolean(false);
-    final long now = timeSource.getTimeMillis();
     
     map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+        final long now = timeSource.getTimeMillis();
+        
         if (mappedValue.isExpired(now)) {
           return null;
         } else if (value.equals(mappedValue.value())) {
@@ -186,11 +187,12 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     checkValue(value);
    
     final AtomicReference<OnHeapValueHolder<V>> returnValue = new AtomicReference<OnHeapValueHolder<V>>(null);
-    final long now = timeSource.getTimeMillis();
     
     map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+        final long now = timeSource.getTimeMillis();
+        
         if (mappedValue.isExpired(now)) {
           return null;
         } else {
@@ -210,11 +212,12 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     checkValue(newValue);
 
     final AtomicBoolean returnValue = new AtomicBoolean(false);
-    final long now = timeSource.getTimeMillis();
     
     map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+        final long now = timeSource.getTimeMillis();
+        
         if (mappedValue.isExpired(now)) {
           return null;
         } else if (oldValue.equals(mappedValue.value())) {
@@ -368,13 +371,13 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
   @Override
   public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-    checkKey(key);
-    
-    final long now = timeSource.getTimeMillis();
+    checkKey(key); 
 
     return map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K key, OnHeapValueHolder<V> mappedValue) {
+        final long now = timeSource.getTimeMillis();
+        
         if (mappedValue.isExpired(now)) {
           return null;
         }
