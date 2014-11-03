@@ -474,13 +474,19 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   }
   
   private static long safeExpireTime(long now, Duration duration) {
-    long result = now + duration.asMillis();
-    if (result <= 0) {
+    long millis = TimeUnit.MILLISECONDS.convert(duration.getAmount(), duration.getTimeUnit());
+    
+    if (millis == Long.MAX_VALUE) {
+      return Long.MAX_VALUE;
+    }
+    
+    long result = now + millis;
+    if (result < 0) {
       return Long.MAX_VALUE;
     }
     return result;
   }
-
+  
   private void enforceCapacity(int delta) {
     for (int attempts = 0, evicted = 0; attempts < ATTEMPT_RATIO * delta && evicted < EVICTION_RATIO * delta
             && capacityConstraint.compareTo((long) map.size()) < 0; attempts++) {

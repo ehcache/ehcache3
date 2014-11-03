@@ -37,31 +37,27 @@ public final class Duration {
       if (timeUnit == null) {
         throw new NullPointerException("TimeUnit must not be null");
       }
-
-      switch (timeUnit) {
-        case MICROSECONDS:
-        case NANOSECONDS: {
-          throw new IllegalArgumentException("TimeUnit must be equal or lower granularity than "
-              + TimeUnit.MILLISECONDS.name() + ". Specified value was " + timeUnit.name());
-        }
-        default: {
-          break;
-        }
-      }
     }
 
     this.amount = amount;
     this.timeUnit = timeUnit;
   }
+  
+  public long getAmount() {
+    checkForever();
+    return amount;
+  }
+  
+  public TimeUnit getTimeUnit() {
+    checkForever();
+    return timeUnit;
+  }
 
-  public long asMillis() {
+  private void checkForever() {
     if (isForever()) {
       throw new IllegalStateException(
           "The calling code should be checking explicitly for Duration#FOREVER or isForever()");
     }
-    
-    // XXX: Fix this for overflow! Like Long.MAX of DAYS maybe
-    return timeUnit.toMillis(amount);
   }
 
   public boolean isForever() {
@@ -116,6 +112,6 @@ public final class Duration {
       return "Duration[ZERO]";
     }
 
-    return "Duration[amount=" + amount + ", timeUnit=" + timeUnit + "]";
+    return "Duration[amount=" + amount + ", timeUnit=" + timeUnit.name() + "]";
   }
 }
