@@ -383,6 +383,9 @@ public interface Store<K, V> {
      */
     ClassLoader getClassLoader();
     
+    /**
+     * The expiration policy instance for this store
+     */
     Expiry<? super K, ? super V> getExpiry();
   }
 

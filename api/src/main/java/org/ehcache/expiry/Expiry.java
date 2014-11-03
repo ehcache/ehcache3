@@ -16,10 +16,29 @@
 
 package org.ehcache.expiry;
 
+/**
+ * A policy object that governs expiration for a {@link Cache}
+ * <p>
+ * See {@link Expirations} for common instances
+ */
 public interface Expiry<K, V> {
 
+  /**
+   * Get the expiration period (relative to the current time) when a entry is initially added to a {@link Cache}
+   * 
+   * @param key the key of the newly added entry
+   * @param value the value of the newly added entry 
+   * @return a non-null {@link Duration} 
+   */
   Duration getExpiryForCreation(K key, V value);
 
+  /**
+   * Get the expiration period (relative to the current time) when an existing entry is accessed from a {@link Cache}
+   * 
+   * @param key the key of the accessed entry
+   * @param value the value of the accessed entry
+   * @return the updated expiration value for the given entry. A {@code null} return value indicates "no change" to the expiration time 
+   */
   Duration getExpiryForAccess(K key, V value);
 
 }

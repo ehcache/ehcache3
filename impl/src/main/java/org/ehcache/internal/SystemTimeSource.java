@@ -15,6 +15,9 @@
  */
 package org.ehcache.internal;
 
+/** 
+ * The standard {@link TimeSource} that uses {@link System#currentTimeMillis()}
+ */
 public class SystemTimeSource implements TimeSource {
   
   public static final TimeSource INSTANCE = new SystemTimeSource();

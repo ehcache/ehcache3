@@ -92,5 +92,8 @@ public interface CacheConfiguration<K, V> {
    */
   ClassLoader getClassLoader();
 
+  /**
+   *  Get the expiration policy instance for this {@link Cache}
+   */
   Expiry<K, V> getExpiry();
 }

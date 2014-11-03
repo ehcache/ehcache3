@@ -18,6 +18,9 @@ package org.ehcache.internal;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 
+/**
+ * The configured time {@link TimeSource} for a {@link Store} 
+ */
 public class TimeSourceConfiguration implements ServiceConfiguration<Store.Provider> {
 
   private final TimeSource timeSource;

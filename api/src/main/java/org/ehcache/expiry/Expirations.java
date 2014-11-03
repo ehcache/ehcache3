@@ -17,11 +17,17 @@ package org.ehcache.expiry;
 
 public class Expirations {
 
+  /**
+   * Get an {@link Expiry} instance for a non expiring (ie. "eternal") cache
+   */
   @SuppressWarnings("unchecked")
   public static <K, V> Expiry<K, V> noExpiration() {
     return (Expiry<K, V>) NoExpiry.INSTANCE;
   }
 
+  /**
+   * Get a time-to-live (TTL) {@link Expiry} instance for the given duration
+   */
   public static <K, V> Expiry<K, V> timeToLiveExpiration(Duration timeToLive) {
     if (timeToLive == null) {
       throw new NullPointerException("null duration");
@@ -29,6 +35,9 @@ public class Expirations {
     return new TimeToLiveExpiry<K, V>(timeToLive);
   }
 
+  /**
+   * Get a time-to-idle (TTI) {@link Expiry} instance for the given duration
+   */
   public static <K, V> Expiry<K, V> timeToIdleExpiration(Duration timeToIdle) {
     if (timeToIdle == null) {
       throw new NullPointerException("null duration");
