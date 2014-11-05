@@ -75,7 +75,7 @@ public class CacheConfigurationBuilder {
   
   public <K, V> CacheConfigurationBuilder withExpiry(Expiry<K, V> expiry) {
     if (expiry == null) {
-      throw new NullPointerException();
+      throw new NullPointerException("Null expiry");
     }
     this.expiry = expiry;
     return this;

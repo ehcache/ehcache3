@@ -95,7 +95,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   
   public final StandaloneCacheBuilder<K, V, T> withClassLoader(ClassLoader classLoader) {
     if (classLoader == null) {
-      throw new IllegalArgumentException();
+      throw new NullPointerException("Null classloader");
     }
     this.classLoader = classLoader;
     return this;
@@ -103,7 +103,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   
   public final StandaloneCacheBuilder<K, V, T> withExpiry(Expiry<K, V> expiry) {
     if (expiry == null) {
-      throw new NullPointerException();
+      throw new NullPointerException("Null expiry");
     }
     
     this.expiry = expiry;
