@@ -2,16 +2,17 @@ package org.ehcache.exceptions;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Exception thrown by a {@link org.ehcache.Cache} when the {@link org.ehcache.spi.writer.CacheWriter} it uses threw an
- * {@link java.lang.RuntimeException} while bulk writing values for a given set of keys
+ * {@link java.lang.RuntimeException} while bulk writing / removing values for a given set of keys
  *
  * @author Anthony Dahanne
  */
 public class BulkCacheWriterException extends CacheWriterException {
   private final Map<?, Exception> failures;
-  private final Map<?, ?> successes;
+  private final Set<?> successes;
 
   /**
    * Constructs a new BulkCacheWriterException providing the key set that failed, including the exception loading these
@@ -19,11 +20,11 @@ public class BulkCacheWriterException extends CacheWriterException {
    * written successfully into the {@link org.ehcache.Cache}.
    *
    * @param failures the map of keys to failure encountered while loading the values
-   * @param successes the map of keys successfully written and their associated values
+   * @param successes the set of keys successfully written / removed and their associated values
    */
-  public BulkCacheWriterException(final Map<?, Exception> failures, final Map<?, ?> successes) {
+  public BulkCacheWriterException(final Map<?, Exception> failures, final Set<?> successes) {
     this.failures = Collections.unmodifiableMap(failures);
-    this.successes = Collections.unmodifiableMap(successes);
+    this.successes = Collections.unmodifiableSet(successes);
   }
 
   /**
@@ -40,7 +41,7 @@ public class BulkCacheWriterException extends CacheWriterException {
    * loaded value
    * @return a map of keys to value loaded and installed in the {@link org.ehcache.Cache}
    */
-  public Map<?, ?> getSuccesses() {
+  public Set<?> getSuccesses() {
     return successes;
   }
 }

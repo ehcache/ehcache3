@@ -289,6 +289,157 @@ public class EhcacheBulkMethodsITest {
 
   }
 
+  @Test
+  public void testRemoveAll_without_cache_writer() throws Exception {
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildCacheConfig(String.class, String.class);
+
+    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
+
+
+    Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
+
+    for (int i = 0; i < 100; i++) {
+      myCache.put("key" + i, "value" + i);
+    }
+
+    Set<String> fewKeysSet = new HashSet<String>() {
+      {
+        add("key12");
+        add("key43");
+      }
+    };
+    // the call to removeAll
+    myCache.removeAll(fewKeysSet);
+
+    for (int i = 0; i < 100; i++) {
+      if (i == 12 || i == 43) {
+        assertThat(myCache.get("key" + i), is(nullValue()));
+      } else {
+        assertThat(myCache.get("key" + i), is("value" + i));
+      }
+    }
+
+  }
+
+  @Test
+  public void testRemoveAll_with_cache_writer() throws Exception {
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
+        .addServiceConfig(new CacheWriterConfiguration())
+        .buildCacheConfig(String.class, String.class);
+
+    CacheWriterFactoryHashMap cacheWriterFactoryHashMap = new CacheWriterFactoryHashMap(false);
+    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheWriterFactoryHashMap);
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
+
+
+    Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
+
+    for (int i = 0; i < 100; i++) {
+      myCache.put("key" + i, "value" + i);
+    }
+
+    Set<String> fewKeysSet = new HashSet<String>() {
+      {
+        add("key12");
+        add("key43");
+      }
+    };
+
+    // the call to removeAll
+    myCache.removeAll(fewKeysSet);
+
+    Map<String, String> cacheWriterToHashMapMap = cacheWriterFactoryHashMap.getCacheWriterToHashMap().getMap();
+    for (int i = 0; i < 100; i++) {
+      if (i == 12 || i == 43) {
+        assertThat(myCache.get("key" + i), is(nullValue()));
+        assertThat(cacheWriterToHashMapMap.get("key" + i), is(nullValue()));
+
+      } else {
+        assertThat(myCache.get("key" + i), is("value" + i));
+        assertThat(cacheWriterToHashMapMap.get("key" + i), is("value" + i));
+      }
+    }
+
+  }
+
+
+  @Test
+  public void testRemoveAll_with_cache_writer_that_throws_exception() throws Exception {
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
+        .addServiceConfig(new CacheWriterConfiguration())
+        .buildCacheConfig(String.class, String.class);
+
+    CacheWriterFactoryHashMap cacheWriterFactoryHashMap = new CacheWriterFactoryHashMap(true);
+    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheWriterFactoryHashMap);
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
+
+
+    Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
+
+    for (int i = 0; i < 100; i++) {
+      myCache.put("key" + i, "value" + i);
+    }
+
+    Set<String> fewKeysSet = new HashSet<String>() {
+      {
+        add("key12");
+        add("key43");
+      }
+    };
+
+    // the call to removeAll
+    try {
+      myCache.removeAll(fewKeysSet);
+      fail();
+    } catch (BulkCacheWriterException bcwe) {
+      assertThat(bcwe.getFailures().size(), is(2));
+      assertThat(bcwe.getSuccesses().size(), is(0));
+    }
+
+  }
+
+
+  @Test
+  public void testRemoveAll_with_cache_writer_and_store_that_throws_cache_exception() throws Exception {
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
+        .addServiceConfig(new CacheWriterConfiguration())
+        .buildCacheConfig(String.class, String.class);
+
+    CacheWriterFactoryHashMap cacheWriterFactoryHashMap = new CacheWriterFactoryHashMap(false);
+    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheWriterFactoryHashMap).using(new CustomStoreProvider());
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
+
+
+    Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
+
+    for (int i = 0; i < 100; i++) {
+      myCache.put("key" + i, "value" + i);
+    }
+
+    Set<String> fewKeysSet = new HashSet<String>() {
+      {
+        add("key12");
+        add("key43");
+      }
+    };
+
+    // the call to removeAll
+    myCache.removeAll(fewKeysSet);
+    for (int i = 0; i < 100; i++) {
+      if (i == 12 || i == 43) {
+        assertThat(myCache.get("key" + i), is(nullValue()));
+
+      } else {
+        assertThat(myCache.get("key" + i), is("value" + i));
+      }
+    }
+
+  }
 
   private static class CacheWriterToHashMap<K, V> implements CacheWriter<K, V> {
 
@@ -329,16 +480,19 @@ public class EhcacheBulkMethodsITest {
 
     @Override
     public boolean delete(K key) throws Exception {
-      return map.remove(key) != null ? true : false;
+      throw new RuntimeException("removeAll should never call delete, but deleteAll");
     }
 
     @Override
     public boolean delete(K key, V value) throws Exception {
-      return map.remove(key, value);
+      throw new RuntimeException("removeAll should never call delete, but deleteAll");
     }
 
     @Override
     public Set<K> deleteAll(Iterable<? extends K> keys) throws Exception {
+      if (throwsException) {
+        throw new Exception();
+      }
       Set keySet = new HashSet();
       for (K key : keys) {
         keySet.add(key);
@@ -481,7 +635,7 @@ public class EhcacheBulkMethodsITest {
     }
 
     public Map<K, V> addToMap(K key, V value) {
-      map.put(key,value);
+      map.put(key, value);
       return map;
     }
   }
