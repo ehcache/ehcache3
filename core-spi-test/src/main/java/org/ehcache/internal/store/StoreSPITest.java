@@ -21,170 +21,170 @@ import org.junit.Test;
 /**
  * @author Ludovic Orban
  */
-public abstract class StoreSPITest {
+public abstract class StoreSPITest<K, V> {
 
-  protected abstract StoreFactory<String, String> getStoreFactory();
+  protected abstract StoreFactory<K, V> getStoreFactory();
 
   @Test
   public void testGet() throws Exception {
-    StoreGetTest<String, String> testSuite = new StoreGetTest<String, String>(getStoreFactory());
+    StoreGetTest<K, V> testSuite = new StoreGetTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testContainsKey() throws Exception {
-    StoreContainsKeyTest<String, String> testSuite = new StoreContainsKeyTest<String, String>(getStoreFactory());
+    StoreContainsKeyTest<K, V> testSuite = new StoreContainsKeyTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testPutKey() throws Exception {
-    StorePutTest<String, String> testSuite = new StorePutTest<String, String>(getStoreFactory());
+    StorePutTest<K, V> testSuite = new StorePutTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testPutIfAbsentKey() throws Exception {
-    StorePutIfAbsentTest<String, String> testSuite = new StorePutIfAbsentTest<String, String>(getStoreFactory());
+    StorePutIfAbsentTest<K, V> testSuite = new StorePutIfAbsentTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testRemoveKey() throws Exception {
-    StoreRemoveKeyTest<String, String> testSuite = new StoreRemoveKeyTest<String, String>(getStoreFactory());
+    StoreRemoveKeyTest<K, V> testSuite = new StoreRemoveKeyTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testRemoveKeyValue() throws Exception {
-    StoreRemoveKeyValueTest<String, String> testSuite = new StoreRemoveKeyValueTest<String, String>(getStoreFactory());
+    StoreRemoveKeyValueTest<K, V> testSuite = new StoreRemoveKeyValueTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testReplaceKeyValue() throws Exception {
-    StoreReplaceKeyValueTest<String, String> testSuite = new StoreReplaceKeyValueTest<String, String>(getStoreFactory());
+    StoreReplaceKeyValueTest<K, V> testSuite = new StoreReplaceKeyValueTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testReplaceKeyValueValue() throws Exception {
-    StoreReplaceKeyValueValueTest<String, String> testSuite =
-      new StoreReplaceKeyValueValueTest<String, String>(getStoreFactory());
+    StoreReplaceKeyValueValueTest<K, V> testSuite =
+      new StoreReplaceKeyValueValueTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testClear() throws Exception {
-    StoreClearTest<String, String> testSuite = new StoreClearTest<String, String>(getStoreFactory());
+    StoreClearTest<K, V> testSuite = new StoreClearTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testDestroy() throws Exception {
-    StoreDestroyTest<String, String> testSuite = new StoreDestroyTest<String, String>(getStoreFactory());
+    StoreDestroyTest<K, V> testSuite = new StoreDestroyTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testClose() throws Exception {
-    StoreCloseTest<String, String> testSuite = new StoreCloseTest<String, String>(getStoreFactory());
+    StoreCloseTest<K, V> testSuite = new StoreCloseTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testIterator() throws Exception {
-    StoreIteratorTest<String, String> testSuite = new StoreIteratorTest<String, String>(getStoreFactory());
+    StoreIteratorTest<K, V> testSuite = new StoreIteratorTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testValueHolderValue() throws Exception {
-    StoreValueHolderValueTest<String, String> testSuite = new StoreValueHolderValueTest<String, String>(getStoreFactory());
+    StoreValueHolderValueTest<K, V> testSuite = new StoreValueHolderValueTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testValueHolderCreationTime() throws Exception {
-    StoreValueHolderCreationTimeTest<String, String> testSuite =
-      new StoreValueHolderCreationTimeTest<String, String>(getStoreFactory());
+    StoreValueHolderCreationTimeTest<K, V> testSuite =
+      new StoreValueHolderCreationTimeTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testValueHolderLastAccessTime() throws Exception {
-    StoreValueHolderLastAccessTimeTest<String, String> testSuite =
-      new StoreValueHolderLastAccessTimeTest<String, String>(getStoreFactory());
+    StoreValueHolderLastAccessTimeTest<K, V> testSuite =
+      new StoreValueHolderLastAccessTimeTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testValueHolderHitRate() throws Exception {
-    StoreValueHolderHitRateTest<String, String> testSuite =
-      new StoreValueHolderHitRateTest<String, String>(getStoreFactory());
+    StoreValueHolderHitRateTest<K, V> testSuite =
+      new StoreValueHolderHitRateTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testProviderCreateStore() throws Exception {
-    StoreProviderCreateStoreTest<String, String> testSuite =
-      new StoreProviderCreateStoreTest<String, String>(getStoreFactory());
+    StoreProviderCreateStoreTest<K, V> testSuite =
+      new StoreProviderCreateStoreTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testProviderReleaseStore() throws Exception {
-    StoreProviderReleaseStoreTest<String, String> testSuite =
-      new StoreProviderReleaseStoreTest<String, String>(getStoreFactory());
+    StoreProviderReleaseStoreTest<K, V> testSuite =
+      new StoreProviderReleaseStoreTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testConfigurationGetKeyType() throws Exception {
-    StoreConfigurationGetKeyTypeTest<String, String> testSuite =
-      new StoreConfigurationGetKeyTypeTest<String, String>(getStoreFactory());
+    StoreConfigurationGetKeyTypeTest<K, V> testSuite =
+      new StoreConfigurationGetKeyTypeTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testConfigurationGetValueType() throws Exception {
-    StoreConfigurationGetValueTypeTest<String, String> testSuite =
-      new StoreConfigurationGetValueTypeTest<String, String>(getStoreFactory());
+    StoreConfigurationGetValueTypeTest<K, V> testSuite =
+      new StoreConfigurationGetValueTypeTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testConfigurationGetCapacityConstraint() throws Exception {
-    StoreConfigurationGetCapacityConstraintTest<String, String> testSuite =
-      new StoreConfigurationGetCapacityConstraintTest<String, String>(getStoreFactory());
+    StoreConfigurationGetCapacityConstraintTest<K, V> testSuite =
+      new StoreConfigurationGetCapacityConstraintTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testConfigurationGetEvictionVeto() throws Exception {
-    StoreConfigurationGetEvictionVetoTest<String, String> testSuite =
-      new StoreConfigurationGetEvictionVetoTest<String, String>(getStoreFactory());
+    StoreConfigurationGetEvictionVetoTest<K, V> testSuite =
+      new StoreConfigurationGetEvictionVetoTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testConfigurationGetEvictionPrioritizer() throws Exception {
-    StoreConfigurationGetEvictionPrioritizerTest<String, String> testSuite =
-      new StoreConfigurationGetEvictionPrioritizerTest<String, String>(getStoreFactory());
+    StoreConfigurationGetEvictionPrioritizerTest<K, V> testSuite =
+      new StoreConfigurationGetEvictionPrioritizerTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testIteratorHasNext() throws Exception {
-    StoreIteratorHasNextTest<String, String> testSuite =
-      new StoreIteratorHasNextTest<String, String>(getStoreFactory());
+    StoreIteratorHasNextTest<K, V> testSuite =
+      new StoreIteratorHasNextTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testIteratorNext() throws Exception {
-    StoreIteratorNextTest<String, String> testSuite =
-      new StoreIteratorNextTest<String, String>(getStoreFactory());
+    StoreIteratorNextTest<K, V> testSuite =
+      new StoreIteratorNextTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 

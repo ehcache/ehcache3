@@ -181,7 +181,7 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     K key = factory.getKeyType().newInstance();
 
     try {
-      if (this.factory.getKeyType() == String.class) {
+      if (this.factory.getValueType() == String.class) {
         kvStore.replace(key, 1.0f);
       } else {
         kvStore.replace(key, "value");
