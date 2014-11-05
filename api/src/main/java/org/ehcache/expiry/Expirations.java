@@ -45,25 +45,6 @@ public class Expirations {
     return new TimeToIdleExpiry<K, V>(timeToIdle);
   }
 
-//  public static <K, V> Expiry<K, V> timeToLiveAndTimeToIdleExpiration(Duration timeToLive, Duration timeToIdle) {
-//    if (timeToLive == null || timeToIdle == null) {
-//      throw new NullPointerException("null duration(s)");
-//    }
-//
-//    // special cases
-//    if (timeToIdle == Duration.FOREVER) {
-//      if (timeToLive == Duration.FOREVER) {
-//        return noExpiration();
-//      } else {
-//        return timeToLiveExpiration(timeToLive);
-//      }
-//    } else if (timeToLive == Duration.FOREVER) {
-//      return timeToIdleExpiration(timeToIdle);
-//    }
-//
-//    return new TimeToLiveAndTimeToIdleExpiry(timeToLive, timeToIdle);
-//  }
-
   private Expirations() {
     //
   }
