@@ -15,7 +15,7 @@
  */
 package org.ehcache.expiry;
 
-public class Expirations {
+public final class Expirations {
 
   /**
    * Get an {@link Expiry} instance for a non expiring (ie. "eternal") cache
