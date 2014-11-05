@@ -17,12 +17,15 @@ package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.exceptions.BulkCacheLoaderException;
 import org.ehcache.exceptions.BulkCacheWriterException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.store.OnHeapStore;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.loader.CacheLoader;
+import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.service.CacheWriterConfiguration;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriter;
@@ -158,6 +161,135 @@ public class EhcacheBulkMethodsITest {
     }
   }
 
+  @Test
+  public void testGetAll_without_cache_loader() throws Exception {
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildCacheConfig(String.class, String.class);
+
+    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
+
+
+    Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
+
+    for (int i = 0; i < 100; i++) {
+      myCache.put("key" + i, "value" + i);
+    }
+
+    Set<String> fewKeysSet = new HashSet<String>() {
+      {
+        add("key12");
+        add("key43");
+      }
+    };
+    // the call to getAll
+    Map<String, String> fewEntries = myCache.getAll(fewKeysSet);
+
+    assertThat(fewEntries.size(), is(2));
+    assertThat(fewEntries.get("key12"), is("value12"));
+    assertThat(fewEntries.get("key43"), is("value43"));
+
+  }
+
+  @Test
+  public void testGetAll_with_cache_loader() throws Exception {
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildCacheConfig(String.class, String.class);
+
+    CacheLoaderFactoryHashMap cacheLoaderFactoryHashMap = new CacheLoaderFactoryHashMap(false);
+    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderFactoryHashMap);
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
+
+    CacheLoaderFromHashMap cacheLoaderFromHashMap = cacheLoaderFactoryHashMap.getCacheLoaderFromHashMap();
+    for (int i = 0; i < 100; i++) {
+      cacheLoaderFromHashMap.addToMap("key" + i, "value" + i);
+    }
+
+    Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
+
+    Set<String> fewKeysSet = new HashSet<String>() {
+      {
+        add("key12");
+        add("key43");
+      }
+    };
+    // the call to getAll
+    Map<String, String> fewEntries = myCache.getAll(fewKeysSet);
+
+    assertThat(fewEntries.size(), is(2));
+    assertThat(fewEntries.get("key12"), is("value12"));
+    assertThat(fewEntries.get("key43"), is("value43"));
+
+  }
+
+  @Test
+  public void testGetAll_with_cache_loader_that_throws_exception() throws Exception {
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildCacheConfig(String.class, String.class);
+
+    CacheLoaderFactoryHashMap cacheLoaderFactoryHashMap = new CacheLoaderFactoryHashMap(true);
+    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderFactoryHashMap);
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
+
+    CacheLoaderFromHashMap cacheLoaderFromHashMap = cacheLoaderFactoryHashMap.getCacheLoaderFromHashMap();
+    for (int i = 0; i < 100; i++) {
+      cacheLoaderFromHashMap.addToMap("key" + i, "value" + i);
+    }
+
+    Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
+
+    Set<String> fewKeysSet = new HashSet<String>() {
+      {
+        add("key12");
+        add("key43");
+      }
+    };
+
+
+    // the call to getAll
+    try {
+      Map<String, String> fewEntries = myCache.getAll(fewKeysSet);
+      fail();
+    } catch (BulkCacheLoaderException bcwe) {
+      assertThat(bcwe.getFailures().size(), is(2));
+      assertThat(bcwe.getSuccesses().size(), is(0));
+    }
+
+  }
+
+  @Test
+  public void testGetAll_with_cache_loader_and_store_that_throws_cache_exception() throws Exception {
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildCacheConfig(String.class, String.class);
+
+    CacheLoaderFactoryHashMap cacheLoaderFactoryHashMap = new CacheLoaderFactoryHashMap(false);
+    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderFactoryHashMap).using(new CustomStoreProvider());
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
+
+    CacheLoaderFromHashMap cacheLoaderFromHashMap = cacheLoaderFactoryHashMap.getCacheLoaderFromHashMap();
+    for (int i = 0; i < 100; i++) {
+      cacheLoaderFromHashMap.addToMap("key" + i, "value" + i);
+    }
+
+    Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
+
+    Set<String> fewKeysSet = new HashSet<String>() {
+      {
+        add("key12");
+        add("key43");
+      }
+    };
+
+    // the call to getAll
+    Map<String, String> fewEntries = myCache.getAll(fewKeysSet);
+
+    assertThat(fewEntries.size(), is(2));
+    assertThat(fewEntries.get("key12"), is("value12"));
+    assertThat(fewEntries.get("key43"), is("value43"));
+
+  }
+
+
   private static class CacheWriterToHashMap<K, V> implements CacheWriter<K, V> {
 
     private boolean throwsException;
@@ -260,6 +392,11 @@ public class EhcacheBulkMethodsITest {
         public Map<K, ValueHolder<V>> bulkCompute(Iterable<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
           throw new CacheAccessException("Problem trying to bulk compute");
         }
+
+        @Override
+        public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Iterable<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
+          throw new CacheAccessException("Problem trying to bulk compute");
+        }
       };
     }
 
@@ -278,4 +415,75 @@ public class EhcacheBulkMethodsITest {
 
     }
   }
+
+  private class CacheLoaderFactoryHashMap implements CacheLoaderFactory {
+
+
+    private boolean throwsException;
+
+    public CacheLoaderFromHashMap getCacheLoaderFromHashMap() {
+      return cacheLoaderFromHashMap;
+    }
+
+    private CacheLoaderFromHashMap cacheLoaderFromHashMap;
+
+    public CacheLoaderFactoryHashMap(boolean throwsException) {
+      this.throwsException = throwsException;
+    }
+
+    @Override
+    public <K, V> CacheLoader<? super K, ? extends V> createCacheLoader(String alias, CacheConfiguration<K, V> cacheConfiguration) {
+      cacheLoaderFromHashMap = new CacheLoaderFromHashMap<K, V>(throwsException);
+      return cacheLoaderFromHashMap;
+    }
+
+    @Override
+    public void releaseCacheLoader(CacheLoader<?, ?> cacheLoader) {
+
+    }
+
+    @Override
+    public void start() {
+
+    }
+
+    @Override
+    public void stop() {
+
+    }
+  }
+
+
+  private static class CacheLoaderFromHashMap<K, V> implements CacheLoader<K, V> {
+
+    private boolean throwsException;
+    private final ConcurrentMap<K, V> map = new ConcurrentHashMap<K, V>();
+
+    public CacheLoaderFromHashMap(boolean throwsException) {
+      this.throwsException = throwsException;
+    }
+
+    @Override
+    public V load(K key) throws Exception {
+      throw new RuntimeException("getAll should never call load, but loadAll");
+    }
+
+    @Override
+    public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
+      if (throwsException) {
+        throw new Exception();
+      }
+      Map<K, V> mapToReturn = new HashMap<K, V>();
+      for (K key : keys) {
+        mapToReturn.put(key, map.get(key));
+      }
+      return mapToReturn;
+    }
+
+    public Map<K, V> addToMap(K key, V value) {
+      map.put(key,value);
+      return map;
+    }
+  }
+
 }
