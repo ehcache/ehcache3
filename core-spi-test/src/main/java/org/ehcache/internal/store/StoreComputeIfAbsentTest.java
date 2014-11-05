@@ -47,12 +47,19 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     K key = factory.getKeyType().newInstance();
+    
+    final Object badValue;
+    if (factory.getValueType() == String.class) {
+      badValue = this;
+    } else {
+      badValue = "badValue";
+    }
 
     try {
       kvStore.computeIfAbsent(key, new Function() {
         @Override
         public Object apply(Object key) {
-          return this; // returning wrong value type from function
+          return badValue; // returning wrong value type from function
         }
       });
       throw new AssertionError();
@@ -75,8 +82,15 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       return;
     }
 
+    final Object badKey;
+    if (factory.getKeyType() == String.class) {
+      badKey = this;
+    } else {
+      badKey = "badKey";
+    }
+    
     try {
-      kvStore.computeIfAbsent(this, new Function() { // wrong key type
+      kvStore.computeIfAbsent(badKey, new Function() { // wrong key type
             @Override
             public Object apply(Object key) {
               throw new AssertionError();
@@ -92,7 +106,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  public void testHappyPath() throws Exception {
+  public void testComputePutsValueInStoreWhenKeyIsAbsent() throws Exception {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
         .getValueType(), null, Predicates.<Cache.Entry<K, V>> all(), null, ClassLoader.getSystemClassLoader()));
 

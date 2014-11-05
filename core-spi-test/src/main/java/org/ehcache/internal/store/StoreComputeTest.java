@@ -45,13 +45,20 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
       System.err.println("Warning, store uses Object as value type, cannot verify in this configuration");
       return;
     }
+    
+    final Object value;
+    if (factory.getValueType() == String.class) {
+      value = this;
+    } else {
+      value = "value";
+    }
 
     final K key = factory.getKeyType().newInstance();
     try {
       kvStore.compute(key, new BiFunction() {
         @Override
         public Object apply(Object key, Object oldValue) {
-          return this; // returning wrong value type from function
+          return value; // returning wrong value type from function
         }
       });
       throw new AssertionError();
@@ -73,9 +80,16 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
       System.err.println("Warning, store uses Object as key type, cannot verify in this configuration");
       return;
     }
+    
+    final Object key;
+    if (factory.getKeyType() == String.class) {
+      key = this;
+    } else {
+      key = "key";
+    }
 
     try {
-      kvStore.compute(this, new BiFunction() { // wrong key type
+      kvStore.compute(key, new BiFunction() { // wrong key type
             @Override
             public Object apply(Object key, Object oldValue) {
               throw new AssertionError();
@@ -91,7 +105,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  public void testHappyPath() throws Exception {
+  public void testComputePutsValueInStore() throws Exception {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
         .getValueType(), null, Predicates.<Cache.Entry<K, V>> all(), null, ClassLoader.getSystemClassLoader()));
 

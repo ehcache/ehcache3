@@ -43,6 +43,13 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
       System.err.println("Warning, store uses Object as value type, cannot verify in this configuration");
       return;
     }
+    
+    final Object badValue;
+    if (factory.getValueType() == String.class) {
+      badValue = this;
+    } else {
+      badValue = "badValue";
+    }
 
     final K key = factory.getKeyType().newInstance();
     final V value = factory.getValueType().newInstance();
@@ -52,7 +59,7 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
       kvStore.computeIfPresent(key, new BiFunction() {
         @Override
         public Object apply(Object key, Object oldValue) {
-          return this; // returning wrong value type from function
+          return badValue; // returning wrong value type from function
         }
       });
       throw new AssertionError();
@@ -79,8 +86,15 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     final V value = factory.getValueType().newInstance();
     kvStore.put(key, value);
 
+    final Object badKey;
+    if (factory.getKeyType() == String.class) {
+      badKey = this;
+    } else {
+      badKey = "badKey";
+    }
+    
     try {
-      kvStore.computeIfPresent(this, new BiFunction() { // wrong key type
+      kvStore.computeIfPresent(badKey, new BiFunction() { // wrong key type
             @Override
             public Object apply(Object key, Object value) {
               throw new AssertionError();
@@ -121,7 +135,7 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  public void testHappyPath() throws Exception {
+  public void testComputePutsValueInStoreWhenKeyIsPresent() throws Exception {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
         .getValueType(), null, Predicates.<Cache.Entry<K, V>> all(), null, ClassLoader.getSystemClassLoader()));
     final K key = factory.getKeyType().newInstance();
