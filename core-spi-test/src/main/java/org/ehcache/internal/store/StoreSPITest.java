@@ -188,4 +188,17 @@ public abstract class StoreSPITest<K, V> {
     testSuite.runTestSuite().reportAndThrow();
   }
 
+  @Test
+  public void testBulkCompute() throws Exception {
+    StoreBulkComputeTest<String, String> testSuite =
+      new StoreBulkComputeTest<String, String>(getStoreFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
+  public void testBulkComputeIfAbsent() throws Exception {
+    StoreBulkComputeIfAbsentTest<String, String> testSuite =
+      new StoreBulkComputeIfAbsentTest<String, String>(getStoreFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
 }
