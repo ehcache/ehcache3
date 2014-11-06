@@ -8,6 +8,7 @@ Next public meeting on https://plus.google.com/u/0/events/caba2lh0jeheppd54tnsqv
 
 === Agenda
 
+ * Überjar!
  * XML Configuration,
  ** How should we parse it?
  ** Alex's crazy extension idea for 107 idea
