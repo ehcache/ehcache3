@@ -208,15 +208,15 @@ public abstract class StoreSPITest<K, V> {
 
   @Test
   public void testBulkCompute() throws Exception {
-    StoreBulkComputeTest<String, String> testSuite =
-      new StoreBulkComputeTest<String, String>(getStoreFactory());
+    StoreBulkComputeTest<K, V> testSuite =
+      new StoreBulkComputeTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testBulkComputeIfAbsent() throws Exception {
-    StoreBulkComputeIfAbsentTest<String, String> testSuite =
-      new StoreBulkComputeIfAbsentTest<String, String>(getStoreFactory());
+    StoreBulkComputeIfAbsentTest<K, V> testSuite =
+      new StoreBulkComputeIfAbsentTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 }
