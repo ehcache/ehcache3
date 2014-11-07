@@ -57,24 +57,22 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     final K k3 = factory.createKey(3L);
     final V v3 = factory.createValue(3L);
     final V v10 = factory.createValue(10L);
-    final V v20 = factory.createValue(20L);
     final V v30 = factory.createValue(30L);
-    Map<K, V> map = new HashMap<K, V>() {{
-      put(k3, v3);
-      put(k2, v2);
-      put(k1, v1);
-    }};
+    Map<K, V> map = new HashMap<K, V>();
+    map.put(k3, v3);
+    map.put(k2, v2);
+    map.put(k1, v1);
     kvStore.put(k2, v2);
     kvStore.put(k1, v1);
     try {
       Map<K, Store.ValueHolder<V>> result = kvStore.bulkComputeIfAbsent(map.keySet(), new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> ks) {
-          return new HashMap<K, V>() {{
-            put(k3, v30);
-            put(k2, v2);
-            put(k1, v10);
-          }}.entrySet();
+          Map<K, V> map = new HashMap<K, V>();
+          map.put(k3, v30);
+          map.put(k2, v2);
+          map.put(k1, v10);
+          return map.entrySet();
         }
       });
       assertThat(result.get(k3).value(), is(v30));
@@ -100,11 +98,10 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     final K k3 = factory.createKey(3L);
     final V v3 = factory.createValue(3L);
 
-    Map<K, V> map = new HashMap<K, V>() {{
-      put(k3, v3);
-      put(k2, v2);
-      put(k1, v1);
-    }};
+    Map<K, V> map = new HashMap<K, V>();
+    map.put(k3, v3);
+    map.put(k2, v2);
+    map.put(k1, v1);
     kvStore.put(k2, v2);
     kvStore.put(k1, v1);
     try {
@@ -137,20 +134,18 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     final V v3 = factory.createValue(3L);
     final V v10 = factory.createValue(10L);
     final V v20 = factory.createValue(20L);
-    final V v30 = factory.createValue(30L);
-    Map<K, V> map = new HashMap<K, V>() {{
-      put(k3, v3);
-      put(k2, v2);
-      put(k1, v1);
-    }};
+    Map<K, V> map = new HashMap<K, V>();
+    map.put(k3, v3);
+    map.put(k2, v2);
+    map.put(k1, v1);
     try {
       Map<K, Store.ValueHolder<V>> result = kvStore.bulkComputeIfAbsent(map.keySet(), new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> ks) {
-          return new HashMap<K, V>() {{
-            put(k2, v20);
-            put(k1, v10);
-          }}.entrySet();
+          Map<K, V> map = new HashMap<K, V>();
+          map.put(k2, v20);
+          map.put(k1, v10);
+          return map.entrySet();
         }
       });
       assertThat(result.get(k2).value(), is(v20));
@@ -174,19 +169,18 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     final V v2 = factory.createValue(2L);
     final K k3 = factory.createKey(3L);
     final V v3 = factory.createValue(3L);
-    Map<K, V> map = new HashMap<K, V>() {{
-      put(k3, v3);
-      put(k2, v2);
-      put(k1, v1);
-    }};
+    Map<K, V> map = new HashMap<K, V>();
+    map.put(k3, v3);
+    map.put(k2, v2);
+    map.put(k1, v1);
     try {
       Map<K, Store.ValueHolder<V>> result = kvStore.bulkComputeIfAbsent(map.keySet(), new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> ks) {
-          return new HashMap<K, V>() {{
-            put(k3, null);
-            put(k2, null);
-          }}.entrySet();
+          Map<K, V> map = new HashMap<K, V>();
+          map.put(k3, null);
+          map.put(k2, null);
+          return map.entrySet();
         }
       });
       assertThat(result.get(k3), is(nullValue()));
