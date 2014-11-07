@@ -429,14 +429,13 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   private void cacheWriterDeleteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Set<K> successes, Map<K, Exception> failures) {
     if (cacheWriter != null) {
-      KeysIterable entriesKeys = new KeysIterable(entries);
       Set<K> toDelete = new HashSet<K>();
       for (Map.Entry<? extends K, ? extends V> entry: entries) {
         toDelete.add(entry.getKey());
       }
       try {
         // XXX should the return value here be wrapped in NullValuesIterable and returned? This is a potential subset of "keys"
-        cacheWriter.deleteAll(entriesKeys);
+        cacheWriter.deleteAll(toDelete);
         successes.addAll(toDelete);
       } catch (Exception e) {
         for (Map.Entry<? extends K, ? extends V> entry: entries) {

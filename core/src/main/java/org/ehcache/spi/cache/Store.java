@@ -16,18 +16,18 @@
 
 package org.ehcache.spi.cache;
 
-import java.util.Comparator;
 import org.ehcache.Cache;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
+import org.ehcache.function.Predicate;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
+import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import org.ehcache.function.Predicate;
 
 /**
  * The Service Provider Interface is what a {@link org.ehcache.Cache Cache} instance requires to be able to store
@@ -277,12 +277,13 @@ public interface Store<K, V> {
   /**
    * Compute a value for every key passed in the {@link Iterable} <code>keys</code> argument using the <code>remappingFunction</code>
    * function to compute the value.
-   *
+   * <p>
    * The function gets a {@link Iterable} of {@link Map.Entry} key / value pairs, with the entry's value being the currently stored value,
    * or null if nothing is stored under the key. It is expected that the function should return a {@link Iterable} of {@link Map.Entry}
-   * key / value pairs containing an entry per each entry that was passed to it. Every missing entry in the returned {@link Iterable} will be
+   * key / value pairs containing an entry matching each entry (same key) that was passed to it. This returned {@link Iterable} should also iterate in the same order than the input {@link Iterable}.
+   * Every missing entry in the returned {@link Iterable} will be
    * ignored and its current value (or lack thereof) will be left in place. If the entry's value is null, the mapping will be removed from the store.
-   *
+   * </p>
    * The function may be called multiple times per <code>bulkCompute</code> call, depending on how the store wants or do not want to batch computations.
    *
    * Note: this method does not guarantee atomicity of the computations between each other. Each computation is atomic but the store may be concurrently
@@ -303,7 +304,8 @@ public interface Store<K, V> {
    *
    * The function gets a {@link Iterable} of {@link Map.Entry} key / value pairs, with the entry's value being the currently stored value
    * for each key that is not mapped in the store. It is expected that the function should return a {@link Iterable} of {@link Map.Entry}
-   * key / value pairs containing an entry per each entry that was passed to it. Every missing entry in the returned {@link Iterable} will be
+   * key / value pairs containing an entry matching each entry (same key) that was passed to it. This returned {@link Iterable} should also iterate in the same order than the input {@link Iterable}.
+   * Every missing entry in the returned {@link Iterable} will be
    * ignored and the store will be left untouched for that key, much like if the entry's return value is null.
    *
    * The function may be called multiple times per <code>bulkComputeIfAbsent</code> call, depending on how the store wants or do not want to batch computations.

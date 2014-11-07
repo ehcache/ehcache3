@@ -21,6 +21,7 @@ import org.ehcache.exceptions.BulkCacheLoaderException;
 import org.ehcache.exceptions.BulkCacheWriterException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
+import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.store.OnHeapStore;
 import org.ehcache.spi.cache.Store;
@@ -251,7 +252,8 @@ public class EhcacheBulkMethodsITest {
       Map<String, String> fewEntries = myCache.getAll(fewKeysSet);
       fail();
     } catch (BulkCacheLoaderException bcwe) {
-      assertThat(bcwe.getFailures().size(), is(2));
+      // since onHeapStore.bulkComputeIfAbsent sends batches of 1 element,
+      assertThat(bcwe.getFailures().size(), is(1));
       assertThat(bcwe.getSuccesses().size(), is(0));
     }
 
@@ -541,7 +543,7 @@ public class EhcacheBulkMethodsITest {
   private static class CustomStoreProvider implements Store.Provider {
     @Override
     public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      return new OnHeapStore<K, V>(storeConfig) {
+      return new OnHeapStore<K, V>(storeConfig, SystemTimeSource.INSTANCE) {
         @Override
         public Map<K, ValueHolder<V>> bulkCompute(Iterable<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
           throw new CacheAccessException("Problem trying to bulk compute");
