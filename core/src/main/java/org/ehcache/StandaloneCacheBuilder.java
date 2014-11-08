@@ -114,7 +114,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     this.cacheWriter = cacheWriter;
     return this;
   }
-          
+
   public static <K, V, T extends StandaloneCache<K, V>> StandaloneCacheBuilder<K, V, T> newCacheBuilder(Class<K> keyType, Class<V> valueType) {
     return new StandaloneCacheBuilder<K, V, T>(keyType, valueType);
   }

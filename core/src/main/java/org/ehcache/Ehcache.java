@@ -19,9 +19,11 @@ package org.ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.event.CacheEventListener;
+import org.ehcache.event.CacheEventListenerFactory;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
+import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.StateChangeListener;
 import org.ehcache.exceptions.*;
 import org.ehcache.expiry.Expiry;
@@ -39,9 +41,18 @@ import org.ehcache.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.statistics.CacheStatistics;
 import org.terracotta.statistics.observer.OperationObserver;
 
-import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -63,6 +74,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   private final CacheWriter<? super K, ? super V> cacheWriter;
   private final ResilienceStrategy<K, V> resilienceStrategy;
   private final RuntimeConfiguration<K, V> runtimeConfiguration;
+  private final CacheEventNotificationService<K, V> eventNotificationService;
 
   private final OperationObserver<GetOutcome> getObserver = operation(GetOutcome.class).named("get").of(this).tag("cache").build();
   private final OperationObserver<PutOutcome> putObserver = operation(PutOutcome.class).named("put").of(this).tag("cache").build();
@@ -76,7 +88,16 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     this(config, store, cacheLoader, null);
   }
 
-  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader, CacheWriter<? super K, ? super V> cacheWriter) {
+  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, 
+      final CacheLoader<? super K, ? extends V> cacheLoader, 
+      CacheWriter<? super K, ? super V> cacheWriter) {
+    this(config, store, cacheLoader, cacheWriter, new CacheEventNotificationService<K, V>());
+  }
+
+  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, 
+      final CacheLoader<? super K, ? extends V> cacheLoader, 
+      CacheWriter<? super K, ? super V> cacheWriter,
+      CacheEventNotificationService<K, V> eventNotifier) {
     this.store = store;
     this.cacheLoader = cacheLoader;
     this.cacheWriter = cacheWriter;
@@ -92,7 +113,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     };
     
-    this.runtimeConfiguration = new RuntimeConfiguration<K, V>(config);
+    this.eventNotificationService = eventNotifier;
+    this.runtimeConfiguration = new RuntimeConfiguration<K, V>(config, eventNotificationService);
   }
 
   @Override
@@ -800,28 +822,20 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     private final Comparable<Long> capacityConstraint;
     private final Predicate<Cache.Entry<K, V>> evictionVeto;
     private final Comparator<Cache.Entry<K, V>> evictionPrioritizer;
-    private final Set<CacheEventListener<?, ?>> eventListeners;
+    private final CacheEventNotificationService<K, V> eventNotifier;
     private final ClassLoader classLoader;
     private final Expiry<K, V> expiry;
 
-    RuntimeConfiguration(CacheConfiguration<K, V> config) {
+    RuntimeConfiguration(CacheConfiguration<K, V> config, CacheEventNotificationService<K, V> cacheEvtNotifier) {
       this.serviceConfigurations = copy(config.getServiceConfigurations());
       this.keyType = config.getKeyType();
       this.valueType = config.getValueType();
       this.capacityConstraint = config.getCapacityConstraint();
       this.evictionVeto = config.getEvictionVeto();
       this.evictionPrioritizer = config.getEvictionPrioritizer();
-      this.eventListeners = copy(config.getEventListeners());
+      this.eventNotifier = cacheEvtNotifier;
       this.classLoader = config.getClassLoader();
       this.expiry = config.getExpiry();
-    }
-    
-    private static <T> Set<T> copy(Set<T> set) {
-      if (set == null) {
-        return null;
-      }
-    
-      return Collections.unmodifiableSet(new HashSet<T>(set));
     }
     
     private static <T> Collection<T> copy(Collection<T> collection) {
@@ -863,34 +877,33 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
 
     @Override
-    public Set<CacheEventListener<?, ?>> getEventListeners() {
-      return this.eventListeners;
-    }
-
-    @Override
     public ClassLoader getClassLoader() {
       return this.classLoader;
     }
     
-    @Override
     public Expiry<K, V> getExpiry() {
       return expiry;
     }
     
-    @Override
-    public void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener) {
-      throw new UnsupportedOperationException("implement me!"); // XXX:
+    public void deregisterCacheEventListener(CacheEventListener<K, V> listener) {
+      eventNotifier.deregisterCacheEventListener(listener);
     }
     
     @Override
-    public void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering,
+    public void registerCacheEventListener(CacheEventListener<K, V> listener, EventOrdering ordering,
         EventFiring firing, Set<EventType> forEventTypes) {
-      throw new UnsupportedOperationException("implement me!"); // XXX:
+      eventNotifier.registerCacheEventListener(listener, ordering, firing, EnumSet.copyOf(forEventTypes));
     }
+    
     
     @Override
     public void setCapacityConstraint(Comparable<Long> constraint) {
       throw new UnsupportedOperationException("implement me!"); // XXX:
+    }
+
+    @Override
+    public void releaseAllEventListeners(CacheEventListenerFactory factory) {
+      eventNotifier.releaseAllListeners(factory);
     }
   }
   

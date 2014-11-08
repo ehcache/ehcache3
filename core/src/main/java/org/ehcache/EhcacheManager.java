@@ -19,6 +19,10 @@ package org.ehcache;
 import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.event.CacheEventListener;
+import org.ehcache.event.CacheEventListenerConfiguration;
+import org.ehcache.event.CacheEventListenerFactory;
+import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.CacheManagerListener;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.ServiceLocator;
@@ -31,6 +35,7 @@ import org.ehcache.spi.writer.CacheWriter;
 import org.ehcache.spi.writer.CacheWriterFactory;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -106,6 +111,8 @@ public class EhcacheManager implements PersistentCacheManager {
     if (cacheWriter != null) {
       serviceLocator.findService(CacheWriterFactory.class).releaseCacheWriter(cacheWriter);
     }
+    
+    ehcache.getRuntimeConfiguration().releaseAllEventListeners(serviceLocator.findService(CacheEventListenerFactory.class));
   }
 
   @Override
@@ -165,6 +172,21 @@ public class EhcacheManager implements PersistentCacheManager {
       writer = cacheWriterFactory.createCacheWriter(alias, config);
     }
     
+    // XXX this may need to become an actual "service" with its own service configuration etc
+    CacheEventNotificationService<K, V> evtService = new CacheEventNotificationService<K, V>();
+    
+    final CacheEventListenerFactory evntLsnrFactory = serviceLocator.findService(CacheEventListenerFactory.class);
+    if (evntLsnrFactory != null) {
+      Collection<CacheEventListenerConfiguration> evtLsnrConfigs = 
+      ServiceLocator.findAmongst(CacheEventListenerConfiguration.class, config.getServiceConfigurations().toArray());
+      for (CacheEventListenerConfiguration lsnrConfig: evtLsnrConfigs) {
+        // XXX this assumes a new instance returned for each call - yet args are always the same. Is this okay?
+        CacheEventListener<K, V> lsnr = evntLsnrFactory.createEventListener(alias, config);
+        evtService.registerCacheEventListener(lsnr, lsnrConfig.orderingMode(), lsnrConfig.firingMode(), 
+            lsnrConfig.fireOn());  
+      }
+    }
+    
     CacheConfiguration<K, V> adjustedConfig = new BaseCacheConfiguration<K, V>(
         keyType, valueType, config.getCapacityConstraint(),
         config.getEvictionVeto(), config.getEvictionPrioritizer(),
@@ -172,7 +194,7 @@ public class EhcacheManager implements PersistentCacheManager {
         config.getServiceConfigurations().toArray(new ServiceConfiguration<?>[config.getServiceConfigurations().size()])
     );
 
-    return new Ehcache<K, V>(adjustedConfig, store, loader, writer);
+    return new Ehcache<K, V>(adjustedConfig, store, loader, writer, evtService);
   }
 
   public void registerListener(CacheManagerListener listener) {

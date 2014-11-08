@@ -20,10 +20,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Set;
 
 import org.ehcache.Cache;
-import org.ehcache.event.CacheEventListener;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.Predicate;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -85,12 +83,6 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
     return evictionPrioritizer;
   }
 
-  @Override
-  public Set<CacheEventListener<?, ?>> getEventListeners() {
-    // XXX:
-    return Collections.emptySet();
-  }
-  
   @Override
   public ClassLoader getClassLoader() {
     return classLoader;
