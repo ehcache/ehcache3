@@ -17,6 +17,7 @@
 package org.ehcache.config;
 
 import org.ehcache.event.CacheEventListener;
+import org.ehcache.event.CacheEventListenerFactory;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
@@ -59,5 +60,6 @@ public interface CacheRuntimeConfiguration<K, V> extends CacheConfiguration<K, V
    * @throws java.lang.IllegalStateException if the listener isn't already registered
    */
   void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener);
-
+  
+  void releaseAllEventListeners(CacheEventListenerFactory factory);
 }
