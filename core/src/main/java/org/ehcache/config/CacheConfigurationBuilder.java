@@ -37,6 +37,7 @@ public class CacheConfigurationBuilder {
   private Expiry expiry = Expirations.noExpiration();
   private ClassLoader classLoader = null;
   private SerializationProvider serializationProvider = null;
+  private Comparable<Long> capacityConstraint;
 
   public static CacheConfigurationBuilder newCacheConfigurationBuilder() {
     return new CacheConfigurationBuilder();
@@ -44,6 +45,11 @@ public class CacheConfigurationBuilder {
 
   public CacheConfigurationBuilder addServiceConfig(ServiceConfiguration<?> configuration) {
     serviceConfigurations.add(configuration);
+    return this;
+  }
+
+  public CacheConfigurationBuilder maxEntriesInCache(long max) {
+    capacityConstraint = max;
     return this;
   }
 
@@ -58,16 +64,15 @@ public class CacheConfigurationBuilder {
   }
 
   public <K, V> CacheConfiguration<K, V> buildConfig(Class<K> keyType, Class<V> valueType) {
-    return new BaseCacheConfiguration<K, V>(keyType, valueType, null, null, null,
-        classLoader, expiry, serializationProvider,
-        serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
+    return new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, null, null, classLoader, expiry,
+        serializationProvider, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
-  public <K, V> CacheConfiguration<K, V> buildConfig(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
-          Predicate<Cache.Entry<K, V>> evictionVeto, Comparator<Cache.Entry<K, V>> evictionPrioritizer) {
-    return new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto, 
-        evictionPrioritizer, classLoader, expiry, serializationProvider,
-        serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
+  public <K, V> CacheConfiguration<K, V> buildConfig(Class<K> keyType, Class<V> valueType,
+                                                     Predicate<Cache.Entry<K, V>> evictionVeto,
+                                                     Comparator<Cache.Entry<K, V>> evictionPrioritizer) {
+    return new BaseCacheConfiguration<K, V>(keyType, valueType, this.capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, expiry,
+        serializationProvider, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
   
   public CacheConfigurationBuilder withClassLoader(ClassLoader classLoader) {
