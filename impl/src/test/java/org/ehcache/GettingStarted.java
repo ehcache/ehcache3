@@ -38,13 +38,13 @@ public class GettingStarted {
 
     final CacheManager cacheManager
         = newCacheManagerBuilder() // <1>
-        .withCache("preConfigured", newCacheConfigurationBuilder().buildCacheConfig(Long.class, String.class)) // <2>
+        .withCache("preConfigured", newCacheConfigurationBuilder().buildConfig(Long.class, String.class)) // <2>
         .build(); // <3>
 
     final Cache<Long, String> preConfigured = cacheManager.getCache("preConfigured", Long.class, String.class); // <4>
 
     final Cache<Long, String> myCache = cacheManager.createCache("myCache", // <5>
-        newCacheConfigurationBuilder().buildCacheConfig(Long.class, String.class));
+        newCacheConfigurationBuilder().buildConfig(Long.class, String.class));
 
     myCache.put(1L, "da one!"); // <6>
     final String value = myCache.get(1L); // <7>

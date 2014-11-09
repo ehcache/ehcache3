@@ -87,9 +87,4 @@ public class CacheConfigurationBuilder {
     this.serializationProvider = serializationProvider;
     return this;
   }
-
-  public <K, V> CacheConfiguration<K, V> buildCacheConfig(Class<K> keyType, Class<V> valueType) {
-    return buildConfig(keyType, valueType);
-  }
-
 }
