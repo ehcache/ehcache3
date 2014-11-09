@@ -93,7 +93,10 @@ public class XmlConfiguration {
       for (ServiceConfiguration<?> serviceConfig : cacheElement.serviceConfigs()) {
         builder.addServiceConfig(serviceConfig);
       }
-      configBuilder.addCache(alias, builder.buildConfig(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer));
+      if (capacityConstraint != null) {
+        builder.maxEntriesInCache(capacityConstraint);
+      }
+      configBuilder.addCache(alias, builder.buildConfig(keyType, valueType, evictionVeto, evictionPrioritizer));
     }
 
     return configBuilder.build();
