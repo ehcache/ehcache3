@@ -41,8 +41,7 @@ public class CachingTierConfigurationBuilderTest {
   public void testNothing() throws CacheAccessException {
 
     final ServiceLocator serviceLocator = new ServiceLocator();
-    final CacheConfiguration<String, String> config = newCacheConfigurationBuilder()
-    .buildCacheConfig(String.class, String.class);
+    final CacheConfiguration<String, String> config = newCacheConfigurationBuilder().buildConfig(String.class, String.class);
     final Store.Provider service = serviceLocator.findService(Store.Provider.class);
     Collection<ServiceConfiguration<?>> serviceConfigs = config.getServiceConfigurations();
     ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);

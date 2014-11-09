@@ -74,7 +74,7 @@ public class EhcacheManagerTest {
   @Test
   public void testNoClassLoaderSpecified() {
     ConfigurationBuilder builder = newConfigurationBuilder();
-    builder.addCache("foo", newCacheConfigurationBuilder().buildCacheConfig(Object.class, Object.class));
+    builder.addCache("foo", newCacheConfigurationBuilder().buildConfig(Object.class, Object.class));
     final Store.Provider storeProvider = mock(Store.Provider.class);
     final Store mock = mock(Store.class);
     when(storeProvider
@@ -87,7 +87,7 @@ public class EhcacheManagerTest {
     // explicit null
     builder = newConfigurationBuilder();
     builder.withClassLoader(null);
-    builder.addCache("foo", newCacheConfigurationBuilder().buildCacheConfig(Object.class, Object.class));
+    builder.addCache("foo", newCacheConfigurationBuilder().buildConfig(Object.class, Object.class));
     cacheManager = new EhcacheManager(builder.build(), new ServiceLocator(storeProvider));
     cacheManager.init();
     assertSame(ClassLoading.getDefaultClassLoader(), cacheManager.getClassLoader());

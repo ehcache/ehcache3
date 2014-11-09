@@ -80,8 +80,4 @@ public class CacheConfigurationBuilder {
     this.expiry = expiry;
     return this;
   }
-  
-  public <K, V> CacheConfiguration<K, V> buildCacheConfig(Class<K> keyType, Class<V> valueType) {
-    return buildConfig(keyType, valueType);
-  }
 }
