@@ -14,7 +14,31 @@
  * limitations under the License.
  */
 
-dependencies {
-  compile project(':core'), project(':impl')
-  testCompile 'org.slf4j:slf4j-simple:1.7.7'
+package org.ehcache.statistics;
+
+/**
+ * @author Hung Huynh
+ *
+ */
+import org.hamcrest.Description;
+import org.hamcrest.Factory;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
+
+public class IsNotANumber extends TypeSafeMatcher<Float> {
+
+  @Override
+  public boolean matchesSafely(Float number) {
+    return number.isNaN();
+  }
+
+  public void describeTo(Description description) {
+    description.appendText("NaN");
+  }
+
+  @Factory
+  public static <T> Matcher<Float> notANumber() {
+    return new IsNotANumber();
+  }
+
 }

@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Basic interface to a cache, defines all operational methods to crete, access,
+ * Basic interface to a cache, defines all operational methods to create, access,
  * update or delete mappings of key to value
  *
  * @param <K> the type of the keys used to access data within this cache

@@ -27,12 +27,14 @@ public interface CacheOperationOutcomes {
    * Outcomes for cache Get operations.
    */
   enum GetOutcome {
+    /** hit, no loader. */
+    HIT_NO_LOADER,
+    /** miss, no loader */
+    MISS_NO_LOADER,
     /** hit. */
-    HIT,
-    /** miss expired. */
-    MISS_EXPIRED,
-    /** miss not found. */
-    MISS_NOT_FOUND,
+    HIT_WITH_LOADER,
+    /** miss */
+    MISS_WITH_LOADER,    
     /** failure */
     FAILURE
   };
@@ -43,10 +45,6 @@ public interface CacheOperationOutcomes {
   enum PutOutcome {
     /** added. */
     ADDED,
-    /** updated. */
-    UPDATED,
-    /** ignored. */
-    IGNORED,
     /** failure */
     FAILURE
   };
@@ -70,4 +68,14 @@ public interface CacheOperationOutcomes {
     /** failure */
     FAILURE
   };
+  
+  /**
+   * The cacheloader outcomes.
+   */
+  enum CacheLoaderOutcome {
+    /** success. */
+    SUCCESS,
+    /** failure */
+    FAILURE
+  };  
 }

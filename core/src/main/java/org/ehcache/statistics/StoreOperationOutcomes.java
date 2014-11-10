@@ -14,7 +14,39 @@
  * limitations under the License.
  */
 
-dependencies {
-  compile project(':core'), project(':impl')
-  testCompile 'org.slf4j:slf4j-simple:1.7.7'
+package org.ehcache.statistics;
+
+/**
+ * @author Hung Huynh
+ *
+ */
+public interface StoreOperationOutcomes {
+  /**
+   * The Enum GetOutcome.
+   */
+  public enum GetOutcome {
+
+    /** hit. */
+    HIT,
+    /** miss. */
+    MISS;
+  }
+
+  /**
+   * The Enum PutOutcome.
+   */
+  public enum PutOutcome {
+    /** added. */
+    ADDED,
+    /** updated. */
+    UPDATED
+  };
+
+  /**
+   * The Enum RemoveOutcome.
+   */
+  public enum RemoveOutcome {
+    /** success. */
+    SUCCESS
+  };
 }

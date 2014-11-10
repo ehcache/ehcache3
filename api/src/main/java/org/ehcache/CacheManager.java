@@ -16,6 +16,8 @@
 
 package org.ehcache;
 
+import java.net.URI;
+
 import org.ehcache.config.CacheConfiguration;
 
 /**
@@ -65,4 +67,10 @@ public interface CacheManager {
    * @return the current {@link org.ehcache.Status}
    */
   Status getStatus();
+  
+  /**
+   * Get the URI of the {@link CacheManager}
+   * @return the uri
+   */
+  URI getURI();
 }

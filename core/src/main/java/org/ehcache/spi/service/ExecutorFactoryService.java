@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 
-dependencies {
-  compile project(':core'), project(':impl')
-  testCompile 'org.slf4j:slf4j-simple:1.7.7'
+package org.ehcache.spi.service;
+
+import java.util.concurrent.ScheduledExecutorService;
+
+/**
+ * @author Hung Huynh
+ *
+ */
+public interface ExecutorFactoryService extends Service {
+  ScheduledExecutorService getStatisticsExecutor();  
 }
