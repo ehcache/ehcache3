@@ -28,6 +28,7 @@ import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.CompleteConfiguration;
 import javax.cache.configuration.Factory;
 import javax.cache.event.CacheEntryEventFilter;
+import javax.cache.event.CacheEntryListener;
 import javax.cache.expiry.ExpiryPolicy;
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
@@ -117,14 +118,18 @@ class CacheResources<K, V> {
 
   @SuppressWarnings("unchecked")
   private ListenerResources<K, V> createListenerResources(CacheEntryListenerConfiguration<K, V> listenerConfig) {
-    CacheEntryEventFilter<? super K, ? super V> listener = listenerConfig.getCacheEntryEventFilterFactory().create();
+    CacheEntryListener<? super K, ? super V> listener = listenerConfig.getCacheEntryListenerFactory().create();
 
     // create the filter, closing the listener above upon exception
     CacheEntryEventFilter<? super K, ? super V> filter;
     try {
-      filter = listenerConfig.getCacheEntryEventFilterFactory().create();
-      filter = (CacheEntryEventFilter<? super K, ? super V>) (filter != null ? filter
-          : NullCacheEntryEventFilter.INSTANCE);
+      Factory<CacheEntryEventFilter<? super K, ? super V>> filterFactory = listenerConfig
+          .getCacheEntryEventFilterFactory();
+      if (filterFactory != null) {
+        filter = listenerConfig.getCacheEntryEventFilterFactory().create();
+      } else {
+        filter = (CacheEntryEventFilter<? super K, ? super V>) NullCacheEntryEventFilter.INSTANCE;
+      }
     } catch (Throwable t) {
       closeQuietly(listener);
       if (t instanceof javax.cache.CacheException) {
@@ -184,11 +189,11 @@ class CacheResources<K, V> {
 
   static class ListenerResources<K, V> implements Closeable {
 
-    private final CacheEntryEventFilter<? super K, ? super V> listener;
+    private final CacheEntryListener<? super K, ? super V> listener;
     private final CacheEntryEventFilter<? super K, ? super V> filter;
     private List<EventListenerAdaptor<K, V>> ehListeners = null;
 
-    ListenerResources(CacheEntryEventFilter<? super K, ? super V> listener,
+    ListenerResources(CacheEntryListener<? super K, ? super V> listener,
         CacheEntryEventFilter<? super K, ? super V> filter) {
       this.listener = listener;
       this.filter = filter;
@@ -198,7 +203,7 @@ class CacheResources<K, V> {
       return filter;
     }
 
-    CacheEntryEventFilter<? super K, ? super V> getListener() {
+    CacheEntryListener<? super K, ? super V> getListener() {
       return listener;
     }
 

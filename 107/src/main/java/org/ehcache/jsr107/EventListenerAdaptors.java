@@ -25,6 +25,7 @@ import javax.cache.event.CacheEntryCreatedListener;
 import javax.cache.event.CacheEntryEvent;
 import javax.cache.event.CacheEntryEventFilter;
 import javax.cache.event.CacheEntryExpiredListener;
+import javax.cache.event.CacheEntryListener;
 import javax.cache.event.CacheEntryRemovedListener;
 import javax.cache.event.CacheEntryUpdatedListener;
 import javax.cache.event.EventType;
@@ -39,7 +40,7 @@ class EventListenerAdaptors {
   }
 
   @SuppressWarnings("unchecked")
-  static <K, V> List<EventListenerAdaptor<K, V>> ehListenersFor(CacheEntryEventFilter<? super K, ? super V> listener,
+  static <K, V> List<EventListenerAdaptor<K, V>> ehListenersFor(CacheEntryListener<? super K, ? super V> listener,
       CacheEntryEventFilter<? super K, ? super V> filter, Cache<K, V> source) {
     List<EventListenerAdaptor<K, V>> rv = new ArrayList<EventListenerAdaptor<K, V>>();
 
