@@ -26,7 +26,7 @@ class Eh107CacheMXBean extends Eh107MXBean implements CacheMXBean {
   private final CompleteConfiguration<?, ?> config;
 
   Eh107CacheMXBean(String cacheName, Eh107CacheManager cacheManager, CompleteConfiguration<?, ?> config) {
-    super(cacheName, cacheManager, "Configuration");
+    super(cacheName, cacheManager, "CacheConfiguration");
     this.config = config;
   }
 

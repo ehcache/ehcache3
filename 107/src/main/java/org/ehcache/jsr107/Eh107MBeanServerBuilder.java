@@ -1,6 +1,19 @@
+/*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.ehcache.jsr107;
-
-import com.sun.jmx.mbeanserver.JmxMBeanServer;
 
 import javax.management.ListenerNotFoundException;
 import javax.management.MBeanNotificationInfo;
@@ -10,6 +23,8 @@ import javax.management.MBeanServerDelegate;
 import javax.management.Notification;
 import javax.management.NotificationFilter;
 import javax.management.NotificationListener;
+
+import com.sun.jmx.mbeanserver.JmxMBeanServer;
 
 /**
  * @author Alex Snaps
@@ -25,7 +40,7 @@ public class Eh107MBeanServerBuilder extends MBeanServerBuilder {
 
   @Override
   public MBeanServer newMBeanServer(String defaultDomain, MBeanServer outer, MBeanServerDelegate delegate) {
-    MBeanServerDelegate decoratingDelegate = new RIMBeanServerDelegate(delegate);
+    MBeanServerDelegate decoratingDelegate = new Eh107MBeanServerDelegate(delegate);
     return JmxMBeanServer.newMBeanServer(defaultDomain, outer, decoratingDelegate, false);
   }
 
@@ -35,7 +50,7 @@ public class Eh107MBeanServerBuilder extends MBeanServerBuilder {
    * property so that the TCK can precisely identify the correct MBeanServer
    * when running tests.
    */
-  public class RIMBeanServerDelegate extends MBeanServerDelegate {
+  public static class Eh107MBeanServerDelegate extends MBeanServerDelegate {
 
     private final MBeanServerDelegate delegate;
 
@@ -45,7 +60,7 @@ public class Eh107MBeanServerBuilder extends MBeanServerBuilder {
      * @param delegate
      *          the provided delegate
      */
-    public RIMBeanServerDelegate(MBeanServerDelegate delegate) {
+    public Eh107MBeanServerDelegate(MBeanServerDelegate delegate) {
       this.delegate = delegate;
     }
 

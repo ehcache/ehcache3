@@ -26,7 +26,7 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements CacheStatisticsM
 
   Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager,
       org.ehcache.statistics.CacheStatistics statistics) {
-    super(cacheName, cacheManager, "Statistics");
+    super(cacheName, cacheManager, "CacheStatistics");
     this.statistics = statistics;
   }
 

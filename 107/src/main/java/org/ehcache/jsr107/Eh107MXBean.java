@@ -15,6 +15,8 @@
  */
 package org.ehcache.jsr107;
 
+import java.net.URI;
+
 import javax.cache.CacheException;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
@@ -35,16 +37,16 @@ abstract class Eh107MXBean {
   }
 
   private ObjectName createObjectName(String cacheName, Eh107CacheManager cacheManager, String beanName) {
-    // XXX: Don't we need to unique-ify these by ClassLoader somehow too? 107
-    // CacheManagers can be created
-    // for the same URI but with different loaders
-
-    String cacheManagerName = sanitize(cacheManager.getURI().toString());
-    cacheName = sanitize(cacheName);
+    URI uri = cacheManager.getURI();
+    String cacheManagerName = sanitize(uri != null ? uri.toString() : "null");
+    cacheName = sanitize(cacheName != null ? cacheName : "null");
+    ClassLoader classloader = cacheManager.getClassLoader();
+    String classLoaderName = sanitize(classloader != null ? classloader.getClass().getName() + "@"
+        + System.identityHashCode(classloader) : "null");
 
     try {
-      return new ObjectName("javax.cache:type=Cache" + beanName + ",CacheManager=" + cacheManagerName + ",Cache="
-          + cacheName);
+      return new ObjectName("javax.cache:type=" + beanName + ",CacheManager=" + cacheManagerName + ",Cache="
+          + cacheName + ",ClassLoader=" + classLoaderName);
     } catch (MalformedObjectNameException e) {
       throw new CacheException(e);
     }
