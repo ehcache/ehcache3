@@ -28,6 +28,8 @@ import javax.cache.CacheException;
 import javax.cache.CacheManager;
 import javax.cache.configuration.CompleteConfiguration;
 import javax.cache.configuration.Configuration;
+import javax.cache.expiry.Duration;
+import javax.cache.expiry.ExpiryPolicy;
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
 import javax.cache.spi.CachingProvider;
@@ -132,9 +134,10 @@ class Eh107CacheManager implements CacheManager {
   private <K, V> org.ehcache.config.CacheConfiguration<K, V> toEhcacheConfig(String cacheName,
       CompleteConfiguration<K, V> config, CacheResources<K, V> cacheResources) {
     // XXX: deal with store by value (maps to ehCache copy-on-write?)
-    // XXX: deal with expiry policy
 
     CacheConfigurationBuilder builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+
+    builder.withExpiry(toEhcacheExpiry(cacheResources.getExpiryPolicy()));
 
     if (config.isReadThrough()) {
       CacheLoader<K, V> cacheLoader = cacheResources.getCacheLoader();
@@ -154,6 +157,40 @@ class Eh107CacheManager implements CacheManager {
     }
 
     return builder.buildConfig(config.getKeyType(), config.getValueType());
+  }
+
+  private org.ehcache.expiry.Expiry<?, ?> toEhcacheExpiry(final ExpiryPolicy expiryPolicy) {
+    return new org.ehcache.expiry.Expiry<Object, Object>() {
+
+      @Override
+      public org.ehcache.expiry.Duration getExpiryForCreation(Object key, Object value) {
+        try {
+          Duration duration = expiryPolicy.getExpiryForCreation();
+          if (duration.isEternal()) {
+            return org.ehcache.expiry.Duration.FOREVER;
+          }
+          return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
+        } catch (Throwable t) {
+          return org.ehcache.expiry.Duration.ZERO;
+        }
+      }
+
+      @Override
+      public org.ehcache.expiry.Duration getExpiryForAccess(Object key, Object value) {
+        try {
+          Duration duration = expiryPolicy.getExpiryForAccess();
+          if (duration == null) {
+            return null;
+          }
+          if (duration.isEternal()) {
+            return org.ehcache.expiry.Duration.FOREVER;
+          }
+          return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
+        } catch (Throwable t) {
+          return org.ehcache.expiry.Duration.ZERO;
+        }
+      }
+    };
   }
 
   private void checkClosed() {

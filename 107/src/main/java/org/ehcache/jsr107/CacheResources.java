@@ -28,6 +28,7 @@ import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.CompleteConfiguration;
 import javax.cache.configuration.Factory;
 import javax.cache.event.CacheEntryEventFilter;
+import javax.cache.expiry.ExpiryPolicy;
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
 
@@ -38,6 +39,7 @@ import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
  */
 class CacheResources<K, V> {
 
+  private final ExpiryPolicy expiryPolicy;
   private final CacheLoader<K, V> cacheLoader;
   private final CacheWriter<? super K, ? super V> cacheWriter;
   private final Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> listenerResources = new ConcurrentHashMap<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>>();
@@ -49,6 +51,7 @@ class CacheResources<K, V> {
       this.cacheName = cacheName;
       this.cacheLoader = initCacheLoader(config);
       this.cacheWriter = initCacheWriter(config);
+      this.expiryPolicy = initExpiryPolicy(config);
       initCacheEventListeners(config);
     } catch (Throwable t) {
       try {
@@ -64,10 +67,18 @@ class CacheResources<K, V> {
     }
   }
 
+  private ExpiryPolicy initExpiryPolicy(CompleteConfiguration<K, V> config) {
+    return config.getExpiryPolicyFactory().create();
+  }
+
   private void initCacheEventListeners(CompleteConfiguration<K, V> config) {
     for (CacheEntryListenerConfiguration<K, V> listenerConfig : config.getCacheEntryListenerConfigurations()) {
       listenerResources.put(listenerConfig, createListenerResources(listenerConfig));
     }
+  }
+
+  ExpiryPolicy getExpiryPolicy() {
+    return expiryPolicy;
   }
 
   CacheLoader<K, V> getCacheLoader() {
@@ -152,6 +163,7 @@ class CacheResources<K, V> {
 
   synchronized void closeResources() {
     if (closed.compareAndSet(false, true)) {
+      closeQuietly(expiryPolicy);
       closeQuietly(cacheLoader);
       closeQuietly(cacheWriter);
       for (ListenerResources<K, V> lr : listenerResources.values()) {
