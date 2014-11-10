@@ -122,7 +122,7 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  @Ignore(reason = "Failing test to fix")
+  // @Ignore(reason = "Failing test to fix")
   @SuppressWarnings("unchecked")
   public void wrongKeyTypeThrowsException()
       throws IllegalAccessException, InstantiationException {

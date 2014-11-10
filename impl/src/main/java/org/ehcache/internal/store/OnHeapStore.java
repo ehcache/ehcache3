@@ -344,8 +344,12 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         if (mappedValue != null && mappedValue.isExpired(now)) {
           mappedValue = null;
         }
-        
-        return nullSafeNewValueHolder(key, remappingFunction.apply(key, mappedValue == null ? null : mappedValue.value()), now);
+
+        V computedValue = remappingFunction.apply(mappedKey, mappedValue == null ? null : mappedValue.value());
+        if (computedValue != null) {
+          checkValue(computedValue);
+        }
+        return nullSafeNewValueHolder(key, computedValue, now);
       }
     });
   }
@@ -360,7 +364,11 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
         if (mappedValue == null || mappedValue.isExpired(now)) {
-          return nullSafeNewValueHolder(key, mappingFunction.apply(key), now);
+          V computedValue = mappingFunction.apply(mappedKey);
+          if (computedValue != null) {
+            checkValue(computedValue);
+          }
+          return nullSafeNewValueHolder(key, computedValue, now);
         }
         
         setAccessTimeAndExpiry(key, mappedValue, now);
@@ -375,13 +383,17 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
     return map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
-      public OnHeapValueHolder<V> apply(K key, OnHeapValueHolder<V> mappedValue) {
+      public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
         final long now = timeSource.getTimeMillis();
         
         if (mappedValue.isExpired(now)) {
           return null;
         }
         
+        V computedValue = remappingFunction.apply(mappedKey, mappedValue.value());
+        if (computedValue != null) {
+          checkValue(computedValue);
+        }
         return nullSafeNewValueHolder(key, remappingFunction.apply(key, mappedValue.value()), now);
       }
     });
@@ -392,6 +404,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
     Set<K> missingKeys = new HashSet<K>();
     for (K key : keys) {
+      checkKey(key);
       ValueHolder<V> value = get(key);
       if (value != null) {
         result.put(key, value);
@@ -403,6 +416,11 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
     if (computedMappings != null) {
       for (Map.Entry<? extends K, ? extends V> entry : computedMappings) {
+        K key = entry.getKey();
+        V value = entry.getValue();
+        checkKey(key);
+        checkValue(value);
+
         OnHeapValueHolder<V> valueHolder = nullSafeNewValueHolder(entry.getKey(), entry.getValue(), timeSource.getTimeMillis());
         if (valueHolder != null && missingKeys.contains(entry.getKey())) {
           ValueHolder<V> racer = putIfAbsent(entry.getKey(), valueHolder.value());
@@ -418,6 +436,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   public Map<K, ValueHolder<V>> bulkCompute(Iterable<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
     Map<K, V> oldEntries = new HashMap<K, V>();
     for (K key : keys) {
+      checkKey(key);
       ValueHolder<V> valueHolder = get(key);
       oldEntries.put(key, valueHolder == null ? null : valueHolder.value());
     }
@@ -427,6 +446,11 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     if (remappedEntries != null) {
       for (Map.Entry<? extends K, ? extends V> remappedEntry : remappedEntries) {
         K key = remappedEntry.getKey();
+        V value = remappedEntry.getValue();
+        checkKey(key);
+        if (value != null) { 
+          checkValue(value);
+        }
         if (oldEntries.containsKey(key)) {
           OnHeapValueHolder<V> valueHolder = nullSafeNewValueHolder(remappedEntry.getKey(), remappedEntry.getValue(), timeSource.getTimeMillis());
           if (valueHolder != null) {
