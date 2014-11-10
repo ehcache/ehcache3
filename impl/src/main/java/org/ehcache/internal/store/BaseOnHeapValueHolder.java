@@ -13,44 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.ehcache.internal.store;
-
-import org.ehcache.spi.cache.Store.ValueHolder;
 
 import java.util.concurrent.TimeUnit;
 
-/**
- * @author vfunshteyn
- */
-final class OnHeapStoreValueHolder<V> implements ValueHolder<V> {
-  private static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
+import org.ehcache.spi.cache.Store.ValueHolder;
+
+abstract class BaseOnHeapValueHolder<V> implements OnHeapValueHolder<V> {
   private final V value;
-  private final long createTime;
-  private volatile long accessTime;
-  
-  OnHeapStoreValueHolder(V value) {
+
+  protected BaseOnHeapValueHolder(V value) {
     if (value == null) {
-      throw new NullPointerException("Value cannot be null");
+      throw new NullPointerException("null value");
     }
     this.value = value;
-    createTime = accessTime = System.currentTimeMillis();
   }
-
+  
   @Override
-  public V value() {
-    accessTime = System.currentTimeMillis();
+  public final V value() {
     return value;
-  }
-
-  @Override
-  public long creationTime(TimeUnit unit) {
-    return DEFAULT_TIME_UNIT.convert(createTime, unit);
-  }
-
-  @Override
-  public long lastAccessTime(TimeUnit unit) {
-    return DEFAULT_TIME_UNIT.convert(accessTime, unit);
   }
   
   @Override
@@ -64,17 +45,34 @@ final class OnHeapStoreValueHolder<V> implements ValueHolder<V> {
   public int hashCode() {
     return value.hashCode();
   }
+  
+  @Override
+  public long creationTime(TimeUnit unit) {
+    throw new AssertionError();
+  }
 
   @Override
   public float hitRate(TimeUnit unit) {
-    throw new UnsupportedOperationException("Implement me!");
+    throw new AssertionError();
   }
 
-  public String toString() {
-    StringBuilder sb = new StringBuilder(128);
-    sb.append(getClass().getSimpleName()).append("={value: ").append(value).
-      append(", createTime: ").append(createTime).append(", accessTime: ").
-      append(accessTime).append("}");
-    return sb.toString();
+  @Override
+  public long lastAccessTime(TimeUnit unit) {
+    throw new AssertionError();
+  }
+
+  @Override
+  public boolean isExpired(long now) {
+    throw new AssertionError();
+  }
+
+  @Override
+  public void setAccessTimeMillis(long accessTime) {
+    throw new AssertionError();
+  }
+
+  @Override
+  public void setExpireTimeMillis(long expireTime) {
+    throw new AssertionError();
   }
 }

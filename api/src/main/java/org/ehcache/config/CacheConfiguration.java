@@ -20,6 +20,7 @@ import org.ehcache.Cache;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.function.Predicate;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -90,4 +91,9 @@ public interface CacheConfiguration<K, V> {
    * as deserializing cache entries when required
    */
   ClassLoader getClassLoader();
+
+  /**
+   *  Get the expiration policy instance for this {@link Cache}
+   */
+  Expiry<K, V> getExpiry();
 }

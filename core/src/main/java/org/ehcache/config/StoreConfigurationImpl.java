@@ -17,7 +17,10 @@
 package org.ehcache.config;
 
 import java.util.Comparator;
+
 import org.ehcache.Cache;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.function.Predicate;
 import org.ehcache.spi.cache.Store;
 
@@ -33,25 +36,28 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   private final Predicate<Cache.Entry<K, V>> evictionVeto;
   private final Comparator<Cache.Entry<K, V>> evictionPrioritizer;
   private final ClassLoader classLoader;
+  private final Expiry<? super K, ? super V> expiry;
 
   public StoreConfigurationImpl(CacheConfiguration<K, V> cacheConfig) {
     this(cacheConfig.getKeyType(), cacheConfig.getValueType(), cacheConfig.getCapacityConstraint(),
-            cacheConfig.getEvictionVeto(), cacheConfig.getEvictionPrioritizer(), cacheConfig.getClassLoader());
+            cacheConfig.getEvictionVeto(), cacheConfig.getEvictionPrioritizer(), cacheConfig.getClassLoader(),
+            cacheConfig.getExpiry());
   }
 
   public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType, ClassLoader classLoader) {
-    this(keyType, valueType, null, null, null, classLoader);
+    this(keyType, valueType, null, null, null, classLoader, Expirations.noExpiration());
   }
           
   public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
           Predicate<Cache.Entry<K, V>> evictionVeto, Comparator<Cache.Entry<K, V>> evictionPrioritizer,
-          ClassLoader classLoader) {
+          ClassLoader classLoader, Expiry<? super K, ? super V> expiry) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.capacityConstraint = capacityConstraint;
     this.evictionVeto = evictionVeto;
     this.evictionPrioritizer = evictionPrioritizer;
     this.classLoader = classLoader;
+    this.expiry = expiry;
   }
 
   @Override
@@ -82,5 +88,10 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   @Override
   public ClassLoader getClassLoader() {
     return this.classLoader;
+  }
+  
+  @Override
+  public Expiry<? super K, ? super V> getExpiry() {
+    return expiry;
   }
 }

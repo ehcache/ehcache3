@@ -24,6 +24,8 @@ import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.StandaloneCacheConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.function.Predicate;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -37,6 +39,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
 
   private final Class<K> keyType;
   private final Class<V> valueType;
+  private Expiry<K, V> expiry = Expirations.noExpiration();
   private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
   private Comparable<Long> capacityConstraint;
   private Predicate<Cache.Entry<K, V>> evictionVeto;
@@ -52,10 +55,11 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   T build(ServiceLocator serviceLocator) {
     Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
     final StoreConfigurationImpl<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType,
-        capacityConstraint, evictionVeto, evictionPrioritizer, classLoader);
+        capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, expiry);
     final Store<K, V> store = storeProvider.createStore(storeConfig);
     
-    CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, new ServiceConfiguration<?>[]{});
+    CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto,
+        evictionPrioritizer, classLoader, expiry, new ServiceConfiguration<?>[]{});
     
     final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoader, cacheWriter);
     return (T) ehcache;
@@ -91,9 +95,18 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   
   public final StandaloneCacheBuilder<K, V, T> withClassLoader(ClassLoader classLoader) {
     if (classLoader == null) {
-      throw new IllegalArgumentException();
+      throw new NullPointerException("Null classloader");
     }
     this.classLoader = classLoader;
+    return this;
+  }
+  
+  public final StandaloneCacheBuilder<K, V, T> withExpiry(Expiry<K, V> expiry) {
+    if (expiry == null) {
+      throw new NullPointerException("Null expiry");
+    }
+    
+    this.expiry = expiry;
     return this;
   }
   

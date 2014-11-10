@@ -18,8 +18,11 @@ package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
 import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.eviction.EvictionPrioritizer;
+import org.ehcache.expiry.Expirations;
 import org.ehcache.function.Predicate;
 import org.ehcache.internal.HeapResourceCacheConfiguration;
+import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
@@ -48,12 +51,13 @@ public class OnHeapStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store<String, String> newStore(final Store.Configuration<String, String> config) {
-        return new OnHeapStore<String, String>(config);
+        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE);
       }
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new OnHeapStoreValueHolder<String>(value);
+        return new TimeStampedOnHeapValueHolder<String>(value, 
+            SystemTimeSource.INSTANCE.getTimeMillis(), TimeStampedOnHeapValueHolder.NO_EXPIRE);
       }
 
       @Override
@@ -66,7 +70,7 @@ public class OnHeapStoreSPITest extends StoreSPITest<String, String> {
           final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
           final Predicate<Cache.Entry<String, String>> evictionVeto, final Comparator<Cache.Entry<String, String>> evictionPrioritizer) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader());
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration());
       }
 
       @Override

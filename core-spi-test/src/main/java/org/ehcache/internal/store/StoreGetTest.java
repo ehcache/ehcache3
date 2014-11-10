@@ -19,6 +19,7 @@ package org.ehcache.internal.store;
 import org.ehcache.Cache;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.expiry.Expirations;
 import org.ehcache.function.Predicates;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.Ignore;
@@ -49,7 +50,8 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
   public void existingKeyMappedInStoreReturnsValueHolder()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader()));
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null,
+        ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
 
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
@@ -84,7 +86,8 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
   public void existingKeyMappedInStoreReturnsCorrectValueHolder()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader()));
+        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null,
+        ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
 
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
