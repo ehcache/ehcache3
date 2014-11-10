@@ -19,6 +19,8 @@ package org.ehcache.internal.cachingtier;
 import org.ehcache.Cache;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.function.BiFunction;
+import org.ehcache.function.Function;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -165,6 +167,21 @@ public class TieredCache<K, V> implements Cache<K, V> {
   @Override
   public CacheStatistics getStatistics() {
     throw new UnsupportedOperationException("implement me!");
+  }
+  
+  @Override
+  public V compute(K key, BiFunction<? super K, ? super V, ? extends V> function) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public V computeIfAbsent(K key, Function<? super K, ? extends V> function) {
+    throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> function) {
+    throw new UnsupportedOperationException("Implement me!");
   }
 
   public long getMaxCacheSize() {

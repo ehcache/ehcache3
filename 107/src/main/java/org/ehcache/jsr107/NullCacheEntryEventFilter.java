@@ -13,7 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.jsr107;
 
-dependencies {
-  compile project(':api'), project(':core'), project(':impl'), 'javax.cache:cache-api:1.0.0'
+import javax.cache.event.CacheEntryEvent;
+import javax.cache.event.CacheEntryEventFilter;
+import javax.cache.event.CacheEntryListenerException;
+
+/**
+ * @author teck
+ */
+class NullCacheEntryEventFilter<K, V> implements CacheEntryEventFilter<K, V> {
+
+  public static final CacheEntryEventFilter<?, ?> INSTANCE = null;
+
+  @Override
+  public boolean evaluate(CacheEntryEvent<? extends K, ? extends V> event) throws CacheEntryListenerException {
+    return true;
+  }
+
 }

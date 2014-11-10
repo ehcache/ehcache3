@@ -13,7 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.jsr107;
 
-dependencies {
-  compile project(':api'), project(':core'), project(':impl'), 'javax.cache:cache-api:1.0.0'
+import javax.cache.integration.CompletionListener;
+
+/**
+ * @author teck
+ */
+final class NullCompletionListener implements CompletionListener {
+
+  static final CompletionListener INSTANCE = new NullCompletionListener();
+
+  @Override
+  public void onCompletion() {
+    // nothing
+  }
+
+  @Override
+  public void onException(Exception e) {
+    // nothing
+  }
+
+  private NullCompletionListener() {
+    //
+  }
 }

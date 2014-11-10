@@ -18,6 +18,8 @@ package org.ehcache;
 
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.StandaloneCacheConfiguration;
+import org.ehcache.function.BiFunction;
+import org.ehcache.function.Function;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.statistics.CacheStatistics;
 import org.junit.Test;
@@ -148,6 +150,21 @@ public class StandaloneCacheBuilderTest {
     @Override
     public CacheStatistics getStatistics() {
       throw new UnsupportedOperationException("implement me!");
+    }
+
+    @Override
+    public V compute(K key, BiFunction<? super K, ? super V, ? extends V> function) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public V computeIfAbsent(K key, Function<? super K, ? extends V> function) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> function) {
+      throw new UnsupportedOperationException("Implement me!");
     }
   }
 }

@@ -14,6 +14,23 @@
  * limitations under the License.
  */
 
-dependencies {
-  compile project(':api'), project(':core'), project(':impl'), 'javax.cache:cache-api:1.0.0'
+package org.ehcache.jsr107;
+
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import javax.cache.Caching;
+import javax.cache.spi.CachingProvider;
+
+import org.ehcache.jsr107.EhcacheCachingProvider;
+import org.junit.Test;
+
+public class EhCachingProviderTest {
+  
+  @Test
+  public void testLoadsAsCachingProvider() {
+    final CachingProvider provider = Caching.getCachingProvider();
+    assertThat(provider, is(instanceOf(EhcacheCachingProvider.class)));
+  }
 }
