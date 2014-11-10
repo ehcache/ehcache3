@@ -54,11 +54,11 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   private final CacheResources<K, V> cacheResources;
   private final Eh107CacheMXBean managementBean;
   private final Eh107CacheStatisticsMXBean statisticsBean;
+  private final CompleteConfiguration<K, V> config;
 
   // functions used by loadAll()
   private final Function<K, V> loadAllNonReplaceFunction;
   private final BiFunction<K, V, V> loadAllReplaceFunction;
-
   {
     this.loadAllNonReplaceFunction = new Function<K, V>() {
       @Override
@@ -77,12 +77,19 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
   Eh107Cache(String name, CompleteConfiguration<K, V> config, CacheResources<K, V> cacheResources,
       org.ehcache.Cache<K, V> ehCache, Eh107CacheManager cacheManager) {
+    this.config = config;
     this.ehCache = ehCache;
     this.cacheManager = cacheManager;
     this.name = name;
     this.cacheResources = cacheResources;
     this.managementBean = new Eh107CacheMXBean(name, cacheManager, config);
-    this.statisticsBean = new Eh107CacheStatisticsMXBean(name, cacheManager, ehCache.getStatistics());
+    this.statisticsBean = new Eh107CacheStatisticsMXBean(name, cacheManager, /*
+                                                                              * ehCache
+                                                                              * .
+                                                                              * getStatistics
+                                                                              * (
+                                                                              * )
+                                                                              */null);
   }
 
   @Override
@@ -263,9 +270,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   @Override
   public <C extends Configuration<K, V>> C getConfiguration(Class<C> clazz) {
     checkClosed();
-
-    // XXX: runtime configuration isn't immutable (as specified in 107 spec)
-    return Unwrap.unwrap(clazz, ehCache.getRuntimeConfiguration());
+    return Unwrap.unwrap(clazz, config);
   }
 
   @Override
@@ -384,12 +389,8 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     }
   }
 
-  void destroy() {
-    CacheException closeException = new CacheException();
-    closeInternal(true, closeException);
-    if (closeException.getSuppressed().length > 0) {
-      throw closeException;
-    }
+  void destroy(CacheException destroyException) {
+    closeInternal(true, destroyException);
   }
 
   @Override

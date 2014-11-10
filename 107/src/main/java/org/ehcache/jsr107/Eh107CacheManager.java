@@ -17,6 +17,7 @@ package org.ehcache.jsr107;
 
 import java.lang.management.ManagementFactory;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
@@ -93,15 +94,15 @@ class Eh107CacheManager implements CacheManager {
   public <K, V, C extends Configuration<K, V>> Cache<K, V> createCache(String cacheName, C config)
       throws IllegalArgumentException {
 
-    if (cacheName == null || config == null) {
-      throw new NullPointerException();
-    }
-
-    // copy the config (since it can be re-used per 107 spec)
-    CompleteConfiguration<K, V> completeConfig = new Eh107CompleteConfiguration<K, V>(config);
-
     synchronized (cachesLock) {
       checkClosed();
+
+      if (cacheName == null || config == null) {
+        throw new NullPointerException();
+      }
+
+      // copy the config (since it can be re-used per 107 spec)
+      CompleteConfiguration<K, V> completeConfig = new Eh107CompleteConfiguration<K, V>(config);
 
       if (caches.containsKey(cacheName)) {
         throw new CacheException("A Cache named [" + cacheName + "] already exists");
@@ -222,13 +223,13 @@ class Eh107CacheManager implements CacheManager {
     Class<?> actualValueType = cache.getConfiguration(Configuration.class).getValueType();
 
     if (keyType != actualKeyType) {
-      throw new IllegalArgumentException("Cache has key type " + actualKeyType.getName()
+      throw new ClassCastException("Cache has key type " + actualKeyType.getName()
           + ", but getCache() called with key type " + keyType.getName());
     }
 
     if (valueType != actualValueType) {
-      throw new IllegalArgumentException("Cache has value type " + actualKeyType.getName()
-          + ", but getCache() called with value type " + keyType.getName());
+      throw new ClassCastException("Cache has value type " + actualValueType.getName()
+          + ", but getCache() called with value type " + valueType.getName());
     }
 
     return cache;
@@ -259,8 +260,7 @@ class Eh107CacheManager implements CacheManager {
 
   @Override
   public Iterable<String> getCacheNames() {
-    checkClosed();
-    return Collections.unmodifiableSet(caches.keySet());
+    return Collections.unmodifiableList(new ArrayList<String>(caches.keySet()));
   }
 
   @Override
@@ -269,17 +269,28 @@ class Eh107CacheManager implements CacheManager {
       throw new NullPointerException();
     }
 
-    final Eh107Cache<?, ?> cache;
+    CacheException destroyException = new CacheException();
     synchronized (cachesLock) {
       checkClosed();
-      cache = caches.remove(cacheName);
+
+      Eh107Cache<?, ?> cache = caches.remove(cacheName);
+      if (cache == null) {
+        // TCK expects this method to return w/o exception if named cache does not exist
+        return;
+      }
+
+      cache.destroy(destroyException);
+
+      try {
+        ehCacheManager.removeCache(cache.getName());
+      } catch (Throwable t) {
+        destroyException.addSuppressed(t);
+      }
     }
 
-    if (cache == null) {
-      throw new IllegalArgumentException("No such Cache named " + cacheName);
+    if (destroyException.getSuppressed().length > 0) {
+      throw destroyException;
     }
-
-    cache.destroy();
   }
 
   @Override
