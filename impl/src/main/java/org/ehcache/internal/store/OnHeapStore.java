@@ -337,12 +337,18 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     checkKey(key);
 
     final long now = timeSource.getTimeMillis();
+    final AtomicReference<OnHeapValueHolder<V>> existing = new AtomicReference<OnHeapValueHolder<V>>(null);
     
-    return map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+    map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(final K mappedKey, OnHeapValueHolder<V> mappedValue) {
         if (mappedValue != null && mappedValue.isExpired(now)) {
           mappedValue = null;
+        }
+        
+        existing.set(mappedValue);
+        if (mappedValue != null) {
+          setAccessTimeAndExpiry(key, mappedValue, now);
         }
 
         V computedValue = remappingFunction.apply(mappedKey, mappedValue == null ? null : mappedValue.value());
@@ -352,36 +358,44 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         return nullSafeNewValueHolder(key, computedValue, now);
       }
     });
+    
+    return existing.get();
   }
   
   @Override
   public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) {
     checkKey(key);
-
-    final long now = timeSource.getTimeMillis();
     
-    return map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+    final long now = timeSource.getTimeMillis();
+    final AtomicReference<OnHeapValueHolder<V>> newValue = new AtomicReference<OnHeapValueHolder<V>>(null);
+    
+    map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
         if (mappedValue == null || mappedValue.isExpired(now)) {
           V computedValue = mappingFunction.apply(mappedKey);
           if (computedValue != null) {
             checkValue(computedValue);
-          }
-          return nullSafeNewValueHolder(key, computedValue, now);
+          } 
+          OnHeapValueHolder<V> newHolder = nullSafeNewValueHolder(key, computedValue, now);
+          newValue.set(newHolder);
+          return newHolder;
         }
         
-        setAccessTimeAndExpiry(key, mappedValue, now);
         return mappedValue;
       }
     });
+    
+    return newValue.get();
   }
 
   @Override
   public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
     checkKey(key); 
 
-    return map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+    final AtomicReference<OnHeapValueHolder<V>> returnValue = new AtomicReference<OnHeapValueHolder<V>>(null);
+    
+    map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
         final long now = timeSource.getTimeMillis();
@@ -390,6 +404,8 @@ public class OnHeapStore<K, V> implements Store<K, V> {
           return null;
         }
         
+        returnValue.set(mappedValue);
+        
         V computedValue = remappingFunction.apply(mappedKey, mappedValue.value());
         if (computedValue != null) {
           checkValue(computedValue);
@@ -397,6 +413,8 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         return nullSafeNewValueHolder(key, remappingFunction.apply(key, mappedValue.value()), now);
       }
     });
+    
+    return returnValue.get();
   }
 
   @Override

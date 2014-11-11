@@ -313,7 +313,7 @@ public class OnHeapStoreTest {
   public void testCompute() throws Exception {
     OnHeapStore<String, String> store = newStore();
 
-    store.compute("key", new BiFunction<String, String, String>() {
+    ValueHolder<String> prev = store.compute("key", new BiFunction<String, String, String>() {
       @Override
       public String apply(String mappedKey, String mappedValue) {
         assertThat(mappedKey, equalTo("key"));
@@ -322,6 +322,7 @@ public class OnHeapStoreTest {
       }
     });
 
+    assertThat(prev, nullValue());
     assertThat(store.get("key").value(), equalTo("value"));
   }
 
@@ -329,22 +330,24 @@ public class OnHeapStoreTest {
   public void testComputeNull() throws Exception {
     OnHeapStore<String, String> store = newStore();
 
-    store.compute("key", new BiFunction<String, String, String>() {
+    ValueHolder<String> prev = store.compute("key", new BiFunction<String, String, String>() {
       @Override
       public String apply(String mappedKey, String mappedValue) {
         return null;
       }
     });
+    assertThat(prev, nullValue());
     assertThat(store.get("key"), nullValue());
 
     store.put("key", "value");
     assertThat(store.get("key").value(), equalTo("value"));
-    store.compute("key", new BiFunction<String, String, String>() {
+    prev = store.compute("key", new BiFunction<String, String, String>() {
       @Override
       public String apply(String mappedKey, String mappedValue) {
         return null;
       }
     });
+    assertThat(prev.value(), equalTo("value"));
     assertThat(store.get("key"), nullValue());
   }
 
@@ -372,7 +375,7 @@ public class OnHeapStoreTest {
     OnHeapStore<String, String> store = newStore();
 
     store.put("key", "value");
-    store.compute("key", new BiFunction<String, String, String>() {
+    ValueHolder<String> prev = store.compute("key", new BiFunction<String, String, String>() {
       @Override
       public String apply(String mappedKey, String mappedValue) {
         assertThat(mappedKey, equalTo("key"));
@@ -381,6 +384,7 @@ public class OnHeapStoreTest {
       }
     });
 
+    assertThat(prev.value(), equalTo("value"));
     assertThat(store.get("key").value(), equalTo("value2"));
   }
 
@@ -391,7 +395,7 @@ public class OnHeapStoreTest {
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
     store.put("key", "value");
     timeSource.advanceTime(1);
-    store.compute("key", new BiFunction<String, String, String>() {
+    ValueHolder<String> prev = store.compute("key", new BiFunction<String, String, String>() {
       @Override
       public String apply(String mappedKey, String mappedValue) {
         assertThat(mappedKey, equalTo("key"));
@@ -400,6 +404,7 @@ public class OnHeapStoreTest {
       }
     });
 
+    assertThat(prev, nullValue());
     assertThat(store.get("key").value(), equalTo("value2"));
   }
 
@@ -407,7 +412,7 @@ public class OnHeapStoreTest {
   public void testComputeIfAbsent() throws Exception {
     OnHeapStore<String, String> store = newStore();
 
-    store.computeIfAbsent("key", new Function<String, String>() {
+    ValueHolder<String> newValue = store.computeIfAbsent("key", new Function<String, String>() {
       @Override
       public String apply(String mappedKey) {
         assertThat(mappedKey, equalTo("key"));
@@ -415,6 +420,7 @@ public class OnHeapStoreTest {
       }
     });
 
+    assertThat(newValue.value(), equalTo("value"));
     assertThat(store.get("key").value(), equalTo("value"));
   }
 
@@ -437,13 +443,14 @@ public class OnHeapStoreTest {
   public void testComputeIfAbsentReturnNull() throws Exception {
     OnHeapStore<String, String> store = newStore();
 
-    store.computeIfAbsent("key", new Function<String, String>() {
+    ValueHolder<String> newValue = store.computeIfAbsent("key", new Function<String, String>() {
       @Override
       public String apply(String mappedKey) {
         return null;
       }
     });
 
+    assertThat(newValue, nullValue());
     assertThat(store.get("key"), nullValue());
   }
 
@@ -474,7 +481,7 @@ public class OnHeapStoreTest {
     store.put("key", "value");
     timeSource.advanceTime(1);
 
-    store.computeIfAbsent("key", new Function<String, String>() {
+    ValueHolder<String> newValue = store.computeIfAbsent("key", new Function<String, String>() {
       @Override
       public String apply(String mappedKey) {
         assertThat(mappedKey, equalTo("key"));
@@ -482,6 +489,7 @@ public class OnHeapStoreTest {
       }
     });
 
+    assertThat(newValue.value(), equalTo("value2"));
     assertThat(store.get("key").value(), equalTo("value2"));
   }
 
@@ -544,7 +552,7 @@ public class OnHeapStoreTest {
     OnHeapStore<String, String> store = newStore();
 
     store.put("key", "value");
-    store.computeIfPresent("key", new BiFunction<String, String, String>() {
+    ValueHolder<String> prev = store.computeIfPresent("key", new BiFunction<String, String, String>() {
       @Override
       public String apply(String mappedKey, String mappedValue) {
         assertThat(mappedKey, equalTo("key"));
@@ -553,6 +561,7 @@ public class OnHeapStoreTest {
       }
     });
 
+    assertThat(prev.value(), equalTo("value"));
     assertThat(store.get("key").value(), equalTo("value2"));
   }
 
@@ -573,13 +582,14 @@ public class OnHeapStoreTest {
     OnHeapStore<String, String> store = newStore();
 
     store.put("key", "value");
-    store.computeIfPresent("key", new BiFunction<String, String, String>() {
+    ValueHolder<String> prev = store.computeIfPresent("key", new BiFunction<String, String, String>() {
       @Override
       public String apply(String mappedKey, String mappedValue) {
         return null;
       }
     });
 
+    assertThat(prev.value(), equalTo("value"));
     assertThat(store.get("key"), nullValue());
   }
 
@@ -618,7 +628,7 @@ public class OnHeapStoreTest {
         throw new AssertionError();
       }
     });
-
+    
     assertThat(store.get("key"), nullValue());
   }
 
