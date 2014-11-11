@@ -50,6 +50,7 @@ class TimeStampedOnHeapValueHolder<V> extends BaseOnHeapValueHolder<V> {
     return TimeUnit.MILLISECONDS.convert(accessTime, unit);
   }
 
+  @Override
   public void setAccessTimeMillis(long accessTime) {
     this.accessTime = accessTime;
   }
@@ -75,6 +76,11 @@ class TimeStampedOnHeapValueHolder<V> extends BaseOnHeapValueHolder<V> {
     }
     
     return false;
+  }
+  
+  @Override
+  public long getExpireTimeMillis() {
+    return this.expireTime;
   }
 
 }

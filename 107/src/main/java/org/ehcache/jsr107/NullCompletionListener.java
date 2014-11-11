@@ -13,17 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.internal.store;
+package org.ehcache.jsr107;
 
-import org.ehcache.spi.cache.Store.ValueHolder;
+import javax.cache.integration.CompletionListener;
 
-interface OnHeapValueHolder<V> extends ValueHolder<V> {
-  
-  void setAccessTimeMillis(long accessTime);
-  
-  void setExpireTimeMillis(long expireTime);
-  
-  boolean isExpired(long now);
+/**
+ * @author teck
+ */
+final class NullCompletionListener implements CompletionListener {
 
-  long getExpireTimeMillis();
+  static final CompletionListener INSTANCE = new NullCompletionListener();
+
+  @Override
+  public void onCompletion() {
+    // nothing
+  }
+
+  @Override
+  public void onException(Exception e) {
+    // nothing
+  }
+
+  private NullCompletionListener() {
+    //
+  }
 }

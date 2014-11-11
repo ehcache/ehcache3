@@ -15,5 +15,5 @@
  */
 
 dependencies {
-  compile project(':api'), 'javax.cache:cache-api:1.0.0'
+  compile project(':api'), project(':core'), project(':impl'), 'javax.cache:cache-api:1.0.0'
 }

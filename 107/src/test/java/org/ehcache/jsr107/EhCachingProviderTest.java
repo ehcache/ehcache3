@@ -13,17 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.internal.store;
 
-import org.ehcache.spi.cache.Store.ValueHolder;
+package org.ehcache.jsr107;
 
-interface OnHeapValueHolder<V> extends ValueHolder<V> {
-  
-  void setAccessTimeMillis(long accessTime);
-  
-  void setExpireTimeMillis(long expireTime);
-  
-  boolean isExpired(long now);
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-  long getExpireTimeMillis();
+import javax.cache.Caching;
+import javax.cache.spi.CachingProvider;
+
+import org.ehcache.jsr107.EhcacheCachingProvider;
+import org.junit.Test;
+
+public class EhCachingProviderTest {
+  
+  @Test
+  public void testLoadsAsCachingProvider() {
+    final CachingProvider provider = Caching.getCachingProvider();
+    assertThat(provider, is(instanceOf(EhcacheCachingProvider.class)));
+  }
 }

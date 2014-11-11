@@ -34,6 +34,7 @@ import org.ehcache.function.Function;
 import org.ehcache.function.Predicate;
 import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriter;
@@ -591,7 +592,40 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
     return old.get();
   }
+  
+  @Override
+  public V compute(K key, BiFunction<? super K, ? super V, ? extends V> function) {
+    try {
+      ValueHolder<V> valueHolder = store.compute(key, function);
+      return valueHolder == null ? null : valueHolder.value();
+    } catch (CacheAccessException e) {
+      // XXX:
+      throw new RuntimeException(e);
+    }
+  }
+  
+  @Override
+  public V computeIfAbsent(K key, Function<? super K, ? extends V> function) {
+    try {
+      ValueHolder<V> valueHolder = store.computeIfAbsent(key, function);
+      return valueHolder == null ? null : valueHolder.value();
+    } catch (CacheAccessException e) {
+      // XXX:
+      throw new RuntimeException(e);
+    }
+  }
 
+  @Override
+  public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> function) {
+    try {
+      ValueHolder<V> valueHolder = store.computeIfPresent(key, function);
+      return valueHolder == null ? null : valueHolder.value();
+    } catch (CacheAccessException e) {
+      // XXX:
+      throw new RuntimeException(e);
+    }
+  }
+  
   @Override
   public boolean replace(final K key, final V oldValue, final V newValue) throws CacheLoaderException, CacheWriterException {
     statusTransitioner.checkAvailable();
@@ -680,6 +714,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     st.succeeded();
   }
 
+  @Override
   public Maintainable toMaintenance() {
     final StatusTransitioner.Transition st = statusTransitioner.maintenance();
     try {
@@ -871,7 +906,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   
   private class CacheEntryIterator implements Iterator<Entry<K, V>> {
 
-    private Store.Iterator<Entry<K, Store.ValueHolder<V>>> iterator;
+    private final Store.Iterator<Entry<K, Store.ValueHolder<V>>> iterator;
     private Entry<K, Store.ValueHolder<V>> next;
 
     public CacheEntryIterator(final Store.Iterator<Entry<K, Store.ValueHolder<V>>> iterator) {
@@ -927,6 +962,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     @Override
     public void remove() {
       statusTransitioner.checkAvailable();
+      
+      if (next == null) {
+        throw new IllegalStateException();
+      }
+      
       Ehcache.this.remove(next.getKey(), next.getValue().value());
     }
   }

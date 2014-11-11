@@ -65,6 +65,7 @@ public class EhcacheManager implements PersistentCacheManager {
     this.configuration = config;
   }
 
+  @Override
   public <K, V> Cache<K, V> getCache(String alias, Class<K> keyType, Class<V> valueType) {
     statusTransitioner.checkAvailable();
     final CacheHolder cacheHolder = caches.get(alias);
@@ -109,7 +110,7 @@ public class EhcacheManager implements PersistentCacheManager {
   }
 
   @Override
-  public <K, V> Cache<K, V> createCache(final String alias, final CacheConfiguration<K, V> config) throws IllegalArgumentException {
+  public <K, V> Cache<K, V> createCache(final String alias, CacheConfiguration<K, V> config) throws IllegalArgumentException {
     statusTransitioner.checkAvailable();
     Class<K> keyType = config.getKeyType();
     Class<V> valueType = config.getValueType();
@@ -117,13 +118,19 @@ public class EhcacheManager implements PersistentCacheManager {
     ClassLoader cacheClassLoader = config.getClassLoader();
     if (cacheClassLoader == null) {
       cacheClassLoader = cacheManagerClassLoader;
+      
+      // adjust the config to reflect new classloader
+      config = new BaseCacheConfiguration<K, V>(keyType, valueType, config.getCapacityConstraint(),
+          config.getEvictionVeto(), config.getEvictionPrioritizer(), cacheClassLoader, config.getExpiry(), config
+              .getServiceConfigurations()
+              .toArray(new ServiceConfiguration<?>[config.getServiceConfigurations().size()]));
     }
     
     final CacheHolder value = new CacheHolder(keyType, valueType, null);
     if (caches.putIfAbsent(alias, value) != null) {
       throw new IllegalArgumentException("Cache '" + alias +"' already exists");
     }
-    final Ehcache<K, V> cache = createNewEhcache(alias, config, keyType, valueType, cacheClassLoader);
+    final Ehcache<K, V> cache = createNewEhcache(alias, config, keyType, valueType);
 
     RuntimeException failure = null;
     try {
@@ -150,11 +157,10 @@ public class EhcacheManager implements PersistentCacheManager {
   }
 
   <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
-                                                final Class<K> keyType, final Class<V> valueType, 
-                                                final ClassLoader cacheClassLoader) {
+                                        final Class<K> keyType, final Class<V> valueType) {
     final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
     final CacheLoaderFactory cacheLoaderFactory = serviceLocator.findService(CacheLoaderFactory.class);
-    final Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(keyType, valueType, cacheClassLoader));
+    final Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(keyType, valueType, config.getCapacityConstraint(), config.getEvictionVeto(), config.getEvictionPrioritizer(), config.getClassLoader(), config.getExpiry()));
     CacheLoader<? super K, ? extends V> loader = null;
     if(cacheLoaderFactory != null) {
       loader = cacheLoaderFactory.createCacheLoader(alias, config);
@@ -164,15 +170,8 @@ public class EhcacheManager implements PersistentCacheManager {
     if (cacheWriterFactory != null) {
       writer = cacheWriterFactory.createCacheWriter(alias, config);
     }
-    
-    CacheConfiguration<K, V> adjustedConfig = new BaseCacheConfiguration<K, V>(
-        keyType, valueType, config.getCapacityConstraint(),
-        config.getEvictionVeto(), config.getEvictionPrioritizer(),
-        cacheClassLoader, config.getExpiry(),
-        config.getServiceConfigurations().toArray(new ServiceConfiguration<?>[config.getServiceConfigurations().size()])
-    );
 
-    return new Ehcache<K, V>(adjustedConfig, store, loader, writer);
+    return new Ehcache<K, V>(config, store, loader, writer);
   }
 
   public void registerListener(CacheManagerListener listener) {
@@ -270,6 +269,7 @@ public class EhcacheManager implements PersistentCacheManager {
     st.succeeded();
   }
 
+  @Override
   public Maintainable toMaintenance() {
     final StatusTransitioner.Transition st = statusTransitioner.maintenance();
     try {

@@ -13,17 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.internal.store;
+package org.ehcache.jsr107;
 
-import org.ehcache.spi.cache.Store.ValueHolder;
+import javax.cache.event.CacheEntryEvent;
+import javax.cache.event.CacheEntryEventFilter;
+import javax.cache.event.CacheEntryListenerException;
 
-interface OnHeapValueHolder<V> extends ValueHolder<V> {
-  
-  void setAccessTimeMillis(long accessTime);
-  
-  void setExpireTimeMillis(long expireTime);
-  
-  boolean isExpired(long now);
+/**
+ * @author teck
+ */
+class NullCacheEntryEventFilter<K, V> implements CacheEntryEventFilter<K, V> {
 
-  long getExpireTimeMillis();
+  public static final CacheEntryEventFilter<?, ?> INSTANCE = null;
+
+  @Override
+  public boolean evaluate(CacheEntryEvent<? extends K, ? extends V> event) throws CacheEntryListenerException {
+    return true;
+  }
+
 }

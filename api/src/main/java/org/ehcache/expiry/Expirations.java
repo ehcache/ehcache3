@@ -68,6 +68,11 @@ public final class Expirations {
     public Duration getExpiryForAccess(K key, V value) {
       return access;
     }
+    
+    @Override
+    public Duration getExpiryForUpdate(K key, V oldValue, V newValue) {
+      return null;
+    }   
   }
 
   private static class TimeToLiveExpiry<K, V> extends BaseExpiry<K, V> {

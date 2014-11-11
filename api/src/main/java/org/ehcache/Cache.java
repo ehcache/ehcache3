@@ -15,11 +15,14 @@
  */
 package org.ehcache;
 
-import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
+import org.ehcache.event.CacheEventListener;
 import org.ehcache.exceptions.BulkCacheLoaderException;
 import org.ehcache.exceptions.CacheLoaderException;
 import org.ehcache.exceptions.CacheWriterException;
+import org.ehcache.function.BiFunction;
+import org.ehcache.function.Function;
+import org.ehcache.spi.writer.CacheWriter;
 import org.ehcache.statistics.CacheStatistics;
 
 import java.util.Map;
@@ -117,7 +120,9 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
   void removeAll(Iterable<? extends K> keys) throws CacheWriterException;
   
   /**
-   * Removes all mapping currently present in the Cache. This is not an atomic operation and can be very costly operation as well...
+   * Removes all mapping currently present in the Cache without invoking the {@link CacheWriter} or any
+   * registered {@link CacheEventListener} instances
+   * This is not an atomic operation and can potentially be very expensive
    */
   void clear();
 
@@ -198,6 +203,13 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return
    */
   CacheStatistics getStatistics();
+  
+  V compute(K key, BiFunction<? super K, ? super V, ? extends V> function);
+
+  V computeIfAbsent(K key, Function<? super K, ? extends V> function);
+
+  V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> function);
+  
   
   /**
    * Represent a mapping of key to value held in a Cache
