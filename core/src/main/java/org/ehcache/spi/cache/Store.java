@@ -263,7 +263,7 @@ public interface Store<K, V> {
    * The entire operation is performed atomically.
    * 
    * @param key the key to operate on
-   * @param mappingFunction the function that will produce the value. The function will be supplied
+   * @param remappingFunction the function that will produce the value. The function will be supplied
    *        with the key and existing value as parameters. The function should
    *        return the desired new value for the entry or null to remove the entry. If the method throws
    *        an unchecked exception the Store will not be modified (the caller will receive the exception)
@@ -275,47 +275,47 @@ public interface Store<K, V> {
   ValueHolder<V> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException;
 
   /**
-   * Compute a value for every key passed in the {@link Iterable} <code>keys</code> argument using the <code>remappingFunction</code>
-   * function to compute the value.
+   * Compute a value for every key passed in the {@link Iterable} <code>keys</code> argument, using the <code>remappingFunction</code>
+   * to compute the value.
    * <p>
-   * The function gets a {@link Iterable} of {@link Map.Entry} key / value pairs, with the entry's value being the currently stored value,
-   * or null if nothing is stored under the key. It is expected that the function should return a {@link Iterable} of {@link Map.Entry}
-   * key / value pairs containing an entry matching each entry (same key) that was passed to it. This returned {@link Iterable} should also iterate in the same order than the input {@link Iterable}.
+   * The function gets an {@link Iterable} of {@link Map.Entry} key/value pairs, where each entry's value is its currently stored value,
+   * or null if nothing is stored under the key. It is expected that the function returns an {@link Iterable} of {@link Map.Entry}
+   * key/value pairs containing an entry for each key that was passed to it. This returned {@link Iterable} should also iterate in the same order as the input {@link Iterable}.
    * Every missing entry in the returned {@link Iterable} will be
-   * ignored and its current value (or lack thereof) will be left in place. If the entry's value is null, the mapping will be removed from the store.
+   * ignored and its current value (or lack thereof) will be left in place. If an entry's value is null, its mapping will be removed from the store.
    * </p>
-   * The function may be called multiple times per <code>bulkCompute</code> call, depending on how the store wants or do not want to batch computations.
+   * The function may be called multiple times per <code>bulkCompute</code> call, depending on how the store wants or does not want to batch computations.
    *
-   * Note: this method does not guarantee atomicity of the computations between each other. Each computation is atomic but the store may be concurrently
-   * modified between each computed key.
+   * Note: This method does not guarantee atomicity of the computations between each other. Each computation is atomic, but the store may be concurrently
+   * modified at any time during key computations.
    *
    * @param keys the keys to compute a new value for.
    * @param remappingFunction the function that generates new values.
-   * @return a {@link Map} of key / value pairs for each key in <code>keys</code> that are in the store after bulk computing is done.
+   * @return a {@link Map} of key/value pairs for each key in <code>keys</code> that is in the store after bulk computing is done.
    * @throws ClassCastException if the specified key(s) are not of the correct type ({@code K}). Also thrown if the given function produces
-   *         entries with either incorrect key or value types
+   *         entries with either incorrect key or value types   
    * @throws CacheAccessException
    */
   Map<K, ValueHolder<V>> bulkCompute(Iterable<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException;
 
   /**
    * Compute a value for every key passed in the {@link Iterable} <code>keys</code> argument using the <code>mappingFunction</code>
-   * function to compute the value.
+   * to compute the value.
    *
-   * The function gets a {@link Iterable} of {@link Map.Entry} key / value pairs, with the entry's value being the currently stored value
-   * for each key that is not mapped in the store. It is expected that the function should return a {@link Iterable} of {@link Map.Entry}
-   * key / value pairs containing an entry matching each entry (same key) that was passed to it. This returned {@link Iterable} should also iterate in the same order than the input {@link Iterable}.
+   * The function gets an {@link Iterable} of {@link Map.Entry} key/value pairs, where each entry's value is its currently stored value
+   * for each key that is not mapped in the store. It is expected that the function returns an {@link Iterable} of {@link Map.Entry}
+   * key/value pairs containing an entry for each key that was passed to it. This returned {@link Iterable} should also iterate in the same order as the input {@link Iterable}.
    * Every missing entry in the returned {@link Iterable} will be
    * ignored and the store will be left untouched for that key, much like if the entry's return value is null.
    *
-   * The function may be called multiple times per <code>bulkComputeIfAbsent</code> call, depending on how the store wants or do not want to batch computations.
+   * The function may be called multiple times per <code>bulkComputeIfAbsent</code> call, depending on how the store wants or does not want to batch computations.
    *
-   * Note: this method does not guarantee atomicity of the computations between each other. Each computation is atomic but the store may be concurrently
-   * modified between each computed key.
+   * Note: This method does not guarantee atomicity of the computations between each other. Each computation is atomic, but the store may be concurrently
+   * modified at any time during key computations.
    *
    * @param keys the keys to compute a new value for, if they're not in the store.
    * @param mappingFunction the function that generates new values.
-   * @return a {@link Map} of key / value pairs for each key in <code>keys</code> that are in the store after bulk computing is done.
+   * @return a {@link Map} of key/value pairs for each key in <code>keys</code> that are in the store after bulk computing is done.
    * @throws ClassCastException if the specified key(s) are not of the correct type ({@code K}). Also thrown if the given function produces
    *         entries with either incorrect key or value types
    * @throws CacheAccessException

@@ -32,11 +32,11 @@ public class BulkCacheWriterException extends CacheWriterException {
 
   /**
    * Constructs a new BulkCacheWriterException providing the key set that failed, including the exception loading these
-   * threw, as well as all keys we managed to write a value for, including the value written. This latter set of keys was
+   * threw, as well as all keys we managed to write a value for. This latter set of keys was
    * written successfully into the {@link org.ehcache.Cache}.
    *
    * @param failures the map of keys to failure encountered while loading the values
-   * @param successes the set of keys successfully written / removed and their associated values
+   * @param successes the set of keys successfully written / removed
    */
   public BulkCacheWriterException(final Map<?, Exception> failures, final Set<?> successes) {
     this.failures = Collections.unmodifiableMap(failures);
@@ -53,9 +53,8 @@ public class BulkCacheWriterException extends CacheWriterException {
   }
 
   /**
-   * Accessor to all keys that were successfully loaded during a bulk load operation, with the associated
-   * loaded value
-   * @return a map of keys to value loaded and installed in the {@link org.ehcache.Cache}
+   * Accessor to all keys that were successfully loaded during a bulk load operation
+   * @return a set of keys loaded and installed in the {@link org.ehcache.Cache}
    */
   public Set<?> getSuccesses() {
     return successes;
