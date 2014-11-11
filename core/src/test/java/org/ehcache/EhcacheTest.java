@@ -18,21 +18,32 @@ package org.ehcache;
 
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.events.StateChangeListener;
+import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.StateTransitionException;
+import org.ehcache.function.BiFunction;
 import org.ehcache.spi.cache.Store;
+import org.hamcrest.CoreMatchers;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class EhcacheTest {
 
@@ -223,6 +234,49 @@ public class EhcacheTest {
     } catch (StateTransitionException e) {
       assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
     }
+  }
+
+  @Test
+  public void testPutIfAbsent() throws CacheAccessException {
+    final AtomicReference<Object> existingValue = new AtomicReference<Object>();
+    final Store store = mock(Store.class);
+    final String value = "bar";
+    when(store.compute(eq("foo"), any(BiFunction.class))).thenAnswer(new Answer<Object>() {
+      @Override
+      public Object answer(final InvocationOnMock invocationOnMock) throws Throwable {
+        final BiFunction<Object, Object, Object> biFunction
+            = (BiFunction<Object, Object, Object>)invocationOnMock.getArguments()[1];
+        final Object newValue = biFunction.apply(invocationOnMock.getArguments()[0], existingValue.get());
+        existingValue.compareAndSet(null, newValue);
+        return new Store.ValueHolder<Object>() {
+          @Override
+          public Object value() {
+            return newValue;
+          }
+
+          @Override
+          public long creationTime(final TimeUnit unit) {
+            throw new UnsupportedOperationException("Implement me!");
+          }
+
+          @Override
+          public long lastAccessTime(final TimeUnit unit) {
+            throw new UnsupportedOperationException("Implement me!");
+          }
+
+          @Override
+          public float hitRate(final TimeUnit unit) {
+            throw new UnsupportedOperationException("Implement me!");
+          }
+        };
+      }
+    });
+    Ehcache<Object, Object> ehcache = new Ehcache<Object, Object>(CacheConfigurationBuilder
+        .newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
+    ehcache.init();
+    assertThat(ehcache.putIfAbsent("foo", value), nullValue());
+    assertThat(ehcache.putIfAbsent("foo", "foo"), CoreMatchers.<Object>is(value));
+    assertThat(ehcache.putIfAbsent("foo", "foobar"), CoreMatchers.<Object>is(value));
   }
 
   @Test
