@@ -16,12 +16,10 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.Cache;
-import org.ehcache.eviction.EvictionPrioritizer;
+import org.ehcache.config.Eviction;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
-
-import java.util.Comparator;
+import org.hamcrest.Matcher;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -44,10 +42,10 @@ public class StoreConfigurationGetEvictionPrioritizerTest<K, V> extends SPIStore
   @SPITest
   @SuppressWarnings({ "cast", "unchecked" })
   public void returnsCorrectEvictionPrioritizer() throws IllegalAccessException, InstantiationException {
-    final Comparator<Cache.Entry<K, V>> evictionPrioritizer = Comparator.class.cast(EvictionPrioritizer.LFU);
+    final Eviction.Prioritizer evictionPrioritizer = Eviction.Prioritizer.LFU;
     Store.Configuration<K, V> kvConfiguration = factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         null, null, evictionPrioritizer);
 
-    assertThat(evictionPrioritizer, is(equalTo((kvConfiguration.getEvictionPrioritizer()))));
+    assertThat(evictionPrioritizer, is(equalTo(((Object) kvConfiguration.getEvictionPrioritizer()))));
   }
 }

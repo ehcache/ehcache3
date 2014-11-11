@@ -27,6 +27,8 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
 import org.ehcache.Cache.Entry;
+import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
@@ -684,12 +686,12 @@ public class OnHeapStoreTest {
       }
 
       @Override
-      public Predicate<Entry<String, String>> getEvictionVeto() {
+      public EvictionVeto<? super String, ? super String> getEvictionVeto() {
         return null;
       }
 
       @Override
-      public Comparator<Entry<String, String>> getEvictionPrioritizer() {
+      public EvictionPrioritizer<? super String, ? super String> getEvictionPrioritizer() {
         return null;
       }
 
