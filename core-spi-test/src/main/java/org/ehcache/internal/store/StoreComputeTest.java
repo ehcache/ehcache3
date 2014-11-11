@@ -15,6 +15,7 @@
  */
 package org.ehcache.internal.store;
 
+import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.spi.cache.Store;
@@ -35,7 +36,8 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongReturnValueType() throws Exception {
-    final Store kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
+        .all(), null));
 
     if (factory.getValueType() == Object.class) {
       System.err.println("Warning, store uses Object as value type, cannot verify in this configuration");
@@ -69,7 +71,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongKeyType() throws Exception {
-    final Store kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    final Store kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     if (factory.getKeyType() == Object.class) {
       System.err.println("Warning, store uses Object as key type, cannot verify in this configuration");
@@ -101,7 +103,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testComputePutsValueInStore() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     final K key = factory.getKeyType().newInstance();
     final V value = factory.getValueType().newInstance();
@@ -122,7 +124,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testOverwriteExitingValue() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     final K key = factory.getKeyType().newInstance();
     final V value = factory.getValueType().newInstance();
@@ -147,7 +149,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testNullReturnRemovesEntry() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     final K key = factory.getKeyType().newInstance();
     final V value = factory.getValueType().newInstance();
@@ -169,7 +171,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testException() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     final K key = factory.getKeyType().newInstance();
     final V value = factory.getValueType().newInstance();

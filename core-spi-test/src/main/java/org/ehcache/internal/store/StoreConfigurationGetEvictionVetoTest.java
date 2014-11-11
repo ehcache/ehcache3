@@ -16,9 +16,8 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.Cache;
-import org.ehcache.function.Predicate;
-import org.ehcache.function.Predicates;
+import org.ehcache.config.Eviction;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
 
@@ -42,10 +41,10 @@ public class StoreConfigurationGetEvictionVetoTest<K, V> extends SPIStoreTester<
 
   @SPITest
   public void returnsCorrectEvictionVeto() throws IllegalAccessException, InstantiationException {
-    Predicate<Cache.Entry<K, V>> evictionVeto = Predicates.all();
+    final EvictionVeto<Object, Object> evictionVeto = Eviction.all();
     Store.Configuration<K, V> kvConfiguration = factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         null, evictionVeto, null);
 
-    assertThat(evictionVeto, is(equalTo((kvConfiguration.getEvictionVeto()))));
+    assertThat(evictionVeto, is(equalTo(((Object)kvConfiguration.getEvictionVeto()))));
   }
 }

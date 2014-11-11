@@ -17,6 +17,7 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
+import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
@@ -44,7 +45,8 @@ public class StoreIteratorNextTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void nextReturnsNextElement()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
+        .all(), null));
 
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
@@ -65,7 +67,7 @@ public class StoreIteratorNextTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void noMoreElementThrowsException()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     kvStore.put(factory.getKeyType().newInstance(), factory.getValueType().newInstance());
 

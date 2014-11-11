@@ -16,17 +16,24 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.Cache.Entry;
+import org.ehcache.config.Eviction;
+import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
+import org.ehcache.function.Predicate;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.Iterator;
 import org.ehcache.spi.cache.Store.ValueHolder;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.junit.Test;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -660,6 +667,49 @@ public abstract class BaseOnHeapStoreTest {
 
   protected abstract <K, V> OnHeapStore<K, V> newStore();
 
-  protected abstract <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource, final Expiry<? super K, ? super V> expiry);
+  private OnHeapStore<String, String> newStore(final TimeSource timeSource,
+      final Expiry<? super String, ? super String> expiry) {
+    return new OnHeapStore<String, String>(new Store.Configuration<String, String>() {
+      @Override
+      public Class<String> getKeyType() {
+        return String.class;
+      }
+
+      @Override
+      public Class<String> getValueType() {
+        return String.class;
+      }
+
+      @Override
+      public Comparable<Long> getCapacityConstraint() {
+        return null;
+      }
+
+      @Override
+      public EvictionVeto<String, String> getEvictionVeto() {
+        return null;
+      }
+
+      @Override
+      public EvictionPrioritizer<String, String> getEvictionPrioritizer() {
+        return null;
+      }
+
+      @Override
+      public SerializationProvider getSerializationProvider() {
+        return null;
+      }
+
+      @Override
+      public ClassLoader getClassLoader() {
+        return getClass().getClassLoader();
+      }
+
+      @Override
+      public Expiry<? super String, ? super String> getExpiry() {
+        return expiry;
+      }
+    }, timeSource, false);
+  }
 
 }

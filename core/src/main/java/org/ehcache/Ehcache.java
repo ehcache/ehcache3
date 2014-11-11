@@ -18,6 +18,8 @@ package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
+import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
@@ -27,7 +29,6 @@ import org.ehcache.exceptions.*;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
-import org.ehcache.function.Predicate;
 import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
@@ -47,15 +48,7 @@ import org.ehcache.statistics.StatisticsGateway;
 import org.ehcache.util.StatisticsThreadPoolUtil;
 import org.terracotta.context.annotations.ContextChild;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -860,8 +853,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     private final Class<K> keyType;
     private final Class<V> valueType;
     private final Comparable<Long> capacityConstraint;
-    private final Predicate<Cache.Entry<K, V>> evictionVeto;
-    private final Comparator<Cache.Entry<K, V>> evictionPrioritizer;
+    private final EvictionVeto<? super K, ? super V> evictionVeto;
+    private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
     private final Set<CacheEventListener<?, ?>> eventListeners;
     private final SerializationProvider serializationProvider;
     private final ClassLoader classLoader;
@@ -917,12 +910,12 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
 
     @Override
-    public Predicate<Cache.Entry<K, V>> getEvictionVeto() {
+    public EvictionVeto<? super K, ? super V> getEvictionVeto() {
       return this.evictionVeto;
     }
 
     @Override
-    public Comparator<Cache.Entry<K, V>> getEvictionPrioritizer() {
+    public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
       return this.evictionPrioritizer;
     }
 

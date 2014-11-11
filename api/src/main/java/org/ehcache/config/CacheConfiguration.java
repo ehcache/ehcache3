@@ -68,7 +68,7 @@ public interface CacheConfiguration<K, V> {
    * 
    * @return the eviction veto predicate
    */
-  Predicate<Cache.Entry<K, V>> getEvictionVeto();
+  EvictionVeto<? super K, ? super V> getEvictionVeto();
 
   /**
    * The eviction prioritization comparator.
@@ -78,7 +78,7 @@ public interface CacheConfiguration<K, V> {
    * 
    * @return the eviction prioritizer
    */
-  Comparator<Cache.Entry<K, V>> getEvictionPrioritizer();
+  EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer();
 
   /**
    * Returns a immutable Set of {@link org.ehcache.event.CacheEventListener} currently registered

@@ -6300,7 +6300,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         }
     }
 
-    public Set<Entry<K, V>> getRandomValues(Random rndm, int size, Predicate<? super Entry<K, V>> veto) {
+    public Set<Entry<K, V>> getRandomValues(Random rndm, int size, Predicate<Entry<K, V>> veto) {
         Set<Entry<K, V>> sampled = new HashSet<Entry<K, V>>(size);
 
         Node<K,V>[] tab = table;

@@ -17,6 +17,8 @@
 package org.ehcache.spi.cache;
 
 import org.ehcache.Cache;
+import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -417,7 +419,7 @@ public interface Store<K, V> {
      * 
      * @return the eviction veto predicate
      */
-    Predicate<Cache.Entry<K, V>> getEvictionVeto();
+    EvictionVeto<? super K, ? super V> getEvictionVeto();
 
     /**
      * An entry comparator that may be used by the store to order a selected set
@@ -425,7 +427,7 @@ public interface Store<K, V> {
      * 
      * @return the eviction prioritizer
      */
-    Comparator<Cache.Entry<K, V>> getEvictionPrioritizer();
+    EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer();
 
     /**
      * The serialization provider the store is going to use to serialize mappings.

@@ -18,8 +18,11 @@ package org.ehcache.eviction;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.concurrent.TimeUnit;
 import org.ehcache.Cache;
+import org.ehcache.config.Eviction;
+import org.ehcache.config.EvictionPrioritizer;
 import org.hamcrest.CoreMatchers;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -40,7 +43,12 @@ public class EvictionPrioritizerTest {
     when(a.getLastAccessTime(any(TimeUnit.class))).thenReturn(0L);
     Cache.Entry<String, String> b = mock(Cache.Entry.class);
     when(b.getLastAccessTime(any(TimeUnit.class))).thenReturn(1L);
-    assertThat(Collections.max(Arrays.asList(a, b), EvictionPrioritizer.LRU), is(a));
+    assertThat(Collections.max(Arrays.asList(a, b), new Comparator<Cache.Entry<String, String>>() {
+      @Override
+      public int compare(final Cache.Entry<String, String> o1, final Cache.Entry<String, String> o2) {
+        return Eviction.Prioritizer.LRU.compare((Cache.Entry) o1, (Cache.Entry) o2);
+      }
+    }), is(a));
   }
 
   @Test
@@ -49,7 +57,12 @@ public class EvictionPrioritizerTest {
     when(a.getHitRate(any(TimeUnit.class))).thenReturn(0.0f);
     Cache.Entry<String, String> b = mock(Cache.Entry.class);
     when(b.getHitRate(any(TimeUnit.class))).thenReturn(1.0f);
-    assertThat(Collections.max(Arrays.asList(a, b), EvictionPrioritizer.LFU), is(a));
+    assertThat(Collections.max(Arrays.asList(a, b), new Comparator<Cache.Entry<String, String>>() {
+      @Override
+      public int compare(final Cache.Entry<String, String> o1, final Cache.Entry<String, String> o2) {
+        return Eviction.Prioritizer.LFU.compare((Cache.Entry) o1, (Cache.Entry) o2);
+      }
+    }), is(a));
   }
 
   @Test
@@ -58,6 +71,11 @@ public class EvictionPrioritizerTest {
     when(a.getCreationTime(any(TimeUnit.class))).thenReturn(0L);
     Cache.Entry<String, String> b = mock(Cache.Entry.class);
     when(b.getCreationTime(any(TimeUnit.class))).thenReturn(1L);
-    assertThat(Collections.max(Arrays.asList(a, b), EvictionPrioritizer.FIFO), is(a));
+    assertThat(Collections.max(Arrays.asList(a, b), new Comparator<Cache.Entry<String, String>>() {
+      @Override
+      public int compare(final Cache.Entry<String, String> o1, final Cache.Entry<String, String> o2) {
+        return Eviction.Prioritizer.FIFO.compare((Cache.Entry) o1, (Cache.Entry) o2);
+      }
+    }), is(a));
   }
 }

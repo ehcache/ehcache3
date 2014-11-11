@@ -18,7 +18,9 @@ package org.ehcache.config.xml;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.ConfigurationBuilder;
-import org.ehcache.function.Predicate;
+import org.ehcache.config.Eviction;
+import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
 import org.xml.sax.SAXException;
@@ -26,9 +28,7 @@ import org.xml.sax.SAXException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Map;
-import org.ehcache.eviction.EvictionPrioritizer;
 
 /**
  * @author cdennis
@@ -81,12 +81,12 @@ public class XmlConfiguration {
       Class keyType = getClassForName(cacheElement.keyType(), cacheClassLoader);
       Class valueType = getClassForName(cacheElement.valueType(), cacheClassLoader);
       Long capacityConstraint = cacheElement.capacityConstraint();
-      Predicate evictionVeto = getInstanceOfName(cacheElement.evictionVeto(), cacheClassLoader, Predicate.class);
-      Comparator evictionPrioritizer;
+      EvictionVeto evictionVeto = getInstanceOfName(cacheElement.evictionVeto(), cacheClassLoader, EvictionVeto.class);
+      EvictionPrioritizer evictionPrioritizer;
       try {
-        evictionPrioritizer = EvictionPrioritizer.valueOf(cacheElement.evictionPrioritizer());
+        evictionPrioritizer = Eviction.Prioritizer.valueOf(cacheElement.evictionPrioritizer());
       } catch (IllegalArgumentException e) {
-        evictionPrioritizer = getInstanceOfName(cacheElement.evictionPrioritizer(), cacheClassLoader, Comparator.class);
+        evictionPrioritizer = getInstanceOfName(cacheElement.evictionPrioritizer(), cacheClassLoader, EvictionPrioritizer.class);
       } catch (NullPointerException e) {
         evictionPrioritizer = null;
       }

@@ -17,6 +17,7 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
@@ -64,8 +65,8 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   private final Serializer<V> serializer;
 
   private final Comparable<Long> capacityConstraint;
-  private final Predicate<Map.Entry<K, OnHeapValueHolder<V>>> evictionVeto;
-  private final Comparator<Map.Entry<K, OnHeapValueHolder<V>>> evictionPrioritizer;
+  private final Predicate<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionVeto;
+  private final Comparator<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionPrioritizer;
   private final Expiry<? super K, ? super V> expiry;
   private final TimeSource timeSource;
   
@@ -344,7 +345,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     checkKey(key);
 
     final long now = timeSource.getTimeMillis();
-    
+
     return map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(final K mappedKey, OnHeapValueHolder<V> mappedValue) {
@@ -535,11 +536,11 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
   private boolean evict() {
     evictionObserver.begin();
-    Set<Map.Entry<K, OnHeapValueHolder<V>>> values = map.getRandomValues(new Random(), 8, evictionVeto);
+    Set<Map.Entry<K, OnHeapValueHolder<V>>> values = map.getRandomValues(new Random(), 8, (Predicate<Map.Entry<K, OnHeapValueHolder<V>>>)evictionVeto);
     if (values.isEmpty()) {
       return false;
     } else {
-      Map.Entry<K, OnHeapValueHolder<V>> evict = Collections.max(values, evictionPrioritizer);
+      Map.Entry<K, OnHeapValueHolder<V>> evict = Collections.max(values, (Comparator<? super Map.Entry<K, OnHeapValueHolder<V>>>)evictionPrioritizer);
       if (map.remove(evict.getKey(), evict.getValue())) {
         //Eventually we'll need to fire a listener here.
         evictionObserver.end(EvictionOutcome.SUCCESS);

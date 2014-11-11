@@ -16,11 +16,12 @@
 
 package org.ehcache;
 
-import java.util.Comparator;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.StandaloneCacheConfiguration;
 import org.ehcache.config.StoreConfigurationImpl;
@@ -29,7 +30,6 @@ import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.function.Predicate;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ExecutorFactoryService;
@@ -51,8 +51,8 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   private Expiry<K, V> expiry = Expirations.noExpiration();
   private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
   private Comparable<Long> capacityConstraint;
-  private Predicate<Cache.Entry<K, V>> evictionVeto;
-  private Comparator<Cache.Entry<K, V>> evictionPrioritizer;
+  private EvictionVeto<? super K, ? super V> evictionVeto;
+  private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private CacheLoader<? super K, ? extends V> cacheLoader;
   private CacheWriter<? super K, ? super V> cacheWriter;
   private SerializationProvider serializationProvider;
@@ -100,12 +100,12 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     return this;
   }
   
-  public final StandaloneCacheBuilder<K, V, T> vetoEviction(Predicate<Cache.Entry<K, V>> predicate) {
+  public final StandaloneCacheBuilder<K, V, T> vetoEviction(EvictionVeto<? super K, ? super V> predicate) {
     this.evictionVeto = predicate;
     return this;
   }
   
-  public final StandaloneCacheBuilder<K, V, T> prioritizeEviction(Comparator<Cache.Entry<K, V>> criteria) {
+  public final StandaloneCacheBuilder<K, V, T> prioritizeEviction(EvictionPrioritizer<? super K, ? super V> criteria) {
     this.evictionPrioritizer = criteria;
     return this;
   }
