@@ -38,6 +38,8 @@ public class CacheConfigurationBuilder {
   private ClassLoader classLoader = null;
   private SerializationProvider serializationProvider = null;
   private Comparable<Long> capacityConstraint;
+  private Comparator<Cache.Entry<?, ?>> evictionPrioritizer;
+  private Predicate<Cache.Entry<?, ?>> evictionVeto;
 
   public static CacheConfigurationBuilder newCacheConfigurationBuilder() {
     return new CacheConfigurationBuilder();
@@ -53,6 +55,16 @@ public class CacheConfigurationBuilder {
     return this;
   }
 
+  public CacheConfigurationBuilder usingEvictionPrioritizer(final Comparator<Cache.Entry<?, ?>> evictionPrioritizer) {
+    this.evictionPrioritizer = evictionPrioritizer;
+    return this;
+  }
+
+  public CacheConfigurationBuilder evitionVeto(final Predicate<Cache.Entry<?, ?>> veto) {
+    evictionVeto = veto;
+    return this;
+  }
+
   public CacheConfigurationBuilder removeServiceConfig(ServiceConfiguration<?> configuration) {
     serviceConfigurations.remove(configuration);
     return this;
@@ -64,7 +76,10 @@ public class CacheConfigurationBuilder {
   }
 
   public <K, V> CacheConfiguration<K, V> buildConfig(Class<K> keyType, Class<V> valueType) {
-    return new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, null, null, classLoader, expiry,
+    evictionPrioritizer = null;
+    evictionVeto = null;
+    return new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, Predicate.class.cast(evictionVeto),
+        Comparator.class.cast(evictionPrioritizer), classLoader, expiry,
         serializationProvider, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
