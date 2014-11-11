@@ -251,7 +251,7 @@ public interface Store<K, V> {
    *        with the key as a parameter. The function return the desired new value for the entry or null to
    *        remove the entry. If the method throws an unchecked exception the Store will not be modified
    *        (the caller will receive the exception)
-   * @return the new value associated with the key or null if none
+   * @return the old value associated with the key or null if none
    * @throws ClassCastException If the specified key is not of the correct type ({@code K}) or if the
    *         function returns a value that is not of type ({@code V})
    * @throws CacheAccessException
@@ -267,7 +267,7 @@ public interface Store<K, V> {
    *        with the key and existing value as parameters. The function should
    *        return the desired new value for the entry or null to remove the entry. If the method throws
    *        an unchecked exception the Store will not be modified (the caller will receive the exception)
-   * @return the new value associated with the key or null if none
+   * @return the old value associated with the key or null if none
    * @throws ClassCastException If the specified key is not of the correct type ({@code K}) or if the
    *         function returns a value that is not of type ({@code V})
    * @throws CacheAccessException

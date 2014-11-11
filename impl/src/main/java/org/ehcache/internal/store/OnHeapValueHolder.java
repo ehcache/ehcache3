@@ -24,4 +24,6 @@ interface OnHeapValueHolder<V> extends ValueHolder<V> {
   void setExpireTimeMillis(long expireTime);
   
   boolean isExpired(long now);
+
+  long getExpireTimeMillis();
 }

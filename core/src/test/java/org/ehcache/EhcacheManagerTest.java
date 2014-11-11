@@ -224,7 +224,9 @@ public class EhcacheManagerTest {
     final CacheLoaderFactory cacheLoaderFactory = mock(CacheLoaderFactory.class);
 
     final CacheConfiguration<Long, Long> barConfig = mock(CacheConfiguration.class);
+    when(barConfig.getClassLoader()).thenReturn(getClass().getClassLoader());
     final CacheConfiguration<Integer, CharSequence> fooConfig = mock(CacheConfiguration.class);
+    when(fooConfig.getClassLoader()).thenReturn(getClass().getClassLoader());
 
     CacheLoader fooLoader = mock(CacheLoader.class);
 
@@ -306,8 +308,8 @@ public class EhcacheManagerTest {
 
       @Override
       <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
-                                            final Class<K> keyType, final Class<V> valueType, final ClassLoader cacheClassLoader) {
-        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType, cacheClassLoader);
+                                            final Class<K> keyType, final Class<V> valueType) {
+        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
         caches.add(ehcache);
         if(caches.size() == 1) {
           when(storeProvider.createStore(Matchers.<Store.Configuration<K,V>>anyObject(),
@@ -349,8 +351,8 @@ public class EhcacheManagerTest {
 
       @Override
       <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
-                                            final Class<K> keyType, final Class<V> valueType, final ClassLoader cacheClassLoader) {
-        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType, cacheClassLoader);
+                                            final Class<K> keyType, final Class<V> valueType) {
+        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
         caches.add(alias);
         return ehcache;
       }

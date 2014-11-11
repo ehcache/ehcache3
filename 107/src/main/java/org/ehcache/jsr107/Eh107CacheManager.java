@@ -191,6 +191,22 @@ class Eh107CacheManager implements CacheManager {
           return org.ehcache.expiry.Duration.ZERO;
         }
       }
+      
+      @Override
+      public org.ehcache.expiry.Duration getExpiryForUpdate(Object key, Object oldValue, Object newValue) {
+        try {
+          Duration duration = expiryPolicy.getExpiryForUpdate();
+          if (duration == null) {
+            return null;
+          }
+          if (duration.isEternal()) {
+            return org.ehcache.expiry.Duration.FOREVER;
+          }
+          return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
+        } catch (Throwable t) {
+          return org.ehcache.expiry.Duration.ZERO;
+        }
+      }
     };
   }
 

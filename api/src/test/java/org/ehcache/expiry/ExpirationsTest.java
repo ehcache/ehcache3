@@ -30,6 +30,7 @@ public class ExpirationsTest {
     Expiry<Object, Object> expiry = Expirations.noExpiration();
     assertThat(expiry.getExpiryForCreation(this, this), equalTo(Duration.FOREVER));
     assertThat(expiry.getExpiryForAccess(this, this), nullValue());
+    assertThat(expiry.getExpiryForUpdate(this, this, this), nullValue());
   }
 
   @Test
@@ -38,6 +39,7 @@ public class ExpirationsTest {
     Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(duration);
     assertThat(expiry.getExpiryForCreation(this, this), equalTo(duration));
     assertThat(expiry.getExpiryForAccess(this, this), equalTo(duration));
+    assertThat(expiry.getExpiryForUpdate(this, this, this), nullValue());
   }
 
   @Test
@@ -46,5 +48,6 @@ public class ExpirationsTest {
     Expiry<Object, Object> expiry = Expirations.timeToLiveExpiration(duration);
     assertThat(expiry.getExpiryForCreation(this, this), equalTo(duration));
     assertThat(expiry.getExpiryForAccess(this, this), nullValue());
+    assertThat(expiry.getExpiryForUpdate(this, this, this), nullValue());
   }
 }

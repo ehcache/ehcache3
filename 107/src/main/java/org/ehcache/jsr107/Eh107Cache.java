@@ -55,6 +55,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   private final Eh107CacheMXBean managementBean;
   private final Eh107CacheStatisticsMXBean statisticsBean;
   private final CompleteConfiguration<K, V> config;
+  private final CacheLoader<K, V> cacheLoader;
 
   // functions used by loadAll()
   private final Function<K, V> loadAllNonReplaceFunction;
@@ -63,20 +64,21 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     this.loadAllNonReplaceFunction = new Function<K, V>() {
       @Override
       public V apply(K mappedKey) {
-        return ehCache.get(mappedKey);
+        return cacheLoader.load(mappedKey);
       }
     };
 
     this.loadAllReplaceFunction = new BiFunction<K, V, V>() {
       @Override
       public V apply(K mappedKey, V mappedValue) {
-        return ehCache.get(mappedKey);
+        return cacheLoader.load(mappedKey);
       }
     };
   }
 
   Eh107Cache(String name, CompleteConfiguration<K, V> config, CacheResources<K, V> cacheResources,
       org.ehcache.Cache<K, V> ehCache, Eh107CacheManager cacheManager) {
+    this.cacheLoader = cacheResources.getCacheLoader();
     this.config = config;
     this.ehCache = ehCache;
     this.cacheManager = cacheManager;
@@ -127,7 +129,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
     completionListener = completionListener != null ? completionListener : NullCompletionListener.INSTANCE;
 
-    if (cacheResources.getCacheLoader() == null) {
+    if (cacheLoader == null) {
       completionListener.onCompletion();
       return;
     }
@@ -140,8 +142,11 @@ class Eh107Cache<K, V> implements Cache<K, V> {
         } else {
           ehCache.computeIfAbsent(key, loadAllNonReplaceFunction);
         }
-      } catch (Throwable t) {
-        completionListener.onException(new CacheLoaderException(t));
+      } catch (Exception e) {
+        if (!(e instanceof CacheLoaderException)) {
+          e = new CacheLoaderException(e);
+        }
+        completionListener.onException(e);
         continue;
       }
     }
@@ -282,12 +287,14 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       throw new NullPointerException();
     }
 
+    final AtomicReference<MutableEntry<K, V>> mutableEntryRef = new AtomicReference<MutableEntry<K, V>>();
     final AtomicReference<T> invokeResult = new AtomicReference<T>();
     ehCache.compute(key, new BiFunction<K, V, V>() {
       @Override
       public V apply(K mappedKey, V mappedValue) {
-        MutableEntry<K, V> mutableEntry = new MutableEntry<K, V>(mappedKey, mappedValue, cacheResources
-            .getCacheLoader());
+        MutableEntry<K, V> mutableEntry = new MutableEntry<K, V>(mappedKey, mappedValue, cacheLoader);
+        mutableEntryRef.set(mutableEntry);
+
         T processResult;
         try {
           processResult = entryProcessor.process(mutableEntry, arguments);
@@ -298,12 +305,13 @@ class Eh107Cache<K, V> implements Cache<K, V> {
           throw new EntryProcessorException(e);
         }
 
-        V newValue = mutableEntry.applyTo(Eh107Cache.this);
         invokeResult.set(processResult);
-        return newValue;
+        return mutableEntry.getFinalValue();
       }
     });
 
+    // XXX: this should happen in lock scope (ie. in function above)!
+    mutableEntryRef.get().applyTo(this);
     return invokeResult.get();
   }
 
@@ -609,20 +617,37 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       finalValue = value;
     }
 
-    V applyTo(Eh107Cache<K, V> cache) {
+    V getFinalValue() {
+      switch (operation) {
+      case NONE:
+      case ACCESS:
+        return initialValue;
+      case CREATE:
+      case LOAD:
+      case UPDATE:
+        return finalValue;
+      case REMOVE:
+        return null;
+      }
+
+      throw new AssertionError("unhandled case: " + operation);
+    }
+
+    void applyTo(Eh107Cache<K, V> cache) {
       switch (operation) {
       case ACCESS:
-        return cache.get(key);
+        cache.get(key);
+        return;
       case CREATE:
       case LOAD:
       case UPDATE:
         cache.put(key, finalValue);
-        return finalValue;
+        return;
       case NONE:
-        return initialValue;
+        return;
       case REMOVE:
         cache.remove(key);
-        return null;
+        return;
       }
 
       throw new AssertionError("unhandled case: " + operation);
