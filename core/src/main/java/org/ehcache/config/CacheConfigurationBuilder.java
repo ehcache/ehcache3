@@ -41,8 +41,8 @@ public class CacheConfigurationBuilder<K, V> {
   public CacheConfigurationBuilder() {
   }
 
-  public static CacheConfigurationBuilder<Object, Object> newCacheConfigurationBuilder() {
-    return new CacheConfigurationBuilder<Object, Object>();
+  public static <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilder() {
+    return new CacheConfigurationBuilder<K, V>();
   }
 
   private CacheConfigurationBuilder(final Expiry<? super K, ? super V> expiry, final ClassLoader classLoader,
