@@ -26,7 +26,7 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testNothing() {
-    final CacheConfigurationBuilder<Object, Object> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    final CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
     final CacheConfiguration<Long, String> config = builder.buildConfig(Long.class, String.class);
 
     builder.usingEvictionPrioritizer(Eviction.Prioritizer.LFU)
