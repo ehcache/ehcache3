@@ -28,76 +28,85 @@ import org.ehcache.expiry.Expiry;
 /**
  * @author Alex Snaps
  */
-public class CacheConfigurationBuilder {
+public class CacheConfigurationBuilder<K, V> {
 
   private final Collection<ServiceConfiguration<?>> serviceConfigurations = new HashSet<ServiceConfiguration<?>>();
-  private Expiry expiry = Expirations.noExpiration();
+  private Expiry<? super K, ? super V> expiry = Expirations.noExpiration();
   private ClassLoader classLoader = null;
   private SerializationProvider serializationProvider = null;
   private Comparable<Long> capacityConstraint;
-  private EvictionPrioritizer evictionPrioritizer;
-  private EvictionVeto evictionVeto;
+  private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
+  private EvictionVeto<? super K, ? super V> evictionVeto;
 
-  public static CacheConfigurationBuilder newCacheConfigurationBuilder() {
-    return new CacheConfigurationBuilder();
+  public CacheConfigurationBuilder() {
   }
 
-  public CacheConfigurationBuilder addServiceConfig(ServiceConfiguration<?> configuration) {
+  public static CacheConfigurationBuilder<Object, Object> newCacheConfigurationBuilder() {
+    return new CacheConfigurationBuilder<Object, Object>();
+  }
+
+  private CacheConfigurationBuilder(final Expiry<? super K, ? super V> expiry, final ClassLoader classLoader,
+                                   final Comparable<Long> capacityConstraint,
+                                   final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
+                                   final EvictionVeto<? super K, ? super V> evictionVeto) {
+    this.expiry = expiry;
+    this.classLoader = classLoader;
+    this.capacityConstraint = capacityConstraint;
+    this.evictionPrioritizer = evictionPrioritizer;
+    this.evictionVeto = evictionVeto;
+  }
+
+  public CacheConfigurationBuilder<K, V> addServiceConfig(ServiceConfiguration<?> configuration) {
     serviceConfigurations.add(configuration);
     return this;
   }
 
-  public CacheConfigurationBuilder maxEntriesInCache(long max) {
+  public CacheConfigurationBuilder<K, V> maxEntriesInCache(long max) {
     capacityConstraint = max;
     return this;
   }
 
-  public CacheConfigurationBuilder usingEvictionPrioritizer(final EvictionPrioritizer evictionPrioritizer) {
-    this.evictionPrioritizer = evictionPrioritizer;
-    return this;
+  public <NK extends K, NV extends V> CacheConfigurationBuilder<NK, NV> usingEvictionPrioritizer(final EvictionPrioritizer<? super NK, ? super NV> evictionPrioritizer) {
+    return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, capacityConstraint, evictionPrioritizer, evictionVeto);
   }
 
-  public CacheConfigurationBuilder evitionVeto(final EvictionVeto veto) {
-    evictionVeto = veto;
-    return this;
+  public <NK extends K, NV extends V> CacheConfigurationBuilder<NK, NV> evitionVeto(final EvictionVeto<? super NK, ? super NV> veto) {
+    return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, capacityConstraint, evictionPrioritizer, veto);
   }
 
-  public CacheConfigurationBuilder removeServiceConfig(ServiceConfiguration<?> configuration) {
+  public CacheConfigurationBuilder<K, V> removeServiceConfig(ServiceConfiguration<?> configuration) {
     serviceConfigurations.remove(configuration);
     return this;
   }
 
-  public CacheConfigurationBuilder clearAllServiceConfig() {
+  public CacheConfigurationBuilder<K, V> clearAllServiceConfig() {
     serviceConfigurations.clear();
     return this;
   }
 
-  public <K, V> CacheConfiguration<K, V> buildConfig(Class<K> keyType, Class<V> valueType) {
-    evictionPrioritizer = null;
-    evictionVeto = null;
-    return new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto,
+  public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType) {
+    return new BaseCacheConfiguration<CK, CV>(keyType, valueType, capacityConstraint, evictionVeto,
         evictionPrioritizer, classLoader, expiry,
         serializationProvider, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
-  public <K, V> CacheConfiguration<K, V> buildConfig(Class<K> keyType, Class<V> valueType,
-                                                     EvictionVeto<? super K, ? super V> evictionVeto,
-                                                     EvictionPrioritizer<? super K, ? super V> evictionPrioritizer) {
-    return new BaseCacheConfiguration<K, V>(keyType, valueType, this.capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, expiry,
+  public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType,
+                                                     EvictionVeto<? super CK, ? super CV> evictionVeto,
+                                                     EvictionPrioritizer<? super CK, ? super CV> evictionPrioritizer) {
+    return new BaseCacheConfiguration<CK, CV>(keyType, valueType, this.capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, expiry,
         serializationProvider, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
   
-  public CacheConfigurationBuilder withClassLoader(ClassLoader classLoader) {
+  public CacheConfigurationBuilder<K, V> withClassLoader(ClassLoader classLoader) {
     this.classLoader = classLoader;
     return this;
   }
   
-  public <K, V> CacheConfigurationBuilder withExpiry(Expiry<K, V> expiry) {
+  public <NK extends K, NV extends V> CacheConfigurationBuilder<NK, NV> withExpiry(Expiry<? super NK, ? super NV> expiry) {
     if (expiry == null) {
       throw new NullPointerException("Null expiry");
     }
-    this.expiry = expiry;
-    return this;
+    return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, capacityConstraint, evictionPrioritizer, evictionVeto);
   }
 
   public CacheConfigurationBuilder withSerializationProvider(SerializationProvider serializationProvider) {

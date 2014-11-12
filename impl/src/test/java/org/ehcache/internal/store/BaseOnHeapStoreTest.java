@@ -667,49 +667,7 @@ public abstract class BaseOnHeapStoreTest {
 
   protected abstract <K, V> OnHeapStore<K, V> newStore();
 
-  private OnHeapStore<String, String> newStore(final TimeSource timeSource,
-      final Expiry<? super String, ? super String> expiry) {
-    return new OnHeapStore<String, String>(new Store.Configuration<String, String>() {
-      @Override
-      public Class<String> getKeyType() {
-        return String.class;
-      }
-
-      @Override
-      public Class<String> getValueType() {
-        return String.class;
-      }
-
-      @Override
-      public Comparable<Long> getCapacityConstraint() {
-        return null;
-      }
-
-      @Override
-      public EvictionVeto<String, String> getEvictionVeto() {
-        return null;
-      }
-
-      @Override
-      public EvictionPrioritizer<String, String> getEvictionPrioritizer() {
-        return null;
-      }
-
-      @Override
-      public SerializationProvider getSerializationProvider() {
-        return null;
-      }
-
-      @Override
-      public ClassLoader getClassLoader() {
-        return getClass().getClassLoader();
-      }
-
-      @Override
-      public Expiry<? super String, ? super String> getExpiry() {
-        return expiry;
-      }
-    }, timeSource, false);
-  }
+  protected abstract <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
+      final Expiry<? super K, ? super V> expiry);
 
 }

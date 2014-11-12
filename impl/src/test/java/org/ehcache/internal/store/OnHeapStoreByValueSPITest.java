@@ -17,6 +17,8 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
+import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.function.Predicate;
@@ -69,7 +71,7 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
       @Override
       public Store.Configuration<String, String> newConfiguration(
           final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
-          final Predicate<Cache.Entry<String, String>> evictionVeto, final Comparator<Cache.Entry<String, String>> evictionPrioritizer) {
+          final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
             evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), new JavaSerializationProvider());
       }

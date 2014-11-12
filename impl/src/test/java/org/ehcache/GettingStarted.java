@@ -65,15 +65,15 @@ public class GettingStarted {
     CacheManager cacheManager = newCacheManagerBuilder().build();
 
     final Cache<Long, String> cache1 = cacheManager.createCache("cache1",
-        newCacheConfigurationBuilder().buildCacheConfig(Long.class, String.class));
+        newCacheConfigurationBuilder().buildConfig(Long.class, String.class));
     performAssertions(cache1, true);
 
     final Cache<Long, String> cache2 = cacheManager.createCache("cache2",
-        newCacheConfigurationBuilder().addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true)).buildCacheConfig(Long.class, String.class));
+        newCacheConfigurationBuilder().addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true)).buildConfig(Long.class, String.class));
     performAssertions(cache2, false);
 
     final Cache<Long, String> cache3 = cacheManager.createCache("cache3",
-        newCacheConfigurationBuilder().addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(false)).buildCacheConfig(Long.class, String.class));
+        newCacheConfigurationBuilder().addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(false)).buildConfig(Long.class, String.class));
     performAssertions(cache3, true);
 
     cacheManager.close();
