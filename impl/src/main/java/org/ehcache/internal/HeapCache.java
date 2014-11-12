@@ -90,7 +90,7 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
       }
       
       @Override
-      public Expiry<K, V> getExpiry() {
+      public Expiry<? super K, ? super V> getExpiry() {
         throw new UnsupportedOperationException("Implement me!");
       }
         },

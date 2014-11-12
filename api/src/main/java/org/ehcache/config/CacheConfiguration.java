@@ -103,5 +103,5 @@ public interface CacheConfiguration<K, V> {
   /**
    *  Get the expiration policy instance for this {@link Cache}
    */
-  Expiry<K, V> getExpiry();
+  Expiry<? super K, ? super V> getExpiry();
 }

@@ -858,7 +858,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     private final Set<CacheEventListener<?, ?>> eventListeners;
     private final SerializationProvider serializationProvider;
     private final ClassLoader classLoader;
-    private final Expiry<K, V> expiry;
+    private final Expiry<? super K, ? super V> expiry;
 
     RuntimeConfiguration(CacheConfiguration<K, V> config) {
       this.serviceConfigurations = copy(config.getServiceConfigurations());
@@ -935,7 +935,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
     
     @Override
-    public Expiry<K, V> getExpiry() {
+    public Expiry<? super K, ? super V> getExpiry() {
       return expiry;
     }
     
