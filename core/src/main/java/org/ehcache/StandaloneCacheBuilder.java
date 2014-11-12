@@ -39,7 +39,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
 
   private final Class<K> keyType;
   private final Class<V> valueType;
-  private Expiry<K, V> expiry = Expirations.noExpiration();
+  private Expiry<? super K, ? super V> expiry = Expirations.noExpiration();
   private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
   private Comparable<Long> capacityConstraint;
   private EvictionVeto<? super K, ? super V> evictionVeto;

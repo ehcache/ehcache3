@@ -20,9 +20,8 @@ public final class Expirations {
   /**
    * Get an {@link Expiry} instance for a non expiring (ie. "eternal") cache
    */
-  @SuppressWarnings("unchecked")
-  public static <K, V> Expiry<K, V> noExpiration() {
-    return (Expiry<K, V>) NoExpiry.INSTANCE;
+  public static Expiry<Object, Object> noExpiration() {
+    return NoExpiry.INSTANCE;
   }
 
   /**
@@ -84,7 +83,7 @@ public final class Expirations {
 
   private static class NoExpiry<K, V> extends BaseExpiry<K, V> {
 
-    private static final Expiry<?, ?> INSTANCE = new NoExpiry<Object, Object>();
+    private static final Expiry<Object, Object> INSTANCE = new NoExpiry<Object, Object>();
 
     private NoExpiry() {
       super(Duration.FOREVER, null);

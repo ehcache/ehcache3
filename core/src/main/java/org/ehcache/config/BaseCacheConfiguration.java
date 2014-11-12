@@ -37,11 +37,11 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private final Collection<ServiceConfiguration<?>> serviceConfigurations;
   private final ClassLoader classLoader;
-  private final Expiry<K, V> expiry;
+  private final Expiry<? super K, ? super V> expiry;
 
   public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
           EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
-          ClassLoader classLoader, Expiry<K, V> expiry, ServiceConfiguration<?>... serviceConfigurations) {
+          ClassLoader classLoader, Expiry<? super K, ? super V> expiry, ServiceConfiguration<?>... serviceConfigurations) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.capacityConstraint = capacityConstraint;
@@ -94,7 +94,7 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   }  
   
   @Override
-  public Expiry<K, V> getExpiry() {
+  public Expiry<? super K, ? super V> getExpiry() {
     return expiry;
   }
 }
