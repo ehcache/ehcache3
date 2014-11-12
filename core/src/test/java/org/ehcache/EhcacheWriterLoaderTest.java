@@ -170,11 +170,11 @@ public class EhcacheWriterLoaderTest {
 
   @Test
   public void testPutIfAbsent() throws Exception {
-    when(store.computeIfAbsent(any(Number.class), anyFunction())).thenAnswer(new Answer<Object>() {
+    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
-        Function<Number, String> function = asFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0]);
+        BiFunction<Number, String, String> function = asBiFunction(invocation);
+        function.apply((Number)invocation.getArguments()[0], null);
         return null;
       }
     });
@@ -200,7 +200,7 @@ public class EhcacheWriterLoaderTest {
   
   @Test
   public void testPutIfAbsentThrowsOnCompute() throws Exception {
-    when(store.computeIfAbsent(any(Number.class), anyFunction())).thenThrow(new CacheAccessException("boom"));
+    when(store.compute(any(Number.class), anyBiFunction())).thenThrow(new CacheAccessException("boom"));
     cache.putIfAbsent(1, "one");
     verify(cache.getCacheWriter()).write(1, null, "one");
     verify(store).remove(1);
@@ -208,11 +208,11 @@ public class EhcacheWriterLoaderTest {
   
   @Test(expected=CacheWriterException.class)
   public void testPutIfAbsentThrowsOnWrite() throws Exception {
-    when(store.computeIfAbsent(any(Number.class), anyFunction())).thenAnswer(new Answer<Object>() {
+    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
-        Function<Number, String> function = asFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0]);
+        BiFunction<Number, String, String> function = asBiFunction(invocation);
+        function.apply((Number)invocation.getArguments()[0], null);
         return null;
       }
     });

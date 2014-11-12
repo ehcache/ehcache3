@@ -429,12 +429,16 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   public V putIfAbsent(final K key, final V value) throws CacheLoaderException, CacheWriterException {
     statusTransitioner.checkAvailable();
     checkNonNull(key, value);
-    V old = null;
+    V inCache = null;
+    final AtomicBoolean installed = new AtomicBoolean();
 
-    final Function<K, V> mappingFunction = memoize(
-        new Function<K, V>() {
+    final BiFunction<K, V, V> mappingFunction = memoize(
+        new BiFunction<K, V, V>() {
           @Override
-          public V apply(final K k) {
+          public V apply(final K k, final V existingValue) {
+            if(existingValue != null) {
+              return existingValue;
+            }
             V loaded = null;
             try {
               if (cacheLoader != null) {
@@ -456,18 +460,19 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
                 throw newCacheWriterException(e);
               }
             }
+            installed.set(true);
             return value;
           }
         });
 
     try {
-      final Store.ValueHolder<V> holder = store.computeIfAbsent(key, mappingFunction);
+      final Store.ValueHolder<V> holder = store.compute(key, mappingFunction);
       if (holder != null) {
-        old = holder.value();
+        inCache = holder.value();
       }
     } catch (CacheAccessException e) {
       try {
-        old = mappingFunction.apply(key);
+        inCache = mappingFunction.apply(key, null);
         if (cacheLoader != null && cacheWriter != null) {
           store.remove(key);
         } else {
@@ -482,7 +487,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         resilienceStrategy.possiblyInconsistent(key, e, e1);
       }
     }
-    return old;
+    return installed.get() ? null : inCache;
   }
 
   @Override
