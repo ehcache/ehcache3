@@ -277,6 +277,7 @@ public class EhcacheTest {
     assertThat(ehcache.putIfAbsent("foo", value), nullValue());
     assertThat(ehcache.putIfAbsent("foo", "foo"), CoreMatchers.<Object>is(value));
     assertThat(ehcache.putIfAbsent("foo", "foobar"), CoreMatchers.<Object>is(value));
+    assertThat(ehcache.putIfAbsent("foo", value), CoreMatchers.<Object>is(value));
   }
 
   @Test

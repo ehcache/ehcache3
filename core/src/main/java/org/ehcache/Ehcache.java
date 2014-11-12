@@ -430,6 +430,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     statusTransitioner.checkAvailable();
     checkNonNull(key, value);
     V inCache = null;
+    final AtomicBoolean installed = new AtomicBoolean();
 
     final BiFunction<K, V, V> mappingFunction = memoize(
         new BiFunction<K, V, V>() {
@@ -459,6 +460,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
                 throw newCacheWriterException(e);
               }
             }
+            installed.set(true);
             return value;
           }
         });
@@ -485,7 +487,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         resilienceStrategy.possiblyInconsistent(key, e, e1);
       }
     }
-    return inCache == value ? null : inCache;
+    return installed.get() ? null : inCache;
   }
 
   @Override
