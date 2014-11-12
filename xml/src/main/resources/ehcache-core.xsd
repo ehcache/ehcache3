@@ -21,7 +21,15 @@
   <xs:complexType name="config-type">
     <xs:sequence>
       <xs:element name="service" type="ehcache:service-type" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element name="cache" type="ehcache:cache-type" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="cache" type="ehcache:cache-type">
+          <xs:key name="template">
+            <xs:selector xpath="cache-template"/>
+            <xs:field xpath="@name"/>
+          </xs:key>
+        </xs:element>
+        <xs:element name="cache-template" type="ehcache:cacheTemplate-type"/>
+      </xs:choice>
     </xs:sequence>
   </xs:complexType>
   
@@ -32,16 +40,32 @@
   </xs:complexType>
   
   <xs:complexType name="cache-type">
+    <xs:complexContent>
+      <xs:extension base="ehcache:baseCache-type">
+        <xs:attribute name="alias" use="required" type="xs:string"/>
+        <xs:attribute name="usesTemplate" use="optional" type="xs:IDREF"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="cacheTemplate-type" xml:base="ehcache:baseCache-type">
+    <xs:complexContent>
+      <xs:extension base="ehcache:baseCache-type">
+        <xs:attribute name="name" type="xs:ID" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="baseCache-type" abstract="true">
     <xs:sequence>
-      <xs:element name="key-type" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="value-type" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="key-type" type="xs:string" minOccurs="0" maxOccurs="1" default="java.lang.Object"/>
+      <xs:element name="value-type" type="xs:string" minOccurs="0" maxOccurs="1" default="java.lang.Object"/>
       <xs:element name="capacity" type="xs:positiveInteger" minOccurs="0" maxOccurs="1"/>
       <xs:element name="eviction-veto" type="xs:string" minOccurs="0" maxOccurs="1"/>
       <xs:element name="eviction-prioritizer" type="xs:string" minOccurs="0" maxOccurs="1"/>
       <xs:element name="store" type="ehcache:store-type" minOccurs="0" maxOccurs="1"/>
       <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
-    <xs:attribute name="alias" use="required" type="xs:string"/>
   </xs:complexType>
 
   <xs:complexType name="store-type">
