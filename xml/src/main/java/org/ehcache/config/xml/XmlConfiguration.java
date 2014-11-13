@@ -28,6 +28,7 @@ import org.xml.sax.SAXException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -36,6 +37,8 @@ import java.util.Map;
 public class XmlConfiguration {
 
   private static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
+
+  private final Map<String, ConfigurationParser.CacheTemplate> templates = new HashMap<String, ConfigurationParser.CacheTemplate>();
 
   public Configuration parseConfiguration(URL xml) throws ClassNotFoundException, IOException, SAXException, InstantiationException, IllegalAccessException {
     return parseConfiguration(xml, null);
@@ -49,20 +52,21 @@ public class XmlConfiguration {
   
   public Configuration parseConfiguration(URL xml, ClassLoader classLoader, Map<String, ClassLoader> cacheClassLoaders)
       throws ClassNotFoundException, IOException, SAXException, InstantiationException, IllegalAccessException {
+    templates.clear();
     ConfigurationParser configurationParser = new ConfigurationParser(xml.toExternalForm(), CORE_SCHEMA_URL);
     ConfigurationBuilder configBuilder = new ConfigurationBuilder();
     
     if (classLoader != null) {
-      configBuilder.withClassLoader(classLoader);
+      configBuilder = configBuilder.withClassLoader(classLoader);
     }
 
     for (ServiceConfiguration serviceConfiguration : configurationParser.getServiceConfigurations()) {
-      configBuilder.addService(serviceConfiguration);
+      configBuilder = configBuilder.addService(serviceConfiguration);
     }
 
-    for (ConfigurationParser.CacheElement cacheElement : configurationParser.getCacheElements()) {
+    for (ConfigurationParser.CacheDefinition cacheDefinition : configurationParser.getCacheElements()) {
       CacheConfigurationBuilder<Object, Object> builder = new CacheConfigurationBuilder<Object, Object>();
-      String alias = cacheElement.alias();
+      String alias = cacheDefinition.id();
 
       ClassLoader cacheClassLoader = cacheClassLoaders.get(alias);
       if (cacheClassLoader != null) {
@@ -77,26 +81,28 @@ public class XmlConfiguration {
         }
       }
       
-      Class keyType = getClassForName(cacheElement.keyType(), cacheClassLoader);
-      Class valueType = getClassForName(cacheElement.valueType(), cacheClassLoader);
-      Long capacityConstraint = cacheElement.capacityConstraint();
-      EvictionVeto evictionVeto = getInstanceOfName(cacheElement.evictionVeto(), cacheClassLoader, EvictionVeto.class);
+      Class keyType = getClassForName(cacheDefinition.keyType(), cacheClassLoader);
+      Class valueType = getClassForName(cacheDefinition.valueType(), cacheClassLoader);
+      Long capacityConstraint = cacheDefinition.capacityConstraint();
+      EvictionVeto evictionVeto = getInstanceOfName(cacheDefinition.evictionVeto(), cacheClassLoader, EvictionVeto.class);
       EvictionPrioritizer evictionPrioritizer;
       try {
-        evictionPrioritizer = Eviction.Prioritizer.valueOf(cacheElement.evictionPrioritizer());
+        evictionPrioritizer = Eviction.Prioritizer.valueOf(cacheDefinition.evictionPrioritizer());
       } catch (IllegalArgumentException e) {
-        evictionPrioritizer = getInstanceOfName(cacheElement.evictionPrioritizer(), cacheClassLoader, EvictionPrioritizer.class);
+        evictionPrioritizer = getInstanceOfName(cacheDefinition.evictionPrioritizer(), cacheClassLoader, EvictionPrioritizer.class);
       } catch (NullPointerException e) {
         evictionPrioritizer = null;
       }
-      for (ServiceConfiguration<?> serviceConfig : cacheElement.serviceConfigs()) {
+      for (ServiceConfiguration<?> serviceConfig : cacheDefinition.serviceConfigs()) {
         builder = builder.addServiceConfig(serviceConfig);
       }
       if (capacityConstraint != null) {
         builder = builder.maxEntriesInCache(capacityConstraint);
       }
-      configBuilder.addCache(alias, builder.buildConfig(keyType, valueType, evictionVeto, evictionPrioritizer));
+      configBuilder = configBuilder.addCache(alias, builder.buildConfig(keyType, valueType, evictionVeto, evictionPrioritizer));
     }
+
+    templates.putAll(configurationParser.getTemplates());
 
     return configBuilder.build();
   }
@@ -126,4 +132,41 @@ public class XmlConfiguration {
     return Class.forName(name, true, classLoader);
   }
 
+  public CacheConfigurationBuilder<Object, Object> newCacheConfigurationBuilderFromTemplate(final String name) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+    return getInstanceOfName(name, null, null);
+  }
+
+  @SuppressWarnings("unchecked")
+  public <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilderFromTemplate(final String name,
+                                                                                         final Class<K> keyType,
+                                                                                         final Class<V> valueType)
+      throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+
+    final ConfigurationParser.CacheTemplate cacheTemplate = templates.get(name);
+    if (cacheTemplate == null) {
+      return null;
+    }
+
+    if(keyType != null && cacheTemplate.keyType() != null && !keyType.getName().equals(cacheTemplate.keyType())) {
+      throw new IllegalArgumentException("CacheTemplate '" + name + "' declares key type of " + cacheTemplate.keyType());
+    }
+
+    if(valueType != null && cacheTemplate.valueType() != null && !valueType.getName().equals(cacheTemplate.valueType())) {
+      throw new IllegalArgumentException("CacheTemplate '" + name + "' declares value type of " + cacheTemplate.valueType());
+    }
+
+    CacheConfigurationBuilder<K, V> builder = new CacheConfigurationBuilder<K, V>();
+    if (cacheTemplate.capacityConstraint() != null) {
+      builder = builder
+          .maxEntriesInCache(cacheTemplate.capacityConstraint());
+    }
+    builder = builder
+        .maxEntriesInCache(cacheTemplate.capacityConstraint())
+        .usingEvictionPrioritizer(getInstanceOfName(cacheTemplate.evictionPrioritizer(), ClassLoading.getDefaultClassLoader(), EvictionPrioritizer.class))
+        .evitionVeto(getInstanceOfName(cacheTemplate.evictionVeto(), ClassLoading.getDefaultClassLoader(), EvictionVeto.class));
+    for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {
+      builder = builder.addServiceConfig(serviceConfiguration);
+    }
+    return builder;
+  }
 }

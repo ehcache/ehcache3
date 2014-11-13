@@ -17,6 +17,7 @@
 package org.ehcache.config.xml;
 
 import org.ehcache.config.xml.model.BaseCacheType;
+import org.ehcache.config.xml.model.CacheTemplateType;
 import org.ehcache.config.xml.model.CacheType;
 import org.ehcache.config.xml.model.ConfigType;
 import org.ehcache.config.xml.model.ServiceType;
@@ -106,8 +107,8 @@ public class ConfigurationParser {
     return Collections.unmodifiableList(serviceConfigurations);
   }
 
-  public Iterable<CacheElement> getCacheElements() {
-    List<CacheElement> cacheCfgs = new ArrayList<CacheElement>();
+  public Iterable<CacheDefinition> getCacheElements() {
+    List<CacheDefinition> cacheCfgs = new ArrayList<CacheDefinition>();
     final List<BaseCacheType> cacheOrCacheTemplate = config.getCacheOrCacheTemplate();
     for (BaseCacheType baseCacheType : cacheOrCacheTemplate) {
       if(baseCacheType instanceof CacheType) {
@@ -123,9 +124,9 @@ public class ConfigurationParser {
           sources[0] = cacheType;
         }
 
-        cacheCfgs.add(new CacheElement() {
+        cacheCfgs.add(new CacheDefinition() {
           @Override
-          public String alias() {
+          public String id() {
             return cacheType.getAlias();
           }
 
@@ -196,6 +197,54 @@ public class ConfigurationParser {
     return Collections.unmodifiableList(cacheCfgs);
   }
 
+  public Map<String, CacheTemplate> getTemplates() {
+    final Map<String, CacheTemplate> templates = new HashMap<String, CacheTemplate>();
+    final List<BaseCacheType> cacheOrCacheTemplate = config.getCacheOrCacheTemplate();
+    for (BaseCacheType baseCacheType : cacheOrCacheTemplate) {
+      if (baseCacheType instanceof CacheTemplateType) {
+        final CacheTemplateType cacheTemplate = (CacheTemplateType)baseCacheType;
+        templates.put(cacheTemplate.getName(), new CacheTemplate() {
+
+          @Override
+          public String keyType() {
+            return cacheTemplate.getKeyType();
+          }
+
+          @Override
+          public String valueType() {
+            return cacheTemplate.getValueType();
+          }
+
+          @Override
+          public Long capacityConstraint() {
+            final BigInteger capacity = cacheTemplate.getCapacity();
+            return capacity == null ? null : capacity.longValue();
+          }
+
+          @Override
+          public String evictionVeto() {
+            return cacheTemplate.getEvictionVeto();
+          }
+
+          @Override
+          public String evictionPrioritizer() {
+            return cacheTemplate.getEvictionPrioritizer();
+          }
+
+          @Override
+          public Iterable<ServiceConfiguration<?>> serviceConfigs() {
+            Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
+            for (Object child : cacheTemplate.getAny()) {
+              configs.add(parseExtension((Element)child));
+            }
+            return configs;
+          }
+        });
+      }
+    }
+    return Collections.unmodifiableMap(templates);
+  }
+
   private ServiceConfiguration<?> parseExtension(final Element element) {
     URI namespace = URI.create(element.getNamespaceURI());
     final XmlConfigurationParser xmlConfigurationParser = xmlParsers.get(namespace);
@@ -224,21 +273,26 @@ public class ConfigurationParser {
     }
   }
 
-  static interface CacheElement {
-
-    String alias();
+  static interface CacheTemplate {
 
     String keyType();
 
     String valueType();
-    
+
     Long capacityConstraint();
 
     String evictionVeto();
-    
+
     String evictionPrioritizer();
-    
+
     Iterable<ServiceConfiguration<?>> serviceConfigs();
+
+  }
+
+  static interface CacheDefinition extends CacheTemplate {
+
+    String id();
+
   }
 
 }
