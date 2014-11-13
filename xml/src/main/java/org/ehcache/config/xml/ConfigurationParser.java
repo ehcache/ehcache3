@@ -28,6 +28,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -111,6 +112,17 @@ public class ConfigurationParser {
     for (BaseCacheType baseCacheType : cacheOrCacheTemplate) {
       if(baseCacheType instanceof CacheType) {
         final CacheType cacheType = (CacheType)baseCacheType;
+
+        final BaseCacheType[] sources;
+        if(cacheType.getUsesTemplate() != null) {
+          sources = new BaseCacheType[2];
+          sources[0] = cacheType;
+          sources[1] = (BaseCacheType) cacheType.getUsesTemplate();
+        } else {
+          sources = new BaseCacheType[1];
+          sources[0] = cacheType;
+        }
+
         cacheCfgs.add(new CacheElement() {
           @Override
           public String alias() {
@@ -119,34 +131,61 @@ public class ConfigurationParser {
 
           @Override
           public String keyType() {
-            return cacheType.getKeyType();
+            String value = null;
+            for (BaseCacheType source : sources) {
+              value = source.getKeyType();
+              if (value != null) break;
+            }
+            return value;
           }
 
           @Override
           public String valueType() {
-            return cacheType.getValueType();
+            String value = null;
+            for (BaseCacheType source : sources) {
+              value = source.getValueType();
+              if (value != null) break;
+            }
+            return value;
           }
 
           @Override
           public Long capacityConstraint() {
-            return cacheType.getCapacity() == null ? null : cacheType.getCapacity().longValue();
+            BigInteger value = null;
+            for (BaseCacheType source : sources) {
+              value = source.getCapacity();
+              if (value != null) break;
+            }
+            return value != null ? value.longValue() : null;
           }
 
           @Override
           public String evictionVeto() {
-            return cacheType.getEvictionVeto();
+            String value = null;
+            for (BaseCacheType source : sources) {
+              value = source.getEvictionVeto();
+              if (value != null) break;
+            }
+            return value;
           }
 
           @Override
           public String evictionPrioritizer() {
-            return cacheType.getEvictionPrioritizer();
+            String value = null;
+            for (BaseCacheType source : sources) {
+              value = source.getEvictionPrioritizer();
+              if (value != null) break;
+            }
+            return value;
           }
 
           @Override
           public Iterable<ServiceConfiguration<?>> serviceConfigs() {
             Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
-            for (Object child : cacheType.getAny()) {
-              configs.add(parseExtension((Element)child));
+            for (BaseCacheType source : sources) {
+              for (Object child : source.getAny()) {
+                configs.add(parseExtension((Element)child));
+              }
             }
             return configs;
           }

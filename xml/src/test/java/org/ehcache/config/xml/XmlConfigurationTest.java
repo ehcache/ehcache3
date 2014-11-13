@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.ehcache.config.Configuration;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.hamcrest.core.Is;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 import org.xml.sax.SAXParseException;
@@ -60,6 +61,19 @@ public class XmlConfigurationTest {
     assertThat(config.getServiceConfigurations(), hasSize(0));
     assertThat(config.getCacheConfigurations().keySet(), hasItem("bar"));
     assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(FooConfiguration.class)));
+  }
+
+  @Test
+  public void testOneCacheConfigWithTemplate() throws Exception {
+    XmlConfiguration xmlConfig = new XmlConfiguration();
+    Configuration config = xmlConfig.parseConfiguration(XmlConfigurationTest.class.getResource("/configs/template-cache.xml"));
+
+    assertThat(config.getServiceConfigurations(), hasSize(0));
+    assertThat(config.getCacheConfigurations().keySet(), hasItem("bar"));
+    assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(FooConfiguration.class)));
+    assertThat(config.getCacheConfigurations().get("bar").getCapacityConstraint(), Is.<Comparable<Long>>is(120L));
+    assertThat(config.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class) Number.class));
+    assertThat(config.getCacheConfigurations().get("bar").getValueType(), sameInstance((Class) String.class));
   }
 
   @Test
