@@ -18,8 +18,14 @@ package org.ehcache.internal.store;
 
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 import static org.terracotta.statistics.StatisticsBuilder.operation;
-
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -394,41 +400,31 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
   @Override
   public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Iterable<? extends K> keys, final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
-    Set<K> presentKeys = new HashSet<K>();
+    Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
     Set<K> missingKeys = new HashSet<K>();
     for (K key : keys) {
-      if (map.containsKey(key)) {
-        presentKeys.add(key);
+      checkKey(key);
+      ValueHolder<V> value = get(key);
+      if (value != null) {
+        result.put(key, value);
       } else {
         missingKeys.add(key);
       }
     }
 
-    Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
     for (final K key : missingKeys) {
       final OnHeapValueHolder<V> newValue = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
         @Override
         public OnHeapValueHolder<V> apply(final K k, final OnHeapValueHolder<V> oldValue) {
-          final Iterable<K> keySet = Collections.singletonMap(k, oldValue == null ? null : oldValue.value())
-              .keySet();
+          final Iterable<K> keySet = Collections.singleton(k);
           final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries = mappingFunction.apply(keySet);
           final java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = entries.iterator();
           final Map.Entry<? extends K, ? extends V> next = iterator.next();
-          if (!next.getKey().equals(k) || iterator.hasNext()) {
-            // TODO : remove this test and exception - only good for testing
-            // Boolean.getBoolean("check-goodusage");
-            // assert next.getKey().equals(k) && !iterator.hasNext();
-            throw new IllegalArgumentException("This test is wrong!");
-          }
           return nullSafeNewValueHolder(next.getKey(), next.getValue(), timeSource.getTimeMillis());
         }
       });
       result.put(key, newValue);
     }
-    for (K key : presentKeys) {
-      result.put(key, map.get(key));
-    }
-    
     return result;
   }
 
@@ -448,12 +444,6 @@ public class OnHeapStore<K, V> implements Store<K, V> {
           final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries = remappingFunction.apply(entrySet);
           final java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = entries.iterator();
           final Map.Entry<? extends K, ? extends V> next = iterator.next();
-          if (!next.getKey().equals(k) || iterator.hasNext()) {
-            // TODO : remove this test and exception - only good for testing
-            // Boolean.getBoolean("check-goodusage");
-            // assert next.getKey().equals(k) && !iterator.hasNext();
-            throw new IllegalArgumentException("This test is wrong!");
-          }
           return nullSafeNewValueHolder(next.getKey(), next.getValue(), timeSource.getTimeMillis());
         }
       });

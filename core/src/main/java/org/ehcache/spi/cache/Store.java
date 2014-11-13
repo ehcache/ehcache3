@@ -281,13 +281,12 @@ public interface Store<K, V> {
    * The function gets an {@link Iterable} of {@link Map.Entry} key/value pairs, where each entry's value is its currently stored value,
    * or null if nothing is stored under the key. It is expected that the function returns an {@link Iterable} of {@link Map.Entry}
    * key/value pairs containing an entry for each key that was passed to it. This returned {@link Iterable} should also iterate in the same order as the input {@link Iterable}.
-   * Every missing entry in the returned {@link Iterable} will be
-   * ignored and its current value (or lack thereof) will be left in place. If an entry's value is null, its mapping will be removed from the store.
+   * If an entry's value is null, its mapping will be removed from the store.
    * </p>
    * The function may be called multiple times per <code>bulkCompute</code> call, depending on how the store wants or does not want to batch computations.
    *
    * Note: This method does not guarantee atomicity of the computations between each other. Each computation is atomic, but the store may be concurrently
-   * modified at any time during key computations.
+   * modified at any time during mapping computations.
    *
    * @param keys the keys to compute a new value for.
    * @param remappingFunction the function that generates new values.
@@ -305,13 +304,11 @@ public interface Store<K, V> {
    * The function gets an {@link Iterable} of {@link Map.Entry} key/value pairs, where each entry's value is its currently stored value
    * for each key that is not mapped in the store. It is expected that the function returns an {@link Iterable} of {@link Map.Entry}
    * key/value pairs containing an entry for each key that was passed to it. This returned {@link Iterable} should also iterate in the same order as the input {@link Iterable}.
-   * Every missing entry in the returned {@link Iterable} will be
-   * ignored and the store will be left untouched for that key, much like if the entry's return value is null.
    *
    * The function may be called multiple times per <code>bulkComputeIfAbsent</code> call, depending on how the store wants or does not want to batch computations.
    *
    * Note: This method does not guarantee atomicity of the computations between each other. Each computation is atomic, but the store may be concurrently
-   * modified at any time during key computations.
+   * modified at any time during mapping computations.
    *
    * @param keys the keys to compute a new value for, if they're not in the store.
    * @param mappingFunction the function that generates new values.

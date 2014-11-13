@@ -16,18 +16,15 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.function.Function;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.cache.Store;
 import org.hamcrest.Matchers;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -35,7 +32,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -141,42 +137,7 @@ public class OnHeapStoreBulkMethodsTest {
   }
 
   @Test
-  public void testBulkComputeIgnoreFunctionReturnedUnspecifiedKeys() throws Exception {
-    Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
-    
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE);
-
-    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkCompute(Arrays.asList(4, 5, 6), new Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> entries) {
-        Map<Number, CharSequence> newValues = new HashMap<Number, CharSequence>();
-        for (Map.Entry<? extends Number, ? extends CharSequence> entry : entries) {
-          if(entry.getKey().intValue() == 1) {
-            newValues.put(entry.getKey(), "un");
-          } else if (entry.getKey().intValue() == 2)  {
-            newValues.put(entry.getKey(), "deux");
-          } else if (entry.getKey().intValue() == 3)  {
-            newValues.put(entry.getKey(), "trois");
-          } else {
-            newValues.put(entry.getKey(), null);
-          }
-        }
-        return newValues.entrySet();
-      }
-    });
-
-//    assertThat(result, equalTo(Collections.EMPTY_MAP));
-
-    assertThat(store.get(1), is(nullValue()));
-    assertThat(store.get(2), is(nullValue()));
-    assertThat(store.get(3), is(nullValue()));
-    assertThat(store.get(4), is(nullValue()));
-    assertThat(store.get(5), is(nullValue()));
-    assertThat(store.get(6), is(nullValue()));
-  }
-
-  @Test
-  public void testBulkComputeDoNothingOnNullFunctionReturn() throws Exception {
+  public void testBulkComputeStoreRemovesValueWhenFunctionReturnsNullMappings() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
 
     OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE);
@@ -203,27 +164,6 @@ public class OnHeapStoreBulkMethodsTest {
     assertThat(store.get(5), is(nullValue()));
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  // TODO : this test should disappear as soon as we're confident enough to remove the throw new IllegalArgumentException() from bulkCompute
-  public void testBulkComputeIgnoreEntriesMissingFromFunctionReturn() throws Exception {
-    Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
-
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE);
-    store.put(1, "one");
-    store.put(2, "two");
-    store.put(3, "three");
-
-    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkCompute(Arrays.asList(1, 2, 3), new Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> entries) {
-        return new HashMap<Number, CharSequence>() {{
-          put(2, "deux");
-          put(3, "trois");
-        }}.entrySet();
-      }
-    });
-  }
-
   @Test
   public void testBulkComputeRemoveNullValueEntriesFromFunctionReturn() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
@@ -238,9 +178,9 @@ public class OnHeapStoreBulkMethodsTest {
       public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> entries) {
         Map<Number, CharSequence> result = new HashMap<Number, CharSequence>();
         for (Map.Entry<? extends Number, ? extends CharSequence> entry : entries) {
-          if(entry.getKey().equals(1)) {
+          if (entry.getKey().equals(1)) {
             result.put(entry.getKey(), null);
-          } else if(entry.getKey().equals(3)) {
+          } else if (entry.getKey().equals(3)) {
             result.put(entry.getKey(), null);
           } else {
             result.put(entry.getKey(), entry.getValue());
@@ -351,46 +291,7 @@ public class OnHeapStoreBulkMethodsTest {
   }
 
   @Test
-  public void testBulkComputeIfAbsentIgnoreFunctionReturnedUnspecifiedKeys() throws Exception {
-    Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
-
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE);
-
-    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(Arrays.asList(4, 5, 6), new Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Number> numbers) {
-        Map<Number, CharSequence> result = new HashMap<Number, CharSequence>();
-        for (Number key : numbers) {
-          if(key.equals(1)) {
-            result.put(key, "un");
-          } else if(key.equals(2)) {
-            result.put(key, "deux");
-          } else if(key.equals(3)) {
-            result.put(key, "trois");
-          } else {
-            result.put(key, null);
-          }
-        }
-        return result.entrySet();
-      }
-    });
-
-    assertThat(result.size(), is(3));
-    assertThat(result.get(4), is(nullValue()));
-    assertThat(result.get(5), is(nullValue()));
-    assertThat(result.get(6), is(nullValue()));
-
-
-    assertThat(store.get(1), is(nullValue()));
-    assertThat(store.get(2), is(nullValue()));
-    assertThat(store.get(3), is(nullValue()));
-    assertThat(store.get(4), is(nullValue()));
-    assertThat(store.get(5), is(nullValue()));
-    assertThat(store.get(6), is(nullValue()));
-  }
-
-  @Test
-  public void testBulkComputeIfAbsentDoNothingOnNullFunctionReturn() throws Exception {
+  public void testBulkComputeIfAbsentDoNothingOnNullValues() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
 
     OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE);
@@ -403,14 +304,18 @@ public class OnHeapStoreBulkMethodsTest {
       public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Number> numbers) {
         Map<Number, CharSequence> result = new HashMap<Number, CharSequence>();
         for (Number key : numbers) {
-          if(key.equals(2)) {
-            result.put(key, null);
-          } else if(key.equals(1)) {
-            result.put(key, null);
-          } else if(key.equals(5)) {
+          // 5 is a missing key, so it's the only key that is going passed to the function
+          if(key.equals(5)) {
             result.put(key, null);
           }
         }
+        Set<Number> numbersSet =  new HashSet<Number>();
+        for (Number number : numbers) {
+          numbersSet.add(number);
+        }
+        assertThat(numbersSet.size(), is(1));
+        assertThat(numbersSet.iterator().next(), Matchers.<Number>equalTo(5));
+
         return result.entrySet();
       }
     });
@@ -424,86 +329,6 @@ public class OnHeapStoreBulkMethodsTest {
     assertThat(store.get(2).value(), Matchers.<CharSequence>equalTo("two"));
     assertThat(store.get(3).value(), Matchers.<CharSequence>equalTo("three"));
     assertThat(store.get(5), is(nullValue()));
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  // TODO : this test should disappear as soon as we're confident enough to remove the throw new IllegalArgumentException() from bulkCompute
-  public void testBulkComputeIfAbsentIgnoreEntriesMissingFromFunctionReturn() throws Exception {
-    Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
-
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE);
-
-    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(Arrays.asList(1, 2, 3), new Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Number> numbers) {
-        return new HashMap<Number, CharSequence>() {{
-          put(2, "deux");
-          put(3, "trois");
-        }}.entrySet();
-      }
-    });
-  }
-  
-  @Test
-  @Ignore("What is this test supposed to verify ?")
-  public void testBulkComputeIfAbsentPicksUpRacingChangesForMissingKeys() throws Exception {
-    Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
-
-    final OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE);
-    store.put(1, "one");
-    
-    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(Arrays.asList(1, 2, 3), 
-        new Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Number> numbers) {
-        Set<? super Integer> missingKeys = makeSet(numbers);
-        assertThat(missingKeys.size(), is(2));
-        assertThat((Iterable<Integer>)missingKeys, hasItems(2, 3));
-
-        // Concurrent mutation of underlying store
-        try {
-          store.put(2, "two");
-          store.put(3, "three");
-        } catch (CacheAccessException e) {
-          throw new AssertionError(e);
-        }
-        
-        return new HashMap<Number, CharSequence>() {{
-          put(2, "deux");
-          put(3, "trois");
-        }}.entrySet();
-      }
-    });
-
-    assertThat(result.size(), is(3));
-    assertThat(result.get(1).value(), Matchers.<CharSequence>equalTo("one"));
-    assertThat(result.get(2).value(), Matchers.<CharSequence>equalTo("two"));
-    assertThat(result.get(3).value(), Matchers.<CharSequence>equalTo("three"));
-
-    assertThat(store.get(1).value(), Matchers.<CharSequence>equalTo("one"));
-    assertThat(store.get(2).value(), Matchers.<CharSequence>equalTo("two"));
-    assertThat(store.get(3).value(), Matchers.<CharSequence>equalTo("three"));
-    
-  }
-
-  public static <K, V> Map<K, V> makeMap(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-    Map<K, V> result = new HashMap<K, V>();
-    for (Map.Entry<? extends K, ? extends V> entry : entries) {
-      result.put(entry.getKey(), entry.getValue());
-    }
-    return result;
-  }
-
-  public static <E> Set<E> makeSet(Iterable<? extends E> elements) {
-    Set<E> result = new HashSet<E>();
-    for (E element : elements) {
-      result.add(element);
-    }
-    return result;
-  }
-  
-  private static Iterable<Map.Entry<Object, Object>> makeEntries(Object key, Object value) {
-    return Collections.singletonMap(key, value).entrySet();
   }
 
 }
