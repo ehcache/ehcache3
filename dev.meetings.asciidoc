@@ -2,9 +2,18 @@
 
 :toc:
 
+== Nov 13, 2014 - Hangout on Air
+
+Next public meeting on https://plus.google.com/u/0/events/cv6v25r855jsn078tebkcbead2s[G+ Hangout on Air] at 11:30pm IST / 8pm CET / 2pm EST / 11am PST
+
+=== Agenda
+
+ * Stats
+ * send ideas to the https://groups.google.com/forum/#!forum/ehcache-dev[developer mailing list].
+
 == Nov 6, 2014 - Hangout on Air
 
-Next public meeting on https://plus.google.com/u/0/events/caba2lh0jeheppd54tnsqv4jrrc[G+ Hangout on Air] at 11:30pm IST / 8pm CET / 2pm EST / 11am PST
+Recording available https://www.youtube.com/watch?v=9CUnb5np5WM&list=UU43PVCp2j0b2og2DtxNOU1A[here on YouTube]
 
 === Agenda
 
@@ -12,7 +21,6 @@ Next public meeting on https://plus.google.com/u/0/events/caba2lh0jeheppd54tnsqv
  * XML Configuration,
  ** How should we parse it?
  ** Alex's crazy extension idea for 107 idea
- * send ideas to the https://groups.google.com/forum/#!forum/ehcache-dev[developer mailing list].
 
 == Oct 30, 2014 - Hangout on Air
 
