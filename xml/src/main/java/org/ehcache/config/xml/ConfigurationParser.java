@@ -16,17 +16,18 @@
 
 package org.ehcache.config.xml;
 
+import org.ehcache.config.xml.model.BaseCacheType;
+import org.ehcache.config.xml.model.CacheType;
+import org.ehcache.config.xml.model.ConfigType;
+import org.ehcache.config.xml.model.ServiceType;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -35,9 +36,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.ServiceLoader;
 
 import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -51,10 +54,9 @@ import javax.xml.validation.SchemaFactory;
 public class ConfigurationParser {
 
   private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-  private static final String CORE_NAMESPACE_URI = "http://www.ehcache.org/v3";
 
   private final Map<URI, XmlConfigurationParser> xmlParsers = new HashMap<URI, XmlConfigurationParser>();
-  private final Element config;
+  private final ConfigType config;
 
   public ConfigurationParser(String xml, URL... sources) throws IOException, SAXException {
     Collection<Source> schemaSources = new ArrayList<Source>();
@@ -79,73 +81,77 @@ public class ConfigurationParser {
       throw new AssertionError(e);
     }
     domBuilder.setErrorHandler(new FatalErrorHandler());
-    config = domBuilder.parse(xml).getDocumentElement();
+    final Element config = domBuilder.parse(xml).getDocumentElement();
+
+    try {
+      JAXBContext jc = JAXBContext.newInstance("org.ehcache.config.xml.model");
+      Unmarshaller u = jc.createUnmarshaller();
+      this.config = u.unmarshal(config, ConfigType.class).getValue();
+    } catch (JAXBException e) {
+      throw new RuntimeException(e);
+    }
+
   }
 
   public Iterable<ServiceConfiguration> getServiceConfigurations() {
+
     final ArrayList<ServiceConfiguration> serviceConfigurations = new ArrayList<ServiceConfiguration>();
-    NodeList serviceElements = config.getElementsByTagNameNS(CORE_NAMESPACE_URI, "service");
-    for (int i = 0; i < serviceElements.getLength(); i++) {
-      final Element item = (Element)serviceElements.item(i);
-      for (int j = 0; j < item.getChildNodes().getLength(); j++) {
-        final Element item1 = (Element)item.getChildNodes().item(j);
-        final ServiceConfiguration<?> serviceConfiguration = parseExtension(item1);
-        serviceConfigurations.add(serviceConfiguration);
-      }
+
+    for (ServiceType serviceType : config.getService()) {
+      final ServiceConfiguration<?> serviceConfiguration = parseExtension((Element)serviceType.getAny());
+      serviceConfigurations.add(serviceConfiguration);
     }
+
     return Collections.unmodifiableList(serviceConfigurations);
   }
 
   public Iterable<CacheElement> getCacheElements() {
     List<CacheElement> cacheCfgs = new ArrayList<CacheElement>();
-    NodeList cacheElements = config.getElementsByTagNameNS(CORE_NAMESPACE_URI, "cache");
-    for (int i = 0; i < cacheElements.getLength(); i++) {
-      final Element cacheElement = (Element) cacheElements.item(i);
-      cacheCfgs.add(new CacheElement() {
-        @Override
-        public String alias() {
-          return cacheElement.getAttribute("alias");
-        }
-
-        @Override
-        public String keyType() {
-          return getElementTextContent(cacheElement, "key-type");
-        }
-
-        @Override
-        public String valueType() {
-          return getElementTextContent(cacheElement, "value-type");
-        }
-
-        @Override
-        public Long capacityConstraint() {
-          return getElementLongContext(cacheElement, "capacity-constraint", null);
-        }
-
-        @Override
-        public String evictionVeto() {
-          return getElementTextContent(cacheElement, "eviction-veto", null);
-        }
-
-        @Override
-        public String evictionPrioritizer() {
-          return getElementTextContent(cacheElement, "eviction-prioritizer", null);
-        }
-        
-        @Override
-        public Iterable<ServiceConfiguration<?>> serviceConfigs() {
-          Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
-          for (Node child = cacheElement.getFirstChild(); child != null; child = child.getNextSibling()) {
-            if (Node.ELEMENT_NODE == child.getNodeType()) {
-              String namespaceString = child.getNamespaceURI();
-              if (!namespaceString.equals(CORE_NAMESPACE_URI)) {
-                configs.add(parseExtension((Element)child));
-              }
-            }
+    final List<BaseCacheType> cacheOrCacheTemplate = config.getCacheOrCacheTemplate();
+    for (BaseCacheType baseCacheType : cacheOrCacheTemplate) {
+      if(baseCacheType instanceof CacheType) {
+        final CacheType cacheType = (CacheType)baseCacheType;
+        cacheCfgs.add(new CacheElement() {
+          @Override
+          public String alias() {
+            return cacheType.getAlias();
           }
-          return configs;
-        }
-      });
+
+          @Override
+          public String keyType() {
+            return cacheType.getKeyType();
+          }
+
+          @Override
+          public String valueType() {
+            return cacheType.getValueType();
+          }
+
+          @Override
+          public Long capacityConstraint() {
+            return cacheType.getCapacity() == null ? null : cacheType.getCapacity().longValue();
+          }
+
+          @Override
+          public String evictionVeto() {
+            return cacheType.getEvictionVeto();
+          }
+
+          @Override
+          public String evictionPrioritizer() {
+            return cacheType.getEvictionPrioritizer();
+          }
+
+          @Override
+          public Iterable<ServiceConfiguration<?>> serviceConfigs() {
+            Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
+            for (Object child : cacheType.getAny()) {
+              configs.add(parseExtension((Element)child));
+            }
+            return configs;
+          }
+        });
+      }
     }
 
     return Collections.unmodifiableList(cacheCfgs);
@@ -196,31 +202,4 @@ public class ConfigurationParser {
     Iterable<ServiceConfiguration<?>> serviceConfigs();
   }
 
-  private static Long getElementLongContext(Element element, String name, Long def) {
-    String text = getElementTextContent(element, name, null);
-    if (text == null) {
-      return def;
-    } else {
-      return Long.parseLong(text);
-    }
-  }
-  
-  private static String getElementTextContent(Element element, String name) {
-    String text = getElementTextContent(element, name, null);
-    if (text == null) {
-      throw new AssertionError();
-    } else {
-      return text;
-    }
-  }
-  
-  private static String getElementTextContent(Element element, String name, String def) {
-    NodeList matches = element.getElementsByTagNameNS(CORE_NAMESPACE_URI, name);
-    if (matches.getLength() == 1) {
-      return matches.item(0).getTextContent();
-    } else {
-      return def;
-    }
-  }
-  
 }
