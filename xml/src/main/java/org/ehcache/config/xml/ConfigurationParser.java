@@ -53,7 +53,7 @@ import javax.xml.validation.SchemaFactory;
 /**
  * @author Alex Snaps
  */
-public class ConfigurationParser {
+class ConfigurationParser {
 
   private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 

@@ -39,23 +39,47 @@ public class XmlConfiguration {
   private static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
 
   private final Map<String, ConfigurationParser.CacheTemplate> templates = new HashMap<String, ConfigurationParser.CacheTemplate>();
+  private final URL xml;
+  private final ClassLoader classLoader;
+  private final Map<String, ClassLoader> cacheClassLoaders;
 
-  public Configuration parseConfiguration(URL xml) throws ClassNotFoundException, IOException, SAXException, InstantiationException, IllegalAccessException {
-    return parseConfiguration(xml, null);
+<<<<<<< HEAD
+=======
+  private boolean parsedXML = false;
+
+  /**
+   * Constructs an instance of XmlConfiguration mapping to the XML file located at {@code url}
+   * <p>
+   * This constructor will not parse nor even touch the configuration URL.
+   *
+   * @param url URL pointing to the XML file's location
+   * @see #parseConfiguration()
+   */
+>>>>>>> af6cde1... Stateful
+  public XmlConfiguration(URL url) {
+    this(url, null);
   }
-  
-  public Configuration parseConfiguration(URL xml, ClassLoader classLoader)
-      throws ClassNotFoundException, IOException, SAXException, InstantiationException, IllegalAccessException {
-    Map<String, ClassLoader> emptyMap = Collections.emptyMap();
-    return parseConfiguration(xml, classLoader, emptyMap);
+
+  public XmlConfiguration(URL url, final ClassLoader classLoader) {
+    this(url, classLoader, Collections.<String, ClassLoader>emptyMap());
   }
-  
-  public Configuration parseConfiguration(URL xml, ClassLoader classLoader, Map<String, ClassLoader> cacheClassLoaders)
+
+  public XmlConfiguration(URL url, final ClassLoader classLoader, final Map<String, ClassLoader> cacheClassLoaders) {
+    this.xml = url;
+    this.classLoader = classLoader;
+    this.cacheClassLoaders = new HashMap<String, ClassLoader>(cacheClassLoaders);
+  }
+
+  public URL getURL() {
+    return xml;
+  }
+
+  public Configuration parseConfiguration()
       throws ClassNotFoundException, IOException, SAXException, InstantiationException, IllegalAccessException {
     templates.clear();
     ConfigurationParser configurationParser = new ConfigurationParser(xml.toExternalForm(), CORE_SCHEMA_URL);
     ConfigurationBuilder configBuilder = new ConfigurationBuilder();
-    
+
     if (classLoader != null) {
       configBuilder = configBuilder.withClassLoader(classLoader);
     }
@@ -103,7 +127,7 @@ public class XmlConfiguration {
     }
 
     templates.putAll(configurationParser.getTemplates());
-
+    parsedXML = true;
     return configBuilder.build();
   }
 
@@ -133,7 +157,7 @@ public class XmlConfiguration {
   }
 
   public CacheConfigurationBuilder<Object, Object> newCacheConfigurationBuilderFromTemplate(final String name) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-    return getInstanceOfName(name, null, null);
+    return newCacheConfigurationBuilderFromTemplate(name, null, null);
   }
 
   @SuppressWarnings("unchecked")
@@ -141,6 +165,10 @@ public class XmlConfiguration {
                                                                                          final Class<K> keyType,
                                                                                          final Class<V> valueType)
       throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+
+    if(!parsedXML) {
+      throw new IllegalStateException("XmlConfiguration.parseConfiguration has yet been (successfully?) invoked");
+    }
 
     final ConfigurationParser.CacheTemplate cacheTemplate = templates.get(name);
     if (cacheTemplate == null) {
