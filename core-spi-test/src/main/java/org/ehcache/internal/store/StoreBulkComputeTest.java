@@ -19,6 +19,7 @@ package org.ehcache.internal.store;
 import org.ehcache.Cache;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.expiry.Expirations;
 import org.ehcache.function.Function;
 import org.ehcache.function.Predicate;
 import org.ehcache.function.Predicates;
@@ -28,9 +29,16 @@ import org.ehcache.spi.test.SPITest;
 import org.hamcrest.Matchers;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
-import java.util.*;
+import java.lang.Long;
+import java.util.Set;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.HashSet;
 
 /**
  * Test the {@link org.ehcache.spi.cache.Store#bulkCompute(Iterable, org.ehcache.function.Function)} contract of the
@@ -46,10 +54,11 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     super(factory);
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testBulkComputeHappyPath() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(),
-        factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader()));
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
+        .getValueType(), null, Predicates.<Cache.Entry<K, V>> all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
     final K k1 = factory.createKey(1L);
     final V v1 = factory.createValue(1L);
     final K k2 = factory.createKey(2L);
@@ -65,7 +74,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(k2, v2);
     kvStore.put(k1, v1);
     try {
-      Map<K, Store.ValueHolder<V>> result = kvStore.bulkCompute(Arrays.asList((K[])set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+      Map<K, Store.ValueHolder<V>> result = kvStore.bulkCompute(Arrays.asList((K[]) set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
           Map<K, V> map = new HashMap<K, V>();
@@ -87,10 +96,11 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testBulkComputeFunctionReturnsWithNullValues() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(),
-        factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader()));
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
+        .getValueType(), null, Predicates.<Cache.Entry<K, V>> all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
     final K k1 = factory.createKey(1L);
     final V v1 = factory.createValue(1L);
     final K k2 = factory.createKey(2L);
@@ -104,7 +114,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(k2, v2);
     kvStore.put(k1, v1);
     try {
-      Map<K, Store.ValueHolder<V>> result = kvStore.bulkCompute(Arrays.asList((K[])set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+      Map<K, Store.ValueHolder<V>> result = kvStore.bulkCompute(Arrays.asList((K[]) set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
           Map<K, V> map = new HashMap<K, V>();
@@ -123,10 +133,11 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testBulkComputeFunctionReturnsEntriesWithValues() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(),
-        factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader()));
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
+        .getValueType(), null, Predicates.<Cache.Entry<K, V>> all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
     final K k1 = factory.createKey(1L);
     final V v1 = factory.createValue(1L);
     final K k2 = factory.createKey(2L);
@@ -165,10 +176,11 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testBulkComputeFunctionReturnsDifferentKeys() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(),
-        factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader()));
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
+        .getValueType(), null, Predicates.<Cache.Entry<K, V>> all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
     final K k1 = factory.createKey(1L);
     final K k2 = factory.createKey(2L);
     final K k3 = factory.createKey(3L);
