@@ -63,31 +63,8 @@
       <xs:element name="capacity" type="xs:positiveInteger" minOccurs="0" maxOccurs="1"/>
       <xs:element name="eviction-veto" type="xs:string" minOccurs="0" maxOccurs="1"/>
       <xs:element name="eviction-prioritizer" type="xs:string" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="store" type="ehcache:store-type" minOccurs="0" maxOccurs="1"/>
       <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
-  <xs:complexType name="store-type">
-    <xs:sequence>
-      <xs:element name="caching-tier" type="ehcache:caching-tier-type" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="authority" type="ehcache:authority-type" minOccurs="0" maxOccurs="1"/>
-      <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
-    </xs:sequence>
-    <xs:attribute name="provider" use="optional" type="xs:string"/>
-  </xs:complexType>
-
-  <xs:complexType name="caching-tier-type">
-    <xs:sequence>
-      <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
-    </xs:sequence>
-    <xs:attribute name="provider" use="optional" type="xs:string"/>
-  </xs:complexType>
-
-  <xs:complexType name="authority-type">
-    <xs:sequence>
-      <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
-    </xs:sequence>
-    <xs:attribute name="provider" use="optional" type="xs:string"/>
-  </xs:complexType>
 </xs:schema>
