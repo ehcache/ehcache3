@@ -16,9 +16,11 @@
 
 package org.ehcache.config.xml;
 
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.core.Is;
@@ -26,6 +28,7 @@ import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 import org.xml.sax.SAXParseException;
 
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
@@ -66,14 +69,33 @@ public class XmlConfigurationTest {
   @Test
   public void testOneCacheConfigWithTemplate() throws Exception {
     XmlConfiguration xmlConfig = new XmlConfiguration();
-    Configuration config = xmlConfig.parseConfiguration(XmlConfigurationTest.class.getResource("/configs/template-cache.xml"));
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/template-cache.xml");
+    Configuration config = xmlConfig.parseConfiguration(resource);
 
     assertThat(config.getServiceConfigurations(), hasSize(0));
     assertThat(config.getCacheConfigurations().keySet(), hasItem("bar"));
     assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(FooConfiguration.class)));
     assertThat(config.getCacheConfigurations().get("bar").getCapacityConstraint(), Is.<Comparable<Long>>is(120L));
-    assertThat(config.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class) Number.class));
-    assertThat(config.getCacheConfigurations().get("bar").getValueType(), sameInstance((Class) String.class));
+    assertThat(config.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class)Number.class));
+    assertThat(config.getCacheConfigurations().get("bar").getValueType(), sameInstance((Class)String.class));
+
+    final CacheConfigurationBuilder<String, String> example = xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, String.class);
+    assertThat(example.buildConfig(String.class, String.class).getCapacityConstraint(), Is.<Comparable<Long>>is(120L));
+
+    try {
+      xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, Number.class);
+      fail();
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("CacheTemplate 'example' declares value type of java.lang.String"));
+    }
+    try {
+      xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Number.class, String.class);
+      fail();
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("CacheTemplate 'example' declares key type of java.lang.String"));
+    }
+
+    assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("bar"), nullValue());
   }
 
   @Test
