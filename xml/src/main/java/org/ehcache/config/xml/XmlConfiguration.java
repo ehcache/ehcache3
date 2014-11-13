@@ -61,13 +61,12 @@ public class XmlConfiguration {
     }
 
     for (ConfigurationParser.CacheElement cacheElement : configurationParser.getCacheElements()) {
-      CacheConfigurationBuilder builder = new CacheConfigurationBuilder();
+      CacheConfigurationBuilder<Object, Object> builder = new CacheConfigurationBuilder<Object, Object>();
       String alias = cacheElement.alias();
-      
-      
+
       ClassLoader cacheClassLoader = cacheClassLoaders.get(alias);
       if (cacheClassLoader != null) {
-        builder.withClassLoader(cacheClassLoader);
+        builder = builder.withClassLoader(cacheClassLoader);
       }
       
       if (cacheClassLoader == null) {
@@ -91,10 +90,10 @@ public class XmlConfiguration {
         evictionPrioritizer = null;
       }
       for (ServiceConfiguration<?> serviceConfig : cacheElement.serviceConfigs()) {
-        builder.addServiceConfig(serviceConfig);
+        builder = builder.addServiceConfig(serviceConfig);
       }
       if (capacityConstraint != null) {
-        builder.maxEntriesInCache(capacityConstraint);
+        builder = builder.maxEntriesInCache(capacityConstraint);
       }
       configBuilder.addCache(alias, builder.buildConfig(keyType, valueType, evictionVeto, evictionPrioritizer));
     }
