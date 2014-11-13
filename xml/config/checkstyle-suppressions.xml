@@ -5,4 +5,5 @@
     "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
 
 <suppressions>
+    <suppress files="org[\\/]ehcache[\\/]config[\\/]xml[\\/]model[\\/]" checks="Header"/>
 </suppressions>
