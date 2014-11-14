@@ -24,13 +24,25 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
+import org.ehcache.statistics.CacheOperationOutcomes;
+import org.hamcrest.Description;
+import org.hamcrest.Factory;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.terracotta.context.ContextManager;
+import org.terracotta.context.TreeNode;
+import org.terracotta.statistics.OperationStatistic;
+import org.terracotta.statistics.ValueStatistic;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -76,26 +88,28 @@ public class EhcacheBasicCrudTest {
     assertThat(ehcache.get("key"), is(nullValue()));
     verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
     verify(this.store, never()).remove("key");
-    // TODO: Add verification of GetOutcome.MISS_NOT_FOUND
+    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NOT_FOUND));
   }
 
   @Test
   public void testGetNoStoreEntryNoCacheLoaderEntry() throws Exception {
     final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
+
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
 
     assertThat(ehcache.get("key"), is(nullValue()));
     verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
     verify(this.store, never()).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    // TODO: Add verification of GetOutcome.MISS_NOT_FOUND
+    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NOT_FOUND));
   }
 
   @Test
   public void testGetNoStoreEntryHasCacheLoaderEntry() throws Exception {
     final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
+
     when(this.cacheLoader.load("key")).thenReturn("value");
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
 
@@ -103,13 +117,14 @@ public class EhcacheBasicCrudTest {
     verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
     verify(this.store, never()).remove("key");
     assertThat(realStore.getMap().get("key"), equalTo("value"));
-    // TODO: Add verification of GetOutcome.HIT
+    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
   }
 
   @Test
   public void testGetNoStoreEntryCacheLoaderException() throws Exception {
     final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
+
     when(this.cacheLoader.load("key")).thenThrow(ExceptionFactory.newCacheLoaderException(new Exception()));
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
 
@@ -122,7 +137,7 @@ public class EhcacheBasicCrudTest {
     verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    // TODO: Add verification of GetOutcome -- no value recorded
+    this.validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
   }
 
   @Test
@@ -130,13 +145,14 @@ public class EhcacheBasicCrudTest {
     final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
     doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), any(Function.class));
+
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     assertThat(ehcache.get("key"), is(nullValue()));
     verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    // TODO: Add verification of GetOutcome.FAILURE
+    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
   @Test
@@ -144,13 +160,14 @@ public class EhcacheBasicCrudTest {
     final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
     doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), any(Function.class));
+
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
 
     assertThat(ehcache.get("key"), is(nullValue()));
     verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    // TODO: Add verification of GetOutcome.FAILURE
+    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
   @Test
@@ -158,6 +175,7 @@ public class EhcacheBasicCrudTest {
     final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
     doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), any(Function.class));
+
     when(this.cacheLoader.load("key")).thenReturn("value");
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
 
@@ -165,7 +183,7 @@ public class EhcacheBasicCrudTest {
     verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    // TODO: Add verification of GetOutcome.FAILURE
+    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
   @Test
@@ -173,6 +191,7 @@ public class EhcacheBasicCrudTest {
     final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
     doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), any(Function.class));
+
     when(this.cacheLoader.load("key")).thenThrow(ExceptionFactory.newCacheLoaderException(new Exception()));
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
 
@@ -185,7 +204,7 @@ public class EhcacheBasicCrudTest {
     verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    // TODO: Add verification of GetOutcome.FAILURE
+    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
   @Test
@@ -199,20 +218,159 @@ public class EhcacheBasicCrudTest {
     assertThat(ehcache.get("key"), equalTo("value"));
     verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
     verify(this.store, never()).remove("key");
-    // TODO: Add verification of GetOutcome.HIT
+    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
   }
 
   @Test
-  public void testGetHasStoreEntryCacheAccessExceptionNoCacheLoader() {}
+  public void testGetHasStoreEntryCacheAccessExceptionNoCacheLoader() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "value"));
+    this.store = spy(realStore);
+    assertThat(realStore.getMap().get("key"), equalTo("value"));
+    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), any(Function.class));
+
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
+
+    assertThat(ehcache.get("key"), is(nullValue()));
+    verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
+  }
 
   @Test
-  public void testGetHasStoreEntryCacheAccessExceptionNoCacheLoaderEntry() {}
+  public void testGetHasStoreEntryCacheAccessExceptionNoCacheLoaderEntry() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "value"));
+    this.store = spy(realStore);
+    assertThat(realStore.getMap().get("key"), equalTo("value"));
+    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), any(Function.class));
+
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
+
+    assertThat(ehcache.get("key"), is(nullValue()));
+    verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
+  }
 
   @Test
-  public void testGetHasStoreEntryCacheAccessExceptionHasCacheLoaderEntry() {}
+  public void testGetHasStoreEntryCacheAccessExceptionHasCacheLoaderEntry() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "value"));
+    this.store = spy(realStore);
+    assertThat(realStore.getMap().get("key"), equalTo("value"));
+    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), any(Function.class));
+
+    when(this.cacheLoader.load("key")).thenReturn("value");
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
+
+    assertThat(ehcache.get("key"), equalTo("value"));
+    verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
+  }
 
   @Test
-  public void testGetHasStoreEntryCacheAccessExceptionCacheLoaderException() {}
+  public void testGetHasStoreEntryCacheAccessExceptionCacheLoaderException() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "value"));
+    this.store = spy(realStore);
+    assertThat(realStore.getMap().get("key"), equalTo("value"));
+    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), any(Function.class));
+
+    when(this.cacheLoader.load("key")).thenThrow(ExceptionFactory.newCacheLoaderException(new Exception()));
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
+
+    try {
+      ehcache.get("key");
+      fail();
+    } catch (CacheLoaderException e) {
+      // Expected
+    }
+    verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
+  }
+
+  /**
+   * Validates expected {@link org.terracotta.statistics.OperationStatistic} updates for the
+   * indicated {@code Ehcache} instance.  The statistics identified in {@code changed} are
+   * checked for a value of {@code 1}; all other statistics in the same enumeration class are
+   * checked for a value of {@code 0}.
+   *
+   * @param ehcache the {@code Ehcache} instance to check
+   * @param changed the
+   * @param <E>
+   */
+  private <E extends Enum<E>> void validateStats(final Ehcache<?, ?> ehcache, final EnumSet<E> changed) {
+    assert changed != null;
+    final EnumSet<E> unchanged = EnumSet.complementOf(changed);
+
+    @SuppressWarnings("unchecked")
+    final List<EnumSet<E>> sets = Arrays.asList(changed, unchanged);
+    Class<E> statsClass = null;
+    for (EnumSet<E> set : sets) {
+      if (!set.isEmpty()) {
+        statsClass = set.iterator().next().getDeclaringClass();
+        break;
+      }
+    }
+    assert statsClass != null;
+
+    final OperationStatistic<E> operationStatistic = this.getOperationStatistic(ehcache, statsClass);
+    for (final E statId : changed) {
+      assertThat(this.getStatistic(operationStatistic, statId), StatisticMatcher.equalTo(1L));
+    }
+    for (final E statId : unchanged) {
+      assertThat(this.getStatistic(operationStatistic, statId), StatisticMatcher.equalTo(0L));
+    }
+  }
+
+  /**
+   * Gets a reference to the {@link org.terracotta.statistics.OperationStatistic} instance holding the
+   * class of statistics specified for the {@code Ehcache} instance provided.
+   *
+   * @param ehcache the {@code Ehcache} instance for which the {@code OperationStatistic} instance
+   *          should be obtained
+   * @param statsClass the {@code Class} of statistics for which the {@code OperationStatistic} instance
+   *          should be obtained
+   * @param <E> the {@code Enum} type for the statistics
+   *
+   * @return a reference to the {@code OperationStatistic} instance holding the {@code statsClass} statistics;
+   *          may be {@code null} if {@code statsClass} statistics do not exist for {@code ehcache}
+   */
+  private <E extends Enum<E>> OperationStatistic<E> getOperationStatistic(final Ehcache<?, ?> ehcache, final Class<E> statsClass) {
+    for (final TreeNode statNode : ContextManager.nodeFor(ehcache).getChildren()) {
+      final Object statObj = statNode.getContext().attributes().get("this");
+      if (statObj instanceof OperationStatistic<?>) {
+        @SuppressWarnings("unchecked")
+        final OperationStatistic<E> statistic = (OperationStatistic<E>)statObj;
+        if (statistic.type().equals(statsClass)) {
+          return statistic;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Gets the value of the statistic indicated from an {@link org.terracotta.statistics.OperationStatistic}
+   * instance.
+   *
+   * @param operationStatistic the {@code OperationStatistic} instance from which the statistic is to
+   *            be obtained
+   * @param statId the {@code Enum} constant identifying the statistic for which the value must be obtained
+   * @param <E> The {@code Enum} type for the statistics
+   *
+   * @return the value, possibly null, for {@code statId} about {@code ehcache}
+   */
+  private <E extends Enum<E>> Number getStatistic(final OperationStatistic<E> operationStatistic, final E statId) {
+    if (operationStatistic != null) {
+      final ValueStatistic<Long> valueStatistic = operationStatistic.statistic(statId);
+      return (valueStatistic == null ? null : valueStatistic.value());
+    }
+    return null;
+  }
 
   /**
    * Gets an initialized {@link org.ehcache.Ehcache Ehcache} instance using the
@@ -371,16 +529,16 @@ public class EhcacheBasicCrudTest {
     @Override
     public ValueHolder<String> computeIfAbsent(final String key, final Function<? super String, ? extends String> mappingFunction)
         throws CacheAccessException {
-      final ValueHolder<String> currentValue = this.entries.get(key);
+      ValueHolder<String> currentValue = this.entries.get(key);
       if (currentValue == null) {
         final String newValue = mappingFunction.apply(key);
         if (newValue != null) {
           final MockValueHolder newValueHolder = new MockValueHolder(newValue);
           this.entries.put(key, newValueHolder);
-          return newValueHolder;
+          currentValue = newValueHolder;
         }
       }
-      return null;
+      return currentValue;
     }
 
     @Override
@@ -441,6 +599,39 @@ public class EhcacheBasicCrudTest {
       public float hitRate(final TimeUnit unit) {
         return 0;
       }
+    }
+  }
+
+  private static final class StatisticMatcher extends TypeSafeMatcher<Number> {
+
+    final Number expected;
+
+    private StatisticMatcher(final Class<?> expectedType, final Number expected) {
+      super(expectedType);
+      this.expected = expected;
+    }
+
+    @Override
+    protected boolean matchesSafely(final Number value) {
+      if (value != null) {
+        return (value.longValue() == this.expected.longValue());
+      } else {
+        return this.expected.longValue() == 0L;
+      }
+    }
+
+    @Override
+    public void describeTo(final Description description) {
+      if (this.expected.longValue() == 0L) {
+        description.appendText("zero or null");
+      } else {
+        description.appendValue(this.expected);
+      }
+    }
+
+    @Factory
+    public static Matcher<Number> equalTo(final Number expected) {
+      return new StatisticMatcher(Number.class, expected);
     }
   }
 }
