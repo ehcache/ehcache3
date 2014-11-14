@@ -21,7 +21,6 @@ import static org.terracotta.statistics.StatisticsBuilder.operation;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
@@ -401,21 +400,10 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   @Override
   public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Iterable<? extends K> keys, final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
     Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
-    Set<K> missingKeys = new HashSet<K>();
-    for (K key : keys) {
-      checkKey(key);
-      ValueHolder<V> value = get(key);
-      if (value != null) {
-        result.put(key, value);
-      } else {
-        missingKeys.add(key);
-      }
-    }
-
-    for (final K key : missingKeys) {
-      final OnHeapValueHolder<V> newValue = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+    for (final K key : keys) {
+      final OnHeapValueHolder<V> newValue = map.computeIfAbsent(key, new Function<K, OnHeapValueHolder<V>>() {
         @Override
-        public OnHeapValueHolder<V> apply(final K k, final OnHeapValueHolder<V> oldValue) {
+        public OnHeapValueHolder<V> apply(final K k) {
           final Iterable<K> keySet = Collections.singleton(k);
           final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries = mappingFunction.apply(keySet);
           final java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = entries.iterator();

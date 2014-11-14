@@ -74,7 +74,11 @@ public class OnHeapStoreBulkMethodsTest {
         for (Map.Entry<? extends Number, ? extends Number> entry : entries) {
           final Number currentValue = entry.getValue();
           if(currentValue == null) {
-            newValues.put(entry.getKey(), 0);
+            if(entry.getKey().equals(4)) {
+              newValues.put(entry.getKey(), null);
+            } else {
+              newValues.put(entry.getKey(), 0);
+            }
           } else {
             newValues.put(entry.getKey(), currentValue.intValue() * 2);
           }
@@ -95,14 +99,18 @@ public class OnHeapStoreBulkMethodsTest {
     assertThat(result.get(1).value(), Matchers.<Number>is(check.get(1)));
     assertThat(result.get(2).value(), Matchers.<Number>is(check.get(2)));
     assertThat(result.get(3).value(), Matchers.<Number>is(check.get(3)));
-    assertThat(result.get(4).value(), Matchers.<Number>is(check.get(4)));
+    assertThat(result.get(4), nullValue());
     assertThat(result.get(5).value(), Matchers.<Number>is(check.get(5)));
     assertThat(result.get(6).value(), Matchers.<Number>is(check.get(6)));
 
     for (Number key : check.keySet()) {
-      check.remove(key, store.get(key).value());
+      final Store.ValueHolder<Number> holder = store.get(key);
+      if(holder != null) {
+        check.remove(key, holder.value());
+      }
     }
-    assertThat(check.size(), is(0));
+    assertThat(check.size(), is(1));
+    assertThat(check.containsKey(4), is(true));
 
   }
 
