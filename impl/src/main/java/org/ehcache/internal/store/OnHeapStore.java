@@ -18,11 +18,9 @@ package org.ehcache.internal.store;
 
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 import static org.terracotta.statistics.StatisticsBuilder.operation;
-
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
@@ -75,7 +73,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       this.capacityConstraint = Comparables.biggest();
     } else {
       this.capacityConstraint = config.getCapacityConstraint();
-    }  
+    }
     this.evictionVeto = wrap(config.getEvictionVeto());
     this.evictionPrioritizer = wrap(config.getEvictionPrioritizer());
     this.keyType = config.getKeyType();
@@ -83,7 +81,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     this.expiry = config.getExpiry();
     this.timeSource = timeSource;
   }
-  
+
   @Override
   public ValueHolder<V> get(final K key) throws CacheAccessException {
     checkKey(key);
@@ -95,15 +93,15 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
         final long now = timeSource.getTimeMillis();
-        
+
         if (mappedValue.isExpired(now)) {
           return null;
         }
-        
+
         if (updateAccess) {
           setAccessTimeAndExpiry(key, mappedValue, now);
         }
-        
+
         return mappedValue;
       }
     });
@@ -370,7 +368,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
           }
           return nullSafeNewValueHolder(key, computedValue, now);
         }
-        
+
         setAccessTimeAndExpiry(key, mappedValue, now);
         return mappedValue;
       }
@@ -400,67 +398,44 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Iterable<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
+  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Iterable<? extends K> keys, final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
     Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
-    Set<K> missingKeys = new HashSet<K>();
-    for (K key : keys) {
-      checkKey(key);
-      ValueHolder<V> value = get(key);
-      if (value != null) {
-        result.put(key, value);
-      } else {
-        missingKeys.add(key);
-      }
-    }
-    Iterable<? extends Map.Entry<? extends K, ? extends V>> computedMappings = mappingFunction.apply(missingKeys);
-
-    if (computedMappings != null) {
-      for (Map.Entry<? extends K, ? extends V> entry : computedMappings) {
-        K key = entry.getKey();
-        V value = entry.getValue();
-        checkKey(key);
-        checkValue(value);
-
-        OnHeapValueHolder<V> valueHolder = nullSafeNewValueHolder(entry.getKey(), entry.getValue(), timeSource.getTimeMillis());
-        if (valueHolder != null && missingKeys.contains(entry.getKey())) {
-          ValueHolder<V> racer = putIfAbsent(entry.getKey(), valueHolder.value());
-          result.put(entry.getKey(), racer != null ? racer : valueHolder);
+    for (final K key : keys) {
+      final OnHeapValueHolder<V> newValue = map.computeIfAbsent(key, new Function<K, OnHeapValueHolder<V>>() {
+        @Override
+        public OnHeapValueHolder<V> apply(final K k) {
+          final Iterable<K> keySet = Collections.singleton(k);
+          final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries = mappingFunction.apply(keySet);
+          final java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = entries.iterator();
+          final Map.Entry<? extends K, ? extends V> next = iterator.next();
+          return nullSafeNewValueHolder(next.getKey(), next.getValue(), timeSource.getTimeMillis());
         }
-      }
+      });
+      result.put(key, newValue);
     }
-    
     return result;
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Iterable<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
-    Map<K, V> oldEntries = new HashMap<K, V>();
-    for (K key : keys) {
-      checkKey(key);
-      ValueHolder<V> valueHolder = get(key);
-      oldEntries.put(key, valueHolder == null ? null : valueHolder.value());
-    }
-    Iterable<? extends Map.Entry<? extends K, ? extends V>> remappedEntries = remappingFunction.apply(oldEntries.entrySet());
+  public Map<K, ValueHolder<V>> bulkCompute(Iterable<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
+
+    // The Store here is free to slice & dice the keys as it sees fit
+    // As this OnHeapStore doesn't operate in segments, the best it can do is do a "bulk" write in batches of... one!
 
     Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
-    if (remappedEntries != null) {
-      for (Map.Entry<? extends K, ? extends V> remappedEntry : remappedEntries) {
-        K key = remappedEntry.getKey();
-        V value = remappedEntry.getValue();
-        checkKey(key);
-        if (value != null) { 
-          checkValue(value);
+    for (K key : keys) {
+      final OnHeapValueHolder<V> newValue = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+        @Override
+        public OnHeapValueHolder<V> apply(final K k, final OnHeapValueHolder<V> oldValue) {
+          final Set<Map.Entry<K, V>> entrySet = Collections.singletonMap(k, oldValue == null ? null : oldValue.value())
+              .entrySet();
+          final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries = remappingFunction.apply(entrySet);
+          final java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = entries.iterator();
+          final Map.Entry<? extends K, ? extends V> next = iterator.next();
+          return nullSafeNewValueHolder(next.getKey(), next.getValue(), timeSource.getTimeMillis());
         }
-        if (oldEntries.containsKey(key)) {
-          OnHeapValueHolder<V> valueHolder = nullSafeNewValueHolder(remappedEntry.getKey(), remappedEntry.getValue(), timeSource.getTimeMillis());
-          if (valueHolder != null) {
-            put(key, valueHolder.value());
-          } else {
-            remove(key);
-          }
-          result.put(key, valueHolder);
-        }
-      }
+      });
+      result.put(key, newValue);
     }
     return result;
   }
@@ -567,7 +542,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       
       return new OnHeapStore<K, V>(storeConfig, timeSource);
     }
-    
+
     @Override
     public void releaseStore(final Store<?, ?> resource) {
       try {
@@ -600,7 +575,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       };
     }
   }
-  
+
   private static <K, V> Comparator<Map.Entry<K, OnHeapValueHolder<V>>> wrap(final Comparator<Cache.Entry<K, V>> comparator) {
     return new Comparator<Map.Entry<K, OnHeapValueHolder<V>>>() {
       @Override
@@ -608,7 +583,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         return comparator.compare(wrap(t), wrap(u));
       }
     };
-  } 
+  }
 
   private static <K, V> Cache.Entry<K, V> wrap(final Map.Entry<K, OnHeapValueHolder<V>> value) {
     return new Cache.Entry<K, V>() {
