@@ -285,11 +285,11 @@ public interface Store<K, V> {
    * </p>
    * The function may be called multiple times per <code>bulkCompute</code> call, depending on how the store wants or does not want to batch computations.
    *
-   * Note: This method does not guarantee atomicity of computations of all {@code keys}, only individual computations for keys passed to the {@code remappingFunction} are atomic.
+   * Note: This method guarantees atomicity of computations for each individual key in {@code keys}. Implementations may choose to provide coarser grained atomicity.
    *
    * @param keys the keys to compute a new value for.
    * @param remappingFunction the function that generates new values.
-   * @return a {@link Map} of key/value pairs for each key in <code>keys</code> that is in the store after bulk computing is done.
+   * @return a {@link Map} of key/value pairs for each key in <code>keys</code> to the value computed.
    * @throws ClassCastException if the specified key(s) are not of the correct type ({@code K}). Also thrown if the given function produces
    *         entries with either incorrect key or value types   
    * @throws CacheAccessException
@@ -306,11 +306,11 @@ public interface Store<K, V> {
    *
    * The function may be called multiple times per <code>bulkComputeIfAbsent</code> call, depending on how the store wants or does not want to batch computations.
    *
-   * Note: This method does not guarantee atomicity of computations of all {@code keys}, only individual computations for keys passed to the {@code mappingFunction} are atomic.
+   * Note: This method guarantees atomicity of computations for each individual key in {@code keys}. Implementations may choose to provide coarser grained atomicity.
    *
    * @param keys the keys to compute a new value for, if they're not in the store.
    * @param mappingFunction the function that generates new values.
-   * @return a {@link Map} of key/value pairs for each key in <code>keys</code> that are in the store after bulk computing is done.
+   * @return a {@link Map} of key/value pairs for each key in <code>keys</code> to the previously missing value.
    * @throws ClassCastException if the specified key(s) are not of the correct type ({@code K}). Also thrown if the given function produces
    *         entries with either incorrect key or value types
    * @throws CacheAccessException
