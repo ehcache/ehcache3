@@ -285,8 +285,7 @@ public interface Store<K, V> {
    * </p>
    * The function may be called multiple times per <code>bulkCompute</code> call, depending on how the store wants or does not want to batch computations.
    *
-   * Note: This method does not guarantee atomicity of the computations between each other. Each computation is atomic, but the store may be concurrently
-   * modified at any time during mapping computations.
+   * Note: This method does not guarantee atomicity of computations of all {@code keys}, only individual computations for keys passed to the {@code remappingFunction} are atomic.
    *
    * @param keys the keys to compute a new value for.
    * @param remappingFunction the function that generates new values.
@@ -307,8 +306,7 @@ public interface Store<K, V> {
    *
    * The function may be called multiple times per <code>bulkComputeIfAbsent</code> call, depending on how the store wants or does not want to batch computations.
    *
-   * Note: This method does not guarantee atomicity of the computations between each other. Each computation is atomic, but the store may be concurrently
-   * modified at any time during mapping computations.
+   * Note: This method does not guarantee atomicity of computations of all {@code keys}, only individual computations for keys passed to the {@code mappingFunction} are atomic.
    *
    * @param keys the keys to compute a new value for, if they're not in the store.
    * @param mappingFunction the function that generates new values.
