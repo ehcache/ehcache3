@@ -14,6 +14,34 @@
  * limitations under the License.
  */
 
+def pomFiller(pom, nameVar, descriptionVar) {
+  pom.project {
+    name nameVar
+    description descriptionVar
+    url 'http://ehcache.org'
+    organization {
+      name 'Terraccotta'
+      url 'http://terracotta.org'
+    }
+    issueManagement {
+      system 'Github'
+      url 'https://github.com/ehcache/ehcache3/issues'
+    }
+    scm {
+      url 'https://github.com/ehcache/ehcache3'
+      connection 'scm:git:https://github.com/ehcache/ehcache3.git'
+      developerConnection 'scm:git:git@github.com:ehcache/ehcache3.git'
+    }
+    licenses {
+      license {
+        name 'The Apache Software License, Version 2.0'
+        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+        distribution 'repo'
+      }
+    }
+  }
+}
+
 subprojects {
   apply plugin: 'java'
   apply plugin: 'maven'
@@ -93,38 +121,6 @@ subprojects {
     sign configurations.archives
   }
 
-  def pomFiller = {
-    name project.subPomName
-    description project.subPomDesc
-    url 'http://ehcache.org'
-    organization {
-      name 'Terraccotta'
-      url 'http://terracotta.org'
-    }
-    issueManagement {
-      system 'Github'
-      url 'https://github.com/ehcache/ehcache3/issues'
-    }
-    scm {
-      url 'https://github.com/ehcache/ehcache3'
-      connection 'scm:git:https://github.com/ehcache/ehcache3.git'
-      developerConnection 'scm:git:git@github.com:ehcache/ehcache3.git'
-    }
-    licenses {
-      license {
-        name 'The Apache Software License, Version 2.0'
-        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-        distribution 'repo'
-      }
-    }
-  }
-
-  install {
-    repositories.mavenInstaller {
-      pom.project pomFiller
-    }
-  }
-
   uploadArchives {
     repositories {
       mavenDeployer {
@@ -139,11 +135,15 @@ subprojects {
             authentication(userName: sonatypeUser, password: sonatypePwd)
           }
         }
-
-        pom.project pomFiller
-
       }
     }
+  }
+
+  def installer = install.repositories.mavenInstaller
+  def deployer = uploadArchives.repositories.mavenDeployer
+
+  [installer, deployer]*.pom*.whenConfigured {pom ->
+    pomFiller(pom, project.subPomName, project.subPomDesc)
   }
 
   checkstyle {
