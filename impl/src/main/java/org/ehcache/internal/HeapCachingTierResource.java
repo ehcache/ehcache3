@@ -39,7 +39,7 @@ public class HeapCachingTierResource implements CachingTier.Provider {
   }
 
   @Override
-  public void start() {
+  public void start(ServiceConfiguration<?> config) {
     //no-op
   }
 

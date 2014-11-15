@@ -391,7 +391,7 @@ public class EhcacheManagerTest {
   static class NoSuchService implements Service {
 
     @Override
-    public void start() {
+    public void start(ServiceConfiguration<?> config) {
       throw new UnsupportedOperationException("Implement me!");
     }
 

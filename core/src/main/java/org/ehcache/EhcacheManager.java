@@ -25,6 +25,7 @@ import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.loader.CacheLoaderFactory;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
@@ -34,6 +35,8 @@ import org.ehcache.spi.writer.CacheWriterFactory;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -209,13 +212,16 @@ public class EhcacheManager implements PersistentCacheManager {
     final StatusTransitioner.Transition st = statusTransitioner.init();
 
     try {
+      Map<Service, ServiceConfiguration<?>> serviceConfigs = new HashMap<Service, ServiceConfiguration<?>>();
       for (ServiceConfiguration<?> serviceConfig : configuration.getServiceConfigurations()) {
-        if (serviceLocator.discoverService(serviceConfig) == null) {
+        final Service service = serviceLocator.discoverService(serviceConfig);
+        if (service == null) {
           throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
         }
+        serviceConfigs.put(service, serviceConfig);
       }
       try {
-        serviceLocator.startAllServices();
+        serviceLocator.startAllServices(serviceConfigs);
       } catch (Exception e) {
         st.failed();
         throw new StateTransitionException(e);
