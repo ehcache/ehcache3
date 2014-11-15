@@ -352,7 +352,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
       entriesToRemap.put(entry.getKey(), entry.getValue());
     }
-    addBulkMethodEntriesCount("putAll", entriesToRemap.size());
+    
+    long entriesCount = entriesToRemap.size();
 
     // The remapping function that will return the keys to their NEW values, taking the keys to their old values as input;
     // but this could happen in batches, i.e. not the same unique Set as passed to this method
@@ -379,6 +380,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     KeysIterable keys = new KeysIterable(entries);
     try {
       store.bulkCompute(keys, remappingFunction);
+      addBulkMethodEntriesCount("putAll", entriesCount);
     } catch (CacheAccessException e) {
       // just in case not all writes happened:
       try {
@@ -428,7 +430,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     for (K key: keys) {
       entriesToRemove.put(key, null);
     }
-    addBulkMethodEntriesCount("removeAll", entriesToRemove.size());
+    long entriesCount = entriesToRemove.size();
     
     Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> removalFunction =
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
@@ -445,6 +447,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
     try {
       store.bulkCompute(keys, removalFunction);
+      addBulkMethodEntriesCount("removeAll", entriesCount);
     } catch (CacheAccessException e) {
       // just in case the write didn't happen:
       try {
