@@ -574,7 +574,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public void start() {
+    public void start(ServiceConfiguration<?> cfg) {
       // nothing to do
     }
 

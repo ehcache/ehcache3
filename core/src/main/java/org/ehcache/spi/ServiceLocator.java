@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -97,7 +98,7 @@ public final class ServiceLocator {
           if (services.putIfAbsent(serviceClazz, service) != null) {
             throw new IllegalStateException("Racing registration for duplicate service " + serviceClazz.getName());
           } else if (running.get()) {
-            service.start();
+            service.start(null);
           }
         }
       } else {
@@ -153,7 +154,7 @@ public final class ServiceLocator {
     }
   }
 
-  public void startAllServices() throws Exception {
+  public void startAllServices(final Map<Service, ServiceConfiguration<?>> serviceConfigs) throws Exception {
     Deque<Service> started = new ArrayDeque<Service>();
     final Lock lock = runningLock.writeLock();
     lock.lock();
@@ -162,7 +163,7 @@ public final class ServiceLocator {
         throw new IllegalStateException("Already started!");
       }
       for (Service service : services.values()) {
-        service.start();
+        service.start(serviceConfigs.get(service));
         started.push(service);
       }
     } catch (Exception e) {

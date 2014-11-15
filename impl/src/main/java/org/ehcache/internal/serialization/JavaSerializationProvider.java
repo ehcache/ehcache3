@@ -34,7 +34,7 @@ public class JavaSerializationProvider implements SerializationProvider {
   }
 
   @Override
-  public void start() {
+  public void start(ServiceConfiguration<?> config) {
     //no-op
   }
 

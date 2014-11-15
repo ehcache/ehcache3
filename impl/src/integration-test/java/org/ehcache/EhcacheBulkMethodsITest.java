@@ -516,7 +516,7 @@ public class EhcacheBulkMethodsITest {
     }
 
     @Override
-    public void start() {
+    public void start(ServiceConfiguration<?> config) {
 
     }
 

@@ -18,6 +18,7 @@ package org.ehcache.spi;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.Collections;
 import java.util.Enumeration;
 
 import org.ehcache.Ehcache;
@@ -98,7 +99,7 @@ public class ServiceLocatorTest {
 
     ServiceLocator locator = new ServiceLocator(s1, s2);
     try {
-      locator.startAllServices();
+      locator.startAllServices(Collections.<Service, ServiceConfiguration<?>>emptyMap());
       fail();
     } catch (Exception e) {
       // see org.ehcache.spi.ParentTestService.start()
@@ -116,7 +117,7 @@ public class ServiceLocatorTest {
 
     ServiceLocator locator = new ServiceLocator(s1, s2, s3);
     try {
-      locator.startAllServices();
+      locator.startAllServices(Collections.<Service, ServiceConfiguration<?>>emptyMap());
     } catch (Exception e) {
       fail();
     }
@@ -144,7 +145,7 @@ interface FooProvider extends Service {
 class ParentTestService implements FooProvider {
 
   @Override
-  public void start() {
+  public void start(ServiceConfiguration<?> config) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
@@ -156,7 +157,7 @@ class ParentTestService implements FooProvider {
 class ChildTestService extends ParentTestService {
 
   @Override
-  public void start() {
+  public void start(ServiceConfiguration<?> config) {
     throw new UnsupportedOperationException("Implement me!");
   }
 }
@@ -176,7 +177,7 @@ class FancyCacheProvider implements CacheProvider {
   }
 
   @Override
-  public void start() {
+  public void start(ServiceConfiguration<?> config) {
     ++startStopCounter;
   }
 
@@ -198,7 +199,7 @@ class DullCacheProvider implements CacheProvider {
   }
 
   @Override
-  public void start() {
+  public void start(ServiceConfiguration<?> config) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
