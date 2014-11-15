@@ -17,17 +17,6 @@
     <capacity>2000</capacity>
   </cache-template>
 
-  <cache alias="bars" usesTemplate="stringCache">
-    <key-type>java.lang.String</key-type>
-    <value-type>java.lang.String</value-type>
-    <capacity>1200</capacity>
-  </cache>
-
-  <cache alias="foobars" usesTemplate="tinyCache">
-    <key-type>java.lang.Long</key-type>
-    <value-type>java.lang.String</value-type>
-  </cache>
-
   <cache-template name="tinyCache">
     <capacity>20</capacity>
   </cache-template>
