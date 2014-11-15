@@ -14,6 +14,18 @@
  * limitations under the License.
  */
 
-dependencies {
-  compile project(':api'), project(':xml'), 'javax.cache:cache-api:1.0.0'
+package org.ehcache.jsr107;
+
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
+
+/**
+ * @author Alex Snaps
+ */
+public interface Jsr107Service extends Service {
+  @Override
+  void start(ServiceConfiguration<?> serviceConfiguration);
+
+  @Override
+  void stop();
 }

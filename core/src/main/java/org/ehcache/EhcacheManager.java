@@ -201,7 +201,10 @@ public class EhcacheManager implements PersistentCacheManager {
     try {
       Map<Service, ServiceConfiguration<?>> serviceConfigs = new HashMap<Service, ServiceConfiguration<?>>();
       for (ServiceConfiguration<?> serviceConfig : configuration.getServiceConfigurations()) {
-        final Service service = serviceLocator.discoverService(serviceConfig);
+        Service service = serviceLocator.discoverService(serviceConfig);
+        if(service == null) {
+          service = serviceLocator.findService(serviceConfig.getServiceType());
+        }
         if (service == null) {
           throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
         }
