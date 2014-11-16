@@ -107,15 +107,14 @@ In order to parse these XML configuration, you can use the `XmlConfiguration` ty
 [source,java]
 ----
 final URL myUrl = this.getClass().getResource("/my-config.xml"); // <1>
-XmlConfiguration xmlConfig = new XmlConfiguration(myUrl); // <2>
-Configuration myConfig = xmlConfig.parseConfiguration(); // <3>
-CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(myConfig); // <4>
+Configuration xmlConfig = new XmlConfiguration(myUrl); // <2>
+CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(xmlConfig); // <3>
 ----
 
 <1> Obtain a `URL` to your XML file's location
 <2> Instantiate a `XmlConfiguration` passing the XML file's URL to it
-<3> Invoke `XmlConfiguration.parseConfiguration()` to obtain a `Configuration` instance
-<4> Using the static `org.ehcache.CacheManagerBuilder.newCacheManager(org.ehcache.config.Configuration)` lets you create your `CacheManager` instance
+<3> Using the static `org.ehcache.CacheManagerBuilder.newCacheManager(org.ehcache.config.Configuration)` lets you
+    create your `CacheManager` instance using the `Configuration` from the `XmlConfiguration`
 
 == Current status & future development
 

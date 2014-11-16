@@ -15,9 +15,9 @@
  */
 package org.ehcache.config.xml;
 
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.ConfigurationBuilder;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
@@ -27,6 +27,8 @@ import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,81 +42,24 @@ import java.util.Map;
  * @author Chris Dennis
  * @author Alex Snaps
  */
-public class XmlConfiguration {
+public class XmlConfiguration implements Configuration {
 
   private static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
 
-  private final Map<String, ConfigurationParser.CacheTemplate> templates = new HashMap<String, ConfigurationParser.CacheTemplate>();
   private final URL xml;
   private final ClassLoader classLoader;
   private final Map<String, ClassLoader> cacheClassLoaders;
 
-  private boolean parsedXML = false;
+  private final Collection<ServiceConfiguration<?>> serviceConfigurations = new ArrayList<ServiceConfiguration<?>>();
+  private final Map<String, CacheConfiguration<?, ?>> cacheConfigurations = new HashMap<String, CacheConfiguration<?, ?>>();
+  private final Map<String, ConfigurationParser.CacheTemplate> templates = new HashMap<String, ConfigurationParser.CacheTemplate>();
 
   /**
    * Constructs an instance of XmlConfiguration mapping to the XML file located at {@code url}
    * <p>
-   * This constructor will not parse nor even touch the configuration URL.
+   * Parses the XML file at the {@code url} provided.
    *
    * @param url URL pointing to the XML file's location
-   * @see #parseConfiguration()
-   */
-  public XmlConfiguration(URL url) {
-    this(url, null);
-  }
-
-  /**
-   * Constructs an instance of XmlConfiguration mapping to the XML file located at {@code url} and using the provided
-   * {@code classLoader} to load user types (e.g. key and value Class instances).
-   * <p>
-   * This constructor will not parse nor even touch the configuration URL.
-   *
-   * @param url URL pointing to the XML file's location
-   * @param classLoader ClassLoader to use to load user types.
-   * @see #parseConfiguration()
-   */
-  public XmlConfiguration(URL url, final ClassLoader classLoader) {
-    this(url, classLoader, Collections.<String, ClassLoader>emptyMap());
-  }
-
-  /**
-   * Constructs an instance of XmlConfiguration mapping to the XML file located at {@code url} and using the provided
-   * {@code classLoader} to load user types (e.g. key and value Class instances). The {@code cacheClassLoaders} will
-   * let you specify a different {@link java.lang.ClassLoader} to use for each {@link org.ehcache.Cache} managed by
-   * the {@link org.ehcache.CacheManager} configured using the {@link org.ehcache.config.Configuration} returned
-   * by {@link #parseConfiguration()}
-   * <p>
-   * This constructor will not parse nor even touch the configuration URL.
-   *
-   * @param url URL pointing to the XML file's location
-   * @param classLoader ClassLoader to use to load user types.
-   * @see #parseConfiguration()
-   */
-  public XmlConfiguration(URL url, final ClassLoader classLoader, final Map<String, ClassLoader> cacheClassLoaders) {
-    this.xml = url;
-    this.classLoader = classLoader;
-    this.cacheClassLoaders = new HashMap<String, ClassLoader>(cacheClassLoaders);
-  }
-
-  /**
-   * Exposes the URL where the XML file parsed or yet to be parsed was or will be sourced from.
-   * @return The URL provided at object instantiation
-   */
-  public URL getURL() {
-    return xml;
-  }
-
-  /**
-   * Parses the XML file at the {@code url} provided at construction time and returns the matching
-   * {@link org.ehcache.config.Configuration}. This method can be invoked multiple times, but it would parse
-   * the file at the URL location every time. So if the XML file doesn't change, the same result is returned
-   * (as in {@link java.lang.Object#equals(Object)}).
-   * If the file changed, the {@link org.ehcache.config.Configuration} would reflect these changes.
-   * <p>
-   * This also reparses the cache-template declared that can be used to create
-   * {@link org.ehcache.config.CacheConfigurationBuilder} using {@link #newCacheConfigurationBuilderFromTemplate(String)}
-   *
-   * @return a {@link org.ehcache.config.Configuration} reflecting the XML file at the {@code url} provided at instantiation.
    *
    * @throws IOException if anything went wrong accessing the URL
    * @throws SAXException if anything went wrong parsing or validating the XML
@@ -122,18 +67,62 @@ public class XmlConfiguration {
    * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
    * @throws IllegalAccessException if a method (including constructor) couldn't be invoked on a user provided type
    */
-  public Configuration parseConfiguration()
-      throws ClassNotFoundException, IOException, SAXException, InstantiationException, IllegalAccessException {
-    templates.clear();
-    ConfigurationParser configurationParser = new ConfigurationParser(xml.toExternalForm(), CORE_SCHEMA_URL);
-    ConfigurationBuilder configBuilder = new ConfigurationBuilder();
+  public XmlConfiguration(URL url)
+      throws ClassNotFoundException, SAXException, InstantiationException, IllegalAccessException, IOException {
+    this(url, null);
+  }
 
-    if (classLoader != null) {
-      configBuilder = configBuilder.withClassLoader(classLoader);
-    }
+  /**
+   * Constructs an instance of XmlConfiguration mapping to the XML file located at {@code url} and using the provided
+   * {@code classLoader} to load user types (e.g. key and value Class instances).
+   * <p>
+   * Parses the XML file at the {@code url} provided.
+   *
+   * @param url URL pointing to the XML file's location
+   * @param classLoader ClassLoader to use to load user types.
+   *
+   * @throws IOException if anything went wrong accessing the URL
+   * @throws SAXException if anything went wrong parsing or validating the XML
+   * @throws ClassNotFoundException if a {@link java.lang.Class} declared in the XML couldn't be found
+   * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
+   * @throws IllegalAccessException if a method (including constructor) couldn't be invoked on a user provided type
+   */
+  public XmlConfiguration(URL url, final ClassLoader classLoader)
+      throws ClassNotFoundException, SAXException, InstantiationException, IOException, IllegalAccessException {
+    this(url, classLoader, Collections.<String, ClassLoader>emptyMap());
+  }
+
+  /**
+   * Constructs an instance of XmlConfiguration mapping to the XML file located at {@code url} and using the provided
+   * {@code classLoader} to load user types (e.g. key and value Class instances). The {@code cacheClassLoaders} will
+   * let you specify a different {@link java.lang.ClassLoader} to use for each {@link org.ehcache.Cache} managed by
+   * the {@link org.ehcache.CacheManager} configured using this {@link org.ehcache.config.xml.XmlConfiguration}
+   * <p>
+   * Parses the XML file at the {@code url} provided.
+   *
+   * @param url URL pointing to the XML file's location
+   * @param classLoader ClassLoader to use to load user types.
+   *
+   * @throws IOException if anything went wrong accessing the URL
+   * @throws SAXException if anything went wrong parsing or validating the XML
+   * @throws ClassNotFoundException if a {@link java.lang.Class} declared in the XML couldn't be found
+   * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
+   * @throws IllegalAccessException if a method (including constructor) couldn't be invoked on a user provided type
+   */
+  public XmlConfiguration(URL url, final ClassLoader classLoader, final Map<String, ClassLoader> cacheClassLoaders)
+      throws ClassNotFoundException, SAXException, InstantiationException, IllegalAccessException, IOException {
+    this.xml = url;
+    this.classLoader = classLoader;
+    this.cacheClassLoaders = new HashMap<String, ClassLoader>(cacheClassLoaders);
+    parseConfiguration();
+  }
+
+  private void parseConfiguration()
+      throws ClassNotFoundException, IOException, SAXException, InstantiationException, IllegalAccessException {
+    ConfigurationParser configurationParser = new ConfigurationParser(xml.toExternalForm(), CORE_SCHEMA_URL);
 
     for (ServiceConfiguration serviceConfiguration : configurationParser.getServiceConfigurations()) {
-      configBuilder = configBuilder.addService(serviceConfiguration);
+      serviceConfigurations.add(serviceConfiguration);
     }
 
     for (ConfigurationParser.CacheDefinition cacheDefinition : configurationParser.getCacheElements()) {
@@ -171,12 +160,11 @@ public class XmlConfiguration {
       if (capacityConstraint != null) {
         builder = builder.maxEntriesInCache(capacityConstraint);
       }
-      configBuilder = configBuilder.addCache(alias, builder.buildConfig(keyType, valueType, evictionVeto, evictionPrioritizer));
+      final CacheConfiguration config = builder.buildConfig(keyType, valueType, evictionVeto, evictionPrioritizer);
+      cacheConfigurations.put(alias, config);
     }
 
     templates.putAll(configurationParser.getTemplates());
-    parsedXML = true;
-    return configBuilder.build();
   }
 
   private static <T> T getInstanceOfName(String name, ClassLoader classLoader, Class<T> type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
@@ -202,6 +190,14 @@ public class XmlConfiguration {
   
   private static Class<?> getClassForName(String name, ClassLoader classLoader) throws ClassNotFoundException {
     return Class.forName(name, true, classLoader);
+  }
+
+  /**
+   * Exposes the URL where the XML file parsed or yet to be parsed was or will be sourced from.
+   * @return The URL provided at object instantiation
+   */
+  public URL getURL() {
+    return xml;
   }
 
   /**
@@ -248,10 +244,6 @@ public class XmlConfiguration {
                                                                                          final Class<V> valueType)
       throws InstantiationException, IllegalAccessException, ClassNotFoundException {
 
-    if(!parsedXML) {
-      throw new IllegalStateException("XmlConfiguration.parseConfiguration has yet been (successfully?) invoked");
-    }
-
     final ConfigurationParser.CacheTemplate cacheTemplate = templates.get(name);
     if (cacheTemplate == null) {
       return null;
@@ -278,5 +270,20 @@ public class XmlConfiguration {
       builder = builder.addServiceConfig(serviceConfiguration);
     }
     return builder;
+  }
+
+  @Override
+  public Map<String, CacheConfiguration<?, ?>> getCacheConfigurations() {
+    return cacheConfigurations;
+  }
+
+  @Override
+  public Collection<ServiceConfiguration<?>> getServiceConfigurations() {
+    return serviceConfigurations;
+  }
+
+  @Override
+  public ClassLoader getClassLoader() {
+    return classLoader;
   }
 }

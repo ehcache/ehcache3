@@ -18,7 +18,6 @@ package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
-import org.ehcache.config.Configuration;
 import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.jsr107.DefaultJsr107Service;
 import org.ehcache.spi.ServiceLocator;
@@ -41,8 +40,7 @@ public class ParsesConfigExtensionTest {
 
   @Test
   public void testConfigParse() throws ClassNotFoundException, SAXException, InstantiationException, IllegalAccessException, IOException {
-    XmlConfiguration xmlConfiguration = new XmlConfiguration(this.getClass().getResource("/ehcache-107.xml"));
-    final Configuration configuration = xmlConfiguration.parseConfiguration();
+    final XmlConfiguration configuration = new XmlConfiguration(this.getClass().getResource("/ehcache-107.xml"));
     final DefaultJsr107Service jsr107Service = new DefaultJsr107Service();
     final ServiceLocator serviceLocator = new ServiceLocator(jsr107Service);
     final CacheManager cacheManager = new EhcacheManager(configuration, serviceLocator);
@@ -59,11 +57,11 @@ public class ParsesConfigExtensionTest {
     String name = "bar";
     CompleteConfiguration cfg = new MutableConfiguration();
 
-    CacheConfigurationBuilder configurationBuilder = xmlConfiguration
+    CacheConfigurationBuilder configurationBuilder = configuration
         .newCacheConfigurationBuilderFromTemplate(jsr107Service.getDefaultTemplate(), cfg.getKeyType(), cfg.getValueType());
     final String template = jsr107Service.getTemplateNameForCache(name);
     if(template != null) {
-      configurationBuilder = xmlConfiguration
+      configurationBuilder = configuration
           .newCacheConfigurationBuilderFromTemplate(name, cfg.getKeyType(), cfg.getValueType());
     }
     if(configurationBuilder != null) {

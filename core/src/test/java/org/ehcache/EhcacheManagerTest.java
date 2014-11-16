@@ -18,6 +18,7 @@ package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.DefaultConfiguration;
 import org.ehcache.events.CacheManagerListener;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.config.ConfigurationBuilder;
@@ -230,7 +231,7 @@ public class EhcacheManagerTest {
 
     when(cacheLoaderFactory.createCacheLoader("foo", fooConfig)).thenReturn(fooLoader);
 
-    final Configuration cfg = new Configuration(
+    final Configuration cfg = new DefaultConfiguration(
         new HashMap<String, CacheConfiguration<?, ?>>() {{
           put("bar", barConfig);
           put("foo", fooConfig);
