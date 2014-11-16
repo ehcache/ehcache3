@@ -30,6 +30,7 @@ import org.ehcache.function.Function;
 import org.ehcache.function.Predicate;
 import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriter;
@@ -446,54 +447,40 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   }
 
   @Override
-  public V putIfAbsent(final K key, final V value) throws CacheLoaderException, CacheWriterException {
+  public V putIfAbsent(final K key, final V value) throws CacheWriterException {
     statusTransitioner.checkAvailable();
     checkNonNull(key, value);
-    V inCache = null;
-    final AtomicBoolean installed = new AtomicBoolean();
-
-    final BiFunction<K, V, V> mappingFunction = memoize(
-        new BiFunction<K, V, V>() {
-          @Override
-          public V apply(final K k, final V existingValue) {
-            if(existingValue != null) {
-              return existingValue;
-            }
-            V loaded = null;
-            try {
-              if (cacheLoader != null) {
-                loaded = cacheLoader.load(k);
-              }
-            } catch (Exception e) {
-              throw newCacheLoaderException(e);
-            }
-
-            if (loaded != null) {
-              return loaded;
-            }
-
-            if (cacheWriter != null) {
-              try {
-                // TODO decide how to handle a false return value (perhaps as part of issue #52)
-                cacheWriter.write(k, null, value);
-              } catch (Exception e) {
-                throw newCacheWriterException(e);
-              }
-            }
-            installed.set(true);
-            return value;
+    final AtomicBoolean installed = new AtomicBoolean(false);
+    
+    final Function<K, V> mappingFunction = memoize(new Function<K, V>() {
+      @Override
+      public V apply(final K k) {
+        if (cacheWriter != null) {
+          try {
+            // TODO decide how to handle a false return value (perhaps as part of issue #52)
+            cacheWriter.write(k, null, value);
+          } catch (Exception e) {
+            throw newCacheWriterException(e);
           }
-        });
+        }
+        
+        installed.set(true);
+        return value;
+      }
+    });
 
     try {
-      final Store.ValueHolder<V> holder = store.compute(key, mappingFunction);
-      if (holder != null) {
-        inCache = holder.value();
+      ValueHolder<V> inCache = store.computeIfAbsent(key, mappingFunction);
+      if (installed.get()) {
+        return null;
+      } else {
+        return inCache.value();
       }
     } catch (CacheAccessException e) {
+      V computedValue = null;
       try {
-        inCache = mappingFunction.apply(key, null);
-        if (cacheLoader != null && cacheWriter != null) {
+        computedValue = mappingFunction.apply(key);
+        if (cacheWriter != null) {
           store.remove(key);
         } else {
           final Store.ValueHolder<V> holder = store.get(key);
@@ -506,8 +493,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       } catch (CacheAccessException e1) {
         resilienceStrategy.possiblyInconsistent(key, e, e1);
       }
+      
+      return installed.get() ? null : computedValue;
     }
-    return installed.get() ? null : inCache;
   }
 
   @Override
@@ -569,32 +557,15 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
       @Override
       public V apply(final K k, final V inCache) {
-        if (cacheWriter != null) { 
-          // XXX this is one case where it makes no sense to have a writer without a loader
-          if (cacheLoader != null) {
-            V loaded = null;
-            try {
-              loaded = cacheLoader.load(k);
-            } catch (Exception e) {
-              throw newCacheLoaderException(e);
-            }
-            
-            // check inCache since this may get called from exception handler (below)
-            if (loaded == null || (inCache != null && !loaded.equals(inCache))) {
-              // TODO handle inconsistency between cache and SOR? Probably as part of #52
-            } else {
-              try {
-                cacheWriter.write(key, value);
-              } catch (Exception e) {
-                throw newCacheWriterException(e);
-              }
-              
-              old.set(loaded);
-              return loaded;
-            }
+        if (cacheWriter != null) {
+          try {
+            cacheWriter.write(key, value);
+          } catch (Exception e) {
+            throw newCacheWriterException(e);
           }
-        } 
-        old.set(inCache); 
+        }
+        
+        old.set(inCache);
         return value;
       }
     });
@@ -610,10 +581,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     } catch (CacheWriterException e) {
       removeKeysWithStrategy(Collections.singleton(key), e);
       throw e;
-    } catch (CacheLoaderException e) {
-      removeKeysWithStrategy(Collections.singleton(key), e);
-      throw e;
     }
+    
     return old.get();
   }
 
@@ -705,6 +674,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     st.succeeded();
   }
 
+  @Override
   public Maintainable toMaintenance() {
     final StatusTransitioner.Transition st = statusTransitioner.maintenance();
     try {
@@ -896,7 +866,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   
   private class CacheEntryIterator implements Iterator<Entry<K, V>> {
 
-    private Store.Iterator<Entry<K, Store.ValueHolder<V>>> iterator;
+    private final Store.Iterator<Entry<K, Store.ValueHolder<V>>> iterator;
     private Entry<K, Store.ValueHolder<V>> next;
 
     public CacheEntryIterator(final Store.Iterator<Entry<K, Store.ValueHolder<V>>> iterator) {
