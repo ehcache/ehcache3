@@ -22,12 +22,8 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.core.Is;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
-import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -54,18 +50,16 @@ public class XmlConfigurationTest {
   
   @Test
   public void testOneServiceConfig() throws Exception {
-    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-service.xml"));
-    Configuration config = xmlConfig.parseConfiguration();
-    
+    Configuration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-service.xml"));
+
     assertThat(config.getServiceConfigurations(), IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(FooConfiguration.class)));
     assertThat(config.getCacheConfigurations().keySet(), hasSize(0));
   }
 
   @Test
   public void testOneCacheConfig() throws Exception {
-    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
-    Configuration config = xmlConfig.parseConfiguration();
-    
+    Configuration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
+
     assertThat(config.getServiceConfigurations(), hasSize(0));
     assertThat(config.getCacheConfigurations().keySet(), hasItem("bar"));
     assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(FooConfiguration.class)));
@@ -75,14 +69,13 @@ public class XmlConfigurationTest {
   public void testOneCacheConfigWithTemplate() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/template-cache.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
-    Configuration config = xmlConfig.parseConfiguration();
 
-    assertThat(config.getServiceConfigurations(), hasSize(0));
-    assertThat(config.getCacheConfigurations().keySet(), hasItem("bar"));
-    assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(FooConfiguration.class)));
-    assertThat(config.getCacheConfigurations().get("bar").getCapacityConstraint(), Is.<Comparable<Long>>is(120L));
-    assertThat(config.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class)Number.class));
-    assertThat(config.getCacheConfigurations().get("bar").getValueType(), sameInstance((Class)String.class));
+    assertThat(xmlConfig.getServiceConfigurations(), hasSize(0));
+    assertThat(xmlConfig.getCacheConfigurations().keySet(), hasItem("bar"));
+    assertThat(xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(FooConfiguration.class)));
+    assertThat(xmlConfig.getCacheConfigurations().get("bar").getCapacityConstraint(), Is.<Comparable<Long>>is(120L));
+    assertThat(xmlConfig.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class)Number.class));
+    assertThat(xmlConfig.getCacheConfigurations().get("bar").getValueType(), sameInstance((Class)String.class));
 
     assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("example"), notNullValue());
     final CacheConfigurationBuilder<String, String> example = xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, String.class);
@@ -106,9 +99,8 @@ public class XmlConfigurationTest {
 
   @Test
   public void testInvalidCoreConfiguration() throws Exception {
-    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-core.xml"));
     try {
-      xmlConfig.parseConfiguration();
+      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-core.xml"));
       fail();
     } catch (SAXParseException e) {
       assertThat(e.getLineNumber(), is(5));
@@ -118,9 +110,8 @@ public class XmlConfigurationTest {
   
   @Test
   public void testInvalidServiceConfiguration() throws Exception {
-    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-service.xml"));
     try {
-      xmlConfig.parseConfiguration();
+      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-service.xml"));
     } catch (SAXParseException e) {
       assertThat(e.getLineNumber(), is(6));
       assertThat(e.getColumnNumber(), is(15));
@@ -137,9 +128,8 @@ public class XmlConfigurationTest {
 
   @Test
   public void testNoClassLoaderSpecified() throws Exception {
-    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
+    XmlConfiguration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
 
-    Configuration config = xmlConfig.parseConfiguration();
     assertNull(config.getClassLoader());
     assertNull(config.getCacheConfigurations().get("bar").getClassLoader());
   }
@@ -150,9 +140,8 @@ public class XmlConfigurationTest {
       //
     };
     
-    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), cl);
+    XmlConfiguration config= new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), cl);
 
-    Configuration config = xmlConfig.parseConfiguration();
     assertSame(cl, config.getClassLoader());
     assertNull(config.getCacheConfigurations().get("bar").getClassLoader());
   }
@@ -171,38 +160,10 @@ public class XmlConfigurationTest {
 
     Map<String, ClassLoader> loaders = new HashMap<String, ClassLoader>();
     loaders.put("bar", cl2);
-    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), cl, loaders);
+    XmlConfiguration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), cl, loaders);
 
-    Configuration config = xmlConfig.parseConfiguration();
     assertSame(cl, config.getClassLoader());
     assertSame(cl2, config.getCacheConfigurations().get("bar").getClassLoader());
   }
-  
-  @Test
-  public void testThrowsExceptionAccessingTemplatesWhenNotParsed()
-      throws IOException, IllegalAccessException, ClassNotFoundException, InstantiationException, SAXException {
 
-    XmlConfiguration xmlConfiguration = new XmlConfiguration(new URL("file:///configs/not-there.xml"));
-    try {
-      xmlConfiguration.newCacheConfigurationBuilderFromTemplate("nope!");
-      fail();
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), equalTo("XmlConfiguration.parseConfiguration has yet been (successfully?) invoked"));
-    }
-
-    try {
-      xmlConfiguration.parseConfiguration();
-      fail();
-    } catch (FileNotFoundException e) {
-      // expected
-    }
-
-    try {
-      xmlConfiguration.newCacheConfigurationBuilderFromTemplate("nope!");
-      fail();
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), equalTo("XmlConfiguration.parseConfiguration has yet been (successfully?) invoked"));
-    }
-  }
-  
 }
