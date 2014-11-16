@@ -37,7 +37,7 @@
   </xs:complexType>
 
   <xs:complexType name="cache-type">
-    <xs:attribute name="name" type="xs:string" />
+    <xs:attribute name="name" type="xs:ID" />
     <xs:attribute name="template" type="xs:IDREF" />
   </xs:complexType>
 </xs:schema>
