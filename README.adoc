@@ -8,6 +8,9 @@ image:http://cloudbees.prod.acquia-sites.com/sites/default/files/styles/large/pu
 
 == Getting started with the new API
 
+NOTE: If you are looking to use the JSR-107, aka `javax.cache` API, you may want to start reading
+      link:107/README.adoc[the Ehcache 3.x JSR-107 Provider page]
+
 WARNING: *This is still work in progress*. while this represents the API as it exists today, the plan is to only close it
          down, when addressing the +OSS Beta+ milestone. Today, the focus is on the +107 Alpha+ milestone, which aims
          at providing a TCK compliant on-heap implementation...
@@ -102,6 +105,8 @@ You can create a XML file to configure a `CacheManager`:
 <4> `<cache-template>` elements let you create an abstract configuration that further `<cache>` configuration can then _extend_
 <5> `bar` is such a `Cache`, it uses the `<cache-template>` named `myDefaults` and overrides its `key-type` to a wider type.
 <6> `simpleCache` is such a `Cache` again, but simply uses `myDefaults` configuration for its sole `CacheConfiguration`
+
+Refer to the link:xml/README.adoc[XML README file] for more details on the XML format
 
 In order to parse these XML configuration, you can use the `XmlConfiguration` type as so:
 
