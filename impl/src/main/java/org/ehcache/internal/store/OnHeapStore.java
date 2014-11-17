@@ -401,6 +401,8 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Iterable<? extends K> keys, final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
     Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
     for (final K key : keys) {
+      checkKey(key);
+      
       final OnHeapValueHolder<V> newValue = map.computeIfAbsent(key, new Function<K, OnHeapValueHolder<V>>() {
         @Override
         public OnHeapValueHolder<V> apply(final K k) {
@@ -408,6 +410,14 @@ public class OnHeapStore<K, V> implements Store<K, V> {
           final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries = mappingFunction.apply(keySet);
           final java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = entries.iterator();
           final Map.Entry<? extends K, ? extends V> next = iterator.next();
+          
+          K key = next.getKey();
+          V value = next.getValue();
+          checkKey(key);
+          if (value != null) {
+            checkValue(value);
+          }
+          
           return nullSafeNewValueHolder(next.getKey(), next.getValue(), timeSource.getTimeMillis());
         }
       });
@@ -424,6 +434,8 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
     Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
     for (K key : keys) {
+      checkKey(key);
+      
       final OnHeapValueHolder<V> newValue = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
         @Override
         public OnHeapValueHolder<V> apply(final K k, final OnHeapValueHolder<V> oldValue) {
@@ -432,7 +444,15 @@ public class OnHeapStore<K, V> implements Store<K, V> {
           final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries = remappingFunction.apply(entrySet);
           final java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = entries.iterator();
           final Map.Entry<? extends K, ? extends V> next = iterator.next();
-          return nullSafeNewValueHolder(next.getKey(), next.getValue(), timeSource.getTimeMillis());
+          
+          K key = next.getKey();
+          V value = next.getValue();
+          checkKey(key);
+          if (value != null) {
+            checkValue(value);
+          }
+          
+          return nullSafeNewValueHolder(key, value, timeSource.getTimeMillis());
         }
       });
       result.put(key, newValue);
