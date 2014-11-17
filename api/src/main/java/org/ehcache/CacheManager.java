@@ -67,10 +67,4 @@ public interface CacheManager {
    * @return the current {@link org.ehcache.Status}
    */
   Status getStatus();
-  
-  /**
-   * Get the URI of the {@link CacheManager}
-   * @return the uri
-   */
-  URI getURI();
 }
