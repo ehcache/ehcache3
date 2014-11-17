@@ -574,7 +574,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   public static class Provider implements Store.Provider {
     @Override
     public <K, V> OnHeapStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
-      OnHeapStoreServiceConfig onHeapStoreServiceConfig = findSingletonAmongst(OnHeapStoreServiceConfig.class, serviceConfigs);
+      OnHeapStoreServiceConfig onHeapStoreServiceConfig = findSingletonAmongst(OnHeapStoreServiceConfig.class, (Object[])serviceConfigs);
       boolean storeByValue = onHeapStoreServiceConfig != null && onHeapStoreServiceConfig.storeByValue();
 
       TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[])serviceConfigs);
