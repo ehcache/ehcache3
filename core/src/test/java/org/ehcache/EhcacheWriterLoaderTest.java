@@ -22,6 +22,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.doThrow;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -170,21 +171,6 @@ public class EhcacheWriterLoaderTest {
 
   @Test
   public void testPutIfAbsent() throws Exception {
-    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        BiFunction<Number, String, String> function = asBiFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0], null);
-        return null;
-      }
-    });
-    cache.putIfAbsent(1, "foo");
-    verify(cache.getCacheLoader()).load(1);
-    verify(cache.getCacheWriter()).write(1, null, "foo");
-  }
-  
-  @Test
-  public void testPutIfAbsentLoadExisting() throws Exception {
     when(store.computeIfAbsent(any(Number.class), anyFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
@@ -193,14 +179,14 @@ public class EhcacheWriterLoaderTest {
         return null;
       }
     });
-    when((String)cache.getCacheLoader().load(any(Number.class))).thenReturn("old");
     cache.putIfAbsent(1, "foo");
-    verify(cache.getCacheWriter(), never()).write(1, null, "foo");
+    verifyZeroInteractions(cache.getCacheLoader());
+    verify(cache.getCacheWriter()).write(1, null, "foo");
   }
   
   @Test
   public void testPutIfAbsentThrowsOnCompute() throws Exception {
-    when(store.compute(any(Number.class), anyBiFunction())).thenThrow(new CacheAccessException("boom"));
+    when(store.computeIfAbsent(any(Number.class), anyFunction())).thenThrow(new CacheAccessException("boom"));
     cache.putIfAbsent(1, "one");
     verify(cache.getCacheWriter()).write(1, null, "one");
     verify(store).remove(1);
@@ -208,11 +194,11 @@ public class EhcacheWriterLoaderTest {
   
   @Test(expected=CacheWriterException.class)
   public void testPutIfAbsentThrowsOnWrite() throws Exception {
-    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    when(store.computeIfAbsent(any(Number.class), anyFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
-        BiFunction<Number, String, String> function = asBiFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0], null);
+        Function<Number, String> function = asFunction(invocation);
+        function.apply((Number)invocation.getArguments()[0]);
         return null;
       }
     });
@@ -314,9 +300,8 @@ public class EhcacheWriterLoaderTest {
   @Test
   public void testReplaceThrowsOnCompute() throws Exception {
     when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenThrow(new CacheAccessException("boom"));
-    when((String)cache.getCacheLoader().load(any(Number.class))).thenReturn("old");
     String value = "foo";
-    assertThat(cache.replace(1, value), is("old"));
+    assertThat(cache.replace(1, value), nullValue());
     verify(cache.getCacheWriter()).write(1, value);
     verify(store).remove(1);
   }
@@ -335,20 +320,6 @@ public class EhcacheWriterLoaderTest {
     when((String)cache.getCacheLoader().load(any(Number.class))).thenReturn(expected);
     doThrow(new Exception()).when(cache.getCacheWriter()).write(any(Number.class), anyString());
     cache.replace(1, "bar");
-  }
-  
-  @Test(expected=CacheLoaderException.class)
-  public void testReplaceThrowsOnLoad() throws Exception {
-    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        BiFunction<Number, String, String> function = asBiFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0], "foo");
-        return null;
-      }
-    });
-    when(cache.getCacheLoader().load(any(Number.class))).thenThrow(new Exception());
-    cache.replace(1, "foo");
   }
   
   @Test

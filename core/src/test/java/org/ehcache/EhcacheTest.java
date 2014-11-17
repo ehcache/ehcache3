@@ -21,6 +21,7 @@ import org.ehcache.events.StateChangeListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.function.BiFunction;
+import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
@@ -241,17 +242,19 @@ public class EhcacheTest {
     final AtomicReference<Object> existingValue = new AtomicReference<Object>();
     final Store store = mock(Store.class);
     final String value = "bar";
-    when(store.compute(eq("foo"), any(BiFunction.class))).thenAnswer(new Answer<Object>() {
+    when(store.computeIfAbsent(eq("foo"), any(Function.class))).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(final InvocationOnMock invocationOnMock) throws Throwable {
-        final BiFunction<Object, Object, Object> biFunction
-            = (BiFunction<Object, Object, Object>)invocationOnMock.getArguments()[1];
-        final Object newValue = biFunction.apply(invocationOnMock.getArguments()[0], existingValue.get());
-        existingValue.compareAndSet(null, newValue);
+        final Function<Object, Object> biFunction
+            = (Function<Object, Object>)invocationOnMock.getArguments()[1];
+        if (existingValue.get() == null) {
+          final Object newValue = biFunction.apply(invocationOnMock.getArguments()[0]);
+          existingValue.compareAndSet(null, newValue);
+        }
         return new Store.ValueHolder<Object>() {
           @Override
           public Object value() {
-            return newValue;
+            return existingValue.get();
           }
 
           @Override
