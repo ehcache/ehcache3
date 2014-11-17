@@ -17,6 +17,7 @@ package org.ehcache.internal.store;
 
 import org.ehcache.Cache.Entry;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.SerializerException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -32,6 +33,8 @@ import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.junit.Test;
 
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,6 +45,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.fail;
 
 public class OnHeapStoreByValueTest {
 
@@ -490,15 +494,15 @@ public class OnHeapStoreByValueTest {
   @Test
   public void testExpiryCreateException() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, Object>() {
 
       @Override
-      public Duration getExpiryForCreation(String key, String value) {
+      public Duration getExpiryForCreation(String key, Object value) {
         throw RUNTIME_EXCEPTION;
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, String value) {
+      public Duration getExpiryForAccess(String key, Object value) {
         throw new AssertionError();
       }
     });
@@ -515,15 +519,15 @@ public class OnHeapStoreByValueTest {
 
   public void testExpiryAccessException() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, Object>() {
 
       @Override
-      public Duration getExpiryForCreation(String key, String value) {
+      public Duration getExpiryForCreation(String key, Object value) {
         return Duration.FOREVER;
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, String value) {
+      public Duration getExpiryForAccess(String key, Object value) {
         throw RUNTIME_EXCEPTION;
       }
     });
@@ -624,6 +628,17 @@ public class OnHeapStoreByValueTest {
     assertThat(store.get("key"), nullValue());
   }
 
+  @Test
+  public void testPutNotSerializableValue() throws Exception {
+    OnHeapStore<String, Serializable> store = newStore();
+    try {
+      store.put("key1", new ArrayList() {{ add(new Object()); }});
+      fail();
+    } catch (SerializerException se) {
+      // expected
+    }
+  }
+
   private static Map<String, Long> observeAccessTimes(Iterator<Entry<String, ValueHolder<String>>> iter)
       throws CacheAccessException {
     Map<String, Long> map = new HashMap<String, Long>();
@@ -663,21 +678,21 @@ public class OnHeapStoreByValueTest {
     }
   }
 
-  private OnHeapStore<String, String> newStore() {
+  private <K, V> OnHeapStore<K, V> newStore() {
     return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration());
   }
 
-  private OnHeapStore<String, String> newStore(final TimeSource timeSource,
-      final Expiry<? super String, ? super String> expiry) {
-    return new OnHeapStore<String, String>(new Store.Configuration<String, String>() {
+  private <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
+      final Expiry<? super String, ? super Object> expiry) {
+    return new OnHeapStore<K, V>(new Store.Configuration<K, V>() {
       @Override
-      public Class<String> getKeyType() {
-        return String.class;
+      public Class<K> getKeyType() {
+        return (Class<K>) String.class;
       }
 
       @Override
-      public Class<String> getValueType() {
-        return String.class;
+      public Class<V> getValueType() {
+        return (Class<V>) Serializable.class;
       }
 
       @Override
@@ -686,12 +701,12 @@ public class OnHeapStoreByValueTest {
       }
 
       @Override
-      public Predicate<Entry<String, String>> getEvictionVeto() {
+      public Predicate<Entry<K, V>> getEvictionVeto() {
         return null;
       }
 
       @Override
-      public Comparator<Entry<String, String>> getEvictionPrioritizer() {
+      public Comparator<Entry<K, V>> getEvictionPrioritizer() {
         return null;
       }
 
@@ -706,8 +721,8 @@ public class OnHeapStoreByValueTest {
       }
 
       @Override
-      public Expiry<? super String, ? super String> getExpiry() {
-        return expiry;
+      public Expiry<? super K, ? super V> getExpiry() {
+        return (Expiry<? super K, ? super V>) expiry;
       }
     }, timeSource, true);
   }
