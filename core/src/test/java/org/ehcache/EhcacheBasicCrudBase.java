@@ -72,7 +72,7 @@ public abstract class EhcacheBasicCrudBase {
    * @param changed the statistics values that should have updated values
    * @param <E> the statistics enumeration type
    */
-  protected final <E extends Enum<E>> void validateStats(final Ehcache<?, ?> ehcache, final EnumSet<E> changed) {
+  protected static <E extends Enum<E>> void validateStats(final Ehcache<?, ?> ehcache, final EnumSet<E> changed) {
     assert changed != null;
     final EnumSet<E> unchanged = EnumSet.complementOf(changed);
 
@@ -87,12 +87,12 @@ public abstract class EhcacheBasicCrudBase {
     }
     assert statsClass != null;
 
-    final OperationStatistic<E> operationStatistic = this.getOperationStatistic(ehcache, statsClass);
+    final OperationStatistic<E> operationStatistic = getOperationStatistic(ehcache, statsClass);
     for (final E statId : changed) {
-      assertThat(this.getStatistic(operationStatistic, statId), StatisticMatcher.equalTo(1L));
+      assertThat(getStatistic(operationStatistic, statId), StatisticMatcher.equalTo(1L));
     }
     for (final E statId : unchanged) {
-      assertThat(this.getStatistic(operationStatistic, statId), StatisticMatcher.equalTo(0L));
+      assertThat(getStatistic(operationStatistic, statId), StatisticMatcher.equalTo(0L));
     }
   }
 
@@ -109,7 +109,7 @@ public abstract class EhcacheBasicCrudBase {
    * @return a reference to the {@code OperationStatistic} instance holding the {@code statsClass} statistics;
    *          may be {@code null} if {@code statsClass} statistics do not exist for {@code ehcache}
    */
-  private <E extends Enum<E>> OperationStatistic<E> getOperationStatistic(final Ehcache<?, ?> ehcache, final Class<E> statsClass) {
+  private static <E extends Enum<E>> OperationStatistic<E> getOperationStatistic(final Ehcache<?, ?> ehcache, final Class<E> statsClass) {
     for (final TreeNode statNode : ContextManager.nodeFor(ehcache).getChildren()) {
       final Object statObj = statNode.getContext().attributes().get("this");
       if (statObj instanceof OperationStatistic<?>) {
@@ -134,7 +134,7 @@ public abstract class EhcacheBasicCrudBase {
    *
    * @return the value, possibly null, for {@code statId} about {@code ehcache}
    */
-  private <E extends Enum<E>> Number getStatistic(final OperationStatistic<E> operationStatistic, final E statId) {
+  private static <E extends Enum<E>> Number getStatistic(final OperationStatistic<E> operationStatistic, final E statId) {
     if (operationStatistic != null) {
       final ValueStatistic<Long> valueStatistic = operationStatistic.statistic(statId);
       return (valueStatistic == null ? null : valueStatistic.value());
@@ -150,6 +150,16 @@ public abstract class EhcacheBasicCrudBase {
   @SuppressWarnings("unchecked")
   protected static Function<? super String, ? extends String> getAnyFunction() {
     return any(Function.class);   // unchecked
+  }
+
+  /**
+   * Returns a Mockito {@code any} Matcher for {@link org.ehcache.function.BiFunction}.
+   *
+   * @return a Mockito {@code any} matcher for {@code BiFunction}.
+   */
+  @SuppressWarnings("unchecked")
+  protected static <V extends String> BiFunction<? super String, V, V> getAnyBiFunction() {
+    return any(BiFunction.class);   // unchecked
   }
 
   /**

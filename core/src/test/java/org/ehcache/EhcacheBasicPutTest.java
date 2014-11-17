@@ -15,13 +15,29 @@
  */
 package org.ehcache;
 
+import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CacheWriterException;
 import org.ehcache.spi.writer.CacheWriter;
+import org.ehcache.statistics.CacheOperationOutcomes;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 /**
  * Provides testing of basic PUT operations on an {@code Ehcache}.
@@ -69,68 +85,404 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     }
   }
 
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key not present in {@code Store}</li>
+   *   <li>no {@code CacheWriter}</li>
+   * </ul>
+   */
   @Test
   public void testPutNoStoreEntryNoCacheWriter() throws Exception {
+    final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
+    this.store = spy(realStore);
+
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
+
+    ehcache.put("key", "value");
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verify(this.store, never()).remove("key");
+    assertThat(realStore.getMap().get("key"), equalTo("value"));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.ADDED));
   }
 
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key not present in {@code Store}</li>
+   *   <li>key not present via {@code CacheWriter}</li>
+   * </ul>
+   */
   @Test
   public void testPutNoStoreEntryNoCacheWriterEntry() throws Exception {
+    final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
+    this.store = spy(realStore);
+
+    final MockCacheWriter realCache = new MockCacheWriter(Collections.<String, String>emptyMap());
+    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+
+    ehcache.put("key", "value");
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verify(this.store, never()).remove("key");
+    assertThat(realStore.getMap().get("key"), equalTo("value"));
+    assertThat(realCache.getEntries().get("key"), equalTo("value"));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.ADDED));
   }
 
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key not present in {@code Store}</li>
+   *   <li>key present via {@code CacheWriter}</li>
+   * </ul>
+   */
   @Test
   public void testPutNoStoreEntryHasCacheWriterEntry() throws Exception {
+    final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
+    this.store = spy(realStore);
+
+    final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "oldValue"));
+    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+
+    ehcache.put("key", "value");
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verify(this.store, never()).remove("key");
+    assertThat(realStore.getMap().get("key"), equalTo("value"));
+    assertThat(realCache.getEntries().get("key"), equalTo("value"));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.ADDED));
   }
 
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key not present in {@code Store}</li>
+   *   <li>{@code CacheLoader.write} throws</li>
+   * </ul>
+   */
   @Test
   public void testPutNoStoreEntryCacheWriterException() throws Exception {
+    final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
+    this.store = spy(realStore);
+
+    final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "oldValue"));
+    this.cacheWriter = spy(realCache);
+    doThrow(new Exception()).when(this.cacheWriter).write("key", "value");
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+
+    try {
+      ehcache.put("key", "value");
+      fail();
+    } catch (CacheWriterException e) {
+      // Expected
+    }
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key not present in {@code Store}</li>
+   *   <li>{@code Store.compute} throws</li>
+   *   <li>no {@code CacheWriter}</li>
+   * </ul>
+   */
   @Test
   public void testPutNoStoreEntryCacheAccessExceptionNoCacheWriter() throws Exception {
+    final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
+    this.store = spy(realStore);
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
+
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
+
+    ehcache.put("key", "value");
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key not present in {@code Store}</li>
+   *   <li>{@code Store.compute} throws</li>
+   *   <li>key not present via {@code CacheWriter}</li>
+   * </ul>
+   */
   @Test
   public void testPutNoStoreEntryCacheAccessExceptionNoCacheWriterEntry() throws Exception {
+    final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
+    this.store = spy(realStore);
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
+
+    final MockCacheWriter realCache = new MockCacheWriter(Collections.<String, String>emptyMap());
+    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+
+    ehcache.put("key", "value");
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    assertThat(realCache.getEntries().get("key"), equalTo("value"));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key not present in {@code Store}</li>
+   *   <li>{@code Store.compute} throws</li>
+   *   <li>key present via {@code CacheWriter}</li>
+   * </ul>
+   */
   @Test
   public void testPutNoStoreEntryCacheAccessExceptionHasCacheWriterEntry() throws Exception {
+    final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
+    this.store = spy(realStore);
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
+
+    final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "oldValue"));
+    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+
+    ehcache.put("key", "value");
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    assertThat(realCache.getEntries().get("key"), equalTo("value"));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key not present in {@code Store}</li>
+   *   <li>{@code Store.compute} throws</li>
+   *   <li>{@code CacheLoader.write} throws</li>
+   * </ul>
+   */
   @Test
   public void testPutNoStoreEntryCacheAccessExceptionCacheWriterException() throws Exception {
+    final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
+    this.store = spy(realStore);
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
+
+    final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "oldValue"));
+    this.cacheWriter = spy(realCache);
+    doThrow(new Exception()).when(this.cacheWriter).write("key", "value");
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+
+    try {
+      ehcache.put("key", "value");
+      fail();
+    } catch (CacheWriterException e) {
+      // Expected
+    }
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key present in {@code Store}</li>
+   *   <li>no {@code CacheWriter}</li>
+   * </ul>
+   */
   @Test
   public void testPutHasStoreEntryNoCacheWriter() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "oldValue"));
+    this.store = spy(realStore);
+
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
+
+    ehcache.put("key", "value");
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verify(this.store, never()).remove("key");
+    assertThat(realStore.getMap().get("key"), equalTo("value"));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.ADDED));
   }
 
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key present in {@code Store}</li>
+   *   <li>key not present via {@code CacheWriter}</li>
+   * </ul>
+   */
   @Test
   public void testPutHasStoreEntryNoCacheWriterEntry() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "oldValue"));
+    this.store = spy(realStore);
+
+    final MockCacheWriter realCache = new MockCacheWriter(Collections.<String, String>emptyMap());
+    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+
+    ehcache.put("key", "value");
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verify(this.store, never()).remove("key");
+    assertThat(realStore.getMap().get("key"), equalTo("value"));
+    assertThat(realCache.getEntries().get("key"), equalTo("value"));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.ADDED));
   }
 
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key present in {@code Store}</li>
+   *   <li>key present via {@code CacheWriter}</li>
+   * </ul>
+   */
   @Test
   public void testPutHasStoreEntryHasCacheWriterEntry() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "oldValue"));
+    this.store = spy(realStore);
+
+    final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "oldValue"));
+    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+
+    ehcache.put("key", "value");
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verify(this.store, never()).remove("key");
+    assertThat(realStore.getMap().get("key"), equalTo("value"));
+    assertThat(realCache.getEntries().get("key"), equalTo("value"));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.ADDED));
   }
 
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key present in {@code Store}</li>
+   *   <li>{@code CacheLoader.write} throws</li>
+   * </ul>
+   */
   @Test
   public void testPutHasStoreEntryCacheWriterException() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "oldValue"));
+    this.store = spy(realStore);
+
+    final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "oldValue"));
+    this.cacheWriter = spy(realCache);
+    doThrow(new Exception()).when(this.cacheWriter).write("key", "value");
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+
+    try {
+      ehcache.put("key", "value");
+      fail();
+    } catch (CacheWriterException e) {
+      // Expected
+    }
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key present in {@code Store}</li>
+   *   <li>{@code Store.compute} throws</li>
+   *   <li>no {@code CacheWriter}</li>
+   * </ul>
+   */
   @Test
   public void testPutHasStoreEntryCacheAccessExceptionNoCacheWriter() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "oldValue"));
+    this.store = spy(realStore);
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
+
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
+
+    ehcache.put("key", "value");
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key present in {@code Store}</li>
+   *   <li>{@code Store.compute} throws</li>
+   *   <li>key not present via {@code CacheWriter}</li>
+   * </ul>
+   */
   @Test
   public void testPutHasStoreEntryCacheAccessExceptionNoCacheWriterEntry() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "oldValue"));
+    this.store = spy(realStore);
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
+
+    final MockCacheWriter realCache = new MockCacheWriter(Collections.<String, String>emptyMap());
+    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+
+    ehcache.put("key", "value");
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    assertThat(realCache.getEntries().get("key"), equalTo("value"));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key present in {@code Store}</li>
+   *   <li>{@code Store.compute} throws</li>
+   *   <li>key present via {@code CacheWriter}</li>
+   * </ul>
+   */
   @Test
   public void testPutHasStoreEntryCacheAccessExceptionHasCacheWriterEntry() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "oldValue"));
+    this.store = spy(realStore);
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
+
+    final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "oldValue"));
+    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+
+    ehcache.put("key", "value");
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    assertThat(realCache.getEntries().get("key"), equalTo("value"));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key present in {@code Store}</li>
+   *   <li>{@code Store.compute} throws</li>
+   *   <li>{@code CacheLoader.write} throws</li>
+   * </ul>
+   */
   @Test
   public void testPutHasStoreEntryCacheAccessExceptionCacheWriterException() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "oldValue"));
+    this.store = spy(realStore);
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
+
+    final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "oldValue"));
+    this.cacheWriter = spy(realCache);
+    doThrow(new Exception()).when(this.cacheWriter).write("key", "value");
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+
+    try {
+      ehcache.put("key", "value");
+      fail();
+    } catch (CacheWriterException e) {
+      // Expected
+    }
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
   /**
@@ -147,5 +499,72 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     return ehcache;
+  }
+
+  /**
+   * Provides a basic {@link org.ehcache.spi.writer.CacheWriter} implementation for
+   * testing.  The contract implemented by this {@code CacheWriter} may not be strictly
+   * conformant but should be sufficient for {@code Ehcache} implementation testing.
+   */
+  private static class MockCacheWriter implements CacheWriter<String, String> {
+
+    private final Map<String, String> cache = new HashMap<String, String>();
+
+    public MockCacheWriter(final Map<String, String> entries) {
+      if (entries != null) {
+        this.cache.putAll(entries);
+      }
+    }
+
+    private Map<String, String> getEntries() {
+      return Collections.unmodifiableMap(this.cache);
+    }
+
+    @Override
+    public void write(final String key, final String value) throws Exception {
+      this.cache.put(key, value);
+    }
+
+    @Override
+    public boolean write(final String key, final String oldValue, final String newValue) throws Exception {
+      final String existingValue = this.cache.get(key);
+      boolean modified = false;
+      if (oldValue == null) {
+        if (existingValue == null) {
+          this.cache.put(key, newValue);
+          modified = true;
+        }
+      } else if (oldValue.equals(existingValue)) {
+        this.cache.put(key, newValue);
+        modified = true;
+      }
+      return modified;
+    }
+
+    @Override
+    public Set<String> writeAll(final Iterable<? extends Map.Entry<? extends String, ? extends String>> entries)
+        throws Exception {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean delete(final String key) throws Exception {
+      return (null == this.cache.remove(key));
+    }
+
+    @Override
+    public boolean delete(final String key, final String value) throws Exception {
+      final String existingValue = this.cache.get(key);
+      boolean modified = false;
+      if (value.equals(existingValue)) {
+        modified = (null != this.cache.remove(key));
+      }
+      return modified;
+    }
+
+    @Override
+    public Set<String> deleteAll(final Iterable<? extends String> keys) throws Exception {
+      throw new UnsupportedOperationException();
+    }
   }
 }

@@ -75,7 +75,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     assertThat(ehcache.get("key"), is(nullValue()));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, never()).remove("key");
-    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NOT_FOUND));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NOT_FOUND));
   }
 
   /**
@@ -96,7 +96,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, never()).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NOT_FOUND));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NOT_FOUND));
   }
 
   /**
@@ -118,7 +118,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, never()).remove("key");
     assertThat(realStore.getMap().get("key"), equalTo("value"));
-    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
   }
 
   /**
@@ -133,7 +133,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
 
-    when(this.cacheLoader.load("key")).thenThrow(ExceptionFactory.newCacheLoaderException(new Exception()));
+    when(this.cacheLoader.load("key")).thenThrow(new Exception());
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
 
     try {
@@ -145,7 +145,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    this.validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
+    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
   }
 
   /**
@@ -168,7 +168,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
   /**
@@ -191,7 +191,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
   /**
@@ -215,7 +215,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
   /**
@@ -232,7 +232,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     this.store = spy(realStore);
     doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), getAnyFunction());
 
-    when(this.cacheLoader.load("key")).thenThrow(ExceptionFactory.newCacheLoaderException(new Exception()));
+    when(this.cacheLoader.load("key")).thenThrow(new Exception());
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
 
     try {
@@ -244,7 +244,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
   /**
@@ -265,7 +265,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     assertThat(ehcache.get("key"), equalTo("value"));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, never()).remove("key");
-    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
   }
 
   /**
@@ -286,7 +286,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     assertThat(ehcache.get("key"), equalTo("value"));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, never()).remove("key");
-    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
   }
 
   /**
@@ -308,7 +308,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     assertThat(ehcache.get("key"), equalTo("value"));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, never()).remove("key");
-    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
   }
 
   /**
@@ -330,7 +330,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     assertThat(ehcache.get("key"), equalTo("value"));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, never()).remove("key");
-    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
   }
 
   /**
@@ -354,7 +354,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
   /**
@@ -378,7 +378,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
   /**
@@ -403,7 +403,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
   /**
@@ -421,7 +421,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     assertThat(realStore.getMap().get("key"), equalTo("value"));
     doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), getAnyFunction());
 
-    when(this.cacheLoader.load("key")).thenThrow(ExceptionFactory.newCacheLoaderException(new Exception()));
+    when(this.cacheLoader.load("key")).thenThrow(new Exception());
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
 
     try {
@@ -433,7 +433,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
   /**
