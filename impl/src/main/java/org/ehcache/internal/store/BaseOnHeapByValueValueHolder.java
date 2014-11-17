@@ -15,6 +15,7 @@
  */
 package org.ehcache.internal.store;
 
+import org.ehcache.exceptions.SerializerException;
 import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.serialization.Serializer;
 
@@ -24,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 abstract class BaseOnHeapByValueValueHolder<V> implements OnHeapValueHolder<V> {
   private final ByteBuffer buffer;
+  private final int hash;
   private final Serializer<V> serializer;
 
   protected BaseOnHeapByValueValueHolder(V value, Serializer<V> serializer) {
@@ -36,8 +38,9 @@ abstract class BaseOnHeapByValueValueHolder<V> implements OnHeapValueHolder<V> {
     this.serializer = serializer;
     try {
       this.buffer = serializer.serialize(value);
-    } catch (IOException e) {
-      throw new RuntimeException(e); // todo: better exception, please
+      this.hash = value.hashCode();
+    } catch (IOException ioe) {
+      throw new SerializerException(ioe);
     }
   }
   
@@ -45,10 +48,10 @@ abstract class BaseOnHeapByValueValueHolder<V> implements OnHeapValueHolder<V> {
   public final V value() {
     try {
       return serializer.read(buffer);
-    } catch (IOException e) {
-      throw new RuntimeException(e); // todo: better exception, please
-    } catch (ClassNotFoundException e) {
-      throw new RuntimeException(e); // todo: better exception, please
+    } catch (IOException ioe) {
+      throw new SerializerException(ioe);
+    } catch (ClassNotFoundException cnfe) {
+      throw new SerializerException(cnfe);
     }
   }
 
@@ -59,15 +62,15 @@ abstract class BaseOnHeapByValueValueHolder<V> implements OnHeapValueHolder<V> {
     try {
       return serializer.equals(((ValueHolder<V>)o).value(), buffer);
     } catch (IOException ioe) {
-      throw new RuntimeException(ioe); //todo: better exception, please
+      throw new SerializerException(ioe);
     } catch (ClassNotFoundException cnfe) {
-      throw new RuntimeException(cnfe); //todo: better exception, please
+      throw new SerializerException(cnfe);
     }
   }
 
   @Override
   public int hashCode() {
-    return buffer.hashCode();
+    return hash;
   }
   
   @Override
