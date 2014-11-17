@@ -32,15 +32,14 @@ import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriter;
 import org.ehcache.spi.writer.CacheWriterFactory;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Matchers;
 
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -113,8 +112,12 @@ public class EhcacheBulkMethodsITest {
     myCache.putAll(stringStringHashMap);
 
     verify(cacheWriter, times(3)).writeAll(Matchers.any(Iterable.class));
-    Map iterable = new HashMap(){{put("key2", "value2");}};
-    verify(cacheWriter).writeAll(iterable.entrySet());
+    Set set = new HashSet(){{add(entry("key0", "value0"));}};
+    verify(cacheWriter).writeAll(set);
+    set = new HashSet(){{add(entry("key1", "value1"));}};
+    verify(cacheWriter).writeAll(set);
+    set = new HashSet(){{add(entry("key2", "value2"));}};
+    verify(cacheWriter).writeAll(set);
 
     for (int i = 0; i < 3; i++) {
       assertThat(myCache.get("key" + i), is("value" + i));
@@ -176,7 +179,7 @@ public class EhcacheBulkMethodsITest {
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 
-    HashMap<String, String> stringStringHashMap = new HashMap<String, String>();
+    Map<String, String> stringStringHashMap = new HashMap<String, String>();
     for (int i = 0; i < 3; i++) {
       stringStringHashMap.put("key" + i, "value" + i);
     }
@@ -192,11 +195,14 @@ public class EhcacheBulkMethodsITest {
     }
     // but still, the cache writer could writeAll the values at once !
     verify(cacheWriter, times(1)).writeAll(Matchers.any(Iterable.class));
-    Map iterable = new TreeMap() {{put("key0", "value0"); put("key1", "value1"); put("key2", "value2");}};
-    verify(cacheWriter).writeAll(iterable.entrySet());
-
+    Set set = new HashSet() {{add(entry("key0", "value0")); add(entry("key1", "value1")); add(entry("key2", "value2"));}};
+    verify(cacheWriter).writeAll(set);
   }
 
+  private static Map.Entry entry(Object key, Object value) {
+    return new AbstractMap.SimpleEntry(key, value);
+  }
+  
   @Test
   public void testGetAll_without_cache_loader() throws Exception {
     CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
@@ -259,7 +265,6 @@ public class EhcacheBulkMethodsITest {
 
   }
 
-  @Ignore
   @Test
   public void testGetAll_cache_loader_throws_exception() throws Exception {
     CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
@@ -289,7 +294,7 @@ public class EhcacheBulkMethodsITest {
       fail();
     } catch (BulkCacheLoaderException bcwe) {
       // since onHeapStore.bulkComputeIfAbsent sends batches of 1 element,
-      assertThat(bcwe.getFailures().size(), is(1));
+      assertThat(bcwe.getFailures().size(), is(2));
       assertThat(bcwe.getSuccesses().size(), is(0));
     }
 
@@ -399,10 +404,10 @@ public class EhcacheBulkMethodsITest {
         assertThat(myCache.get("key" + i), is("value" + i));
       }
     }
-    Set iterable = new HashSet(){{add("key0");}};
-    verify(cacheWriter).deleteAll(iterable);
-    iterable = new HashSet(){{add("key2");}};
-    verify(cacheWriter).deleteAll(iterable);
+    Set set = new HashSet(){{add("key0");}};
+    verify(cacheWriter).deleteAll(set);
+    set = new HashSet(){{add("key2");}};
+    verify(cacheWriter).deleteAll(set);
 
   }
 
@@ -491,8 +496,8 @@ public class EhcacheBulkMethodsITest {
       }
     }
 
-    Set iterable = new HashSet(){{add("key0"); add("key2");}};
-    verify(cacheWriter).deleteAll(iterable);
+    Set set = new HashSet(){{add("key0"); add("key2");}};
+    verify(cacheWriter).deleteAll(set);
 
   }
 

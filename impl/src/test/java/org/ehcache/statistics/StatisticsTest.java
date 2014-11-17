@@ -36,7 +36,7 @@ import java.util.concurrent.ScheduledExecutorService;
 public class StatisticsTest {
   private ScheduledExecutorService        scheduledExecutorService;
   private StandaloneCache<Number, String> cache;
-  private long                            capacity = 10;
+  private final long                            capacity = 10;
 
   @Before
   public void setup() throws Exception {
@@ -76,7 +76,7 @@ public class StatisticsTest {
     cache.replace(1, "uno"); // get(hit) + put
     cache.replace(100, "blah"); // get(miss)
     cache.replace(2, "two", "dos"); // get(hit) + put
-    cache.replace(3, "blah", "tres"); // get(miss)
+    cache.replace(3, "blah", "tres"); // get(hit)
 
     cache.get(1); // get(hit)
     cache.get(2); // get(hit)
@@ -88,8 +88,8 @@ public class StatisticsTest {
 
     long expectedPuts = 6;
     long expectedGets = 10;
-    long expectedHits = 6;
-    long expectedMisses = 4;
+    long expectedHits = 7;
+    long expectedMisses = 3;
     long expectedRemovals = 1;
     float hitPercentage = (float) expectedHits / expectedGets * 100;
     float misssPercentage = (float) expectedMisses / expectedGets * 100;

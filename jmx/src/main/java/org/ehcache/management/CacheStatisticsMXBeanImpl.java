@@ -31,11 +31,6 @@ public class CacheStatisticsMXBeanImpl implements CacheStatisticsMXBean {
   public CacheStatisticsMXBeanImpl(Cache<?, ?> cache) {
     this.statistics = cache.getStatistics();
   }
-  
-  @Override
-  public void clear() {
-    statistics.clear();
-  }
 
   @Override
   public long getCacheHits() {

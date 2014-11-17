@@ -20,7 +20,6 @@ import org.ehcache.config.Jsr107Configuration;
 import org.ehcache.config.xml.XmlConfigurationParser;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import java.io.IOException;

@@ -104,7 +104,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT));
   }
 
   /**
@@ -127,7 +127,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(false));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT));
   }
 
   /**
@@ -150,7 +150,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("oldValue")));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT));
   }
 
   /**
@@ -175,7 +175,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("oldValue")));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT));
   }
 
   /**

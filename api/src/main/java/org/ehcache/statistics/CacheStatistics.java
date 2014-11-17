@@ -25,10 +25,6 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  */
 public interface CacheStatistics {
-  /**
-   * Clears the statistics counters to 0 for the associated Cache.
-   */
-  void clear();
 
   /**
    * The number of get requests that were satisfied by the cache.
@@ -137,12 +133,12 @@ public interface CacheStatistics {
    * @return the time in µs
    */
   float getAverageRemoveTime();
-
+  
   /**
    * get the map contains counts for bulk methods: putAll, removeAll and getAll
    * use the method name as key
    * 
    * @return a map of counts
    */
-  ConcurrentMap<String, AtomicLong> getBulkMethodEntries();
+  ConcurrentMap<BulkOps, AtomicLong> getBulkMethodEntries();
 }

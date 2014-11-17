@@ -25,14 +25,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
-
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.argThat;
-
 import static org.hamcrest.Matchers.is;
-
 import static org.junit.Assert.assertThat;
 
 import org.ehcache.event.CacheEvent;
@@ -47,6 +44,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheWriterException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
+import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.writer.CacheWriter;
 import org.junit.After;
@@ -270,7 +268,7 @@ public class EhcacheEventTest {
     final String cachedValue = "cached";
     final String newValue = "toReplace";
 
-    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    when(store.computeIfPresent(any(Number.class), anyBiFunction(), any(NullaryFunction.class))).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
@@ -323,7 +321,7 @@ public class EhcacheEventTest {
   
   @Test(expected=CacheWriterException.class)
   public void testThreeArgReplaceThrowsOnWrite() throws Exception {
-    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    when(store.computeIfPresent(any(Number.class), anyBiFunction(), any(NullaryFunction.class))).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
@@ -368,7 +366,7 @@ public class EhcacheEventTest {
   @Test
   public void testTwoArgRemoveMatch() throws Exception {
     final String cachedValue = "cached";
-    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    when(store.computeIfPresent(any(Number.class), anyBiFunction(), any(NullaryFunction.class))).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
@@ -418,7 +416,7 @@ public class EhcacheEventTest {
   @Test(expected=CacheWriterException.class)
   public void testTwoArgRemoveThrowsOnWrite() throws Exception {
     final String expected = "foo";
-    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    when(store.computeIfPresent(any(Number.class), anyBiFunction(), any(NullaryFunction.class))).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
