@@ -27,7 +27,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -43,6 +42,18 @@ public class OnHeapStoreByValueValueHolderTest {
     ValueHolder<?> vh2 = newValueHolder(o);
     assertFalse(vh1.value() == vh2.value());
     assertEquals(vh1.value(), vh2.value());
+  }
+
+  @Test
+  public void testHashCode() {
+    ValueHolder<Integer> vh1 = newValueHolder(10);
+    ValueHolder<Integer> vh2 = newValueHolder(10);
+    // make sure reading the value multiple times doesn't change the hashcode
+    vh1.value();
+    vh1.value();
+    vh2.value();
+    vh2.value();
+    assertThat(vh1.hashCode(), is(vh2.hashCode()));
   }
 
   @Test
