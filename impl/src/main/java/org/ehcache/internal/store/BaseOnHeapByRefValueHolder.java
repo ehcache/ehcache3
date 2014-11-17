@@ -19,10 +19,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.ehcache.spi.cache.Store.ValueHolder;
 
-abstract class BaseOnHeapValueHolder<V> implements OnHeapValueHolder<V> {
+abstract class BaseOnHeapByRefValueHolder<V> implements OnHeapValueHolder<V> {
   private final V value;
 
-  protected BaseOnHeapValueHolder(V value) {
+  protected BaseOnHeapByRefValueHolder(V value) {
     if (value == null) {
       throw new NullPointerException("null value");
     }

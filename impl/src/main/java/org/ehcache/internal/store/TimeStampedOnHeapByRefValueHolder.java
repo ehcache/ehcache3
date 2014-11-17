@@ -17,7 +17,7 @@ package org.ehcache.internal.store;
 
 import java.util.concurrent.TimeUnit;
 
-class TimeStampedOnHeapValueHolder<V> extends BaseOnHeapValueHolder<V> {
+class TimeStampedOnHeapByRefValueHolder<V> extends BaseOnHeapByRefValueHolder<V> {
 
   static final long NO_EXPIRE = -1;
 
@@ -26,7 +26,7 @@ class TimeStampedOnHeapValueHolder<V> extends BaseOnHeapValueHolder<V> {
   private volatile long expireTime;
   private volatile long accessTime;
 
-  TimeStampedOnHeapValueHolder(V value, long createTime, long expireTime) {
+  TimeStampedOnHeapByRefValueHolder(V value, long createTime, long expireTime) {
     super(value);
 
     setExpireTimeMillis(expireTime);

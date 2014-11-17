@@ -55,7 +55,7 @@ public class OnHeapStoreByRefValueHolderTest {
     newValueHolder(null);
   }
 
-  private static <V> TimeStampedOnHeapValueHolder<V> newValueHolder(V value) {
-    return new TimeStampedOnHeapValueHolder<V>(value, System.currentTimeMillis(), TimeStampedOnHeapValueHolder.NO_EXPIRE);
+  private static <V> TimeStampedOnHeapByRefValueHolder<V> newValueHolder(V value) {
+    return new TimeStampedOnHeapByRefValueHolder<V>(value, System.currentTimeMillis(), TimeStampedOnHeapByRefValueHolder.NO_EXPIRE);
   }
 }

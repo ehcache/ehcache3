@@ -74,6 +74,6 @@ public class OnHeapStoreByValueValueHolderTest {
   }
 
   private static <V extends Serializable> TimeStampedOnHeapByValueValueHolder<V> newValueHolder(V value) {
-    return new TimeStampedOnHeapByValueValueHolder<V>(value, new JavaSerializer<V>(), System.currentTimeMillis(), TimeStampedOnHeapValueHolder.NO_EXPIRE);
+    return new TimeStampedOnHeapByValueValueHolder<V>(value, new JavaSerializer<V>(), System.currentTimeMillis(), TimeStampedOnHeapByRefValueHolder.NO_EXPIRE);
   }
 }

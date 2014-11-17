@@ -24,6 +24,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 public class HeapResourceCacheConfiguration implements ServiceConfiguration<EhcacheProvider> {
 
   private final long maxOnHeapEntryCount;
+  private final boolean storeByRefOnHeap = true;
 
   public HeapResourceCacheConfiguration(final long maxOnHeapEntryCount) {
     this.maxOnHeapEntryCount = maxOnHeapEntryCount;

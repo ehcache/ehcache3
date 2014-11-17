@@ -59,7 +59,7 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
         return new TimeStampedOnHeapByValueValueHolder<String>(value,
-                new JavaSerializer<String>(), SystemTimeSource.INSTANCE.getTimeMillis(), TimeStampedOnHeapValueHolder.NO_EXPIRE);
+                new JavaSerializer<String>(), SystemTimeSource.INSTANCE.getTimeMillis(), TimeStampedOnHeapByRefValueHolder.NO_EXPIRE);
       }
 
       @Override
