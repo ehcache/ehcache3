@@ -57,36 +57,203 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
-  public void remappingFunctionReturnsIterableOfEntriesForEachInputEntry() throws Exception {
+  public void mappingFunctionReturnsIterableOfEntriesForEachInputEntry() throws Exception {
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
+        .getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final K k1 = factory.createKey(1L);
+    final V v1 = factory.createValue(1L);
+
+    Set<K> set = new HashSet<K>();
+    set.add(k1);
+
+    kvStore.put(k1, v1);
+
+    try {
+      kvStore.bulkComputeIfAbsent(Arrays.asList((K[]) set.toArray()), new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+          @Override
+          public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> entries) {
+            System.err.println("HERE ARE " + entries.toString());
+            assertThat(entries.iterator().hasNext(), is(false));
+            return null;
+          }
+        }
+      );
+    } catch (CacheAccessException e) {
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
+    }
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void missingIterableEntriesAreIgnoredByTheStore() throws Exception {
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
+        .getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final K k1 = factory.createKey(1L);
+    final V v1 = factory.createValue(1L);
+
+    Set<K> set = new HashSet<K>();
+    set.add(k1);
+
+    kvStore.put(k1, v1);
+
+    try {
+      kvStore.bulkComputeIfAbsent(Arrays.asList((K[]) set.toArray()), new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+            @Override
+            public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> entries) {
+              return null;
+            }
+          }
+      );
+      assertThat(kvStore.get(k1).value(), is(v1));
+    } catch (CacheAccessException e) {
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
+    }
+  }
+
+  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SPITest
+  public void mappingIsSameInTheStoreForEntriesReturnedWithDifferentValueFromMappingFunction() throws Exception {
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
+        .getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final K k1 = factory.createKey(1L);
+    final V v1 = factory.createValue(1L);
+    final V v10 = factory.createValue(10L);
+
+    Set<K> set = new HashSet<K>();
+    set.add(k1);
+
+    kvStore.put(k1, v1);
+
+    try {
+      kvStore.bulkComputeIfAbsent(Arrays.asList((K[]) set.toArray()), new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+        @Override
+        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> entries) {
+          Map<K, V> map = new HashMap<K, V>();
+          map.put(k1, v10);
+          return map.entrySet();
+        }
+      });
+      assertThat(kvStore.get(k1).value(), is(v1));
+    } catch (CacheAccessException e) {
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
+    }
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongKeyType() throws Exception {
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
+        .getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    Set<K> set = new HashSet<K>();
+    if (factory.getKeyType() == String.class) {
+      set.add((K) new Object());
+    } else {
+      set.add((K) "WrongKeyType");
+    }
+    try {
+      kvStore.bulkComputeIfAbsent(Arrays.asList((K[]) set.toArray()), new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+        @Override
+        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> entries) {
+          throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
+        }
+      });
+      throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
+    } catch (ClassCastException e) {
+      // expected
+    } catch (CacheAccessException e) {
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
+    }
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
-  public void remappingFunctionGetsIterableWithMappedStoreEntryValueOrNull() throws Exception {
+  public void computeValuesForEveryKeyUsingAMappingFunction() throws Exception {
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
+        .getValueType(), null, Predicates.<Cache.Entry<K, V>> all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final K k1 = factory.createKey(1L);
+    final V v1 = factory.createValue(1L);
+
+    Set<K> set = new HashSet<K>();
+    set.add(k1);
+
+    try {
+      kvStore.bulkComputeIfAbsent(Arrays.asList((K[]) set.toArray()), new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+        @Override
+        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> entries) {
+          Map<K, V> map = new HashMap<K, V>();
+          map.put(k1, v1);
+          return map.entrySet();
+        }
+      });
+      assertThat(kvStore.get(k1).value(), is(v1));
+    } catch (CacheAccessException e) {
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
+    }
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
-  public void computeValuesForEveryKeyUsingARemappingFunction() throws Exception {
+  public void testMappingFunctionProducesWrongKeyType() throws Exception {
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
+        .getValueType(), null, Predicates.<Cache.Entry<K, V>> all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final K k1 = factory.createKey(1L);
+    final V v1 = factory.createValue(1L);
+    Set<K> set = new HashSet<K>();
+    set.add(k1);
+    try {
+      kvStore.bulkComputeIfAbsent(Arrays.asList((K[]) set.toArray()), new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+        @Override
+        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> entries) {
+          Map<K, V> map = new HashMap<K, V>();
+          if (factory.getKeyType() == String.class) {
+            map.put((K)new Object(), v1);
+          } else {
+            map.put((K)"WrongKeyType", v1);
+          }
+          return map.entrySet();
+        }
+      });
+      throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
+    } catch (ClassCastException cce) {
+      //expected
+    } catch (CacheAccessException e) {
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
+    }
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
-  public void testRemappingFunctionProducesWrongKeyType() throws Exception {
-  }
-
-  @SuppressWarnings({ "rawtypes", "unchecked" })
-  @SPITest
-  public void testRemappingFunctionProducesWrongValueType() throws Exception {
+  public void testMappingFunctionProducesWrongValueType() throws Exception {
+    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
+        .getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final K k1 = factory.createKey(1L);
+    Set<K> set = new HashSet<K>();
+    set.add(k1);
+    try {
+      kvStore.bulkComputeIfAbsent(Arrays.asList((K[]) set.toArray()), new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+        @Override
+        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> entries) {
+          Map<K, V> map = new HashMap<K, V>();
+          if (factory.getValueType() == String.class) {
+            map.put(k1, (V) new Object());
+          } else {
+            map.put(k1, (V) "WrongValueType");
+          }
+          return map.entrySet();
+        }
+      });
+      throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
+    } catch (ClassCastException cce) {
+      //expected
+    } catch (CacheAccessException e) {
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
+    }
   }
 }
