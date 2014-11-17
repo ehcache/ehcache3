@@ -18,19 +18,9 @@ package org.ehcache.statistics;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-
-import java.lang.management.ManagementFactory;
-import java.net.URI;
-
-import javax.management.InstanceNotFoundException;
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
 
 import org.ehcache.StandaloneCache;
 import org.ehcache.StandaloneCacheBuilder;
-import org.ehcache.management.StatisticsMBeanRegister;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -40,40 +30,14 @@ import org.junit.Test;
  *
  */
 public class StatisticsTest {
-  private final MBeanServer               mbeanServer = ManagementFactory.getPlatformMBeanServer();
-  private final String                    cacheName   = "myCache";
   private StandaloneCache<Number, String> cache;
-  private URI                             uri;
-  private ObjectName                      mbeanName;
-  private long                            capacity    = 10;
+  private long                            capacity = 10;
 
   @Before
   public void setup() throws Exception {
-    uri = new URI("NullManager");
-    cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class).withCapacity(capacity)
-        .build();
+    cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class)
+        .withCapacity(capacity).build();
     cache.init();
-    mbeanName = StatisticsMBeanRegister.register(cache, uri, cacheName);
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    StatisticsMBeanRegister.unregister(uri, cacheName);
-  }
-
-  @Test
-  public void testStatsMBeanRegistration() throws Exception {
-    // assert mbean existed
-    assertThat((Long) mbeanServer.getAttribute(mbeanName, "CachePuts"), equalTo(0L));
-
-    // remove cache and assert its mbean is gone
-    StatisticsMBeanRegister.unregister(uri, cacheName);
-    try {
-      assertThat((Long) mbeanServer.getAttribute(mbeanName, "CachePuts"), equalTo(0L));
-      fail();
-    } catch (InstanceNotFoundException e) {
-      // expected
-    }
   }
 
   @Test
@@ -82,10 +46,10 @@ public class StatisticsTest {
     assertThat(cache.getRuntimeConfiguration().getCapacityConstraint(),
         equalTo((Comparable<Long>) capacity));
 
-    for (int i = 0; i < capacity + 1; i++) { 
+    for (int i = 0; i < capacity + 1; i++) {
       cache.put(i, "" + i);
     }
-    
+
     CacheStatistics stats = cache.getStatistics();
     assertThat(stats.getCacheEvictions(), equalTo(1L));
   }
@@ -127,16 +91,5 @@ public class StatisticsTest {
     assertThat(stats.getCacheRemovals(), equalTo(expectedRemovals));
     assertThat(stats.getCacheHitPercentage(), equalTo(hitPercentage));
     assertThat(stats.getCacheMissPercentage(), equalTo(misssPercentage));
-
-    assertThat((Long) mbeanServer.getAttribute(mbeanName, "CachePuts"), equalTo(expectedPuts));
-    assertThat((Long) mbeanServer.getAttribute(mbeanName, "CacheGets"), equalTo(expectedGets));
-    assertThat((Long) mbeanServer.getAttribute(mbeanName, "CacheHits"), equalTo(expectedHits));
-    assertThat((Long) mbeanServer.getAttribute(mbeanName, "CacheMisses"), equalTo(expectedMisses));
-    assertThat((Long) mbeanServer.getAttribute(mbeanName, "CacheRemovals"),
-        equalTo(expectedRemovals));
-    assertThat((Float) mbeanServer.getAttribute(mbeanName, "CacheHitPercentage"),
-        equalTo(hitPercentage));
-    assertThat((Float) mbeanServer.getAttribute(mbeanName, "CacheMissPercentage"),
-        equalTo(misssPercentage));
   }
 }
