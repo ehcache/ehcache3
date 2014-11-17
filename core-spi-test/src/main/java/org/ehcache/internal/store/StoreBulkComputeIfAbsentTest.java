@@ -73,7 +73,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
           @Override
           public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> entries) {
             assertThat(entries.iterator().hasNext(), is(false));
-            return null;
+            return new HashMap<K, V>().entrySet();
           }
         }
       );
@@ -100,7 +100,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       kvStore.bulkComputeIfAbsent(Arrays.asList((K[]) set.toArray()), new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
             @Override
             public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> entries) {
-              return null;
+              return new HashMap<K, V>().entrySet();
             }
           }
       );

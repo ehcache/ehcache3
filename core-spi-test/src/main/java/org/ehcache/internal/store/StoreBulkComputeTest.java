@@ -74,38 +74,12 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
             public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
               Map.Entry<? extends K, ? extends V> entry = entries.iterator().next();
               assertThat(entry.getValue(), is(v1));
-              return null;
+              Map<K, V> map = new HashMap<K, V>();
+              map.put(entry.getKey(), entry.getValue());
+              return map.entrySet();
             }
           }
       );
-    } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
-    }
-  }
-
-  @SuppressWarnings({ "rawtypes", "unchecked" })
-  @SPITest
-  public void missingIterableEntriesAreIgnoredByTheStore() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
-        .getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
-    final K k1 = factory.createKey(1L);
-    final V v1 = factory.createValue(1L);
-
-    Set<K> set = new HashSet<K>();
-    set.add(k1);
-
-    kvStore.put(k1, v1);
-
-    try {
-      kvStore.bulkCompute(Arrays.asList((K[]) set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-            @Override
-            public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-              return null;
-            }
-          }
-      );
-      assertThat(kvStore.get(k1).value(), is(v1));
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
@@ -184,7 +158,9 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
           Map.Entry<? extends K, ? extends V> entry = entries.iterator().next();
           assertThat(entry.getValue(), is(nullValue()));
-          return null;
+          Map<K, V> map = new HashMap<K, V>();
+          map.put(entry.getKey(), entry.getValue());
+          return map.entrySet();
         }
       }
       );
