@@ -16,8 +16,6 @@
 
 package org.ehcache;
 
-import java.net.URI;
-
 import org.ehcache.config.CacheConfiguration;
 
 /**
