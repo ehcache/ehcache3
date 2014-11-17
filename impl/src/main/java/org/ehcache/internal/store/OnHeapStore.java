@@ -475,7 +475,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     Duration duration = expiry.getExpiryForAccess(key, valueHolder.value());
     if (duration != null) {
       if (duration.isForever()) {
-        valueHolder.setExpireTimeMillis(TimeStampedOnHeapByRefValueHolder.NO_EXPIRE);
+        valueHolder.setExpireTimeMillis(TimeStampedOnHeapValueHolder.NO_EXPIRE);
       } else {
         valueHolder.setExpireTimeMillis(safeExpireTime(now, duration));
       }
@@ -495,20 +495,18 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       throw new NullPointerException();
     }
 
-    Duration duration = expiry.getExpiryForCreation(key, value);
-
+    OnHeapValueHolder<V> valueHolder;
     if (serializer != null) {
-      if (duration.isForever()) {
-        return new TimeStampedOnHeapByValueValueHolder<V>(value, serializer, now, TimeStampedOnHeapByRefValueHolder.NO_EXPIRE);
-      } else {
-        return new TimeStampedOnHeapByValueValueHolder<V>(value, serializer, now, safeExpireTime(now, duration));
-      }
+      valueHolder = new ByValueOnHeapValueHolder<V>(value, now, serializer);
     } else {
-      if (duration.isForever()) {
-        return new TimeStampedOnHeapByRefValueHolder<V>(value, now, TimeStampedOnHeapByRefValueHolder.NO_EXPIRE);
-      } else {
-        return new TimeStampedOnHeapByRefValueHolder<V>(value, now, safeExpireTime(now, duration));
-      }
+      valueHolder = new ByRefOnHeapValueHolder<V>(value, now);
+    }
+
+    Duration duration = expiry.getExpiryForCreation(key, value);
+    if (duration.isForever()) {
+      return new TimeStampedOnHeapValueHolder<V>(valueHolder, TimeStampedOnHeapValueHolder.NO_EXPIRE);
+    } else {
+      return new TimeStampedOnHeapValueHolder<V>(valueHolder, safeExpireTime(now, duration));
     }
   }
   

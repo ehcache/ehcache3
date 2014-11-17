@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.store;
 
+import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.spi.cache.Store.ValueHolder;
 import org.junit.Test;
@@ -33,7 +34,7 @@ import static org.junit.Assert.assertThat;
  * @author vfunshteyn
  *
  */
-public class OnHeapStoreByValueValueHolderTest {
+public class ByValueOnHeapValueHolderTest {
 
   @Test
   public void testValue() {
@@ -73,7 +74,7 @@ public class OnHeapStoreByValueValueHolderTest {
     newValueHolder(null);
   }
 
-  private static <V extends Serializable> TimeStampedOnHeapByValueValueHolder<V> newValueHolder(V value) {
-    return new TimeStampedOnHeapByValueValueHolder<V>(value, new JavaSerializer<V>(), System.currentTimeMillis(), TimeStampedOnHeapByRefValueHolder.NO_EXPIRE);
+  private static <V extends Serializable> OnHeapValueHolder<V> newValueHolder(V value) {
+    return new ByValueOnHeapValueHolder<V>(value, SystemTimeSource.INSTANCE.getTimeMillis(), new JavaSerializer<V>());
   }
 }

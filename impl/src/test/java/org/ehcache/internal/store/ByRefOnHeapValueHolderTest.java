@@ -21,6 +21,7 @@ import static org.junit.Assert.assertSame;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
+import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.spi.cache.Store.ValueHolder;
 import org.junit.Test;
 
@@ -28,7 +29,7 @@ import org.junit.Test;
  * @author vfunshteyn
  *
  */
-public class OnHeapStoreByRefValueHolderTest {
+public class ByRefOnHeapValueHolderTest {
 
   @Test
   public void testValue() {
@@ -55,7 +56,7 @@ public class OnHeapStoreByRefValueHolderTest {
     newValueHolder(null);
   }
 
-  private static <V> TimeStampedOnHeapByRefValueHolder<V> newValueHolder(V value) {
-    return new TimeStampedOnHeapByRefValueHolder<V>(value, System.currentTimeMillis(), TimeStampedOnHeapByRefValueHolder.NO_EXPIRE);
+  private static <V> OnHeapValueHolder<V> newValueHolder(V value) {
+    return new ByRefOnHeapValueHolder<V>(value, SystemTimeSource.INSTANCE.getTimeMillis());
   }
 }

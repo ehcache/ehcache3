@@ -15,51 +15,66 @@
  */
 package org.ehcache.internal.store;
 
-import org.ehcache.spi.serialization.Serializer;
-
 import java.util.concurrent.TimeUnit;
 
-class TimeStampedOnHeapByValueValueHolder<V> extends BaseOnHeapByValueValueHolder<V> {
+class TimeStampedOnHeapValueHolder<V> implements OnHeapValueHolder<V> {
 
   static final long NO_EXPIRE = -1;
 
-  private final long createTime;
+  private final OnHeapValueHolder<V> delegate;
 
   private volatile long expireTime;
-  private volatile long accessTime;
 
-  TimeStampedOnHeapByValueValueHolder(V value, Serializer<V> serializer, long createTime, long expireTime) {
-    super(value, serializer);
+  TimeStampedOnHeapValueHolder(OnHeapValueHolder<V> delegate, long expireTime) {
+    if (delegate == null) {
+      throw new NullPointerException("null delegate");
+    }
+    this.delegate = delegate;
 
     setExpireTimeMillis(expireTime);
-
     this.expireTime = expireTime;
-    this.createTime = this.accessTime = createTime;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == this) return true;
+    if (!(o instanceof TimeStampedOnHeapValueHolder)) return false;
+    return delegate.equals(((TimeStampedOnHeapValueHolder) o).delegate);
+  }
+
+  @Override
+  public int hashCode() {
+    return delegate.hashCode();
+  }
+
+  @Override
+  public V value() {
+    return delegate.value();
   }
 
   @Override
   public long creationTime(TimeUnit unit) {
-    return TimeUnit.MILLISECONDS.convert(createTime, unit);
+    return delegate.creationTime(unit);
   }
 
   @Override
   public float hitRate(TimeUnit unit) {
-    throw new UnsupportedOperationException("implement me!");
+    return delegate.hitRate(unit);
   }
 
   @Override
   public long lastAccessTime(TimeUnit unit) {
-    return TimeUnit.MILLISECONDS.convert(accessTime, unit);
+    return delegate.lastAccessTime(unit);
   }
 
   public void setAccessTimeMillis(long accessTime) {
-    this.accessTime = accessTime;
+    delegate.setAccessTimeMillis(accessTime);
   }
 
   @Override
   public void setExpireTimeMillis(long expireTime) {
     if (expireTime <= 0 && expireTime != NO_EXPIRE) {
-      throw new IllegalArgumentException("invalied expire time: " + expireTime);
+      throw new IllegalArgumentException("invalid expire time: " + expireTime);
     }
     
     this.expireTime = expireTime;

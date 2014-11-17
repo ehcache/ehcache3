@@ -21,14 +21,14 @@ import org.ehcache.spi.serialization.Serializer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.TimeUnit;
 
-abstract class BaseOnHeapByValueValueHolder<V> implements OnHeapValueHolder<V> {
+class ByValueOnHeapValueHolder<V> extends BaseOnHeapValueHolder<V> {
   private final ByteBuffer buffer;
   private final int hash;
   private final Serializer<V> serializer;
 
-  protected BaseOnHeapByValueValueHolder(V value, Serializer<V> serializer) {
+  protected ByValueOnHeapValueHolder(V value, long createTime, Serializer<V> serializer) {
+    super(createTime);
     if (value == null) {
       throw new NullPointerException("null value");
     }
@@ -36,9 +36,9 @@ abstract class BaseOnHeapByValueValueHolder<V> implements OnHeapValueHolder<V> {
       throw new NullPointerException("null serializer");
     }
     this.serializer = serializer;
+    this.hash = value.hashCode();
     try {
       this.buffer = serializer.serialize(value);
-      this.hash = value.hashCode();
     } catch (IOException ioe) {
       throw new SerializerException(ioe);
     }
@@ -73,33 +73,4 @@ abstract class BaseOnHeapByValueValueHolder<V> implements OnHeapValueHolder<V> {
     return hash;
   }
   
-  @Override
-  public long creationTime(TimeUnit unit) {
-    throw new AssertionError();
-  }
-
-  @Override
-  public float hitRate(TimeUnit unit) {
-    throw new AssertionError();
-  }
-
-  @Override
-  public long lastAccessTime(TimeUnit unit) {
-    throw new AssertionError();
-  }
-
-  @Override
-  public boolean isExpired(long now) {
-    throw new AssertionError();
-  }
-
-  @Override
-  public void setAccessTimeMillis(long accessTime) {
-    throw new AssertionError();
-  }
-
-  @Override
-  public void setExpireTimeMillis(long expireTime) {
-    throw new AssertionError();
-  }
 }

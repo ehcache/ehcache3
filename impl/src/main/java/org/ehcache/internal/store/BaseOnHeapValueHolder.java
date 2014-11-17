@@ -13,25 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.ehcache.internal.store;
 
 import java.util.concurrent.TimeUnit;
 
-class TimeStampedOnHeapByRefValueHolder<V> extends BaseOnHeapByRefValueHolder<V> {
-
-  static final long NO_EXPIRE = -1;
+/**
+ * @author Ludovic Orban
+ */
+abstract class BaseOnHeapValueHolder<V> implements OnHeapValueHolder<V> {
 
   private final long createTime;
 
-  private volatile long expireTime;
   private volatile long accessTime;
 
-  TimeStampedOnHeapByRefValueHolder(V value, long createTime, long expireTime) {
-    super(value);
-
-    setExpireTimeMillis(expireTime);
-
-    this.expireTime = expireTime;
+  BaseOnHeapValueHolder(long createTime) {
     this.createTime = this.accessTime = createTime;
   }
 
@@ -41,40 +37,28 @@ class TimeStampedOnHeapByRefValueHolder<V> extends BaseOnHeapByRefValueHolder<V>
   }
 
   @Override
-  public float hitRate(TimeUnit unit) {
-    throw new UnsupportedOperationException("implement me!");
-  }
-
-  @Override
   public long lastAccessTime(TimeUnit unit) {
     return TimeUnit.MILLISECONDS.convert(accessTime, unit);
   }
 
+  @Override
   public void setAccessTimeMillis(long accessTime) {
     this.accessTime = accessTime;
   }
 
   @Override
-  public void setExpireTimeMillis(long expireTime) {
-    if (expireTime <= 0 && expireTime != NO_EXPIRE) {
-      throw new IllegalArgumentException("invalied expire time: " + expireTime);
-    }
-    
-    this.expireTime = expireTime;
+  public float hitRate(TimeUnit unit) {
+    throw new AssertionError();
   }
-  
+
   @Override
   public boolean isExpired(long now) {
-    final long expire = expireTime;
-    if (expire == NO_EXPIRE) {
-      return false;
-    }
-    
-    if (expire <= now) {
-      return true;
-    }
-    
-    return false;
+    throw new AssertionError();
+  }
+
+  @Override
+  public void setExpireTimeMillis(long expireTime) {
+    throw new AssertionError();
   }
 
 }

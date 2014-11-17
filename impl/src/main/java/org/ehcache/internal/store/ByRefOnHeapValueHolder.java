@@ -15,14 +15,13 @@
  */
 package org.ehcache.internal.store;
 
-import java.util.concurrent.TimeUnit;
-
 import org.ehcache.spi.cache.Store.ValueHolder;
 
-abstract class BaseOnHeapByRefValueHolder<V> implements OnHeapValueHolder<V> {
+class ByRefOnHeapValueHolder<V> extends BaseOnHeapValueHolder<V> {
   private final V value;
 
-  protected BaseOnHeapByRefValueHolder(V value) {
+  protected ByRefOnHeapValueHolder(V value, long createTime) {
+    super(createTime);
     if (value == null) {
       throw new NullPointerException("null value");
     }
@@ -45,34 +44,5 @@ abstract class BaseOnHeapByRefValueHolder<V> implements OnHeapValueHolder<V> {
   public int hashCode() {
     return value.hashCode();
   }
-  
-  @Override
-  public long creationTime(TimeUnit unit) {
-    throw new AssertionError();
-  }
 
-  @Override
-  public float hitRate(TimeUnit unit) {
-    throw new AssertionError();
-  }
-
-  @Override
-  public long lastAccessTime(TimeUnit unit) {
-    throw new AssertionError();
-  }
-
-  @Override
-  public boolean isExpired(long now) {
-    throw new AssertionError();
-  }
-
-  @Override
-  public void setAccessTimeMillis(long accessTime) {
-    throw new AssertionError();
-  }
-
-  @Override
-  public void setExpireTimeMillis(long expireTime) {
-    throw new AssertionError();
-  }
 }

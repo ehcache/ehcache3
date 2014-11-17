@@ -55,8 +55,7 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new TimeStampedOnHeapByRefValueHolder<String>(value,
-            SystemTimeSource.INSTANCE.getTimeMillis(), TimeStampedOnHeapByRefValueHolder.NO_EXPIRE);
+        return new ByRefOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis());
       }
 
       @Override
