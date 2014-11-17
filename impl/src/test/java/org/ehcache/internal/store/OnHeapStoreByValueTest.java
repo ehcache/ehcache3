@@ -15,17 +15,6 @@
  */
 package org.ehcache.internal.store;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.concurrent.TimeUnit;
-
 import org.ehcache.Cache.Entry;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
@@ -36,13 +25,25 @@ import org.ehcache.function.Function;
 import org.ehcache.function.Predicate;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.Iterator;
 import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.junit.Test;
 
-public class OnHeapStoreTest {
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.concurrent.TimeUnit;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+
+public class OnHeapStoreByValueTest {
 
   private static final RuntimeException RUNTIME_EXCEPTION = new RuntimeException();
 
@@ -696,7 +697,7 @@ public class OnHeapStoreTest {
 
       @Override
       public SerializationProvider getSerializationProvider() {
-        return null;
+        return new JavaSerializationProvider();
       }
 
       @Override
@@ -708,7 +709,7 @@ public class OnHeapStoreTest {
       public Expiry<? super String, ? super String> getExpiry() {
         return expiry;
       }
-    }, timeSource, false);
+    }, timeSource, true);
   }
 
 }

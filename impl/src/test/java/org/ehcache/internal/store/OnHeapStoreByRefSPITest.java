@@ -35,7 +35,7 @@ import java.util.Comparator;
  * @author Aurelien Broszniowski
  */
 
-public class OnHeapStoreSPITest extends StoreSPITest<String, String> {
+public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
 
   private StoreFactory<String, String> storeFactory;
 
