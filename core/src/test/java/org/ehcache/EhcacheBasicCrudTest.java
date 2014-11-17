@@ -72,25 +72,30 @@ public class EhcacheBasicCrudTest {
     MockitoAnnotations.initMocks(this);
   }
 
-
-  @Test
-  public void testPut() {
-
-  }
-
   /**
-   * Tests the effect of a {@link org.ehcache.Ehcache#get(Object)} for a missing key.
+   * Tests the effect of a {@link org.ehcache.Ehcache#get(Object)} for
+   * <ul>
+   *   <li>key not present in {@code Store}</li>
+   *   <li>no {@code CacheLoader}</li>
+   * </ul>
    */
   @Test
   public void testGetNoStoreEntryNoCacheLoader() throws Exception {
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     assertThat(ehcache.get("key"), is(nullValue()));
-    verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, never()).remove("key");
     this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NOT_FOUND));
   }
 
+  /**
+   * Tests the effect of a {@link org.ehcache.Ehcache#get(Object)} for
+   * <ul>
+   *   <li>key not present in {@code Store}</li>
+   *   <li>key not available via {@code CacheLoader}</li>
+   * </ul>
+   */
   @Test
   public void testGetNoStoreEntryNoCacheLoaderEntry() throws Exception {
     final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
@@ -99,12 +104,19 @@ public class EhcacheBasicCrudTest {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
 
     assertThat(ehcache.get("key"), is(nullValue()));
-    verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, never()).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
     this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NOT_FOUND));
   }
 
+  /**
+   * Tests the effect of a {@link org.ehcache.Ehcache#get(Object)} for
+   * <ul>
+   *   <li>key not present in {@code Store}</li>
+   *   <li>key available via {@code CacheLoader}</li>
+   * </ul>
+   */
   @Test
   public void testGetNoStoreEntryHasCacheLoaderEntry() throws Exception {
     final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
@@ -114,12 +126,19 @@ public class EhcacheBasicCrudTest {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
 
     assertThat(ehcache.get("key"), is("value"));
-    verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, never()).remove("key");
     assertThat(realStore.getMap().get("key"), equalTo("value"));
     this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
   }
 
+  /**
+   * Tests the effect of a {@link org.ehcache.Ehcache#get(Object)} for
+   * <ul>
+   *   <li>key not present in {@code Store}</li>
+   *   <li>{@code CacheLoader.load} throws</li>
+   * </ul>
+   */
   @Test
   public void testGetNoStoreEntryCacheLoaderException() throws Exception {
     final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
@@ -134,63 +153,95 @@ public class EhcacheBasicCrudTest {
     } catch (CacheLoaderException e) {
       // Expected
     }
-    verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
     this.validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
   }
 
+  /**
+   * Tests the effect of a {@link org.ehcache.Ehcache#get(Object)} for
+   * <ul>
+   *   <li>key not present in {@code Store}</li>
+   *   <li>{@code Store.computeIfAbsent} throws</li>
+   *   <li>{@code CacheLoader} omitted</li>
+   * </ul>
+   */
   @Test
   public void testGetNoStoreEntryCacheAccessExceptionNoCacheLoader() throws Exception {
     final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), getAnyFunction());
 
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     assertThat(ehcache.get("key"), is(nullValue()));
-    verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
     this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
+  /**
+   * Tests the effect of a {@link org.ehcache.Ehcache#get(Object)} for
+   * <ul>
+   *   <li>key not present in {@code Store}</li>
+   *   <li>{@code Store.computeIfAbsent} throws</li>
+   *   <li>key not available via {@code CacheLoader}</li>
+   * </ul>
+   */
   @Test
   public void testGetNoStoreEntryCacheAccessExceptionNoCacheLoaderEntry() throws Exception {
     final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), getAnyFunction());
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
 
     assertThat(ehcache.get("key"), is(nullValue()));
-    verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
     this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
+  /**
+   * Tests the effect of a {@link org.ehcache.Ehcache#get(Object)} for
+   * <ul>
+   *   <li>key not present in {@code Store}</li>
+   *   <li>{@code Store.computeIfAbsent} throws</li>
+   *   <li>key available via {@code CacheLoader}</li>
+   * </ul>
+   */
   @Test
   public void testGetNoStoreEntryCacheAccessExceptionHasCacheLoaderEntry() throws Exception {
     final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), getAnyFunction());
 
     when(this.cacheLoader.load("key")).thenReturn("value");
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
 
     assertThat(ehcache.get("key"), is("value"));
-    verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
     this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
+  /**
+   * Tests the effect of a {@link org.ehcache.Ehcache#get(Object)} for
+   * <ul>
+   *   <li>key not present in {@code Store}</li>
+   *   <li>{@code Store.computeIfAbsent} throws</li>
+   *   <li>{@code CacheLoader.load} throws</li>
+   * </ul>
+   */
   @Test
   public void testGetNoStoreEntryCacheAccessExceptionCacheLoaderException() throws Exception {
     final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), getAnyFunction());
 
     when(this.cacheLoader.load("key")).thenThrow(ExceptionFactory.newCacheLoaderException(new Exception()));
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
@@ -201,14 +252,21 @@ public class EhcacheBasicCrudTest {
     } catch (CacheLoaderException e) {
       // Expected
     }
-    verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
     this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
+  /**
+   * Tests the effect of a {@link org.ehcache.Ehcache#get(Object)} for
+   * <ul>
+   *   <li>key present in {@code Store}</li>
+   *   <li>no {@code CacheLoader}</li>
+   * </ul>
+   */
   @Test
-  public void testGetHasStoreEntry() throws Exception {
+  public void testGetHasStoreEntryNoCacheLoader() throws Exception {
     final MockStore realStore = new MockStore(Collections.singletonMap("key", "value"));
     this.store = spy(realStore);
     assertThat(realStore.getMap().get("key"), equalTo("value"));
@@ -216,66 +274,163 @@ public class EhcacheBasicCrudTest {
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     assertThat(ehcache.get("key"), equalTo("value"));
-    verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, never()).remove("key");
     this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
   }
 
+  /**
+   * Tests the effect of a {@link org.ehcache.Ehcache#get(Object)} for
+   * <ul>
+   *   <li>key present in {@code Store}</li>
+   *   <li>key not available via {@code CacheLoader}</li>
+   * </ul>
+   */
+  @Test
+  public void testGetHasStoreEntryNoCacheLoaderEntry() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "value"));
+    this.store = spy(realStore);
+    assertThat(realStore.getMap().get("key"), equalTo("value"));
+
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
+
+    assertThat(ehcache.get("key"), equalTo("value"));
+    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
+    verify(this.store, never()).remove("key");
+    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
+  }
+
+  /**
+   * Tests the effect of a {@link org.ehcache.Ehcache#get(Object)} for
+   * <ul>
+   *   <li>key present in {@code Store}</li>
+   *   <li>key available via {@code CacheLoader}</li>
+   * </ul>
+   */
+  @Test
+  public void testGetHasStoreEntryHasCacheLoaderEntry() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "value"));
+    this.store = spy(realStore);
+    assertThat(realStore.getMap().get("key"), equalTo("value"));
+
+    when(this.cacheLoader.load("key")).thenThrow(ExceptionFactory.newCacheLoaderException(new Exception()));
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
+
+    assertThat(ehcache.get("key"), equalTo("value"));
+    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
+    verify(this.store, never()).remove("key");
+    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
+  }
+
+  /**
+   * Tests the effect of a {@link org.ehcache.Ehcache#get(Object)} for
+   * <ul>
+   *   <li>key present in {@code Store}</li>
+   *   <li>{@code CacheLoader.load} throws</li>
+   * </ul>
+   */
+  @Test
+  public void testGetHasStoreEntryCacheLoaderException() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "value"));
+    this.store = spy(realStore);
+    assertThat(realStore.getMap().get("key"), equalTo("value"));
+
+    when(this.cacheLoader.load("key")).thenThrow(ExceptionFactory.newCacheLoaderException(new Exception()));
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
+
+    assertThat(ehcache.get("key"), equalTo("value"));
+    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
+    verify(this.store, never()).remove("key");
+    this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
+  }
+
+  /**
+   * Tests the effect of a {@link org.ehcache.Ehcache#get(Object)} for
+   * <ul>
+   *   <li>key present in {@code Store}</li>
+   *   <li>{@code Store.computeIfAbsent} throws</li>
+   *   <li>no {@code CacheLoader}</li>
+   * </ul>
+   */
   @Test
   public void testGetHasStoreEntryCacheAccessExceptionNoCacheLoader() throws Exception {
     final MockStore realStore = new MockStore(Collections.singletonMap("key", "value"));
     this.store = spy(realStore);
     assertThat(realStore.getMap().get("key"), equalTo("value"));
-    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), getAnyFunction());
 
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     assertThat(ehcache.get("key"), is(nullValue()));
-    verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
     this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
+  /**
+   * Tests the effect of a {@link org.ehcache.Ehcache#get(Object)} for
+   * <ul>
+   *   <li>key present in {@code Store}</li>
+   *   <li>{@code Store.computeIfAbsent} throws</li>
+   *   <li>key not available via {@code CacheLoader}</li>
+   * </ul>
+   */
   @Test
   public void testGetHasStoreEntryCacheAccessExceptionNoCacheLoaderEntry() throws Exception {
     final MockStore realStore = new MockStore(Collections.singletonMap("key", "value"));
     this.store = spy(realStore);
     assertThat(realStore.getMap().get("key"), equalTo("value"));
-    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), getAnyFunction());
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
 
     assertThat(ehcache.get("key"), is(nullValue()));
-    verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
     this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
+  /**
+   * Tests the effect of a {@link org.ehcache.Ehcache#get(Object)} for
+   * <ul>
+   *   <li>key present in {@code Store}</li>
+   *   <li>{@code Store.computeIfAbsent} throws</li>
+   *   <li>key available via {@code CacheLoader}</li>
+   * </ul>
+   */
   @Test
   public void testGetHasStoreEntryCacheAccessExceptionHasCacheLoaderEntry() throws Exception {
     final MockStore realStore = new MockStore(Collections.singletonMap("key", "value"));
     this.store = spy(realStore);
     assertThat(realStore.getMap().get("key"), equalTo("value"));
-    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), getAnyFunction());
 
     when(this.cacheLoader.load("key")).thenReturn("value");
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
 
     assertThat(ehcache.get("key"), equalTo("value"));
-    verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
     this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
+  /**
+   * Tests the effect of a {@link org.ehcache.Ehcache#get(Object)} for
+   * <ul>
+   *   <li>key present in {@code Store}</li>
+   *   <li>{@code Store.computeIfAbsent} throws</li>
+   *   <li>{@code CacheLoader.load} throws</li>
+   * </ul>
+   */
   @Test
   public void testGetHasStoreEntryCacheAccessExceptionCacheLoaderException() throws Exception {
     final MockStore realStore = new MockStore(Collections.singletonMap("key", "value"));
     this.store = spy(realStore);
     assertThat(realStore.getMap().get("key"), equalTo("value"));
-    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), getAnyFunction());
 
     when(this.cacheLoader.load("key")).thenThrow(ExceptionFactory.newCacheLoaderException(new Exception()));
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoader);
@@ -286,7 +441,7 @@ public class EhcacheBasicCrudTest {
     } catch (CacheLoaderException e) {
       // Expected
     }
-    verify(this.store).computeIfAbsent(eq("key"), any(Function.class));
+    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
     this.validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
@@ -299,8 +454,8 @@ public class EhcacheBasicCrudTest {
    * checked for a value of {@code 0}.
    *
    * @param ehcache the {@code Ehcache} instance to check
-   * @param changed the
-   * @param <E>
+   * @param changed the statistics values that should have updated values
+   * @param <E> the statistics enumeration type
    */
   private <E extends Enum<E>> void validateStats(final Ehcache<?, ?> ehcache, final EnumSet<E> changed) {
     assert changed != null;
@@ -387,6 +542,16 @@ public class EhcacheBasicCrudTest {
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     return ehcache;
+  }
+
+  /**
+   * Returns a Mockito {@code any} Matcher for {@link org.ehcache.function.Function}.
+   *
+   * @return a Mockito {@code any} matcher for {@code Function}.
+   */
+  @SuppressWarnings("unchecked")
+  private static Function<? super String, ? extends String> getAnyFunction() {
+    return any(Function.class);   // unchecked
   }
 
   /**
