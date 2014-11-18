@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<!--
+  ~ Copyright Terracotta, Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<xs:schema version="1.0" xmlns:ehcache="http://www.ehcache.org/v3" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" targetNamespace="http://www.ehcache.org/v3">
+  <xs:element name="config" type="ehcache:config-type"/>
+  
+  <xs:complexType name="config-type">
+    <xs:sequence>
+      <xs:element name="service" type="ehcache:service-type" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="cache" type="ehcache:cache-type">
+          <xs:key name="template">
+            <xs:selector xpath="cache-template"/>
+            <xs:field xpath="@name"/>
+          </xs:key>
+        </xs:element>
+        <xs:element name="cache-template" type="ehcache:cacheTemplate-type"/>
+      </xs:choice>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="service-type">
+    <xs:sequence>
+      <xs:any namespace="##other" minOccurs="1" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="cache-type">
+    <xs:complexContent>
+      <xs:extension base="ehcache:baseCache-type">
+        <xs:attribute name="alias" use="required" type="xs:string"/>
+        <xs:attribute name="usesTemplate" use="optional" type="xs:IDREF"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="cacheTemplate-type" xml:base="ehcache:baseCache-type">
+    <xs:complexContent>
+      <xs:extension base="ehcache:baseCache-type">
+        <xs:attribute name="name" type="xs:ID" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="baseCache-type" abstract="true">
+    <xs:sequence>
+      <xs:element name="key-type" type="xs:string" minOccurs="0" maxOccurs="1" default="java.lang.Object"/>
+      <xs:element name="value-type" type="xs:string" minOccurs="0" maxOccurs="1" default="java.lang.Object"/>
+      <xs:element name="capacity" type="xs:positiveInteger" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="eviction-veto" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="eviction-prioritizer" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>

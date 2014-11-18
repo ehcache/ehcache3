@@ -17,10 +17,10 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
+import org.ehcache.config.Eviction;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expirations;
-import org.ehcache.function.Predicates;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
 
@@ -48,7 +48,7 @@ public class StoreIteratorNextTest<K, V> extends SPIStoreTester<K, V> {
   public void nextReturnsNextElement()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null,
+        factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null, 
         ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
 
     K key = factory.getKeyType().newInstance();
@@ -71,7 +71,7 @@ public class StoreIteratorNextTest<K, V> extends SPIStoreTester<K, V> {
   public void noMoreElementThrowsException()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
     final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(
-        factory.getKeyType(), factory.getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null,
+        factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null, 
         ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
 
     kvStore.put(factory.getKeyType().newInstance(), factory.getValueType().newInstance());

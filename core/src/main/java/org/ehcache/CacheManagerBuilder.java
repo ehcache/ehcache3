@@ -19,6 +19,7 @@ package org.ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheManagerConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.DefaultConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.Service;
 
@@ -38,7 +39,15 @@ public class CacheManagerBuilder<T extends CacheManager> {
 
   public T build() {
     ServiceLocator serviceLocator = new ServiceLocator(services.toArray(new Service[services.size()]));
-    Configuration configuration = new Configuration(caches, classLoader);
+    Configuration configuration = new DefaultConfiguration(caches, classLoader);
+    return newCacheManager(serviceLocator, configuration);
+  }
+
+  public static CacheManager newCacheManager(final Configuration configuration) {
+    return new EhcacheManager(configuration);
+  }
+
+  T newCacheManager(final ServiceLocator serviceLocator, final Configuration configuration) {
     final EhcacheManager ehcacheManager = new EhcacheManager(configuration, serviceLocator);
     ehcacheManager.init();
     return (T)ehcacheManager;

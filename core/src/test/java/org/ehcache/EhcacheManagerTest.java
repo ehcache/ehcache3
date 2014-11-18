@@ -18,6 +18,7 @@ package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.DefaultConfiguration;
 import org.ehcache.events.CacheManagerListener;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.config.ConfigurationBuilder;
@@ -74,7 +75,7 @@ public class EhcacheManagerTest {
   @Test
   public void testNoClassLoaderSpecified() {
     ConfigurationBuilder builder = newConfigurationBuilder();
-    builder.addCache("foo", newCacheConfigurationBuilder().buildCacheConfig(Object.class, Object.class));
+    builder.addCache("foo", newCacheConfigurationBuilder().buildConfig(Object.class, Object.class));
     final Store.Provider storeProvider = mock(Store.Provider.class);
     final Store mock = mock(Store.class);
     when(storeProvider
@@ -87,7 +88,7 @@ public class EhcacheManagerTest {
     // explicit null
     builder = newConfigurationBuilder();
     builder.withClassLoader(null);
-    builder.addCache("foo", newCacheConfigurationBuilder().buildCacheConfig(Object.class, Object.class));
+    builder.addCache("foo", newCacheConfigurationBuilder().buildConfig(Object.class, Object.class));
     cacheManager = new EhcacheManager(builder.build(), new ServiceLocator(storeProvider));
     cacheManager.init();
     assertSame(ClassLoading.getDefaultClassLoader(), cacheManager.getClassLoader());
@@ -230,7 +231,7 @@ public class EhcacheManagerTest {
 
     when(cacheLoaderFactory.createCacheLoader("foo", fooConfig)).thenReturn(fooLoader);
 
-    final Configuration cfg = new Configuration(
+    final Configuration cfg = new DefaultConfiguration(
         new HashMap<String, CacheConfiguration<?, ?>>() {{
           put("bar", barConfig);
           put("foo", fooConfig);
@@ -391,7 +392,7 @@ public class EhcacheManagerTest {
   static class NoSuchService implements Service {
 
     @Override
-    public void start() {
+    public void start(ServiceConfiguration<?> config) {
       throw new UnsupportedOperationException("Implement me!");
     }
 

@@ -14,16 +14,19 @@
  * limitations under the License.
  */
 
-package org.ehcache.config.xml;
+package org.ehcache.jsr107;
 
-import org.ehcache.internal.EhcacheProvider;
-import org.ehcache.internal.HeapResourceCacheConfiguration;
+import org.ehcache.config.Jsr107Configuration;
+import org.ehcache.config.xml.XmlConfigurationParser;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.util.HashMap;
 
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
@@ -31,10 +34,10 @@ import javax.xml.transform.stream.StreamSource;
 /**
  * @author Alex Snaps
  */
-public class HeapResourceParser implements XmlConfigurationParser<EhcacheProvider> {
+public class ServiceConfigParser implements XmlConfigurationParser<Jsr107Service> {
 
-  private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/cachingtier");
-  private static final URL XML_SCHEMA = HeapResourceParser.class.getResource("/ehcache-cachingtier.xsd");
+  private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/jsr107");
+  private static final URL XML_SCHEMA = ServiceConfigParser.class.getResource("/ehcache-107ext.xsd");
 
   @Override
   public Source getXmlSchema() throws IOException {
@@ -47,8 +50,15 @@ public class HeapResourceParser implements XmlConfigurationParser<EhcacheProvide
   }
 
   @Override
-  public ServiceConfiguration<EhcacheProvider> parse(final Element heapConfig) {
-    final long maxOnHeapEntryCount = Long.parseLong(heapConfig.getAttribute("size"));
-    return new HeapResourceCacheConfiguration(maxOnHeapEntryCount);
+  public ServiceConfiguration<Jsr107Service> parse(final Element fragment) {
+    final String defaultTemplate = fragment.getAttribute("default-template");
+    final HashMap<String, String> templates = new HashMap<String, String>();
+    final NodeList childNodes = fragment.getChildNodes();
+    for(int i = 0; i < childNodes.getLength(); i++) {
+      final Element item = (Element)childNodes.item(i);
+      templates.put(item.getAttribute("name"), item.getAttribute("template"));
+    }
+
+    return new Jsr107Configuration(defaultTemplate, templates);
   }
 }

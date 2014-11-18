@@ -16,18 +16,15 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.Cache;
+import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.StoreConfigurationImpl;
-import org.ehcache.eviction.EvictionPrioritizer;
 import org.ehcache.expiry.Expirations;
-import org.ehcache.function.Predicate;
 import org.ehcache.internal.HeapResourceCacheConfiguration;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
-
-import java.util.Comparator;
 
 /**
  * Test the {@link org.ehcache.internal.store.OnHeapStore} compliance to the
@@ -66,9 +63,7 @@ public class OnHeapStoreSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
-      public Store.Configuration<String, String> newConfiguration(
-          final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
-          final Predicate<Cache.Entry<String, String>> evictionVeto, final Comparator<Cache.Entry<String, String>> evictionPrioritizer) {
+      public Store.Configuration<String, String> newConfiguration(final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint, final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
             evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration());
       }

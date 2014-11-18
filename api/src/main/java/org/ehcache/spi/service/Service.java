@@ -21,7 +21,7 @@ package org.ehcache.spi.service;
  */
 public interface Service {
 
-  void start();
+  void start(ServiceConfiguration<?> config);
 
   void stop();
 }

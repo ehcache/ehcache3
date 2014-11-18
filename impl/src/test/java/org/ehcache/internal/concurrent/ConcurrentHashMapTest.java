@@ -17,6 +17,7 @@
 package org.ehcache.internal.concurrent;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import org.ehcache.function.Predicate;
@@ -38,21 +39,36 @@ public class ConcurrentHashMapTest {
     @Test
     public void testRandomSampleOnEmptyMap() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
-        assertThat(map.getRandomValues(new Random(), 1, Predicates.none()), empty());
+        assertThat(map.getRandomValues(new Random(), 1, new Predicate<Entry<String, String>>() {
+            @Override
+            public boolean test(final Entry<String, String> argument) {
+                return Predicates.none().test(argument);
+            }
+        }), empty());
     }
     
     @Test
     public void testEmptyRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
         map.put("foo", "bar");
-        assertThat(map.getRandomValues(new Random(), 0, Predicates.none()), empty());
+        assertThat(map.getRandomValues(new Random(), 0, new Predicate<Entry<String, String>>() {
+            @Override
+            public boolean test(final Entry<String, String> argument) {
+                return Predicates.none().test(argument);
+            }
+        }), empty());
     }
     
     @Test
     public void testOversizedRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
         map.put("foo", "bar");
-        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 2, Predicates.none());
+        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 2, new Predicate<Entry<String, String>>() {
+            @Override
+            public boolean test(final Entry<String, String> argument) {
+                return Predicates.none().test(argument);
+            }
+        });
         assertThat(sample, hasSize(1));
         Entry<String, String> e = sample.iterator().next();
         assertThat(e.getKey(), is("foo"));
@@ -65,7 +81,12 @@ public class ConcurrentHashMapTest {
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 2, Predicates.none());
+        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 2, new Predicate<Entry<String, String>>() {
+            @Override
+            public boolean test(final Entry<String, String> argument) {
+                return Predicates.none().test(argument);
+            }
+        });
         assertThat(sample, hasSize(greaterThanOrEqualTo(2)));
     }
     
@@ -75,7 +96,12 @@ public class ConcurrentHashMapTest {
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 2, Predicates.all());
+        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 2, new Predicate<Entry<String, String>>() {
+            @Override
+            public boolean test(final Entry<String, String> argument) {
+                return Predicates.all().test(argument);
+            }
+        });
         assertThat(sample, empty());
     }
     
