@@ -392,7 +392,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         if (computedValue != null) {
           checkValue(computedValue);
         }
-        return nullSafeNewValueHolder(key, remappingFunction.apply(key, mappedValue.value()), now);
+        return nullSafeNewValueHolder(key, computedValue, now);
       }
     });
   }
@@ -418,7 +418,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
             checkValue(value);
           }
           
-          return nullSafeNewValueHolder(next.getKey(), next.getValue(), timeSource.getTimeMillis());
+          return nullSafeNewValueHolder(key, value, timeSource.getTimeMillis());
         }
       });
       result.put(key, newValue);
