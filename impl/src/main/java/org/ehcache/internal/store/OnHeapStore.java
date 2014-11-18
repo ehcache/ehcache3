@@ -19,6 +19,8 @@ package org.ehcache.internal.store;
 import org.ehcache.Cache;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.events.CacheEvents;
+import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
@@ -70,6 +72,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   private final Comparator<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionPrioritizer;
   private final Expiry<? super K, ? super V> expiry;
   private final TimeSource timeSource;
+  private volatile StoreEventListener<K, V> eventListener; 
   
   private final OperationObserver<EvictionOutcome> evictionObserver = operation(EvictionOutcome.class).named("eviction").of(this).tag("onheap-store").build();
  
@@ -110,6 +113,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         final long now = timeSource.getTimeMillis();
 
         if (mappedValue.isExpired(now)) {
+          eventListener.onExpiration(wrap(mappedKey, mappedValue));
           return null;
         }
 
@@ -156,6 +160,9 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
         if (mappedValue == null || mappedValue.isExpired(now)) {
+          if (mappedValue != null) {
+            eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          }
           return newValueHolder(key, value, now);
         }
 
@@ -181,6 +188,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         final long now = timeSource.getTimeMillis();
         
         if (mappedValue.isExpired(now)) {
+          eventListener.onExpiration(wrap(mappedKey, mappedValue));
           return null;
         } else if (value.equals(mappedValue.value())) {
           removed.set(true);
@@ -207,6 +215,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         final long now = timeSource.getTimeMillis();
         
         if (mappedValue.isExpired(now)) {
+          eventListener.onExpiration(wrap(mappedKey, mappedValue));
           return null;
         } else {
           returnValue.set(mappedValue);
@@ -232,6 +241,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         final long now = timeSource.getTimeMillis();
         
         if (mappedValue.isExpired(now)) {
+          eventListener.onExpiration(wrap(mappedKey, mappedValue));
           return null;
         } else if (oldValue.equals(mappedValue.value())) {
           returnValue.set(true);
@@ -292,6 +302,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
           final long now = timeSource.getTimeMillis();
           if (entry.getValue().isExpired(now)) {
             it.remove();
+            eventListener.onExpiration(wrap(entry));
             continue;
           }
           
@@ -352,8 +363,9 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     final long now = timeSource.getTimeMillis();
     OnHeapValueHolder<V> computeResult = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
-      public OnHeapValueHolder<V> apply(final K mappedKey, OnHeapValueHolder<V> mappedValue) {
+      public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
         if (mappedValue != null && mappedValue.isExpired(now)) {
+          eventListener.onExpiration(wrap(mappedKey, mappedValue));
           mappedValue = null;
         }
 
@@ -377,6 +389,9 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
         if (mappedValue == null || mappedValue.isExpired(now)) {
+          if (mappedValue != null) {
+            eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          }
           V computedValue = mappingFunction.apply(mappedKey);
           if (computedValue != null) {
             checkValue(computedValue);
@@ -408,6 +423,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         final long now = timeSource.getTimeMillis();
         
         if (mappedValue.isExpired(now)) {
+          eventListener.onExpiration(wrap(mappedKey, mappedValue));
           return null;
         }
         
@@ -478,6 +494,14 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     return result;
   }
 
+  public void enableStoreEventNotifications(StoreEventListener<K, V> listener) {
+    this.eventListener = listener;
+  }
+  
+  public void disableStoreEventNotifications() {
+    this.eventListener = CacheEvents.nullStoreEventListener();
+  }
+  
   private void setAccessTimeAndExpiry(K key, OnHeapValueHolder<V> valueHolder, long now) {
     valueHolder.setAccessTimeMillis(now);
 
@@ -550,8 +574,8 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     } else {
       Map.Entry<K, OnHeapValueHolder<V>> evict = Collections.max(values, (Comparator<? super Map.Entry<K, OnHeapValueHolder<V>>>)evictionPrioritizer);
       if (map.remove(evict.getKey(), evict.getValue())) {
-        //Eventually we'll need to fire a listener here.
         evictionObserver.end(EvictionOutcome.SUCCESS);
+        eventListener.onEviction(wrap(evict));
         return true;
       } else {
         evictionObserver.end(EvictionOutcome.FAILURE);
@@ -660,5 +684,25 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         return value.getValue().hitRate(unit);
       }
     };
-  }  
+  }
+  
+  private static <K, V> Cache.Entry<K, V> wrap(final K key, final OnHeapValueHolder<V> mappedValue) {
+    return wrap(new Map.Entry<K, OnHeapValueHolder<V>>() {
+      @Override
+      public K getKey() {
+        return key;
+      }
+
+      @Override
+      public OnHeapValueHolder<V> getValue() {
+        return mappedValue;
+      }
+
+      @Override
+      public OnHeapValueHolder<V> setValue(OnHeapValueHolder<V> value) {
+        throw new UnsupportedOperationException();
+      }
+      
+    });
+  }
 }

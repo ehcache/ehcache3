@@ -26,7 +26,9 @@ import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.events.CacheEventNotificationService;
+import org.ehcache.events.CacheEvents;
 import org.ehcache.events.StateChangeListener;
+import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.*;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -55,7 +57,6 @@ import org.terracotta.context.annotations.ContextChild;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -91,6 +92,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   private final ResilienceStrategy<K, V> resilienceStrategy;
   private final RuntimeConfiguration<K, V> runtimeConfiguration;
   private final CacheEventNotificationService<K, V> eventNotificationService;
+  private final StoreEventListener<K, V> storeListener;
 
   private final OperationObserver<GetOutcome> getObserver = operation(GetOutcome.class).named("get").of(this).tag("cache").build();
   private final OperationObserver<PutOutcome> putObserver = operation(PutOutcome.class).named("put").of(this).tag("cache").build();
@@ -136,6 +138,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     
     this.eventNotificationService = eventNotifier;
     this.runtimeConfiguration = new RuntimeConfiguration<K, V>(config, eventNotificationService);
+    this.storeListener = new StoreListener();
   }
 
   @Override
@@ -764,6 +767,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     final StatusTransitioner.Transition st = statusTransitioner.init();
     try {
       store.init();
+      store.enableStoreEventNotifications(storeListener);
     } catch (RuntimeException e) {
       st.failed();
       throw new StateTransitionException(e);
@@ -775,6 +779,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   public void close() {
     final StatusTransitioner.Transition st = statusTransitioner.close();
     try {
+      store.disableStoreEventNotifications();
       store.close();
     } catch (RuntimeException e) {
       st.failed();
@@ -1140,5 +1145,18 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         }
       }
     };
+  }
+  
+  private final class StoreListener implements StoreEventListener<K, V> {
+
+    @Override
+    public void onEviction(Cache.Entry<K, V> entry) {
+      eventNotificationService.onEvent(CacheEvents.eviction(entry, Ehcache.this));
+    }
+
+    @Override
+    public void onExpiration(Cache.Entry<K, V> entry) {
+      eventNotificationService.onEvent(CacheEvents.expiry(entry, Ehcache.this));
+    }
   }
 }
