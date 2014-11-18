@@ -324,6 +324,8 @@ public abstract class EhcacheBasicCrudBase {
           final MockValueHolder newValueHolder = new MockValueHolder(newValue);
           this.entries.put(key, newValueHolder);
           return newValueHolder;
+        } else {
+          this.entries.remove(key);
         }
       }
       return null;
