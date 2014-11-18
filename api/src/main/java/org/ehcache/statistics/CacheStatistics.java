@@ -33,16 +33,8 @@ public interface CacheStatistics {
   /**
    * The number of get requests that were satisfied by the cache.
    * <p>
-   * {@link javax.cache.Cache#containsKey(Object)} is not a get request for
+   * {@link org.ehcache.Cache#containsKey(K key)} is not a get request for
    * statistics purposes.
-   * <p>
-   * In a caches with multiple tiered storage, a hit may be implemented as a hit
-   * to the cache or to the first tier.
-   * <p>
-   * For an {@link javax.cache.processor.EntryProcessor}, a hit occurs when the
-   * key exists and an entry processor can be invoked against it, even if no
-   * methods of {@link javax.cache.Cache.Entry} or
-   * {@link javax.cache.processor.MutableEntry} are called.
    *
    * @return the number of hits
    */
@@ -63,21 +55,8 @@ public interface CacheStatistics {
    * <p>
    * In a simple cache a miss occurs when the cache does not satisfy the request.
    * <p>
-   * {@link javax.cache.Cache#containsKey(Object)} is not a get request for
+   * {@link org.ehcache.Cache#containsKey(Key k)} is not a get request for
    * statistics purposes.
-   * <p>
-   * For an {@link javax.cache.processor.EntryProcessor}, a miss occurs when the
-   * key does not exist and therefore an entry processor cannot be invoked
-   * against it.
-   * <p>
-   * In a caches with multiple tiered storage, a miss may be implemented as a miss
-   * to the cache or to the first tier.
-   * <p>
-   * In a read-through cache a miss is an absence of the key in the cache that
-   * will trigger a call to a CacheLoader. So it is still a miss even though the
-   * cache will load and return the value.
-   * <p>
-   * Refer to the implementation for precise semantics.
    *
    * @return the number of misses
    */
@@ -101,8 +80,6 @@ public interface CacheStatistics {
    * A "get" is an operation that returns the current or previous value. It does
    * not include checking for the existence of a key.
    * <p>
-   * In a caches with multiple tiered storage, a gets may be implemented as a get
-   * to the cache or to the first tier.
    *
    * @return the number of gets
    */
