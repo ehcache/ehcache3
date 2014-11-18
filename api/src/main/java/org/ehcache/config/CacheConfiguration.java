@@ -17,16 +17,12 @@
 package org.ehcache.config;
 
 import org.ehcache.Cache;
-import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.EventFiring;
-import org.ehcache.event.EventOrdering;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.Predicate;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Set;
 
 /**
  * Represents the minimal read-only configuration for a Cache to be, or an already existing one
@@ -79,13 +75,6 @@ public interface CacheConfiguration<K, V> {
    */
   Comparator<Cache.Entry<K, V>> getEvictionPrioritizer();
 
-  /**
-   * Returns a immutable Set of {@link org.ehcache.event.CacheEventListener} currently registered
-   *
-   * @return the Set of listeners, empty if none
-   */
-  Set<CacheEventListener<?, ?>> getEventListeners();
-    
   /**
    * The Classloader for this cache. This classloader will be used to instantiate cache level services as well
    * as deserializing cache entries when required

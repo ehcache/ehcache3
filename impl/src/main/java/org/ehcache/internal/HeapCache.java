@@ -75,11 +75,6 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
       }
 
       @Override
-      public Set<CacheEventListener<?, ?>> getEventListeners() {
-        throw new UnsupportedOperationException("Implement me!");
-      }
-
-      @Override
       public ClassLoader getClassLoader() {
         throw new UnsupportedOperationException("Implement me!");
       }
