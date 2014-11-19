@@ -24,10 +24,8 @@ import org.mockito.Mock;
 
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -39,7 +37,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /**
- * Provides testing of basic REMOVE operations on an {@code Ehcache}.
+ * Provides testing of basic REMOVE(key) operations on an {@code Ehcache}.
  *
  * @author Clifford W. Johnson
  */
@@ -123,7 +121,10 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verify(this.store, never()).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    assertThat(realCache.getEntries().containsKey("key"), is(false));
+    // The current Ehcache.remove(key) implementation, the remapping function (and thus
+    // CacheWriter.delete) is not called (due to the use of Store.computeIfPresent) --
+    // the Store-of-Record (access via CacheWriter) is left untouched.
+    assertThat(realCache.getEntries().get("key"), is(equalTo("oldValue")));   // TODO: Confirm correctness
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.SUCCESS));
   }
 
@@ -131,7 +132,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>{@code CacheLoader.write} throws</li>
+   *   <li>{@code CacheWriter.delete} throws</li>
    * </ul>
    */
   @Test
@@ -144,24 +145,22 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
     doThrow(new Exception()).when(this.cacheWriter).delete("key");
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
-    try {
-      ehcache.remove("key");
-      fail();
-    } catch (CacheWriterException e) {
-      // Expected
-    }
+    ehcache.remove("key");
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
-    verify(this.store, times(1)).remove("key");
+    verify(this.store, never()).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    // Ehcache.remove does not indicate FAILURE
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    // The current Ehcache.remove(key) implementation, the remapping function (and thus
+    // CacheWriter.delete) is not called (due to the use of Store.computeIfPresent) --
+    // the Store-of-Record (access via CacheWriter) is left untouched.
+    assertThat(realCache.getEntries().get("key"), is(equalTo("oldValue")));   // TODO: Confirm correctness
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.SUCCESS));
   }
 
   /**
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>{@code Store.compute} throws</li>
+   *   <li>{@code Store.computeIfPresent} throws</li>
    *   <li>no {@code CacheWriter}</li>
    * </ul>
    */
@@ -185,7 +184,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>{@code Store.compute} throws</li>
+   *   <li>{@code Store.computeIfPresent} throws</li>
    *   <li>key not present via {@code CacheWriter}</li>
    * </ul>
    */
@@ -211,7 +210,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>{@code Store.compute} throws</li>
+   *   <li>{@code Store.computeIfPresent} throws</li>
    *   <li>key present via {@code CacheWriter}</li>
    * </ul>
    */
@@ -237,8 +236,8 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>{@code Store.compute} throws</li>
-   *   <li>{@code CacheLoader.write} throws</li>
+   *   <li>{@code Store.computeIfPresent} throws</li>
+   *   <li>{@code CacheWriter.delete} throws</li>
    * </ul>
    */
   @Test
@@ -336,7 +335,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
-   *   <li>{@code CacheLoader.write} throws</li>
+   *   <li>{@code CacheWriter.delete} throws</li>
    * </ul>
    */
   @Test
@@ -366,7 +365,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
-   *   <li>{@code Store.compute} throws</li>
+   *   <li>{@code Store.computeIfPresent} throws</li>
    *   <li>no {@code CacheWriter}</li>
    * </ul>
    */
@@ -390,7 +389,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
-   *   <li>{@code Store.compute} throws</li>
+   *   <li>{@code Store.computeIfPresent} throws</li>
    *   <li>key not present via {@code CacheWriter}</li>
    * </ul>
    */
@@ -416,7 +415,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
-   *   <li>{@code Store.compute} throws</li>
+   *   <li>{@code Store.computeIfPresent} throws</li>
    *   <li>key present via {@code CacheWriter}</li>
    * </ul>
    */
@@ -442,8 +441,8 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
-   *   <li>{@code Store.compute} throws</li>
-   *   <li>{@code CacheLoader.write} throws</li>
+   *   <li>{@code Store.computeIfPresent} throws</li>
+   *   <li>{@code CacheWriter.delete} throws</li>
    * </ul>
    */
   @Test
@@ -484,72 +483,5 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     return ehcache;
-  }
-
-  /**
-   * Provides a basic {@link org.ehcache.spi.writer.CacheWriter} implementation for
-   * testing.  The contract implemented by this {@code CacheWriter} may not be strictly
-   * conformant but should be sufficient for {@code Ehcache} implementation testing.
-   */
-  private static class MockCacheWriter implements CacheWriter<String, String> {
-
-    private final Map<String, String> cache = new HashMap<String, String>();
-
-    public MockCacheWriter(final Map<String, String> entries) {
-      if (entries != null) {
-        this.cache.putAll(entries);
-      }
-    }
-
-    private Map<String, String> getEntries() {
-      return Collections.unmodifiableMap(this.cache);
-    }
-
-    @Override
-    public void write(final String key, final String value) throws Exception {
-      this.cache.put(key, value);
-    }
-
-    @Override
-    public boolean write(final String key, final String oldValue, final String newValue) throws Exception {
-      final String existingValue = this.cache.get(key);
-      boolean modified = false;
-      if (oldValue == null) {
-        if (existingValue == null) {
-          this.cache.put(key, newValue);
-          modified = true;
-        }
-      } else if (oldValue.equals(existingValue)) {
-        this.cache.put(key, newValue);
-        modified = true;
-      }
-      return modified;
-    }
-
-    @Override
-    public Set<String> writeAll(final Iterable<? extends Map.Entry<? extends String, ? extends String>> entries)
-        throws Exception {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean delete(final String key) throws Exception {
-      return (null == this.cache.remove(key));
-    }
-
-    @Override
-    public boolean delete(final String key, final String value) throws Exception {
-      final String existingValue = this.cache.get(key);
-      boolean modified = false;
-      if (value.equals(existingValue)) {
-        modified = (null != this.cache.remove(key));
-      }
-      return modified;
-    }
-
-    @Override
-    public Set<String> deleteAll(final Iterable<? extends String> keys) throws Exception {
-      throw new UnsupportedOperationException();
-    }
   }
 }

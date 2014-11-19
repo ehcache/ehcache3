@@ -21,6 +21,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.writer.CacheWriter;
 import org.hamcrest.Description;
 import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
@@ -39,6 +40,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
@@ -415,6 +417,73 @@ public abstract class EhcacheBasicCrudBase {
     @Factory
     public static Matcher<Number> equalTo(final Number expected) {
       return new StatisticMatcher(Number.class, expected);
+    }
+  }
+
+  /**
+   * Provides a basic {@link org.ehcache.spi.writer.CacheWriter} implementation for
+   * testing.  The contract implemented by this {@code CacheWriter} may not be strictly
+   * conformant but should be sufficient for {@code Ehcache} implementation testing.
+   */
+  protected static class MockCacheWriter implements CacheWriter<String, String> {
+
+    private final Map<String, String> cache = new HashMap<String, String>();
+
+    public MockCacheWriter(final Map<String, String> entries) {
+      if (entries != null) {
+        this.cache.putAll(entries);
+      }
+    }
+
+    Map<String, String> getEntries() {
+      return Collections.unmodifiableMap(this.cache);
+    }
+
+    @Override
+    public void write(final String key, final String value) throws Exception {
+      this.cache.put(key, value);
+    }
+
+    @Override
+    public boolean write(final String key, final String oldValue, final String newValue) throws Exception {
+      final String existingValue = this.cache.get(key);
+      boolean modified = false;
+      if (oldValue == null) {
+        if (existingValue == null) {
+          this.cache.put(key, newValue);
+          modified = true;
+        }
+      } else if (oldValue.equals(existingValue)) {
+        this.cache.put(key, newValue);
+        modified = true;
+      }
+      return modified;
+    }
+
+    @Override
+    public Set<String> writeAll(final Iterable<? extends Map.Entry<? extends String, ? extends String>> entries)
+        throws Exception {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean delete(final String key) throws Exception {
+      return (null == this.cache.remove(key));
+    }
+
+    @Override
+    public boolean delete(final String key, final String value) throws Exception {
+      final String existingValue = this.cache.get(key);
+      boolean modified = false;
+      if (value.equals(existingValue)) {
+        modified = (null != this.cache.remove(key));
+      }
+      return modified;
+    }
+
+    @Override
+    public Set<String> deleteAll(final Iterable<? extends String> keys) throws Exception {
+      throw new UnsupportedOperationException();
     }
   }
 }
