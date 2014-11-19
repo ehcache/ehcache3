@@ -77,5 +77,23 @@ public interface CacheOperationOutcomes {
     SUCCESS,
     /** failure */
     FAILURE
+  };
+  
+  /**
+   * The putIfAbsent outcomes.
+   */
+  enum PutIfAbsentOutcome {
+    PUT,
+    HIT,
+    FAILURE
+  };
+  
+  /**
+   * The replace outcomes.
+   */
+  enum ReplaceOutcome {
+    HIT,
+    MISS,
+    FAILURE
   };  
 }

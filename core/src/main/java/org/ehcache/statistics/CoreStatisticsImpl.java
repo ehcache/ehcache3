@@ -20,6 +20,8 @@ import java.util.Arrays;
 import java.util.EnumSet;
 
 import org.ehcache.statistics.CacheOperationOutcomes.EvictionOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.ehcache.statistics.extended.ExtendedStatistics;
 import org.ehcache.statistics.extended.ExtendedStatistics.Latency;
 import org.ehcache.statistics.extended.ExtendedStatistics.Operation;
@@ -35,6 +37,8 @@ public class CoreStatisticsImpl implements CoreStatistics {
   private final CountOperation     cachePut;
   private final CountOperation     cacheRemove;
   private final CountOperation     evicted;
+  private final CountOperation     cachePutIfAbsent;
+  private final CountOperation     cacheReplace;
   private final ExtendedStatistics extended;
 
   /**
@@ -49,6 +53,8 @@ public class CoreStatisticsImpl implements CoreStatistics {
     this.cachePut = asCountOperation(extended.put());
     this.cacheRemove = asCountOperation(extended.remove());
     this.evicted = asCountOperation(extended.eviction());
+    this.cachePutIfAbsent = asCountOperation(extended.putIfAbsent());
+    this.cacheReplace = asCountOperation(extended.replace());
   }
 
   @SuppressWarnings("rawtypes")
@@ -90,6 +96,18 @@ public class CoreStatisticsImpl implements CoreStatistics {
   public CountOperation<EvictionOutcome> cacheEviction() {
     return evicted;
   }
+  
+  @SuppressWarnings("unchecked")
+  @Override
+  public CountOperation<PutIfAbsentOutcome> putIfAbsent() {
+    return cachePutIfAbsent;
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Override
+  public CountOperation<ReplaceOutcome> replace() {
+    return cacheReplace;
+  }    
   
   @Override
   public Latency allGetLatency() {

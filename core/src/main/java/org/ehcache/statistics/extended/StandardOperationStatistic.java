@@ -45,6 +45,12 @@ enum StandardOperationStatistic {
 
     /** The cache remove. */
     CACHE_REMOVE(true, cache(), CacheOperationOutcomes.RemoveOutcome.class, "remove", "cache"),
+    
+    /** The cache putIfAbsent. */
+    CACHE_PUT_IF_ABSENT(true, cache(), CacheOperationOutcomes.PutIfAbsentOutcome.class, "putIfAbsent", "cache"),
+    
+    /** The cache replace. */
+    CACHE_REPLACE(true, cache(), CacheOperationOutcomes.ReplaceOutcome.class, "replace", "cache"),      
 
     /** The evicted. */
     EVICTION(false, cache().add(children().exclude(Ehcache.class).add(descendants())), CacheOperationOutcomes.EvictionOutcome.class, "eviction");

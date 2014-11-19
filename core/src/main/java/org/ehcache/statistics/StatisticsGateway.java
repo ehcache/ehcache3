@@ -67,13 +67,15 @@ public class StatisticsGateway implements CacheStatistics {
 
   @Override
   public void clear() {
-    // TODO: waiting team's decision
+    // TODO: implement base line in jsr107 wrapper
   }
 
   @Override
   public long getCacheHits() {
     return core.get().value(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER)
-        + core.get().value(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER);
+        + core.get().value(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER)
+        + core.putIfAbsent().value(CacheOperationOutcomes.PutIfAbsentOutcome.HIT)
+        + core.replace().value(CacheOperationOutcomes.ReplaceOutcome.HIT);
   }
 
   @Override
@@ -84,7 +86,9 @@ public class StatisticsGateway implements CacheStatistics {
   @Override
   public long getCacheMisses() {
     return core.get().value(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER)
-        + core.get().value(CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER);
+        + core.get().value(CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER)
+        + core.putIfAbsent().value(CacheOperationOutcomes.PutIfAbsentOutcome.PUT)
+        + core.replace().value(CacheOperationOutcomes.ReplaceOutcome.MISS);
   }
 
   @Override
@@ -99,7 +103,9 @@ public class StatisticsGateway implements CacheStatistics {
 
   @Override
   public long getCachePuts() {
-    return core.put().value(CacheOperationOutcomes.PutOutcome.ADDED);
+    return core.put().value(CacheOperationOutcomes.PutOutcome.ADDED) +
+        + core.putIfAbsent().value(CacheOperationOutcomes.PutIfAbsentOutcome.PUT)
+        + core.replace().value(CacheOperationOutcomes.ReplaceOutcome.HIT);
   }
 
   @Override

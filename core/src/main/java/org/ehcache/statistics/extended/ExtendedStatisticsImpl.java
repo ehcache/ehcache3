@@ -25,7 +25,6 @@ import static org.terracotta.context.query.Matchers.subclassOf;
 import static org.terracotta.context.query.QueryBuilder.queryBuilder;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -42,7 +41,9 @@ import org.ehcache.statistics.CacheOperationOutcomes;
 import org.ehcache.statistics.CacheOperationOutcomes.EvictionOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.PutOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.RemoveOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.ehcache.statistics.StatisticsGateway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -245,6 +246,18 @@ public class ExtendedStatisticsImpl implements ExtendedStatistics {
   public Operation<PutOutcome> put() {
     return (Operation<PutOutcome>) getStandardOperation(StandardOperationStatistic.CACHE_PUT);
   }
+  
+  @SuppressWarnings("unchecked")
+  @Override
+  public Operation<PutIfAbsentOutcome> putIfAbsent() {
+    return (Operation<PutIfAbsentOutcome>) getStandardOperation(StandardOperationStatistic.CACHE_PUT_IF_ABSENT);
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Override
+  public Operation<ReplaceOutcome> replace() {
+    return (Operation<ReplaceOutcome>) getStandardOperation(StandardOperationStatistic.CACHE_REPLACE);
+  }    
 
   @SuppressWarnings("unchecked")
   @Override

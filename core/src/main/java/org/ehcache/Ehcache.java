@@ -36,7 +36,9 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriter;
 import org.ehcache.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.PutOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.RemoveOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.ehcache.statistics.CacheStatistics;
 import org.terracotta.statistics.observer.OperationObserver;
 import org.ehcache.statistics.CacheOperationOutcomes.CacheLoaderOutcome;
@@ -84,6 +86,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   private final OperationObserver<PutOutcome> putObserver = operation(PutOutcome.class).named("put").of(this).tag("cache").build();
   private final OperationObserver<RemoveOutcome> removeObserver = operation(RemoveOutcome.class).named("remove").of(this).tag("cache").build();
   private final OperationObserver<CacheLoaderOutcome> cacheLoaderObserver = operation(CacheLoaderOutcome.class).named("cacheLoader").of(this).tag("cache").build();
+  private final OperationObserver<PutIfAbsentOutcome> putIfAbsentObserver = operation(PutIfAbsentOutcome.class).named("putIfAbsent").of(this).tag("cache").build();
+  private final OperationObserver<ReplaceOutcome> replaceObserver = operation(ReplaceOutcome.class).named("replace").of(this).tag("cache").build();  
   private final ConcurrentMap<String, AtomicLong> bulkMethodEntries = new ConcurrentHashMap<String, AtomicLong>();
   
   private final StatisticsGateway statisticsGateway;
@@ -124,7 +128,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   @Override
   public V get(final K key) throws CacheLoaderException {
     getObserver.begin();
-    cacheLoaderObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key);
     final Function<K, V> mappingFunction = memoize(
@@ -134,13 +137,16 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
             V loaded = null;
             try {
               if (cacheLoader != null) {
+                cacheLoaderObserver.begin();
                 loaded = cacheLoader.load(k);
                 cacheLoaderObserver.end(CacheLoaderOutcome.SUCCESS);
+                getObserver.end(loaded != null ? GetOutcome.HIT_WITH_LOADER : GetOutcome.MISS_WITH_LOADER);
               }
             } catch (Exception e) {
               cacheLoaderObserver.end(CacheLoaderOutcome.FAILURE);
               throw newCacheLoaderException(e);
             }
+            
             return loaded;
           }
         });
@@ -150,10 +156,14 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       
       // Check for expiry first
       if (valueHolder == null) {
-        getObserver.end(cacheLoader == null ? GetOutcome.MISS_NO_LOADER : GetOutcome.MISS_WITH_LOADER);
+        if (cacheLoader == null) {
+          getObserver.end(GetOutcome.MISS_NO_LOADER);
+        }
         return null;
       } else {
-        getObserver.end(cacheLoader == null ? GetOutcome.HIT_NO_LOADER : GetOutcome.HIT_WITH_LOADER);
+        if (cacheLoader == null) {
+          getObserver.end(GetOutcome.HIT_NO_LOADER);
+        }
         return valueHolder.value();
       }
     } catch (CacheAccessException e) {
@@ -485,8 +495,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public V putIfAbsent(final K key, final V value) throws CacheWriterException {
-    putObserver.begin();
-    getObserver.begin();
+    putIfAbsentObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key, value);
     final AtomicBoolean installed = new AtomicBoolean(false);
@@ -517,7 +526,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     } catch (CacheAccessException e) {
       V computedValue = null;
-      putObserver.end(PutOutcome.FAILURE);
+      putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
       try {
         computedValue = mappingFunction.apply(key);
         if (cacheWriter != null) {
@@ -537,10 +546,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       return installed.get() ? null : computedValue;
     } finally {
       if (installed.get()) {
-        putObserver.end(PutOutcome.ADDED);
-        getObserver.end(GetOutcome.MISS_NO_LOADER);
+        putIfAbsentObserver.end(PutIfAbsentOutcome.PUT);
       } else {
-        getObserver.end(GetOutcome.HIT_NO_LOADER);
+        putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
       }
     }
   }
@@ -606,8 +614,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public V replace(final K key, final V value) throws CacheLoaderException, CacheWriterException {
-    putObserver.begin();
-    getObserver.begin();
+    replaceObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key, value);
     final AtomicReference<V> old = new AtomicReference<V>();
@@ -630,33 +637,29 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     try {
       store.computeIfPresent(key, remappingFunction);
     } catch (CacheAccessException e) {
-      putObserver.end(PutOutcome.FAILURE);
-      getObserver.end(GetOutcome.FAILURE);
+      replaceObserver.end(ReplaceOutcome.FAILURE);
       try {
         remappingFunction.apply(key, null);
       } finally {
         removeKeysWithStrategy(Collections.singleton(key), e);
       }
     } catch (CacheWriterException e) {
-      putObserver.end(PutOutcome.FAILURE);
-      getObserver.end(GetOutcome.FAILURE);
+      replaceObserver.end(ReplaceOutcome.FAILURE);
       removeKeysWithStrategy(Collections.singleton(key), e);
       throw e;
     }
     
     if (old.get() != null) {
-      getObserver.end(GetOutcome.HIT_NO_LOADER);
-      putObserver.end(PutOutcome.ADDED);
+      replaceObserver.end(ReplaceOutcome.HIT);
     } else {
-      getObserver.end(GetOutcome.MISS_NO_LOADER);
+      replaceObserver.end(ReplaceOutcome.MISS);
     }
     return old.get();
   }
 
   @Override
   public boolean replace(final K key, final V oldValue, final V newValue) throws CacheLoaderException, CacheWriterException {
-    putObserver.begin();
-    getObserver.begin();
+    replaceObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key, oldValue, newValue);
 
@@ -698,22 +701,21 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     try {
       store.compute(key, remappingFunction);
     } catch (CacheAccessException e) {
-      putObserver.end(PutOutcome.FAILURE);
+      replaceObserver.end(ReplaceOutcome.FAILURE);
       try {
         remappingFunction.apply(key, null);
       } finally {
         removeKeysWithStrategy(Collections.singleton(key), e);
       }
     } catch (CacheWriterException e) {
-      putObserver.end(PutOutcome.FAILURE);
+      replaceObserver.end(ReplaceOutcome.FAILURE);
       removeKeysWithStrategy(Collections.singleton(key), e);
       throw e;
     }
     if (success.get()) {
-      getObserver.end(GetOutcome.HIT_NO_LOADER);
-      putObserver.end(PutOutcome.ADDED);
+      replaceObserver.end(ReplaceOutcome.HIT);
     } else {
-      getObserver.end(GetOutcome.MISS_NO_LOADER);
+      replaceObserver.end(ReplaceOutcome.MISS);
     }
     return success.get();
 

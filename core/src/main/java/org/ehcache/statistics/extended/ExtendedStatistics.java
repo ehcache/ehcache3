@@ -98,6 +98,20 @@ public interface ExtendedStatistics {
      * @return the operation
      */
     Operation<CacheOperationOutcomes.EvictionOutcome> eviction();
+    
+    /**
+     * PutIfAbsent
+     *
+     * @return the operation
+     */
+    Operation<CacheOperationOutcomes.PutIfAbsentOutcome> putIfAbsent();
+    
+    /**
+     * Replace
+     *
+     * @return the operation
+     */
+    Operation<CacheOperationOutcomes.ReplaceOutcome> replace();    
 
     /**
      * All get.

@@ -72,6 +72,20 @@ public interface CoreStatistics {
    * @return the count operation
    */
   public CountOperation<CacheOperationOutcomes.RemoveOutcome> remove();
+  
+  /**
+   * putIfAbsent operation.
+   *
+   * @return the count operation
+   */
+  public CountOperation<CacheOperationOutcomes.PutIfAbsentOutcome> putIfAbsent();
+  
+  /**
+   * replace operation.
+   *
+   * @return the count operation
+   */
+  public CountOperation<CacheOperationOutcomes.ReplaceOutcome> replace();  
 
   /**
    * Eviction operation
