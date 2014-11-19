@@ -96,37 +96,37 @@ public interface CoreStatistics {
   
   /**
    * Latency of ALL get
-   * @return
+   * @return the latency
    */
   public Latency allGetLatency();
   
   /**
    * Latency of put
-   * @return
+   * @return the latency
    */
   public Latency putLatency();
   
   /**
    * Latency of remove
-   * @return
+   * @return the latency
    */
   public Latency removeLatency();
   
   /**
    * Latency of get with cache loader
-   * @return
+   * @return the latency
    */
   public Latency getWithLoaderLatency();
   
   /**
    * Latency of get without cache loader
-   * @return
+   * @return the latency
    */
   public Latency getNoLoaderLatency();
   
   /**
    * Latency of cache loader
-   * @return
+   * @return the latency
    */
   public Latency cacheLoaderLatency();
 }

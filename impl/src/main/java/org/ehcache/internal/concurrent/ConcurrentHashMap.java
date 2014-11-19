@@ -121,8 +121,8 @@ import org.ehcache.internal.concurrent.JSR166Helper.*;
  * same mapping value.
  *
  * <p>A ConcurrentHashMap can be used as a scalable frequency map (a
- * form of histogram or multiset) by using {@link
- * java.util.concurrent.atomic.LongAdder} values and initializing via
+ * form of histogram or multiset) by using
+ * LongAdder values and initializing via
  * {@link #computeIfAbsent computeIfAbsent}. For example, to add a count
  * to a {@code ConcurrentHashMap<String,LongAdder> freqs}, you can use
  * {@code freqs.computeIfAbsent(key, k -> new LongAdder()).increment();}
@@ -135,7 +135,7 @@ import org.ehcache.internal.concurrent.JSR166Helper.*;
  * does <em>not</em> allow {@code null} to be used as a key or value.
  *
  * <p>ConcurrentHashMaps support a set of sequential and parallel bulk
- * operations that, unlike most {@link Stream} methods, are designed
+ * operations that, unlike most Stream methods, are designed
  * to be safely, and often sensibly, applied even with maps that are
  * being concurrently updated by other threads; for example, when
  * computing a snapshot summary of the values in a shared registry.

@@ -47,7 +47,7 @@ public interface CacheLoader<K, V> {
    * Loads the values to be associated with the keys in the {@link org.ehcache.Cache} using this
    * {@link org.ehcache.spi.loader.CacheLoader} instance. The returned {@link java.util.Map} should contain
    * {@code null} mapped keys for values that couldn't be found. Only keys passed in the
-   * {@see org.ehcache.spi.loader.CacheLoader#loadAll(Iterable)} method will be mapped.
+   * @see org.ehcache.spi.loader.CacheLoader#loadAll(Iterable) method will be mapped.
    * Any other mapping will be ignored
    *
    * @param keys the keys that will be mapped to the values returned in the map

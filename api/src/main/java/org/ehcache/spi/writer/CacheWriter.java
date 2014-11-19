@@ -91,7 +91,7 @@ public interface CacheWriter<K, V> {
    * @param value the value expected to be deleted
    * @return {@code true} if a entry was deleted, {@code false} otherwise
    *
-   * @see org.ehcache.Cache#remove(K, V)
+   * @see org.ehcache.Cache#remove(Object, Object)
    */
   boolean delete(K key, V value) throws Exception;
 

@@ -31,9 +31,9 @@ public interface CacheEvent<K, V> {
   EventType getType();
 
   /**
-   * The {@link Cache.Entry} affected by the mutative event
+   * The {@link org.ehcache.Cache.Entry} affected by the mutative event
    *
-   * @return {@link Cache.Entry Entry} affected by the mutative event
+   * @return {@link org.ehcache.Cache.Entry Entry} affected by the mutative event
    */
   Cache.Entry<K, V> getEntry();
 
