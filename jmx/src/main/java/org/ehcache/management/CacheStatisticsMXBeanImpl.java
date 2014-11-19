@@ -26,11 +26,9 @@ import org.ehcache.statistics.CacheStatistics;
  *
  */
 public class CacheStatisticsMXBeanImpl implements CacheStatisticsMXBean {
-  private final Cache<?, ?> cache;
   private final CacheStatistics statistics;
   
   public CacheStatisticsMXBeanImpl(Cache<?, ?> cache) {
-    this.cache = cache;
     this.statistics = cache.getStatistics();
   }
   

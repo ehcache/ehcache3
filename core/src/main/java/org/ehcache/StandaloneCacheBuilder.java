@@ -17,6 +17,7 @@
 package org.ehcache;
 
 import java.util.Comparator;
+import java.util.concurrent.ScheduledExecutorService;
 
 import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
@@ -28,8 +29,10 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.Predicate;
 import org.ehcache.spi.loader.CacheLoader;
+import org.ehcache.spi.service.ExecutorFactoryService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
+import org.ehcache.util.StatisticsThreadPoolUtil;
 import org.ehcache.spi.writer.CacheWriter;
 
 /**
@@ -46,6 +49,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   private Comparator<Cache.Entry<K, V>> evictionPrioritizer;
   private CacheLoader<? super K, ? extends V> cacheLoader;
   private CacheWriter<? super K, ? super V> cacheWriter;
+  private ScheduledExecutorService statisticsExecutor;
 
   public StandaloneCacheBuilder(final Class<K> keyType, final Class<V> valueType) {
     this.keyType = keyType;
@@ -54,6 +58,13 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
 
   T build(ServiceLocator serviceLocator) {
     Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
+    ExecutorFactoryService executorService = serviceLocator.findService(ExecutorFactoryService.class);
+    if (executorService != null && executorService.getStatisticsExecutor() != null) {
+      statisticsExecutor = executorService.getStatisticsExecutor();
+    } else {
+      statisticsExecutor = StatisticsThreadPoolUtil.getDefaultStatisticsExecutorService();
+    }
+    
     final StoreConfigurationImpl<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType,
         capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, expiry);
     final Store<K, V> store = storeProvider.createStore(storeConfig);
@@ -61,7 +72,8 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto,
         evictionPrioritizer, classLoader, expiry, new ServiceConfiguration<?>[]{});
     
-    final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoader, cacheWriter);
+    final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoader, cacheWriter, statisticsExecutor);
+
     return (T) ehcache;
   }
 

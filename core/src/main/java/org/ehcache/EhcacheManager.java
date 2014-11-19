@@ -27,6 +27,7 @@ import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
+import org.ehcache.util.StatisticsThreadPoolUtil;
 import org.ehcache.spi.writer.CacheWriter;
 import org.ehcache.spi.writer.CacheWriterFactory;
 
@@ -36,6 +37,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ScheduledExecutorService;
 
 import org.ehcache.config.StoreConfigurationImpl;
 
@@ -55,6 +57,8 @@ public class EhcacheManager implements PersistentCacheManager {
 
   private final CopyOnWriteArrayList<CacheManagerListener> listeners = new CopyOnWriteArrayList<CacheManagerListener>();
 
+  private final ScheduledExecutorService statisticsExecutor;
+
   public EhcacheManager(Configuration config) {
     this(config, new ServiceLocator());
   }
@@ -63,6 +67,7 @@ public class EhcacheManager implements PersistentCacheManager {
     this.serviceLocator = serviceLocator;
     this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
     this.configuration = config;
+    this.statisticsExecutor = StatisticsThreadPoolUtil.createStatisticsExcutor();
   }
 
   public <K, V> Cache<K, V> getCache(String alias, Class<K> keyType, Class<V> valueType) {
@@ -131,6 +136,7 @@ public class EhcacheManager implements PersistentCacheManager {
     } catch (RuntimeException e) {
       failure = e;
     }
+    
     if(failure == null) {
       try {
         if(!statusTransitioner.isTransitioning()) {
@@ -172,7 +178,7 @@ public class EhcacheManager implements PersistentCacheManager {
         config.getServiceConfigurations().toArray(new ServiceConfiguration<?>[config.getServiceConfigurations().size()])
     );
 
-    return new Ehcache<K, V>(adjustedConfig, store, loader, writer);
+    return new Ehcache<K, V>(adjustedConfig, store, loader, writer, statisticsExecutor);
   }
 
   public void registerListener(CacheManagerListener listener) {
