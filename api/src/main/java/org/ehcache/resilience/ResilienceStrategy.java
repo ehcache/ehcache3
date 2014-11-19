@@ -16,13 +16,63 @@
 
 package org.ehcache.resilience;
 
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import org.ehcache.Cache.Entry;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CacheWriterException;
 
 /**
  * @author Alex Snaps
  */
 public interface ResilienceStrategy<K, V> {
-  void recoveredFrom(final K key, Exception e);
+  
+  V getFailure(K key, CacheAccessException e);
+  
+  V getFailure(K key, V loaded, CacheAccessException e);
+  
+  boolean containsFailure(K key, CacheAccessException e);
+  
+  void putFailure(K key, V value, CacheAccessException e);
 
-  void possiblyInconsistent(K key, CacheAccessException root, Exception... otherExceptions);
+  void putFailure(K key, V value, CacheAccessException e, CacheWriterException f);
+
+  void removeFailure(K key, CacheAccessException e);
+
+  void removeFailure(K key, CacheAccessException e, CacheWriterException f);
+ 
+  void clearFailure(CacheAccessException e);
+
+  Iterator<Entry<K, V>> iteratorFailure(CacheAccessException e);
+  
+  //CASingMethods
+  V putIfAbsentFailure(K key, V value, CacheAccessException e, boolean knownToBeAbsent);
+
+  V putIfAbsentFailure(K key, V value, CacheAccessException e, CacheWriterException f);
+  
+  boolean removeFailure(K key, V value, CacheAccessException e, boolean knownToBePresent);
+
+  boolean removeFailure(K key, V value, CacheAccessException e, CacheWriterException f);
+  
+  V replaceFailure(K key, V value, CacheAccessException e);
+
+  V replaceFailure(K key, V value, CacheAccessException e, CacheWriterException f);
+  
+  boolean replaceFailure(K key, V value, V newValue, CacheAccessException e, boolean knownToMatch);
+
+  boolean replaceFailure(K key, V value, V newValue, CacheAccessException e, CacheWriterException f);
+  
+  //Bulk Methods
+  Map<K, V> getAllFailure(Iterable<? extends K> keys, CacheAccessException e);
+  
+  Map<K, V> getAllFailure(Iterable<? extends K> keys, Map<K, V> loaderSuccesses, Map<K, Exception> loaderFailures, CacheAccessException e);
+  
+  void putAllFailure(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, CacheAccessException e);
+
+  void putAllFailure(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Set<K> writerSuccesses, Map<K, Exception> writerFailures, CacheAccessException e);
+
+  Map<K, V> removeAllFailure(Iterable<? extends K> entries, CacheAccessException e);
+
+  Map<K, V> removeAllFailure(Iterable<? extends K> entries, Set<K> writerSuccesses, Map<K, Exception> writerFailures, CacheAccessException e);
 }

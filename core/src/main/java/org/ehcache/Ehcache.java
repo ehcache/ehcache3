@@ -104,17 +104,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     this.cacheLoader = cacheLoader;
     this.cacheWriter = cacheWriter;
     this.statisticsGateway = new StatisticsGateway(this, statisticsExecutor, bulkMethodEntries);
-    this.resilienceStrategy = new ResilienceStrategy<K, V>() {
-      @Override
-      public void recoveredFrom(final K key, final Exception e) {
-        // ignore
-      }
-
-      @Override
-      public void possiblyInconsistent(final K key, final CacheAccessException root, final Exception... otherExceptions) {
-        // ignore
-      }
-    };
+    this.resilienceStrategy = null;
     
     this.runtimeConfiguration = new RuntimeConfiguration<K, V>(config);
   }
@@ -161,14 +151,15 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         return valueHolder.value();
       }
     } catch (CacheAccessException e) {
-      getObserver.end(GetOutcome.FAILURE);
-      // So we either didn't load, or that's a miss in the SoR as well
-      removeKeysWithStrategy(Collections.singleton(key), e);
-      return mappingFunction.apply(key);
-    } catch (CacheLoaderException e) {
-      getObserver.end(GetOutcome.FAILURE);
-      removeKeysWithStrategy(Collections.singleton(key), e);
-      throw e;
+      try {
+        if (cacheLoader == null) {
+          return resilienceStrategy.getFailure(key, e);
+        } else {
+          return resilienceStrategy.getFailure(key, mappingFunction.apply(key), e);
+        }
+      } finally {
+        getObserver.end(GetOutcome.FAILURE);
+      }
     }
   }
 
@@ -195,18 +186,22 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       store.compute(key, remappingFunction);
       putObserver.end(PutOutcome.ADDED);
     } catch (CacheAccessException e) {
-      putObserver.end(PutOutcome.FAILURE);
       try {
-        remappingFunction.apply(key, value);
+        if (cacheWriter == null) {
+          resilienceStrategy.putFailure(key, value, e);
+        } else {
+          try {
+            remappingFunction.apply(key, value);
+          } catch (CacheWriterException f) {
+            resilienceStrategy.putFailure(key, value, e, f);
+            return;
+          }
+          resilienceStrategy.putFailure(key, value, e);
+        }
       } finally {
-        removeKeysWithStrategy(Collections.singleton(key), e);
+        putObserver.end(PutOutcome.FAILURE);
       }
-    } catch(CacheWriterException e) {
-      putObserver.end(PutOutcome.FAILURE);
-      removeKeysWithStrategy(Collections.singleton(key), e);
-      throw e;
     }
-
   }
 
   @Override
@@ -216,13 +211,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     try {
       return store.containsKey(key);
     } catch (CacheAccessException e) {
-      try {
-        store.remove(key);
-        // fire an event? eviction?
-      } catch (CacheAccessException e1) {
-        // fall back to strategy?
-      }
-      return false;
+      return resilienceStrategy.containsFailure(key, e);
     }
   }
 
@@ -250,16 +239,16 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       store.compute(key, remappingFunction);
       removeObserver.end(RemoveOutcome.SUCCESS);
     } catch (CacheAccessException e) {
-      removeObserver.end(RemoveOutcome.FAILURE);
       try {
-        remappingFunction.apply(key, null);
+        try {
+          remappingFunction.apply(key, null);
+        } catch (CacheWriterException f) {
+          resilienceStrategy.removeFailure(key, e, f);
+        }
+        resilienceStrategy.removeFailure(key, e);
       } finally {
-        removeKeysWithStrategy(Collections.singleton(key), e);
+        removeObserver.end(RemoveOutcome.FAILURE);
       }
-    } catch(CacheWriterException e) {
-      removeObserver.end(RemoveOutcome.FAILURE);
-      removeKeysWithStrategy(Collections.singleton(key), e);
-      throw e;
     }
   }
 
@@ -269,7 +258,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     try {
       store.clear();
     } catch (CacheAccessException e) {
-      throw new RuntimeException("Couldn't clear cache", e);
+      resilienceStrategy.clearFailure(e);
     }
   }
 
@@ -279,7 +268,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     try {
       return new CacheEntryIterator(store.iterator());
     } catch (CacheAccessException e) {
-      throw new RuntimeException(e);
+      return resilienceStrategy.iteratorFailure(e);
     }
   }
 
@@ -322,22 +311,25 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
       addBulkMethodEntriesCount("getAll", result.size());
     } catch (CacheAccessException e) {
-      removeKeysWithStrategy(keys, e);
-      if (failures.isEmpty()) {
-        Set<K> toLoad = new HashSet<K>();
-        for (K key: keys) {
-          toLoad.add(key);
+      if (cacheLoader == null) {
+        return resilienceStrategy.getAllFailure(keys, e);
+      } else {
+        if (failures.isEmpty()) {
+          Set<K> toLoad = new HashSet<K>();
+          for (K key: keys) {
+            toLoad.add(key);
+          }
+          toLoad.removeAll(successes.keySet());
+          mappingFunction.apply(toLoad);
         }
-        toLoad.removeAll(successes.keySet());
-        mappingFunction.apply(toLoad);
-        return successes;
-      }
-    } finally {
-      if (!failures.isEmpty()) {
-        throw new BulkCacheLoaderException(failures, successes);
+        return resilienceStrategy.getAllFailure(keys, successes, failures, e);
       }
     }
-    return result;
+    if (failures.isEmpty()) {
+      return result;
+    } else {
+      throw new BulkCacheLoaderException(failures, successes);
+    }
   }
 
   @Override
@@ -385,18 +377,18 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     try {
       store.bulkCompute(keys, remappingFunction);
       addBulkMethodEntriesCount("putAll", entriesCount);
+      if (!failures.isEmpty()) {
+        throw new BulkCacheWriterException(failures, successes);
+      }
     } catch (CacheAccessException e) {
-      // just in case not all writes happened:
-      try {
+      if (cacheWriter == null) {
+        resilienceStrategy.putAllFailure(entries, e);
+      } else {
+        // just in case not all writes happened:
         if (!entriesToRemap.isEmpty()) {
           cacheWriterPutAllCall(entriesToRemap.entrySet(), entriesToRemap, successes, failures);
         }
-      } finally {
-        removeKeysWithStrategy(keys, e);
-      }
-    } finally {
-      if (!failures.isEmpty()) {
-        throw new BulkCacheWriterException(failures, successes);
+        resilienceStrategy.putAllFailure(entries, successes, failures, e);
       }
     }
   }
@@ -452,21 +444,20 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     try {
       store.bulkCompute(keys, removalFunction);
       addBulkMethodEntriesCount("removeAll", entriesCount);
-    } catch (CacheAccessException e) {
-      // just in case the write didn't happen:
-      try {
-        if (!entriesToRemove.isEmpty()) {
-          cacheWriterDeleteAllCall(entriesToRemove.entrySet(), successes, failures);
-        }
-      } finally {
-        removeKeysWithStrategy(keys, e);
-      }
-    } finally {
       if (!failures.isEmpty()) {
         throw new BulkCacheWriterException(failures, successes);
       }
+    } catch (CacheAccessException e) {
+      if (cacheWriter == null) {
+        resilienceStrategy.removeAllFailure(keys, e);
+      } else {
+        // just in case not all writes happened:
+        if (!entriesToRemove.isEmpty()) {
+          cacheWriterDeleteAllCall(entriesToRemove.entrySet(), successes, failures);
+        }
+        resilienceStrategy.removeAllFailure(keys, successes, failures, e);
+      }
     }
-
   }
 
   private void cacheWriterDeleteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Set<K> successes, Map<K, Exception> failures) {
@@ -499,8 +490,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       public V apply(final K k) {
         if (cacheWriter != null) {
           try {
-            // TODO decide how to handle a false return value (perhaps as part of issue #52)
-            cacheWriter.write(k, null, value);
+            if (!cacheWriter.write(k, null, value)) {
+              return null;
+            }
           } catch (Exception e) {
             throw newCacheWriterException(e);
           }
@@ -514,35 +506,30 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     try {
       ValueHolder<V> inCache = store.computeIfAbsent(key, mappingFunction);
       if (installed.get()) {
+        putIfAbsentObserver.end(PutIfAbsentOutcome.PUT);
+        return null;
+      } else if (inCache == null) {
+        //dubious - it's a 'hit' in the SoR, but a 'miss' in the cache
+        putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
         return null;
       } else {
+        putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
         return inCache.value();
       }
     } catch (CacheAccessException e) {
-      V computedValue = null;
-      putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
       try {
-        computedValue = mappingFunction.apply(key);
-        if (cacheWriter != null) {
-          store.remove(key);
+        if (cacheWriter == null) {
+          return resilienceStrategy.putIfAbsentFailure(key, value, e, installed.get());
         } else {
-          final Store.ValueHolder<V> holder = store.get(key);
-          if (holder == null) {
-            resilienceStrategy.possiblyInconsistent(key, e);
-          } else {
-            return holder.value();
+          try {
+            mappingFunction.apply(key);
+          } catch (CacheWriterException f) {
+            return resilienceStrategy.putIfAbsentFailure(key, value, e, f);
           }
+          return resilienceStrategy.putIfAbsentFailure(key, value, e, installed.get());
         }
-      } catch (CacheAccessException e1) {
-        resilienceStrategy.possiblyInconsistent(key, e, e1);
-      }
-      
-      return installed.get() ? null : computedValue;
-    } finally {
-      if (installed.get()) {
-        putIfAbsentObserver.end(PutIfAbsentOutcome.PUT);
-      } else {
-        putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
+      } finally {
+        putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
       }
     }
   }
@@ -561,7 +548,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
             if (cacheWriter != null) {
               try {
                 if(!cacheWriter.delete(k, value)) {
-                  // TODO: revisit for #52
                   return null; // remove cached value but don't set success flag - this is an inline repair
                 }
               } catch (Exception e) {
@@ -592,16 +578,20 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         removeObserver.end(RemoveOutcome.FAILURE);
       }
     } catch (CacheAccessException e) {
-      removeObserver.end(RemoveOutcome.FAILURE);
       try {
-        remappingFunction.apply(key, null);
+        if (cacheWriter == null) {
+          return resilienceStrategy.removeFailure(key, value, e, removed.get());
+        } else {
+          try {
+            remappingFunction.apply(key, null);
+          } catch (CacheWriterException f) {
+            return resilienceStrategy.removeFailure(key, value, e, f);
+          }
+          return resilienceStrategy.removeFailure(key, value, e, removed.get());
+        }
       } finally {
-        removeKeysWithStrategy(Collections.singleton(key), e);
+        removeObserver.end(RemoveOutcome.FAILURE);
       }
-    } catch (CacheWriterException e) {
-      removeObserver.end(RemoveOutcome.FAILURE);
-      removeKeysWithStrategy(Collections.singleton(key), e);
-      throw e;
     }
     return removed.get();
   }
@@ -630,25 +620,24 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
     try {
       store.computeIfPresent(key, remappingFunction);
-    } catch (CacheAccessException e) {
-      replaceObserver.end(ReplaceOutcome.FAILURE);
-      try {
-        remappingFunction.apply(key, null);
-      } finally {
-        removeKeysWithStrategy(Collections.singleton(key), e);
+      if (old.get() != null) {
+        replaceObserver.end(ReplaceOutcome.HIT);
+      } else {
+        replaceObserver.end(ReplaceOutcome.MISS);
       }
-    } catch (CacheWriterException e) {
-      replaceObserver.end(ReplaceOutcome.FAILURE);
-      removeKeysWithStrategy(Collections.singleton(key), e);
-      throw e;
+      return old.get();
+    } catch (CacheAccessException e) {
+      try {
+        try {
+          remappingFunction.apply(key, null);
+        } catch (CacheWriterException f) {
+          return resilienceStrategy.replaceFailure(key, value, e, f);
+        }
+        return resilienceStrategy.replaceFailure(key, value, e);
+      } finally {
+        replaceObserver.end(ReplaceOutcome.FAILURE);
+      }
     }
-    
-    if (old.get() != null) {
-      replaceObserver.end(ReplaceOutcome.HIT);
-    } else {
-      replaceObserver.end(ReplaceOutcome.MISS);
-    }
-    return old.get();
   }
 
   @Override
@@ -671,7 +660,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
               }
               // repair cache 
               if (!success.get()) {
-                // TODO: revisit under #52
                 return null;
               }
             } else {
@@ -683,7 +671,10 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         } else {
           if (cacheWriter != null) {
             try {
-              success.set(cacheWriter.write(key, oldValue, newValue));
+              if (cacheWriter.write(key, oldValue, newValue)) {
+                success.set(true);
+                return newValue;
+              }
             } catch (Exception e) {
               throw newCacheWriterException(e);
             }
@@ -694,25 +685,28 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     });
     try {
       store.compute(key, remappingFunction);
-    } catch (CacheAccessException e) {
-      replaceObserver.end(ReplaceOutcome.FAILURE);
-      try {
-        remappingFunction.apply(key, null);
-      } finally {
-        removeKeysWithStrategy(Collections.singleton(key), e);
+      if (success.get()) {
+        replaceObserver.end(ReplaceOutcome.HIT);
+      } else {
+        replaceObserver.end(ReplaceOutcome.MISS);
       }
-    } catch (CacheWriterException e) {
-      replaceObserver.end(ReplaceOutcome.FAILURE);
-      removeKeysWithStrategy(Collections.singleton(key), e);
-      throw e;
+      return success.get();
+    } catch (CacheAccessException e) {
+      try {
+        if (cacheWriter == null) {
+          return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, success.get());
+        } else {
+          try {
+            remappingFunction.apply(key, null);
+          } catch (CacheWriterException f) {
+            return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, f);
+          }
+          return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, success.get());
+        }
+      } finally {
+        replaceObserver.end(ReplaceOutcome.FAILURE);
+      }        
     }
-    if (success.get()) {
-      replaceObserver.end(ReplaceOutcome.HIT);
-    } else {
-      replaceObserver.end(ReplaceOutcome.MISS);
-    }
-    return success.get();
-
   }
 
   @Override
@@ -822,18 +816,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     current.addAndGet(count);
   }
 
-  private void removeKeysWithStrategy(Iterable<? extends K> keys, Exception e) {
-    for (K key: keys) {
-      try {
-        store.remove(key);
-        resilienceStrategy.recoveredFrom(key, e);
-      } catch (CacheAccessException e1) {
-        resilienceStrategy.possiblyInconsistent(key, e1, e);
-      }
-    }
- 
-  }
-  
   CacheLoader<? super K, ? extends V> getCacheLoader() {
     return cacheLoader;
   }
