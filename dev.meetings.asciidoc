@@ -2,6 +2,14 @@
 
 :toc:
 
+== Nov 20, 2014 - Hangout on Air - Rogue Edition
+
+Recording available https://www.youtube.com/watch?v=efCPffwBvaQ[here on YouTube]
+
+=== Agenda
+
+ * putIfAbsent and CacheWriters
+
 == Nov 13, 2014 - Hangout on Air
 
 Next public meeting on https://plus.google.com/u/0/events/cv6v25r855jsn078tebkcbead2s[G+ Hangout on Air] at 11:30pm IST / 8pm CET / 2pm EST / 11am PST
