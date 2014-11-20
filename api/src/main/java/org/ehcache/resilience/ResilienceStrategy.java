@@ -16,15 +16,15 @@
 
 package org.ehcache.resilience;
 
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
-import org.ehcache.Cache.Entry;
+
+import org.ehcache.exceptions.BulkCacheLoaderException;
+import org.ehcache.exceptions.BulkCacheWriterException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheWriterException;
 
 /**
- * @author Alex Snaps
+ * @author Chris Dennis
  */
 public interface ResilienceStrategy<K, V> {
   
@@ -44,7 +44,7 @@ public interface ResilienceStrategy<K, V> {
  
   void clearFailure(CacheAccessException e);
 
-  Iterator<Entry<K, V>> iteratorFailure(CacheAccessException e);
+  void iteratorFailure(CacheAccessException e);
   
   //CASingMethods
   V putIfAbsentFailure(K key, V value, CacheAccessException e, boolean knownToBeAbsent);
@@ -66,13 +66,13 @@ public interface ResilienceStrategy<K, V> {
   //Bulk Methods
   Map<K, V> getAllFailure(Iterable<? extends K> keys, CacheAccessException e);
   
-  Map<K, V> getAllFailure(Iterable<? extends K> keys, Map<K, V> loaderSuccesses, Map<K, Exception> loaderFailures, CacheAccessException e);
+  Map<K, V> getAllFailure(Iterable<? extends K> keys, CacheAccessException e, BulkCacheLoaderException f);
   
   void putAllFailure(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, CacheAccessException e);
 
-  void putAllFailure(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Set<K> writerSuccesses, Map<K, Exception> writerFailures, CacheAccessException e);
+  void putAllFailure(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, CacheAccessException e, BulkCacheWriterException f);
 
   Map<K, V> removeAllFailure(Iterable<? extends K> entries, CacheAccessException e);
 
-  Map<K, V> removeAllFailure(Iterable<? extends K> entries, Set<K> writerSuccesses, Map<K, Exception> writerFailures, CacheAccessException e);
+  Map<K, V> removeAllFailure(Iterable<? extends K> entries, CacheAccessException e, BulkCacheWriterException f);
 }

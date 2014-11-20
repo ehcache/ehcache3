@@ -29,6 +29,7 @@ import org.ehcache.exceptions.*;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
+import org.ehcache.resilience.LoggingRobustResilienceStrategy;
 import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
@@ -60,6 +61,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.ehcache.Functions.memoize;
 import static org.ehcache.exceptions.ExceptionFactory.newCacheLoaderException;
 import static org.ehcache.exceptions.ExceptionFactory.newCacheWriterException;
+import static org.ehcache.util.KeysIterable.keysOf;
 import static org.terracotta.statistics.StatisticsBuilder.operation;
 
 /**
@@ -104,7 +106,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     this.cacheLoader = cacheLoader;
     this.cacheWriter = cacheWriter;
     this.statisticsGateway = new StatisticsGateway(this, statisticsExecutor, bulkMethodEntries);
-    this.resilienceStrategy = null;
+    this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>(store);
     
     this.runtimeConfiguration = new RuntimeConfiguration<K, V>(config);
   }
@@ -265,11 +267,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   @Override
   public Iterator<Entry<K, V>> iterator() {
     statusTransitioner.checkAvailable();
-    try {
-      return new CacheEntryIterator(store.iterator());
-    } catch (CacheAccessException e) {
-      return resilienceStrategy.iteratorFailure(e);
-    }
+    return new CacheEntryIterator();
   }
 
   @Override
@@ -314,15 +312,18 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       if (cacheLoader == null) {
         return resilienceStrategy.getAllFailure(keys, e);
       } else {
-        if (failures.isEmpty()) {
-          Set<K> toLoad = new HashSet<K>();
-          for (K key: keys) {
-            toLoad.add(key);
-          }
-          toLoad.removeAll(successes.keySet());
-          mappingFunction.apply(toLoad);
+        Set<K> toLoad = new HashSet<K>();
+        for (K key: keys) {
+          toLoad.add(key);
         }
-        return resilienceStrategy.getAllFailure(keys, successes, failures, e);
+        toLoad.removeAll(successes.keySet());
+        toLoad.removeAll(failures.keySet());
+        mappingFunction.apply(toLoad);
+        if (failures.isEmpty()) {
+          return resilienceStrategy.getAllFailure(keys, e);
+        } else {
+          return resilienceStrategy.getAllFailure(keys, e, new BulkCacheLoaderException(failures, successes));
+        }
       }
     }
     if (failures.isEmpty()) {
@@ -373,7 +374,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     };
 
-    KeysIterable keys = new KeysIterable(entries);
+    Iterable<K> keys = keysOf(entries);
     try {
       store.bulkCompute(keys, remappingFunction);
       addBulkMethodEntriesCount("putAll", entriesCount);
@@ -388,7 +389,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         if (!entriesToRemap.isEmpty()) {
           cacheWriterPutAllCall(entriesToRemap.entrySet(), entriesToRemap, successes, failures);
         }
-        resilienceStrategy.putAllFailure(entries, successes, failures, e);
+        if (failures.isEmpty()) {
+          resilienceStrategy.putAllFailure(entries, e);
+        } else {
+          resilienceStrategy.putAllFailure(entries, e, new BulkCacheWriterException(failures, successes));
+        }
       }
     }
   }
@@ -455,7 +460,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         if (!entriesToRemove.isEmpty()) {
           cacheWriterDeleteAllCall(entriesToRemove.entrySet(), successes, failures);
         }
-        resilienceStrategy.removeAllFailure(keys, successes, failures, e);
+        if (failures.isEmpty()) {
+          resilienceStrategy.removeAllFailure(keys, e);
+        } else {
+          resilienceStrategy.removeAllFailure(keys, e, new BulkCacheWriterException(failures, successes));
+        }
       }
     }
   }
@@ -941,57 +950,86 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   private class CacheEntryIterator implements Iterator<Entry<K, V>> {
 
     private final Store.Iterator<Entry<K, Store.ValueHolder<V>>> iterator;
+    private Entry<K, Store.ValueHolder<V>> current;
     private Entry<K, Store.ValueHolder<V>> next;
 
-    public CacheEntryIterator(final Store.Iterator<Entry<K, Store.ValueHolder<V>>> iterator) {
-      this.iterator = iterator;
+    public CacheEntryIterator() {
+      Store.Iterator<Entry<K, Store.ValueHolder<V>>> storeIterator;
+      try {
+        storeIterator = store.iterator();
+      } catch (CacheAccessException e) {
+        resilienceStrategy.iteratorFailure(e);
+        storeIterator = new Store.Iterator<Entry<K, Store.ValueHolder<V>>>() {
+
+          @Override
+          public boolean hasNext() throws CacheAccessException {
+            return false;
+          }
+
+          @Override
+          public Entry<K, ValueHolder<V>> next() throws CacheAccessException {
+            throw new NoSuchElementException();
+          }
+        };
+      }
+      this.iterator = storeIterator;
+      advance();
     }
 
+    private void advance() {
+      current = next;
+      try {
+        if (iterator.hasNext()) {
+          next = iterator.next();
+        } else {
+          next = null;
+        }
+      } catch (CacheAccessException e) {
+        resilienceStrategy.iteratorFailure(e);
+        next = null;
+      }
+    }
+    
     @Override
     public boolean hasNext() {
       statusTransitioner.checkAvailable();
-      try {
-        return iterator.hasNext();
-      } catch (CacheAccessException e) {
-        return false; // really?!
-      }
+      return next != null;
     }
 
     @Override
     public Entry<K, V> next() {
       getObserver.begin();
       statusTransitioner.checkAvailable();
-      try {
-        next = iterator.next();
-        getObserver.end(GetOutcome.HIT_NO_LOADER);
-      } catch (CacheAccessException e) {
-        getObserver.end(GetOutcome.FAILURE);
-        throw new RuntimeException("Crap! We said we had more... turns out we can't get to it now :(");
+      if (next == null) {
+        throw new NoSuchElementException();
+      } else {
+        advance();
       }
+      getObserver.end(GetOutcome.HIT_NO_LOADER);
       return new Entry<K, V>() {
         @Override
         public K getKey() {
-          return next.getKey();
+          return current.getKey();
         }
 
         @Override
         public V getValue() {
-          return next.getValue().value();
+          return current.getValue().value();
         }
 
         @Override
         public long getCreationTime(TimeUnit unit) {
-          return next.getCreationTime(unit);
+          return current.getCreationTime(unit);
         }
 
         @Override
         public long getLastAccessTime(TimeUnit unit) {
-          return next.getLastAccessTime(unit);
+          return current.getLastAccessTime(unit);
         }
 
         @Override
         public float getHitRate(TimeUnit unit) {
-          return next.getHitRate(unit);
+          return current.getHitRate(unit);
         }
       };
     }
@@ -999,46 +1037,10 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     @Override
     public void remove() {
       statusTransitioner.checkAvailable();
-      Ehcache.this.remove(next.getKey(), next.getValue().value());
+      Ehcache.this.remove(current.getKey(), current.getValue().value());
     }
   }
 
-
-  private class KeysIterable implements Iterable<K> {
-    private final Iterable<? extends Map.Entry<? extends K, ? extends V>> entriesIterable;
-
-    public KeysIterable(Iterable<? extends Map.Entry<? extends K, ? extends V>> entriesIterable) {
-      this.entriesIterable = entriesIterable;
-    }
-
-    @Override
-    public Iterator<K> iterator() {
-      return new KeysIterator(entriesIterable.iterator());
-    }
-  }
-
-  private class KeysIterator implements Iterator<K> {
-    private final Iterator<? extends Map.Entry<? extends K, ? extends V>> entriesIterator;
-
-    public KeysIterator(Iterator<? extends Map.Entry<? extends K, ? extends V>> entriesIterator) {
-      this.entriesIterator = entriesIterator;
-    }
-
-    @Override
-    public boolean hasNext() {
-      return entriesIterator.hasNext();
-    }
-
-    @Override
-    public K next() {
-      return entriesIterator.next().getKey();
-    }
-
-    @Override
-    public void remove() {
-      entriesIterator.remove();
-    }
-  }
 
   private class NullValuesIterable implements Iterable<Map.Entry<K, V>> {
     private final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries;
