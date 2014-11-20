@@ -24,9 +24,6 @@ import org.mockito.Mock;
 
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -499,72 +496,5 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     return ehcache;
-  }
-
-  /**
-   * Provides a basic {@link org.ehcache.spi.writer.CacheWriter} implementation for
-   * testing.  The contract implemented by this {@code CacheWriter} may not be strictly
-   * conformant but should be sufficient for {@code Ehcache} implementation testing.
-   */
-  private static class MockCacheWriter implements CacheWriter<String, String> {
-
-    private final Map<String, String> cache = new HashMap<String, String>();
-
-    public MockCacheWriter(final Map<String, String> entries) {
-      if (entries != null) {
-        this.cache.putAll(entries);
-      }
-    }
-
-    private Map<String, String> getEntries() {
-      return Collections.unmodifiableMap(this.cache);
-    }
-
-    @Override
-    public void write(final String key, final String value) throws Exception {
-      this.cache.put(key, value);
-    }
-
-    @Override
-    public boolean write(final String key, final String oldValue, final String newValue) throws Exception {
-      final String existingValue = this.cache.get(key);
-      boolean modified = false;
-      if (oldValue == null) {
-        if (existingValue == null) {
-          this.cache.put(key, newValue);
-          modified = true;
-        }
-      } else if (oldValue.equals(existingValue)) {
-        this.cache.put(key, newValue);
-        modified = true;
-      }
-      return modified;
-    }
-
-    @Override
-    public Set<String> writeAll(final Iterable<? extends Map.Entry<? extends String, ? extends String>> entries)
-        throws Exception {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean delete(final String key) throws Exception {
-      return (null == this.cache.remove(key));
-    }
-
-    @Override
-    public boolean delete(final String key, final String value) throws Exception {
-      final String existingValue = this.cache.get(key);
-      boolean modified = false;
-      if (value.equals(existingValue)) {
-        modified = (null != this.cache.remove(key));
-      }
-      return modified;
-    }
-
-    @Override
-    public Set<String> deleteAll(final Iterable<? extends String> keys) throws Exception {
-      throw new UnsupportedOperationException();
-    }
   }
 }
