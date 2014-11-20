@@ -1,2 +1,5 @@
 <FindBugsFilter>
+   <Match>
+     <Class name="org.ehcache.statistics.extended.LatencyImpl"/>
+   </Match>
 </FindBugsFilter>
