@@ -16,24 +16,17 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.Cache.Entry;
-import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionPrioritizer;
-import org.ehcache.config.EvictionVeto;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
-import org.ehcache.function.Predicate;
 import org.ehcache.internal.TimeSource;
-import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.Iterator;
 import org.ehcache.spi.cache.Store.ValueHolder;
-import org.ehcache.spi.serialization.SerializationProvider;
 import org.junit.Test;
 
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
