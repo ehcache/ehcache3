@@ -91,10 +91,12 @@ public abstract class EhcacheBasicCrudBase {
 
     final OperationStatistic<E> operationStatistic = getOperationStatistic(ehcache, statsClass);
     for (final E statId : changed) {
-      assertThat(getStatistic(operationStatistic, statId), StatisticMatcher.equalTo(1L));
+      assertThat(String.format("Value for %s.%s", statId.getDeclaringClass().getName(), statId.name()),
+          getStatistic(operationStatistic, statId), StatisticMatcher.equalTo(1L));
     }
     for (final E statId : unchanged) {
-      assertThat(getStatistic(operationStatistic, statId), StatisticMatcher.equalTo(0L));
+      assertThat(String.format("Value for %s.%s", statId.getDeclaringClass().getName(), statId.name()),
+          getStatistic(operationStatistic, statId), StatisticMatcher.equalTo(0L));
     }
   }
 

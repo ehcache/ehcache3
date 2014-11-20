@@ -176,8 +176,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    // Ehcache.remove does not indicate FAILURE
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
 
   /**
@@ -202,8 +201,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
     assertThat(realCache.getEntries().containsKey("key"), is(false));
-    // Ehcache.remove does not indicate FAILURE
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
 
   /**
@@ -228,8 +226,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
     assertThat(realCache.getEntries().containsKey("key"), is(false));
-    // Ehcache.remove does not indicate FAILURE
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
 
   /**
@@ -260,8 +257,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    // Ehcache.remove does not indicate FAILURE
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
 
   /**
@@ -357,8 +353,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    // Ehcache.remove does not indicate FAILURE
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
 
   /**
@@ -381,8 +376,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    // Ehcache.remove does not indicate FAILURE
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
 
   /**
@@ -407,8 +401,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
     assertThat(realCache.getEntries().containsKey("key"), is(false));
-    // Ehcache.remove does not indicate FAILURE
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
 
   /**
@@ -433,8 +426,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
     assertThat(realCache.getEntries().containsKey("key"), is(false));
-    // Ehcache.remove does not indicate FAILURE
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
 
   /**
@@ -465,8 +457,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verify(this.store, times(1)).remove("key");
     assertThat(realStore.getMap().containsKey("key"), is(false));
-    // Ehcache.remove does not indicate FAILURE
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
 
   /**
