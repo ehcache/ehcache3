@@ -277,7 +277,7 @@ class CompoundOperationImpl<T extends Enum<T>> implements Operation<T> {
                     it.remove();
                 }
             }
-            return expired && compounds.isEmpty() && ratios.isEmpty();
+            return expired & compounds.isEmpty() & ratios.isEmpty();
         }
     }
 
