@@ -2,4 +2,10 @@
    <Match>
      <Class name="org.ehcache.statistics.extended.LatencyImpl"/>
    </Match>
+   <Match>
+     <Class name="org.ehcache.statistics.extended.OperationImpl"/>
+   </Match>
+   <Match>
+     <Class name="org.ehcache.statistics.extended.CompoundOperationImpl"/>
+   </Match>  
 </FindBugsFilter>
