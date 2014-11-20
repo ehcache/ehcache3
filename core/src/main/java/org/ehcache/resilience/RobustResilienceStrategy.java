@@ -22,7 +22,6 @@ import org.ehcache.exceptions.BulkCacheLoaderException;
 import org.ehcache.exceptions.BulkCacheWriterException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheWriterException;
-import org.ehcache.spi.cache.Store;
 
 import static java.util.Collections.emptyMap;
 import static org.ehcache.util.KeysIterable.keysOf;
@@ -33,10 +32,10 @@ import static org.ehcache.util.KeysIterable.keysOf;
  */
 public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrategy<K, V> {
 
-  private final Store<K, V> store;
+  private final RecoveryCache<K> cache;
   
-  public RobustResilienceStrategy(Store<K, V> store) {
-    this.store = store;
+  public RobustResilienceStrategy(RecoveryCache<K> cache) {
+    this.cache = cache;
   }
   
   @Override
@@ -172,40 +171,41 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
 
   private void cleanup(CacheAccessException from) {
     try {
-      store.clear();
+      cache.obliterate();
     } catch (CacheAccessException e) {
       inconsistent(from, e);
     }
     recovered(from);
   }
 
-  private void invalidate(K key, CacheAccessException because) {
-    try {
-      store.remove(key);
-    } catch (CacheAccessException e) {
-      inconsistent(key, because, e);
-    }
-  }
   
   private void cleanup(Iterable<? extends K> keys, CacheAccessException from) {
-    for (K key : keys) {
-      invalidate(key, from);
+    try {
+      cache.obliterate(keys);
+    } catch (CacheAccessException e) {
+      inconsistent(keys, from, e);
     }
     recovered(keys, from);
   }
   
   private void cleanup(K key, CacheAccessException from) {
-    invalidate(key, from);
+    try {
+      cache.obliterate(key);
+    } catch (CacheAccessException e) {
+      inconsistent(key, from, e);
+    }
     recovered(key, from);
   }
 
   protected abstract void recovered(K key, CacheAccessException from);
 
-  protected abstract void recovered(Iterable<? extends K> key, CacheAccessException from);
+  protected abstract void recovered(Iterable<? extends K> keys, CacheAccessException from);
   
   protected abstract void recovered(CacheAccessException from);
 
   protected abstract void inconsistent(K key, CacheAccessException because, CacheAccessException ... cleanup);
 
+  protected abstract void inconsistent(Iterable<? extends K> keys, CacheAccessException because, CacheAccessException ... cleanup);
+  
   protected abstract void inconsistent(CacheAccessException because, CacheAccessException ... cleanup);
 }

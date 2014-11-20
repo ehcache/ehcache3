@@ -30,6 +30,7 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.resilience.LoggingRobustResilienceStrategy;
+import org.ehcache.resilience.RecoveryCache;
 import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
@@ -106,7 +107,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     this.cacheLoader = cacheLoader;
     this.cacheWriter = cacheWriter;
     this.statisticsGateway = new StatisticsGateway(this, statisticsExecutor, bulkMethodEntries);
-    this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>(store);
+    if (store instanceof RecoveryCache) {
+      this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>((RecoveryCache) store);
+    } else {
+      this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>(recoveryCache(store));
+    }
     
     this.runtimeConfiguration = new RuntimeConfiguration<K, V>(config);
   }
@@ -1094,5 +1099,27 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     public void remove() {
       iterator.remove();
     }
+  }
+
+  private static <K> RecoveryCache<K> recoveryCache(final Store<K, ?> store) {
+    return new RecoveryCache<K>() {
+
+      @Override
+      public void obliterate() throws CacheAccessException {
+        store.clear();
+      }
+
+      @Override
+      public void obliterate(K key) throws CacheAccessException {
+        store.remove(key);
+      }
+
+      @Override
+      public void obliterate(Iterable<? extends K> keys) throws CacheAccessException {
+        for (K key : keys) {
+          obliterate(key);
+        }
+      }
+    };
   }
 }
