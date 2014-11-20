@@ -18,10 +18,12 @@ buildscript {
   repositories {
     jcenter()
     mavenCentral()
+    // added for gradle-jaxb-plugin:1.3.5.tc
+    maven { url "http://repo.terracotta.org/maven2" }
   }
 
   dependencies {
-    classpath 'org.gradle.jacobo.plugins:gradle-jaxb-plugin:1.3.4'
+    classpath 'org.gradle.jacobo.plugins:gradle-jaxb-plugin:1.3.5.tc'
   }
 }
 
