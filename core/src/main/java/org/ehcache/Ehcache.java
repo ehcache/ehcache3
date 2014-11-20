@@ -213,7 +213,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     try {
       return store.containsKey(key);
     } catch (CacheAccessException e) {
-      return resilienceStrategy.containsFailure(key, e);
+      return resilienceStrategy.containsKeyFailure(key, e);
     }
   }
 
@@ -977,17 +977,19 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
 
     private void advance() {
-      current = next;
+      Entry<K, ValueHolder<V>> nextNext;
       try {
         if (iterator.hasNext()) {
-          next = iterator.next();
+          nextNext = iterator.next();
         } else {
-          next = null;
+          nextNext = null;
         }
       } catch (CacheAccessException e) {
         resilienceStrategy.iteratorFailure(e);
-        next = null;
+        nextNext = null;
       }
+      current = next;
+      next = nextNext;
     }
     
     @Override

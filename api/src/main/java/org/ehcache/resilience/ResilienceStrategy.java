@@ -32,7 +32,7 @@ public interface ResilienceStrategy<K, V> {
   
   V getFailure(K key, V loaded, CacheAccessException e);
   
-  boolean containsFailure(K key, CacheAccessException e);
+  boolean containsKeyFailure(K key, CacheAccessException e);
   
   void putFailure(K key, V value, CacheAccessException e);
 

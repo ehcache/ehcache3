@@ -52,7 +52,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
-  public boolean containsFailure(K key, CacheAccessException e) {
+  public boolean containsKeyFailure(K key, CacheAccessException e) {
     cleanup(key, e);
     return false;
   }
