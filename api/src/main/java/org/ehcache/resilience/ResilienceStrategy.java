@@ -66,6 +66,8 @@ public interface ResilienceStrategy<K, V> {
   //Bulk Methods
   Map<K, V> getAllFailure(Iterable<? extends K> keys, CacheAccessException e);
   
+  Map<K, V> getAllFailure(Iterable<? extends K> keys, Map<K, V> loaded, CacheAccessException e);
+  
   Map<K, V> getAllFailure(Iterable<? extends K> keys, CacheAccessException e, BulkCacheLoaderException f);
   
   void putAllFailure(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, CacheAccessException e);

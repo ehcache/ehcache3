@@ -141,6 +141,12 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
+  public Map<K, V> getAllFailure(Iterable<? extends K> keys, Map<K, V> loaded, CacheAccessException e) {
+    cleanup(keys, e);
+    return loaded;
+  }
+
+  @Override
   public Map<K, V> getAllFailure(Iterable<? extends K> keys, CacheAccessException e, BulkCacheLoaderException f) {
     cleanup(keys, e);
     throw f;

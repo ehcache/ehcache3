@@ -325,7 +325,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         toLoad.removeAll(failures.keySet());
         mappingFunction.apply(toLoad);
         if (failures.isEmpty()) {
-          return resilienceStrategy.getAllFailure(keys, e);
+          return resilienceStrategy.getAllFailure(keys, successes, e);
         } else {
           return resilienceStrategy.getAllFailure(keys, e, new BulkCacheLoaderException(failures, successes));
         }
