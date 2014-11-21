@@ -135,7 +135,7 @@ public class EhcacheWriterLoaderTest {
   
   @Test
   public void testRemove() throws Exception {
-    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
@@ -149,7 +149,7 @@ public class EhcacheWriterLoaderTest {
 
   @Test
   public void testRemoveThrowsOnCompute() throws Exception {
-    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenThrow(new CacheAccessException("boom"));
+    when(store.compute(any(Number.class), anyBiFunction())).thenThrow(new CacheAccessException("boom"));
     cache.remove(1);
     verify(store).remove(1);
     verify(cache.getCacheWriter()).delete(1);
@@ -157,7 +157,7 @@ public class EhcacheWriterLoaderTest {
   
   @Test(expected=CacheWriterException.class)
   public void testRemoveThrowsOnWrite() throws Exception {
-    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
