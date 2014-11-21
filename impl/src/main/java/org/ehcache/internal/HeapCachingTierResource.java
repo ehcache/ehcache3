@@ -29,7 +29,7 @@ public class HeapCachingTierResource implements CachingTier.Provider {
 
   @Override
   public <K> CachingTier<K> createCachingTier(Class<K> keyClazz, ServiceConfiguration<?>... configs) {
-    final HeapResourceCacheConfiguration config = findSingletonAmongst(HeapResourceCacheConfiguration.class, configs);
+    final HeapResourceCacheConfiguration config = findSingletonAmongst(HeapResourceCacheConfiguration.class, (Object[]) configs);
     return new ClockEvictingHeapCachingTier<K>(config.getMaxOnHeapEntryCount());
   }
 

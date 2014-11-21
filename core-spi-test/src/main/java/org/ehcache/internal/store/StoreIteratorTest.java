@@ -44,6 +44,7 @@ public class StoreIteratorTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
+  @SuppressWarnings("unchecked")
   public void iterableContainsValuesInAnyOrder()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
     final Store<K, V> kvStore = factory.newStore(

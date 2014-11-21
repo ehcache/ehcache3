@@ -278,8 +278,8 @@ public interface Store<K, V> {
    * Compute a value for every key passed in the {@link Iterable} <code>keys</code> argument, using the <code>remappingFunction</code>
    * to compute the value.
    * <p>
-   * The function gets an {@link Iterable} of {@link Map.Entry} key/value pairs, where each entry's value is its currently stored value,
-   * or null if nothing is stored under the key. It is expected that the function returns an {@link Iterable} of {@link Map.Entry}
+   * The function gets an {@link Iterable} of {@link java.util.Map.Entry} key/value pairs, where each entry's value is its currently stored value,
+   * or null if nothing is stored under the key. It is expected that the function returns an {@link Iterable} of {@link java.util.Map.Entry}
    * key/value pairs containing an entry for each key that was passed to it. This returned {@link Iterable} should also iterate in the same order as the input {@link Iterable}.
    * If an entry's value is null, its mapping will be removed from the store.
    * </p>
@@ -300,8 +300,8 @@ public interface Store<K, V> {
    * Compute a value for every key passed in the {@link Iterable} <code>keys</code> argument using the <code>mappingFunction</code>
    * to compute the value.
    *
-   * The function gets an {@link Iterable} of {@link Map.Entry} key/value pairs, where each entry's value is its currently stored value
-   * for each key that is not mapped in the store. It is expected that the function returns an {@link Iterable} of {@link Map.Entry}
+   * The function gets an {@link Iterable} of {@link java.util.Map.Entry} key/value pairs, where each entry's value is its currently stored value
+   * for each key that is not mapped in the store. It is expected that the function returns an {@link Iterable} of {@link java.util.Map.Entry}
    * key/value pairs containing an entry for each key that was passed to it. This returned {@link Iterable} should also iterate in the same order as the input {@link Iterable}.
    *
    * The function may be called multiple times per <code>bulkComputeIfAbsent</code> call, depending on how the store wants or does not want to batch computations.

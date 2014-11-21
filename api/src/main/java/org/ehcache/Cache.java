@@ -189,13 +189,14 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
   /**
    * Exposes the {@link org.ehcache.config.CacheRuntimeConfiguration} associated with this Cache instance.
    *
-   * @return the configuration currently in sue
+   * @return the configuration currently in use
    */
   CacheRuntimeConfiguration<K, V> getRuntimeConfiguration();
   
   /**
    * Returns statistics instance for this cache
-   * @return
+   *
+   * @return the statistics
    */
   CacheStatistics getStatistics();
   

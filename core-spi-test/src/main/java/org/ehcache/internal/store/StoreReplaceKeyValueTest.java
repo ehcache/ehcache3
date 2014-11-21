@@ -22,7 +22,6 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.function.Predicates;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.test.Ignore;
 import org.ehcache.spi.test.SPITest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -31,7 +30,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#replace(K key, V value)} contract of the
+ * Test the {@link org.ehcache.spi.cache.Store#replace(Object, Object)} contract of the
  * {@link org.ehcache.spi.cache.Store Store} interface.
  * <p/>
  *

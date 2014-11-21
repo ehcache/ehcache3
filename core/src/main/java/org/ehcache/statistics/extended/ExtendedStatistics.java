@@ -155,13 +155,13 @@ public interface ExtendedStatistics {
     
     /**
      * cache loader dedicated stats
-     * @return
+     * @return result
      */
     Result cacheLoader();
     
     /**
      * Cache hit ratio.
-     * @return
+     * @return the statistic
      */
     Statistic<Double> cacheHitRatio();
 

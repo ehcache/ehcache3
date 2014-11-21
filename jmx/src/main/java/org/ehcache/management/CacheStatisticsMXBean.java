@@ -30,7 +30,7 @@ public interface CacheStatisticsMXBean {
   /**
    * The number of get requests that were satisfied by the cache.
    * <p>
-   * {@link org.ehcache.Cache#containsKey(K key)} is not a get request for
+   * {@link org.ehcache.Cache#containsKey(Object)} is not a get request for
    * statistics purposes.
    *
    * @return the number of hits
@@ -52,7 +52,7 @@ public interface CacheStatisticsMXBean {
    * <p>
    * In a simple cache a miss occurs when the cache does not satisfy the request.
    * <p>
-   * {@link org.ehcache.Cache#containsKey(Key k)} is not a get request for
+   * {@link org.ehcache.Cache#containsKey(Object)} is not a get request for
    * statistics purposes.
    *
    * @return the number of misses

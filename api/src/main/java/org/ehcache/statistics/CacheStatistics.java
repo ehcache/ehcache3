@@ -33,7 +33,7 @@ public interface CacheStatistics {
   /**
    * The number of get requests that were satisfied by the cache.
    * <p>
-   * {@link org.ehcache.Cache#containsKey(K key)} is not a get request for
+   * {@link org.ehcache.Cache#containsKey(Object)} is not a get request for
    * statistics purposes.
    *
    * @return the number of hits
@@ -55,7 +55,7 @@ public interface CacheStatistics {
    * <p>
    * In a simple cache a miss occurs when the cache does not satisfy the request.
    * <p>
-   * {@link org.ehcache.Cache#containsKey(Key k)} is not a get request for
+   * {@link org.ehcache.Cache#containsKey(Object)} is not a get request for
    * statistics purposes.
    *
    * @return the number of misses
@@ -142,7 +142,7 @@ public interface CacheStatistics {
    * get the map contains counts for bulk methods: putAll, removeAll and getAll
    * use the method name as key
    * 
-   * @return
+   * @return a map of counts
    */
   ConcurrentMap<String, AtomicLong> getBulkMethodEntries();
 }

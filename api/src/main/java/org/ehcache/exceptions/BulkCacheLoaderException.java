@@ -44,7 +44,9 @@ public class BulkCacheLoaderException extends CacheLoaderException {
   }
 
   /**
-   * {@inheritDoc}
+   * Constructs a new BulkCacheLoaderException providing a message, the key set that failed, including the exception
+   * loading these threw, as well as all keys we managed to load a value for, including the value loaded. This latter
+   * set of keys was loaded successfully into the {@link org.ehcache.Cache}.
    *
    * @param message the message
    * @param failures the map of keys to failure encountered while loading the values
