@@ -44,7 +44,9 @@ public class CacheManagerBuilder<T extends CacheManager> {
   }
 
   public static CacheManager newCacheManager(final Configuration configuration) {
-    return new EhcacheManager(configuration);
+    final EhcacheManager ehcacheManager = new EhcacheManager(configuration);
+    ehcacheManager.init();
+    return ehcacheManager;
   }
 
   T newCacheManager(final ServiceLocator serviceLocator, final Configuration configuration) {

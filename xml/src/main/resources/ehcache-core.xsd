@@ -51,7 +51,7 @@
   <xs:complexType name="cacheTemplate-type" xml:base="ehcache:baseCache-type">
     <xs:complexContent>
       <xs:extension base="ehcache:baseCache-type">
-        <xs:attribute name="name" type="xs:ID" />
+        <xs:attribute name="name" type="xs:ID" use="required" />
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
