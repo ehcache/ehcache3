@@ -254,7 +254,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     });
 
     try {
-      store.computeIfPresent(key, remappingFunction);
+      store.compute(key, remappingFunction);
       removeObserver.end(RemoveOutcome.SUCCESS);
     } catch (CacheAccessException e) {
       removeObserver.end(RemoveOutcome.FAILURE);
