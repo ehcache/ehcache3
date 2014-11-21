@@ -13,51 +13,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.ehcache.internal.store;
 
 import java.util.concurrent.TimeUnit;
 
-import org.ehcache.spi.cache.Store.ValueHolder;
-
+/**
+ * @author Ludovic Orban
+ */
 abstract class BaseOnHeapValueHolder<V> implements OnHeapValueHolder<V> {
-  private final V value;
 
-  protected BaseOnHeapValueHolder(V value) {
-    if (value == null) {
-      throw new NullPointerException("null value");
-    }
-    this.value = value;
+  private final long createTime;
+
+  private volatile long accessTime;
+
+  BaseOnHeapValueHolder(long createTime) {
+    this.createTime = this.accessTime = createTime;
   }
-  
-  @Override
-  public final V value() {
-    return value;
-  }
-  
-  @Override
-  public boolean equals(Object o) {
-    if (o == this) return true;
-    if (!(o instanceof ValueHolder)) return false;
-    return value.equals(((ValueHolder<?>)o).value());
-  }
-  
-  @Override
-  public int hashCode() {
-    return value.hashCode();
-  }
-  
+
   @Override
   public long creationTime(TimeUnit unit) {
-    throw new AssertionError();
-  }
-
-  @Override
-  public float hitRate(TimeUnit unit) {
-    throw new AssertionError();
+    return TimeUnit.MILLISECONDS.convert(createTime, unit);
   }
 
   @Override
   public long lastAccessTime(TimeUnit unit) {
+    return TimeUnit.MILLISECONDS.convert(accessTime, unit);
+  }
+
+  @Override
+  public void setAccessTimeMillis(long accessTime) {
+    this.accessTime = accessTime;
+  }
+
+  @Override
+  public float hitRate(TimeUnit unit) {
     throw new AssertionError();
   }
 
@@ -67,12 +57,8 @@ abstract class BaseOnHeapValueHolder<V> implements OnHeapValueHolder<V> {
   }
 
   @Override
-  public void setAccessTimeMillis(long accessTime) {
-    throw new AssertionError();
-  }
-
-  @Override
   public void setExpireTimeMillis(long expireTime) {
     throw new AssertionError();
   }
+
 }

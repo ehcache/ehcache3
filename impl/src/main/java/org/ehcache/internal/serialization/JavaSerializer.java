@@ -23,6 +23,7 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 
 import org.ehcache.internal.util.ByteBufferInputStream;
+import org.ehcache.spi.serialization.Serializer;
 
 /**
  *

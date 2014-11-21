@@ -25,6 +25,7 @@ import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.loader.CacheLoaderFactory;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
 import org.ehcache.util.StatisticsThreadPoolUtil;
@@ -156,11 +157,10 @@ public class EhcacheManager implements PersistentCacheManager {
   }
 
   <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
-                                                final Class<K> keyType, final Class<V> valueType, 
+                                                final Class<K> keyType, final Class<V> valueType,
                                                 final ClassLoader cacheClassLoader) {
     final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
     final CacheLoaderFactory cacheLoaderFactory = serviceLocator.findService(CacheLoaderFactory.class);
-    final Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(keyType, valueType, cacheClassLoader));
     CacheLoader<? super K, ? extends V> loader = null;
     if(cacheLoaderFactory != null) {
       loader = cacheLoaderFactory.createCacheLoader(alias, config);
@@ -170,14 +170,21 @@ public class EhcacheManager implements PersistentCacheManager {
     if (cacheWriterFactory != null) {
       writer = cacheWriterFactory.createCacheWriter(alias, config);
     }
-    
+
+    SerializationProvider serializationProvider = config.getSerializationProvider();
+    if (serializationProvider == null) {
+      serializationProvider = serviceLocator.findService(SerializationProvider.class);
+    }
+
+    ServiceConfiguration[] serviceConfigs = config.getServiceConfigurations().toArray(new ServiceConfiguration[config.getServiceConfigurations().size()]);
+
     CacheConfiguration<K, V> adjustedConfig = new BaseCacheConfiguration<K, V>(
         keyType, valueType, config.getCapacityConstraint(),
-        config.getEvictionVeto(), config.getEvictionPrioritizer(),
-        cacheClassLoader, config.getExpiry(),
-        config.getServiceConfigurations().toArray(new ServiceConfiguration<?>[config.getServiceConfigurations().size()])
+        config.getEvictionVeto(), config.getEvictionPrioritizer(), cacheClassLoader, config.getExpiry(), serializationProvider,
+        serviceConfigs
     );
 
+    Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(adjustedConfig), serviceConfigs);
     return new Ehcache<K, V>(adjustedConfig, store, loader, writer, statisticsExecutor);
   }
 

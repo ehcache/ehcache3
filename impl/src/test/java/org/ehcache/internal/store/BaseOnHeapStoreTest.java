@@ -15,17 +15,6 @@
  */
 package org.ehcache.internal.store;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.concurrent.TimeUnit;
-
 import org.ehcache.Cache.Entry;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
@@ -33,15 +22,22 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
-import org.ehcache.function.Predicate;
-import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
-import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.Iterator;
 import org.ehcache.spi.cache.Store.ValueHolder;
 import org.junit.Test;
 
-public class OnHeapStoreTest {
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.concurrent.TimeUnit;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+
+public abstract class BaseOnHeapStoreTest {
 
   private static final RuntimeException RUNTIME_EXCEPTION = new RuntimeException();
 
@@ -488,15 +484,15 @@ public class OnHeapStoreTest {
   @Test
   public void testExpiryCreateException() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, Object>() {
 
       @Override
-      public Duration getExpiryForCreation(String key, String value) {
+      public Duration getExpiryForCreation(String key, Object value) {
         throw RUNTIME_EXCEPTION;
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, String value) {
+      public Duration getExpiryForAccess(String key, Object value) {
         throw new AssertionError();
       }
     });
@@ -511,17 +507,18 @@ public class OnHeapStoreTest {
     assertThat(store.get("key"), nullValue());
   }
 
+  @Test
   public void testExpiryAccessException() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, Object>() {
 
       @Override
-      public Duration getExpiryForCreation(String key, String value) {
+      public Duration getExpiryForCreation(String key, Object value) {
         return Duration.FOREVER;
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, String value) {
+      public Duration getExpiryForAccess(String key, Object value) {
         throw RUNTIME_EXCEPTION;
       }
     });
@@ -661,48 +658,8 @@ public class OnHeapStoreTest {
     }
   }
 
-  private OnHeapStore<String, String> newStore() {
-    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration());
-  }
+  protected abstract <K, V> OnHeapStore<K, V> newStore();
 
-  private OnHeapStore<String, String> newStore(final TimeSource timeSource,
-      final Expiry<? super String, ? super String> expiry) {
-    return new OnHeapStore<String, String>(new Store.Configuration<String, String>() {
-      @Override
-      public Class<String> getKeyType() {
-        return String.class;
-      }
-
-      @Override
-      public Class<String> getValueType() {
-        return String.class;
-      }
-
-      @Override
-      public Comparable<Long> getCapacityConstraint() {
-        return null;
-      }
-
-      @Override
-      public Predicate<Entry<String, String>> getEvictionVeto() {
-        return null;
-      }
-
-      @Override
-      public Comparator<Entry<String, String>> getEvictionPrioritizer() {
-        return null;
-      }
-
-      @Override
-      public ClassLoader getClassLoader() {
-        return getClass().getClassLoader();
-      }
-
-      @Override
-      public Expiry<? super String, ? super String> getExpiry() {
-        return expiry;
-      }
-    }, timeSource);
-  }
+  protected abstract <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource, final Expiry<? super K, ? super V> expiry);
 
 }

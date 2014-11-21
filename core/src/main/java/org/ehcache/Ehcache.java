@@ -32,6 +32,7 @@ import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.loader.CacheLoader;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriter;
 import org.ehcache.statistics.CacheOperationOutcomes.GetOutcome;
@@ -862,6 +863,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     private final Predicate<Cache.Entry<K, V>> evictionVeto;
     private final Comparator<Cache.Entry<K, V>> evictionPrioritizer;
     private final Set<CacheEventListener<?, ?>> eventListeners;
+    private final SerializationProvider serializationProvider;
     private final ClassLoader classLoader;
     private final Expiry<K, V> expiry;
 
@@ -873,6 +875,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       this.evictionVeto = config.getEvictionVeto();
       this.evictionPrioritizer = config.getEvictionPrioritizer();
       this.eventListeners = copy(config.getEventListeners());
+      this.serializationProvider = config.getSerializationProvider();
       this.classLoader = config.getClassLoader();
       this.expiry = config.getExpiry();
     }
@@ -926,6 +929,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     @Override
     public Set<CacheEventListener<?, ?>> getEventListeners() {
       return this.eventListeners;
+    }
+
+    @Override
+    public SerializationProvider getSerializationProvider() {
+      return this.serializationProvider;
     }
 
     @Override

@@ -16,13 +16,13 @@
 
 package org.ehcache.config;
 
-import java.util.Comparator;
-
 import org.ehcache.Cache;
-import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.Predicate;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.serialization.SerializationProvider;
+
+import java.util.Comparator;
 
 /**
  *
@@ -35,27 +35,25 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   private final Comparable<Long> capacityConstraint;
   private final Predicate<Cache.Entry<K, V>> evictionVeto;
   private final Comparator<Cache.Entry<K, V>> evictionPrioritizer;
+  private final SerializationProvider serializationProvider;
   private final ClassLoader classLoader;
   private final Expiry<? super K, ? super V> expiry;
 
   public StoreConfigurationImpl(CacheConfiguration<K, V> cacheConfig) {
     this(cacheConfig.getKeyType(), cacheConfig.getValueType(), cacheConfig.getCapacityConstraint(),
             cacheConfig.getEvictionVeto(), cacheConfig.getEvictionPrioritizer(), cacheConfig.getClassLoader(),
-            cacheConfig.getExpiry());
+            cacheConfig.getExpiry(), cacheConfig.getSerializationProvider());
   }
 
-  public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType, ClassLoader classLoader) {
-    this(keyType, valueType, null, null, null, classLoader, Expirations.noExpiration());
-  }
-          
   public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
           Predicate<Cache.Entry<K, V>> evictionVeto, Comparator<Cache.Entry<K, V>> evictionPrioritizer,
-          ClassLoader classLoader, Expiry<? super K, ? super V> expiry) {
+          ClassLoader classLoader, Expiry<? super K, ? super V> expiry, SerializationProvider serializationProvider) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.capacityConstraint = capacityConstraint;
     this.evictionVeto = evictionVeto;
     this.evictionPrioritizer = evictionPrioritizer;
+    this.serializationProvider = serializationProvider;
     this.classLoader = classLoader;
     this.expiry = expiry;
   }
@@ -83,6 +81,11 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   @Override
   public Comparator<Cache.Entry<K, V>> getEvictionPrioritizer() {
     return evictionPrioritizer;
+  }
+
+  @Override
+  public SerializationProvider getSerializationProvider() {
+    return serializationProvider;
   }
 
   @Override

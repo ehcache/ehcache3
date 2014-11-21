@@ -26,6 +26,7 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.Predicate;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
@@ -76,6 +77,11 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
 
       @Override
       public Set<CacheEventListener<?, ?>> getEventListeners() {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public SerializationProvider getSerializationProvider() {
         throw new UnsupportedOperationException("Implement me!");
       }
 

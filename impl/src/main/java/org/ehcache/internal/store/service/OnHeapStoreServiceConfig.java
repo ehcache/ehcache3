@@ -13,16 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.internal.serialization;
 
-import org.ehcache.spi.service.Service;
+package org.ehcache.internal.store.service;
+
+import org.ehcache.internal.store.OnHeapStore;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- *
- * @author cdennis
+ * @author Ludovic Orban
  */
-public interface SerializationProvider extends Service {
- 
-  <T> Serializer<T> createSerializer(Class<T> clazz, ServiceConfiguration<?>... config);
+public class OnHeapStoreServiceConfig implements ServiceConfiguration<OnHeapStore.Provider> {
+
+    private boolean storeByValue = false;
+
+    public boolean storeByValue() {
+        return storeByValue;
+    }
+
+    public OnHeapStoreServiceConfig storeByValue(boolean storeByValue) {
+        this.storeByValue = storeByValue;
+        return this;
+    }
+
+    @Override
+    public Class<OnHeapStore.Provider> getServiceType() {
+        return OnHeapStore.Provider.class;
+    }
 }
