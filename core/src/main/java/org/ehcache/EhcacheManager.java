@@ -181,7 +181,7 @@ public class EhcacheManager implements PersistentCacheManager {
     CacheConfiguration<K, V> adjustedConfig = new BaseCacheConfiguration<K, V>(
         keyType, valueType, config.getCapacityConstraint(),
         config.getEvictionVeto(), config.getEvictionPrioritizer(), cacheClassLoader, config.getExpiry(), serializationProvider,
-        config.getServiceConfigurations().toArray(new ServiceConfiguration<?>[config.getServiceConfigurations().size()])
+        serviceConfigs
     );
 
     Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(adjustedConfig), serviceConfigs);
