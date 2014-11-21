@@ -180,6 +180,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
       cache.obliterate();
     } catch (CacheAccessException e) {
       inconsistent(from, e);
+      return;
     }
     recovered(from);
   }
@@ -190,6 +191,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
       cache.obliterate(keys);
     } catch (CacheAccessException e) {
       inconsistent(keys, from, e);
+      return;
     }
     recovered(keys, from);
   }
@@ -199,6 +201,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
       cache.obliterate(key);
     } catch (CacheAccessException e) {
       inconsistent(key, from, e);
+      return;
     }
     recovered(key, from);
   }
