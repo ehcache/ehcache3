@@ -19,6 +19,10 @@ package org.ehcache.statistics;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.ehcache.StandaloneCache;
 import org.ehcache.StandaloneCacheBuilder;
 import org.junit.Before;
@@ -31,7 +35,7 @@ import org.junit.Test;
  */
 public class StatisticsTest {
   private StandaloneCache<Number, String> cache;
-  private long                            capacity = 10;
+  private final long                            capacity = 10;
 
   @Before
   public void setup() throws Exception {
@@ -65,6 +69,12 @@ public class StatisticsTest {
     cache.replace(100, "blah"); // get(miss)
     cache.replace(2, "two", "dos"); // get(hit) + put
     cache.replace(3, "blah", "tres"); // get(miss)
+    
+    Map<Number, String> map = new HashMap<Number, String>() {{ put(4, "four"); put(5, "five"); put(6, "six"); }};
+    cache.putAll(map.entrySet()); // 3 puts
+    cache.putAll(map.entrySet()); // 3 more puts
+    
+    cache.getAll(Arrays.asList(1, 2, 3, -874238723)); // 3 gets(hit), 1 get(miss)
 
     cache.get(1); // get(hit)
     cache.get(2); // get(hit)
@@ -73,14 +83,21 @@ public class StatisticsTest {
     cache.get(-2); // get(miss)
 
     cache.remove(1); // remove
-
-    long expectedPuts = 6;
-    long expectedGets = 10;
-    long expectedHits = 6;
-    long expectedMisses = 4;
-    long expectedRemovals = 1;
+    
+    cache.removeAll(Arrays.asList(2, 3)); // 2 removes
+    cache.removeAll(Arrays.asList(-423)); // nothing
+    
+    cache.put(1, "tim"); // put
+    cache.remove(1, "not tim"); // get(miss)
+    cache.remove(1, "tim"); // get(hit), remove
+    
+    long expectedPuts = 13;
+    long expectedGets = 16;
+    long expectedHits = 10;
+    long expectedMisses = 6;
+    long expectedRemovals = 4;
     float hitPercentage = (float) expectedHits / expectedGets * 100;
-    float misssPercentage = (float) expectedMisses / expectedGets * 100;
+    float missPercentage = (float) expectedMisses / expectedGets * 100;
 
     CacheStatistics stats = cache.getStatistics();
 
@@ -90,6 +107,6 @@ public class StatisticsTest {
     assertThat(stats.getCacheMisses(), equalTo(expectedMisses));
     assertThat(stats.getCacheRemovals(), equalTo(expectedRemovals));
     assertThat(stats.getCacheHitPercentage(), equalTo(hitPercentage));
-    assertThat(stats.getCacheMissPercentage(), equalTo(misssPercentage));
+    assertThat(stats.getCacheMissPercentage(), equalTo(missPercentage));
   }
 }
