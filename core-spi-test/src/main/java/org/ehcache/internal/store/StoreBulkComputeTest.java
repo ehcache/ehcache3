@@ -58,8 +58,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void remappingFunctionReturnsIterableOfEntriesForEachInputEntry() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
-        .getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
     final K k1 = factory.createKey(1L);
     final V v1 = factory.createValue(1L);
 
@@ -89,8 +88,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongKeyType() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
-        .getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
     Set<K> set = new HashSet<K>();
     if (factory.getKeyType() == String.class) {
       set.add((K) new Object());
@@ -116,8 +114,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void mappingIsRemovedFromStoreForNullValueEntriesFromRemappingFunction() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
-        .getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
     final K k1 = factory.createKey(1L);
     final V v1 = factory.createValue(1L);
 
@@ -145,8 +142,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void remappingFunctionGetsIterableWithMappedStoreEntryValueOrNull() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
-        .getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
     final K k1 = factory.createKey(1L);
 
     Set<K> set = new HashSet<K>();
@@ -173,8 +169,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void computeValuesForEveryKeyUsingARemappingFunction() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
-        .getValueType(), null, Predicates.<Cache.Entry<K, V>> all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
     final K k1 = factory.createKey(1L);
     final V v1 = factory.createValue(1L);
 
@@ -200,8 +195,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testRemappingFunctionProducesWrongKeyType() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
-        .getValueType(), null, Predicates.<Cache.Entry<K, V>> all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
     final K k1 = factory.createKey(1L);
     final V v1 = factory.createValue(1L);
     Set<K> set = new HashSet<K>();
@@ -231,8 +225,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testRemappingFunctionProducesWrongValueType() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
-        .getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
     final K k1 = factory.createKey(1L);
     Set<K> set = new HashSet<K>();
     set.add(k1);

@@ -58,8 +58,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void mappingFunctionReturnsIterableOfEntriesForEachInputEntry() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
-        .getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
     final K k1 = factory.createKey(1L);
     final V v1 = factory.createValue(1L);
 
@@ -86,8 +85,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void missingIterableEntriesAreIgnoredByTheStore() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
-        .getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
     final K k1 = factory.createKey(1L);
     final V v1 = factory.createValue(1L);
 
@@ -114,8 +112,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void mappingIsSameInTheStoreForEntriesReturnedWithDifferentValueFromMappingFunction() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
-        .getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
     final K k1 = factory.createKey(1L);
     final V v1 = factory.createValue(1L);
     final V v10 = factory.createValue(10L);
@@ -144,8 +141,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongKeyType() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
-        .getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
     Set<K> set = new HashSet<K>();
     if (factory.getKeyType() == String.class) {
       set.add((K) new Object());
@@ -171,8 +167,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void computeValuesForEveryKeyUsingAMappingFunction() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
-        .getValueType(), null, Predicates.<Cache.Entry<K, V>> all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
     final K k1 = factory.createKey(1L);
     final V v1 = factory.createValue(1L);
 
@@ -198,8 +193,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testMappingFunctionProducesWrongKeyType() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
-        .getValueType(), null, Predicates.<Cache.Entry<K, V>> all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
     final K k1 = factory.createKey(1L);
     final V v1 = factory.createValue(1L);
     Set<K> set = new HashSet<K>();
@@ -229,8 +223,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testMappingFunctionProducesWrongValueType() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(new StoreConfigurationImpl<K, V>(factory.getKeyType(), factory
-        .getValueType(), null, Predicates.<Cache.Entry<K, V>>all(), null, ClassLoader.getSystemClassLoader(), Expirations.noExpiration()));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
     final K k1 = factory.createKey(1L);
     Set<K> set = new HashSet<K>();
     set.add(k1);
