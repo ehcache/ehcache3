@@ -39,8 +39,8 @@ import java.util.concurrent.ThreadFactory;
  * Per-cache component that manages cache event listener registrations, and provides event delivery based on desired
  * firing mode and ordering, for specified event types. 
  * <p>
- * <h5>Note on event ordering guarantees:</h5> {@link #onEvent(CacheEvent)} is assumed to be called from within a per-key
- * lock scope. If that is not the case, this facility has no means for maintaining event ordering consistent with source 
+ * <h5>Note on event ordering guarantees:</h5> {@link #onEvent(CacheEvent)} is assumed to be called within a key-based
+ * lock scope. If that is not the case, this facility has no means of maintaining event ordering consistent with source 
  * of such events. That is - listeners registered to receive events in the order they occurred in underlying store may be 
  * invoked in an order inconsistent with actual ordering of corresponding operations on said store.
  * <p>
@@ -49,7 +49,7 @@ import java.util.concurrent.ThreadFactory;
  * 
  * @author vfunshte
  */
-public final class CacheEventNotificationService<K, V> {
+public class CacheEventNotificationService<K, V> {
   
   /**
    * Allows for registering {@link org.ehcache.event.CacheEventListener} on the cache

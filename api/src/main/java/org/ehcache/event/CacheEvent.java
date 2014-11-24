@@ -38,9 +38,9 @@ public interface CacheEvent<K, V> {
   Cache.Entry<K, V> getEntry();
 
   /**
-   * Returns the value associated with the mapping prior to the mutation being applied
+   * Returns the value associated with the key prior to the mutation being applied
    *
-   * @return the previous value associated to the key, prior the update
+   * @return the previous value associated with the key, prior to the update
    */
   V getPreviousValue();
 

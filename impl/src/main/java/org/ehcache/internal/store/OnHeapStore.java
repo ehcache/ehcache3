@@ -72,7 +72,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   private final Comparator<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionPrioritizer;
   private final Expiry<? super K, ? super V> expiry;
   private final TimeSource timeSource;
-  private volatile StoreEventListener<K, V> eventListener; 
+  private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener(); 
   
   private final OperationObserver<EvictionOutcome> evictionObserver = operation(EvictionOutcome.class).named("eviction").of(this).tag("onheap-store").build();
  
