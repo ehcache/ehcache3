@@ -24,6 +24,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheWriterException;
 
 import static java.util.Collections.emptyMap;
+import org.ehcache.exceptions.CacheLoaderException;
 import static org.ehcache.util.KeysIterable.keysOf;
 
 /**
@@ -48,6 +49,12 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   public V getFailure(K key, V loaded, CacheAccessException e) {
     cleanup(key, e);
     return loaded;
+  }
+
+  @Override
+  public V getFailure(K key, CacheAccessException e, CacheLoaderException f) {
+    cleanup(key, e);
+    throw f;
   }
 
   @Override

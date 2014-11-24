@@ -22,6 +22,7 @@ import org.ehcache.Cache;
 import org.ehcache.exceptions.BulkCacheLoaderException;
 import org.ehcache.exceptions.BulkCacheWriterException;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CacheLoaderException;
 import org.ehcache.exceptions.CacheWriterException;
 
 /**
@@ -59,8 +60,19 @@ public interface ResilienceStrategy<K, V> {
   V getFailure(K key, V loaded, CacheAccessException e);
   
   /**
+   * Called when a {@link Cache#get(java.lang.Object)} fails on a cache with a
+   * cache loader due to an underlying store failure.
+   * 
+   * @param key the key being retrieved
+   * @param e the cache failure
+   * @param f the loader failure
+   * @return the value to return from the operation
+   */
+  V getFailure(K key, CacheAccessException e, CacheLoaderException f);
+  
+  /**
    * Called when a {@link Cache#containsKey(java.lang.Object)} fails due to an
-   * underlying store failure.
+   * underlying store failure, and the resultant cache load operation also fails.
    * 
    * @param key the key being queried
    * @param e the triggered failure

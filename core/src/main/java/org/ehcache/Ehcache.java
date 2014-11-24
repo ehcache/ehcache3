@@ -162,7 +162,13 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         if (cacheLoader == null) {
           return resilienceStrategy.getFailure(key, e);
         } else {
-          return resilienceStrategy.getFailure(key, mappingFunction.apply(key), e);
+          V fromLoader;
+          try {
+            fromLoader = mappingFunction.apply(key);
+          } catch (CacheLoaderException f) {
+            return resilienceStrategy.getFailure(key, e, f);
+          }
+          return resilienceStrategy.getFailure(key, fromLoader, e);
         }
       } finally {
         getObserver.end(GetOutcome.FAILURE);
