@@ -129,6 +129,10 @@ public interface ResilienceStrategy<K, V> {
   /**
    * Called when a {@link Cache#putIfAbsent(java.lang.Object, java.lang.Object)}
    * fails due to an underlying store failure.
+   * <p>
+   * If it is known at the time of calling that the key is absent from the cache
+   * (and the writer if one is present) then {@code knownToBeAbsent} will be
+   * {@code true}.
    * 
    * @param key the key being put
    * @param value the value being put
@@ -154,6 +158,10 @@ public interface ResilienceStrategy<K, V> {
   /**
    * Called when a {@link Cache#remove(java.lang.Object, java.lang.Object)}
    * fails due to an underlying store failure.
+   * <p>
+   * If it is known at the time of calling that the targeted mapping  is present
+   * in the cache (or the writer if one is present) then {@code knownToBePresent}
+   * will be {@code true}.
    * 
    * @param key the key being removed
    * @param value the value being removed
@@ -203,6 +211,10 @@ public interface ResilienceStrategy<K, V> {
   /**
    * Called when a {@link Cache#replace(java.lang.Object, java.lang.Object, java.lang.Object)}
    * fails due to an underlying store failure.
+   * <p>
+   * If it is known at the time of calling that the target mapping  is present
+   * in the cache (or the writer if one is present) then {@code knownToBeMatch}
+   * will be {@code true}.
    * 
    * @param key the key being replaced
    * @param value the expected value
