@@ -14,28 +14,27 @@ WARNING: *This is still work in progress*. while this represents the API as it e
 
 [source,java]
 ----
-final CacheManager cacheManager
-    = newCacheManagerBuilder() // <1>
-    .withCache("preConfigured", newCacheConfigurationBuilder().buildCacheConfig(Long.class, String.class)) // <2>
-    .build(); // <3>
+CacheManager cacheManager
+    = newCacheManagerBuilder() /* <1> */
+    .withCache("preConfigured", newCacheConfigurationBuilder().buildCacheConfig(Long.class, String.class)) /* <2> */
+    .build(); /* <3> */
 
-final Cache<Long, String> preConfigured = cacheManager.getCache("preConfigured", Long.class, String.class); // <4>
+Cache<Long, String> preConfigured = cacheManager.getCache("preConfigured", Long.class, String.class); /* <4> */
 
-final Cache<Long, String> myCache = cacheManager.createCache("myCache", // <5>
+Cache<Long, String> myCache = cacheManager.createCache("myCache", /* <5> */
     newCacheConfigurationBuilder().buildCacheConfig(Long.class, String.class));
 
-myCache.put(1L, "da one!"); // <6>
-final String value = myCache.get(1L); // <7>
+myCache.put(1L, "da one!"); /* <6> */
+String value = myCache.get(1L); /* <7> */
 
-cacheManager.removeCache("preConfigured"); // <8>
+cacheManager.removeCache("preConfigured"); /* <8> */
 
-final StandaloneCache<Long, String> standaloneCache = newCacheBuilder(Long.class, String.class)
-    .build(); // <9>
-standaloneCache.init(); // <10>
+StandaloneCache<Long, String> standaloneCache = newCacheBuilder(Long.class, String.class).build(); /* <9> */
+standaloneCache.init(); /* <10> */
 
-cacheManager.close(); // <11>
+cacheManager.close(); /* <11> */
 
-standaloneCache.close(); // <12>
+standaloneCache.close(); /* <12> */
 ----
 
 <1> Static method +org.ehcache.CacheManagerBuilder.newCacheManagerBuilder+ that returns a new +org.ehcache.CacheManagerBuilder+
