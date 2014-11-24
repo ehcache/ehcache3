@@ -158,7 +158,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         if (mappedValue == null || mappedValue.isExpired(now)) {
           return newValueHolder(key, value, now);
         }
-       
+
         returnValue.set(mappedValue);
         setAccessTimeAndExpiry(key, mappedValue, now);
         return mappedValue;
@@ -427,7 +427,18 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       final ValueHolder<V> newValue = computeIfAbsent(key, new Function<K, V>() {
         @Override
         public V apply(final K k) {
-          return mappingFunction.apply(Collections.singleton(k)).iterator().next().getValue();
+          final Iterable<K> keySet = Collections.singleton(k);
+          final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries = mappingFunction.apply(keySet);
+          final java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = entries.iterator();
+          final Map.Entry<? extends K, ? extends V> next = iterator.next();
+
+          K key = next.getKey();
+          V value = next.getValue();
+          checkKey(key);
+          if (value != null) {
+            checkValue(value);
+          }
+          return value;
         }
       });
       result.put(key, newValue);
@@ -448,7 +459,18 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       final ValueHolder<V> newValue = compute(key, new BiFunction<K, V, V>() {
         @Override
         public V apply(final K k, final V oldValue) {
-          return remappingFunction.apply(Collections.singletonMap(k, oldValue).entrySet()).iterator().next().getValue();
+          final Set<Map.Entry<K, V>> entrySet = Collections.singletonMap(k, oldValue).entrySet();
+          final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries = remappingFunction.apply(entrySet);
+          final java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = entries.iterator();
+          final Map.Entry<? extends K, ? extends V> next = iterator.next();
+
+          K key = next.getKey();
+          V value = next.getValue();
+          checkKey(key);
+          if (value != null) {
+            checkValue(value);
+          }
+          return value;
         }
       });
       result.put(key, newValue);
