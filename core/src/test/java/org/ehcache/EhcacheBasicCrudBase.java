@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
@@ -177,7 +178,8 @@ public abstract class EhcacheBasicCrudBase {
     private final Map<String, ValueHolder<String>> entries;
 
     public MockStore(final Map<String, String> entries) {
-      this.entries = new HashMap<String, ValueHolder<String>>();
+      // Use of ConcurrentHashMap is required to avoid ConcurrentModificationExceptions using Iterator.remove
+      this.entries = new ConcurrentHashMap<String, ValueHolder<String>>();
       if (entries != null) {
         for (final Map.Entry<String, String> entry : entries.entrySet()) {
           this.entries.put(entry.getKey(), new MockValueHolder(entry.getValue()));
@@ -284,9 +286,59 @@ public abstract class EhcacheBasicCrudBase {
     public void maintenance() {
     }
 
+    /**
+     * {@inheritDoc}
+     * <p/>
+     * The {@code Iterator} returned by this method <b>does not</b> have a {@code remove}
+     * method.  The {@code Iterator} returned by {@code MockStore.this.entries.entrySet().iterator()}
+     * must not throw {@link java.util.ConcurrentModificationException ConcurrentModification}.
+     */
     @Override
     public Iterator<Cache.Entry<String, ValueHolder<String>>> iterator() throws CacheAccessException {
-      throw new UnsupportedOperationException();
+
+      return new Iterator<Cache.Entry<String, ValueHolder<String>>>() {
+
+        final java.util.Iterator<Map.Entry<String, ValueHolder<String>>> iterator =
+            MockStore.this.entries.entrySet().iterator();
+
+        @Override
+        public boolean hasNext() throws CacheAccessException {
+          return this.iterator.hasNext();
+        }
+
+        @Override
+        public Cache.Entry<String, ValueHolder<String>> next() throws CacheAccessException {
+
+          final Map.Entry<String, ValueHolder<String>> cacheEntry = this.iterator.next();
+
+          return new Cache.Entry<String, ValueHolder<String>>() {
+
+            public String getKey() {
+              return cacheEntry.getKey();
+            }
+
+            @Override
+            public ValueHolder<String> getValue() {
+              return cacheEntry.getValue();
+            }
+
+            @Override
+            public long getCreationTime(final TimeUnit unit) {
+              return cacheEntry.getValue().creationTime(unit);
+            }
+
+            @Override
+            public long getLastAccessTime(final TimeUnit unit) {
+              return cacheEntry.getValue().lastAccessTime(unit);
+            }
+
+            @Override
+            public float getHitRate(final TimeUnit unit) {
+              return cacheEntry.getValue().hitRate(unit);
+            }
+          };
+        }
+      };
     }
 
     @Override
@@ -370,12 +422,12 @@ public abstract class EhcacheBasicCrudBase {
 
       @Override
       public long creationTime(final TimeUnit unit) {
-        return this.creationTime;
+        return unit.convert(this.creationTime, TimeUnit.MICROSECONDS);
       }
 
       @Override
       public long lastAccessTime(final TimeUnit unit) {
-        return this.lastAccessTime;
+        return unit.convert(this.lastAccessTime, TimeUnit.MICROSECONDS);
       }
 
       @Override
