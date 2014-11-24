@@ -54,6 +54,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -291,84 +292,125 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   }
 
   @Override
-  public Map<K, V> getAll(Iterable<? extends K> keys) throws BulkCacheLoaderException {
+  public Map<K, V> getAll(final Iterable<? extends K> keys) throws BulkCacheLoaderException {
+    getObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(keys);
+    
     final Map<K, V> successes = new HashMap<K, V>();
     final Map<K, Exception> failures = new HashMap<K, Exception>();
-    Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction = new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+    
+    Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> computeFunction =
+        new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
       @Override
-      public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> keys) {
+      public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+        Set<K> missingKeys = new HashSet<K>();
+        Map<K, V> computeResult = new LinkedHashMap<K ,V>();
+        
+        // put all the entries to get ordering correct, and find missing keys
+        for (Map.Entry<? extends K, ? extends V> entry : entries) {
+          K key = entry.getKey();
+          V value = entry.getValue();
+          computeResult.put(key, value);
+          if (value == null) {
+            missingKeys.add(key);
+          } else {
+            successes.put(key, value);
+            getObserver.end(GetOutcome.HIT_NO_LOADER);
+            getObserver.begin();
+          }
+        }
+
         if (cacheLoader != null) {
-          Map<K, V> loaded;
+          Map<K, V> loaded = Collections.emptyMap();
           try {
-            loaded = (Map<K, V>)cacheLoader.loadAll(keys);
-            successes.putAll(loaded);
+            loaded = (Map<K, V>) cacheLoader.loadAll(missingKeys);
           } catch (Exception e) {
-            for (K key: keys) {
+            for (K key : missingKeys) {
               failures.put(key, e);
             }
-            return Collections.<Map.Entry<K, V>>emptySet();
           }
-          return loaded.entrySet();
+          
+          for (Map.Entry<K, V> loadedEntry : loaded.entrySet()) {
+            K key = loadedEntry.getKey();
+            if (! missingKeys.contains(key)) {
+              throw newCacheLoaderException(new RuntimeException("Cache loader returned value for key: " + key));
+            }
+            V value = loadedEntry.getValue();
+            successes.put(key, value);
+            if (value == null) {
+              getObserver.end(GetOutcome.MISS_WITH_LOADER);
+              getObserver.begin();
+            } else {
+              getObserver.end(GetOutcome.HIT_WITH_LOADER);
+              getObserver.begin();
+            }
+            computeResult.put(key, value);
+          }
+        } else {
+          for (int i = 0; i < missingKeys.size(); i++) {
+            getObserver.end(GetOutcome.MISS_NO_LOADER);
+            getObserver.begin();
+          }
         }
-        return Collections.<Map.Entry<K, V>>emptySet();
+        return computeResult.entrySet();
       }
     };
-
-    Map<K, V> result = new HashMap<K, V>();
     try {
-      Map<K, Store.ValueHolder<V>> computedMap = store.bulkComputeIfAbsent(keys, mappingFunction);
-     
-      if (computedMap == null) {
-        return Collections.emptyMap();
-      }
-
+      Map<K, Store.ValueHolder<V>> computedMap = store.bulkCompute(keys, computeFunction);
+      
+      Map<K, V> result = new HashMap<K, V>();
       for (Map.Entry<K, Store.ValueHolder<V>> entry : computedMap.entrySet()) {
-        result.put(entry.getKey(), entry.getValue().value());
+        ValueHolder<V> valueHolder = entry.getValue();
+        result.put(entry.getKey(), valueHolder == null ? null : valueHolder.value());
       }
+      
       addBulkMethodEntriesCount("getAll", result.size());
+      return result;
     } catch (CacheAccessException e) {
       removeKeysWithStrategy(keys, e);
       if (failures.isEmpty()) {
-        Set<K> toLoad = new HashSet<K>();
+        Map<K, V> toLoad = new LinkedHashMap<K, V>();
         for (K key: keys) {
-          toLoad.add(key);
+          if (! successes.containsKey(key)) {
+            toLoad.put(key, null);
+          }
         }
-        toLoad.removeAll(successes.keySet());
-        mappingFunction.apply(toLoad);
-        return successes;
+        
+        computeFunction.apply(toLoad.entrySet());
       }
+        
+      return successes;
     } finally {
-      if (!failures.isEmpty()) {
+      if (! failures.isEmpty()) {
         throw new BulkCacheLoaderException(failures, successes);
       }
     }
-    return result;
   }
 
   @Override
   public void putAll(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws CacheWriterException {
+    putObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(entries);
     final Set<K> successes = new HashSet<K>();
     final Map<K, Exception> failures = new HashMap<K, Exception>();
 
     // Copy all entries to write into a Map
-    final ConcurrentMap<K, V> entriesToRemap = new ConcurrentHashMap<K, V>();
+    final Map<K, V> entriesToRemap = new HashMap<K, V>();
     for (Map.Entry<? extends K, ? extends V> entry: entries) {
-      // If a value to map is null, throw NPE, nothing gets mutated
-      if(entry.getValue() == null) {
+      // If a key/value to map is null, throw NPE, nothing gets mutated
+      if (entry.getKey() == null || entry.getValue() == null) {
         throw new NullPointerException();
       }
       entriesToRemap.put(entry.getKey(), entry.getValue());
     }
     
-    long entriesCount = entriesToRemap.size();
+    final int entriesCount = entriesToRemap.size();
 
-    // The remapping function that will return the keys to their NEW values, taking the keys to their old values as input;
-    // but this could happen in batches, i.e. not the same unique Set as passed to this method
-    Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction =
+    // The compute function that will return the keys to their NEW values, taking the keys to their old values as input;
+    // but this could happen in batches, i.e. not necessary containing all of the entries of the Iterable passed to this method
+    Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> computeFunction =
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
       @Override
       public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
@@ -376,62 +418,81 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         // If we have a writer, first write this batch
         cacheWriterPutAllCall(entries, entriesToRemap, successes, failures);
 
-        Map<K, V> mutations = new HashMap<K, V>();
+        Map<K, V> computeResult = new LinkedHashMap<K, V>();
 
         // then record we handled these mappings
         for (Map.Entry<? extends K, ? extends V> entry: entries) {
-          mutations.put(entry.getKey(), entriesToRemap.remove(entry.getKey()));
+          K key = entry.getKey();
+          if (cacheLoader == null || successes.contains(key)) {
+            computeResult.put(entry.getKey(), entriesToRemap.remove(entry.getKey()));
+          } else {
+            computeResult.put(entry.getKey(), entry.getValue());
+          }
         }
 
         // Finally return the values to be installed in the Cache's Store
-        return mutations.entrySet();
+        return computeResult.entrySet();
       }
     };
 
     KeysIterable keys = new KeysIterable(entries);
     try {
-      store.bulkCompute(keys, remappingFunction);
+      store.bulkCompute(keys, computeFunction);
+      for (@SuppressWarnings("unused") K key : keys) {
+        // XXX: this is going to mess with put times. One potentially slow followed by lots of fast ones
+        putObserver.end(PutOutcome.ADDED);
+        putObserver.begin();
+      }
       addBulkMethodEntriesCount("putAll", entriesCount);
     } catch (CacheAccessException e) {
+      for (@SuppressWarnings("unused") K key : keys) {
+        putObserver.end(PutOutcome.FAILURE);
+        putObserver.begin();
+      }
+      
       // just in case not all writes happened:
       try {
-        if (!entriesToRemap.isEmpty()) {
+        if (! entriesToRemap.isEmpty()) {
           cacheWriterPutAllCall(entriesToRemap.entrySet(), entriesToRemap, successes, failures);
         }
       } finally {
         removeKeysWithStrategy(keys, e);
       }
     } finally {
-      if (!failures.isEmpty()) {
+      if (! failures.isEmpty()) {
         throw new BulkCacheWriterException(failures, successes);
       }
     }
   }
 
-  private void cacheWriterPutAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, ConcurrentMap<K, V> entriesToRemap, Set<K> successes, Map<K, Exception> failures) {
+  private void cacheWriterPutAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Map<K, V> entriesToRemap, Set<K> successes, Map<K, Exception> failures) {
     if (cacheWriter != null) {
-      // Can't use an iterable again, so flatting down to a Map
-      // todo might want to fix the typing here
-      Map<K, V> toWrite = new HashMap<K, V>();
+      Set<K> allKeys = new HashSet<K>();
+      Collection<Map.Entry<? extends K, ? extends V>> toWrite = new ArrayList<Map.Entry<? extends K, ? extends V>>();
       for (Map.Entry<? extends K, ? extends V> entry: entries) {
-        toWrite.put(entry.getKey(), entriesToRemap.get(entry.getKey()));
+        toWrite.add(entry);
+        allKeys.add(entry.getKey());
       }
+      
       try {
-        if (!toWrite.isEmpty()) {
-          // write all entries of this batch
-          cacheWriter.writeAll(toWrite.entrySet());
-          successes.addAll(toWrite.keySet());
+        if (! toWrite.isEmpty()) {
+          cacheWriter.writeAll(toWrite);
+          successes.addAll(allKeys);
         }
       } catch (Exception e) {
-        for (K key: toWrite.keySet()) {
-          failures.put(key, e);
+        // the keys left in the collection were not written
+        for (Map.Entry<? extends K, ? extends V> entry : toWrite) {
+          failures.put(entry.getKey(), e);
+          allKeys.remove(entry.getKey());
         }
+        successes.addAll(allKeys);
       }
     }
   }
 
   @Override
   public void removeAll(final Iterable<? extends K> keys) throws CacheWriterException {
+    removeObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(keys);
     final Set<K> successes = new HashSet<K>();
@@ -439,20 +500,35 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
     final Map<K, ? extends V> entriesToRemove = new HashMap<K, V>();
     for (K key: keys) {
+      if (key == null) {
+        throw new NullPointerException();
+      }
       entriesToRemove.put(key, null);
     }
-    long entriesCount = entriesToRemove.size();
+    final int entriesCount = entriesToRemove.size();
     
     Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> removalFunction =
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
           cacheWriterDeleteAllCall(entries, successes, failures);
-          Iterable<Map.Entry<K, V>> ret = new NullValuesIterable(entries);
-          for (Map.Entry<K, V> entry: ret) {
-            entriesToRemove.remove(entry.getKey());
+          
+          Map<K, V> computeResult = new LinkedHashMap<K, V>();
+          for (Map.Entry<? extends K, ? extends V> entry : entries) {  
+            K key = entry.getKey();
+            V value = entry.getValue();
+            if (cacheLoader == null || successes.contains(key)) {
+              if (value != null) {
+                // XXX: this is going to mess with remove times. One potentially slow followed by lots of fast ones
+                removeObserver.end(RemoveOutcome.SUCCESS);
+                removeObserver.begin();
+              }
+              computeResult.put(key, null);
+            } else {
+              computeResult.put(key, value);
+            }
           }
-          return ret;
+          return computeResult.entrySet();
         }
       };
 
@@ -460,16 +536,21 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       store.bulkCompute(keys, removalFunction);
       addBulkMethodEntriesCount("removeAll", entriesCount);
     } catch (CacheAccessException e) {
+      for (@SuppressWarnings("unused") K key : keys) {
+        removeObserver.end(RemoveOutcome.FAILURE);
+        removeObserver.begin();
+      }
+      
       // just in case the write didn't happen:
       try {
-        if (!entriesToRemove.isEmpty()) {
+        if (! entriesToRemove.isEmpty()) {
           cacheWriterDeleteAllCall(entriesToRemove.entrySet(), successes, failures);
         }
       } finally {
         removeKeysWithStrategy(keys, e);
       }
     } finally {
-      if (!failures.isEmpty()) {
+      if (! failures.isEmpty()) {
         throw new BulkCacheWriterException(failures, successes);
       }
     }
@@ -478,17 +559,22 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   private void cacheWriterDeleteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Set<K> successes, Map<K, Exception> failures) {
     if (cacheWriter != null) {
-      Set<K> toDelete = new HashSet<K>();
+      Collection<K> toDelete = new ArrayList<K>();
       for (Map.Entry<? extends K, ? extends V> entry: entries) {
         toDelete.add(entry.getKey());
       }
+      Set<K> allKeys = new HashSet<K>(toDelete);
       try {
-        // XXX should the return value here be wrapped in NullValuesIterable and returned? This is a potential subset of "keys"
         cacheWriter.deleteAll(toDelete);
         successes.addAll(toDelete);
       } catch (Exception e) {
-        for (Map.Entry<? extends K, ? extends V> entry: entries) {
-          failures.put(entry.getKey(), e);
+        // remaining keys were not deleted
+        allKeys.removeAll(toDelete);
+        for (K key : allKeys) {
+          successes.add(key);
+        }
+        for (K key: toDelete) {
+          failures.put(key, e);
         }
       }
     }
@@ -556,18 +642,20 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public boolean remove(final K key, final V value) throws CacheWriterException {
+    getObserver.begin();
     removeObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key, value);
     final AtomicBoolean removed = new AtomicBoolean();
-    final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
+    final AtomicBoolean hit = new AtomicBoolean();
+    final BiFunction<K, V, V> computeFunction = memoize(new BiFunction<K, V, V>() {
       @Override
       public V apply(final K k, final V inCache) {
         if (inCache != null) {
           if (inCache.equals(value)) {
             if (cacheWriter != null) {
               try {
-                if(!cacheWriter.delete(k, value)) {
+                if(! cacheWriter.delete(k, value)) {
                   // TODO: revisit for #52
                   return null; // remove cached value but don't set success flag - this is an inline repair
                 }
@@ -575,9 +663,12 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
                 throw newCacheWriterException(e);
               }
             }
+
+            hit.set(true);
             removed.set(true);
             return null;
           }
+
           return inCache;
         } else {
           if (cacheWriter != null) {
@@ -592,23 +683,24 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     });
     try {
-      store.compute(key, remappingFunction);
+      store.compute(key, computeFunction);
       if (removed.get()) {
         removeObserver.end(RemoveOutcome.SUCCESS);
       } else {
         removeObserver.end(RemoveOutcome.FAILURE);
       }
+      if (hit.get()) {
+        getObserver.end(GetOutcome.HIT_NO_LOADER); 
+      } else {
+        getObserver.end(GetOutcome.MISS_NO_LOADER);
+      }
     } catch (CacheAccessException e) {
       removeObserver.end(RemoveOutcome.FAILURE);
       try {
-        remappingFunction.apply(key, null);
+        computeFunction.apply(key, null);
       } finally {
         removeKeysWithStrategy(Collections.singleton(key), e);
       }
-    } catch (CacheWriterException e) {
-      removeObserver.end(RemoveOutcome.FAILURE);
-      removeKeysWithStrategy(Collections.singleton(key), e);
-      throw e;
     }
     return removed.get();
   }
@@ -1061,7 +1153,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
     @Override
     public void remove() {
-      entriesIterator.remove();
+      throw new UnsupportedOperationException();
     }
   }
 
@@ -1106,14 +1198,14 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
         @Override
         public V setValue(V value) {
-          return null;
+          throw new UnsupportedOperationException();
         }
       };
     }
 
     @Override
     public void remove() {
-      iterator.remove();
+      throw new UnsupportedOperationException();
     }
   }
 }

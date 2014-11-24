@@ -33,6 +33,7 @@ import org.ehcache.spi.writer.CacheWriterFactory;
 import org.junit.Test;
 import org.mockito.Matchers;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -47,6 +48,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -108,7 +110,7 @@ public class EhcacheBulkMethodsITest {
     // the call to putAll
     myCache.putAll(stringStringHashMap.entrySet());
 
-    verify(cacheWriter, times(3)).writeAll(Matchers.any(Iterable.class));
+    verify(cacheWriter, times(3)).writeAll(Matchers.any(Collection.class));
     Map iterable = new HashMap(){{put("key2", "value2");}};
     verify(cacheWriter).writeAll(iterable.entrySet());
 
@@ -128,7 +130,7 @@ public class EhcacheBulkMethodsITest {
     CacheWriterFactory cacheWriterFactory = mock(CacheWriterFactory.class);
     CacheWriter cacheWriterThatThrows = mock(CacheWriter.class);
     when(cacheWriterThatThrows.write(Matchers.anyObject(), Matchers.anyObject(), Matchers.anyObject())).thenThrow(new RuntimeException("We should not have called .write() but .writeAll()"));
-    when(cacheWriterThatThrows.writeAll(Matchers.any(Iterable.class))).thenThrow(new Exception("Simulating an exception from the cache writer"));
+    doThrow(new Exception("Simulating an exception from the cache writer")).when(cacheWriterThatThrows).writeAll(Matchers.any(Collection.class));
     when(cacheWriterFactory.createCacheWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheWriterThatThrows);
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheWriterFactory);
@@ -188,7 +190,7 @@ public class EhcacheBulkMethodsITest {
 //      assertThat(cacheWriterToHashMapMap.get("key" + i), is("value" + i));
     }
     // but still, the cache writer could writeAll the values at once !
-    verify(cacheWriter, times(1)).writeAll(Matchers.any(Iterable.class));
+    verify(cacheWriter, times(1)).writeAll(Matchers.any(Collection.class));
     Map iterable = new TreeMap() {{put("key0", "value0"); put("key1", "value1"); put("key2", "value2");}};
     verify(cacheWriter).writeAll(iterable.entrySet());
 
@@ -285,7 +287,7 @@ public class EhcacheBulkMethodsITest {
       fail();
     } catch (BulkCacheLoaderException bcwe) {
       // since onHeapStore.bulkComputeIfAbsent sends batches of 1 element,
-      assertThat(bcwe.getFailures().size(), is(1));
+      assertThat(bcwe.getFailures().size(), is(2));
       assertThat(bcwe.getSuccesses().size(), is(0));
     }
 
@@ -414,7 +416,7 @@ public class EhcacheBulkMethodsITest {
     CacheWriterFactory cacheWriterFactory = mock(CacheWriterFactory.class);
     CacheWriter cacheWriterThatThrows = mock(CacheWriter.class);
     when(cacheWriterThatThrows.write(Matchers.anyObject(), Matchers.anyObject(), Matchers.anyObject())).thenThrow(new RuntimeException("We should not have called .write() but .writeAll()"));
-    when(cacheWriterThatThrows.deleteAll(Matchers.any(Iterable.class))).thenThrow(new Exception("Simulating an exception from the cache writer"));
+    doThrow(new Exception("Simulating an exception from the cache writer")).when(cacheWriterThatThrows).deleteAll(Matchers.any(Collection.class));
     when(cacheWriterFactory.createCacheWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheWriterThatThrows);
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheWriterFactory);
