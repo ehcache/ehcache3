@@ -358,6 +358,24 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceHasStoreEntryCacheWriterException() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "oldValue"));
+    this.store = spy(realStore);
+
+    final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "oldValue"));
+    this.cacheWriter = spy(realCache);
+    doThrow(new Exception()).when(this.cacheWriter).write("key", "value");
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+
+    try {
+      ehcache.replace("key", "value");
+      fail();
+    } catch (CacheWriterException e) {
+      // Expected
+    }
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
   /**
@@ -370,6 +388,18 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceHasStoreEntryCacheAccessExceptionNoCacheWriter() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "oldValue"));
+    this.store = spy(realStore);
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
+
+    assertNull(ehcache.replace("key", "value"));
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    validateStats(ehcache,
+        EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE, CacheOperationOutcomes.ReplaceOutcome.MISS));   // TODO: Confirm correctness
   }
 
   /**
@@ -382,6 +412,20 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceHasStoreEntryCacheAccessExceptionNoCacheWriterEntry() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "oldValue"));
+    this.store = spy(realStore);
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+
+    final MockCacheWriter realCache = new MockCacheWriter(Collections.<String, String>emptyMap());
+    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+
+    assertNull(ehcache.replace("key", "value"));    // TODO: Confirm correctness
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    assertThat(realCache.getEntries().get("key"), is(equalTo("value")));
+    validateStats(ehcache,
+        EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE, CacheOperationOutcomes.ReplaceOutcome.MISS));   // TODO: Confirm correctness
   }
 
   /**
@@ -394,6 +438,20 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceHasStoreEntryCacheAccessExceptionHasCacheWriterEntry() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "oldValue"));
+    this.store = spy(realStore);
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+
+    final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "oldValue"));
+    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+
+    assertNull(ehcache.replace("key", "value"));    // TODO: Confirm correctness
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    assertThat(realCache.getEntries().get("key"), is(equalTo("value")));
+    validateStats(ehcache,
+        EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE, CacheOperationOutcomes.ReplaceOutcome.MISS));   // TODO: Confirm correctness
   }
 
   /**
@@ -406,6 +464,25 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceHasStoreEntryCacheAccessExceptionCacheWriterException() throws Exception {
+    final MockStore realStore = new MockStore(Collections.singletonMap("key", "oldValue"));
+    this.store = spy(realStore);
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+
+    final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "oldValue"));
+    this.cacheWriter = spy(realCache);
+    doThrow(new Exception()).when(this.cacheWriter).write("key", "value");
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+
+    try {
+      ehcache.replace("key", "value");
+      fail();
+    } catch (CacheWriterException e) {
+      // Expected
+    }
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store, times(1)).remove("key");
+    assertThat(realStore.getMap().containsKey("key"), is(false));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
   
   /**
