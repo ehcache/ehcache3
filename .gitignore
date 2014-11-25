@@ -14,3 +14,4 @@ build/
 .idea
 
 .nb-gradle
+.nb-gradle-properties

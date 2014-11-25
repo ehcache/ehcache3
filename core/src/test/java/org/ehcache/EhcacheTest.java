@@ -64,8 +64,10 @@ public class EhcacheTest {
   }
 
   @Test
-  public void testThrowsWhenNotAvailable() {
+  public void testThrowsWhenNotAvailable() throws CacheAccessException {
     Store store = mock(Store.class);
+    Store.Iterator mockIterator = mock(Store.Iterator.class);
+    when(store.iterator()).thenReturn(mockIterator);
     Ehcache ehcache = new Ehcache(new CacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
 
     try {
