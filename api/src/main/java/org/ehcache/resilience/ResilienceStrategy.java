@@ -24,6 +24,8 @@ import org.ehcache.exceptions.BulkCacheWriterException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoaderException;
 import org.ehcache.exceptions.CacheWriterException;
+import org.ehcache.spi.loader.CacheLoader;
+import org.ehcache.spi.writer.CacheWriter;
 
 /**
  * A strategy for providing cache resilience in the face of failure.
@@ -33,6 +35,12 @@ import org.ehcache.exceptions.CacheWriterException;
  * these methods are expected to take suitable recovery steps.  They can then
  * choose between allowing the operation to terminate successfully, or throw an
  * exception which will be propagated to the thread calling in to the cache.
+ * <p>
+ * Resilience in this context refers only to resilience against cache failures
+ * and not to resilience against failures of any underlying {@link CacheWriter}
+ * or {@link CacheLoader}.  To this end writer or loader failures will only be
+ * reported to the strategy in the context of a coincident cache failure.
+ * Isolated writer and loader exceptions will be thrown directly.
  * 
  * @author Chris Dennis
  */
