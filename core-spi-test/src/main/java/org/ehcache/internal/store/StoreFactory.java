@@ -16,12 +16,10 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.Cache;
-import org.ehcache.function.Predicate;
+import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
-
-import java.util.Comparator;
 
 /**
  * @author Alex Snaps
@@ -36,7 +34,7 @@ public interface StoreFactory<K, V> {
 
   Store.Configuration<K, V> newConfiguration(
       Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
-      Predicate<Cache.Entry<K, V>> evictionVeto, Comparator<Cache.Entry<K, V>> evictionPrioritizer);
+      EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer);
 
   Class<K> getKeyType();
 

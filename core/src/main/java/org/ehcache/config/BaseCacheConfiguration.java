@@ -19,13 +19,10 @@ package org.ehcache.config;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Set;
 
-import org.ehcache.Cache;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.function.Predicate;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -37,16 +34,16 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final Comparable<Long> capacityConstraint;
-  private final Predicate<Cache.Entry<K, V>> evictionVeto;
-  private final Comparator<Cache.Entry<K, V>> evictionPrioritizer;
+  private final EvictionVeto<? super K, ? super V> evictionVeto;
+  private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private final Collection<ServiceConfiguration<?>> serviceConfigurations;
   private final SerializationProvider serializationProvider;
   private final ClassLoader classLoader;
-  private final Expiry<K, V> expiry;
+  private final Expiry<? super K, ? super V> expiry;
 
   public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
-          Predicate<Cache.Entry<K, V>> evictionVeto, Comparator<Cache.Entry<K, V>> evictionPrioritizer,
-          ClassLoader classLoader, Expiry<K, V> expiry, SerializationProvider serializationProvider, ServiceConfiguration<?>... serviceConfigurations) {
+          EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
+          ClassLoader classLoader, Expiry<? super K, ? super V> expiry, SerializationProvider serializationProvider, ServiceConfiguration<?>... serviceConfigurations) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.capacityConstraint = capacityConstraint;
@@ -79,12 +76,12 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   }
 
   @Override
-  public Predicate<Cache.Entry<K, V>> getEvictionVeto() {
+  public EvictionVeto<? super K, ? super V> getEvictionVeto() {
     return evictionVeto;
   }
 
   @Override
-  public Comparator<Cache.Entry<K, V>> getEvictionPrioritizer() {
+  public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
     return evictionPrioritizer;
   }
 
@@ -105,7 +102,7 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   }  
   
   @Override
-  public Expiry<K, V> getExpiry() {
+  public Expiry<? super K, ? super V> getExpiry() {
     return expiry;
   }
 }

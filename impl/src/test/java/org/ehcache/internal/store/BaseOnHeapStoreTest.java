@@ -660,6 +660,7 @@ public abstract class BaseOnHeapStoreTest {
 
   protected abstract <K, V> OnHeapStore<K, V> newStore();
 
-  protected abstract <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource, final Expiry<? super K, ? super V> expiry);
+  protected abstract <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
+      final Expiry<? super K, ? super V> expiry);
 
 }

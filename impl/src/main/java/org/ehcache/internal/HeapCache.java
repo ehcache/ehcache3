@@ -16,21 +16,20 @@
 
 package org.ehcache.internal;
 
-import org.ehcache.Cache;
 import org.ehcache.Ehcache;
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
-import org.ehcache.function.Predicate;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -66,12 +65,12 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
       }
 
       @Override
-      public Predicate<Cache.Entry<K, V>> getEvictionVeto() {
+      public EvictionVeto<? super K, ? super V> getEvictionVeto() {
         throw new UnsupportedOperationException("Implement me!");
       }
 
       @Override
-      public Comparator<Cache.Entry<K, V>> getEvictionPrioritizer() {
+      public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
         throw new UnsupportedOperationException("Implement me!");
       }
 
@@ -91,7 +90,7 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
       }
       
       @Override
-      public Expiry<K, V> getExpiry() {
+      public Expiry<? super K, ? super V> getExpiry() {
         throw new UnsupportedOperationException("Implement me!");
       }
         },

@@ -16,9 +16,7 @@
 
 package org.ehcache.config;
 
-import org.ehcache.Cache;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.function.Predicate;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
 
@@ -33,8 +31,8 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final Comparable<Long> capacityConstraint;
-  private final Predicate<Cache.Entry<K, V>> evictionVeto;
-  private final Comparator<Cache.Entry<K, V>> evictionPrioritizer;
+  private final EvictionVeto<? super K, ? super V> evictionVeto;
+  private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private final SerializationProvider serializationProvider;
   private final ClassLoader classLoader;
   private final Expiry<? super K, ? super V> expiry;
@@ -42,11 +40,11 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   public StoreConfigurationImpl(CacheConfiguration<K, V> cacheConfig) {
     this(cacheConfig.getKeyType(), cacheConfig.getValueType(), cacheConfig.getCapacityConstraint(),
             cacheConfig.getEvictionVeto(), cacheConfig.getEvictionPrioritizer(), cacheConfig.getClassLoader(),
-            cacheConfig.getExpiry(), cacheConfig.getSerializationProvider());
+        cacheConfig.getExpiry(), cacheConfig.getSerializationProvider());
   }
 
   public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
-          Predicate<Cache.Entry<K, V>> evictionVeto, Comparator<Cache.Entry<K, V>> evictionPrioritizer,
+          EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
           ClassLoader classLoader, Expiry<? super K, ? super V> expiry, SerializationProvider serializationProvider) {
     this.keyType = keyType;
     this.valueType = valueType;
@@ -74,12 +72,12 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   }
 
   @Override
-  public Predicate<Cache.Entry<K, V>> getEvictionVeto() {
+  public EvictionVeto<? super K, ? super V> getEvictionVeto() {
     return evictionVeto;
   }
 
   @Override
-  public Comparator<Cache.Entry<K, V>> getEvictionPrioritizer() {
+  public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
     return evictionPrioritizer;
   }
 

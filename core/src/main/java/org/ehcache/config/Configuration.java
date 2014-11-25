@@ -16,38 +16,19 @@
 
 package org.ehcache.config;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 import org.ehcache.spi.service.ServiceConfiguration;
 
-import static java.util.Collections.*;
+import java.util.Collection;
+import java.util.Map;
 
 /**
  * @author Alex Snaps
  */
-public final class Configuration {
+public interface Configuration {
 
-  private final Map<String,CacheConfiguration<?, ?>> caches;
-  private final Collection<ServiceConfiguration<?>> services;
-  private final ClassLoader classLoader;
+  Map<String, CacheConfiguration<?, ?>> getCacheConfigurations();
 
-  public Configuration(Map<String, CacheConfiguration<?, ?>> caches, ClassLoader classLoader, ServiceConfiguration<?> ... services) {
-    this.services = unmodifiableCollection(Arrays.asList(services));
-    this.caches = unmodifiableMap(new HashMap<String,CacheConfiguration<?, ?>>(caches));
-    this.classLoader = classLoader;
-  }
+  Collection<ServiceConfiguration<?>> getServiceConfigurations();
 
-  public Map<String, CacheConfiguration<?, ?>> getCacheConfigurations() {
-    return caches;
-  }
-
-  public Collection<ServiceConfiguration<?>> getServiceConfigurations() {
-    return services;
-  }
-  
-  public ClassLoader getClassLoader() {
-    return classLoader;
-  }  
+  ClassLoader getClassLoader();
 }

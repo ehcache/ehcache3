@@ -15,16 +15,14 @@
  */
 package org.ehcache.internal.store;
 
-import org.ehcache.Cache.Entry;
+import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.function.Predicate;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
-
-import java.util.Comparator;
 
 public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
 
@@ -53,12 +51,12 @@ public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
       }
 
       @Override
-      public Predicate<Entry<K, V>> getEvictionVeto() {
+      public EvictionVeto<? super K, ? super V> getEvictionVeto() {
         return null;
       }
 
       @Override
-      public Comparator<Entry<K, V>> getEvictionPrioritizer() {
+      public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
         return null;
       }
 

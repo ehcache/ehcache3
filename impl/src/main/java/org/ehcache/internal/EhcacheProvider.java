@@ -43,7 +43,7 @@ public class EhcacheProvider implements CacheProvider {
   }
 
   @Override
-  public void start() {
+  public void start(ServiceConfiguration<?> config) {
     //no-op
   }
 

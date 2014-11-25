@@ -8,9 +8,14 @@ image:http://cloudbees.prod.acquia-sites.com/sites/default/files/styles/large/pu
 
 == Getting started with the new API
 
+NOTE: If you are looking to use the JSR-107, aka `javax.cache` API, you may want to start reading
+      link:107/README.adoc[the Ehcache 3.x JSR-107 Provider page]
+
 WARNING: *This is still work in progress*. while this represents the API as it exists today, the plan is to only close it
          down, when addressing the +OSS Beta+ milestone. Today, the focus is on the +107 Alpha+ milestone, which aims
          at providing a TCK compliant on-heap implementation...
+
+=== Configuring it all in Java
 
 [source,java]
 ----
@@ -63,6 +68,58 @@ standaloneCache.close(); /* <12> */
      in step #11, didn't affect our +StandaloneCache+ in any way.
 
 NOTE: This code example is lifted from link:impl/src/test/java/org/ehcache/GettingStarted.java#L34[GettingStarted#testWikiExample]
+
+=== It wouldn't be Java, if it hadn't _some_ XML
+
+You can create a XML file to configure a `CacheManager`:
+
+[source,xml]
+----
+<config
+    xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+    xmlns='http://www.ehcache.org/v3'>
+
+  <cache alias="foo"> <!--1-->
+    <key-type>java.lang.String</key-type> <!--2-->
+    <capacity>2000</capacity> <!--3-->
+  </cache>
+
+  <cache-template name="myDefaults"> <!--4-->
+    <key-type>java.lang.Long</key-type>
+    <value-type>java.lang.String</value-type>
+    <capacity>200</capacity>
+  </cache-template>
+
+  <cache alias="bar" usesTemplate="myDefaults"> <!--5-->
+    <key-type>java.lang.Number</key-type>
+  </cache>
+
+  <cache alias="simpleCache" usesTemplate="myDefaults" /> <!--6-->
+</config>
+----
+
+<1> Declares a `Cache` aliased to `foo`
+<2> Its keys will be of type `String`, as not specified the values will be of any type `Object`
+<3> Its declared to hold up to 2,000 entries before it starts evicting
+<4> `<cache-template>` elements let you create an abstract configuration that further `<cache>` configuration can then _extend_
+<5> `bar` is such a `Cache`, it uses the `<cache-template>` named `myDefaults` and overrides its `key-type` to a wider type.
+<6> `simpleCache` is such a `Cache` again, but simply uses `myDefaults` configuration for its sole `CacheConfiguration`
+
+Refer to the link:xml/README.adoc[XML README file] for more details on the XML format
+
+In order to parse these XML configuration, you can use the `XmlConfiguration` type as so:
+
+[source,java]
+----
+final URL myUrl = this.getClass().getResource("/my-config.xml"); // <1>
+Configuration xmlConfig = new XmlConfiguration(myUrl); // <2>
+CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(xmlConfig); // <3>
+----
+
+<1> Obtain a `URL` to your XML file's location
+<2> Instantiate a `XmlConfiguration` passing the XML file's URL to it
+<3> Using the static `org.ehcache.CacheManagerBuilder.newCacheManager(org.ehcache.config.Configuration)` lets you
+    create your `CacheManager` instance using the `Configuration` from the `XmlConfiguration`
 
 == Current status & future development
 

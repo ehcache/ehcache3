@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.store;
 
+import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
@@ -42,7 +43,8 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void replaceKeyAndValue()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
+        .all(), null));
 
     K key = factory.getKeyType().newInstance();
     V originalValue = factory.createValue(1L);
@@ -64,7 +66,7 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void replaceReturnsOldValue()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     K key = factory.getKeyType().newInstance();
     V originalValue = factory.getValueType().newInstance();
@@ -84,7 +86,7 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void replaceKeyNotMappedReturnsNull()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     K key = factory.getKeyType().newInstance();
 

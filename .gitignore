@@ -1,6 +1,7 @@
 */target/
 
 build/
+*/src/generated/
 /.gradle/
 
 .project

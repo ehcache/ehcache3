@@ -16,13 +16,19 @@
 
 <ehcache:config
     xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
-    xmlns:thc='http://www.ehcache.org/v3/cachingtier'
+    xmlns:foo='http://www.example.com/foo'
     xmlns:ehcache='http://www.ehcache.org/v3'
-    xsi:schemaLocation="http://www.ehcache.org/v3 ../../../main/resources/ehcache-core.xsd
-                        http://www.ehcache.org/v3/cachingtier ../../../main/resources/ehcache-cachingtier.xsd">
-  <ehcache:cache alias="foo">
+    xsi:schemaLocation="http://www.example.com/foo foo.xsd
+                     http://www.ehcache.org/v3 ../../../main/resources/ehcache-core.xsd">
+
+  <ehcache:cache-template name="example">
     <ehcache:key-type>java.lang.String</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
-    <thc:cachingtier size="4321"/>
+    <ehcache:capacity>120</ehcache:capacity>
+  </ehcache:cache-template>
+
+  <ehcache:cache alias="bar" usesTemplate="example">
+    <ehcache:key-type>java.lang.Number</ehcache:key-type>
+    <foo:foo/>
   </ehcache:cache>
 </ehcache:config>

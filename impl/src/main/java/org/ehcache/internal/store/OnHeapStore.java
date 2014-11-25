@@ -17,6 +17,8 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
+import org.ehcache.config.Eviction;
+import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
@@ -64,8 +66,8 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   private final Serializer<V> serializer;
 
   private final Comparable<Long> capacityConstraint;
-  private final Predicate<Map.Entry<K, OnHeapValueHolder<V>>> evictionVeto;
-  private final Comparator<Map.Entry<K, OnHeapValueHolder<V>>> evictionPrioritizer;
+  private final Predicate<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionVeto;
+  private final Comparator<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionPrioritizer;
   private final Expiry<? super K, ? super V> expiry;
   private final TimeSource timeSource;
   
@@ -73,13 +75,17 @@ public class OnHeapStore<K, V> implements Store<K, V> {
  
   public OnHeapStore(final Configuration<K, V> config, TimeSource timeSource, boolean storeByValue) {
     Comparable<Long> capacity = config.getCapacityConstraint();
+    EvictionPrioritizer<? super K, ? super V> prioritizer = config.getEvictionPrioritizer();
+    if(prioritizer == null && capacity != null) {
+      prioritizer = Eviction.Prioritizer.LRU;
+    }
     if (capacity == null) {
       this.capacityConstraint = Comparables.biggest();
     } else {
       this.capacityConstraint = config.getCapacityConstraint();
     }
     this.evictionVeto = wrap(config.getEvictionVeto());
-    this.evictionPrioritizer = wrap(config.getEvictionPrioritizer());
+    this.evictionPrioritizer = wrap(prioritizer);
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
     this.expiry = config.getExpiry();
@@ -152,7 +158,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         if (mappedValue == null || mappedValue.isExpired(now)) {
           return newValueHolder(key, value, now);
         }
-       
+
         returnValue.set(mappedValue);
         setAccessTimeAndExpiry(key, mappedValue, now);
         return mappedValue;
@@ -344,8 +350,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     checkKey(key);
 
     final long now = timeSource.getTimeMillis();
-    
-    return map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+    OnHeapValueHolder<V> computeResult = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(final K mappedKey, OnHeapValueHolder<V> mappedValue) {
         if (mappedValue != null && mappedValue.isExpired(now)) {
@@ -359,15 +364,16 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         return nullSafeNewValueHolder(key, computedValue, now);
       }
     });
+    return enforceCapacityIfValueNotNull(computeResult);
   }
-  
+
   @Override
   public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) {
     checkKey(key);
 
     final long now = timeSource.getTimeMillis();
 
-    return map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+    OnHeapValueHolder<V> computeResult = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
         if (mappedValue == null || mappedValue.isExpired(now)) {
@@ -382,11 +388,19 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         return mappedValue;
       }
     });
+    return enforceCapacityIfValueNotNull(computeResult);
+  }
+
+  ValueHolder<V> enforceCapacityIfValueNotNull(final OnHeapValueHolder<V> computeResult) {
+    if (computeResult != null) {
+      enforceCapacity(1);
+    }
+    return computeResult;
   }
 
   @Override
   public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-    checkKey(key); 
+    checkKey(key);
 
     return map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
@@ -410,24 +424,21 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Iterable<? extends K> keys, final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
     Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
     for (final K key : keys) {
-      checkKey(key);
-      
-      final OnHeapValueHolder<V> newValue = map.computeIfAbsent(key, new Function<K, OnHeapValueHolder<V>>() {
+      final ValueHolder<V> newValue = computeIfAbsent(key, new Function<K, V>() {
         @Override
-        public OnHeapValueHolder<V> apply(final K k) {
+        public V apply(final K k) {
           final Iterable<K> keySet = Collections.singleton(k);
           final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries = mappingFunction.apply(keySet);
           final java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = entries.iterator();
           final Map.Entry<? extends K, ? extends V> next = iterator.next();
-          
+
           K key = next.getKey();
           V value = next.getValue();
           checkKey(key);
           if (value != null) {
             checkValue(value);
           }
-          
-          return nullSafeNewValueHolder(key, value, timeSource.getTimeMillis());
+          return value;
         }
       });
       result.put(key, newValue);
@@ -445,23 +456,21 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     for (K key : keys) {
       checkKey(key);
       
-      final OnHeapValueHolder<V> newValue = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      final ValueHolder<V> newValue = compute(key, new BiFunction<K, V, V>() {
         @Override
-        public OnHeapValueHolder<V> apply(final K k, final OnHeapValueHolder<V> oldValue) {
-          final Set<Map.Entry<K, V>> entrySet = Collections.singletonMap(k, oldValue == null ? null : oldValue.value())
-              .entrySet();
+        public V apply(final K k, final V oldValue) {
+          final Set<Map.Entry<K, V>> entrySet = Collections.singletonMap(k, oldValue).entrySet();
           final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries = remappingFunction.apply(entrySet);
           final java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = entries.iterator();
           final Map.Entry<? extends K, ? extends V> next = iterator.next();
-          
+
           K key = next.getKey();
           V value = next.getValue();
           checkKey(key);
           if (value != null) {
             checkValue(value);
           }
-          
-          return nullSafeNewValueHolder(key, value, timeSource.getTimeMillis());
+          return value;
         }
       });
       result.put(key, newValue);
@@ -535,11 +544,11 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
   private boolean evict() {
     evictionObserver.begin();
-    Set<Map.Entry<K, OnHeapValueHolder<V>>> values = map.getRandomValues(new Random(), 8, evictionVeto);
+    Set<Map.Entry<K, OnHeapValueHolder<V>>> values = map.getRandomValues(new Random(), 8, (Predicate<Map.Entry<K, OnHeapValueHolder<V>>>)evictionVeto);
     if (values.isEmpty()) {
       return false;
     } else {
-      Map.Entry<K, OnHeapValueHolder<V>> evict = Collections.max(values, evictionPrioritizer);
+      Map.Entry<K, OnHeapValueHolder<V>> evict = Collections.max(values, (Comparator<? super Map.Entry<K, OnHeapValueHolder<V>>>)evictionPrioritizer);
       if (map.remove(evict.getKey(), evict.getValue())) {
         //Eventually we'll need to fire a listener here.
         evictionObserver.end(EvictionOutcome.SUCCESS);
@@ -591,7 +600,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public void start() {
+    public void start(ServiceConfiguration<?> cfg) {
       // nothing to do
     }
 
