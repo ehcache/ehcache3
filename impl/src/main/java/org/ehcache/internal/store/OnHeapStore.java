@@ -273,6 +273,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   @Override
   public void close() {
     map.clear();
+    disableStoreEventNotifications();
   }
 
   @Override
@@ -657,52 +658,36 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   }
 
   private static <K, V> Cache.Entry<K, V> wrap(final Map.Entry<K, OnHeapValueHolder<V>> value) {
-    return new Cache.Entry<K, V>() {
-
-      @Override
-      public K getKey() {
-        return value.getKey();
-      }
-
-      @Override
-      public V getValue() {
-        return value.getValue().value();
-      }
-
-      @Override
-      public long getCreationTime(TimeUnit unit) {
-        return value.getValue().creationTime(unit);
-      }
-
-      @Override
-      public long getLastAccessTime(TimeUnit unit) {
-        return value.getValue().lastAccessTime(unit);
-      }
-
-      @Override
-      public float getHitRate(TimeUnit unit) {
-        return value.getValue().hitRate(unit);
-      }
-    };
+    return wrap(value.getKey(), value.getValue());
   }
   
   private static <K, V> Cache.Entry<K, V> wrap(final K key, final OnHeapValueHolder<V> mappedValue) {
-    return wrap(new Map.Entry<K, OnHeapValueHolder<V>>() {
+    return new Cache.Entry<K, V>() {
+
       @Override
       public K getKey() {
         return key;
       }
 
       @Override
-      public OnHeapValueHolder<V> getValue() {
-        return mappedValue;
+      public V getValue() {
+        return mappedValue.value();
       }
 
       @Override
-      public OnHeapValueHolder<V> setValue(OnHeapValueHolder<V> value) {
-        throw new UnsupportedOperationException();
+      public long getCreationTime(TimeUnit unit) {
+        return mappedValue.creationTime(unit);
       }
-      
-    });
+
+      @Override
+      public long getLastAccessTime(TimeUnit unit) {
+        return mappedValue.lastAccessTime(unit);
+      }
+
+      @Override
+      public float getHitRate(TimeUnit unit) {
+        return mappedValue.hitRate(unit);
+      }
+    };
   }
 }

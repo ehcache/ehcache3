@@ -61,5 +61,10 @@ public interface CacheRuntimeConfiguration<K, V> extends CacheConfiguration<K, V
    */
   void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener);
   
+  /**
+   * Remove all registered event listeners and release associated resources.
+   * Invoked by {@link org.ehcache.CacheManager} when a {@link org.ehcache.Cache} is being removed from it.
+   * @param factory factory to use to release event listeners.
+   */
   void releaseAllEventListeners(CacheEventListenerFactory factory);
 }

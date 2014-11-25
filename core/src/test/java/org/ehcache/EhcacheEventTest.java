@@ -18,11 +18,11 @@ package org.ehcache;
 
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.times;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -41,6 +41,7 @@ import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.events.CacheEventNotificationService;
+import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheWriterException;
 import org.ehcache.function.BiFunction;
@@ -101,9 +102,42 @@ public class EhcacheEventTest {
     
     cache.getRuntimeConfiguration().deregisterCacheEventListener(listener);
     verify(eventNotifier).deregisterCacheEventListener(listener);
+    verify(eventNotifier).hasListeners();
     
     cache.getRuntimeConfiguration().releaseAllEventListeners(mock(CacheEventListenerFactory.class));
     verify(eventNotifier).releaseAllListeners(any(CacheEventListenerFactory.class));
+  }
+  
+  @Test
+  public void testLazyStoreEventListening() {
+    verify(store, never()).enableStoreEventNotifications(any(StoreEventListener.class));
+    CacheEventListener<Number, String> expiryListener = mock(CacheEventListener.class);
+    
+    when(eventNotifier.hasListeners()).thenReturn(false);
+    cache.getRuntimeConfiguration().registerCacheEventListener(expiryListener, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, 
+        EnumSet.of(EventType.EXPIRED));
+    
+    CacheEventListener<Number, String> evictionListener = mock(CacheEventListener.class);
+    cache.getRuntimeConfiguration().registerCacheEventListener(evictionListener, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, 
+        EnumSet.of(EventType.EVICTED));
+    verify(eventNotifier).registerCacheEventListener(eq(expiryListener), 
+        eq(EventOrdering.UNORDERED), eq(EventFiring.SYNCHRONOUS),
+        eq(EnumSet.of(EventType.EXPIRED)));
+    verify(eventNotifier).registerCacheEventListener(eq(evictionListener), 
+        eq(EventOrdering.UNORDERED), eq(EventFiring.SYNCHRONOUS),
+        eq(EnumSet.of(EventType.EVICTED)));
+    
+    verify(store, times(2)).enableStoreEventNotifications(any(StoreEventListener.class));
+    
+    when(eventNotifier.hasListeners()).thenReturn(true);
+    cache.getRuntimeConfiguration().deregisterCacheEventListener(evictionListener);
+    verify(store, never()).disableStoreEventNotifications();
+    
+    when(eventNotifier.hasListeners()).thenReturn(false);
+    cache.getRuntimeConfiguration().deregisterCacheEventListener(expiryListener);
+    verify(store).disableStoreEventNotifications();
+    verify(eventNotifier, times(2)).hasListeners();
+    verify(eventNotifier, times(2)).deregisterCacheEventListener(any(CacheEventListener.class));
   }
 
   @Test
@@ -312,6 +346,7 @@ public class EhcacheEventTest {
         return null;
       }
     });
+    when(cache.getCacheWriter().write(any(Number.class), anyString(), anyString())).thenReturn(true);
     Number key = 1;
     cache.putIfAbsent(key, "foo");
     verify(eventNotifier).onEvent(eventMatching(EventType.CREATED, key, "foo", null));

@@ -130,6 +130,13 @@ public class CacheEventNotificationService<K, V> {
     }
   }
 
+  /**
+   * @return true if at least one cache event listener is registered
+   */
+  public boolean hasListeners() {
+    return !registeredListeners.isEmpty();
+  }
+  
   private final Set<EventListenerWrapper> registeredListeners = new CopyOnWriteArraySet<EventListenerWrapper>();
   private final ExecutorService orderedDelivery = Executors.newSingleThreadExecutor(DEFAULT_THREAD_FACTORY);
   private final ExecutorService unorderedDelivery = Executors.newCachedThreadPool(DEFAULT_THREAD_FACTORY);
@@ -181,6 +188,9 @@ public class CacheEventNotificationService<K, V> {
     }
     
     public boolean equals(Object other) {
+      if (!(other instanceof EventListenerWrapper)) {
+        return false;
+      }
       EventListenerWrapper l2 = (EventListenerWrapper)other;
       return listener.equals(l2.listener);
     }

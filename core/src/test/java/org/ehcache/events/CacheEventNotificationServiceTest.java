@@ -153,6 +153,17 @@ public class CacheEventNotificationServiceTest {
     verify(listener).onEvent(evict);
   }
   
+  @Test(expected=IllegalStateException.class)
+  public void testDuplicateRegistration() {
+    eventService.registerCacheEventListener(listener, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EVICTED));
+    eventService.registerCacheEventListener(listener, EventOrdering.ORDERED, EventFiring.ASYNCHRONOUS, EnumSet.of(EventType.EXPIRED));
+  }
+  
+  @Test(expected=IllegalStateException.class)
+  public void testUnknownListenerDeregistration() {
+    eventService.deregisterCacheEventListener(listener);
+  }
+  
   @Test
   public void testDeregisterStopsNotification() {
     eventService.registerCacheEventListener(listener, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EVICTED));
