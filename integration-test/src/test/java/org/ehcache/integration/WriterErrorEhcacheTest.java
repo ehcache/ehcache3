@@ -11,6 +11,7 @@ import org.ehcache.spi.writer.CacheWriter;
 import org.ehcache.spi.writer.CacheWriterFactory;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.invocation.InvocationOnMock;
@@ -24,6 +25,7 @@ import java.util.Set;
 
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
@@ -31,8 +33,6 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -72,9 +72,6 @@ public class WriterErrorEhcacheTest {
     } catch (CacheWriterException ex) {
       // expected
     }
-    testCache.put(2, "two");
-
-    verify(cacheWriter, times(1)).write(eq(2), eq("two"));
   }
 
   @Test
@@ -101,9 +98,13 @@ public class WriterErrorEhcacheTest {
           switch (i) {
             case 2:
               throw new Exception("Mock Exception: cannot write 2");
-            default:
+            case 1:
+            case 3:
+            case 4:
               result.add(i);
               break;
+            default:
+              throw new AssertionError("should not try to delete key " + i);
           }
         }
 
@@ -116,15 +117,33 @@ public class WriterErrorEhcacheTest {
       fail("expected CacheWriterException");
     } catch (BulkCacheWriterException ex) {
       assertThat(ex.getFailures().size(), is(1));
+      assertThat(ex.getFailures().get(2), is(notNullValue()));
       assertThat(ex.getSuccesses().size(), is(3));
+      assertThat(ex.getSuccesses().containsAll(Arrays.asList(1, 3, 4)), is(true));
     }
   }
 
   @Test
-  public void testRemove2ArgsWithWriterException() throws Exception {
+  @Ignore("the writer is actually called while it shouldn't be")
+  public void testRemove2ArgsWithNoCacheEntry_should_not_call_writer() throws Exception {
     doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).delete(eq(1), eq("one"));
 
-    //TODO: shouldn't remove "gate" (in Chris D. parlance) on the cache?
+    testCache.remove(1, "one");
+  }
+
+  @Test
+  public void testRemove2ArgsWithNotMatchingCacheEntry_should_not_call_writer() throws Exception {
+    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).delete(eq(1), eq("one"));
+
+    testCache.put(1, "un");
+    testCache.remove(1, "one");
+  }
+
+  @Test
+  public void testRemove2ArgsWithWriterException_should_call_writer() throws Exception {
+    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).delete(eq(1), eq("one"));
+
+    testCache.put(1, "one");
     try {
       testCache.remove(1, "one");
       fail("expected CacheWriterException");
@@ -134,7 +153,7 @@ public class WriterErrorEhcacheTest {
   }
 
   @Test
-  public void testReplace2ArgsWithWriterException() throws Exception {
+  public void testReplace2ArgsWithWriterException_should_call_writer() throws Exception {
     doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).write(eq(1), eq("one#2"));
 
     testCache.put(1, "one");
@@ -147,10 +166,17 @@ public class WriterErrorEhcacheTest {
   }
 
   @Test
-  public void testReplace3ArgsWithWriterException() throws Exception {
+  public void testReplace2ArgsWithNoCacheEntry_should_not_call_writer() throws Exception {
+    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).write(eq(1), eq("one#2"));
+
+    testCache.replace(1, "one#2");
+  }
+
+  @Test
+  public void testReplace3ArgsWithWriterException_should_call_writer() throws Exception {
     doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).write(eq(1), eq("one"), eq("one#2"));
 
-    //TODO: shouldn't replace "gate" (in Chris D. parlance) on the cache?
+    testCache.put(1, "one");
     try {
       testCache.replace(1, "one", "one#2");
       fail("expected CacheWriterException");
@@ -160,7 +186,23 @@ public class WriterErrorEhcacheTest {
   }
 
   @Test
-  public void testPutIfAbsentWithWriterException() throws Exception {
+  public void testReplace3ArgsWithNotMatchingCacheEntry_should_not_call_writer() throws Exception {
+    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).write(eq(1), eq("one"), eq("one#2"));
+
+    testCache.put(1, "un");
+    testCache.replace(1, "one", "one#2");
+  }
+
+  @Test
+  @Ignore("the writer is actually called while it shouldn't be")
+  public void testReplace3ArgsWithNoCacheEntry_should_not_call_writer() throws Exception {
+    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).write(eq(1), eq("one"), eq("one#2"));
+
+    testCache.replace(1, "one", "one#2");
+  }
+
+  @Test
+  public void testPutIfAbsentWithWriterException_should_call_writer() throws Exception {
     doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).write(eq(1), Matchers.<CharSequence>eq(null), eq("one"));
 
     try {

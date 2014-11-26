@@ -17,12 +17,13 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
@@ -93,9 +94,11 @@ public class LoaderErrorEhcacheTest {
             case 3:
               result.put(3, "three");
               break;
-            default:
-              result.put(i, null);
+            case 4:
+              result.put(4, null);
               break;
+            default:
+              throw new AssertionError("should not try to load key " + i);
           }
         }
 
@@ -108,7 +111,9 @@ public class LoaderErrorEhcacheTest {
       fail("expected BulkCacheLoaderException");
     } catch (BulkCacheLoaderException ex) {
       assertThat(ex.getFailures().size(), is(1));
-      assertThat(ex.getSuccesses().size(), is(1)); //TODO: does that make sense? 1 was a failure, 2 were loadable, a 3rd one was not found without error
+      assertThat(ex.getFailures().get(2), is(notNullValue()));
+      assertThat(ex.getSuccesses().size(), is(lessThan(4)));
+      assertThat(ex.getSuccesses().containsKey(2), is(false));
     }
   }
 
