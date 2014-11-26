@@ -19,6 +19,7 @@ package org.ehcache.spi.cache;
 import org.ehcache.Cache;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -216,6 +217,17 @@ public interface Store<K, V> {
   void init();
 
   void maintenance();
+  
+  /**
+   * Enables notifications for store-initiated events, i.e. eviction and expiration.
+   * @param listener listener to notify
+   */
+  void enableStoreEventNotifications(StoreEventListener<K, V> listener);
+  
+  /**
+   * Disables store event notifications.
+   */
+  void disableStoreEventNotifications();
 
   /**
    * Returns an iterator over the elements in this store.  The elements are

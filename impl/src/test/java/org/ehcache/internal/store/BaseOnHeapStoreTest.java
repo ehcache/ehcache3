@@ -15,7 +15,9 @@
  */
 package org.ehcache.internal.store;
 
+import org.ehcache.Cache;
 import org.ehcache.Cache.Entry;
+import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
@@ -26,6 +28,7 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.spi.cache.Store.Iterator;
 import org.ehcache.spi.cache.Store.ValueHolder;
 import org.junit.Test;
+import org.mockito.ArgumentMatcher;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -36,6 +39,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Matchers.argThat;
 
 public abstract class BaseOnHeapStoreTest {
 
@@ -53,10 +59,12 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+    StoreEventListener<String, String> listener = addExpiryListener(store);
     store.put("key", "value");
     assertThat(store.get("key").value(), equalTo("value"));
     timeSource.advanceTime(1);
     assertThat(store.get("key"), nullValue());
+    checkExpiryEvent(listener, "key", "value");
   }
 
   @Test
@@ -86,11 +94,14 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+    StoreEventListener<String, String> listener = addExpiryListener(store);
+
     assertThat(store.containsKey("key"), is(false));
     store.put("key", "value");
     assertThat(store.containsKey("key"), is(true));
     timeSource.advanceTime(1);
     assertThat(store.containsKey("key"), is(false));
+    checkExpiryEvent(listener, "key", "value");
   }
 
   @Test
@@ -152,11 +163,13 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+    StoreEventListener<String, String> listener = addExpiryListener(store);
     store.put("key", "value");
     timeSource.advanceTime(1);
     ValueHolder<String> prev = store.putIfAbsent("key", "value2");
     assertThat(prev, nullValue());
     assertThat(store.get("key").value(), equalTo("value2"));
+    checkExpiryEvent(listener, "key", "value");
   }
 
   @Test
@@ -177,11 +190,13 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+    StoreEventListener<String, String> listener = addExpiryListener(store);
     store.put("key", "value");
     assertThat(store.get("key").value(), equalTo("value"));
     timeSource.advanceTime(1);
     boolean removed = store.remove("key", "value");
     assertThat(removed, equalTo(false));
+    checkExpiryEvent(listener, "key", "value");
   }
 
   @Test
@@ -204,12 +219,14 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+    StoreEventListener<String, String> listener = addExpiryListener(store);
 
     store.put("key", "value");
     timeSource.advanceTime(1);
     ValueHolder<String> existing = store.replace("key", "value2");
     assertThat(existing, nullValue());
     assertThat(store.get("key"), nullValue());
+    checkExpiryEvent(listener, "key", "value");
   }
 
   @Test
@@ -236,12 +253,14 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+    StoreEventListener<String, String> listener = addExpiryListener(store);
 
     store.put("key", "value");
     timeSource.advanceTime(1);
     boolean replaced = store.replace("key", "value", "value2");
     assertThat(replaced, equalTo(false));
     assertThat(store.get("key"), nullValue());
+    checkExpiryEvent(listener, "key", "value");
   }
 
   @Test
@@ -275,6 +294,7 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+    StoreEventListener<String, String> listener = addExpiryListener(store);
     store.put("key1", "value1");
     store.put("key2", "value2");
     timeSource.advanceTime(1);
@@ -287,6 +307,9 @@ public abstract class BaseOnHeapStoreTest {
     timeSource.advanceTime(1);
     observed = observe(store.iterator());
     assertThat(0, equalTo(observed.size()));
+    checkExpiryEvent(listener, "key1", "value1");
+    checkExpiryEvent(listener, "key2", "value2");
+    checkExpiryEvent(listener, "key3", "value3");
   }
 
   @Test
@@ -386,6 +409,7 @@ public abstract class BaseOnHeapStoreTest {
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
     store.put("key", "value");
+    StoreEventListener<String, String> listener = addExpiryListener(store);
     timeSource.advanceTime(1);
     store.compute("key", new BiFunction<String, String, String>() {
       @Override
@@ -397,6 +421,7 @@ public abstract class BaseOnHeapStoreTest {
     });
 
     assertThat(store.get("key").value(), equalTo("value2"));
+    checkExpiryEvent(listener, "key", "value");
   }
 
   @Test
@@ -468,6 +493,8 @@ public abstract class BaseOnHeapStoreTest {
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
     store.put("key", "value");
+    StoreEventListener<String, String> listener = addExpiryListener(store);
+    
     timeSource.advanceTime(1);
 
     store.computeIfAbsent("key", new Function<String, String>() {
@@ -479,6 +506,14 @@ public abstract class BaseOnHeapStoreTest {
     });
 
     assertThat(store.get("key").value(), equalTo("value2"));
+    verify(listener).onExpiration(argThat(new ArgumentMatcher<Cache.Entry<String, String>>() {
+
+      @Override
+      public boolean matches(Object argument) {
+        Cache.Entry<String, String> entry = (Cache.Entry<String, String>)argument;
+        return entry.getKey().equals("key") && entry.getValue().equals("value");
+      }
+    }));
   }
 
   @Test
@@ -605,6 +640,7 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+    StoreEventListener<String, String> listener = addExpiryListener(store);
 
     store.put("key", "value");
     timeSource.advanceTime(1);
@@ -617,6 +653,34 @@ public abstract class BaseOnHeapStoreTest {
     });
 
     assertThat(store.get("key"), nullValue());
+    verify(listener).onExpiration(argThat(new ArgumentMatcher<Cache.Entry<String, String>>() {
+
+      @Override
+      public boolean matches(Object argument) {
+        Cache.Entry<String, String> entry = (Cache.Entry<String, String>)argument;
+        return entry.getKey().equals("key") && entry.getValue().equals("value");
+      }
+    }));
+    
+  }
+
+  private static <K, V> StoreEventListener<K, V> addExpiryListener(OnHeapStore<K, V> store) {
+    StoreEventListener<K, V> listener = mock(StoreEventListener.class);
+    store.enableStoreEventNotifications(listener);
+    return listener;
+  }
+  
+  private static <K, V> void checkExpiryEvent(StoreEventListener<K, V> listener, final K key, final V value) {
+    verify(listener).onExpiration(argThat(new ArgumentMatcher<Cache.Entry<K, V>>() {
+
+      @Override
+      public boolean matches(Object argument) {
+        Cache.Entry<K, V> entry = (Cache.Entry<K, V>)argument;
+        return entry.getKey().equals(key) && entry.getValue().equals(value);
+      }
+      
+    }));
+
   }
 
   private static Map<String, Long> observeAccessTimes(Iterator<Entry<String, ValueHolder<String>>> iter)

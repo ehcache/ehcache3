@@ -21,10 +21,14 @@ import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.event.CacheEventListener;
+import org.ehcache.event.CacheEventListenerFactory;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
+import org.ehcache.events.CacheEventNotificationService;
+import org.ehcache.events.CacheEvents;
 import org.ehcache.events.StateChangeListener;
+import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.*;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -50,7 +54,16 @@ import org.ehcache.statistics.StatisticsGateway;
 import org.ehcache.util.StatisticsThreadPoolUtil;
 import org.terracotta.context.annotations.ContextChild;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -77,7 +90,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   private final CacheLoader<? super K, ? extends V> cacheLoader;
   private final CacheWriter<? super K, ? super V> cacheWriter;
   private final ResilienceStrategy<K, V> resilienceStrategy;
-  private final RuntimeConfiguration<K, V> runtimeConfiguration;
+  private final RuntimeConfiguration runtimeConfiguration;
+  private final CacheEventNotificationService<K, V> eventNotificationService;
+  private final StoreEventListener<K, V> storeListener;
 
   private final OperationObserver<GetOutcome> getObserver = operation(GetOutcome.class).named("get").of(this).tag("cache").build();
   private final OperationObserver<PutOutcome> putObserver = operation(PutOutcome.class).named("put").of(this).tag("cache").build();
@@ -103,6 +118,14 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader, CacheWriter<? super K, ? super V> cacheWriter, 
       ScheduledExecutorService statisticsExecutor) {
+    this(config, store, cacheLoader, cacheWriter, new CacheEventNotificationService<K, V>(), statisticsExecutor);
+  }
+
+  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, 
+      final CacheLoader<? super K, ? extends V> cacheLoader, 
+      CacheWriter<? super K, ? super V> cacheWriter,
+      CacheEventNotificationService<K, V> eventNotifier,
+      ScheduledExecutorService statisticsExecutor) {
     this.store = store;
     this.cacheLoader = cacheLoader;
     this.cacheWriter = cacheWriter;
@@ -113,7 +136,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>(recoveryCache(store));
     }
     
-    this.runtimeConfiguration = new RuntimeConfiguration<K, V>(config);
+    this.eventNotificationService = eventNotifier;
+    this.runtimeConfiguration = new RuntimeConfiguration(config);
+    this.storeListener = new StoreListener();
   }
 
   @Override
@@ -191,6 +216,10 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         } catch (Exception e) {
           throw newCacheWriterException(e);
         }
+        Cache.Entry<K, V> entry = newCacheEntry(key, value);
+        eventNotificationService.onEvent(previousValue == null ? 
+            CacheEvents.creation(entry, Ehcache.this) : CacheEvents.update(newCacheEntry(key, previousValue), 
+                entry, Ehcache.this));
         return value;
       }
     });
@@ -244,6 +273,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         } catch (Exception e) {
           throw newCacheWriterException(e);
         }
+        eventNotificationService.onEvent(CacheEvents.removal(newCacheEntry(key, previousValue), Ehcache.this));
         return null;
       }
     });
@@ -377,7 +407,14 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
         // then record we handled these mappings
         for (Map.Entry<? extends K, ? extends V> entry: entries) {
-          mutations.put(entry.getKey(), entriesToRemap.remove(entry.getKey()));
+          K key = entry.getKey();
+          V newValue = entriesToRemap.remove(key);
+          mutations.put(entry.getKey(), newValue);
+          
+          Cache.Entry<K, V> newEntry = newCacheEntry(key, newValue);
+          eventNotificationService.onEvent(entry.getValue() == null ? 
+              CacheEvents.creation(newEntry, Ehcache.this) : CacheEvents.update(newEntry, 
+                  newCacheEntry(key, (V)entry.getValue()), Ehcache.this));
         }
 
         // Finally return the values to be installed in the Cache's Store
@@ -452,6 +489,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
           Iterable<Map.Entry<K, V>> ret = new NullValuesIterable(entries);
           for (Map.Entry<K, V> entry: ret) {
             entriesToRemove.remove(entry.getKey());
+            eventNotificationService.onEvent(CacheEvents.removal(newCacheEntry(entry.getKey(), 
+                entry.getValue()), Ehcache.this));
           }
           return ret;
         }
@@ -508,18 +547,24 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     final Function<K, V> mappingFunction = memoize(new Function<K, V>() {
       @Override
       public V apply(final K k) {
-        if (cacheWriter != null) {
-          try {
-            if (!cacheWriter.write(k, null, value)) {
-              return null;
+        try {
+          if (cacheWriter != null) {
+            try {
+              if (!cacheWriter.write(k, null, value)) {
+                return null;
+              }
+            } catch (Exception e) {
+              throw newCacheWriterException(e);
             }
-          } catch (Exception e) {
-            throw newCacheWriterException(e);
+          }
+          
+          installed.set(true);
+          return value;
+        } finally {
+          if (installed.get()) {
+            eventNotificationService.onEvent(CacheEvents.creation(newCacheEntry(k, value), Ehcache.this));
           }
         }
-        
-        installed.set(true);
-        return value;
       }
     });
 
@@ -563,30 +608,37 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
       @Override
       public V apply(final K k, final V inCache) {
-        if (inCache != null) {
-          if (inCache.equals(value)) {
+        try {
+          if (inCache != null) {
+            if (inCache.equals(value)) {
+              if (cacheWriter != null) {
+                try {
+                  if(!cacheWriter.delete(k, value)) {
+                    return null; // remove cached value but don't set success flag - this is an inline repair
+                  }
+                } catch (Exception e) {
+                  throw newCacheWriterException(e);
+                }
+              }
+              removed.set(true);
+              return null;
+            }
+            return inCache;
+          } else {
             if (cacheWriter != null) {
               try {
-                if(!cacheWriter.delete(k, value)) {
-                  return null; // remove cached value but don't set success flag - this is an inline repair
-                }
+                removed.set(cacheWriter.delete(k, value));
               } catch (Exception e) {
                 throw newCacheWriterException(e);
               }
             }
-            removed.set(true);
             return null;
           }
-          return inCache;
-        } else {
-          if (cacheWriter != null) {
-            try {
-              removed.set(cacheWriter.delete(k, value));
-            } catch (Exception e) {
-              throw newCacheWriterException(e);
-            }
+        } finally {
+          if (removed.get()) {
+            // Okay - the flag is always false when exceptions are thrown
+            eventNotificationService.onEvent(CacheEvents.removal(newCacheEntry(k, value), Ehcache.this));
           }
-          return null;
         }
       }
     });
@@ -634,6 +686,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         }
         
         old.set(inCache);
+        eventNotificationService.onEvent(CacheEvents.update(newCacheEntry(k, inCache), 
+            newCacheEntry(k, value), Ehcache.this));
         return value;
       }
     });
@@ -670,36 +724,43 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
       @Override
       public V apply(final K k, final V inCache) {
-        if (inCache != null) {
-          if (inCache.equals(oldValue)) {
+        try {
+          if (inCache != null) {
+            if (inCache.equals(oldValue)) {
+              if (cacheWriter != null) {
+                try {
+                  success.set(cacheWriter.write(key, oldValue, newValue));
+                } catch (Exception e) {
+                  throw newCacheWriterException(e);
+                }
+                // repair cache 
+                if (!success.get()) {
+                  return null;
+                }
+              } else {
+                success.set(true);
+              }
+              return newValue; 
+            }
+            return inCache;
+          } else {
             if (cacheWriter != null) {
               try {
-                success.set(cacheWriter.write(key, oldValue, newValue));
+                if (cacheWriter.write(key, oldValue, newValue)) {
+                  success.set(true);
+                  return newValue;
+                }
               } catch (Exception e) {
                 throw newCacheWriterException(e);
               }
-              // repair cache 
-              if (!success.get()) {
-                return null;
-              }
-            } else {
-              success.set(true);
             }
-            return newValue; 
+            return null;
           }
-          return inCache;
-        } else {
-          if (cacheWriter != null) {
-            try {
-              if (cacheWriter.write(key, oldValue, newValue)) {
-                success.set(true);
-                return newValue;
-              }
-            } catch (Exception e) {
-              throw newCacheWriterException(e);
-            }
+        } finally {
+          if (success.get()) {
+            eventNotificationService.onEvent(CacheEvents.update(newCacheEntry(key, oldValue), 
+                newCacheEntry(key, newValue), Ehcache.this));
           }
-          return null;
         }
       }
     });
@@ -836,6 +897,35 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     current.addAndGet(count);
   }
 
+  private static <K, V> Cache.Entry<K, V> newCacheEntry(final K key, final V value) {
+    return new Cache.Entry<K, V>() {
+      @Override
+      public K getKey() {
+        return key;
+      }
+
+      @Override
+      public V getValue() {
+        return value;
+      }
+
+      @Override
+      public long getCreationTime(TimeUnit unit) {
+        throw new UnsupportedOperationException(); // XXX
+      }
+
+      @Override
+      public long getLastAccessTime(TimeUnit unit) {
+        throw new UnsupportedOperationException(); // XXX
+      }
+
+      @Override
+      public float getHitRate(TimeUnit unit) {
+        throw new UnsupportedOperationException(); // XXX
+      }
+
+    };
+  }
   CacheLoader<? super K, ? extends V> getCacheLoader() {
     return cacheLoader;
   }
@@ -849,7 +939,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     return cacheWriter;
   }
 
-  private static class RuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, V> {
+  private class RuntimeConfiguration implements CacheRuntimeConfiguration<K, V> {
     
     private final Collection<ServiceConfiguration<?>> serviceConfigurations;
     private final Class<K> keyType;
@@ -857,7 +947,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     private final Comparable<Long> capacityConstraint;
     private final EvictionVeto<? super K, ? super V> evictionVeto;
     private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
-    private final Set<CacheEventListener<?, ?>> eventListeners;
     private final SerializationProvider serializationProvider;
     private final ClassLoader classLoader;
     private final Expiry<? super K, ? super V> expiry;
@@ -869,28 +958,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       this.capacityConstraint = config.getCapacityConstraint();
       this.evictionVeto = config.getEvictionVeto();
       this.evictionPrioritizer = config.getEvictionPrioritizer();
-      this.eventListeners = copy(config.getEventListeners());
       this.serializationProvider = config.getSerializationProvider();
       this.classLoader = config.getClassLoader();
       this.expiry = config.getExpiry();
     }
     
-    private static <T> Set<T> copy(Set<T> set) {
-      if (set == null) {
-        return null;
-      }
-    
-      return Collections.unmodifiableSet(new HashSet<T>(set));
-    }
-    
-    private static <T> Collection<T> copy(Collection<T> collection) {
-      if (collection == null) {
-        return null;
-      }
-      
-      return Collections.unmodifiableCollection(new ArrayList<T>(collection));
-    }
-
     @Override
     public Collection<ServiceConfiguration<?>> getServiceConfigurations() {
       return this.serviceConfigurations;
@@ -922,16 +994,10 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
 
     @Override
-    public Set<CacheEventListener<?, ?>> getEventListeners() {
-      return this.eventListeners;
-    }
-
-    @Override
     public SerializationProvider getSerializationProvider() {
       return this.serializationProvider;
     }
 
-    @Override
     public ClassLoader getClassLoader() {
       return this.classLoader;
     }
@@ -941,20 +1007,40 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       return expiry;
     }
     
-    @Override
-    public void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener) {
-      throw new UnsupportedOperationException("implement me!"); // XXX:
+    public synchronized void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener) {
+      eventNotificationService.deregisterCacheEventListener(listener);
+      if (!eventNotificationService.hasListeners()) {
+        store.disableStoreEventNotifications();
+      }
     }
     
     @Override
-    public void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering,
+    public synchronized void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering,
         EventFiring firing, Set<EventType> forEventTypes) {
-      throw new UnsupportedOperationException("implement me!"); // XXX:
+      boolean doRegister = forEventTypes.contains(EventType.EVICTED) || forEventTypes.contains(EventType.EXPIRED);
+      eventNotificationService.registerCacheEventListener(listener, ordering, firing, EnumSet.copyOf(forEventTypes));
+      if (doRegister) {
+        store.enableStoreEventNotifications(storeListener);
+      }
     }
+    
     
     @Override
     public void setCapacityConstraint(Comparable<Long> constraint) {
       throw new UnsupportedOperationException("implement me!"); // XXX:
+    }
+
+    @Override
+    public void releaseAllEventListeners(CacheEventListenerFactory factory) {
+      eventNotificationService.releaseAllListeners(factory);
+    }
+    
+    private <T> Collection<T> copy(Collection<T> collection) {
+      if (collection == null) {
+        return null;
+      }
+      
+      return Collections.unmodifiableCollection(new ArrayList<T>(collection));
     }
   }
   
@@ -1128,4 +1214,18 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     };
   }
+  
+  private final class StoreListener implements StoreEventListener<K, V> {
+
+    @Override
+    public void onEviction(Cache.Entry<K, V> entry) {
+      eventNotificationService.onEvent(CacheEvents.eviction(entry, Ehcache.this));
+    }
+
+    @Override
+    public void onExpiration(Cache.Entry<K, V> entry) {
+      eventNotificationService.onEvent(CacheEvents.expiry(entry, Ehcache.this));
+    }
+  }
+  
 }

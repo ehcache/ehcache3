@@ -20,7 +20,7 @@ import org.ehcache.Ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.event.CacheEventListener;
+import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -31,7 +31,6 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -71,11 +70,6 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
 
       @Override
       public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
-        throw new UnsupportedOperationException("Implement me!");
-      }
-
-      @Override
-      public Set<CacheEventListener<?, ?>> getEventListeners() {
         throw new UnsupportedOperationException("Implement me!");
       }
 
@@ -194,6 +188,16 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
 
       @Override
       public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public void enableStoreEventNotifications(StoreEventListener<K, V> listener) {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public void disableStoreEventNotifications() {
         throw new UnsupportedOperationException("Implement me!");
       }
     });
