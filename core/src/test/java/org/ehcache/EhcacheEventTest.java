@@ -16,6 +16,7 @@
 
 package org.ehcache;
 
+import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -82,7 +83,7 @@ public class EhcacheEventTest {
     CacheWriter<Number, String> writer = mock(CacheWriter.class);
 
     cache = new Ehcache<Number, String>(
-        new CacheConfigurationBuilder().buildConfig(Number.class, String.class), store, null, writer, eventNotifier, 
+        newCacheConfigurationBuilder().buildConfig(Number.class, String.class), store, null, writer, eventNotifier,
         StatisticsThreadPoolUtil.getDefaultStatisticsExecutorService());
     cache.init();
   }

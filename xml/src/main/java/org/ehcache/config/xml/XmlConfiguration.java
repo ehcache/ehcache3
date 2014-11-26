@@ -126,7 +126,7 @@ public class XmlConfiguration implements Configuration {
     }
 
     for (ConfigurationParser.CacheDefinition cacheDefinition : configurationParser.getCacheElements()) {
-      CacheConfigurationBuilder<Object, Object> builder = new CacheConfigurationBuilder<Object, Object>();
+      CacheConfigurationBuilder<Object, Object> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
       String alias = cacheDefinition.id();
 
       ClassLoader cacheClassLoader = cacheClassLoaders.get(alias);
@@ -257,7 +257,7 @@ public class XmlConfiguration implements Configuration {
       throw new IllegalArgumentException("CacheTemplate '" + name + "' declares value type of " + cacheTemplate.valueType());
     }
 
-    CacheConfigurationBuilder<K, V> builder = new CacheConfigurationBuilder<K, V>();
+    CacheConfigurationBuilder<K, V> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
     if (cacheTemplate.capacityConstraint() != null) {
       builder = builder
           .maxEntriesInCache(cacheTemplate.capacityConstraint());

@@ -16,11 +16,9 @@
 
 package org.ehcache;
 
-import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.events.StateChangeListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.StateTransitionException;
-import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 import org.hamcrest.CoreMatchers;
@@ -33,6 +31,7 @@ import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -51,7 +50,7 @@ public class EhcacheTest {
   @Test
   public void testTransistionsState() {
     Store store = mock(Store.class);
-    Ehcache ehcache = new Ehcache(new CacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
+    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
     assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
     ehcache.init();
     assertThat(ehcache.getStatus(), is(Status.AVAILABLE));
@@ -68,7 +67,7 @@ public class EhcacheTest {
     Store store = mock(Store.class);
     Store.Iterator mockIterator = mock(Store.Iterator.class);
     when(store.iterator()).thenReturn(mockIterator);
-    Ehcache ehcache = new Ehcache(new CacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
+    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
 
     try {
       ehcache.get("foo");
@@ -187,7 +186,7 @@ public class EhcacheTest {
   @Test
   public void testDelegatesLifecycleCallsToStore() {
     final Store store = mock(Store.class);
-    Ehcache ehcache = new Ehcache(new CacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
+    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
     ehcache.init();
     verify(store).init();
     ehcache.close();
@@ -199,7 +198,7 @@ public class EhcacheTest {
   @Test
   public void testFailingTransitionGoesToLowestStatus() {
     final Store store = mock(Store.class);
-    Ehcache ehcache = new Ehcache(new CacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
+    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
     doThrow(new RuntimeException()).when(store).init();
     try {
       ehcache.init();
@@ -276,8 +275,8 @@ public class EhcacheTest {
         };
       }
     });
-    Ehcache<Object, Object> ehcache = new Ehcache<Object, Object>(CacheConfigurationBuilder
-        .newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
+    Ehcache<Object, Object> ehcache = new Ehcache<Object, Object>(
+        newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
     ehcache.init();
     assertThat(ehcache.putIfAbsent("foo", value), nullValue());
     assertThat(ehcache.putIfAbsent("foo", "foo"), CoreMatchers.<Object>is(value));
@@ -288,7 +287,7 @@ public class EhcacheTest {
   @Test
   public void testFiresListener() {
     Store store = mock(Store.class);
-    Ehcache ehcache = new Ehcache(new CacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
+    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
 
     final StateChangeListener listener = mock(StateChangeListener.class);
     ehcache.registerListener(listener);
