@@ -21,7 +21,7 @@ import static org.junit.Assert.assertThat;
 /**
  * @author Ludovic Orban
  */
-public class SimpleEhcacheITest {
+public class SimpleEhcacheTest {
 
   private CacheManager cacheManager;
 

@@ -34,9 +34,10 @@ import static org.mockito.Mockito.when;
 /**
  * @author Ludovic Orban
  */
-public class LoaderEhcacheITest {
+public class LoaderSimpleEhcacheTest {
 
   private CacheManager cacheManager;
+  private Cache<Number, CharSequence> testCache;
   private CacheLoader<? super Number, ? super CharSequence> cacheLoader;
 
   @Before
@@ -47,6 +48,7 @@ public class LoaderEhcacheITest {
     when(cacheLoaderFactory.createCacheLoader(anyString(), (CacheConfiguration<Number, CharSequence>) anyObject())).thenReturn((CacheLoader) cacheLoader);
     builder.using(cacheLoaderFactory);
     cacheManager = builder.build();
+    testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().addServiceConfig(new CacheWriterConfiguration()).buildConfig(Number.class, CharSequence.class));
   }
 
   @After
@@ -58,11 +60,9 @@ public class LoaderEhcacheITest {
 
   @Test
   public void testSimpleGetWithLoader() throws Exception {
-    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().addServiceConfig(new CacheWriterConfiguration()).buildConfig(Number.class, CharSequence.class));
+    when(cacheLoader.load(eq(1))).thenReturn("one");
 
-    when(cacheLoader.load(eq(1))).thenReturn("lala");
-
-    assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("lala"));
+    assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("one"));
     assertThat(testCache.get(2), is(nullValue()));
 
     verify(cacheLoader, times(1)).load(eq(1));
@@ -71,14 +71,11 @@ public class LoaderEhcacheITest {
 
   @Test
   public void testSimpleGetAllWithLoader() throws Exception {
-    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().addServiceConfig(new CacheWriterConfiguration()).buildConfig(Number.class, CharSequence.class));
-
     when(cacheLoader.loadAll((Iterable)any())).thenAnswer(new Answer() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         Iterable<Integer> iterable = (Iterable) invocation.getArguments()[0];
         for (Integer i : iterable) {
-
           switch (i) {
             case 1:
               return Collections.singletonMap(1, "one");
@@ -95,8 +92,8 @@ public class LoaderEhcacheITest {
 
     Map<Number, CharSequence> all = testCache.getAll(Arrays.asList(1, 2, 3));
     assertThat(all.size(), is(3));
-    assertThat(all.get(1), Matchers.<CharSequence>equalTo("val#1"));
-    assertThat(all.get(2), Matchers.<CharSequence>equalTo("val#2"));
+    assertThat(all.get(1), Matchers.<CharSequence>equalTo("one"));
+    assertThat(all.get(2), Matchers.<CharSequence>equalTo("two"));
     assertThat(all.get(3), is(Matchers.nullValue()));
   }
 

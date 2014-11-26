@@ -18,7 +18,7 @@ import static org.junit.Assert.assertThat;
 /**
  * @author Ludovic Orban
  */
-public class EvictionEhcacheITest {
+public class EvictionEhcacheTest {
 
   private CacheManager cacheManager;
 
@@ -31,7 +31,7 @@ public class EvictionEhcacheITest {
   @After
   public void tearDown() throws Exception {
     if (cacheManager != null) {
-//      cacheManager.close();
+      cacheManager.close();
     }
   }
 
