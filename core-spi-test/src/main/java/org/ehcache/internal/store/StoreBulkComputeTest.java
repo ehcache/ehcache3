@@ -51,9 +51,8 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
   public void remappingFunctionReturnsIterableOfEntriesForEachInputEntry() throws Exception {
     final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
 
-    int nbElements = 10;
-
     Set<K> inputKeys = new HashSet<K>();
+    int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
       final K k = factory.createKey(i);
       final V v = factory.createValue(i);
@@ -85,14 +84,20 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testWrongKeyType() throws Exception {
     final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
-    Set<K> set = new HashSet<K>();
-    if (factory.getKeyType() == String.class) {
-      set.add((K)new Object());
-    } else {
-      set.add((K)"WrongKeyType");
+
+    Set<K> inputKeys = new HashSet<K>();
+    int nbElements = 10;
+    for (long i = 0; i < nbElements; i++) {
+
+      if (factory.getKeyType() == String.class) {
+        inputKeys.add((K)new Object());
+      } else {
+        inputKeys.add((K)"WrongKeyType");
+      }
     }
+
     try {
-      kvStore.bulkCompute(Arrays.asList((K[])set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+      kvStore.bulkCompute(inputKeys, new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
           throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
