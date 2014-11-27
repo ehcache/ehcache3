@@ -18,6 +18,7 @@ package org.ehcache.config.xml;
 
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
+import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.core.Is;
 import org.hamcrest.core.IsCollectionContaining;
@@ -98,6 +99,34 @@ public class XmlConfigurationTest {
   }
 
   @Test
+  public void testStoreByValueDefaultsToFalse() throws Exception {
+    Boolean storeByValueOnHeap = null;
+    final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
+    for (ServiceConfiguration<?> serviceConfiguration : xmlConfiguration.getCacheConfigurations()
+        .get("bar")
+        .getServiceConfigurations()) {
+      if(serviceConfiguration instanceof OnHeapStoreServiceConfig) {
+        storeByValueOnHeap = ((OnHeapStoreServiceConfig)serviceConfiguration).storeByValue();
+      }
+    }
+    assertThat(storeByValueOnHeap, is(false));
+  }
+  
+  @Test
+  public void testStoreByValueIsParsed() throws Exception {
+    Boolean storeByValueOnHeap = null;
+    final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/byValue-cache.xml"));
+    for (ServiceConfiguration<?> serviceConfiguration : xmlConfiguration.getCacheConfigurations()
+        .get("bar")
+        .getServiceConfigurations()) {
+      if(serviceConfiguration instanceof OnHeapStoreServiceConfig) {
+        storeByValueOnHeap = ((OnHeapStoreServiceConfig)serviceConfiguration).storeByValue();
+      }
+    }
+    assertThat(storeByValueOnHeap, is(true));
+  }
+
+  @Test
   public void testInvalidCoreConfiguration() throws Exception {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-core.xml"));
@@ -107,7 +136,7 @@ public class XmlConfigurationTest {
       assertThat(e.getColumnNumber(), is(29));
     }
   }
-  
+
   @Test
   public void testInvalidServiceConfiguration() throws Exception {
     try {

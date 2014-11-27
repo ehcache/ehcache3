@@ -23,6 +23,7 @@ import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.loader.DefaultCacheLoaderConfiguration;
 import org.ehcache.config.writer.DefaultCacheWriterConfiguration;
+import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriter;
@@ -172,6 +173,9 @@ public class XmlConfiguration implements Configuration {
         final Class<CacheWriter<?, ?>> cacheWriterClass = (Class<CacheWriter<?,?>>)getClassForName(cacheDefinition.writer(), cacheClassLoader);
         builder = builder.addServiceConfig(new DefaultCacheWriterConfiguration(cacheWriterClass));
       }
+      final OnHeapStoreServiceConfig onHeapStoreServiceConfig = new OnHeapStoreServiceConfig();
+      onHeapStoreServiceConfig.storeByValue(cacheDefinition.storeByValueOnHeap());
+      builder.addServiceConfig(onHeapStoreServiceConfig);
       final CacheConfiguration config = builder.buildConfig(keyType, valueType, evictionVeto, evictionPrioritizer);
       cacheConfigurations.put(alias, config);
     }
@@ -281,6 +285,9 @@ public class XmlConfiguration implements Configuration {
     for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {
       builder = builder.addServiceConfig(serviceConfiguration);
     }
+    final OnHeapStoreServiceConfig onHeapStoreServiceConfig = new OnHeapStoreServiceConfig();
+    onHeapStoreServiceConfig.storeByValue(cacheTemplate.storeByValueOnHeap());
+    builder.addServiceConfig(onHeapStoreServiceConfig);
     return builder;
   }
 

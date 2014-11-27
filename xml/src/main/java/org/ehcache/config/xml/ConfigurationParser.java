@@ -182,6 +182,16 @@ class ConfigurationParser {
           }
 
           @Override
+          public boolean storeByValueOnHeap() {
+            Boolean value = null;
+            for (BaseCacheType source : sources) {
+              value = source.isStoreByValueOnHeap();
+              if (value != null) break;
+            }
+            return value == null ? false : value;
+          }
+
+          @Override
           public String loader() {
             String configClass = null;
             for (BaseCacheType source : sources) {
@@ -261,6 +271,12 @@ class ConfigurationParser {
           }
 
           @Override
+          public boolean storeByValueOnHeap() {
+            final Boolean storeByValueOnHeap = cacheTemplate.isStoreByValueOnHeap();
+            return storeByValueOnHeap == null ? false : storeByValueOnHeap;
+          }
+
+          @Override
           public String loader() {
             final CacheIntegration integration = cacheTemplate.getIntegration();
             final CacheIntegration.Loader loader = integration != null ? integration.getLoader() : null;
@@ -327,6 +343,8 @@ class ConfigurationParser {
     String evictionVeto();
 
     String evictionPrioritizer();
+
+    boolean storeByValueOnHeap();
 
     String loader();
 

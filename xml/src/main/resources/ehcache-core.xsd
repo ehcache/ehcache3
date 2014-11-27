@@ -66,6 +66,7 @@
       <xs:element name="integration" type="ehcache:cache-integration" minOccurs="0" maxOccurs="1"/>
       <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
+    <xs:attribute name="storeByValueOnHeap" type="xs:boolean" use="optional" />
   </xs:complexType>
 
   <xs:complexType name="cache-integration">

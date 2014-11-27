@@ -44,9 +44,6 @@ public class IntegrationConfigTest {
       IOException, IllegalAccessException {
     Configuration configuration = new XmlConfiguration(this.getClass().getResource("/configs/cache-integration.xml"));
     assertThat(configuration.getCacheConfigurations().containsKey("bar"), is(true));
-    final CacheConfiguration<?, ?> bar = configuration.getCacheConfigurations().get("bar");
-    assertThat(bar.getServiceConfigurations().size(), is(2));
-//    assertThat(bar.getServiceConfigurations().iterator().next(), instanceOf(DefaultCacheLoaderConfiguration.class));
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
     final Cache<Number, String> cache = cacheManager.getCache("bar", Number.class, String.class);
     assertThat(cache, notNullValue());
@@ -58,9 +55,6 @@ public class IntegrationConfigTest {
       IOException, IllegalAccessException {
     Configuration configuration = new XmlConfiguration(this.getClass().getResource("/configs/cache-integration.xml"));
     assertThat(configuration.getCacheConfigurations().containsKey("bar"), is(true));
-    final CacheConfiguration<?, ?> bar = configuration.getCacheConfigurations().get("bar");
-    assertThat(bar.getServiceConfigurations().size(), is(2));
-//    assertThat(bar.getServiceConfigurations().iterator().next(), instanceOf(DefaultCacheLoaderConfiguration.class));
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
     final Cache<Number, String> cache = cacheManager.getCache("bar", Number.class, String.class);
     assertThat(cache, notNullValue());
