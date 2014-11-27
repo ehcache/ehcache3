@@ -25,6 +25,8 @@ import org.ehcache.config.loader.DefaultCacheLoaderConfiguration;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
+import com.pany.ehcache.integration.TestCacheWriter;
+
 import java.io.IOException;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -43,11 +45,27 @@ public class IntegrationConfigTest {
     Configuration configuration = new XmlConfiguration(this.getClass().getResource("/configs/cache-integration.xml"));
     assertThat(configuration.getCacheConfigurations().containsKey("bar"), is(true));
     final CacheConfiguration<?, ?> bar = configuration.getCacheConfigurations().get("bar");
-    assertThat(bar.getServiceConfigurations().size(), is(1));
-    assertThat(bar.getServiceConfigurations().iterator().next(), instanceOf(DefaultCacheLoaderConfiguration.class));
+    assertThat(bar.getServiceConfigurations().size(), is(2));
+//    assertThat(bar.getServiceConfigurations().iterator().next(), instanceOf(DefaultCacheLoaderConfiguration.class));
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
     final Cache<Number, String> cache = cacheManager.getCache("bar", Number.class, String.class);
     assertThat(cache, notNullValue());
     assertThat(cache.get(1), notNullValue());
+  }
+
+  @Test
+  public void testWriter() throws ClassNotFoundException, SAXException, InstantiationException,
+      IOException, IllegalAccessException {
+    Configuration configuration = new XmlConfiguration(this.getClass().getResource("/configs/cache-integration.xml"));
+    assertThat(configuration.getCacheConfigurations().containsKey("bar"), is(true));
+    final CacheConfiguration<?, ?> bar = configuration.getCacheConfigurations().get("bar");
+    assertThat(bar.getServiceConfigurations().size(), is(2));
+//    assertThat(bar.getServiceConfigurations().iterator().next(), instanceOf(DefaultCacheLoaderConfiguration.class));
+    final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
+    final Cache<Number, String> cache = cacheManager.getCache("bar", Number.class, String.class);
+    assertThat(cache, notNullValue());
+    final Number key = new Long(42);
+    cache.put(key, "Bye y'all!");
+    assertThat(TestCacheWriter.lastWrittenKey, is(key));
   }
 }

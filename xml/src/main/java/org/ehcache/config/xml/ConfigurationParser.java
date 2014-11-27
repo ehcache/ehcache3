@@ -181,6 +181,7 @@ class ConfigurationParser {
             return value;
           }
 
+          @Override
           public String loader() {
             String configClass = null;
             for (BaseCacheType source : sources) {
@@ -188,6 +189,20 @@ class ConfigurationParser {
               final CacheIntegration.Loader loader = integration != null ? integration.getLoader() : null;
               if(loader != null) {
                 configClass = loader.getClazz();
+                break;
+              }
+            }
+            return configClass;
+          }
+
+          @Override
+          public String writer() {
+            String configClass = null;
+            for (BaseCacheType source : sources) {
+              final CacheIntegration integration = source.getIntegration();
+              final CacheIntegration.Writer writer = integration != null ? integration.getWriter() : null;
+              if(writer != null) {
+                configClass = writer.getClazz();
                 break;
               }
             }
@@ -253,6 +268,13 @@ class ConfigurationParser {
           }
 
           @Override
+          public String writer() {
+            final CacheIntegration integration = cacheTemplate.getIntegration();
+            final CacheIntegration.Writer writer = integration != null ? integration.getWriter() : null;
+            return writer != null ? writer.getClazz() : null;
+          }
+
+          @Override
           public Iterable<ServiceConfiguration<?>> serviceConfigs() {
             Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
             for (Object child : cacheTemplate.getAny()) {
@@ -307,6 +329,8 @@ class ConfigurationParser {
     String evictionPrioritizer();
 
     String loader();
+
+    String writer();
 
     Iterable<ServiceConfiguration<?>> serviceConfigs();
 

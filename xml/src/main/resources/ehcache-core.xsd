@@ -78,6 +78,14 @@
           </xs:sequence>
         </xs:complexType>
       </xs:element>
+      <xs:element name="writer" minOccurs="0" maxOccurs="1">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="class" type="xs:string" minOccurs="1" maxOccurs="1"/>
+            <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
     </xs:sequence>
   </xs:complexType>
 </xs:schema>

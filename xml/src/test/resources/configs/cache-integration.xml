@@ -25,6 +25,9 @@
       <ehcache:loader>
         <ehcache:class>com.pany.ehcache.integration.TestCacheLoader</ehcache:class>
       </ehcache:loader>
+      <ehcache:writer>
+        <ehcache:class>com.pany.ehcache.integration.TestCacheWriter</ehcache:class>
+      </ehcache:writer>
     </ehcache:integration>
   </ehcache:cache>
 </ehcache:config>
