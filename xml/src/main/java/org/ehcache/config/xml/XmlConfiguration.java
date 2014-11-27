@@ -21,6 +21,8 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.loader.DefaultCacheLoaderConfiguration;
+import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
 import org.xml.sax.SAXException;
@@ -159,6 +161,10 @@ public class XmlConfiguration implements Configuration {
       }
       if (capacityConstraint != null) {
         builder = builder.maxEntriesInCache(capacityConstraint);
+      }
+      if(cacheDefinition.loader() != null) {
+        final Class<CacheLoader> cacheLoaderClass = (Class<CacheLoader>)getClassForName(cacheDefinition.loader(), cacheClassLoader);
+        builder = builder.addServiceConfig(new DefaultCacheLoaderConfiguration(cacheLoaderClass));
       }
       final CacheConfiguration config = builder.buildConfig(keyType, valueType, evictionVeto, evictionPrioritizer);
       cacheConfigurations.put(alias, config);

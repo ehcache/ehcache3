@@ -30,7 +30,7 @@ buildscript {
 apply plugin: 'com.github.jacobono.jaxb'
 
 dependencies {
-  compile project(':api'), project(':core')
+  compile project(':api'), project(':core'), project(':impl')
   jaxb 'com.sun.xml.bind:jaxb-xjc:2.2.7-b41'
   jaxb 'com.sun.xml.bind:jaxb-impl:2.2.7-b41'
   jaxb 'javax.xml.bind:jaxb-api:2.2.7'

@@ -17,6 +17,7 @@
 package org.ehcache.config.xml;
 
 import org.ehcache.config.xml.model.BaseCacheType;
+import org.ehcache.config.xml.model.CacheIntegration;
 import org.ehcache.config.xml.model.CacheTemplateType;
 import org.ehcache.config.xml.model.CacheType;
 import org.ehcache.config.xml.model.ConfigType;
@@ -180,6 +181,19 @@ class ConfigurationParser {
             return value;
           }
 
+          public String loader() {
+            String configClass = null;
+            for (BaseCacheType source : sources) {
+              final CacheIntegration integration = source.getIntegration();
+              final CacheIntegration.Loader loader = integration != null ? integration.getLoader() : null;
+              if(loader != null) {
+                configClass = loader.getClazz();
+                break;
+              }
+            }
+            return configClass;
+          }
+
           @Override
           public Iterable<ServiceConfiguration<?>> serviceConfigs() {
             Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
@@ -229,6 +243,13 @@ class ConfigurationParser {
           @Override
           public String evictionPrioritizer() {
             return cacheTemplate.getEvictionPrioritizer();
+          }
+
+          @Override
+          public String loader() {
+            final CacheIntegration integration = cacheTemplate.getIntegration();
+            final CacheIntegration.Loader loader = integration != null ? integration.getLoader() : null;
+            return loader != null ? loader.getClazz() : null;
           }
 
           @Override
@@ -284,6 +305,8 @@ class ConfigurationParser {
     String evictionVeto();
 
     String evictionPrioritizer();
+
+    String loader();
 
     Iterable<ServiceConfiguration<?>> serviceConfigs();
 
