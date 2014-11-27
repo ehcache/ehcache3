@@ -18,8 +18,12 @@ package org.ehcache.config.xml;
 
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.hamcrest.CoreMatchers;
 import org.hamcrest.core.Is;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
@@ -28,6 +32,7 @@ import org.xml.sax.SAXParseException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -124,6 +129,30 @@ public class XmlConfigurationTest {
       }
     }
     assertThat(storeByValueOnHeap, is(true));
+  }
+
+  @Test
+  public void testExpiryIsParsed() throws Exception {
+    final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/expiry-caches.xml"));
+
+    Expiry expiry = xmlConfiguration.getCacheConfigurations().get("none").getExpiry();
+    Expiry value = Expirations.noExpiration();
+    assertThat(expiry, is(value));
+
+    expiry = xmlConfiguration.getCacheConfigurations().get("notSet").getExpiry();
+    value = Expirations.noExpiration();
+    assertThat(expiry, is(value));
+
+    expiry = xmlConfiguration.getCacheConfigurations().get("class").getExpiry();
+    assertThat(expiry, CoreMatchers.instanceOf(com.pany.ehcache.MyExpiry.class));
+
+    expiry = xmlConfiguration.getCacheConfigurations().get("tti").getExpiry();
+    value = Expirations.timeToIdleExpiration(new Duration(500, TimeUnit.MILLISECONDS));
+    assertThat(expiry, equalTo(value));
+
+    expiry = xmlConfiguration.getCacheConfigurations().get("ttl").getExpiry();
+    value = Expirations.timeToLiveExpiration(new Duration(30, TimeUnit.SECONDS));
+    assertThat(expiry, equalTo(value));
   }
 
   @Test

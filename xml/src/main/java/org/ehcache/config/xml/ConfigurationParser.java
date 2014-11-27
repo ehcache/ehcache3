@@ -21,7 +21,9 @@ import org.ehcache.config.xml.model.CacheIntegration;
 import org.ehcache.config.xml.model.CacheTemplateType;
 import org.ehcache.config.xml.model.CacheType;
 import org.ehcache.config.xml.model.ConfigType;
+import org.ehcache.config.xml.model.ExpiryType;
 import org.ehcache.config.xml.model.ServiceType;
+import org.ehcache.config.xml.model.TimeType;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
 import org.w3c.dom.Element;
@@ -39,6 +41,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
@@ -182,6 +185,16 @@ class ConfigurationParser {
           }
 
           @Override
+          public Expiry expiry() {
+            ExpiryType value = null;
+            for (BaseCacheType source : sources) {
+              value = source.getExpiry();
+              if (value != null) break;
+            }
+            return new XmlExpiry(value);
+          }
+
+          @Override
           public boolean storeByValueOnHeap() {
             Boolean value = null;
             for (BaseCacheType source : sources) {
@@ -271,6 +284,11 @@ class ConfigurationParser {
           }
 
           @Override
+          public Expiry expiry() {
+            return new XmlExpiry(cacheTemplate.getExpiry());
+          }
+
+          @Override
           public boolean storeByValueOnHeap() {
             final Boolean storeByValueOnHeap = cacheTemplate.isStoreByValueOnHeap();
             return storeByValueOnHeap == null ? false : storeByValueOnHeap;
@@ -344,6 +362,8 @@ class ConfigurationParser {
 
     String evictionPrioritizer();
 
+    Expiry expiry();
+
     boolean storeByValueOnHeap();
 
     String loader();
@@ -360,4 +380,88 @@ class ConfigurationParser {
 
   }
 
+  static interface Expiry {
+
+    boolean isUserDef();
+
+    boolean isTTI();
+
+    boolean isTTL();
+
+    String type();
+
+    long value();
+
+    TimeUnit unit();
+
+  }
+
+  private static class XmlExpiry implements Expiry {
+
+    final ExpiryType type;
+
+    private XmlExpiry(final ExpiryType type) {
+      this.type = type;
+    }
+
+    @Override
+    public boolean isUserDef() {
+      return type != null && type.getClazz() != null;
+    }
+
+    @Override
+    public boolean isTTI() {
+      return type != null && type.getTti() != null;
+    }
+
+    @Override
+    public boolean isTTL() {
+      return type != null && type.getTtl() != null;
+    }
+
+    @Override
+    public String type() {
+      return type.getClazz();
+    }
+
+    @Override
+    public long value() {
+      final TimeType time;
+      if(isTTI()) {
+        time = type.getTti();
+      } else {
+        time = type.getTtl();
+      }
+      return time == null ? 0L : time.getValue().longValue();
+    }
+
+    @Override
+    public TimeUnit unit() {
+      final TimeType time;
+      if(isTTI()) {
+        time = type.getTti();
+      } else {
+        time = type.getTtl();
+      }
+      if(time != null) {
+        switch (time.getUnit()) {
+          case NANOS:
+            return TimeUnit.NANOSECONDS;
+          case MICROS:
+          return TimeUnit.MICROSECONDS;
+          case MILLIS:
+            return TimeUnit.MILLISECONDS;
+          case SECONDS:
+            return TimeUnit.SECONDS;
+          case MINUTES:
+            return TimeUnit.MINUTES;
+          case HOURS:
+            return TimeUnit.HOURS;
+          case DAYS:
+            return TimeUnit.DAYS;
+        }
+      }
+      return null;
+    }
+  }
 }

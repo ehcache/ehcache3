@@ -23,6 +23,9 @@ import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.loader.DefaultCacheLoaderConfiguration;
 import org.ehcache.config.writer.DefaultCacheWriterConfiguration;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -159,6 +162,18 @@ public class XmlConfiguration implements Configuration {
       } catch (NullPointerException e) {
         evictionPrioritizer = null;
       }
+      final Expiry<? super Object, ? super Object> expiry;
+      final ConfigurationParser.Expiry parsedExpiry = cacheDefinition.expiry();
+      if (parsedExpiry.isUserDef()) {
+        expiry = getInstanceOfName(parsedExpiry.type(), cacheClassLoader, Expiry.class);
+      } else if (parsedExpiry.isTTL()) {
+        expiry = Expirations.timeToLiveExpiration(new Duration(parsedExpiry.value(), parsedExpiry.unit()));
+      } else if (parsedExpiry.isTTI()) {
+        expiry = Expirations.timeToIdleExpiration(new Duration(parsedExpiry.value(), parsedExpiry.unit()));
+      } else {
+        expiry = Expirations.noExpiration();
+      }
+      builder = builder.withExpiry(expiry);
       for (ServiceConfiguration<?> serviceConfig : cacheDefinition.serviceConfigs()) {
         builder = builder.addServiceConfig(serviceConfig);
       }
