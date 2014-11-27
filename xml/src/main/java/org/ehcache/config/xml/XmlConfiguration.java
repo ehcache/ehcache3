@@ -163,7 +163,7 @@ public class XmlConfiguration implements Configuration {
         builder = builder.maxEntriesInCache(capacityConstraint);
       }
       if(cacheDefinition.loader() != null) {
-        final Class<CacheLoader> cacheLoaderClass = (Class<CacheLoader>)getClassForName(cacheDefinition.loader(), cacheClassLoader);
+        final Class<CacheLoader<?, ?>> cacheLoaderClass = (Class<CacheLoader<?,?>>)getClassForName(cacheDefinition.loader(), cacheClassLoader);
         builder = builder.addServiceConfig(new DefaultCacheLoaderConfiguration(cacheLoaderClass));
       }
       final CacheConfiguration config = builder.buildConfig(keyType, valueType, evictionVeto, evictionPrioritizer);

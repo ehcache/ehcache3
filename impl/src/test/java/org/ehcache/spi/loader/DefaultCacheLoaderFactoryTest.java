@@ -108,5 +108,4 @@ public class DefaultCacheLoaderFactoryTest {
       return object;
     }
   }
-
-  }
+}
