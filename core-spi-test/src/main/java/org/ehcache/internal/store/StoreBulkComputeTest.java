@@ -16,30 +16,21 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.Cache;
-import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.expiry.Expirations;
 import org.ehcache.function.Function;
-import org.ehcache.function.Predicate;
-import org.ehcache.function.Predicates;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.test.Ignore;
 import org.ehcache.spi.test.SPITest;
-import org.hamcrest.Matchers;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-
-import java.lang.Long;
-import java.util.Set;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 /**
  * Test the {@link org.ehcache.spi.cache.Store#bulkCompute(Iterable, org.ehcache.function.Function)} contract of the
@@ -55,30 +46,35 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     super(factory);
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings({ "unchecked" })
   @SPITest
   public void remappingFunctionReturnsIterableOfEntriesForEachInputEntry() throws Exception {
     final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
-    final K k1 = factory.createKey(1L);
-    final V v1 = factory.createValue(1L);
 
-    Set<K> set = new HashSet<K>();
-    set.add(k1);
+    int nbElements = 10;
 
-    kvStore.put(k1, v1);
+    Set<K> inputKeys = new HashSet<K>();
+    for (long i = 0; i < nbElements; i++) {
+      final K k = factory.createKey(i);
+      final V v = factory.createValue(i);
+
+      inputKeys.add(k);
+      kvStore.put(k, v);
+    }
 
     try {
-      kvStore.bulkCompute(Arrays.asList((K[]) set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+      Map<K, Store.ValueHolder<V>> mapFromRemappingFunction = kvStore.bulkCompute(inputKeys, new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
             @Override
             public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-              Map.Entry<? extends K, ? extends V> entry = entries.iterator().next();
-              assertThat(entry.getValue(), is(v1));
               Map<K, V> map = new HashMap<K, V>();
-              map.put(entry.getKey(), entry.getValue());
+              for (final Map.Entry<? extends K, ? extends V> entry : entries) {
+                map.put(entry.getKey(), entry.getValue());
+              }
               return map.entrySet();
             }
           }
       );
+      assertThat(mapFromRemappingFunction.keySet(), containsInAnyOrder((K[])inputKeys.toArray()));
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
@@ -91,12 +87,12 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
     Set<K> set = new HashSet<K>();
     if (factory.getKeyType() == String.class) {
-      set.add((K) new Object());
+      set.add((K)new Object());
     } else {
-      set.add((K) "WrongKeyType");
+      set.add((K)"WrongKeyType");
     }
     try {
-      kvStore.bulkCompute(Arrays.asList((K[]) set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+      kvStore.bulkCompute(Arrays.asList((K[])set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
           throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
@@ -124,7 +120,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(k1, v1);
 
     try {
-      kvStore.bulkCompute(Arrays.asList((K[]) set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+      kvStore.bulkCompute(Arrays.asList((K[])set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
           Map<K, V> map = new HashMap<K, V>();
@@ -149,16 +145,16 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     set.add(k1);
 
     try {
-      kvStore.bulkCompute(Arrays.asList((K[]) set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-        @Override
-        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-          Map.Entry<? extends K, ? extends V> entry = entries.iterator().next();
-          assertThat(entry.getValue(), is(nullValue()));
-          Map<K, V> map = new HashMap<K, V>();
-          map.put(entry.getKey(), entry.getValue());
-          return map.entrySet();
-        }
-      }
+      kvStore.bulkCompute(Arrays.asList((K[])set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+            @Override
+            public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+              Map.Entry<? extends K, ? extends V> entry = entries.iterator().next();
+              assertThat(entry.getValue(), is(nullValue()));
+              Map<K, V> map = new HashMap<K, V>();
+              map.put(entry.getKey(), entry.getValue());
+              return map.entrySet();
+            }
+          }
       );
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
@@ -177,7 +173,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     set.add(k1);
 
     try {
-      kvStore.bulkCompute(Arrays.asList((K[]) set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+      kvStore.bulkCompute(Arrays.asList((K[])set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
           Map<K, V> map = new HashMap<K, V>();
@@ -201,7 +197,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     Set<K> set = new HashSet<K>();
     set.add(k1);
     try {
-      kvStore.bulkCompute(Arrays.asList((K[]) set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+      kvStore.bulkCompute(Arrays.asList((K[])set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
           Map<K, V> map = new HashMap<K, V>();
@@ -230,14 +226,14 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     Set<K> set = new HashSet<K>();
     set.add(k1);
     try {
-      kvStore.bulkCompute(Arrays.asList((K[]) set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+      kvStore.bulkCompute(Arrays.asList((K[])set.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
           Map<K, V> map = new HashMap<K, V>();
           if (factory.getValueType() == String.class) {
-            map.put(k1, (V) new Object());
+            map.put(k1, (V)new Object());
           } else {
-            map.put(k1, (V) "WrongValueType");
+            map.put(k1, (V)"WrongValueType");
           }
           return map.entrySet();
         }
