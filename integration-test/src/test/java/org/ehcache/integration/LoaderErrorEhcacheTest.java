@@ -24,7 +24,6 @@ import org.ehcache.exceptions.BulkCacheLoaderException;
 import org.ehcache.exceptions.CacheLoaderException;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.loader.CacheLoaderFactory;
-import org.ehcache.spi.service.CacheWriterConfiguration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -67,7 +66,7 @@ public class LoaderErrorEhcacheTest {
     when(cacheLoaderFactory.createCacheLoader(anyString(), (CacheConfiguration<Number, CharSequence>) anyObject())).thenReturn((CacheLoader) cacheLoader);
     builder.using(cacheLoaderFactory);
     cacheManager = builder.build();
-    testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().addServiceConfig(new CacheWriterConfiguration()).buildConfig(Number.class, CharSequence.class));
+    testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
   }
 
   @After

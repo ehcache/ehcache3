@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.service;
+package org.ehcache;
 
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriterFactory;
 
 /**
  * @author vfunshteyn
  */
-public class CacheWriterConfiguration implements ServiceConfiguration<CacheWriterFactory> {
+class CacheWriterConfiguration implements ServiceConfiguration<CacheWriterFactory> {
 
   @Override
   public Class<CacheWriterFactory> getServiceType() {
