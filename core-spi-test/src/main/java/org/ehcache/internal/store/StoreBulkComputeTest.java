@@ -46,7 +46,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     super(factory);
   }
 
-  @SuppressWarnings({ "unchecked" })
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void remappingFunctionReturnsIterableOfEntriesForEachInputEntry() throws Exception {
     final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
@@ -80,7 +80,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SuppressWarnings({ "unchecked" })
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongKeyType() throws Exception {
     final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
@@ -112,7 +112,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SuppressWarnings({ "unchecked" })
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void mappingIsRemovedFromStoreForNullValueEntriesFromRemappingFunction() throws Exception {
     final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
@@ -147,7 +147,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SuppressWarnings({ "unchecked" })
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void remappingFunctionGetsIterableWithMappedStoreEntryValueOrNull() throws Exception {
     final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
@@ -190,7 +190,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SuppressWarnings({ "unchecked" })
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void computeValuesForEveryKeyUsingARemappingFunction() throws Exception {
     final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
