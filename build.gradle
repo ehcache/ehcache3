@@ -78,9 +78,9 @@ subprojects {
   }
 
   sourceSets {
-    integrationTest {
-      java.srcDir 'src/integration-test/java'
-      resources.srcDir 'src/integration-test/resources'
+    slowTest {
+      java.srcDir 'src/slow-test/java'
+      resources.srcDir 'src/slow-test/resources'
       compileClasspath += sourceSets.test.compileClasspath
       runtimeClasspath += sourceSets.test.runtimeClasspath
     }
@@ -94,13 +94,13 @@ subprojects {
     fillManifest(manifest,"ehcache-${project.name}")
   }
 
-  task integrationTest(type: Test) {
-    testClassesDir = sourceSets.integrationTest.output.classesDir
-    classpath += sourceSets.integrationTest.runtimeClasspath
+  task slowTest(type: Test) {
+    testClassesDir = sourceSets.slowTest.output.classesDir
+    classpath += sourceSets.slowTest.runtimeClasspath
 
-    binResultsDir file("$buildDir/integration-tests-results/binary/$name")
-    reports.junitXml.destination = "$buildDir/integration-tests-results"
-    reports.html.destination = "$buildDir/reports/integration-tests"
+    binResultsDir file("$buildDir/slow-tests-results/binary/$name")
+    reports.junitXml.destination = "$buildDir/slow-tests-results"
+    reports.html.destination = "$buildDir/reports/slow-tests"
   }
 
   task sourceJar(type: Jar, dependsOn: classes) {
