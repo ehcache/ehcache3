@@ -18,6 +18,8 @@ package org.ehcache.config.xml;
 
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.Eviction;
+import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -27,8 +29,10 @@ import org.hamcrest.CoreMatchers;
 import org.hamcrest.core.Is;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
+import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -129,6 +133,17 @@ public class XmlConfigurationTest {
       }
     }
     assertThat(storeByValueOnHeap, is(true));
+  }
+
+  @Test
+  public void testEvictionPrioritizer() throws ClassNotFoundException, SAXException, InstantiationException, IOException, IllegalAccessException {
+    final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/cache-eviction.xml"));
+    final EvictionPrioritizer lru = xmlConfiguration.getCacheConfigurations().get("lru").getEvictionPrioritizer();
+    final EvictionPrioritizer value = Eviction.Prioritizer.FIFO;
+    assertThat(lru, is(value));
+    final EvictionPrioritizer mine = xmlConfiguration.getCacheConfigurations().get("eviction").getEvictionPrioritizer();
+    assertThat(mine, CoreMatchers.instanceOf(com.pany.ehcache.MyEviction.class));
+
   }
 
   @Test
