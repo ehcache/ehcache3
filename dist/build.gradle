@@ -47,6 +47,14 @@ task shadowSourceJar(type: Jar, dependsOn: shadowJar) {
   projectsToInclude.each {from project(it).sourceSets.main.allSource}
 }
 
+task shadowJavadocJar(type: Jar, dependsOn: shadowJar) {
+  baseName = 'ehcache'
+  classifier = 'javadoc'
+
+  // This is brute force and not completely valid as we need to merge some files
+  projectsToInclude.each {from project(it).javadoc.destinationDir}
+}
+
 artifacts {
   archives shadowJar
   archives shadowSourceJar
