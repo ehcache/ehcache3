@@ -13,8 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache;
+package org.ehcache.integration;
 
+import org.ehcache.StandaloneCache;
+import org.ehcache.StandaloneCacheBuilder;
 import org.ehcache.config.Eviction;
 import org.junit.Test;
 
@@ -26,10 +28,10 @@ import static org.junit.Assert.assertThat;
  * @author Anthony Dahanne
  * Simple test to make sure eviction is happening when we specify a capacity
  */
-public class EvictionTest {
+public class StandaloneCacheEvictionTest {
 
   @Test
-  public void test_eviction_normal_path() throws Exception {
+  public void test_eviction_with_specific_eviction_prioritizer() throws Exception {
     StandaloneCache<Number, String> cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class)
         .withCapacity(1L)
         .prioritizeEviction(Eviction.Prioritizer.LRU)
