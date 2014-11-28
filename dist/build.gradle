@@ -25,36 +25,31 @@ apply plugin: 'java'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'maven'
 
+def projectsToInclude = [':api', ':core', ':impl', ':jmx', ':107', ':xml']
+
 dependencies {
-  compile project(':api'), project(':core'), project(':impl'), project(':jmx'), project(':107'), project(':xml')
+  projectsToInclude.each {compile project(it)}
   shadow 'org.slf4j:slf4j-api:1.7.7'
 }
 
 shadowJar {
   baseName = 'ehcache'
   classifier = ''
-  dependencies {
-    include(project(':107'))
-    include(project(':api'))
-    include(project(':core'))
-    include(project(':impl'))
-    include(project(':jmx'))
-    include(project(':xml'))
-    exclude(dependency('org.slf4j:slf4j-api'))
-  }
-  manifest.attributes(
-          'provider': 'gradle',
-          'Implementation-Title': 'ehcache',
-          'Implementation-Version': project.version,
-          'Built-By': System.getProperty('user.name'),
-          'Built-JDK': System.getProperty('java.version'),
-          'Build-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-  )
+  projectsToInclude.each {projName -> dependencies {include(project(projName))}}
+  fillManifest(manifest, 'ehcache')
   mergeServiceFiles()
+}
+
+task shadowSourceJar(type: Jar, dependsOn: shadowJar) {
+  baseName = 'ehcache'
+  classifier = 'sources'
+
+  projectsToInclude.each {from project(it).sourceSets.main.allSource}
 }
 
 artifacts {
   archives shadowJar
+  archives shadowSourceJar
 }
 
 def artifactFiltering = {
@@ -69,7 +64,7 @@ def artifactFiltering = {
   shadowPom.scopeMappings.mappings.remove(project.configurations.runtime)
   shadowPom.scopeMappings.mappings.remove(project.configurations.testCompile)
   shadowPom.scopeMappings.addMapping(MavenPlugin.RUNTIME_PRIORITY, project.configurations.shadow, Conf2ScopeMappingContainer.RUNTIME)
-  pomFiller(shadowPom, 'Ehcache', 'Ehcache default jar, containing all modules')
+  pomFiller(shadowPom, 'Ehcache', 'Ehcache single jar, containing all modules')
 }
 
 install {

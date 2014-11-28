@@ -42,6 +42,17 @@ def pomFiller(pom, nameVar, descriptionVar) {
   }
 }
 
+def fillManifest(manifest, title) {
+  manifest.attributes(
+          'provider': 'gradle',
+          'Implementation-Title': title,
+          'Implementation-Version': project.version,
+          'Built-By': System.getProperty('user.name'),
+          'Built-JDK': System.getProperty('java.version'),
+          'Build-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+  )
+}
+
 subprojects {
   apply plugin: 'java'
   apply plugin: 'maven'
@@ -80,14 +91,7 @@ subprojects {
   }
 
   jar {
-    manifest.attributes(
-            'provider': 'gradle',
-            'Implementation-Title': "ehcache-${project.name}",
-            'Implementation-Version': project.version,
-            'Built-By': System.getProperty('user.name'),
-            'Built-JDK': System.getProperty('java.version'),
-            'Build-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-    )
+    fillManifest(manifest,"ehcache-${project.name}")
   }
 
   task integrationTest(type: Test) {
