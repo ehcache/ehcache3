@@ -1,0 +1,99 @@
+/*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+buildscript {
+  repositories { jcenter() }
+  dependencies {
+    classpath 'com.github.jengelman.gradle.plugins:shadow:1.1.1'
+  }
+}
+
+apply plugin: 'java'
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'maven'
+
+def projectsToInclude = [':api', ':core', ':impl', ':jmx', ':107', ':xml']
+
+dependencies {
+  projectsToInclude.each {compile project(it)}
+  shadow 'org.slf4j:slf4j-api:1.7.7'
+}
+
+shadowJar {
+  baseName = 'ehcache'
+  classifier = ''
+  projectsToInclude.each {projName -> dependencies {include(project(projName))}}
+  fillManifest(manifest, 'ehcache')
+  mergeServiceFiles()
+}
+
+task shadowSourceJar(type: Jar, dependsOn: shadowJar) {
+  baseName = 'ehcache'
+  classifier = 'sources'
+
+  projectsToInclude.each {from project(it).sourceSets.main.allSource}
+}
+
+task shadowJavadocJar(type: Jar, dependsOn: shadowJar) {
+  baseName = 'ehcache'
+  classifier = 'javadoc'
+
+  // This is brute force and not completely valid as we need to merge some files
+  projectsToInclude.each {from project(it).javadoc.destinationDir}
+}
+
+artifacts {
+  archives shadowJar
+  archives shadowSourceJar
+}
+
+def artifactFiltering = {
+  addFilter('shadow') {artifact, file ->
+    artifact.name == 'ehcache'
+  }
+
+  def shadowPom = pom('shadow')
+  shadowPom.groupId = 'org.ehcache'
+  shadowPom.artifactId = 'ehcache'
+  shadowPom.scopeMappings.mappings.remove(project.configurations.compile)
+  shadowPom.scopeMappings.mappings.remove(project.configurations.runtime)
+  shadowPom.scopeMappings.mappings.remove(project.configurations.testCompile)
+  shadowPom.scopeMappings.addMapping(MavenPlugin.RUNTIME_PRIORITY, project.configurations.shadow, Conf2ScopeMappingContainer.RUNTIME)
+  pomFiller(shadowPom, 'Ehcache', 'Ehcache single jar, containing all modules')
+}
+
+install {
+  repositories.mavenInstaller artifactFiltering
+}
+
+uploadArchives {
+  repositories {
+    mavenDeployer ({
+      beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment)}
+
+      if (isReleaseVersion) {
+        repository(id: 'sonatype-nexus-staging', url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
+          authentication(userName: sonatypeUser, password: sonatypePwd)
+        }
+      } else {
+        repository(id: 'sonatype-nexus-snapshot', url: 'https://oss.sonatype.org/content/repositories/snapshots') {
+          authentication(userName: sonatypeUser, password: sonatypePwd)
+        }
+      }
+    } << artifactFiltering)
+  }
+}
+
