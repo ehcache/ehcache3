@@ -91,7 +91,6 @@ public class LoaderErrorEhcacheTest {
   }
 
   @Test
-  @Ignore
   public void testGetAllWithLoaderException() throws Exception {
     when(cacheLoader.loadAll((Iterable)any())).thenAnswer(new Answer() {
       @Override

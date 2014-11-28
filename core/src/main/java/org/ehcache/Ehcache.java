@@ -54,6 +54,7 @@ import org.ehcache.statistics.StatisticsGateway;
 import org.ehcache.util.StatisticsThreadPoolUtil;
 import org.terracotta.context.annotations.ContextChild;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -61,6 +62,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -329,11 +331,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
             for (K key: keys) {
               failures.put(key, e);
             }
-            return Collections.<Map.Entry<K, V>>emptySet();
+            return nullValuesForKeys(keys);
           }
           return loaded.entrySet();
         }
-        return Collections.<Map.Entry<K, V>>emptySet();
+        return nullValuesForKeys(keys);
       }
     };
 
@@ -345,10 +347,14 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         return Collections.emptyMap();
       }
 
+      int hits = 0;
       for (Map.Entry<K, Store.ValueHolder<V>> entry : computedMap.entrySet()) {
-        result.put(entry.getKey(), entry.getValue().value());
+        if (entry.getValue() != null) {
+          result.put(entry.getKey(), entry.getValue().value());
+          hits++;
+        }
       }
-      addBulkMethodEntriesCount("getAll", result.size());
+      addBulkMethodEntriesCount("getAll", hits);
     } catch (CacheAccessException e) {
       if (cacheLoader == null) {
         return resilienceStrategy.getAllFailure(keys, e);
@@ -372,6 +378,14 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     } else {
       throw new BulkCacheLoaderException(failures, successes);
     }
+  }
+
+  LinkedHashSet<Map.Entry<? extends K, ? extends V>> nullValuesForKeys(final Iterable<? extends K> keys) {
+    final LinkedHashSet<Map.Entry<? extends K, ? extends V>> entries = new LinkedHashSet<Map.Entry<? extends K, ? extends V>>();
+    for (K key : keys) {
+      entries.add(new AbstractMap.SimpleEntry<K, V>(key, null));
+    }
+    return entries;
   }
 
   @Override

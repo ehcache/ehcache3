@@ -84,7 +84,6 @@ public abstract class ExpiryEhcacheTestBase {
   }
 
   @Test
-  @Ignore("getAll throws NoSuchElementException")
   public void testSimplePutWithExpiry_getAll() throws Exception {
     insert(testCache, entry(1, "one"), entry(2, "two"));
 
