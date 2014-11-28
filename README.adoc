@@ -4,7 +4,7 @@ Status of the build: image:https://ehcache.ci.cloudbees.com/buildStatus/icon?job
 
 For more information, you might want to go check the https://github.com/ehcache/ehcache3/wiki[wiki].
 
-image:http://cloudbees.prod.acquia-sites.com/sites/default/files/styles/large/public/Button-Powered-by-CB.png?itok=uMDWINfY[Cloudbees, link="http://www.cloudbees.com/resources/foss"]
+image:https://www.cloudbees.com/sites/default/files/styles/large/public/Button-Powered-by-CB.png?itok=uMDWINfY[Cloudbees, link="http://www.cloudbees.com/resources/foss"]
 
 == Getting started with the new API
 
