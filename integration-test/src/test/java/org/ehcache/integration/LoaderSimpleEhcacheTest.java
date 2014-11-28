@@ -85,7 +85,6 @@ public class LoaderSimpleEhcacheTest {
   }
 
   @Test
-  @Ignore("getAll throws NPE")
   public void testSimpleGetAllWithLoader() throws Exception {
     when(cacheLoader.loadAll((Iterable)any())).thenAnswer(new Answer() {
       @Override
@@ -113,10 +112,9 @@ public class LoaderSimpleEhcacheTest {
     });
 
     Map<Number, CharSequence> all = testCache.getAll(Arrays.asList(1, 2, 3));
-    assertThat(all.size(), is(3));
+    assertThat(all.keySet(), containsInAnyOrder((Number)1, 2));
     assertThat(all.get(1), Matchers.<CharSequence>equalTo("one"));
     assertThat(all.get(2), Matchers.<CharSequence>equalTo("two"));
-    assertThat(all.get(3), is(Matchers.nullValue()));
   }
 
 }
