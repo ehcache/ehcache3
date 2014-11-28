@@ -56,7 +56,7 @@ public class EhcacheWriterLoaderTest {
     CacheWriter<Number, String> writer = mock(CacheWriter.class);
     CacheLoader<Number, String> loader = mock(CacheLoader.class);
     cache = new Ehcache<Number, String>(
-        new CacheConfigurationBuilder().buildConfig(Number.class, String.class), store, loader, writer);
+        CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, String.class), store, loader, writer);
     cache.init();
   }
   

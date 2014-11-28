@@ -61,10 +61,64 @@
       <xs:element name="key-type" type="xs:string" minOccurs="0" maxOccurs="1" default="java.lang.Object"/>
       <xs:element name="value-type" type="xs:string" minOccurs="0" maxOccurs="1" default="java.lang.Object"/>
       <xs:element name="capacity" type="xs:positiveInteger" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="expiry" type="ehcache:expiry-type" minOccurs="0" maxOccurs="1"/>
       <xs:element name="eviction-veto" type="xs:string" minOccurs="0" maxOccurs="1"/>
       <xs:element name="eviction-prioritizer" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="integration" type="ehcache:cache-integration" minOccurs="0" maxOccurs="1"/>
       <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="storeByValueOnHeap" type="xs:boolean" use="optional" />
+  </xs:complexType>
+
+  <xs:complexType name="cache-integration">
+    <xs:sequence>
+      <xs:element name="loader" minOccurs="0" maxOccurs="1">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="class" type="xs:string" minOccurs="1" maxOccurs="1"/>
+            <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="writer" minOccurs="0" maxOccurs="1">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="class" type="xs:string" minOccurs="1" maxOccurs="1"/>
+            <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
     </xs:sequence>
   </xs:complexType>
 
+  <xs:complexType name="expiry-type">
+    <xs:choice>
+      <xs:element name="class" type="xs:string"/>
+      <xs:element name="tti" type="ehcache:time-type"/>
+      <xs:element name="ttl" type="ehcache:time-type"/>
+      <xs:element name="none">
+        <xs:complexType/>
+      </xs:element>
+    </xs:choice>
+  </xs:complexType>
+
+  <xs:complexType name="time-type">
+    <xs:simpleContent>
+      <xs:extension base="xs:positiveInteger">
+        <xs:attribute name="unit" type="ehcache:time-unit" default="seconds"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:simpleType name="time-unit">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="nanos"/>
+      <xs:enumeration value="micros"/>
+      <xs:enumeration value="millis"/>
+      <xs:enumeration value="seconds"/>
+      <xs:enumeration value="minutes"/>
+      <xs:enumeration value="hours"/>
+      <xs:enumeration value="days"/>
+    </xs:restriction>
+  </xs:simpleType>
 </xs:schema>

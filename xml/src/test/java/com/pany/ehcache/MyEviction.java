@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.service;
+package com.pany.ehcache;
 
-import org.ehcache.spi.writer.CacheWriterFactory;
+import org.ehcache.Cache;
+import org.ehcache.config.EvictionPrioritizer;
 
 /**
- * @author vfunshteyn
+ * @author Alex Snaps
  */
-public class CacheWriterConfiguration implements ServiceConfiguration<CacheWriterFactory> {
-
+public class MyEviction implements EvictionPrioritizer<Object, Object> {
   @Override
-  public Class<CacheWriterFactory> getServiceType() {
-    return CacheWriterFactory.class;
+  public int compare(final Cache.Entry<Object, Object> o1, final Cache.Entry<Object, Object> o2) {
+    int h1 = o1.getValue().hashCode();
+    int h2 = o2.getValue().hashCode();
+    return (h1 < h2) ? -1 : ((h1 == h2) ? 0 : 1);
   }
-
-
 }

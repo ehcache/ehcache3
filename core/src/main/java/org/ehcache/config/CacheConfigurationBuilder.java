@@ -38,7 +38,7 @@ public class CacheConfigurationBuilder<K, V> {
   private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private EvictionVeto<? super K, ? super V> evictionVeto;
 
-  public CacheConfigurationBuilder() {
+  private CacheConfigurationBuilder() {
   }
 
   public static <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilder() {

@@ -21,7 +21,15 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.loader.DefaultCacheLoaderConfiguration;
+import org.ehcache.config.writer.DefaultCacheWriterConfiguration;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
+import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
+import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.writer.CacheWriter;
 import org.ehcache.util.ClassLoading;
 import org.xml.sax.SAXException;
 
@@ -126,7 +134,7 @@ public class XmlConfiguration implements Configuration {
     }
 
     for (ConfigurationParser.CacheDefinition cacheDefinition : configurationParser.getCacheElements()) {
-      CacheConfigurationBuilder<Object, Object> builder = new CacheConfigurationBuilder<Object, Object>();
+      CacheConfigurationBuilder<Object, Object> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
       String alias = cacheDefinition.id();
 
       ClassLoader cacheClassLoader = cacheClassLoaders.get(alias);
@@ -154,12 +162,35 @@ public class XmlConfiguration implements Configuration {
       } catch (NullPointerException e) {
         evictionPrioritizer = null;
       }
+      final Expiry<? super Object, ? super Object> expiry;
+      final ConfigurationParser.Expiry parsedExpiry = cacheDefinition.expiry();
+      if (parsedExpiry.isUserDef()) {
+        expiry = getInstanceOfName(parsedExpiry.type(), cacheClassLoader, Expiry.class);
+      } else if (parsedExpiry.isTTL()) {
+        expiry = Expirations.timeToLiveExpiration(new Duration(parsedExpiry.value(), parsedExpiry.unit()));
+      } else if (parsedExpiry.isTTI()) {
+        expiry = Expirations.timeToIdleExpiration(new Duration(parsedExpiry.value(), parsedExpiry.unit()));
+      } else {
+        expiry = Expirations.noExpiration();
+      }
+      builder = builder.withExpiry(expiry);
       for (ServiceConfiguration<?> serviceConfig : cacheDefinition.serviceConfigs()) {
         builder = builder.addServiceConfig(serviceConfig);
       }
       if (capacityConstraint != null) {
         builder = builder.maxEntriesInCache(capacityConstraint);
       }
+      if(cacheDefinition.loader() != null) {
+        final Class<CacheLoader<?, ?>> cacheLoaderClass = (Class<CacheLoader<?,?>>)getClassForName(cacheDefinition.loader(), cacheClassLoader);
+        builder = builder.addServiceConfig(new DefaultCacheLoaderConfiguration(cacheLoaderClass));
+      }
+      if(cacheDefinition.writer() != null) {
+        final Class<CacheWriter<?, ?>> cacheWriterClass = (Class<CacheWriter<?,?>>)getClassForName(cacheDefinition.writer(), cacheClassLoader);
+        builder = builder.addServiceConfig(new DefaultCacheWriterConfiguration(cacheWriterClass));
+      }
+      final OnHeapStoreServiceConfig onHeapStoreServiceConfig = new OnHeapStoreServiceConfig();
+      onHeapStoreServiceConfig.storeByValue(cacheDefinition.storeByValueOnHeap());
+      builder.addServiceConfig(onHeapStoreServiceConfig);
       final CacheConfiguration config = builder.buildConfig(keyType, valueType, evictionVeto, evictionPrioritizer);
       cacheConfigurations.put(alias, config);
     }
@@ -257,7 +288,7 @@ public class XmlConfiguration implements Configuration {
       throw new IllegalArgumentException("CacheTemplate '" + name + "' declares value type of " + cacheTemplate.valueType());
     }
 
-    CacheConfigurationBuilder<K, V> builder = new CacheConfigurationBuilder<K, V>();
+    CacheConfigurationBuilder<K, V> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
     if (cacheTemplate.capacityConstraint() != null) {
       builder = builder
           .maxEntriesInCache(cacheTemplate.capacityConstraint());
@@ -269,6 +300,9 @@ public class XmlConfiguration implements Configuration {
     for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {
       builder = builder.addServiceConfig(serviceConfiguration);
     }
+    final OnHeapStoreServiceConfig onHeapStoreServiceConfig = new OnHeapStoreServiceConfig();
+    onHeapStoreServiceConfig.storeByValue(cacheTemplate.storeByValueOnHeap());
+    builder.addServiceConfig(onHeapStoreServiceConfig);
     return builder;
   }
 

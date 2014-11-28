@@ -18,15 +18,25 @@ package org.ehcache.config.xml;
 
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.Eviction;
+import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
+import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.hamcrest.CoreMatchers;
 import org.hamcrest.core.Is;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
+import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -98,6 +108,69 @@ public class XmlConfigurationTest {
   }
 
   @Test
+  public void testStoreByValueDefaultsToFalse() throws Exception {
+    Boolean storeByValueOnHeap = null;
+    final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
+    for (ServiceConfiguration<?> serviceConfiguration : xmlConfiguration.getCacheConfigurations()
+        .get("bar")
+        .getServiceConfigurations()) {
+      if(serviceConfiguration instanceof OnHeapStoreServiceConfig) {
+        storeByValueOnHeap = ((OnHeapStoreServiceConfig)serviceConfiguration).storeByValue();
+      }
+    }
+    assertThat(storeByValueOnHeap, is(false));
+  }
+  
+  @Test
+  public void testStoreByValueIsParsed() throws Exception {
+    Boolean storeByValueOnHeap = null;
+    final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/byValue-cache.xml"));
+    for (ServiceConfiguration<?> serviceConfiguration : xmlConfiguration.getCacheConfigurations()
+        .get("bar")
+        .getServiceConfigurations()) {
+      if(serviceConfiguration instanceof OnHeapStoreServiceConfig) {
+        storeByValueOnHeap = ((OnHeapStoreServiceConfig)serviceConfiguration).storeByValue();
+      }
+    }
+    assertThat(storeByValueOnHeap, is(true));
+  }
+
+  @Test
+  public void testEvictionPrioritizer() throws ClassNotFoundException, SAXException, InstantiationException, IOException, IllegalAccessException {
+    final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/cache-eviction.xml"));
+    final EvictionPrioritizer lru = xmlConfiguration.getCacheConfigurations().get("lru").getEvictionPrioritizer();
+    final EvictionPrioritizer value = Eviction.Prioritizer.FIFO;
+    assertThat(lru, is(value));
+    final EvictionPrioritizer mine = xmlConfiguration.getCacheConfigurations().get("eviction").getEvictionPrioritizer();
+    assertThat(mine, CoreMatchers.instanceOf(com.pany.ehcache.MyEviction.class));
+
+  }
+
+  @Test
+  public void testExpiryIsParsed() throws Exception {
+    final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/expiry-caches.xml"));
+
+    Expiry expiry = xmlConfiguration.getCacheConfigurations().get("none").getExpiry();
+    Expiry value = Expirations.noExpiration();
+    assertThat(expiry, is(value));
+
+    expiry = xmlConfiguration.getCacheConfigurations().get("notSet").getExpiry();
+    value = Expirations.noExpiration();
+    assertThat(expiry, is(value));
+
+    expiry = xmlConfiguration.getCacheConfigurations().get("class").getExpiry();
+    assertThat(expiry, CoreMatchers.instanceOf(com.pany.ehcache.MyExpiry.class));
+
+    expiry = xmlConfiguration.getCacheConfigurations().get("tti").getExpiry();
+    value = Expirations.timeToIdleExpiration(new Duration(500, TimeUnit.MILLISECONDS));
+    assertThat(expiry, equalTo(value));
+
+    expiry = xmlConfiguration.getCacheConfigurations().get("ttl").getExpiry();
+    value = Expirations.timeToLiveExpiration(new Duration(30, TimeUnit.SECONDS));
+    assertThat(expiry, equalTo(value));
+  }
+
+  @Test
   public void testInvalidCoreConfiguration() throws Exception {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-core.xml"));
@@ -107,7 +180,7 @@ public class XmlConfigurationTest {
       assertThat(e.getColumnNumber(), is(29));
     }
   }
-  
+
   @Test
   public void testInvalidServiceConfiguration() throws Exception {
     try {
