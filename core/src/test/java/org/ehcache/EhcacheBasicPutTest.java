@@ -176,7 +176,6 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
-    assertThat(realStore.getMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
   }
 
@@ -497,7 +496,6 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     ordered.verify(this.cacheWriter).write(eq("key"), eq("value"));
     ordered.verify(this.spiedResilienceStrategy)
         .putFailure(eq("key"), eq("value"), any(CacheAccessException.class), any(CacheWriterException.class));
-    assertThat(realStore.getMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
