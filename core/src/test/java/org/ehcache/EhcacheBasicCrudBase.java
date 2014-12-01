@@ -17,6 +17,7 @@ package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
@@ -323,6 +324,16 @@ public abstract class EhcacheBasicCrudBase {
 
     @Override
     public void maintenance() {
+    }
+
+    @Override
+    public void enableStoreEventNotifications(final StoreEventListener<String, String> listener) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void disableStoreEventNotifications() {
+      throw new UnsupportedOperationException();
     }
 
     /**
