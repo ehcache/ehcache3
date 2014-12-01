@@ -66,9 +66,9 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link java.util.Iterator#hasNext()} from {@link Ehcache#iterator()} on an empty cache.
    */
-  @Ignore("Iterator.hasNext incorrectly throws NullPointerException")
   @Test
   public void testIteratorEmptyStoreHasNext() throws Exception {
+    this.store = new MockStore(Collections.<String,String>emptyMap());
     final Ehcache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     assertThat(iterator.hasNext(), is(false));
@@ -77,9 +77,9 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link java.util.Iterator#next()} from {@link Ehcache#iterator()} on an empty cache.
    */
-  @Ignore("Iterator.next incorrectly throws NullPointerException")
   @Test
   public void testIteratorEmptyStoreNext() throws Exception {
+    this.store = new MockStore(Collections.<String,String>emptyMap());
     final Ehcache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     try {
@@ -93,9 +93,9 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link java.util.Iterator#remove()} from {@link Ehcache#iterator()} on an empty cache.
    */
-  @Ignore("Iterator.remove incorrectly throws NullPointerException")
   @Test
   public void testIteratorEmptyStoreRemoveBeforeNext() throws Exception {
+    this.store = new MockStore(Collections.<String,String>emptyMap());
     final Ehcache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     try {
@@ -260,7 +260,6 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    * Tests {@link java.util.Iterator#remove()} twice on the same entry returned from the {@code Iterator}
    * returned from {@link Ehcache#iterator()} on a non-empty cache.
    */
-  @Ignore("Iterator.remove on removed entry incorrectly succeeds")
   @Test
   public void testIteratorNonEmptyRemoveTwice() throws Exception {
     final Map<String, String> testStoreEntries = this.getTestStoreEntries();
@@ -290,7 +289,6 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    * Tests {@link java.util.Iterator#remove()} <b>after</b> removing the last entry returned from the {@code Iterator}
    * returned from {@link Ehcache#iterator()} on a non-empty cache.
    */
-  @Ignore("Iterator.remove on removed entry incorrectly succeeds")
   @Test
   public void testIteratorNonEmptyRemoveAfterLast() throws Exception {
     final Map<String, String> testStoreEntries = this.getTestStoreEntries();
