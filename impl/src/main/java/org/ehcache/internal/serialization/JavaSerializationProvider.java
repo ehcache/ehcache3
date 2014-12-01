@@ -28,11 +28,11 @@ import org.ehcache.spi.service.ServiceConfiguration;
 public class JavaSerializationProvider implements SerializationProvider {
 
   @Override
-  public <T> Serializer<T> createSerializer(Class<T> clazz, ServiceConfiguration<?>... config) {
+  public <T> Serializer<T> createSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... config) {
     if (!Serializable.class.isAssignableFrom(clazz)) {
       throw new IllegalArgumentException();
     }
-    return new JavaSerializer();
+    return new JavaSerializer(classLoader);
   }
 
   @Override

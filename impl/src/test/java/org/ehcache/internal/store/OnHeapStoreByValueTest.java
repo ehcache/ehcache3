@@ -24,11 +24,14 @@ import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.junit.Test;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static org.junit.Assert.fail;
 
@@ -41,7 +44,7 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
 
   @Test
   public void testPutNotSerializableValue() throws Exception {
-    OnHeapStore<String, Serializable> store = newStore();
+    OnHeapStore<Serializable, Serializable> store = newStore();
     try {
       store.put("key1", new ArrayList() {{ add(new Object()); }});
       fail();
@@ -49,14 +52,63 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
       // expected
     }
   }
+  
+  @Test
+  public void testPutNotSerializableKey() throws Exception {
+    OnHeapStore<Serializable, Serializable> store = newStore();
+    try {
+      store.put(new ArrayList() {{ add(new Object()); }}, "value");
+      fail();
+    } catch (SerializerException se) {
+      // expected
+    }
+  }
 
+  @Test
+  public void testValueUniqueObject()  throws Exception {
+    OnHeapStore<Serializable, Serializable> store = newStore();
+    
+    String key = "key";
+    List<String> value = new ArrayList<String>();
+    value.add("value");
+    
+    store.put(key, (Serializable) value);
+    
+    // mutate the value -- should not affect cache
+    value.clear();
+    
+    ValueHolder<Serializable> valueHolder = store.get(key);
+    if (valueHolder.value() == value || ! valueHolder.value().equals(Collections.singletonList("value"))) {
+      throw new AssertionError();
+    }
+  }
+  
+  @Test
+  public void testKeyUniqueObject() throws Exception {
+    OnHeapStore<Serializable, Serializable> store = newStore();
+   
+    List<String> key = new ArrayList<String>();
+    key.add("key");
+    String value = "value";
+    
+    store.put((Serializable) key, value);
+    
+    // mutate the key -- should not affect cache
+    key.clear();
+    
+    Serializable storeKey = store.iterator().next().getKey();
+    if (storeKey == key || ! storeKey.equals(Collections.singletonList("key"))) {
+      throw new AssertionError();
+    }
+  }
+  
   @Override
   protected <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
       final Expiry<? super K, ? super V> expiry) {
     return new OnHeapStore<K, V>(new Store.Configuration<K, V>() {
       @Override
       public Class<K> getKeyType() {
-        return (Class<K>) String.class;
+        return (Class<K>) Serializable.class;
       }
 
       @Override

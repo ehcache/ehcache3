@@ -75,6 +75,6 @@ public class ByValueOnHeapValueHolderTest {
   }
 
   private static <V extends Serializable> OnHeapValueHolder<V> newValueHolder(V value) {
-    return new ByValueOnHeapValueHolder<V>(value, SystemTimeSource.INSTANCE.getTimeMillis(), new JavaSerializer<V>());
+    return new ByValueOnHeapValueHolder<V>(value, SystemTimeSource.INSTANCE.getTimeMillis(), new JavaSerializer<V>(ByValueOnHeapValueHolderTest.class.getClassLoader()));
   }
 }
