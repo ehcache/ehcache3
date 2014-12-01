@@ -22,6 +22,7 @@ import org.ehcache.spi.writer.CacheWriter;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -55,9 +56,9 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#iterator()} on an empty cache.
    */
-  @Ignore("Ehcache.iterator incorrectly throws NullPointerException for empty cache")
   @Test
   public void testIteratorEmptyStoreGet() throws Exception {
+    this.store = new MockStore(Collections.<String,String>emptyMap());
     final Ehcache<String, String> ehcache = this.getEhcache();
     assertThat(ehcache.iterator(), is(notNullValue()));
   }
