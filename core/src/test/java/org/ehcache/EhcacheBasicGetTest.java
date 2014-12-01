@@ -31,12 +31,14 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -74,7 +76,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.get("key"), is(nullValue()));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verify(this.store, never()).remove("key");
+    verifyZeroInteractions(this.spiedResilienceStrategy);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoaderOutcome.class));
   }
@@ -95,7 +97,8 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.get("key"), is(nullValue()));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verify(this.store, never()).remove("key");
+    verify(this.cacheLoader).load(eq("key"));
+    verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(realStore.getMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.CacheLoaderOutcome.SUCCESS));
@@ -118,7 +121,8 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.get("key"), is("value"));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verify(this.store, never()).remove("key");
+    verify(this.cacheLoader).load(eq("key"));
+    verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(realStore.getMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.CacheLoaderOutcome.SUCCESS));
@@ -146,9 +150,9 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
       // Expected
     }
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
+    verify(this.cacheLoader).load(eq("key"));
+    verifyZeroInteractions(this.spiedResilienceStrategy);
+    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.CacheLoaderOutcome.FAILURE));
   }
 
@@ -170,8 +174,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.get("key"), is(nullValue()));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    verify(this.spiedResilienceStrategy).getFailure(eq("key"), any(CacheAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoaderOutcome.class));
   }
@@ -194,8 +197,8 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.get("key"), is(nullValue()));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    verify(this.cacheLoader).load(eq("key"));
+    verify(this.spiedResilienceStrategy).getFailure(eq("key"), isNull(String.class), any(CacheAccessException.class));
     validateStats(ehcache,
         EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER, CacheOperationOutcomes.GetOutcome.FAILURE));   // TODO: Confirm correctness
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.CacheLoaderOutcome.SUCCESS));
@@ -220,8 +223,8 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.get("key"), is("value"));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    verify(this.cacheLoader).load(eq("key"));
+    verify(this.spiedResilienceStrategy).getFailure(eq("key"), eq("value"), any(CacheAccessException.class));
     validateStats(ehcache,
         EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER, CacheOperationOutcomes.GetOutcome.FAILURE));    // TODO: Confirm correctness
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.CacheLoaderOutcome.SUCCESS));
@@ -251,8 +254,8 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
       // Expected
     }
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    verify(this.cacheLoader).load(eq("key"));
+    verify(this.spiedResilienceStrategy).getFailure(eq("key"), any(CacheAccessException.class), any(CacheLoaderException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.CacheLoaderOutcome.FAILURE));
   }
@@ -274,7 +277,8 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.get("key"), equalTo("value"));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verify(this.store, never()).remove("key");
+    verifyZeroInteractions(this.spiedResilienceStrategy);
+    assertThat(realStore.getMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoaderOutcome.class));
   }
@@ -296,7 +300,9 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.get("key"), equalTo("value"));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verify(this.store, never()).remove("key");
+    verify(this.cacheLoader, never()).load(eq("key"));
+    verifyZeroInteractions(this.spiedResilienceStrategy);
+    assertThat(realStore.getMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));    // TODO: Confirm correctness
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoaderOutcome.class));
   }
@@ -319,7 +325,9 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.get("key"), equalTo("value"));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verify(this.store, never()).remove("key");
+    verify(this.cacheLoader, never()).load(eq("key"));
+    verifyZeroInteractions(this.spiedResilienceStrategy);
+    assertThat(realStore.getMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));    // TODO: Confirm correctness
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoaderOutcome.class));
   }
@@ -342,7 +350,9 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.get("key"), equalTo("value"));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verify(this.store, never()).remove("key");
+    verify(this.cacheLoader, never()).load(eq("key"));
+    verifyZeroInteractions(this.spiedResilienceStrategy);
+    assertThat(realStore.getMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));    // TODO: Confirm correctness
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoaderOutcome.class));
   }
@@ -366,8 +376,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.get("key"), is(nullValue()));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    verify(this.spiedResilienceStrategy).getFailure(eq("key"), any(CacheAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoaderOutcome.class));
   }
@@ -391,8 +400,8 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.get("key"), is(nullValue()));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    verify(this.cacheLoader).load(eq("key"));
+    verify(this.spiedResilienceStrategy).getFailure(eq("key"), isNull(String.class), any(CacheAccessException.class));
     validateStats(ehcache,
         EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER, CacheOperationOutcomes.GetOutcome.FAILURE));   // TODO: Confirm correctness
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.CacheLoaderOutcome.SUCCESS));
@@ -418,8 +427,8 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.get("key"), equalTo("value"));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    verify(this.cacheLoader).load(eq("key"));
+    verify(this.spiedResilienceStrategy).getFailure(eq("key"), eq("value"), any(CacheAccessException.class));
     validateStats(ehcache,
         EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER, CacheOperationOutcomes.GetOutcome.FAILURE));    // TODO: Confirm correctness
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.CacheLoaderOutcome.SUCCESS));
@@ -450,8 +459,8 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
       // Expected
     }
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    verify(this.cacheLoader).load(eq("key"));
+    verify(this.spiedResilienceStrategy).getFailure(eq("key"), any(CacheAccessException.class), any(CacheLoaderException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.CacheLoaderOutcome.FAILURE));
   }
@@ -469,6 +478,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheLoader);
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
+    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 }

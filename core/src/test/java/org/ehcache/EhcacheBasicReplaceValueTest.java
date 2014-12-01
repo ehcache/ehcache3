@@ -21,6 +21,7 @@ import org.ehcache.exceptions.CacheWriterException;
 import org.ehcache.spi.writer.CacheWriter;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.junit.Test;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 
 import java.util.Collections;
@@ -32,12 +33,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 /**
  * Provides testing of basic REPLACE(key, newValue, oldValue) operations on an {@code Ehcache}.
@@ -151,7 +153,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, never()).remove("key");
+    verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(realStore.getMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS));
   }
@@ -172,7 +174,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, never()).remove("key");
+    verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(realStore.getMap().get("key"), is(equalTo("unequalValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS));
   }
@@ -193,7 +195,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertTrue(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, never()).remove("key");
+    verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(realStore.getMap().get("key"), is(equalTo("newValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT));
   }
@@ -216,10 +218,9 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
-    validateStats(ehcache,
-        EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE, CacheOperationOutcomes.ReplaceOutcome.MISS));   // TODO: Confirm correctness
+    verify(this.spiedResilienceStrategy)
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
   /**
@@ -240,10 +241,9 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
-    validateStats(ehcache,
-        EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE, CacheOperationOutcomes.ReplaceOutcome.MISS));   // TODO: Confirm correctness
+    verify(this.spiedResilienceStrategy)
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
   /**
@@ -264,10 +264,9 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
-    validateStats(ehcache,
-        EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE, CacheOperationOutcomes.ReplaceOutcome.MISS));   // TODO: Confirm correctness
+    verify(this.spiedResilienceStrategy)
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
   /**
@@ -287,7 +286,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, never()).remove("key");
+    verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(realStore.getMap().containsKey("key"), is(false));
     assertThat(realCache.getEntries().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS));
@@ -310,7 +309,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, never()).remove("key");
+    verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(realStore.getMap().get("key"), is(equalTo("unequalValue")));
     assertThat(realCache.getEntries().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS));
@@ -333,7 +332,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, never()).remove("key");
+    verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(realStore.getMap().containsKey("key"), is(false));
     assertThat(realCache.getEntries().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS));
@@ -354,15 +353,18 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
 
     final MockCacheWriter realCache = new MockCacheWriter(Collections.<String, String>emptyMap());
-    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+    this.cacheWriter = spy(realCache);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+
+    InOrder ordered = inOrder(this.cacheWriter, this.spiedResilienceStrategy);
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    ordered.verify(this.cacheWriter).write(eq("key"), eq("oldValue"), eq("newValue"));
+    ordered.verify(this.spiedResilienceStrategy)
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
     assertThat(realCache.getEntries().containsKey("key"), is(false));
-    validateStats(ehcache,
-        EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE, CacheOperationOutcomes.ReplaceOutcome.MISS));   // TODO: Confirm correctness
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
   /**
@@ -380,15 +382,18 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
 
     final MockCacheWriter realCache = new MockCacheWriter(Collections.<String, String>emptyMap());
-    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+    this.cacheWriter = spy(realCache);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+
+    InOrder ordered = inOrder(this.cacheWriter, this.spiedResilienceStrategy);
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    ordered.verify(this.cacheWriter).write(eq("key"), eq("oldValue"), eq("newValue"));
+    ordered.verify(this.spiedResilienceStrategy)
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
     assertThat(realCache.getEntries().containsKey("key"), is(false));
-    validateStats(ehcache,
-        EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE, CacheOperationOutcomes.ReplaceOutcome.MISS));   // TODO: Confirm correctness
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
   /**
@@ -406,15 +411,18 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
 
     final MockCacheWriter realCache = new MockCacheWriter(Collections.<String, String>emptyMap());
-    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+    this.cacheWriter = spy(realCache);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+
+    InOrder ordered = inOrder(this.cacheWriter, this.spiedResilienceStrategy);
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    ordered.verify(this.cacheWriter).write(eq("key"), eq("oldValue"), eq("newValue"));
+    ordered.verify(this.spiedResilienceStrategy)
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
     assertThat(realCache.getEntries().containsKey("key"), is(false));
-    validateStats(ehcache,
-        EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE, CacheOperationOutcomes.ReplaceOutcome.MISS));   // TODO: Confirm correctness
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
   /**
@@ -434,7 +442,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, never()).remove("key");
+    verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(realStore.getMap().containsKey("key"), is(false));
     assertThat(realCache.getEntries().get("key"), is(equalTo("unequalValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS));
@@ -457,7 +465,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, never()).remove("key");
+    verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(realStore.getMap().get("key"), is(equalTo("unequalValue")));
     assertThat(realCache.getEntries().get("key"), is(equalTo("unequalValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS));
@@ -480,7 +488,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, never()).remove("key");
+    verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(realStore.getMap().containsKey("key"), is(false));
     assertThat(realCache.getEntries().get("key"), is(equalTo("unequalValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS));
@@ -501,15 +509,18 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
 
     final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "unequalValue"));
-    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+    this.cacheWriter = spy(realCache);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+
+    InOrder ordered = inOrder(this.cacheWriter, this.spiedResilienceStrategy);
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    ordered.verify(this.cacheWriter).write(eq("key"), eq("oldValue"), eq("newValue"));
+    ordered.verify(this.spiedResilienceStrategy)
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
     assertThat(realCache.getEntries().get("key"), is(equalTo("unequalValue")));
-    validateStats(ehcache,
-        EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE, CacheOperationOutcomes.ReplaceOutcome.MISS));   // TODO: Confirm correctness
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
   /**
@@ -527,15 +538,18 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
 
     final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "unequalValue"));
-    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+    this.cacheWriter = spy(realCache);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+
+    InOrder ordered = inOrder(this.cacheWriter, this.spiedResilienceStrategy);
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    ordered.verify(this.cacheWriter).write(eq("key"), eq("oldValue"), eq("newValue"));
+    ordered.verify(this.spiedResilienceStrategy)
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
     assertThat(realCache.getEntries().get("key"), is(equalTo("unequalValue")));
-    validateStats(ehcache,
-        EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE, CacheOperationOutcomes.ReplaceOutcome.MISS));   // TODO: Confirm correctness
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
   /**
@@ -553,15 +567,18 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
 
     final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "unequalValue"));
-    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+    this.cacheWriter = spy(realCache);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+
+    InOrder ordered = inOrder(this.cacheWriter, this.spiedResilienceStrategy);
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    ordered.verify(this.cacheWriter).write(eq("key"), eq("oldValue"), eq("newValue"));
+    ordered.verify(this.spiedResilienceStrategy)
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
     assertThat(realCache.getEntries().get("key"), is(equalTo("unequalValue")));
-    validateStats(ehcache,
-        EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE, CacheOperationOutcomes.ReplaceOutcome.MISS));   // TODO: Confirm correctness
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
   /**
@@ -581,8 +598,8 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertTrue(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, never()).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    verifyZeroInteractions(this.spiedResilienceStrategy);
+    assertThat(realStore.getMap().get("key"), is(equalTo("newValue")));
     assertThat(realCache.getEntries().get("key"), is(equalTo("newValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT));
   }
@@ -604,7 +621,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, never()).remove("key");
+    verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(realStore.getMap().get("key"), is(equalTo("unequalValue")));     // TODO: Confirm correctness
     assertThat(realCache.getEntries().get("key"), is(equalTo("oldValue")));     // TODO: Confirm correctness
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS));
@@ -627,7 +644,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertTrue(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, never()).remove("key");
+    verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(realStore.getMap().get("key"), is(equalTo("newValue")));
     assertThat(realCache.getEntries().get("key"), is(equalTo("newValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT));
@@ -648,15 +665,18 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
 
     final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "oldValue"));
-    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+    this.cacheWriter = spy(realCache);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+
+    InOrder ordered = inOrder(this.cacheWriter, this.spiedResilienceStrategy);
 
     assertTrue(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    ordered.verify(this.cacheWriter).write(eq("key"), eq("oldValue"), eq("newValue"));
+    ordered.verify(this.spiedResilienceStrategy)
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(true));
     assertThat(realCache.getEntries().get("key"), is(equalTo("newValue")));
-    validateStats(ehcache,
-        EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT, CacheOperationOutcomes.ReplaceOutcome.FAILURE));    // TODO: Confirm correctness
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));    // TODO: Confirm correctness
   }
 
   /**
@@ -674,15 +694,18 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
 
     final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "oldValue"));
-    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+    this.cacheWriter = spy(realCache);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+
+    InOrder ordered = inOrder(this.cacheWriter, this.spiedResilienceStrategy);
 
     assertTrue(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    ordered.verify(this.cacheWriter).write(eq("key"), eq("oldValue"), eq("newValue"));
+    ordered.verify(this.spiedResilienceStrategy)
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(true));
     assertThat(realCache.getEntries().get("key"), is(equalTo("newValue")));
-    validateStats(ehcache,
-        EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT, CacheOperationOutcomes.ReplaceOutcome.FAILURE));    // TODO: Confirm correctness
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));    // TODO: Confirm correctness
   }
 
   /**
@@ -700,15 +723,18 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
 
     final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "oldValue"));
-    final Ehcache<String, String> ehcache = this.getEhcache(realCache);
+    this.cacheWriter = spy(realCache);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+
+    InOrder ordered = inOrder(this.cacheWriter, this.spiedResilienceStrategy);
 
     assertTrue(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    ordered.verify(this.cacheWriter).write(eq("key"), eq("oldValue"), eq("newValue"));
+    ordered.verify(this.spiedResilienceStrategy)
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(true));
     assertThat(realCache.getEntries().get("key"), is(equalTo("newValue")));
-    validateStats(ehcache,
-        EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT, CacheOperationOutcomes.ReplaceOutcome.FAILURE));    // TODO: Confirm correctness
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));    // TODO: Confirm correctness
   }
 
   /**
@@ -735,9 +761,8 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
       // Expected
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
+    verifyZeroInteractions(this.spiedResilienceStrategy);
+    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.ReplaceOutcome.class));    // TODO: Confirm correctness
   }
 
   /**
@@ -759,8 +784,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, never()).remove("key");
-    assertThat(realStore.getMap().get("key"), is(equalTo("unequalValue")));
+    verifyZeroInteractions(this.spiedResilienceStrategy);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS));
   }
 
@@ -788,9 +812,8 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
       // Expected
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
+    verifyZeroInteractions(this.spiedResilienceStrategy);
+    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.ReplaceOutcome.class));    // TODO: Confirm correctness
   }
 
   /**
@@ -812,6 +835,8 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     doThrow(new Exception()).when(this.cacheWriter).write("key", "oldValue", "newValue");
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
+    InOrder ordered = inOrder(this.cacheWriter, this.spiedResilienceStrategy);
+
     try {
       ehcache.replace("key", "oldValue", "newValue");
       fail();
@@ -819,8 +844,10 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
       // Expected
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    ordered.verify(this.cacheWriter).write(eq("key"), eq("oldValue"), eq("newValue"));
+    ordered.verify(this.spiedResilienceStrategy)
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"),
+            any(CacheAccessException.class), any(CacheWriterException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
@@ -843,6 +870,8 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     doThrow(new Exception()).when(this.cacheWriter).write("key", "oldValue", "newValue");
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
+    InOrder ordered = inOrder(this.cacheWriter, this.spiedResilienceStrategy);
+
     try {
       ehcache.replace("key", "oldValue", "newValue");
       fail();
@@ -850,8 +879,10 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
       // Expected
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    ordered.verify(this.cacheWriter).write(eq("key"), eq("oldValue"), eq("newValue"));
+    ordered.verify(this.spiedResilienceStrategy)
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"),
+            any(CacheAccessException.class), any(CacheWriterException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
@@ -874,6 +905,8 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     doThrow(new Exception()).when(this.cacheWriter).write("key", "oldValue", "newValue");
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
+    InOrder ordered = inOrder(this.cacheWriter, this.spiedResilienceStrategy);
+
     try {
       ehcache.replace("key", "oldValue", "newValue");
       fail();
@@ -881,8 +914,10 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
       // Expected
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verify(this.store, times(1)).remove("key");
-    assertThat(realStore.getMap().containsKey("key"), is(false));
+    ordered.verify(this.cacheWriter).write(eq("key"), eq("oldValue"), eq("newValue"));
+    ordered.verify(this.spiedResilienceStrategy)
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"),
+            any(CacheAccessException.class), any(CacheWriterException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
@@ -899,6 +934,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, null, cacheWriter);
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
+    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 }
