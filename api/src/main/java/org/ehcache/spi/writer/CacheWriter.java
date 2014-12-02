@@ -66,17 +66,6 @@ public interface CacheWriter<K, V> {
   boolean delete(K key) throws Exception;
 
   /**
-   * Deletes a single entry from the underlying system of record, when the expected value if known.
-   *
-   * @param key the key to delete
-   * @param value the value expected to be deleted
-   * @return {@code true} if a entry was deleted, {@code false} otherwise
-   *
-   * @see org.ehcache.Cache#remove(Object, Object)
-   */
-  boolean delete(K key, V value) throws Exception;
-
-  /**
    * Deletes a set of entry from the underlying system of record.
    *
    * @param keys the keys to delete

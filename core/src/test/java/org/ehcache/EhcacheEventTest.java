@@ -369,15 +369,16 @@ public class EhcacheEventTest {
   @Test
   public void testTwoArgRemoveMatch() throws Exception {
     final String cachedValue = "cached";
-    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0], cachedValue);
-        return null;
+        final String applied = function.apply((Number)invocation.getArguments()[0], cachedValue);
+        final Store.ValueHolder mock = mock(Store.ValueHolder.class);
+        when(mock.value()).thenReturn(applied);
+        return mock;
       }
     });
-    when(cache.getCacheWriter().delete(any(Number.class), anyString())).thenReturn(true);
     Number key = 1;
     assertThat(cache.remove(key, cachedValue), is(true));
     verify(eventNotifier).onEvent(eventMatching(EventType.REMOVED, key, cachedValue, cachedValue));
@@ -385,7 +386,7 @@ public class EhcacheEventTest {
   
   @Test
   public void testTwoArgRemoveKeyNotInCache() throws Exception {
-    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
@@ -394,10 +395,9 @@ public class EhcacheEventTest {
       }
     });
     String toRemove = "foo";
-    when(cache.getCacheWriter().delete(any(Number.class), anyString())).thenReturn(true);
     Number key = 1;
-    assertThat(cache.remove(key, toRemove), is(true));
-    verify(eventNotifier).onEvent(eventMatching(EventType.REMOVED, key, toRemove, toRemove));
+    assertThat(cache.remove(key, toRemove), is(false));
+    verify(eventNotifier, never()).onEvent(eventMatching(EventType.REMOVED, key, toRemove, toRemove));
   }
   
   @Test
@@ -411,23 +411,26 @@ public class EhcacheEventTest {
       }
     });
     String toRemove = "foo";
-    when(cache.getCacheWriter().delete(any(Number.class), anyString())).thenReturn(false);
     assertThat(cache.remove(1, toRemove), is(false));
+    verify(cache.getCacheWriter(), never()).delete(any(Number.class));
     verify(eventNotifier, never()).onEvent(any(CacheEvent.class));
   }
   
   @Test(expected=CacheWriterException.class)
   public void testTwoArgRemoveThrowsOnWrite() throws Exception {
-    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    final String expected = "foo";
+    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0], null);
-        return null;
+        final String applied = function.apply((Number)invocation.getArguments()[0], expected);
+        final Store.ValueHolder mock = mock(Store.ValueHolder.class);
+        when(mock.value()).thenReturn(applied);
+        return mock;
       }
     });
-    when(cache.getCacheWriter().delete(any(Number.class), anyString())).thenThrow(new Exception());
-    cache.remove(1, "foo");
+    when(cache.getCacheWriter().delete(any(Number.class))).thenThrow(new Exception());
+    cache.remove(1, expected);
   }
 
   @Test

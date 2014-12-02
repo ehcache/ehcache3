@@ -104,11 +104,6 @@ public class DefaultCacheWriterFactoryTest {
     }
 
     @Override
-    public boolean delete(final Object key, final Object value) throws Exception {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-
-    @Override
     public Set<Object> deleteAll(final Iterable<?> keys) throws Exception {
       throw new UnsupportedOperationException("Implement me!");
     }

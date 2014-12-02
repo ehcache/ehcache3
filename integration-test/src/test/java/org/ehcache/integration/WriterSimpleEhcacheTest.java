@@ -37,6 +37,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -79,18 +80,21 @@ public class WriterSimpleEhcacheTest {
 
   @Test
   public void testSimpleRemoveWithWriter() throws Exception {
+    testCache.put(1, "two");
+    testCache.put(2, "two");
     testCache.remove(1, "one");
     testCache.remove(2, "two");
 
-    verify(cacheWriter, times(1)).delete(eq(1), eq("one"));
-    verify(cacheWriter, times(1)).delete(eq(2), eq("two"));
+    verify(cacheWriter, never()).delete(eq(1));
+    verify(cacheWriter, times(1)).delete(eq(2));
   }
 
   @Test
   public void testSimpleRemove2ArgsWithWriter() throws Exception {
+    testCache.put(1, "one");
     testCache.remove(1, "one");
 
-    verify(cacheWriter, times(1)).delete(eq(1), eq("one"));
+    verify(cacheWriter, times(1)).delete(eq(1));
   }
 
   @Test

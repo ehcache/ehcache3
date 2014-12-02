@@ -44,11 +44,6 @@ public class TestCacheWriter implements CacheWriter<Number, String> {
   }
 
   @Override
-  public boolean delete(final Number key, final String value) throws Exception {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
   public Set<Number> deleteAll(final Iterable<? extends Number> keys) throws Exception {
     throw new UnsupportedOperationException("Implement me!");
   }

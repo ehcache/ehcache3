@@ -139,16 +139,15 @@ public class WriterErrorEhcacheTest {
   }
 
   @Test
-  @Ignore("the writer is actually called while it shouldn't be")
   public void testRemove2ArgsWithNoCacheEntry_should_not_call_writer() throws Exception {
-    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).delete(eq(1), eq("one"));
+    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).delete(eq(1));
 
     testCache.remove(1, "one");
   }
 
   @Test
   public void testRemove2ArgsWithNotMatchingCacheEntry_should_not_call_writer() throws Exception {
-    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).delete(eq(1), eq("one"));
+    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).delete(eq(1));
 
     testCache.put(1, "un");
     testCache.remove(1, "one");
@@ -156,7 +155,7 @@ public class WriterErrorEhcacheTest {
 
   @Test
   public void testRemove2ArgsWithWriterException_should_call_writer() throws Exception {
-    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).delete(eq(1), eq("one"));
+    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).delete(eq(1));
 
     testCache.put(1, "one");
     try {
