@@ -34,7 +34,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.spy;
@@ -243,7 +242,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.putIfAbsent("key", "value"), is(nullValue()));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    ordered.verify(this.cacheWriter).write(eq("key"), isNull(String.class), eq("value"));
+    ordered.verify(this.cacheWriter).write(eq("key"), eq("value"));
     ordered.verify(this.spiedResilienceStrategy)
         .putIfAbsentFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(true));
     assertThat(realCache.getEntries().get("key"), equalTo("value"));
@@ -272,7 +271,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.putIfAbsent("key", "value"), is(nullValue()));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    ordered.verify(this.cacheWriter).write(eq("key"), isNull(String.class), eq("value"));
+    ordered.verify(this.cacheWriter).write(eq("key"), eq("value"));
     ordered.verify(this.spiedResilienceStrategy)
         .putIfAbsentFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(true));
     assertThat(realCache.getEntries().get("key"), equalTo("value"));
@@ -297,9 +296,9 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     assertThat(ehcache.putIfAbsent("key", "value"), is(nullValue()));   // TODO: Confirm correctness
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
-    assertThat(realStore.getMap().get("key"), is(nullValue()));
-    assertThat(realCache.getEntries().get("key"), equalTo("oldValue"));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.HIT));
+    assertThat(realStore.getMap().get("key"), equalTo("value"));
+    assertThat(realCache.getEntries().get("key"), equalTo("value"));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.PUT));
   }
 
   /**
@@ -347,10 +346,10 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.putIfAbsent("key", "value"), is(nullValue()));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    ordered.verify(this.cacheWriter).write(eq("key"), isNull(String.class), eq("value"));
+    ordered.verify(this.cacheWriter).write(eq("key"), eq("value"));
     ordered.verify(this.spiedResilienceStrategy)
-        .putIfAbsentFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
-    assertThat(realCache.getEntries().get("key"), equalTo("oldValue"));
+        .putIfAbsentFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(true));
+    assertThat(realCache.getEntries().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));
   }
 
@@ -376,10 +375,10 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.putIfAbsent("key", "value"), is(nullValue()));   // TODO: Confirm correctness
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    ordered.verify(this.cacheWriter).write(eq("key"), isNull(String.class), eq("value"));
+    ordered.verify(this.cacheWriter).write(eq("key"), eq("value"));
     ordered.verify(this.spiedResilienceStrategy)
-        .putIfAbsentFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
-    assertThat(realCache.getEntries().get("key"), equalTo("oldValue"));
+        .putIfAbsentFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(true));
+    assertThat(realCache.getEntries().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));    // TODO: Confirm correctness
   }
 
@@ -397,7 +396,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
     final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheWriter = spy(realCache);
-    doThrow(new Exception()).when(this.cacheWriter).write("key", null, "value");
+    doThrow(new Exception()).when(this.cacheWriter).write("key", "value");
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     try {
@@ -425,7 +424,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
     final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheWriter = spy(realCache);
-    doThrow(new Exception()).when(this.cacheWriter).write("key", null, "value");
+    doThrow(new Exception()).when(this.cacheWriter).write("key", "value");
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     assertThat(ehcache.putIfAbsent("key", "value"), is(equalTo("oldValue")));
@@ -451,7 +450,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
     final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheWriter = spy(realCache);
-    doThrow(new Exception()).when(this.cacheWriter).write("key", null, "value");
+    doThrow(new Exception()).when(this.cacheWriter).write("key", "value");
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     final InOrder ordered = inOrder(this.cacheWriter, this.spiedResilienceStrategy);
@@ -463,7 +462,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
       // Expected
     }
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    ordered.verify(this.cacheWriter).write(eq("key"), isNull(String.class), eq("value"));
+    ordered.verify(this.cacheWriter).write(eq("key"), eq("value"));
     ordered.verify(this.spiedResilienceStrategy)
         .putIfAbsentFailure(eq("key"), eq("value"), any(CacheAccessException.class), any(CacheWriterException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));
@@ -485,7 +484,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
     final MockCacheWriter realCache = new MockCacheWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheWriter = spy(realCache);
-    doThrow(new Exception()).when(this.cacheWriter).write("key", null, "value");
+    doThrow(new Exception()).when(this.cacheWriter).write("key", "value");
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     final InOrder ordered = inOrder(this.cacheWriter, this.spiedResilienceStrategy);
@@ -497,7 +496,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
       // Expected
     }
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    ordered.verify(this.cacheWriter).write(eq("key"), isNull(String.class), eq("value"));
+    ordered.verify(this.cacheWriter).write(eq("key"), eq("value"));
     ordered.verify(this.spiedResilienceStrategy)
         .putIfAbsentFailure(eq("key"), eq("value"), any(CacheAccessException.class), any(CacheWriterException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));

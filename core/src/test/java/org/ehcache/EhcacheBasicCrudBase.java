@@ -549,22 +549,6 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public boolean write(final String key, final String oldValue, final String newValue) throws Exception {
-      final String existingValue = this.cache.get(key);
-      boolean modified = false;
-      if (oldValue == null) {
-        if (existingValue == null) {
-          this.cache.put(key, newValue);
-          modified = true;
-        }
-      } else if (oldValue.equals(existingValue)) {
-        this.cache.put(key, newValue);
-        modified = true;
-      }
-      return modified;
-    }
-
-    @Override
     public Set<String> writeAll(final Iterable<? extends Map.Entry<? extends String, ? extends String>> entries)
         throws Exception {
       throw new UnsupportedOperationException();
@@ -573,16 +557,6 @@ public abstract class EhcacheBasicCrudBase {
     @Override
     public boolean delete(final String key) throws Exception {
       return (null == this.cache.remove(key));
-    }
-
-    @Override
-    public boolean delete(final String key, final String value) throws Exception {
-      final String existingValue = this.cache.get(key);
-      boolean modified = false;
-      if (value.equals(existingValue)) {
-        modified = (null != this.cache.remove(key));
-      }
-      return modified;
     }
 
     @Override
