@@ -19,7 +19,6 @@ package org.ehcache;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.writer.CacheWriter;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -317,7 +316,6 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    * throws a {@link org.ehcache.exceptions.CacheAccessException CacheAccessException} from
    * {@code Store.iterator}.
    */
-  @Ignore("Iterator.remove throws NullPointerException ")
   @Test
   public void testIteratorCacheAccessException() throws Exception {
     doThrow(new CacheAccessException("")).when(this.store).iterator();
