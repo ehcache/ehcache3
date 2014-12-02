@@ -427,7 +427,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
 
     final InOrder ordered = inOrder(this.cacheWriter, this.spiedResilienceStrategy);
 
-    assertNull(ehcache.replace("key", "value"));    // TODO: Confirm correctness
+    assertNull(ehcache.replace("key", "value"));    // TODO: Confirm correctness - Issue #194
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verify(this.store, times(1)).remove("key");
     ordered.verify(this.cacheWriter).write(eq("key"), any(String.class));
@@ -456,7 +456,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
 
     final InOrder ordered = inOrder(this.cacheWriter, this.spiedResilienceStrategy);
 
-    assertNull(ehcache.replace("key", "value"));    // TODO: Confirm correctness
+    assertNull(ehcache.replace("key", "value"));    // TODO: Confirm correctness - Issue #194
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     ordered.verify(this.cacheWriter).write(eq("key"), any(String.class));
     ordered.verify(this.spiedResilienceStrategy).replaceFailure(eq("key"), eq("value"), any(CacheAccessException.class));
