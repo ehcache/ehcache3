@@ -1136,7 +1136,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     @Override
     public void remove() {
       statusTransitioner.checkAvailable();
+      if (current == null) {
+        throw new IllegalStateException("No current element");
+      }
       Ehcache.this.remove(current.getKey(), current.getValue().value());
+      current = null;
     }
   }
 
