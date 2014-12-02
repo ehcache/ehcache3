@@ -26,9 +26,9 @@ import org.ehcache.config.writer.DefaultCacheWriterConfiguration;
 import org.ehcache.config.writer.DefaultCacheWriterFactoryConfiguration;
 import org.junit.Test;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -94,7 +94,7 @@ public class DefaultCacheWriterFactoryTest {
     }
 
     @Override
-    public Set<Object> writeAll(final Iterable<? extends Map.Entry<?, ?>> entries) throws Exception {
+    public void writeAll(final Collection<? extends Map.Entry<?, ?>> entries) throws Exception {
       throw new UnsupportedOperationException("Implement me!");
     }
 
@@ -104,7 +104,7 @@ public class DefaultCacheWriterFactoryTest {
     }
 
     @Override
-    public Set<Object> deleteAll(final Iterable<?> keys) throws Exception {
+    public void deleteAll(final Collection<?> keys) throws Exception {
       throw new UnsupportedOperationException("Implement me!");
     }
   }

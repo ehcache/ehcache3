@@ -27,9 +27,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import static org.hamcrest.Matchers.contains;
 import static org.mockito.Matchers.anyObject;
@@ -134,16 +137,24 @@ public class WriterSimpleEhcacheTest {
 
     testCache.putAll(values.entrySet());
 
-    verify(cacheWriter, times(1)).writeAll(argThat(contains(entry(1, "one"))));
-    verify(cacheWriter, times(1)).writeAll(argThat(contains(entry(2, "two"))));
+    verify(cacheWriter, times(1)).writeAll(collectionOf(entry(1, "one")));
+    verify(cacheWriter, times(1)).writeAll(collectionOf(entry(2, "two")));
+  }
+
+  private static <T> Collection<T> collectionOf(T... elements) {
+    Collection<T> c = new ArrayList<T>();
+    for (T o : elements) {
+      c.add(o);
+    }
+    return c;
   }
 
   @Test
   public void testSimpleRemoveAllWithWriter() throws Exception {
     testCache.removeAll(Arrays.asList(1, 2));
 
-    verify(cacheWriter, times(1)).deleteAll(argThat(contains(1)));
-    verify(cacheWriter, times(1)).deleteAll(argThat(contains(2)));
+    verify(cacheWriter, times(1)).deleteAll(collectionOf(1));
+    verify(cacheWriter, times(1)).deleteAll(collectionOf(2));
   }
 
   private static Map.Entry<Number, CharSequence> entry(Number number, CharSequence charSequence) {
