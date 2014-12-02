@@ -34,22 +34,12 @@ public class TestCacheWriter implements CacheWriter<Number, String> {
   }
 
   @Override
-  public boolean write(final Number key, final String oldValue, final String newValue) throws Exception {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
   public Set<Number> writeAll(final Iterable<? extends Map.Entry<? extends Number, ? extends String>> entries) throws Exception {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
   public boolean delete(final Number key) throws Exception {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public boolean delete(final Number key, final String value) throws Exception {
     throw new UnsupportedOperationException("Implement me!");
   }
 

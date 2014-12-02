@@ -25,7 +25,6 @@ import org.ehcache.spi.writer.CacheWriterFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
 
 import java.util.AbstractMap;
 import java.util.Arrays;
@@ -38,6 +37,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -80,18 +80,21 @@ public class WriterSimpleEhcacheTest {
 
   @Test
   public void testSimpleRemoveWithWriter() throws Exception {
+    testCache.put(1, "two");
+    testCache.put(2, "two");
     testCache.remove(1, "one");
     testCache.remove(2, "two");
 
-    verify(cacheWriter, times(1)).delete(eq(1), eq("one"));
-    verify(cacheWriter, times(1)).delete(eq(2), eq("two"));
+    verify(cacheWriter, never()).delete(eq(1));
+    verify(cacheWriter, times(1)).delete(eq(2));
   }
 
   @Test
   public void testSimpleRemove2ArgsWithWriter() throws Exception {
+    testCache.put(1, "one");
     testCache.remove(1, "one");
 
-    verify(cacheWriter, times(1)).delete(eq(1), eq("one"));
+    verify(cacheWriter, times(1)).delete(eq(1));
   }
 
   @Test
@@ -100,8 +103,8 @@ public class WriterSimpleEhcacheTest {
     testCache.putIfAbsent(2, "two");
     testCache.putIfAbsent(2, "two#2");
 
-    verify(cacheWriter, times(1)).write(eq(1), Matchers.<String>eq(null), eq("one"));
-    verify(cacheWriter, times(1)).write(eq(2), Matchers.<String>eq(null), eq("two"));
+    verify(cacheWriter, times(1)).write(eq(1), eq("one"));
+    verify(cacheWriter, times(1)).write(eq(2), eq("two"));
   }
 
   @Test
@@ -120,7 +123,7 @@ public class WriterSimpleEhcacheTest {
     testCache.replace(1, "one@", "one#2");
     testCache.replace(1, "one", "one#3");
 
-    verify(cacheWriter, times(1)).write(eq(1), eq("one"), eq("one#3"));
+    verify(cacheWriter, times(1)).write(eq(1), eq("one#3"));
   }
 
   @Test

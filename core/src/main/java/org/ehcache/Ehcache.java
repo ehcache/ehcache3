@@ -564,9 +564,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         try {
           if (cacheWriter != null) {
             try {
-              if (!cacheWriter.write(k, null, value)) {
-                return null;
-              }
+              cacheWriter.write(k, value);
             } catch (Exception e) {
               throw newCacheWriterException(e);
             }
@@ -623,13 +621,10 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       @Override
       public V apply(final K k, final V inCache) {
         try {
-          if (inCache != null) {
-            if (inCache.equals(value)) {
+            if (value.equals(inCache)) {
               if (cacheWriter != null) {
                 try {
-                  if(!cacheWriter.delete(k, value)) {
-                    return null; // remove cached value but don't set success flag - this is an inline repair
-                  }
+                  cacheWriter.delete(k);
                 } catch (Exception e) {
                   throw newCacheWriterException(e);
                 }
@@ -638,16 +633,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
               return null;
             }
             return inCache;
-          } else {
-            if (cacheWriter != null) {
-              try {
-                removed.set(cacheWriter.delete(k, value));
-              } catch (Exception e) {
-                throw newCacheWriterException(e);
-              }
-            }
-            return null;
-          }
         } finally {
           if (removed.get()) {
             // Okay - the flag is always false when exceptions are thrown
@@ -657,7 +642,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     });
     try {
-      store.compute(key, remappingFunction);
+      store.computeIfPresent(key, remappingFunction);
       if (removed.get()) {
         removeObserver.end(RemoveOutcome.SUCCESS);
       } else {
@@ -739,37 +724,18 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       @Override
       public V apply(final K k, final V inCache) {
         try {
-          if (inCache != null) {
-            if (inCache.equals(oldValue)) {
-              if (cacheWriter != null) {
-                try {
-                  success.set(cacheWriter.write(key, oldValue, newValue));
-                } catch (Exception e) {
-                  throw newCacheWriterException(e);
-                }
-                // repair cache 
-                if (!success.get()) {
-                  return null;
-                }
-              } else {
-                success.set(true);
-              }
-              return newValue; 
-            }
-            return inCache;
-          } else {
+          if (oldValue.equals(inCache)) {
             if (cacheWriter != null) {
               try {
-                if (cacheWriter.write(key, oldValue, newValue)) {
-                  success.set(true);
-                  return newValue;
-                }
+                cacheWriter.write(key, newValue);
               } catch (Exception e) {
                 throw newCacheWriterException(e);
               }
             }
-            return null;
+            success.set(true);
+            return newValue;
           }
+          return inCache;
         } finally {
           if (success.get()) {
             eventNotificationService.onEvent(CacheEvents.update(newCacheEntry(key, oldValue), 
@@ -779,7 +745,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     });
     try {
-      store.compute(key, remappingFunction);
+      store.computeIfPresent(key, remappingFunction);
       if (success.get()) {
         replaceObserver.end(ReplaceOutcome.HIT);
       } else {
