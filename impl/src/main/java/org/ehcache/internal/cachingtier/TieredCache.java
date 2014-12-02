@@ -26,6 +26,7 @@ import org.ehcache.statistics.CacheStatistics;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author cdennis
@@ -134,7 +135,7 @@ public class TieredCache<K, V> implements Cache<K, V> {
   }
 
   @Override
-  public Map<K, V> getAll(Iterable<? extends K> keys) {
+  public Map<K, V> getAll(Set<? extends K> keys) {
     throw new UnsupportedOperationException("Implement me!");
   }
 

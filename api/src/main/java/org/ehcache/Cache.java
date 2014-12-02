@@ -23,6 +23,7 @@ import org.ehcache.exceptions.CacheWriterException;
 import org.ehcache.statistics.CacheStatistics;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -87,10 +88,10 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @param keys keys to query for
    * @return a map from keys to values for all mapped keys
    * 
-   * @throws NullPointerException if the {@code Iterable} or any of the returned keys are {@code null}.
+   * @throws NullPointerException if the {@code Set} or any of the returned keys are {@code null}.
    * @throws BulkCacheLoaderException if loading some or all values failed
    */
-  Map<K, V> getAll(Iterable<? extends K> keys) throws BulkCacheLoaderException;
+  Map<K, V> getAll(Set<? extends K> keys) throws BulkCacheLoaderException;
 
   /**
    * Associates all the provided key:value pairs.

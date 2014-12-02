@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import java.util.AbstractMap;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -89,7 +90,7 @@ public abstract class ExpiryEhcacheTestBase {
 
     assertThat(cacheSize(testCache), is(2));
     manualTimeSource.setTime(1001);
-    assertThat(testCache.getAll(Arrays.asList(1, 2)).size(), is(0));
+    assertThat(testCache.getAll(new HashSet<Number>(Arrays.asList(1, 2))).size(), is(0));
   }
 
   @Test

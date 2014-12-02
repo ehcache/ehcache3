@@ -29,6 +29,7 @@ import org.mockito.stubbing.Answer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -95,7 +96,7 @@ public class EhcacheBulkMethodsTest {
 
     Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(cacheConfig, store);
     ehcache.init();
-    Map<Number, CharSequence> result = ehcache.getAll(Arrays.asList(1, 2, 3));
+    Map<Number, CharSequence> result = ehcache.getAll(new HashSet<Number>(Arrays.asList(1, 2, 3)));
 
     assertThat(result, equalTo(Collections.<Number, CharSequence>emptyMap()));
     verify(store).bulkComputeIfAbsent(argThat(hasItems(1, 2, 3)), any(Function.class));
@@ -116,7 +117,7 @@ public class EhcacheBulkMethodsTest {
 
     Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(cacheConfig, store, cacheLoader);
     ehcache.init();
-    Map<Number, CharSequence> result = ehcache.getAll(Arrays.asList(1, 2, 3));
+    Map<Number, CharSequence> result = ehcache.getAll(new HashSet<Number>(Arrays.asList(1, 2, 3)));
 
     assertThat(result, equalTo(Collections.<Number, CharSequence>emptyMap()));
     verify(store).bulkComputeIfAbsent(argThat(hasItems(1, 2, 3)), any(Function.class));

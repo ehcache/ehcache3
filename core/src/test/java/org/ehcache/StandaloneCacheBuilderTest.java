@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 public class StandaloneCacheBuilderTest {
 
@@ -131,7 +132,7 @@ public class StandaloneCacheBuilderTest {
     }
 
     @Override
-    public Map<K, V> getAll(Iterable<? extends K> keys) {
+    public Map<K, V> getAll(Set<? extends K> keys) {
       throw new UnsupportedOperationException("Implement me!");
     }
 

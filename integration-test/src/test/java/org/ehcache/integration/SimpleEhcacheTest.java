@@ -26,6 +26,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -96,7 +97,7 @@ public class SimpleEhcacheTest {
     testCache.put(1, "one");
     testCache.put(2, "two");
 
-    Map<Number, CharSequence> all = testCache.getAll(Arrays.asList(1, 2, 3));
+    Map<Number, CharSequence> all = testCache.getAll(new HashSet<Number>(Arrays.asList(1, 2, 3)));
     assertThat(all.keySet(), containsInAnyOrder((Number)1, 2));
     assertThat(all.get(1), Matchers.<CharSequence>equalTo("one"));
     assertThat(all.get(2), Matchers.<CharSequence>equalTo("two"));

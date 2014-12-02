@@ -330,7 +330,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   }
 
   @Override
-  public Map<K, V> getAll(Iterable<? extends K> keys) throws BulkCacheLoaderException {
+  public Map<K, V> getAll(Set<? extends K> keys) throws BulkCacheLoaderException {
     statusTransitioner.checkAvailable();
     checkNonNull(keys);
     final Map<K, V> successes = new HashMap<K, V>();

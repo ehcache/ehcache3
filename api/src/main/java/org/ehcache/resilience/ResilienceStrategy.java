@@ -260,7 +260,7 @@ public interface ResilienceStrategy<K, V> {
   boolean replaceFailure(K key, V value, V newValue, CacheAccessException e, CacheWriterException f);
   
   /**
-   * Called when a {@link Cache#getAll(java.lang.Iterable)} fails on a cache
+   * Called when a {@link Cache#getAll(java.util.Set)} fails on a cache
    * without a cache loader due to an underlying store failure.
    * 
    * @param keys the keys being retrieved
@@ -270,7 +270,7 @@ public interface ResilienceStrategy<K, V> {
   Map<K, V> getAllFailure(Iterable<? extends K> keys, CacheAccessException e);
 
   /**
-   * Called when a {@link Cache#getAll(java.lang.Iterable)} fails on a cache
+   * Called when a {@link Cache#getAll(java.util.Set)} fails on a cache
    * with a cache loader due to an underlying store failure.
    * 
    * @param keys the keys being retrieved
@@ -281,7 +281,7 @@ public interface ResilienceStrategy<K, V> {
   Map<K, V> getAllFailure(Iterable<? extends K> keys, Map<K, V> loaded, CacheAccessException e);
   
   /**
-   * Called when a {@link Cache#getAll(java.lang.Iterable)} fails on a cache
+   * Called when a {@link Cache#getAll(java.util.Set)} fails on a cache
    * with a cache loader due to an underlying store failure, and the associated
    * cache write operation also failed.
    * 
