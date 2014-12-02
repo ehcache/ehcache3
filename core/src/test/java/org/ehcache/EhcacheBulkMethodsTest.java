@@ -26,10 +26,15 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.AbstractMap.SimpleEntry;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
@@ -54,7 +59,7 @@ public class EhcacheBulkMethodsTest {
     Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(cacheConfig, store);
     ehcache.init();
 
-    ehcache.putAll(new HashMap<Number, CharSequence>() {{
+    ehcache.putAll(new LinkedHashMap<Number, CharSequence>() {{
       put(1, "one");
       put(2, "two");
       put(3, "three");
@@ -70,7 +75,7 @@ public class EhcacheBulkMethodsTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         Function function = (Function)invocation.getArguments()[1];
-        function.apply(Arrays.asList(entry(2, "two"), entry(1, "one"), entry(3, "three")));
+        function.apply(Arrays.asList(entry(1, "one"), entry(2, "two"), entry(3, "three")));
         return null;
       }
     });
@@ -79,14 +84,14 @@ public class EhcacheBulkMethodsTest {
     Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(cacheConfig, store, null, cacheWriter);
     ehcache.init();
 
-    ehcache.putAll(new HashMap<Number, CharSequence>() {{
-      put(3, "three");
-      put(2, "two");
+    ehcache.putAll(new LinkedHashMap<Number, CharSequence>() {{
       put(1, "one");
+      put(2, "two");
+      put(3, "three");
     }}.entrySet());
 
     verify(store).bulkCompute(argThat(hasItems(1, 2, 3)), any(Function.class));
-    verify(cacheWriter).writeAll(argThat(hasItems(entry(1, "one"), entry(2, "two"), entry(3, "three"))));
+    verify(cacheWriter).writeAll(collectionOf(entry(1, "one"), entry(2, "two"), entry(3, "three")));
   }
 
   @Test
@@ -141,7 +146,7 @@ public class EhcacheBulkMethodsTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         Function function = (Function)invocation.getArguments()[1];
-        function.apply(Arrays.asList(entry(2, "two"), entry(1, "one"), entry(3, "three")));
+        function.apply(Arrays.asList(entry(1, "one"), entry(2, "two"), entry(3, "three")));
         return null;
       }
     });
@@ -152,47 +157,20 @@ public class EhcacheBulkMethodsTest {
     ehcache.removeAll(Arrays.asList(1, 2, 3));
 
     verify(store).bulkCompute(argThat(hasItems(1, 2, 3)), any(Function.class));
-    verify(cacheWriter).deleteAll(argThat(hasItems(1, 2, 3)));
+    verify(cacheWriter).deleteAll(collectionOf(1, 2, 3));
   }
 
 
+  private static Collection collectionOf(Object... elements) {
+    Collection c = new ArrayList();
+    for (Object e : elements) {
+      c.add(e);
+    }
+    return c;
+  }
+
   private static <K, V> Map.Entry<? extends K, ? extends V> entry(final K key, final V value) {
-    return new Map.Entry<K, V>() {
-
-      @Override
-      public K getKey() {
-        return key;
-      }
-
-      @Override
-      public V getValue() {
-        return value;
-      }
-
-      @Override
-      public V setValue(V value) {
-        return null;
-      }
-
-      @Override
-      public int hashCode() {
-        return key.hashCode() + value.hashCode();
-      }
-
-      @Override
-      public boolean equals(Object obj) {
-        if (obj.getClass() == getClass()) {
-          Map.Entry<K, V> other = (Map.Entry<K, V>)obj;
-          return key.equals(other.getKey()) && value.equals(other.getValue());
-        }
-        return false;
-      }
-
-      @Override
-      public String toString() {
-        return key + "/" + value;
-      }
-    };
+    return new AbstractMap.SimpleEntry<K, V>(key, value);
   }
 
 }

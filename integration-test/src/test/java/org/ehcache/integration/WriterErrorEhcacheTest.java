@@ -24,24 +24,32 @@ import org.ehcache.exceptions.BulkCacheWriterException;
 import org.ehcache.exceptions.CacheWriterException;
 import org.ehcache.spi.writer.CacheWriter;
 import org.ehcache.spi.writer.CacheWriterFactory;
+import org.hamcrest.MatcherAssert;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -125,7 +133,7 @@ public class WriterErrorEhcacheTest {
 
         return result;
       }
-    }).when(cacheWriter).deleteAll((Iterable) Matchers.any());
+    }).when(cacheWriter).deleteAll((Collection) Matchers.any());
 
     try {
       testCache.removeAll(Arrays.asList(1, 2, 3, 4));
@@ -231,7 +239,7 @@ public class WriterErrorEhcacheTest {
 
   @Test
   public void testPutAllWithWriterException() throws Exception {
-    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).writeAll(Matchers.<Iterable>any());
+    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).writeAll(Matchers.<Collection>any());
 
     Map<Integer, String> values = new HashMap<Integer, String>();
     values.put(1, "one");
@@ -245,4 +253,50 @@ public class WriterErrorEhcacheTest {
     }
   }
 
+  @Test
+  public void testPutAllWithWriterPartialSuccess() throws Exception {
+    final Exception exception = new Exception("cache writer failure");
+    Answer answer = new Answer() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        Map.Entry entry = new AbstractMap.SimpleEntry(2, "two");
+        Collection argument = (Collection)invocation.getArguments()[0];
+        if (argument.contains(entry)) {
+          argument.clear();
+          argument.add(entry);
+          throw exception;
+        }
+        
+        return null;
+      }
+    };
+    doAnswer(answer).when(cacheWriter).writeAll((Collection) Matchers.any());
+    
+    Map<Integer, String> values = new LinkedHashMap<Integer, String>();
+    values.put(1, "one");
+    values.put(2, "two");
+    values.put(3, "three");
+    values.put(4, "four");
+    
+    try {
+      testCache.putAll(values.entrySet());
+      fail("expected CacheWriterException");
+    } catch (BulkCacheWriterException bcwe) {
+      Set<?> successes = bcwe.getSuccesses();
+      assertTrue(successes.contains(1));
+      assertTrue(successes.contains(3));
+      assertTrue(successes.contains(4));
+      
+      Map<?, Exception> failures = bcwe.getFailures();
+      assertTrue(failures.containsKey(2));
+      assertEquals(exception, failures.get(2));
+    }
+    
+    assertEquals("one", testCache.get(1));
+    assertEquals(null, testCache.get(2));
+    assertEquals("three", testCache.get(3));
+    assertEquals("four", testCache.get(4));
+    
+  }
+  
 }
