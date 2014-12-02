@@ -25,7 +25,6 @@ import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -35,6 +34,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.mockito.Matchers.any;
@@ -85,7 +85,6 @@ public class LoaderSimpleEhcacheTest {
   }
 
   @Test
-  @Ignore("getAll throws NPE")
   public void testSimpleGetAllWithLoader() throws Exception {
     when(cacheLoader.loadAll((Iterable)any())).thenAnswer(new Answer() {
       @Override
@@ -113,10 +112,9 @@ public class LoaderSimpleEhcacheTest {
     });
 
     Map<Number, CharSequence> all = testCache.getAll(Arrays.asList(1, 2, 3));
-    assertThat(all.size(), is(3));
+    assertThat(all.keySet(), containsInAnyOrder((Number)1, 2));
     assertThat(all.get(1), Matchers.<CharSequence>equalTo("one"));
     assertThat(all.get(2), Matchers.<CharSequence>equalTo("two"));
-    assertThat(all.get(3), is(Matchers.nullValue()));
   }
 
 }
