@@ -25,7 +25,6 @@ import org.ehcache.spi.writer.CacheWriterFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
 
 import java.util.AbstractMap;
 import java.util.Arrays;
@@ -100,8 +99,8 @@ public class WriterSimpleEhcacheTest {
     testCache.putIfAbsent(2, "two");
     testCache.putIfAbsent(2, "two#2");
 
-    verify(cacheWriter, times(1)).write(eq(1), Matchers.<String>eq(null), eq("one"));
-    verify(cacheWriter, times(1)).write(eq(2), Matchers.<String>eq(null), eq("two"));
+    verify(cacheWriter, times(1)).write(eq(1), eq("one"));
+    verify(cacheWriter, times(1)).write(eq(2), eq("two"));
   }
 
   @Test
@@ -120,7 +119,7 @@ public class WriterSimpleEhcacheTest {
     testCache.replace(1, "one@", "one#2");
     testCache.replace(1, "one", "one#3");
 
-    verify(cacheWriter, times(1)).write(eq(1), eq("one"), eq("one#3"));
+    verify(cacheWriter, times(1)).write(eq(1), eq("one#3"));
   }
 
   @Test

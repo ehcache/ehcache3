@@ -189,7 +189,7 @@ public class WriterErrorEhcacheTest {
 
   @Test
   public void testReplace3ArgsWithWriterException_should_call_writer() throws Exception {
-    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).write(eq(1), eq("one"), eq("one#2"));
+    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).write(eq(1), eq("one#2"));
 
     testCache.put(1, "one");
     try {
@@ -202,23 +202,22 @@ public class WriterErrorEhcacheTest {
 
   @Test
   public void testReplace3ArgsWithNotMatchingCacheEntry_should_not_call_writer() throws Exception {
-    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).write(eq(1), eq("one"), eq("one#2"));
+    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).write(eq(1), eq("one#2"));
 
     testCache.put(1, "un");
     testCache.replace(1, "one", "one#2");
   }
 
   @Test
-  @Ignore("the writer is actually called while it shouldn't be")
   public void testReplace3ArgsWithNoCacheEntry_should_not_call_writer() throws Exception {
-    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).write(eq(1), eq("one"), eq("one#2"));
+    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).write(eq(1), eq("one#2"));
 
     testCache.replace(1, "one", "one#2");
   }
 
   @Test
   public void testPutIfAbsentWithWriterException_should_call_writer() throws Exception {
-    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).write(eq(1), Matchers.<CharSequence>eq(null), eq("one"));
+    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).write(eq(1), eq("one"));
 
     try {
       testCache.putIfAbsent(1, "one");

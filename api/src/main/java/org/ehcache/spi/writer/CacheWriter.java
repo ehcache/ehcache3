@@ -16,8 +16,6 @@
 
 package org.ehcache.spi.writer;
 
-import org.ehcache.Cache;
-
 import java.util.Map;
 import java.util.Set;
 
@@ -45,23 +43,6 @@ public interface CacheWriter<K, V> {
    * @see org.ehcache.Cache#put(Object, Object)
    */
   void write(K key, V value) throws Exception;
-
-
-  /**
-   * Writes a single entry to the underlying system of record, when the expected previous value is known. When
-   * {@code null} means it is necessarily an new value ({@link Cache#putIfAbsent(Object, Object)}), as the
-   * {@link org.ehcache.spi.loader.CacheLoader} would have had been invoked.
-   *
-   * @param key the key of the mapping being installed or updated
-   * @param oldValue the value as expected to exist in the SoR, {@code null} if excepted to be missing from the SoR
-   * @param newValue the actual new value
-   * @return {@code true} if the SoR was modified
-   *
-   * @see org.ehcache.Cache#putIfAbsent(Object, Object)
-   * @see org.ehcache.Cache#replace(Object, Object, Object)
-   * @see org.ehcache.Cache#replace(Object, Object)
-   */
-  boolean write(K key, V oldValue, V newValue) throws Exception;
 
   /**
    * Writes multiple entries to the underlying system of record. These can either be new entries or updates to

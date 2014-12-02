@@ -17,6 +17,7 @@
 package org.ehcache;
 
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -34,7 +35,6 @@ import static org.hamcrest.Matchers.is;
 
 import static org.junit.Assert.assertThat;
 
-import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerFactory;
@@ -271,15 +271,16 @@ public class EhcacheEventTest {
     final String cachedValue = "cached";
     final String newValue = "toReplace";
 
-    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0], cachedValue);
-        return null;
+        final String applied = function.apply((Number)invocation.getArguments()[0], cachedValue);
+        final Store.ValueHolder mock = mock(Store.ValueHolder.class);
+        when(mock.value()).thenReturn(applied);
+        return mock;
       }
     });
-    when(cache.getCacheWriter().write(any(Number.class), anyString(), anyString())).thenReturn(true);
     Number key = 1;
     assertThat(cache.replace(key, cachedValue, newValue), is(true));
     verify(eventNotifier).onEvent(eventMatching(EventType.UPDATED, key, newValue, cachedValue));
@@ -290,7 +291,7 @@ public class EhcacheEventTest {
     final String oldValue = "cached";
     final String newValue = "toReplace";
 
-    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
@@ -298,11 +299,10 @@ public class EhcacheEventTest {
         return null;
       }
     });
-    when(cache.getCacheWriter().write(any(Number.class), anyString(), anyString())).thenReturn(true);
-    
+
     Number key = 1;
-    assertThat(cache.replace(key, oldValue, newValue), is(true));
-    verify(eventNotifier).onEvent(eventMatching(EventType.UPDATED, key, newValue, oldValue));
+    assertThat(cache.replace(key, oldValue, newValue), is(false));
+    verify(eventNotifier, never()).onEvent(eventMatching(EventType.UPDATED, key, newValue, oldValue));
   }
   
   @Test
@@ -317,23 +317,21 @@ public class EhcacheEventTest {
         return null;
       }
     });
-    when(cache.getCacheWriter().write(any(Number.class), anyString(), anyString())).thenReturn(false);
-    
+
     assertThat(cache.replace(1, oldValue, newValue), is(false));
     verify(eventNotifier, never()).onEvent(any(CacheEvent.class));
   }
   
   @Test(expected=CacheWriterException.class)
   public void testThreeArgReplaceThrowsOnWrite() throws Exception {
-    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0], null);
-        return null;
+        return function.apply((Number)invocation.getArguments()[0], "old");
       }
     });
-    when(cache.getCacheWriter().write(any(Number.class), anyString(), anyString())).thenThrow(new Exception());
+    doThrow(new Exception()).when(cache.getCacheWriter()).write(any(Number.class), anyString());
     cache.replace(1, "old", "new");
   }
 
@@ -343,13 +341,14 @@ public class EhcacheEventTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         Function<Number, String> function = asFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0]);
-        return null;
+        final String applied = function.apply((Number)invocation.getArguments()[0]);
+        final Store.ValueHolder mock = mock(Store.ValueHolder.class);
+        when(mock.value()).thenReturn(applied);
+        return mock;
       }
     });
-    when(cache.getCacheWriter().write(any(Number.class), anyString(), anyString())).thenReturn(true);
     Number key = 1;
-    cache.putIfAbsent(key, "foo");
+    assertThat(cache.putIfAbsent(key, "foo"), nullValue());
     verify(eventNotifier).onEvent(eventMatching(EventType.CREATED, key, "foo", null));
   }
   
@@ -363,7 +362,7 @@ public class EhcacheEventTest {
         return null;
       }
     });
-    when(cache.getCacheWriter().write(any(Number.class), anyString(), anyString())).thenThrow(new Exception());
+    doThrow(new Exception()).when(cache.getCacheWriter()).write(any(Number.class), anyString());
     cache.putIfAbsent(1, "one");
   }
   
