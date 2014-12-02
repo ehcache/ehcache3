@@ -218,7 +218,7 @@ public class OnHeapStoreBulkMethodsTest {
     store.put(2, "two");
     store.put(3, "three");
 
-    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(Arrays.asList(1, 2, 3, 4, 5, 6), new Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
+    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5, 6)), new Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
       @Override
       public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Number> keys) {
         Map<Number, CharSequence> result = new HashMap<Number, CharSequence>();
@@ -265,7 +265,7 @@ public class OnHeapStoreBulkMethodsTest {
     store.put(2, "two");
     store.put(3, "three");
 
-    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(Arrays.asList(1, 2, 3, 4, 5, 6), new Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
+    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5, 6)), new Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
       @Override
       public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Number> numbers) {
         Map<Number, CharSequence> result = new HashMap<Number, CharSequence>();
@@ -307,7 +307,7 @@ public class OnHeapStoreBulkMethodsTest {
     store.put(2, "two");
     store.put(3, "three");
 
-    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(Arrays.asList(2, 1, 5), new Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
+    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(2, 1, 5)), new Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
       @Override
       public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Number> numbers) {
         Map<Number, CharSequence> result = new HashMap<Number, CharSequence>();

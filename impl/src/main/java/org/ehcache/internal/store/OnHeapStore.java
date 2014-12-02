@@ -447,7 +447,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Iterable<? extends K> keys, final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
+  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
     Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
     for (final K key : keys) {
       final ValueHolder<V> newValue = computeIfAbsent(key, new Function<K, V>() {

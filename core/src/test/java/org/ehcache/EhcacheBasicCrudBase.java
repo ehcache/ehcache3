@@ -462,7 +462,7 @@ public abstract class EhcacheBasicCrudBase {
      * to {@link #computeIfAbsent(String, org.ehcache.function.Function) computeIfAbsent}.
      */
     @Override
-    public Map<String, ValueHolder<String>> bulkComputeIfAbsent(final Iterable<? extends String> keys, final Function<Iterable<? extends String>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> mappingFunction)
+    public Map<String, ValueHolder<String>> bulkComputeIfAbsent(final Set<? extends String> keys, final Function<Iterable<? extends String>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> mappingFunction)
         throws CacheAccessException {
       final Map<String, ValueHolder<String>> resultMap = new LinkedHashMap<String, ValueHolder<String>>();
       for (final String key : keys) {

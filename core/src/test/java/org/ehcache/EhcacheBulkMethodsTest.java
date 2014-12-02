@@ -21,7 +21,6 @@ import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.writer.CacheWriter;
-import org.ehcache.statistics.CacheStatistics;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -31,6 +30,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
@@ -99,13 +99,13 @@ public class EhcacheBulkMethodsTest {
     Map<Number, CharSequence> result = ehcache.getAll(new HashSet<Number>(Arrays.asList(1, 2, 3)));
 
     assertThat(result, equalTo(Collections.<Number, CharSequence>emptyMap()));
-    verify(store).bulkComputeIfAbsent(argThat(hasItems(1, 2, 3)), any(Function.class));
+    verify(store).bulkComputeIfAbsent((Set<? extends Number>)argThat(hasItems(1, 2, 3)), any(Function.class));
   }
 
   @Test
   public void testGetAllWithLoader() throws Exception {
     Store<Number, CharSequence> store = mock(Store.class);
-    when(store.bulkComputeIfAbsent(argThat(hasItems(1, 2, 3)), any(Function.class))).thenAnswer(new Answer<Object>() {
+    when(store.bulkComputeIfAbsent((Set<? extends Number>)argThat(hasItems(1, 2, 3)), any(Function.class))).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         Function function = (Function)invocation.getArguments()[1];
@@ -120,7 +120,7 @@ public class EhcacheBulkMethodsTest {
     Map<Number, CharSequence> result = ehcache.getAll(new HashSet<Number>(Arrays.asList(1, 2, 3)));
 
     assertThat(result, equalTo(Collections.<Number, CharSequence>emptyMap()));
-    verify(store).bulkComputeIfAbsent(argThat(hasItems(1, 2, 3)), any(Function.class));
+    verify(store).bulkComputeIfAbsent((Set<? extends Number>)argThat(hasItems(1, 2, 3)), any(Function.class));
     verify(cacheLoader).loadAll(argThat(hasItems(1, 2, 3)));
   }
 
