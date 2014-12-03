@@ -13,16 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.spi.serialization;
 
-import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
+package org.ehcache.internal.store;
 
-/**
- *
- * @author cdennis
- */
-public interface SerializationProvider extends Service {
- 
-  <T> Serializer<T> createSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... config);
+abstract class BaseOnHeapKey<K> implements OnHeapKey<K> {
+
+  private final int hashCode;
+
+  BaseOnHeapKey(int hashCode) {
+    this.hashCode = hashCode;
+  }
+
+  @Override
+  public int hashCode() {
+    return hashCode;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof OnHeapKey) {
+      OnHeapKey<?> other = (OnHeapKey<?>) obj;
+      return getActualKeyObject().equals(other.getActualKeyObject());
+    }
+
+    return false;
+  }
+
 }

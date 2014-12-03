@@ -17,21 +17,29 @@ package org.ehcache.internal.serialization;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.ObjectStreamClass;
 import java.io.Serializable;
+import java.lang.reflect.Proxy;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.ehcache.internal.util.ByteBufferInputStream;
 import org.ehcache.spi.serialization.Serializer;
 
 /**
- *
+ * 
  * @author cdennis
  */
 public class JavaSerializer<T extends Serializable> implements Serializer<T> {
 
-  public JavaSerializer() {
+  private final ClassLoader classLoader;
+
+  public JavaSerializer(ClassLoader classLoader) {
+    this.classLoader = classLoader;
   }
 
   @Override
@@ -46,16 +54,17 @@ public class JavaSerializer<T extends Serializable> implements Serializer<T> {
     return ByteBuffer.wrap(bout.toByteArray());
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public T read(ByteBuffer entry) throws IOException, ClassNotFoundException {
     ByteBufferInputStream bin = null;
     try {
       bin = new ByteBufferInputStream(entry);
-      ObjectInputStream oin = new ObjectInputStream(bin);
+      OIS ois = new OIS(bin, classLoader);
       try {
-        return (T)oin.readObject();
+        return (T) ois.readObject();
       } finally {
-        oin.close();
+        ois.close();
       }
     } finally {
       if (bin != null) {
@@ -68,4 +77,51 @@ public class JavaSerializer<T extends Serializable> implements Serializer<T> {
   public boolean equals(T object, ByteBuffer binary) throws IOException, ClassNotFoundException {
     return object.equals(read(binary));
   }
+
+  private static class OIS extends ObjectInputStream {
+
+    private final ClassLoader classLoader;
+
+    public OIS(InputStream in, ClassLoader classLoader) throws IOException {
+      super(in);
+      this.classLoader = classLoader;
+    }
+
+    @Override
+    protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+      try {
+        return Class.forName(desc.getName(), false, classLoader);
+      } catch (ClassNotFoundException cnfe) {
+        Class<?> primitive = primitiveClasses.get(desc.getName());
+        if (primitive != null) {
+          return primitive;
+        }
+        throw cnfe;
+      }
+    }
+
+    @Override
+    protected Class<?> resolveProxyClass(String[] interfaces) throws IOException, ClassNotFoundException {
+      Class<?>[] interfaceClasses = new Class[interfaces.length];
+      for (int i = 0; i < interfaces.length; i++) {
+        interfaceClasses[i] = Class.forName(interfaces[i], false, classLoader);
+      }
+
+      return Proxy.getProxyClass(classLoader, interfaceClasses);
+    }
+
+    private static final Map<String, Class<?>> primitiveClasses = new HashMap<String, Class<?>>();
+    static {
+      primitiveClasses.put("boolean", boolean.class);
+      primitiveClasses.put("byte", byte.class);
+      primitiveClasses.put("char", char.class);
+      primitiveClasses.put("double", double.class);
+      primitiveClasses.put("float", float.class);
+      primitiveClasses.put("int", int.class);
+      primitiveClasses.put("long", long.class);
+      primitiveClasses.put("short", short.class);
+      primitiveClasses.put("void", void.class);
+    }
+  }
+  
 }

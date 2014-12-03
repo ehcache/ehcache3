@@ -40,10 +40,13 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.statistics.CacheOperationOutcomes.EvictionOutcome;
 import org.terracotta.statistics.observer.OperationObserver;
 
+import java.util.AbstractMap.SimpleEntry;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
@@ -62,10 +65,11 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   private static final int ATTEMPT_RATIO = 4;
   private static final int EVICTION_RATIO = 2;
   
-  private final ConcurrentHashMap<K, OnHeapValueHolder<V>> map = new ConcurrentHashMap<K, OnHeapValueHolder<V>>();
+  private final MapWrapper<K, V> map;
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final Serializer<V> serializer;
+  private final Serializer<K> keySerializer;
 
   private final Comparable<Long> capacityConstraint;
   private final Predicate<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionVeto;
@@ -75,6 +79,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener(); 
   
   private final OperationObserver<EvictionOutcome> evictionObserver = operation(EvictionOutcome.class).named("eviction").of(this).tag("onheap-store").build();
+
  
   public OnHeapStore(final Configuration<K, V> config, TimeSource timeSource, boolean storeByValue) {
     Comparable<Long> capacity = config.getCapacityConstraint();
@@ -94,10 +99,14 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     this.expiry = config.getExpiry();
     this.timeSource = timeSource;
     if (storeByValue) {
-      this.serializer = config.getSerializationProvider().createSerializer(valueType);
+      this.serializer = config.getSerializationProvider().createSerializer(valueType, config.getClassLoader());
+      this.keySerializer = config.getSerializationProvider().createSerializer(keyType, config.getClassLoader());
     } else {
       this.serializer = null;
+      this.keySerializer = null;
     }
+    
+    this.map = new MapWrapper<K, V>(keySerializer);
   }
 
   @Override
@@ -125,7 +134,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       }
     });
   }
-  
+
   @Override
   public boolean containsKey(final K key) throws CacheAccessException {
     checkKey(key); 
@@ -288,7 +297,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
   @Override
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() throws CacheAccessException {
-    final java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>> it = map.entrySet().iterator();
+    final java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>> it = map.entrySetIterator();
     return new Iterator<Cache.Entry<K, ValueHolder<V>>>() {
       private Map.Entry<K, OnHeapValueHolder<V>> next = null;
       
@@ -495,10 +504,12 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     return result;
   }
 
+  @Override
   public void enableStoreEventNotifications(StoreEventListener<K, V> listener) {
     this.eventListener = listener;
   }
   
+  @Override
   public void disableStoreEventNotifications() {
     this.eventListener = CacheEvents.nullStoreEventListener();
   }
@@ -689,5 +700,146 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         return mappedValue.hitRate(unit);
       }
     };
+  }
+  
+  // The idea of this wrapper is to let all the other code deal in terms of <K> and hide
+  // the potentially different key type of the underlying CHM 
+  private static class MapWrapper<K, V> {
+    private final ConcurrentHashMap<K, OnHeapValueHolder<V>> map;
+    private final ConcurrentHashMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap;
+    private final Serializer<K> keySerializer;
+  
+    MapWrapper(Serializer<K> keySerializer) {
+      this.keySerializer = keySerializer;
+      
+      if (keySerializer == null) {
+        map = new ConcurrentHashMap<K, OnHeapValueHolder<V>>();
+        keyCopyMap = null;
+      } else {
+        keyCopyMap = new ConcurrentHashMap<OnHeapKey<K>, OnHeapValueHolder<V>>();
+        map = null;
+      }
+    }
+    
+    boolean remove(K key, OnHeapValueHolder<V> value) {
+      if (keySerializer == null) {
+        return map.remove(key, value);
+      }
+    
+      return keyCopyMap.remove(lookupOnlyKey(key), value);
+    }
+
+    Set<Entry<K, OnHeapValueHolder<V>>> getRandomValues(Random random, int size,
+         final Predicate<Entry<K, OnHeapValueHolder<V>>> veto) {
+       if (keySerializer == null) {
+         return map.getRandomValues(random, size, veto);
+       }
+       
+       
+       Set<Entry<OnHeapKey<K>, OnHeapValueHolder<V>>> values = keyCopyMap.getRandomValues(random, size, new Predicate<Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>>>() {
+         @Override
+         public boolean test(Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry) {
+           return veto.test(new SimpleEntry<K, OnHeapValueHolder<V>>(entry.getKey().getActualKeyObject(), entry.getValue()));
+         }
+       });
+        
+       Set<Entry<K, OnHeapValueHolder<V>>> rv = new LinkedHashSet<Map.Entry<K,OnHeapValueHolder<V>>>(values.size());
+       for (Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry : values) {
+         rv.add(new SimpleEntry<K, OnHeapValueHolder<V>>(entry.getKey().getActualKeyObject(), entry.getValue()));
+       }
+       return rv; 
+    }
+
+    int size() {
+      if (keySerializer == null) {
+        return map.size();
+      } else {
+        return keyCopyMap.size();
+      }
+    }
+
+    java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>> entrySetIterator() {
+      if (keySerializer == null) {
+        return map.entrySet().iterator();
+      }
+      
+      final java.util.Iterator<Entry<OnHeapKey<K>, OnHeapValueHolder<V>>> iter = keyCopyMap.entrySet().iterator();
+      return new java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>>() {
+        @Override
+        public boolean hasNext() {
+          return iter.hasNext();
+        }
+
+        @Override
+        public Entry<K, OnHeapValueHolder<V>> next() {
+          Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry = iter.next();
+          return new SimpleEntry<K, OnHeapValueHolder<V>>(entry.getKey().getActualKeyObject(), entry.getValue());
+        }
+
+        @Override
+        public void remove() {
+          iter.remove();
+        }
+      };
+    }
+
+    OnHeapValueHolder<V> compute(final K key, final BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> computeFunction) {
+      if (keySerializer == null) {
+        return map.compute(key, computeFunction);
+      }
+      
+      return keyCopyMap.compute(makeKey(key), new BiFunction<OnHeapKey<K>, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+        @Override
+        public OnHeapValueHolder<V> apply(OnHeapKey<K> mappedKey, OnHeapValueHolder<V> mappedValue) {
+          return computeFunction.apply(key, mappedValue);
+        }
+      });
+    }
+
+    void clear() {
+      if (keySerializer == null) {
+        map.clear();
+      } else {
+        keyCopyMap.clear();
+      }
+    }
+
+    OnHeapValueHolder<V> put(K key, OnHeapValueHolder<V> value) {
+      if (keySerializer == null) {
+        return map.put(key, value);
+      } else {
+        return keyCopyMap.put(makeKey(key), value);
+      }
+    }
+
+    OnHeapValueHolder<V> remove(K key) {
+      if (keySerializer == null) {
+        return map.remove(key);
+      } else {
+        return keyCopyMap.remove(lookupOnlyKey(key));
+      }
+    }
+
+    OnHeapValueHolder<V> computeIfPresent(final K key, final BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> computeFunction) {
+      if (keySerializer == null) {
+        return map.computeIfPresent(key, computeFunction);
+      }
+      
+      return keyCopyMap.computeIfPresent(lookupOnlyKey(key), new BiFunction<OnHeapKey<K>, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+        @Override
+        public OnHeapValueHolder<V> apply(OnHeapKey<K> mappedKey, OnHeapValueHolder<V> mappedValue) {
+          return computeFunction.apply(key, mappedValue);
+        }
+      });
+    }
+    
+    private OnHeapKey<K> makeKey(K key) {
+      return new SerializedOnHeapKey<K>(key, keySerializer);
+    }
+
+    private OnHeapKey<K> lookupOnlyKey(K key) {
+      return new LookupOnlyOnHeapKey<K>(key);
+    }
+    
   }
 }
