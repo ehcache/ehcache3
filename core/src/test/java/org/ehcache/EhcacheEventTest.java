@@ -84,7 +84,7 @@ public class EhcacheEventTest {
 
     cache = new Ehcache<Number, String>(
         newCacheConfigurationBuilder().buildConfig(Number.class, String.class), store, null, writer, eventNotifier,
-        StatisticsThreadPoolUtil.getDefaultStatisticsExecutorService());
+        null);
     cache.init();
   }
   

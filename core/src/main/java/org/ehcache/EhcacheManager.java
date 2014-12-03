@@ -31,9 +31,9 @@ import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.serialization.SerializationProvider;
+import org.ehcache.spi.service.StatisticsExecutorService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
-import org.ehcache.util.StatisticsThreadPoolUtil;
 import org.ehcache.spi.writer.CacheWriter;
 import org.ehcache.spi.writer.CacheWriterFactory;
 
@@ -66,8 +66,6 @@ public class EhcacheManager implements PersistentCacheManager {
 
   private final CopyOnWriteArrayList<CacheManagerListener> listeners = new CopyOnWriteArrayList<CacheManagerListener>();
 
-  private final ScheduledExecutorService statisticsExecutor;
-
   public EhcacheManager(Configuration config) {
     this(config, new ServiceLocator());
   }
@@ -76,7 +74,6 @@ public class EhcacheManager implements PersistentCacheManager {
     this.serviceLocator = serviceLocator;
     this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
     this.configuration = config;
-    this.statisticsExecutor = StatisticsThreadPoolUtil.createStatisticsExcutor();
   }
 
   public <K, V> Cache<K, V> getCache(String alias, Class<K> keyType, Class<V> valueType) {
@@ -202,7 +199,14 @@ public class EhcacheManager implements PersistentCacheManager {
             lsnrConfig.fireOn());  
       }
     }
-    
+    final ScheduledExecutorService statisticsExecutor;
+    final StatisticsExecutorService statisticsExecutorService = serviceLocator.findService(StatisticsExecutorService.class);
+    if (statisticsExecutorService != null) {
+      statisticsExecutor = statisticsExecutorService.getStatisticsExecutor();
+    } else {
+      statisticsExecutor = null;
+    }
+
     CacheConfiguration<K, V> adjustedConfig = new BaseCacheConfiguration<K, V>(
         keyType, valueType, config.getCapacityConstraint(),
         config.getEvictionVeto(), config.getEvictionPrioritizer(), cacheClassLoader, config.getExpiry(), serializationProvider,

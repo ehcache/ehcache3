@@ -28,9 +28,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class StatisticsThreadPoolUtil {
   private static final String ORG_EHCACHE_STATISTICS_EXECUTOR_POOL_SIZE = "org.ehcache.statisticsExecutor.poolSize";
 
-  public static ScheduledExecutorService createStatisticsExcutor() {
+  public static ScheduledExecutorService createStatisticsExecutor() {
     return Executors.newScheduledThreadPool(
-        Integer.getInteger(ORG_EHCACHE_STATISTICS_EXECUTOR_POOL_SIZE, 1), new ThreadFactory() {
+        Integer.getInteger(ORG_EHCACHE_STATISTICS_EXECUTOR_POOL_SIZE, 0), new ThreadFactory() {
           private AtomicInteger cnt = new AtomicInteger(0);
 
           @Override
@@ -42,11 +42,4 @@ public class StatisticsThreadPoolUtil {
         });
   }
 
-  public static ScheduledExecutorService getDefaultStatisticsExecutorService() {
-    return ScheduledExecutorServiceHolder.DEFAULT_STATISTICS_THREAD_POOL;
-  }
-
-  static class ScheduledExecutorServiceHolder {
-    private static final ScheduledExecutorService DEFAULT_STATISTICS_THREAD_POOL = createStatisticsExcutor();
-  }
 }
