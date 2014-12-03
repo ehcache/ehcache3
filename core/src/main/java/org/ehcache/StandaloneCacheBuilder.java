@@ -24,17 +24,15 @@ import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.StandaloneCacheConfiguration;
-import org.ehcache.function.Predicate;
-import org.ehcache.spi.ServiceLocator;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.serialization.SerializationProvider;
-import org.ehcache.spi.service.ExecutorFactoryService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
-import org.ehcache.util.StatisticsThreadPoolUtil;
 import org.ehcache.spi.writer.CacheWriter;
 
 /**
@@ -53,6 +51,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   private CacheWriter<? super K, ? super V> cacheWriter;
   private SerializationProvider serializationProvider;
   private ScheduledExecutorService statisticsExecutor;
+  private CacheEventNotificationService<K, V> cacheEventNotificationService;
 
   public StandaloneCacheBuilder(final Class<K> keyType, final Class<V> valueType) {
     this.keyType = keyType;
@@ -64,13 +63,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     if (serializationProvider == null) {
       this.serializationProvider = serviceLocator.findService(SerializationProvider.class);
     }
-    ExecutorFactoryService executorService = serviceLocator.findService(ExecutorFactoryService.class);
-    if (executorService != null && executorService.getStatisticsExecutor() != null) {
-      statisticsExecutor = executorService.getStatisticsExecutor();
-    } else {
-      statisticsExecutor = StatisticsThreadPoolUtil.getDefaultStatisticsExecutorService();
-    }
-    
+
     final StoreConfigurationImpl<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType,
         capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, expiry, serializationProvider);
     final Store<K, V> store = storeProvider.createStore(storeConfig);
@@ -78,7 +71,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto,
         evictionPrioritizer, classLoader, expiry, serializationProvider, new ServiceConfiguration<?>[]{});
     
-    final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoader, cacheWriter, statisticsExecutor);
+    final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoader, cacheWriter, cacheEventNotificationService, statisticsExecutor);
 
     return (T) ehcache;
   }
@@ -135,6 +128,16 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
 
   public final StandaloneCacheBuilder<K, V, T> withSerializationProvider(SerializationProvider serializationProvider) {
     this.serializationProvider = serializationProvider;
+    return this;
+  }
+
+  public final StandaloneCacheBuilder<K, V, T> withStatisticsExecutor(ScheduledExecutorService statisticsExecutor) {
+    this.statisticsExecutor = statisticsExecutor;
+    return this;
+  }
+
+  public final StandaloneCacheBuilder<K, V, T> withCacheEvents(CacheEventNotificationService cacheEventNotificationService) {
+    this.cacheEventNotificationService = cacheEventNotificationService;
     return this;
   }
 

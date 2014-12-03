@@ -16,12 +16,18 @@
 
 package org.ehcache.spi.service;
 
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
 /**
- * @author Hung Huynh
- *
+ * @author Ludovic Orban
  */
-public interface ExecutorFactoryService extends Service {
-  ScheduledExecutorService getStatisticsExecutor();  
+public interface ThreadPoolsService extends Service {
+
+  ScheduledExecutorService getStatisticsExecutor();
+
+  ExecutorService getEventsOrderedDeliveryExecutor();
+
+  ExecutorService getEventsUnorderedDeliveryExecutor();
+
 }

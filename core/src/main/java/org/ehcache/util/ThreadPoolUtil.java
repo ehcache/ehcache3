@@ -16,6 +16,7 @@
 
 package org.ehcache.util;
 
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -25,12 +26,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Hung Huynh
  *
  */
-public class StatisticsThreadPoolUtil {
+public class ThreadPoolUtil {
   private static final String ORG_EHCACHE_STATISTICS_EXECUTOR_POOL_SIZE = "org.ehcache.statisticsExecutor.poolSize";
 
-  public static ScheduledExecutorService createStatisticsExcutor() {
+  public static ScheduledExecutorService createStatisticsExecutor() {
     return Executors.newScheduledThreadPool(
-        Integer.getInteger(ORG_EHCACHE_STATISTICS_EXECUTOR_POOL_SIZE, 1), new ThreadFactory() {
+        Integer.getInteger(ORG_EHCACHE_STATISTICS_EXECUTOR_POOL_SIZE, 0), new ThreadFactory() {
           private AtomicInteger cnt = new AtomicInteger(0);
 
           @Override
@@ -42,11 +43,31 @@ public class StatisticsThreadPoolUtil {
         });
   }
 
-  public static ScheduledExecutorService getDefaultStatisticsExecutorService() {
-    return ScheduledExecutorServiceHolder.DEFAULT_STATISTICS_THREAD_POOL;
+  public static ExecutorService createEventsOrderedDeliveryExecutor() {
+    return Executors.newSingleThreadExecutor(new ThreadFactory() {
+      private AtomicInteger cnt = new AtomicInteger(0);
+
+      @Override
+      public Thread newThread(Runnable r) {
+        Thread t = new Thread(r, "Ordered Events Thread-" + cnt.incrementAndGet());
+        t.setDaemon(true);
+        // XXX perhaps set uncaught exception handler here according to resilience strategy
+        return t;
+      }
+    });
   }
 
-  static class ScheduledExecutorServiceHolder {
-    private static final ScheduledExecutorService DEFAULT_STATISTICS_THREAD_POOL = createStatisticsExcutor();
+  public static ExecutorService createEventsUnorderedDeliveryExecutor() {
+    return Executors.newCachedThreadPool(new ThreadFactory() {
+      private AtomicInteger cnt = new AtomicInteger(0);
+
+      @Override
+      public Thread newThread(Runnable r) {
+        Thread t = new Thread(r, "Unordered Events Thread-" + cnt.incrementAndGet());
+        t.setDaemon(true);
+        // XXX perhaps set uncaught exception handler here according to resilience strategy
+        return t;
+      }
+    });
   }
 }

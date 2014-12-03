@@ -22,6 +22,7 @@ import org.ehcache.event.CacheEventListenerFactory;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
@@ -51,15 +52,26 @@ import static org.junit.Assert.assertThat;
  *
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
-public class CacheEventNotificationServiceTest {
-  private final CacheEventNotificationService<Number, String> eventService = new CacheEventNotificationService<Number, String>(); 
+public class CacheEventNotificationServiceImplTest {
+  private CacheEventNotificationServiceImpl<Number, String> eventService;
   private CacheEventListener<Number, String> listener;
-  
+  private ExecutorService orderedExecutor;
+  private ExecutorService unorderedExecutor;
+
   @Before
   public void setUp() {
+    orderedExecutor = Executors.newSingleThreadExecutor();
+    unorderedExecutor = Executors.newCachedThreadPool();
+    eventService = new CacheEventNotificationServiceImpl<Number, String>(orderedExecutor, unorderedExecutor);
     listener = mock(CacheEventListener.class);
   }
-  
+
+  @After
+  public void tearDown() throws Exception {
+    orderedExecutor.shutdownNow();
+    unorderedExecutor.shutdownNow();
+  }
+
   @Test
   public void testOrderedEventDelivery() {
     EnumSet<EventType> events = EnumSet.of(EventType.CREATED, EventType.UPDATED, EventType.REMOVED);

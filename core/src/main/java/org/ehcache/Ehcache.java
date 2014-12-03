@@ -27,9 +27,15 @@ import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.CacheEvents;
+import org.ehcache.events.DisabledCacheEventNotificationService;
 import org.ehcache.events.StateChangeListener;
 import org.ehcache.events.StoreEventListener;
-import org.ehcache.exceptions.*;
+import org.ehcache.exceptions.BulkCacheLoaderException;
+import org.ehcache.exceptions.BulkCacheWriterException;
+import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CacheLoaderException;
+import org.ehcache.exceptions.CacheWriterException;
+import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
@@ -42,17 +48,17 @@ import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriter;
+import org.ehcache.statistics.CacheOperationOutcomes.CacheLoaderOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.GetOutcome;
-import org.ehcache.statistics.CacheOperationOutcomes.PutOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.PutOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.ehcache.statistics.CacheStatistics;
-import org.terracotta.statistics.observer.OperationObserver;
-import org.ehcache.statistics.CacheOperationOutcomes.CacheLoaderOutcome;
+import org.ehcache.statistics.DisabledStatistics;
 import org.ehcache.statistics.StatisticsGateway;
-import org.ehcache.util.StatisticsThreadPoolUtil;
 import org.terracotta.context.annotations.ContextChild;
+import org.terracotta.statistics.observer.OperationObserver;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -104,23 +110,23 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   private final OperationObserver<ReplaceOutcome> replaceObserver = operation(ReplaceOutcome.class).named("replace").of(this).tag("cache").build();  
   private final ConcurrentMap<String, AtomicLong> bulkMethodEntries = new ConcurrentHashMap<String, AtomicLong>();
   
-  private final StatisticsGateway statisticsGateway;
-  
+  private final CacheStatistics cacheStatistics;
+
   public Ehcache(CacheConfiguration<K, V> config, final Store<K, V> store) {
     this(config, store, null);
   }
 
   public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader) {
-    this(config, store, cacheLoader, null, StatisticsThreadPoolUtil.getDefaultStatisticsExecutorService());
-  }
-  
-  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader, CacheWriter<? super K, ? super V> cacheWriter) {
-    this(config, store, cacheLoader, cacheWriter, StatisticsThreadPoolUtil.getDefaultStatisticsExecutorService());
+    this(config, store, cacheLoader, null, null);
   }
 
-  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader, CacheWriter<? super K, ? super V> cacheWriter, 
+  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader, CacheWriter<? super K, ? super V> cacheWriter) {
+    this(config, store, cacheLoader, cacheWriter, null);
+  }
+
+  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader, CacheWriter<? super K, ? super V> cacheWriter,
       ScheduledExecutorService statisticsExecutor) {
-    this(config, store, cacheLoader, cacheWriter, new CacheEventNotificationService<K, V>(), statisticsExecutor);
+    this(config, store, cacheLoader, cacheWriter, null, statisticsExecutor);
   }
 
   public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, 
@@ -131,14 +137,22 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     this.store = store;
     this.cacheLoader = cacheLoader;
     this.cacheWriter = cacheWriter;
-    this.statisticsGateway = new StatisticsGateway(this, statisticsExecutor, bulkMethodEntries);
+    if (statisticsExecutor != null) {
+      this.cacheStatistics = new StatisticsGateway(this, statisticsExecutor, bulkMethodEntries);
+    } else {
+      this.cacheStatistics = new DisabledStatistics();
+    }
     if (store instanceof RecoveryCache) {
       this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>((RecoveryCache) store);
     } else {
       this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>(recoveryCache(store));
     }
-    
-    this.eventNotificationService = eventNotifier;
+
+    if (eventNotifier != null) {
+      this.eventNotificationService = eventNotifier;
+    } else {
+      this.eventNotificationService = new DisabledCacheEventNotificationService<K, V>();
+    }
     this.runtimeConfiguration = new RuntimeConfiguration(config);
     this.storeListener = new StoreListener();
   }
@@ -912,7 +926,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   
   @Override
   public CacheStatistics getStatistics() {
-    return statisticsGateway;
+    return cacheStatistics;
   }
 
   CacheWriter<? super K, ? super V> getCacheWriter() {

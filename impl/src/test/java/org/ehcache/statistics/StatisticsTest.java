@@ -21,23 +21,36 @@ import static org.junit.Assert.assertThat;
 
 import org.ehcache.StandaloneCache;
 import org.ehcache.StandaloneCacheBuilder;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * @author Hung Huynh
  *
  */
 public class StatisticsTest {
+  private ScheduledExecutorService        scheduledExecutorService;
   private StandaloneCache<Number, String> cache;
   private long                            capacity = 10;
 
   @Before
   public void setup() throws Exception {
+    scheduledExecutorService = Executors.newScheduledThreadPool(0);
+
     cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class)
+        .withStatisticsExecutor(scheduledExecutorService)
         .withCapacity(capacity).build();
     cache.init();
+  }
+
+  @After
+  public void tearDown() throws Exception {
+    scheduledExecutorService.shutdownNow();
   }
 
   @Test
