@@ -16,8 +16,8 @@
 
 package org.ehcache.spi.writer;
 
+import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * A CacheWriter is associated with a given {@link org.ehcache.Cache} instance and will be used to maintain it in sync
@@ -45,15 +45,18 @@ public interface CacheWriter<K, V> {
   void write(K key, V value) throws Exception;
 
   /**
-   * Writes multiple entries to the underlying system of record. These can either be new entries or updates to
-   * existing ones.
-   *
-   * @param entries the key to value mappings
-   * @return the set of values actually inserted or updated
-   *
-   * @see org.ehcache.Cache#putAll(Iterable)
-   */
-  Set<K> writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws Exception;
+  * Writes multiple entries to the underlying system of record. These can either be new entries or updates to
+  * existing ones.
+  * <p/>
+  * If this operation fails (by throwing an exception) after a partial success,
+  * the writer must remove any successfully written entries from the entries
+  * collection
+  *
+  * @param entries the key to value mappings
+  *
+  * @see org.ehcache.Cache#putAll(Iterable)
+  */
+  void writeAll(Collection<? extends Map.Entry<? extends K, ? extends V>> entries) throws Exception;
 
   /**
    * Deletes a single entry from the underlying system of record.
@@ -66,13 +69,16 @@ public interface CacheWriter<K, V> {
   boolean delete(K key) throws Exception;
 
   /**
-   * Deletes a set of entry from the underlying system of record.
-   *
-   * @param keys the keys to delete
-   * @return the set of keys that were effectively deleted from the system of record
-   *
-   * @see org.ehcache.Cache#removeAll(Iterable)
-   */
-  Set<K> deleteAll(Iterable<? extends K> keys) throws Exception;
+  * Deletes a collection of keys from the underlying system of record.
+  * <p/>
+  * If this operation fails (by throwing an exception) after a partial success,
+  * the writer must remove any successfully deleted keys from the keys
+  * collection
+  *
+  * @param keys the keys to delete
+  *
+  * @see org.ehcache.Cache#removeAll(Iterable)
+  */
+  void deleteAll(Collection<? extends K> keys) throws Exception;
 
 }

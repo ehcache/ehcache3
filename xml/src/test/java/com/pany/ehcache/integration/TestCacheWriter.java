@@ -18,8 +18,8 @@ package com.pany.ehcache.integration;
 
 import org.ehcache.spi.writer.CacheWriter;
 
+import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * @author Alex Snaps
@@ -34,7 +34,7 @@ public class TestCacheWriter implements CacheWriter<Number, String> {
   }
 
   @Override
-  public Set<Number> writeAll(final Iterable<? extends Map.Entry<? extends Number, ? extends String>> entries) throws Exception {
+  public void writeAll(final Collection<? extends Map.Entry<? extends Number, ? extends String>> entries) throws Exception {
     throw new UnsupportedOperationException("Implement me!");
   }
 
@@ -44,7 +44,7 @@ public class TestCacheWriter implements CacheWriter<Number, String> {
   }
 
   @Override
-  public Set<Number> deleteAll(final Iterable<? extends Number> keys) throws Exception {
+  public void deleteAll(final Collection<? extends Number> keys) throws Exception {
     throw new UnsupportedOperationException("Implement me!");
   }
 }
