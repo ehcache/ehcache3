@@ -19,23 +19,26 @@ package org.ehcache;
 import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerFactory;
 import org.ehcache.events.CacheEventNotificationService;
+import org.ehcache.events.CacheEventNotificationServiceImpl;
 import org.ehcache.events.CacheManagerListener;
+import org.ehcache.events.DisabledCacheEventNotificationService;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.loader.CacheLoaderFactory;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.serialization.SerializationProvider;
-import org.ehcache.spi.service.StatisticsExecutorService;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.util.ClassLoading;
+import org.ehcache.spi.service.ThreadPoolsService;
 import org.ehcache.spi.writer.CacheWriter;
 import org.ehcache.spi.writer.CacheWriterFactory;
+import org.ehcache.util.ClassLoading;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -47,8 +50,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
-
-import org.ehcache.config.StoreConfigurationImpl;
 
 
 /**
@@ -184,10 +185,22 @@ public class EhcacheManager implements PersistentCacheManager {
     }
 
     ServiceConfiguration[] serviceConfigs = config.getServiceConfigurations().toArray(new ServiceConfiguration[config.getServiceConfigurations().size()]);
-    
+
     // XXX this may need to become an actual "service" with its own service configuration etc
-    CacheEventNotificationService<K, V> evtService = new CacheEventNotificationService<K, V>();
-    
+    CacheEventNotificationService<K, V> evtService;
+
+    final ScheduledExecutorService statisticsExecutor;
+    final ThreadPoolsService threadPoolsService = serviceLocator.findService(ThreadPoolsService.class);
+    if (threadPoolsService != null) {
+      statisticsExecutor = threadPoolsService.getStatisticsExecutor();
+      evtService = new CacheEventNotificationServiceImpl<K, V>(threadPoolsService.getEventsOrderedDeliveryExecutor(),
+          threadPoolsService.getEventsUnorderedDeliveryExecutor());
+    } else {
+      statisticsExecutor = null;
+      evtService = new DisabledCacheEventNotificationService<K, V>();
+    }
+
+
     final CacheEventListenerFactory evntLsnrFactory = serviceLocator.findService(CacheEventListenerFactory.class);
     if (evntLsnrFactory != null) {
       Collection<CacheEventListenerConfiguration> evtLsnrConfigs = 
@@ -198,13 +211,6 @@ public class EhcacheManager implements PersistentCacheManager {
         evtService.registerCacheEventListener(lsnr, lsnrConfig.orderingMode(), lsnrConfig.firingMode(), 
             lsnrConfig.fireOn());  
       }
-    }
-    final ScheduledExecutorService statisticsExecutor;
-    final StatisticsExecutorService statisticsExecutorService = serviceLocator.findService(StatisticsExecutorService.class);
-    if (statisticsExecutorService != null) {
-      statisticsExecutor = statisticsExecutorService.getStatisticsExecutor();
-    } else {
-      statisticsExecutor = null;
     }
 
     CacheConfiguration<K, V> adjustedConfig = new BaseCacheConfiguration<K, V>(

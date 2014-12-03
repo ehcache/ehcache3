@@ -16,18 +16,21 @@
 
 package org.ehcache.internal.executor;
 
-import org.ehcache.spi.service.StatisticsExecutorService;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.util.StatisticsThreadPoolUtil;
+import org.ehcache.spi.service.ThreadPoolsService;
+import org.ehcache.util.ThreadPoolUtil;
 
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * @author Ludovic Orban
  */
-public class DefaultStatisticsExecutorService implements StatisticsExecutorService {
+public class DefaultThreadPoolsService implements ThreadPoolsService {
 
   private ScheduledExecutorService statisticsExecutor;
+  private ExecutorService eventsOrderedDeliveryExecutor;
+  private ExecutorService eventsUnorderedDeliveryExecutor;
 
   @Override
   public ScheduledExecutorService getStatisticsExecutor() {
@@ -38,12 +41,33 @@ public class DefaultStatisticsExecutorService implements StatisticsExecutorServi
   }
 
   @Override
+  public ExecutorService getEventsOrderedDeliveryExecutor() {
+    if (eventsOrderedDeliveryExecutor == null) {
+      throw new IllegalStateException(getClass().getSimpleName() + " not started");
+    }
+    return eventsOrderedDeliveryExecutor;
+  }
+
+  @Override
+  public ExecutorService getEventsUnorderedDeliveryExecutor() {
+    if (eventsUnorderedDeliveryExecutor == null) {
+      throw new IllegalStateException(getClass().getSimpleName() + " not started");
+    }
+    return eventsUnorderedDeliveryExecutor;
+  }
+
+  @Override
   public void start(ServiceConfiguration<?> config) {
-    this.statisticsExecutor = StatisticsThreadPoolUtil.createStatisticsExecutor();
+    this.statisticsExecutor = ThreadPoolUtil.createStatisticsExecutor();
+    this.eventsOrderedDeliveryExecutor = ThreadPoolUtil.createEventsOrderedDeliveryExecutor();
+    this.eventsUnorderedDeliveryExecutor = ThreadPoolUtil.createEventsUnorderedDeliveryExecutor();
+
   }
 
   @Override
   public void stop() {
     statisticsExecutor.shutdownNow();
+    eventsOrderedDeliveryExecutor.shutdownNow();
+    eventsUnorderedDeliveryExecutor.shutdownNow();
   }
 }

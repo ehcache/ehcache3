@@ -49,7 +49,6 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.writer.CacheWriter;
-import org.ehcache.util.StatisticsThreadPoolUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;

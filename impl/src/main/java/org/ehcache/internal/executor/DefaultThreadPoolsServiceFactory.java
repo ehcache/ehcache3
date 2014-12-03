@@ -17,22 +17,22 @@
 package org.ehcache.internal.executor;
 
 import org.ehcache.spi.ServiceLocator;
-import org.ehcache.spi.service.StatisticsExecutorService;
-import org.ehcache.spi.service.StatisticsExecutorServiceFactory;
+import org.ehcache.spi.service.ThreadPoolsService;
+import org.ehcache.spi.service.ThreadPoolsServiceFactory;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author Ludovic Orban
  */
-public class DefaultStatisticsExecutorServiceFactory implements StatisticsExecutorServiceFactory {
+public class DefaultThreadPoolsServiceFactory implements ThreadPoolsServiceFactory {
 
   @Override
-  public StatisticsExecutorService create(ServiceConfiguration<StatisticsExecutorService> serviceConfiguration, ServiceLocator serviceLocator) {
-    return new DefaultStatisticsExecutorService();
+  public ThreadPoolsService create(ServiceConfiguration<ThreadPoolsService> serviceConfiguration, ServiceLocator serviceLocator) {
+    return new DefaultThreadPoolsService();
   }
 
   @Override
-  public Class<StatisticsExecutorService> getServiceType() {
-    return StatisticsExecutorService.class;
+  public Class<ThreadPoolsService> getServiceType() {
+    return ThreadPoolsService.class;
   }
 }

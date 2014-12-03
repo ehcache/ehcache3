@@ -28,15 +28,27 @@ import java.util.EnumSet;
 /**
  * @author Ludovic Orban
  */
-public interface CacheEventNotificationService<K, V> {
+public class DisabledCacheEventNotificationService<K, V> implements CacheEventNotificationService<K, V> {
 
-  void onEvent(CacheEvent<K, V> kvCacheEvent);
+  @Override
+  public void onEvent(CacheEvent<K, V> kvCacheEvent) {
+  }
 
-  void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering, EventFiring firing, EnumSet<EventType> eventTypes);
+  @Override
+  public void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering, EventFiring firing, EnumSet<EventType> eventTypes) {
+  }
 
-  boolean hasListeners();
+  @Override
+  public boolean hasListeners() {
+    return false;
+  }
 
-  void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener);
+  @Override
+  public void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener) {
+  }
 
-  void releaseAllListeners(CacheEventListenerFactory factory);
+  @Override
+  public void releaseAllListeners(CacheEventListenerFactory factory) {
+  }
+
 }
