@@ -52,7 +52,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testClearEmpty() throws Exception {
-    final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
+    final FakeStore realStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
     final Ehcache<String, String> ehcache = this.getEhcache();
 
@@ -60,7 +60,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.cacheLoader);
     verifyZeroInteractions(this.cacheWriter);
     verifyZeroInteractions(this.spiedResilienceStrategy);
-    assertThat(realStore.getMap().isEmpty(), is(true));
+    assertThat(realStore.getEntryMap().isEmpty(), is(true));
   }
 
   /**
@@ -70,7 +70,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testClearEmptyCacheAccessException() throws Exception {
-    final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
+    final FakeStore realStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
     doThrow(new CacheAccessException("")).when(this.store).clear();
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -86,16 +86,16 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testClearNonEmpty() throws Exception {
-    final MockStore realStore = new MockStore(this.getTestStoreEntries());
+    final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
     this.store = spy(realStore);
     final Ehcache<String, String> ehcache = this.getEhcache();
-    assertThat(realStore.getMap().isEmpty(), is(false));
+    assertThat(realStore.getEntryMap().isEmpty(), is(false));
 
     ehcache.clear();
     verifyZeroInteractions(this.cacheLoader);
     verifyZeroInteractions(this.cacheWriter);
     verifyZeroInteractions(this.spiedResilienceStrategy);
-    assertThat(realStore.getMap().isEmpty(), is(true));
+    assertThat(realStore.getEntryMap().isEmpty(), is(true));
   }
 
   /**
@@ -105,11 +105,11 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testClearNonEmptyCacheAccessException() throws Exception {
-    final MockStore realStore = new MockStore(this.getTestStoreEntries());
+    final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
     this.store = spy(realStore);
     doThrow(new CacheAccessException("")).when(this.store).clear();
     final Ehcache<String, String> ehcache = this.getEhcache();
-    assertThat(realStore.getMap().isEmpty(), is(false));
+    assertThat(realStore.getEntryMap().isEmpty(), is(false));
 
     ehcache.clear();
     verifyZeroInteractions(this.cacheLoader);

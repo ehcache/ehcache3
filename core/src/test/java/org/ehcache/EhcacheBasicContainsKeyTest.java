@@ -56,14 +56,14 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testContainsKeyNull() throws Exception {
-    final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
+    final FakeStore realStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     try {
       ehcache.containsKey(null);
       fail();
-    } catch (Exception e) {
+    } catch (NullPointerException e) {
       // Expected
     }
     verifyZeroInteractions(this.cacheLoader);
@@ -76,7 +76,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testContainsKeyEmpty() throws Exception {
-    final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
+    final FakeStore realStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
     final Ehcache<String, String> ehcache = this.getEhcache();
 
@@ -93,12 +93,12 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testContainsKeyEmptyCacheAccessException() throws Exception {
-    final MockStore realStore = new MockStore(Collections.<String, String>emptyMap());
+    final FakeStore realStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
     doThrow(new CacheAccessException("")).when(this.store).containsKey("key");
     final Ehcache<String, String> ehcache = this.getEhcache();
 
-    assertFalse(ehcache.containsKey("key"));
+    ehcache.containsKey("key");
     verifyZeroInteractions(this.cacheLoader);
     verifyZeroInteractions(this.cacheWriter);
     verify(this.spiedResilienceStrategy).containsKeyFailure(eq("key"), any(CacheAccessException.class));
@@ -110,7 +110,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testContainsKeyContains() throws Exception {
-    final MockStore realStore = new MockStore(this.getTestStoreEntries());
+    final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
     this.store = spy(realStore);
     final Ehcache<String, String> ehcache = this.getEhcache();
 
@@ -127,12 +127,12 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testContainsKeyContainsCacheAccessException() throws Exception {
-    final MockStore realStore = new MockStore(this.getTestStoreEntries());
+    final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
     this.store = spy(realStore);
     doThrow(new CacheAccessException("")).when(this.store).containsKey("keyA");
     final Ehcache<String, String> ehcache = this.getEhcache();
 
-    assertFalse(ehcache.containsKey("keyA"));
+    ehcache.containsKey("keyA");
     verifyZeroInteractions(this.cacheLoader);
     verifyZeroInteractions(this.cacheWriter);
     verify(this.spiedResilienceStrategy).containsKeyFailure(eq("keyA"), any(CacheAccessException.class));
@@ -144,7 +144,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testContainsKeyMissing() throws Exception {
-    final MockStore realStore = new MockStore(this.getTestStoreEntries());
+    final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
     this.store = spy(realStore);
     final Ehcache<String, String> ehcache = this.getEhcache();
 
@@ -161,12 +161,12 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testContainsKeyMissingCacheAccessException() throws Exception {
-    final MockStore realStore = new MockStore(this.getTestStoreEntries());
+    final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
     this.store = spy(realStore);
     doThrow(new CacheAccessException("")).when(this.store).containsKey("missingKey");
     final Ehcache<String, String> ehcache = this.getEhcache();
 
-    assertFalse(ehcache.containsKey("missingKey"));
+    ehcache.containsKey("missingKey");
     verifyZeroInteractions(this.cacheLoader);
     verifyZeroInteractions(this.cacheWriter);
     verify(this.spiedResilienceStrategy).containsKeyFailure(eq("missingKey"), any(CacheAccessException.class));

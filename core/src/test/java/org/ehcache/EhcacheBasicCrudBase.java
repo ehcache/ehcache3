@@ -213,16 +213,16 @@ public abstract class EhcacheBasicCrudBase {
    * should be sufficient for {@code Ehcache} implementation testing.
    */
   // TODO: Use a validated Store implementation.
-  protected static class MockStore implements Store<String, String> {
+  protected static class FakeStore implements Store<String, String> {
 
     private final Map<String, ValueHolder<String>> entries;
 
-    public MockStore(final Map<String, String> entries) {
+    public FakeStore(final Map<String, String> entries) {
       // Use of ConcurrentHashMap is required to avoid ConcurrentModificationExceptions using Iterator.remove
       this.entries = new ConcurrentHashMap<String, ValueHolder<String>>();
       if (entries != null) {
         for (final Map.Entry<String, String> entry : entries.entrySet()) {
-          this.entries.put(entry.getKey(), new MockValueHolder(entry.getValue()));
+          this.entries.put(entry.getKey(), new FakeValueHolder(entry.getValue()));
         }
       }
     }
@@ -232,7 +232,7 @@ public abstract class EhcacheBasicCrudBase {
      *
      * @return a new, unmodifiable map of the entries in this {@code Store}.
      */
-    protected Map<String, String> getMap() {
+    protected Map<String, String> getEntryMap() {
       final Map<String, String> result = new HashMap<String, String>();
       for (final Map.Entry<String, ValueHolder<String>> entry : this.entries.entrySet()) {
         result.put(entry.getKey(), entry.getValue().value());
@@ -252,14 +252,14 @@ public abstract class EhcacheBasicCrudBase {
 
     @Override
     public void put(final String key, final String value) throws CacheAccessException {
-      this.entries.put(key, new MockValueHolder(value));
+      this.entries.put(key, new FakeValueHolder(value));
     }
 
     @Override
     public ValueHolder<String> putIfAbsent(final String key, final String value) throws CacheAccessException {
       final ValueHolder<String> currentValue = this.entries.get(key);
       if (currentValue == null) {
-        this.entries.put(key, new MockValueHolder(value));
+        this.entries.put(key, new FakeValueHolder(value));
         return null;
       }
       return currentValue;
@@ -284,7 +284,7 @@ public abstract class EhcacheBasicCrudBase {
     public ValueHolder<String> replace(final String key, final String value) throws CacheAccessException {
       final ValueHolder<String> currentValue = this.entries.get(key);
       if (currentValue != null) {
-        this.entries.put(key, new MockValueHolder(value));
+        this.entries.put(key, new FakeValueHolder(value));
       }
       return currentValue;
     }
@@ -293,7 +293,7 @@ public abstract class EhcacheBasicCrudBase {
     public boolean replace(final String key, final String oldValue, final String newValue) throws CacheAccessException {
       final ValueHolder<String> currentValue = this.entries.get(key);
       if (currentValue != null && currentValue.value().equals(oldValue)) {
-        this.entries.put(key, new MockValueHolder(newValue));
+        this.entries.put(key, new FakeValueHolder(newValue));
         return true;
       }
       return false;
@@ -340,7 +340,7 @@ public abstract class EhcacheBasicCrudBase {
      * {@inheritDoc}
      * <p/>
      * The {@code Iterator} returned by this method <b>does not</b> have a {@code remove}
-     * method.  The {@code Iterator} returned by {@code MockStore.this.entries.entrySet().iterator()}
+     * method.  The {@code Iterator} returned by {@code FakeStore.this.entries.entrySet().iterator()}
      * must not throw {@link java.util.ConcurrentModificationException ConcurrentModification}.
      */
     @Override
@@ -349,7 +349,7 @@ public abstract class EhcacheBasicCrudBase {
       return new Iterator<Cache.Entry<String, ValueHolder<String>>>() {
 
         final java.util.Iterator<Map.Entry<String, ValueHolder<String>>> iterator =
-            MockStore.this.entries.entrySet().iterator();
+            FakeStore.this.entries.entrySet().iterator();
 
         @Override
         public boolean hasNext() throws CacheAccessException {
@@ -400,7 +400,7 @@ public abstract class EhcacheBasicCrudBase {
         this.entries.remove(key);
         return null;
       }
-      final MockValueHolder newValueHolder = new MockValueHolder(newValue);
+      final FakeValueHolder newValueHolder = new FakeValueHolder(newValue);
       this.entries.put(key, newValueHolder);
       return newValueHolder;
     }
@@ -412,7 +412,7 @@ public abstract class EhcacheBasicCrudBase {
       if (currentValue == null) {
         final String newValue = mappingFunction.apply(key);
         if (newValue != null) {
-          final MockValueHolder newValueHolder = new MockValueHolder(newValue);
+          final FakeValueHolder newValueHolder = new FakeValueHolder(newValue);
           this.entries.put(key, newValueHolder);
           currentValue = newValueHolder;
         }
@@ -427,7 +427,7 @@ public abstract class EhcacheBasicCrudBase {
       if (currentValue != null) {
         final String newValue = remappingFunction.apply(key, currentValue.value());
         if (newValue != null) {
-          final MockValueHolder newValueHolder = new MockValueHolder(newValue);
+          final FakeValueHolder newValueHolder = new FakeValueHolder(newValue);
           this.entries.put(key, newValueHolder);
           return newValueHolder;
         } else {
@@ -451,15 +451,15 @@ public abstract class EhcacheBasicCrudBase {
 
     /**
      * A {@link org.ehcache.spi.cache.Store.ValueHolder} implementation for use within
-     * {@link EhcacheBasicCrudBase.MockStore}.
+     * {@link org.ehcache.EhcacheBasicCrudBase.FakeStore}.
      */
-    private static class MockValueHolder implements ValueHolder<String>  {
+    private static class FakeValueHolder implements ValueHolder<String>  {
 
       private final String value;
       private final long creationTime;
       private long lastAccessTime;
 
-      public MockValueHolder(final String value) {
+      public FakeValueHolder(final String value) {
         this.value = value;
         this.creationTime = System.currentTimeMillis();
       }
@@ -529,17 +529,17 @@ public abstract class EhcacheBasicCrudBase {
    * testing.  The contract implemented by this {@code CacheWriter} may not be strictly
    * conformant but should be sufficient for {@code Ehcache} implementation testing.
    */
-  protected static class MockCacheWriter implements CacheWriter<String, String> {
+  protected static class FakeCacheWriter implements CacheWriter<String, String> {
 
     private final Map<String, String> cache = new HashMap<String, String>();
 
-    public MockCacheWriter(final Map<String, String> entries) {
+    public FakeCacheWriter(final Map<String, String> entries) {
       if (entries != null) {
         this.cache.putAll(entries);
       }
     }
 
-    Map<String, String> getEntries() {
+    Map<String, String> getEntryMap() {
       return Collections.unmodifiableMap(this.cache);
     }
 
