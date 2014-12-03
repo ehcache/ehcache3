@@ -98,9 +98,10 @@ public class SimpleEhcacheTest {
     testCache.put(2, "two");
 
     Map<Number, CharSequence> all = testCache.getAll(new HashSet<Number>(Arrays.asList(1, 2, 3)));
-    assertThat(all.keySet(), containsInAnyOrder((Number)1, 2));
+    assertThat(all.keySet(), containsInAnyOrder((Number)1, 2, 3));
     assertThat(all.get(1), Matchers.<CharSequence>equalTo("one"));
     assertThat(all.get(2), Matchers.<CharSequence>equalTo("two"));
+    assertThat(all.get(3), is(nullValue()));
   }
 
   @Test

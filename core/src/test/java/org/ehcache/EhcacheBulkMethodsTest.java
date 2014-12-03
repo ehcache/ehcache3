@@ -21,6 +21,7 @@ import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.writer.CacheWriter;
+import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -33,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
@@ -119,7 +121,9 @@ public class EhcacheBulkMethodsTest {
     ehcache.init();
     Map<Number, CharSequence> result = ehcache.getAll(new HashSet<Number>(Arrays.asList(1, 2, 3)));
 
-    assertThat(result, equalTo(Collections.<Number, CharSequence>emptyMap()));
+    assertThat(result, hasEntry((Number)1, (CharSequence) null));
+    assertThat(result, hasEntry((Number)2, (CharSequence) null));
+    assertThat(result, hasEntry((Number)3, (CharSequence) null));
     verify(store).bulkComputeIfAbsent((Set<? extends Number>)argThat(hasItems(1, 2, 3)), any(Function.class));
     verify(cacheLoader).loadAll(argThat(hasItems(1, 2, 3)));
   }

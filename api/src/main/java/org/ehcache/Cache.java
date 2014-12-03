@@ -15,7 +15,6 @@
  */
 package org.ehcache;
 
-import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.exceptions.BulkCacheLoaderException;
 import org.ehcache.exceptions.CacheLoaderException;
@@ -86,7 +85,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * Retrieves all values associated with the given keys.
    * 
    * @param keys keys to query for
-   * @return a map from keys to values for all mapped keys
+   * @return a map from keys to values or {@code null} if the key was not mapped
    * 
    * @throws NullPointerException if the {@code Set} or any of the returned keys are {@code null}.
    * @throws BulkCacheLoaderException if loading some or all values failed

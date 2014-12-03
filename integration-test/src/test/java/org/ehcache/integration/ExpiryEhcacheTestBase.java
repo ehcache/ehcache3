@@ -90,7 +90,7 @@ public abstract class ExpiryEhcacheTestBase {
 
     assertThat(cacheSize(testCache), is(2));
     manualTimeSource.setTime(1001);
-    assertThat(testCache.getAll(new HashSet<Number>(Arrays.asList(1, 2))).size(), is(0));
+    assertThat(testCache.getAll(new HashSet<Number>(Arrays.asList(1, 2))).size(), is(2));
   }
 
   @Test

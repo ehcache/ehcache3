@@ -360,7 +360,10 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       Map<K, Store.ValueHolder<V>> computedMap = store.bulkComputeIfAbsent(keys, mappingFunction);
      
       if (computedMap == null) {
-        return Collections.emptyMap();
+        for (K key : keys) {
+          result.put(key, null);
+        }
+        return result;
       }
 
       int hits = 0;
@@ -368,6 +371,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         if (entry.getValue() != null) {
           result.put(entry.getKey(), entry.getValue().value());
           hits++;
+        } else {
+          result.put(entry.getKey(), null);
         }
       }
       addBulkMethodEntriesCount("getAll", hits);
