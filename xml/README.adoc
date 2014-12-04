@@ -33,8 +33,10 @@ Supported nested elements are optional:
  . `<key-type>`: the fully qualified class name (FQCN) of the keys (`<K>`) held in the `Cache<K, V>`, defaults to `java.lang.Object`
  . `<value-type>`: FQCN of the values (`<V>`) held in the `Cache`, defaults to `java.lang.Object`
  . `<capacity>`: a positive numerical value, defaults to `null`, i.e. unconstrained
+ . `<expiry>`: lets you control the expiry type and its parameters
  . `<eviction-veto>`: FQCN of a `org.ehcache.config.EvictionVeto<K, V>` implementation, defaults to `null`, i.e. none
  . `<eviction-prioritizer>`: FQCN of a `org.ehcache.config.EvictionPrioritizer<K, V>` implementation, defaults to `null`
+ . `<integration>`: lets you configure `CacheLoader` and `CacheWriter` for a _cache-through_ pattern
 
 === `<cache-template>` elements
 
@@ -44,6 +46,8 @@ its `name` using the `usesTemplate` attribute, will inherit all of the `<cache-t
 can override these properties as it needs.
 
 A `<cache-template>` element may contain all the same child elements as a `<cache>` element.
+
+NOTE: We've setup a complete configuration link:../107/src/test/resources/ehcache-example.xml[example] for you to inspire from.
 
 == XML programmatic parsing
 

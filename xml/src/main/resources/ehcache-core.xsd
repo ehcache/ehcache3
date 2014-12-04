@@ -15,35 +15,68 @@
   ~ limitations under the License.
   -->
 
-<xs:schema version="1.0" xmlns:ehcache="http://www.ehcache.org/v3" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" targetNamespace="http://www.ehcache.org/v3">
+<xs:schema version="1.0" xmlns:ehcache="http://www.ehcache.org/v3" xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified" targetNamespace="http://www.ehcache.org/v3">
   <xs:element name="config" type="ehcache:config-type"/>
-  
+
   <xs:complexType name="config-type">
     <xs:sequence>
-      <xs:element name="service" type="ehcache:service-type" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="service" type="ehcache:service-type" minOccurs="0" maxOccurs="unbounded">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Placeholder for services to be managed by the CacheManager and exposed to the Cache instances it manages.
+            Those services will also be lifecycled by the CacheManager.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
       <xs:choice minOccurs="0" maxOccurs="unbounded">
         <xs:element name="cache" type="ehcache:cache-type">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">
+              A cache definition the CacheManager will manage
+            </xs:documentation>
+          </xs:annotation>
           <xs:key name="template">
             <xs:selector xpath="cache-template"/>
             <xs:field xpath="@name"/>
           </xs:key>
         </xs:element>
-        <xs:element name="cache-template" type="ehcache:cacheTemplate-type"/>
+        <xs:element name="cache-template" type="ehcache:cacheTemplate-type">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">
+              A cache template definition that can be reference in &lt;cache&gt; definitions using the 'usesTemplate'
+              attribute.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
       </xs:choice>
     </xs:sequence>
   </xs:complexType>
-  
+
   <xs:complexType name="service-type">
     <xs:sequence>
       <xs:any namespace="##other" minOccurs="1" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
-  
+
   <xs:complexType name="cache-type">
     <xs:complexContent>
       <xs:extension base="ehcache:baseCache-type">
-        <xs:attribute name="alias" use="required" type="xs:string"/>
-        <xs:attribute name="usesTemplate" use="optional" type="xs:IDREF"/>
+        <xs:attribute name="alias" use="required" type="xs:string">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">
+              The alias used to access this Cache from the CacheManager
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="usesTemplate" use="optional" type="xs:IDREF">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">
+              The optional &lt;cache-template&gt; to use to source a default configuration from.
+              References the cache template's 'name' attribute.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
@@ -51,23 +84,80 @@
   <xs:complexType name="cacheTemplate-type" xml:base="ehcache:baseCache-type">
     <xs:complexContent>
       <xs:extension base="ehcache:baseCache-type">
-        <xs:attribute name="name" type="xs:ID" use="required" />
+        <xs:attribute name="name" type="xs:ID" use="required">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">
+              The name of this &lt;cache-template&gt; definition.
+              Used by cache element's 'usesTemplate' attribute.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
 
   <xs:complexType name="baseCache-type" abstract="true">
     <xs:sequence>
-      <xs:element name="key-type" type="xs:string" minOccurs="0" maxOccurs="1" default="java.lang.Object"/>
-      <xs:element name="value-type" type="xs:string" minOccurs="0" maxOccurs="1" default="java.lang.Object"/>
-      <xs:element name="capacity" type="xs:positiveInteger" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="expiry" type="ehcache:expiry-type" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="eviction-veto" type="xs:string" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="eviction-prioritizer" type="xs:string" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="integration" type="ehcache:cache-integration" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="key-type" type="xs:string" minOccurs="0" maxOccurs="1" default="java.lang.Object">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Defines the type for the keys &lt;K&gt; of the Cache&lt;K, V&gt;. Takes a fully qualified class name.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="value-type" type="xs:string" minOccurs="0" maxOccurs="1" default="java.lang.Object">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Defines the type for the values &lt;V&gt; of the Cache&lt;K, V&gt;. Takes a fully qualified class name.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="capacity" type="xs:positiveInteger" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Defines capacity (maximal number of entries) for the Cache.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="expiry" type="ehcache:expiry-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Defines expiry for the Cache.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="eviction-veto" type="xs:string" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            A fully qualified class name to a concrete type that implements
+            org.ehcache.config.EvictionVeto and has a public default no argument constructor.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="eviction-prioritizer" type="xs:string" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            A fully qualified class name to a concrete type that implements
+            org.ehcache.config.EvictionPrioritizer and has a public default no argument constructor.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="integration" type="ehcache:cache-integration" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Configures the Cache as fronting a system of record that it'll be kept in sync with.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
       <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
-    <xs:attribute name="storeByValueOnHeap" type="xs:boolean" use="optional" />
+    <xs:attribute name="storeByValueOnHeap" type="xs:boolean" use="optional">
+      <xs:annotation>
+        <xs:documentation xml:lang="en">
+          Specifies whether the heap tier for this cache should store by value, if true; or by reference (default, false)
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
   </xs:complexType>
 
   <xs:complexType name="cache-integration">
@@ -75,7 +165,14 @@
       <xs:element name="loader" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:sequence>
-            <xs:element name="class" type="xs:string" minOccurs="1" maxOccurs="1"/>
+            <xs:element name="class" type="xs:string" minOccurs="1" maxOccurs="1">
+              <xs:annotation>
+                <xs:documentation xml:lang="en">
+                  A fully qualified class name to a concrete type that implements
+                  org.ehcache.spi.loader.CacheLoader and has a public default no argument constructor.
+                </xs:documentation>
+              </xs:annotation>
+            </xs:element>
             <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
           </xs:sequence>
         </xs:complexType>
@@ -83,7 +180,14 @@
       <xs:element name="writer" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:sequence>
-            <xs:element name="class" type="xs:string" minOccurs="1" maxOccurs="1"/>
+            <xs:element name="class" type="xs:string" minOccurs="1" maxOccurs="1">
+              <xs:annotation>
+                <xs:documentation xml:lang="en">
+                  A fully qualified class name to a concrete type that implements
+                  org.ehcache.spi.loader.CacheWriter and has a public default no argument constructor.
+                </xs:documentation>
+              </xs:annotation>
+            </xs:element>
             <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
           </xs:sequence>
         </xs:complexType>
@@ -93,10 +197,34 @@
 
   <xs:complexType name="expiry-type">
     <xs:choice>
-      <xs:element name="class" type="xs:string"/>
-      <xs:element name="tti" type="ehcache:time-type"/>
-      <xs:element name="ttl" type="ehcache:time-type"/>
+      <xs:element name="class" type="xs:string">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            A fully qualified class name to a concrete type that implements
+            org.ehcache.expiry.Expiry and has a public default no argument constructor.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="tti" type="ehcache:time-type">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Entries in the cache should expire if not accessed for the defined time.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="ttl" type="ehcache:time-type">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Entries in the cache should expire after the defined time.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
       <xs:element name="none">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Entries in the cache should never expire.
+          </xs:documentation>
+        </xs:annotation>
         <xs:complexType/>
       </xs:element>
     </xs:choice>
@@ -105,7 +233,13 @@
   <xs:complexType name="time-type">
     <xs:simpleContent>
       <xs:extension base="xs:positiveInteger">
-        <xs:attribute name="unit" type="ehcache:time-unit" default="seconds"/>
+        <xs:attribute name="unit" type="ehcache:time-unit" default="seconds">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">
+              The time unit (see java.util.concurrent.TimeUnit) this value is expressed in.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>
