@@ -161,12 +161,12 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   @Test
   public void testIteratorNonEmptyRemoveOne() throws Exception {
     final Map<String, String> testStoreEntries = this.getTestStoreEntries();
-    final FakeStore realStore = new FakeStore(testStoreEntries);
-    this.store = realStore;
+    final FakeStore fakeStore = new FakeStore(testStoreEntries);
+    this.store = fakeStore;
 
     // Set CacheWriter & Store to have the same entries initially
-    final FakeCacheWriter realCacheWriter = new FakeCacheWriter(testStoreEntries);
-    final Ehcache<String, String> ehcache = this.getEhcache(realCacheWriter);
+    final FakeCacheWriter fakeWriterWriter = new FakeCacheWriter(testStoreEntries);
+    final Ehcache<String, String> ehcache = this.getEhcache(fakeWriterWriter);
 
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     while (iterator.hasNext()) {
@@ -177,7 +177,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     }
 
     testStoreEntries.remove("keyA");
-    final Map<String, String> storeEntries = new HashMap<String, String>(realStore.getEntryMap());
+    final Map<String, String> storeEntries = new HashMap<String, String>(fakeStore.getEntryMap());
     for (Map.Entry<String, String> expectedEntry : testStoreEntries.entrySet()) {
       final String expectedEntryKey = expectedEntry.getKey();
       assertThat(storeEntries, hasEntry(equalTo(expectedEntryKey), equalTo(expectedEntry.getValue())));
@@ -185,7 +185,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     }
     assertThat("Iterator.remove removed incorrect Store entry", storeEntries.isEmpty(), is(true));
 
-    final Map<String, String> writerEntries = new HashMap<String, String>(realCacheWriter.getEntryMap());
+    final Map<String, String> writerEntries = new HashMap<String, String>(fakeWriterWriter.getEntryMap());
     for (Map.Entry<String, String> expectedEntry : testStoreEntries.entrySet()) {
       final String expectedEntryKey = expectedEntry.getKey();
       assertThat(writerEntries, hasEntry(equalTo(expectedEntryKey), equalTo(expectedEntry.getValue())));
@@ -200,20 +200,20 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   @Test
   public void testIteratorNonEmptyRemoveAll() throws Exception {
     final Map<String, String> testStoreEntries = this.getTestStoreEntries();
-    final FakeStore realStore = new FakeStore(testStoreEntries);
-    this.store = realStore;
+    final FakeStore fakeStore = new FakeStore(testStoreEntries);
+    this.store = fakeStore;
 
     // Set CacheWriter & Store to have the same entries initially
-    final FakeCacheWriter realCacheWriter = new FakeCacheWriter(testStoreEntries);
-    final Ehcache<String, String> ehcache = this.getEhcache(realCacheWriter);
+    final FakeCacheWriter fakeWriterWriter = new FakeCacheWriter(testStoreEntries);
+    final Ehcache<String, String> ehcache = this.getEhcache(fakeWriterWriter);
 
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     while (iterator.hasNext()) {
       iterator.next();
       iterator.remove();
     }
-    assertThat("Failed to remove all entries from Store", realStore.getEntryMap().isEmpty(), is(true));
-    assertThat("Failed to remove all entries via CacheWriter", realCacheWriter.getEntryMap().isEmpty(), is(true));
+    assertThat("Failed to remove all entries from Store", fakeStore.getEntryMap().isEmpty(), is(true));
+    assertThat("Failed to remove all entries via CacheWriter", fakeWriterWriter.getEntryMap().isEmpty(), is(true));
   }
 
   /**
@@ -265,8 +265,8 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     this.store = new FakeStore(testStoreEntries);
 
     // Set CacheWriter & Store to have the same entries initially
-    final FakeCacheWriter realCacheWriter = new FakeCacheWriter(testStoreEntries);
-    final Ehcache<String, String> ehcache = this.getEhcache(realCacheWriter);
+    final FakeCacheWriter fakeWriterWriter = new FakeCacheWriter(testStoreEntries);
+    final Ehcache<String, String> ehcache = this.getEhcache(fakeWriterWriter);
 
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     while (iterator.hasNext()) {
@@ -294,8 +294,8 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     this.store = new FakeStore(testStoreEntries);
 
     // Set CacheWriter & Store to have the same entries initially
-    final FakeCacheWriter realCacheWriter = new FakeCacheWriter(testStoreEntries);
-    final Ehcache<String, String> ehcache = this.getEhcache(realCacheWriter);
+    final FakeCacheWriter fakeWriterWriter = new FakeCacheWriter(testStoreEntries);
+    final Ehcache<String, String> ehcache = this.getEhcache(fakeWriterWriter);
 
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     while (iterator.hasNext()) {

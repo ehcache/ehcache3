@@ -41,6 +41,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -215,11 +216,11 @@ public abstract class EhcacheBasicCrudBase {
   // TODO: Use a validated Store implementation.
   protected static class FakeStore implements Store<String, String> {
 
-    private final Map<String, ValueHolder<String>> entries;
+    private final Map<String, FakeValueHolder> entries;
 
     public FakeStore(final Map<String, String> entries) {
       // Use of ConcurrentHashMap is required to avoid ConcurrentModificationExceptions using Iterator.remove
-      this.entries = new ConcurrentHashMap<String, ValueHolder<String>>();
+      this.entries = new ConcurrentHashMap<String, FakeValueHolder>();
       if (entries != null) {
         for (final Map.Entry<String, String> entry : entries.entrySet()) {
           this.entries.put(entry.getKey(), new FakeValueHolder(entry.getValue()));
@@ -234,7 +235,7 @@ public abstract class EhcacheBasicCrudBase {
      */
     protected Map<String, String> getEntryMap() {
       final Map<String, String> result = new HashMap<String, String>();
-      for (final Map.Entry<String, ValueHolder<String>> entry : this.entries.entrySet()) {
+      for (final Map.Entry<String, FakeValueHolder> entry : this.entries.entrySet()) {
         result.put(entry.getKey(), entry.getValue().value());
       }
       return Collections.unmodifiableMap(result);
@@ -242,7 +243,11 @@ public abstract class EhcacheBasicCrudBase {
 
     @Override
     public ValueHolder<String> get(final String key) throws CacheAccessException {
-      return this.entries.get(key);
+      final FakeValueHolder valueHolder = this.entries.get(key);
+      if (valueHolder != null) {
+        valueHolder.lastAccessTime = System.currentTimeMillis();
+      }
+      return valueHolder;
     }
 
     @Override
@@ -257,11 +262,12 @@ public abstract class EhcacheBasicCrudBase {
 
     @Override
     public ValueHolder<String> putIfAbsent(final String key, final String value) throws CacheAccessException {
-      final ValueHolder<String> currentValue = this.entries.get(key);
+      final FakeValueHolder currentValue = this.entries.get(key);
       if (currentValue == null) {
         this.entries.put(key, new FakeValueHolder(value));
         return null;
       }
+      currentValue.lastAccessTime = System.currentTimeMillis();
       return currentValue;
     }
 
@@ -348,7 +354,7 @@ public abstract class EhcacheBasicCrudBase {
 
       return new Iterator<Cache.Entry<String, ValueHolder<String>>>() {
 
-        final java.util.Iterator<Map.Entry<String, ValueHolder<String>>> iterator =
+        final java.util.Iterator<Map.Entry<String, FakeValueHolder>> iterator =
             FakeStore.this.entries.entrySet().iterator();
 
         @Override
@@ -359,7 +365,8 @@ public abstract class EhcacheBasicCrudBase {
         @Override
         public Cache.Entry<String, ValueHolder<String>> next() throws CacheAccessException {
 
-          final Map.Entry<String, ValueHolder<String>> cacheEntry = this.iterator.next();
+          final Map.Entry<String, FakeValueHolder> cacheEntry = this.iterator.next();
+          cacheEntry.getValue().lastAccessTime = System.currentTimeMillis();
 
           return new Cache.Entry<String, ValueHolder<String>>() {
 
@@ -408,7 +415,7 @@ public abstract class EhcacheBasicCrudBase {
     @Override
     public ValueHolder<String> computeIfAbsent(final String key, final Function<? super String, ? extends String> mappingFunction)
         throws CacheAccessException {
-      ValueHolder<String> currentValue = this.entries.get(key);
+      FakeValueHolder currentValue = this.entries.get(key);
       if (currentValue == null) {
         final String newValue = mappingFunction.apply(key);
         if (newValue != null) {
@@ -416,6 +423,8 @@ public abstract class EhcacheBasicCrudBase {
           this.entries.put(key, newValueHolder);
           currentValue = newValueHolder;
         }
+      } else {
+        currentValue.lastAccessTime = System.currentTimeMillis();
       }
       return currentValue;
     }
@@ -443,10 +452,30 @@ public abstract class EhcacheBasicCrudBase {
       throw new UnsupportedOperationException();
     }
 
+    /**
+     * {@inheritDoc}
+     * <p/>
+     * This implementation is based, in part, on the implementation found in
+     * {@code org.ehcache.internal.store.OnHeapStore}.  This implementation calls
+     * {@code mappingFunction} for each key through an internal function supplied
+     * to {@link #computeIfAbsent(String, org.ehcache.function.Function) computeIfAbsent}.
+     */
     @Override
     public Map<String, ValueHolder<String>> bulkComputeIfAbsent(final Iterable<? extends String> keys, final Function<Iterable<? extends String>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> mappingFunction)
         throws CacheAccessException {
-      throw new UnsupportedOperationException();
+      final Map<String, ValueHolder<String>> resultMap = new LinkedHashMap<String, ValueHolder<String>>();
+      for (final String key : keys) {
+        final ValueHolder<String> newValue = this.computeIfAbsent(key, new Function<String, String>() {
+          @Override
+          public String apply(final String key) {
+            final Map.Entry<? extends String, ? extends String> entry =
+                mappingFunction.apply(Collections.singleton(key)).iterator().next();
+            return entry.getValue();
+          }
+        });
+        resultMap.put(key, newValue);
+      }
+      return resultMap;
     }
 
     /**
@@ -466,7 +495,6 @@ public abstract class EhcacheBasicCrudBase {
 
       @Override
       public String value() {
-        this.lastAccessTime = System.currentTimeMillis();
         return this.value;
       }
 
@@ -488,7 +516,7 @@ public abstract class EhcacheBasicCrudBase {
   }
 
   /**
-   * Local {@code }org.hamcrest.TypeSafeMatcher} implementation for testing
+   * Local {@code org.hamcrest.TypeSafeMatcher} implementation for testing
    * {@code org.terracotta.statistics.OperationStatistic} values.
    */
   private static final class StatisticMatcher extends TypeSafeMatcher<Number> {
