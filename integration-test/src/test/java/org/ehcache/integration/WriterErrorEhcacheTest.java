@@ -127,7 +127,7 @@ public class WriterErrorEhcacheTest {
     }).when(cacheWriter).deleteAll((Iterable) Matchers.any());
 
     try {
-      testCache.removeAll(Arrays.asList(1, 2, 3, 4));
+      testCache.removeAll(new HashSet<Number>(Arrays.asList(1, 2, 3, 4)));
       fail("expected CacheWriterException");
     } catch (BulkCacheWriterException ex) {
       assertThat(ex.getFailures().size(), is(1));

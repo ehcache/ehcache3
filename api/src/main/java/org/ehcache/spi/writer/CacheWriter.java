@@ -77,7 +77,7 @@ public interface CacheWriter<K, V> {
    * declares which keys were actually deleted (if any)
    * @throws Exception a generic failure. All entries will be considered not deleted in this case
    *
-   * @see org.ehcache.Cache#removeAll(Iterable)
+   * @see org.ehcache.Cache#removeAll(java.util.Set)
    */
   void deleteAll(Iterable<? extends K> keys) throws BulkCacheWriterException, Exception;
 

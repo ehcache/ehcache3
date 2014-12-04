@@ -146,7 +146,7 @@ public class TieredCache<K, V> implements Cache<K, V> {
   }
 
   @Override
-  public void removeAll(Iterable<? extends K> keys) {
+  public void removeAll(Set<? extends K> keys) {
     throw new UnsupportedOperationException("Implement me!");
   }
 

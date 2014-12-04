@@ -109,13 +109,13 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * Removes any associates for the given keys.
    * 
    * @param keys keys to remove values for
-   * 
-   * @throws NullPointerException if the {@code Iterable} or any of the returned keys are {@code null}.
-   * @throws CacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter} 
+   *
+   * @throws NullPointerException if the {@code Set} or any of the contained keys are {@code null}.
+   * @throws BulkCacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter}
    * associated with this cache threw an {@link Exception}
    * while removing mappings for given keys from underlying system of record.
    */
-  void removeAll(Iterable<? extends K> keys) throws CacheWriterException;
+  void removeAll(Set<? extends K> keys) throws BulkCacheWriterException;
   
   /**
    * Removes all mapping currently present in the Cache. This is not an atomic operation and can be very costly operation as well...

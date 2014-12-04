@@ -85,7 +85,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.ehcache.Functions.memoize;
 import static org.ehcache.exceptions.ExceptionFactory.newCacheLoaderException;
 import static org.ehcache.exceptions.ExceptionFactory.newCacheWriterException;
-import static org.ehcache.util.KeysIterable.keysOf;
 import static org.terracotta.statistics.StatisticsBuilder.operation;
 
 /**
@@ -470,9 +469,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     };
 
-    Iterable<? extends K> keys = entries.keySet();
     try {
-      store.bulkCompute(keys, remappingFunction);
+      store.bulkCompute(entries.keySet(), remappingFunction);
       addBulkMethodEntriesCount("putAll", actualPutCount.get());
       if (! failures.isEmpty()) {
         throw new BulkCacheWriterException(failures, successes);
@@ -523,7 +521,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   }
 
   @Override
-  public void removeAll(final Iterable<? extends K> keys) throws CacheWriterException {
+  public void removeAll(final Set<? extends K> keys) throws BulkCacheWriterException {
     statusTransitioner.checkAvailable();
     checkNonNull(keys);
     final Set<K> successes;

@@ -148,7 +148,7 @@ public class SimpleEhcacheTest {
     testCache.put(2, "two");
     testCache.put(3, "three");
 
-    testCache.removeAll(Arrays.asList(1, 2));
+    testCache.removeAll(new HashSet<Number>(Arrays.asList(1, 2)));
 
     assertThat(testCache.get(1), is(nullValue()));
     assertThat(testCache.get(2), is(nullValue()));

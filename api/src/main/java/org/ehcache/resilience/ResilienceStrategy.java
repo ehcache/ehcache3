@@ -313,7 +313,7 @@ public interface ResilienceStrategy<K, V> {
   void putAllFailure(Map<? extends K, ? extends V> entries, CacheAccessException e, BulkCacheWriterException f);
 
   /**
-   * Called when a {@link Cache#removeAll(java.lang.Iterable)} fails due to an
+   * Called when a {@link Cache#removeAll(java.util.Set)} fails due to an
    * underlying store failure.
    * 
    * @param keys the keys being removed
@@ -323,7 +323,7 @@ public interface ResilienceStrategy<K, V> {
   Map<K, V> removeAllFailure(Iterable<? extends K> keys, CacheAccessException e);
 
   /**
-   * Called when a {@link Cache#removeAll(java.lang.Iterable)} fails
+   * Called when a {@link Cache#removeAll(java.util.Set)} fails
    * due to an underlying store failure, and the associated cache write
    * operation also failed.
    * 

@@ -143,7 +143,7 @@ public class StandaloneCacheBuilderTest {
     }
 
     @Override
-    public void removeAll(Iterable<? extends K> keys) {
+    public void removeAll(Set<? extends K> keys) {
       throw new UnsupportedOperationException("Implement me!");
     }
     
