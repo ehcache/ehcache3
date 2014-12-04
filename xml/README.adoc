@@ -47,7 +47,7 @@ can override these properties as it needs.
 
 A `<cache-template>` element may contain all the same child elements as a `<cache>` element.
 
-NOTE: We've setup a complete configuration link:src/test/resources/ehcache-example.xml[example] for you to inspire from.
+NOTE: We've setup a complete configuration link:../107/src/test/resources/ehcache-example.xml[example] for you to inspire from.
 
 == XML programmatic parsing
 
