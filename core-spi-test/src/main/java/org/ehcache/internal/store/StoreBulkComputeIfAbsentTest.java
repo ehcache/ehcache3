@@ -30,7 +30,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#bulkCompute(Iterable, org.ehcache.function.Function)} contract of the
+ * Test the {@link org.ehcache.spi.cache.Store#bulkComputeIfAbsent(java.util.Set, org.ehcache.function.Function)} contract of the
  * {@link org.ehcache.spi.cache.Store Store} interface.
  * <p/>
  *

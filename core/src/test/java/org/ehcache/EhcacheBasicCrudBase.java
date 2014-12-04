@@ -448,7 +448,7 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public Map<String, ValueHolder<String>> bulkCompute(final Iterable<? extends String> keys, final Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> remappingFunction)
+    public Map<String, ValueHolder<String>> bulkCompute(final Set<? extends String> keys, final Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> remappingFunction)
         throws CacheAccessException {
       throw new UnsupportedOperationException();
     }
