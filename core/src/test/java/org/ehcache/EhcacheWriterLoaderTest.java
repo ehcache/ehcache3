@@ -217,7 +217,6 @@ public class EhcacheWriterLoaderTest {
         return null;
       }
     });
-    when(cache.getCacheWriter().delete(any(Number.class))).thenReturn(true);
     assertThat(cache.remove(1, cachedValue), is(true));
     verify(cache.getCacheWriter()).delete(1);
   }
@@ -248,7 +247,6 @@ public class EhcacheWriterLoaderTest {
       }
     });
     String toRemove = "foo";
-    when(cache.getCacheWriter().delete(any(Number.class))).thenReturn(false);
     assertThat(cache.remove(1, toRemove), is(false));
     verify(cache.getCacheWriter(), never()).delete(1);
     
@@ -258,7 +256,6 @@ public class EhcacheWriterLoaderTest {
   public void testTwoArgRemoveThrowsOnCompute() throws Exception {
     String toRemove = "foo";
     when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenThrow(new CacheAccessException("boom"));
-    when(cache.getCacheWriter().delete(any(Number.class))).thenReturn(true);
     assertThat(cache.remove(1, toRemove), is(false));
     verify(cache.getCacheWriter(), never()).delete(1);
     verify(store).remove(1);
@@ -275,7 +272,7 @@ public class EhcacheWriterLoaderTest {
         return null;
       }
     });
-    when(cache.getCacheWriter().delete(any(Number.class))).thenThrow(new Exception());
+    doThrow(new Exception()).when(cache.getCacheWriter()).delete(any(Number.class));
     cache.remove(1, expected);
   }
   

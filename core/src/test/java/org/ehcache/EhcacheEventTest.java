@@ -428,7 +428,7 @@ public class EhcacheEventTest {
         return mock;
       }
     });
-    when(cache.getCacheWriter().delete(any(Number.class))).thenThrow(new Exception());
+    doThrow(new Exception()).when(cache.getCacheWriter()).delete(any(Number.class));
     cache.remove(1, expected);
   }
 
