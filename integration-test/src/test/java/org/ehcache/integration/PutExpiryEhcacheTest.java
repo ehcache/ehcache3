@@ -24,8 +24,8 @@ import java.util.Map;
  */
 public class PutExpiryEhcacheTest extends ExpiryEhcacheTestBase {
   @Override
-  protected void insert(Cache<Number, CharSequence> testCache, Map.Entry<Number, CharSequence>... entries) {
-    for (Map.Entry<Number, CharSequence> entry : entries) {
+  protected void insert(Cache<Number, CharSequence> testCache, Map<Number, CharSequence> entries) {
+    for (Map.Entry<Number, CharSequence> entry : entries.entrySet()) {
       testCache.put(entry.getKey(), entry.getValue());
     }
   }

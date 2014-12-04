@@ -154,7 +154,7 @@ public class EhcacheTest {
     }
 
     try {
-      ehcache.putAll(Collections.singletonMap("foo", "bar").entrySet());
+      ehcache.putAll(Collections.singletonMap("foo", "bar"));
       fail();
     } catch (IllegalStateException e) {
       assertThat(e.getMessage().contains(Status.UNINITIALIZED.name()), is(true));

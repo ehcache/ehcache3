@@ -18,6 +18,7 @@ package org.ehcache.internal.cachingtier;
 
 import org.ehcache.Cache;
 import org.ehcache.config.CacheRuntimeConfiguration;
+import org.ehcache.exceptions.BulkCacheWriterException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.tiering.CachingTier;
@@ -140,7 +141,7 @@ public class TieredCache<K, V> implements Cache<K, V> {
   }
 
   @Override
-  public void putAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+  public void putAll(Map<? extends K, ? extends V> entries) throws BulkCacheWriterException {
     throw new UnsupportedOperationException("Implement me!");
   }
 

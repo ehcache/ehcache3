@@ -83,7 +83,7 @@ public class SimpleEhcacheTest {
     values.put(2, "two");
     values.put(3, "three");
 
-    testCache.putAll(values.entrySet());
+    testCache.putAll(values);
 
     assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("one"));
     assertThat(testCache.get(2), Matchers.<CharSequence>equalTo("two"));

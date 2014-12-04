@@ -26,11 +26,10 @@ import org.ehcache.internal.TimeSourceConfiguration;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.AbstractMap;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -67,7 +66,7 @@ public abstract class ExpiryEhcacheTestBase {
 
   @Test
   public void testSimplePutWithExpiry() throws Exception {
-    insert(testCache, entry(1, "one"), entry(2, "two"));
+    insert(testCache, getEntries());
 
     assertThat(cacheSize(testCache), is(2));
     manualTimeSource.setTime(1001);
@@ -76,7 +75,7 @@ public abstract class ExpiryEhcacheTestBase {
 
   @Test
   public void testSimplePutWithExpiry_get() throws Exception {
-    insert(testCache, entry(1, "one"), entry(2, "two"));
+    insert(testCache, getEntries());
 
     assertThat(cacheSize(testCache), is(2));
     manualTimeSource.setTime(1001);
@@ -86,7 +85,7 @@ public abstract class ExpiryEhcacheTestBase {
 
   @Test
   public void testSimplePutWithExpiry_getAll() throws Exception {
-    insert(testCache, entry(1, "one"), entry(2, "two"));
+    insert(testCache, getEntries());
 
     assertThat(cacheSize(testCache), is(2));
     manualTimeSource.setTime(1001);
@@ -95,7 +94,7 @@ public abstract class ExpiryEhcacheTestBase {
 
   @Test
   public void testSimplePutWithExpiry_putIfAbsent() throws Exception {
-    insert(testCache, entry(1, "one"), entry(2, "two"));
+    insert(testCache, getEntries());
 
     assertThat(cacheSize(testCache), is(2));
     manualTimeSource.setTime(1001);
@@ -107,7 +106,7 @@ public abstract class ExpiryEhcacheTestBase {
 
   @Test
   public void testSimplePutWithExpiry_remove2Args() throws Exception {
-    insert(testCache, entry(1, "one"), entry(2, "two"));
+    insert(testCache, getEntries());
 
     assertThat(cacheSize(testCache), is(2));
     manualTimeSource.setTime(1001);
@@ -119,7 +118,7 @@ public abstract class ExpiryEhcacheTestBase {
 
   @Test
   public void testSimplePutWithExpiry_replace2Args() throws Exception {
-    insert(testCache, entry(1, "one"), entry(2, "two"));
+    insert(testCache, getEntries());
 
     assertThat(cacheSize(testCache), is(2));
     manualTimeSource.setTime(1001);
@@ -131,7 +130,7 @@ public abstract class ExpiryEhcacheTestBase {
 
   @Test
   public void testSimplePutWithExpiry_replace3Args() throws Exception {
-    insert(testCache, entry(1, "one"), entry(2, "two"));
+    insert(testCache, getEntries());
 
     assertThat(cacheSize(testCache), is(2));
     manualTimeSource.setTime(1001);
@@ -141,12 +140,14 @@ public abstract class ExpiryEhcacheTestBase {
     assertThat(testCache.get(2), is(nullValue()));
   }
 
-  protected abstract void insert(Cache<Number, CharSequence> testCache, Map.Entry<Number, CharSequence>... entries);
+  protected abstract void insert(Cache<Number, CharSequence> testCache, Map<Number, CharSequence> entries);
 
-  protected static Map.Entry<Number, CharSequence> entry(Number number, CharSequence charSequence) {
-    return new AbstractMap.SimpleEntry<Number, CharSequence>(number, charSequence);
+  private Map<Number, CharSequence> getEntries() {
+    HashMap<Number, CharSequence> result = new HashMap<Number, CharSequence>();
+    result.put(1, "one");
+    result.put(2, "two");
+    return result;
   }
-
 
   private static int cacheSize(Cache<?, ?> cache) {
     int count = 0;

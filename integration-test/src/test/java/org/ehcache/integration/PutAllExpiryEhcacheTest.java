@@ -18,6 +18,7 @@ package org.ehcache.integration;
 import org.ehcache.Cache;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -25,7 +26,7 @@ import java.util.Map;
  */
 public class PutAllExpiryEhcacheTest extends ExpiryEhcacheTestBase {
   @Override
-  protected void insert(Cache<Number, CharSequence> testCache, Map.Entry<Number, CharSequence>... entries) {
-    testCache.putAll(Arrays.asList(entries));
+  protected void insert(Cache<Number, CharSequence> testCache, Map<Number, CharSequence> entries) {
+    testCache.putAll(entries);
   }
 }

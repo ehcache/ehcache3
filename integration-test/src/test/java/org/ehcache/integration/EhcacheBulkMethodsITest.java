@@ -78,7 +78,7 @@ public class EhcacheBulkMethodsITest {
     }
 
     // the call to putAll
-    myCache.putAll(stringStringHashMap.entrySet());
+    myCache.putAll(stringStringHashMap);
 
     for (int i = 0; i < 3; i++) {
       assertThat(myCache.get("key" + i), is("value" + i));
@@ -110,7 +110,7 @@ public class EhcacheBulkMethodsITest {
     }
 
     // the call to putAll
-    myCache.putAll(stringStringHashMap.entrySet());
+    myCache.putAll(stringStringHashMap);
 
     verify(cacheWriter, times(3)).writeAll(Matchers.any(Iterable.class));
     Map iterable = new HashMap(){{put("key2", "value2");}};
@@ -148,7 +148,7 @@ public class EhcacheBulkMethodsITest {
 
     // the call to putAll
     try {
-      myCache.putAll(stringStringHashMap.entrySet());
+      myCache.putAll(stringStringHashMap);
       fail();
     } catch (BulkCacheWriterException bcwe) {
       assertThat(bcwe.getFailures().size(), is(3));
@@ -182,7 +182,7 @@ public class EhcacheBulkMethodsITest {
     }
 
     // the call to putAll
-    myCache.putAll(stringStringHashMap.entrySet());
+    myCache.putAll(stringStringHashMap);
 
     for (int i = 0; i < 3; i++) {
       // the store threw an exception when we call bulkCompute

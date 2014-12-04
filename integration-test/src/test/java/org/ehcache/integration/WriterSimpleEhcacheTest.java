@@ -132,7 +132,7 @@ public class WriterSimpleEhcacheTest {
     values.put(1, "one");
     values.put(2, "two");
 
-    testCache.putAll(values.entrySet());
+    testCache.putAll(values);
 
     verify(cacheWriter, times(1)).writeAll(argThat(contains(entry(1, "one"))));
     verify(cacheWriter, times(1)).writeAll(argThat(contains(entry(2, "two"))));

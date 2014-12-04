@@ -410,7 +410,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   }
 
   @Override
-  public void putAll(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws CacheWriterException {
+  public void putAll(final Map<? extends K, ? extends V> entries) throws BulkCacheWriterException {
     statusTransitioner.checkAvailable();
     checkNonNull(entries);
     final Set<K> successes;
@@ -425,7 +425,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     
     // Copy all entries to write into a Map
     final Map<K, V> entriesToRemap = new HashMap<K, V>();
-    for (Map.Entry<? extends K, ? extends V> entry: entries) {
+    for (Map.Entry<? extends K, ? extends V> entry: entries.entrySet()) {
       // If a key/value is null, throw NPE, nothing gets mutated
       if (entry.getKey() == null || entry.getValue() == null) {
         throw new NullPointerException();
@@ -470,7 +470,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     };
 
-    Iterable<K> keys = keysOf(entries);
+    Iterable<? extends K> keys = entries.keySet();
     try {
       store.bulkCompute(keys, remappingFunction);
       addBulkMethodEntriesCount("putAll", actualPutCount.get());

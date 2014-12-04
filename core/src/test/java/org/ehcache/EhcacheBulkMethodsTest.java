@@ -21,7 +21,6 @@ import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.writer.CacheWriter;
-import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -61,7 +60,7 @@ public class EhcacheBulkMethodsTest {
       put(1, "one");
       put(2, "two");
       put(3, "three");
-    }}.entrySet());
+    }});
 
     verify(store).bulkCompute(argThat(hasItems(1, 2, 3)), any(Function.class));
   }
@@ -86,7 +85,7 @@ public class EhcacheBulkMethodsTest {
       put(3, "three");
       put(2, "two");
       put(1, "one");
-    }}.entrySet());
+    }});
 
     verify(store).bulkCompute(argThat(hasItems(1, 2, 3)), any(Function.class));
     verify(cacheWriter).writeAll(argThat(hasItems(entry(1, "one"), entry(2, "two"), entry(3, "three"))));

@@ -18,6 +18,7 @@ package org.ehcache;
 
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.StandaloneCacheConfiguration;
+import org.ehcache.exceptions.BulkCacheWriterException;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.statistics.CacheStatistics;
 import org.junit.Test;
@@ -137,7 +138,7 @@ public class StandaloneCacheBuilderTest {
     }
 
     @Override
-    public void putAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+    public void putAll(Map<? extends K, ? extends V> entries) throws BulkCacheWriterException {
       throw new UnsupportedOperationException("Implement me!");
     }
 

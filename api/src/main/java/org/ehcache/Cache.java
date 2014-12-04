@@ -17,6 +17,7 @@ package org.ehcache;
 
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.exceptions.BulkCacheLoaderException;
+import org.ehcache.exceptions.BulkCacheWriterException;
 import org.ehcache.exceptions.CacheLoaderException;
 import org.ehcache.exceptions.CacheWriterException;
 import org.ehcache.statistics.CacheStatistics;
@@ -87,7 +88,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @param keys keys to query for
    * @return a map from keys to values or {@code null} if the key was not mapped
    * 
-   * @throws NullPointerException if the {@code Set} or any of the returned keys are {@code null}.
+   * @throws NullPointerException if the {@code Set} or any of the contained keys are {@code null}.
    * @throws BulkCacheLoaderException if loading some or all values failed
    */
   Map<K, V> getAll(Set<? extends K> keys) throws BulkCacheLoaderException;
@@ -96,13 +97,13 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * Associates all the provided key:value pairs.
    * 
    * @param entries key:value pairs to associate
-   * 
-   * @throws NullPointerException if the {@code Iterable} or any of the returned keys are {@code null}.
-   * @throws CacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter} 
+   *
+   * @throws NullPointerException if the {@code Map} or any of the contained keys or values are {@code null}.
+   * @throws BulkCacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter}
    * associated with this cache threw an {@link Exception}
    * while writing given key:value pairs to underlying system of record.
    */
-  void putAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws CacheWriterException;
+  void putAll(Map<? extends K, ? extends V> entries) throws BulkCacheWriterException;
 
   /**
    * Removes any associates for the given keys.

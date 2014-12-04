@@ -293,24 +293,24 @@ public interface ResilienceStrategy<K, V> {
   Map<K, V> getAllFailure(Iterable<? extends K> keys, CacheAccessException e, BulkCacheLoaderException f);
   
   /**
-   * Called when a {@link Cache#putAll(java.lang.Iterable)} fails due to an
+   * Called when a {@link Cache#putAll(java.util.Map)} fails due to an
    * underlying store failure.
-   * 
+   *
    * @param entries the entries being put
    * @param e the triggered failure
    */
-  void putAllFailure(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, CacheAccessException e);
+  void putAllFailure(Map<? extends K, ? extends V> entries, CacheAccessException e);
 
   /**
-   * Called when a {@link Cache#putAll(java.lang.Iterable)} fails due to an
+   * Called when a {@link Cache#putAll(java.util.Map)} fails due to an
    * underlying store failure, and the associated cache write operation also
    * failed.
-   * 
+   *
    * @param entries the entries being put
    * @param e the cache failure
    * @param f the writer failure
    */
-  void putAllFailure(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, CacheAccessException e, BulkCacheWriterException f);
+  void putAllFailure(Map<? extends K, ? extends V> entries, CacheAccessException e, BulkCacheWriterException f);
 
   /**
    * Called when a {@link Cache#removeAll(java.lang.Iterable)} fails due to an
