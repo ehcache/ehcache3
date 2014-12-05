@@ -42,6 +42,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -218,9 +219,23 @@ public abstract class EhcacheBasicCrudBase {
   // TODO: Use a validated Store implementation.
   protected static class FakeStore implements Store<String, String> {
 
+    /**
+     * The key:value pairs served by this {@code Store}.  This map may be empty.
+     */
     private final Map<String, FakeValueHolder> entries;
 
+    /**
+     * Keys for which access results in a thrown {@code Exception}.  This set may be empty.
+     */
+    private final Set<String> failingKeys;
+
     public FakeStore(final Map<String, String> entries) {
+      this(entries, Collections.<String>emptySet());
+    }
+
+    public FakeStore(final Map<String, String> entries, final Set<String> failingKeys) {
+      assert failingKeys != null;
+
       // Use of ConcurrentHashMap is required to avoid ConcurrentModificationExceptions using Iterator.remove
       this.entries = new ConcurrentHashMap<String, FakeValueHolder>();
       if (entries != null) {
@@ -228,6 +243,7 @@ public abstract class EhcacheBasicCrudBase {
           this.entries.put(entry.getKey(), new FakeValueHolder(entry.getValue()));
         }
       }
+      this.failingKeys = Collections.unmodifiableSet(new HashSet<String>(failingKeys));
     }
 
     /**
@@ -245,6 +261,7 @@ public abstract class EhcacheBasicCrudBase {
 
     @Override
     public ValueHolder<String> get(final String key) throws CacheAccessException {
+      this.checkFailingKey(key);
       final FakeValueHolder valueHolder = this.entries.get(key);
       if (valueHolder != null) {
         valueHolder.lastAccessTime = System.currentTimeMillis();
@@ -254,16 +271,19 @@ public abstract class EhcacheBasicCrudBase {
 
     @Override
     public boolean containsKey(final String key) throws CacheAccessException {
+      this.checkFailingKey(key);
       return this.entries.containsKey(key);
     }
 
     @Override
     public void put(final String key, final String value) throws CacheAccessException {
+      this.checkFailingKey(key);
       this.entries.put(key, new FakeValueHolder(value));
     }
 
     @Override
     public ValueHolder<String> putIfAbsent(final String key, final String value) throws CacheAccessException {
+      this.checkFailingKey(key);
       final FakeValueHolder currentValue = this.entries.get(key);
       if (currentValue == null) {
         this.entries.put(key, new FakeValueHolder(value));
@@ -275,11 +295,13 @@ public abstract class EhcacheBasicCrudBase {
 
     @Override
     public void remove(final String key) throws CacheAccessException {
+      this.checkFailingKey(key);
       this.entries.remove(key);
     }
 
     @Override
     public boolean remove(final String key, final String value) throws CacheAccessException {
+      this.checkFailingKey(key);
       final ValueHolder<String> currentValue = this.entries.get(key);
       if (currentValue == null || !currentValue.value().equals(value)) {
         return false;
@@ -290,6 +312,7 @@ public abstract class EhcacheBasicCrudBase {
 
     @Override
     public ValueHolder<String> replace(final String key, final String value) throws CacheAccessException {
+      this.checkFailingKey(key);
       final ValueHolder<String> currentValue = this.entries.get(key);
       if (currentValue != null) {
         this.entries.put(key, new FakeValueHolder(value));
@@ -299,6 +322,7 @@ public abstract class EhcacheBasicCrudBase {
 
     @Override
     public boolean replace(final String key, final String oldValue, final String newValue) throws CacheAccessException {
+      this.checkFailingKey(key);
       final ValueHolder<String> currentValue = this.entries.get(key);
       if (currentValue != null && currentValue.value().equals(oldValue)) {
         this.entries.put(key, new FakeValueHolder(newValue));
@@ -368,6 +392,7 @@ public abstract class EhcacheBasicCrudBase {
         public Cache.Entry<String, ValueHolder<String>> next() throws CacheAccessException {
 
           final Map.Entry<String, FakeValueHolder> cacheEntry = this.iterator.next();
+          FakeStore.this.checkFailingKey(cacheEntry.getKey());
           cacheEntry.getValue().lastAccessTime = System.currentTimeMillis();
 
           return new Cache.Entry<String, ValueHolder<String>>() {
@@ -411,6 +436,7 @@ public abstract class EhcacheBasicCrudBase {
     @Override
     public ValueHolder<String> compute(final String key, final BiFunction<? super String, ? super String, ? extends String> mappingFunction)
         throws CacheAccessException {
+      this.checkFailingKey(key);
       final ValueHolder<String> currentValue = this.entries.get(key);
       final String newValue = mappingFunction.apply(key, (currentValue == null ? null : currentValue.value()));
       if (newValue == null) {
@@ -425,6 +451,7 @@ public abstract class EhcacheBasicCrudBase {
     @Override
     public ValueHolder<String> computeIfAbsent(final String key, final Function<? super String, ? extends String> mappingFunction)
         throws CacheAccessException {
+      this.checkFailingKey(key);
       FakeValueHolder currentValue = this.entries.get(key);
       if (currentValue == null) {
         final String newValue = mappingFunction.apply(key);
@@ -442,6 +469,7 @@ public abstract class EhcacheBasicCrudBase {
     @Override
     public ValueHolder<String> computeIfPresent(final String key, final BiFunction<? super String, ? super String, ? extends String> remappingFunction)
         throws CacheAccessException {
+      this.checkFailingKey(key);
       final ValueHolder<String> currentValue = this.entries.get(key);
       if (currentValue != null) {
         final String newValue = remappingFunction.apply(key, currentValue.value());
@@ -500,6 +528,12 @@ public abstract class EhcacheBasicCrudBase {
         resultMap.put(key, newValue);
       }
       return resultMap;
+    }
+
+    private void checkFailingKey(final String key) throws CacheAccessException {
+      if (this.failingKeys.contains(key)) {
+        throw new CacheAccessException(String.format("Accessing failing key: %s", key));
+      }
     }
 
     /**
