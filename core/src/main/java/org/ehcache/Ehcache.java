@@ -331,7 +331,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   @Override
   public Map<K, V> getAll(Set<? extends K> keys) throws BulkCacheLoaderException {
     statusTransitioner.checkAvailable();
-    checkNonNull(keys);
+    checkNonNullContent(keys);
     final Map<K, V> successes = new HashMap<K, V>();
     final Map<K, Exception> failures = new HashMap<K, Exception>();
     Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction = new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
@@ -536,6 +536,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
     final Map<K, ? extends V> entriesToRemove = new HashMap<K, V>();
     for (K key: keys) {
+      if (key == null) {
+        throw new NullPointerException();
+      }
       entriesToRemove.put(key, null);
     }
     
@@ -924,6 +927,15 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
   }
   
+  private void checkNonNullContent(Collection<?> collectionOfThings) {
+    checkNonNull(collectionOfThings);
+    for (Object thing : collectionOfThings) {
+      if (thing == null) {
+        throw new NullPointerException();
+      }
+    }
+  }
+
   private void addBulkMethodEntriesCount(String key, long count) {
     AtomicLong current = bulkMethodEntries.get(key);
     if (current == null) {
