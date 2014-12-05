@@ -17,6 +17,8 @@ package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
 import org.ehcache.Cache.Entry;
+import org.ehcache.config.Eviction;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
@@ -39,13 +41,39 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Matchers.argThat;
 
 public abstract class BaseOnHeapStoreTest {
 
   private static final RuntimeException RUNTIME_EXCEPTION = new RuntimeException();
+
+  @Test
+  public void testEvictEmptyStoreDoesNothing() throws Exception {
+    OnHeapStore<String, String> store = newStore();
+    assertThat(store.evict(), is(false));
+  }
+
+  @Test
+  public void testEvictWithNoVetoDoesEvict() throws Exception {
+    OnHeapStore<String, String> store = newStore();
+    for (int i = 0; i < 100; i++) {
+      store.put(Integer.toString(i), Integer.toString(i));
+    }
+    assertThat(store.evict(), is(true));
+    assertThat(storeSize(store), is(99));
+  }
+
+  @Test
+  public void testEvictWithFullVetoDoesEvict() throws Exception {
+    OnHeapStore<String, String> store = newStore(Eviction.all());
+    for (int i = 0; i < 100; i++) {
+      store.put(Integer.toString(i), Integer.toString(i));
+    }
+    assertThat(store.evict(), is(true));
+    assertThat(storeSize(store), is(99));
+  }
 
   @Test
   public void testGet() throws Exception {
@@ -664,6 +692,16 @@ public abstract class BaseOnHeapStoreTest {
     
   }
 
+  private static int storeSize(OnHeapStore<?, ?> store) throws Exception {
+    int counter = 0;
+    Iterator<? extends Entry<?, ? extends ValueHolder<?>>> iterator = store.iterator();
+    while (iterator.hasNext()) {
+      iterator.next();
+      counter++;
+    }
+    return counter;
+  }
+
   private static <K, V> StoreEventListener<K, V> addExpiryListener(OnHeapStore<K, V> store) {
     StoreEventListener<K, V> listener = mock(StoreEventListener.class);
     store.enableStoreEventNotifications(listener);
@@ -724,7 +762,12 @@ public abstract class BaseOnHeapStoreTest {
 
   protected abstract <K, V> OnHeapStore<K, V> newStore();
 
+  protected abstract <K, V> OnHeapStore<K, V> newStore(EvictionVeto<? super K, ? super V> veto);
+
   protected abstract <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
       final Expiry<? super K, ? super V> expiry);
+
+  protected abstract <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
+      final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto);
 
 }

@@ -578,9 +578,21 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     }
   }
 
-  private boolean evict() {
+  /**
+   * Try to evict a mapping.
+   * @return true if a mapping was evicted, false otherwise.
+   */
+  boolean evict() {
     evictionObserver.begin();
-    Set<Map.Entry<K, OnHeapValueHolder<V>>> values = map.getRandomValues(new Random(), 8, (Predicate<Map.Entry<K, OnHeapValueHolder<V>>>)evictionVeto);
+    final Random random = new Random();
+    final int sampleSize = 8;
+
+    Set<Map.Entry<K, OnHeapValueHolder<V>>> values = map.getRandomValues(random, sampleSize, (Predicate<Map.Entry<K, OnHeapValueHolder<V>>>)evictionVeto);
+    if (values.isEmpty()) {
+      // 2nd attempt without any veto
+      values = map.getRandomValues(random, sampleSize, Predicates.<Map.Entry<K, OnHeapValueHolder<V>>>none());
+    }
+
     if (values.isEmpty()) {
       return false;
     } else {
@@ -735,19 +747,19 @@ public class OnHeapStore<K, V> implements Store<K, V> {
          return map.getRandomValues(random, size, veto);
        }
        
-       
+
        Set<Entry<OnHeapKey<K>, OnHeapValueHolder<V>>> values = keyCopyMap.getRandomValues(random, size, new Predicate<Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>>>() {
          @Override
          public boolean test(Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry) {
            return veto.test(new SimpleEntry<K, OnHeapValueHolder<V>>(entry.getKey().getActualKeyObject(), entry.getValue()));
          }
        });
-        
+
        Set<Entry<K, OnHeapValueHolder<V>>> rv = new LinkedHashSet<Map.Entry<K,OnHeapValueHolder<V>>>(values.size());
        for (Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry : values) {
          rv.add(new SimpleEntry<K, OnHeapValueHolder<V>>(entry.getKey().getActualKeyObject(), entry.getValue()));
        }
-       return rv; 
+       return rv;
     }
 
     int size() {
