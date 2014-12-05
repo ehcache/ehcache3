@@ -33,7 +33,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#bulkCompute(Iterable, org.ehcache.function.Function)} contract of the
+ * Test the {@link org.ehcache.spi.cache.Store#bulkCompute(java.util.Set, org.ehcache.function.Function)} contract of the
  * {@link org.ehcache.spi.cache.Store Store} interface.
  * <p/>
  *
@@ -128,7 +128,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      kvStore.bulkCompute(Arrays.asList((K[])inputKeys.toArray()), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+      kvStore.bulkCompute(inputKeys, new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
           Map<K, V> update = new HashMap<K, V>();

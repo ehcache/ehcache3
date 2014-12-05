@@ -26,7 +26,6 @@ import org.ehcache.spi.writer.CacheWriter;
 import org.ehcache.spi.writer.CacheWriterFactory;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.invocation.InvocationOnMock;
@@ -128,7 +127,7 @@ public class WriterErrorEhcacheTest {
     }).when(cacheWriter).deleteAll((Iterable) Matchers.any());
 
     try {
-      testCache.removeAll(Arrays.asList(1, 2, 3, 4));
+      testCache.removeAll(new HashSet<Number>(Arrays.asList(1, 2, 3, 4)));
       fail("expected CacheWriterException");
     } catch (BulkCacheWriterException ex) {
       assertThat(ex.getFailures().size(), is(1));
@@ -238,7 +237,7 @@ public class WriterErrorEhcacheTest {
     values.put(2, "two");
 
     try {
-      testCache.putAll(values.entrySet());
+      testCache.putAll(values);
       fail("expected CacheWriterException");
     } catch (CacheWriterException ex) {
       // expected

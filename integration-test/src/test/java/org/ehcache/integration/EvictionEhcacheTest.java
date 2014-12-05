@@ -98,7 +98,7 @@ public class EvictionEhcacheTest {
     values.put(3, "three");
     values.put(4, "four");
 
-    testCache.putAll(values.entrySet());
+    testCache.putAll(values);
 
     int count = 0;
     for (Cache.Entry<Number, CharSequence> entry : testCache) {

@@ -29,6 +29,7 @@ import org.junit.Test;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.contains;
@@ -132,7 +133,7 @@ public class WriterSimpleEhcacheTest {
     values.put(1, "one");
     values.put(2, "two");
 
-    testCache.putAll(values.entrySet());
+    testCache.putAll(values);
 
     verify(cacheWriter, times(1)).writeAll(argThat(contains(entry(1, "one"))));
     verify(cacheWriter, times(1)).writeAll(argThat(contains(entry(2, "two"))));
@@ -140,7 +141,7 @@ public class WriterSimpleEhcacheTest {
 
   @Test
   public void testSimpleRemoveAllWithWriter() throws Exception {
-    testCache.removeAll(Arrays.asList(1, 2));
+    testCache.removeAll(new HashSet<Number>(Arrays.asList(1, 2)));
 
     verify(cacheWriter, times(1)).deleteAll(argThat(contains(1)));
     verify(cacheWriter, times(1)).deleteAll(argThat(contains(2)));

@@ -260,7 +260,7 @@ public interface ResilienceStrategy<K, V> {
   boolean replaceFailure(K key, V value, V newValue, CacheAccessException e, CacheWriterException f);
   
   /**
-   * Called when a {@link Cache#getAll(java.lang.Iterable)} fails on a cache
+   * Called when a {@link Cache#getAll(java.util.Set)} fails on a cache
    * without a cache loader due to an underlying store failure.
    * 
    * @param keys the keys being retrieved
@@ -270,7 +270,7 @@ public interface ResilienceStrategy<K, V> {
   Map<K, V> getAllFailure(Iterable<? extends K> keys, CacheAccessException e);
 
   /**
-   * Called when a {@link Cache#getAll(java.lang.Iterable)} fails on a cache
+   * Called when a {@link Cache#getAll(java.util.Set)} fails on a cache
    * with a cache loader due to an underlying store failure.
    * 
    * @param keys the keys being retrieved
@@ -281,7 +281,7 @@ public interface ResilienceStrategy<K, V> {
   Map<K, V> getAllFailure(Iterable<? extends K> keys, Map<K, V> loaded, CacheAccessException e);
   
   /**
-   * Called when a {@link Cache#getAll(java.lang.Iterable)} fails on a cache
+   * Called when a {@link Cache#getAll(java.util.Set)} fails on a cache
    * with a cache loader due to an underlying store failure, and the associated
    * cache write operation also failed.
    * 
@@ -293,27 +293,27 @@ public interface ResilienceStrategy<K, V> {
   Map<K, V> getAllFailure(Iterable<? extends K> keys, CacheAccessException e, BulkCacheLoaderException f);
   
   /**
-   * Called when a {@link Cache#putAll(java.lang.Iterable)} fails due to an
+   * Called when a {@link Cache#putAll(java.util.Map)} fails due to an
    * underlying store failure.
-   * 
+   *
    * @param entries the entries being put
    * @param e the triggered failure
    */
-  void putAllFailure(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, CacheAccessException e);
+  void putAllFailure(Map<? extends K, ? extends V> entries, CacheAccessException e);
 
   /**
-   * Called when a {@link Cache#putAll(java.lang.Iterable)} fails due to an
+   * Called when a {@link Cache#putAll(java.util.Map)} fails due to an
    * underlying store failure, and the associated cache write operation also
    * failed.
-   * 
+   *
    * @param entries the entries being put
    * @param e the cache failure
    * @param f the writer failure
    */
-  void putAllFailure(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, CacheAccessException e, BulkCacheWriterException f);
+  void putAllFailure(Map<? extends K, ? extends V> entries, CacheAccessException e, BulkCacheWriterException f);
 
   /**
-   * Called when a {@link Cache#removeAll(java.lang.Iterable)} fails due to an
+   * Called when a {@link Cache#removeAll(java.util.Set)} fails due to an
    * underlying store failure.
    * 
    * @param keys the keys being removed
@@ -323,7 +323,7 @@ public interface ResilienceStrategy<K, V> {
   Map<K, V> removeAllFailure(Iterable<? extends K> keys, CacheAccessException e);
 
   /**
-   * Called when a {@link Cache#removeAll(java.lang.Iterable)} fails
+   * Called when a {@link Cache#removeAll(java.util.Set)} fails
    * due to an underlying store failure, and the associated cache write
    * operation also failed.
    * 

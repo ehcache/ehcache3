@@ -78,7 +78,7 @@ public class EhcacheBulkMethodsITest {
     }
 
     // the call to putAll
-    myCache.putAll(stringStringHashMap.entrySet());
+    myCache.putAll(stringStringHashMap);
 
     for (int i = 0; i < 3; i++) {
       assertThat(myCache.get("key" + i), is("value" + i));
@@ -110,7 +110,7 @@ public class EhcacheBulkMethodsITest {
     }
 
     // the call to putAll
-    myCache.putAll(stringStringHashMap.entrySet());
+    myCache.putAll(stringStringHashMap);
 
     verify(cacheWriter, times(3)).writeAll(Matchers.any(Iterable.class));
     Map iterable = new HashMap(){{put("key2", "value2");}};
@@ -148,7 +148,7 @@ public class EhcacheBulkMethodsITest {
 
     // the call to putAll
     try {
-      myCache.putAll(stringStringHashMap.entrySet());
+      myCache.putAll(stringStringHashMap);
       fail();
     } catch (BulkCacheWriterException bcwe) {
       assertThat(bcwe.getFailures().size(), is(3));
@@ -182,7 +182,7 @@ public class EhcacheBulkMethodsITest {
     }
 
     // the call to putAll
-    myCache.putAll(stringStringHashMap.entrySet());
+    myCache.putAll(stringStringHashMap);
 
     for (int i = 0; i < 3; i++) {
       // the store threw an exception when we call bulkCompute
@@ -504,12 +504,12 @@ public class EhcacheBulkMethodsITest {
     public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       return new OnHeapStore<K, V>(storeConfig, SystemTimeSource.INSTANCE, false) {
         @Override
-        public Map<K, ValueHolder<V>> bulkCompute(Iterable<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
+        public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
           throw new CacheAccessException("Problem trying to bulk compute");
         }
 
         @Override
-        public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Iterable<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
+        public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
           throw new CacheAccessException("Problem trying to bulk compute");
         }
       };

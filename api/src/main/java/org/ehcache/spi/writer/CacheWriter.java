@@ -55,7 +55,7 @@ public interface CacheWriter<K, V> {
    * declares which keys were actually written (if any)
    * @throws Exception a generic failure. All entries will be considered not written in this case
    *
-   * @see org.ehcache.Cache#putAll(Iterable)
+   * @see org.ehcache.Cache#putAll(java.util.Map)
    */
   void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws BulkCacheWriterException, Exception;
 
@@ -77,7 +77,7 @@ public interface CacheWriter<K, V> {
    * declares which keys were actually deleted (if any)
    * @throws Exception a generic failure. All entries will be considered not deleted in this case
    *
-   * @see org.ehcache.Cache#removeAll(Iterable)
+   * @see org.ehcache.Cache#removeAll(java.util.Set)
    */
   void deleteAll(Iterable<? extends K> keys) throws BulkCacheWriterException, Exception;
 

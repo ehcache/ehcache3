@@ -26,6 +26,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -82,7 +83,7 @@ public class SimpleEhcacheTest {
     values.put(2, "two");
     values.put(3, "three");
 
-    testCache.putAll(values.entrySet());
+    testCache.putAll(values);
 
     assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("one"));
     assertThat(testCache.get(2), Matchers.<CharSequence>equalTo("two"));
@@ -96,10 +97,11 @@ public class SimpleEhcacheTest {
     testCache.put(1, "one");
     testCache.put(2, "two");
 
-    Map<Number, CharSequence> all = testCache.getAll(Arrays.asList(1, 2, 3));
-    assertThat(all.keySet(), containsInAnyOrder((Number)1, 2));
+    Map<Number, CharSequence> all = testCache.getAll(new HashSet<Number>(Arrays.asList(1, 2, 3)));
+    assertThat(all.keySet(), containsInAnyOrder((Number)1, 2, 3));
     assertThat(all.get(1), Matchers.<CharSequence>equalTo("one"));
     assertThat(all.get(2), Matchers.<CharSequence>equalTo("two"));
+    assertThat(all.get(3), is(nullValue()));
   }
 
   @Test
@@ -146,7 +148,7 @@ public class SimpleEhcacheTest {
     testCache.put(2, "two");
     testCache.put(3, "three");
 
-    testCache.removeAll(Arrays.asList(1, 2));
+    testCache.removeAll(new HashSet<Number>(Arrays.asList(1, 2)));
 
     assertThat(testCache.get(1), is(nullValue()));
     assertThat(testCache.get(2), is(nullValue()));

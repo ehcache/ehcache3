@@ -31,6 +31,7 @@ import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -111,10 +112,11 @@ public class LoaderSimpleEhcacheTest {
       }
     });
 
-    Map<Number, CharSequence> all = testCache.getAll(Arrays.asList(1, 2, 3));
-    assertThat(all.keySet(), containsInAnyOrder((Number)1, 2));
+    Map<Number, CharSequence> all = testCache.getAll(new HashSet<Number>(Arrays.asList(1, 2, 3)));
+    assertThat(all.keySet(), containsInAnyOrder((Number)1, 2, 3));
     assertThat(all.get(1), Matchers.<CharSequence>equalTo("one"));
     assertThat(all.get(2), Matchers.<CharSequence>equalTo("two"));
+    assertThat(all.get(3), is(nullValue()));
   }
 
 }

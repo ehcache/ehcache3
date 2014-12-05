@@ -160,13 +160,13 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
-  public void putAllFailure(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, CacheAccessException e) {
-    cleanup(keysOf(entries), e);
+  public void putAllFailure(Map<? extends K, ? extends V> entries, CacheAccessException e) {
+    cleanup(entries.keySet(), e);
   }
 
   @Override
-  public void putAllFailure(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, CacheAccessException e, BulkCacheWriterException f) {
-    cleanup(keysOf(entries), e);
+  public void putAllFailure(Map<? extends K, ? extends V> entries, CacheAccessException e, BulkCacheWriterException f) {
+    cleanup(entries.keySet(), e);
     throw f;
   }
 

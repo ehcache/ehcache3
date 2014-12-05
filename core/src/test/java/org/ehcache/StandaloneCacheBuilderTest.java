@@ -18,12 +18,14 @@ package org.ehcache;
 
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.StandaloneCacheConfiguration;
+import org.ehcache.exceptions.BulkCacheWriterException;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.statistics.CacheStatistics;
 import org.junit.Test;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 public class StandaloneCacheBuilderTest {
 
@@ -131,17 +133,17 @@ public class StandaloneCacheBuilderTest {
     }
 
     @Override
-    public Map<K, V> getAll(Iterable<? extends K> keys) {
+    public Map<K, V> getAll(Set<? extends K> keys) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void putAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+    public void putAll(Map<? extends K, ? extends V> entries) throws BulkCacheWriterException {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void removeAll(Iterable<? extends K> keys) {
+    public void removeAll(Set<? extends K> keys) {
       throw new UnsupportedOperationException("Implement me!");
     }
     

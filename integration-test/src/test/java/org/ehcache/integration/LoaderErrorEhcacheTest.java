@@ -33,6 +33,7 @@ import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -122,7 +123,7 @@ public class LoaderErrorEhcacheTest {
     });
 
     try {
-      testCache.getAll(Arrays.asList(1, 2, 3, 4));
+      testCache.getAll(new HashSet<Number>(Arrays.asList(1, 2, 3, 4)));
       fail("expected BulkCacheLoaderException");
     } catch (BulkCacheLoaderException ex) {
       assertThat(ex.getFailures().size(), is(1));

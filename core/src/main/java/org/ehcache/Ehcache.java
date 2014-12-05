@@ -85,7 +85,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.ehcache.Functions.memoize;
 import static org.ehcache.exceptions.ExceptionFactory.newCacheLoaderException;
 import static org.ehcache.exceptions.ExceptionFactory.newCacheWriterException;
-import static org.ehcache.util.KeysIterable.keysOf;
 import static org.terracotta.statistics.StatisticsBuilder.operation;
 
 /**
@@ -330,9 +329,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   }
 
   @Override
-  public Map<K, V> getAll(Iterable<? extends K> keys) throws BulkCacheLoaderException {
+  public Map<K, V> getAll(Set<? extends K> keys) throws BulkCacheLoaderException {
     statusTransitioner.checkAvailable();
-    checkNonNull(keys);
+    checkNonNullContent(keys);
     final Map<K, V> successes = new HashMap<K, V>();
     final Map<K, Exception> failures = new HashMap<K, Exception>();
     Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction = new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
@@ -360,7 +359,10 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       Map<K, Store.ValueHolder<V>> computedMap = store.bulkComputeIfAbsent(keys, mappingFunction);
      
       if (computedMap == null) {
-        return Collections.emptyMap();
+        for (K key : keys) {
+          result.put(key, null);
+        }
+        return result;
       }
 
       int hits = 0;
@@ -368,6 +370,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         if (entry.getValue() != null) {
           result.put(entry.getKey(), entry.getValue().value());
           hits++;
+        } else {
+          result.put(entry.getKey(), null);
         }
       }
       addBulkMethodEntriesCount("getAll", hits);
@@ -405,7 +409,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   }
 
   @Override
-  public void putAll(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws CacheWriterException {
+  public void putAll(final Map<? extends K, ? extends V> entries) throws BulkCacheWriterException {
     statusTransitioner.checkAvailable();
     checkNonNull(entries);
     final Set<K> successes;
@@ -420,7 +424,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     
     // Copy all entries to write into a Map
     final Map<K, V> entriesToRemap = new HashMap<K, V>();
-    for (Map.Entry<? extends K, ? extends V> entry: entries) {
+    for (Map.Entry<? extends K, ? extends V> entry: entries.entrySet()) {
       // If a key/value is null, throw NPE, nothing gets mutated
       if (entry.getKey() == null || entry.getValue() == null) {
         throw new NullPointerException();
@@ -465,9 +469,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     };
 
-    Iterable<K> keys = keysOf(entries);
     try {
-      store.bulkCompute(keys, remappingFunction);
+      store.bulkCompute(entries.keySet(), remappingFunction);
       addBulkMethodEntriesCount("putAll", actualPutCount.get());
       if (! failures.isEmpty()) {
         throw new BulkCacheWriterException(failures, successes);
@@ -518,7 +521,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   }
 
   @Override
-  public void removeAll(final Iterable<? extends K> keys) throws CacheWriterException {
+  public void removeAll(final Set<? extends K> keys) throws BulkCacheWriterException {
     statusTransitioner.checkAvailable();
     checkNonNull(keys);
     final Set<K> successes;
@@ -533,6 +536,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
     final Map<K, ? extends V> entriesToRemove = new HashMap<K, V>();
     for (K key: keys) {
+      if (key == null) {
+        throw new NullPointerException();
+      }
       entriesToRemove.put(key, null);
     }
     
@@ -921,6 +927,15 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
   }
   
+  private void checkNonNullContent(Collection<?> collectionOfThings) {
+    checkNonNull(collectionOfThings);
+    for (Object thing : collectionOfThings) {
+      if (thing == null) {
+        throw new NullPointerException();
+      }
+    }
+  }
+
   private void addBulkMethodEntriesCount(String key, long count) {
     AtomicLong current = bulkMethodEntries.get(key);
     if (current == null) {
