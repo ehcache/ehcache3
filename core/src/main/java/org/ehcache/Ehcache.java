@@ -68,6 +68,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -77,6 +78,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -406,20 +408,27 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   public void putAll(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws CacheWriterException {
     statusTransitioner.checkAvailable();
     checkNonNull(entries);
-    final Set<K> successes = new HashSet<K>();
-    final Map<K, Exception> failures = new HashMap<K, Exception>();
-
+    final Set<K> successes;
+    final Map<K, Exception> failures;
+    if (cacheWriter != null) {
+      successes = new HashSet<K>();
+      failures = new HashMap<K, Exception>();
+    } else {
+      successes = Collections.emptySet();
+      failures = Collections.emptyMap();
+    }
+    
     // Copy all entries to write into a Map
-    final ConcurrentMap<K, V> entriesToRemap = new ConcurrentHashMap<K, V>();
+    final Map<K, V> entriesToRemap = new HashMap<K, V>();
     for (Map.Entry<? extends K, ? extends V> entry: entries) {
-      // If a value to map is null, throw NPE, nothing gets mutated
-      if(entry.getValue() == null) {
+      // If a key/value is null, throw NPE, nothing gets mutated
+      if (entry.getKey() == null || entry.getValue() == null) {
         throw new NullPointerException();
       }
       entriesToRemap.put(entry.getKey(), entry.getValue());
     }
     
-    long entriesCount = entriesToRemap.size();
+    final AtomicInteger actualPutCount = new AtomicInteger();
 
     // The remapping function that will return the keys to their NEW values, taking the keys to their old values as input;
     // but this could happen in batches, i.e. not the same unique Set as passed to this method
@@ -427,22 +436,28 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
       @Override
       public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-
         // If we have a writer, first write this batch
-        cacheWriterPutAllCall(entries, entriesToRemap, successes, failures);
+        cacheWriterWriteAllCall(entries, entriesToRemap, successes, failures);
 
-        Map<K, V> mutations = new HashMap<K, V>();
+        Map<K, V> mutations = new LinkedHashMap<K, V>();
 
         // then record we handled these mappings
         for (Map.Entry<? extends K, ? extends V> entry: entries) {
           K key = entry.getKey();
-          V newValue = entriesToRemap.remove(key);
-          mutations.put(entry.getKey(), newValue);
+          V existingValue = entry.getValue();
           
-          Cache.Entry<K, V> newEntry = newCacheEntry(key, newValue);
-          eventNotificationService.onEvent(entry.getValue() == null ? 
-              CacheEvents.creation(newEntry, Ehcache.this) : CacheEvents.update(newEntry, 
-                  newCacheEntry(key, (V)entry.getValue()), Ehcache.this));
+          if (cacheWriter == null || successes.contains(key)) {
+            actualPutCount.incrementAndGet();
+            V newValue = entriesToRemap.remove(key);
+            mutations.put(key, newValue);
+          
+            Cache.Entry<K, V> newEntry = newCacheEntry(key, newValue);
+            eventNotificationService.onEvent(existingValue == null ? 
+              CacheEvents.creation(newEntry, Ehcache.this) : CacheEvents.update( 
+                  newCacheEntry(key, existingValue), newEntry, Ehcache.this));
+          } else {
+            mutations.put(key, existingValue);
+          }
         }
 
         // Finally return the values to be installed in the Cache's Store
@@ -453,8 +468,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     Iterable<K> keys = keysOf(entries);
     try {
       store.bulkCompute(keys, remappingFunction);
-      addBulkMethodEntriesCount("putAll", entriesCount);
-      if (!failures.isEmpty()) {
+      addBulkMethodEntriesCount("putAll", actualPutCount.get());
+      if (! failures.isEmpty()) {
         throw new BulkCacheWriterException(failures, successes);
       }
     } catch (CacheAccessException e) {
@@ -462,8 +477,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         resilienceStrategy.putAllFailure(entries, e);
       } else {
         // just in case not all writes happened:
-        if (!entriesToRemap.isEmpty()) {
-          cacheWriterPutAllCall(entriesToRemap.entrySet(), entriesToRemap, successes, failures);
+        if (! entriesToRemap.isEmpty()) {
+          cacheWriterWriteAllCall(entriesToRemap.entrySet(), entriesToRemap, successes, failures);
         }
         if (failures.isEmpty()) {
           resilienceStrategy.putAllFailure(entries, e);
@@ -474,20 +489,20 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
   }
 
-  private void cacheWriterPutAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, ConcurrentMap<K, V> entriesToRemap, Set<K> successes, Map<K, Exception> failures) {
+  private void cacheWriterWriteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Map<K, V> entriesToRemap, Set<K> successes, Map<K, Exception> failures) {
     if (cacheWriter != null) {
-      // Can't use an iterable again, so flatting down to a Map
-      // todo might want to fix the typing here
       Map<K, V> toWrite = new HashMap<K, V>();
       for (Map.Entry<? extends K, ? extends V> entry: entries) {
         toWrite.put(entry.getKey(), entriesToRemap.get(entry.getKey()));
       }
       try {
-        if (!toWrite.isEmpty()) {
+        if (! toWrite.isEmpty()) {
           // write all entries of this batch
           cacheWriter.writeAll(toWrite.entrySet());
           successes.addAll(toWrite.keySet());
         }
+      } catch (BulkCacheWriterException bcwe) {
+        collectSuccessesAndFailures(bcwe, successes, failures);
       } catch (Exception e) {
         for (K key: toWrite.keySet()) {
           failures.put(key, e);
@@ -496,38 +511,63 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
   }
 
+  @SuppressWarnings({ "unchecked" })
+  private static <K> void collectSuccessesAndFailures(BulkCacheWriterException bcwe, Set<K> successes, Map<K, Exception> failures) {
+    successes.addAll((Collection<K>)bcwe.getSuccesses());
+    failures.putAll((Map<K, Exception>)bcwe.getFailures());
+  }
+
   @Override
   public void removeAll(final Iterable<? extends K> keys) throws CacheWriterException {
     statusTransitioner.checkAvailable();
     checkNonNull(keys);
-    final Set<K> successes = new HashSet<K>();
-    final Map<K, Exception> failures = new HashMap<K, Exception>();
+    final Set<K> successes;
+    final Map<K, Exception> failures;
+    if (cacheWriter != null) {
+      successes = new HashSet<K>();
+      failures = new HashMap<K, Exception>();
+    } else {
+      successes = Collections.emptySet();
+      failures = Collections.emptyMap();
+    }
 
     final Map<K, ? extends V> entriesToRemove = new HashMap<K, V>();
     for (K key: keys) {
       entriesToRemove.put(key, null);
     }
-    long entriesCount = entriesToRemove.size();
+    
+    final AtomicInteger actualRemoveCount = new AtomicInteger();
     
     Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> removalFunction =
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
           cacheWriterDeleteAllCall(entries, successes, failures);
-          Iterable<Map.Entry<K, V>> ret = new NullValuesIterable(entries);
-          for (Map.Entry<K, V> entry: ret) {
-            entriesToRemove.remove(entry.getKey());
-            eventNotificationService.onEvent(CacheEvents.removal(newCacheEntry(entry.getKey(), 
-                entry.getValue()), Ehcache.this));
+          
+          Map<K, V> results = new LinkedHashMap<K, V>();
+          
+          for (Map.Entry<? extends K, ? extends V> entry : entries) {
+            K key = entry.getKey();
+            V existingValue = entry.getValue();
+            
+            if (cacheWriter == null || successes.contains(key)) {
+              actualRemoveCount.incrementAndGet();
+              results.put(key, null);
+              entriesToRemove.remove(key);
+              eventNotificationService.onEvent(CacheEvents.removal(newCacheEntry(key, existingValue), Ehcache.this));
+            } else {
+              results.put(key, existingValue);
+            }
           }
-          return ret;
+          
+          return results.entrySet();
         }
       };
 
     try {
       store.bulkCompute(keys, removalFunction);
-      addBulkMethodEntriesCount("removeAll", entriesCount);
-      if (!failures.isEmpty()) {
+      addBulkMethodEntriesCount("removeAll", actualRemoveCount.get());
+      if (! failures.isEmpty()) {
         throw new BulkCacheWriterException(failures, successes);
       }
     } catch (CacheAccessException e) {
@@ -535,7 +575,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         resilienceStrategy.removeAllFailure(keys, e);
       } else {
         // just in case not all writes happened:
-        if (!entriesToRemove.isEmpty()) {
+        if (! entriesToRemove.isEmpty()) {
           cacheWriterDeleteAllCall(entriesToRemove.entrySet(), successes, failures);
         }
         if (failures.isEmpty()) {
@@ -553,13 +593,15 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       for (Map.Entry<? extends K, ? extends V> entry: entries) {
         toDelete.add(entry.getKey());
       }
+      
       try {
-        // XXX should the return value here be wrapped in NullValuesIterable and returned? This is a potential subset of "keys"
         cacheWriter.deleteAll(toDelete);
         successes.addAll(toDelete);
+      } catch (BulkCacheWriterException bcwe) {
+        collectSuccessesAndFailures(bcwe, successes, failures);
       } catch (Exception e) {
-        for (Map.Entry<? extends K, ? extends V> entry: entries) {
-          failures.put(entry.getKey(), e);
+        for (K key : toDelete) {
+          failures.put(key, e);
         }
       }
     }
@@ -992,6 +1034,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       return this.serializationProvider;
     }
 
+    @Override
     public ClassLoader getClassLoader() {
       return this.classLoader;
     }
@@ -1001,6 +1044,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       return expiry;
     }
     
+    @Override
     public synchronized void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener) {
       eventNotificationService.deregisterCacheEventListener(listener);
       if (!eventNotificationService.hasListeners()) {
@@ -1138,58 +1182,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
   }
 
-
-  private class NullValuesIterable implements Iterable<Map.Entry<K, V>> {
-    private final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries;
-
-    public NullValuesIterable(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-      this.entries = entries;
-    }
-
-    @Override
-    public Iterator<Map.Entry<K, V>> iterator() {
-      return new NullValuesIterator(entries.iterator());
-    }
-  }
-
-  private class NullValuesIterator implements Iterator<Map.Entry<K, V>> {
-    private final Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator;
-
-    public NullValuesIterator(Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator) {
-      this.iterator = iterator;
-    }
-
-    @Override
-    public boolean hasNext() {
-      return iterator.hasNext();
-    }
-
-    @Override
-    public Map.Entry<K, V> next() {
-      final Map.Entry<? extends K, ? extends V> next = iterator.next();
-      return new Map.Entry<K, V>() {
-        @Override
-        public K getKey() {
-          return next.getKey();
-        }
-
-        @Override
-        public V getValue() {
-          return null;
-        }
-
-        @Override
-        public V setValue(V value) {
-          return null;
-        }
-      };
-    }
-
-    @Override
-    public void remove() {
-      iterator.remove();
-    }
-  }
 
   private static <K> RecoveryCache<K> recoveryCache(final Store<K, ?> store) {
     return new RecoveryCache<K>() {

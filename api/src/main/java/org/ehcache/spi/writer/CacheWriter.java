@@ -17,7 +17,8 @@
 package org.ehcache.spi.writer;
 
 import java.util.Map;
-import java.util.Set;
+
+import org.ehcache.exceptions.BulkCacheWriterException;
 
 /**
  * A CacheWriter is associated with a given {@link org.ehcache.Cache} instance and will be used to maintain it in sync
@@ -46,33 +47,38 @@ public interface CacheWriter<K, V> {
 
   /**
    * Writes multiple entries to the underlying system of record. These can either be new entries or updates to
-   * existing ones.
+   * existing ones. It is legal for this method to result in "partial success" where some subset of the entries
+   * are written. In this case a {@link BulkCacheWriterException} must be thrown (see below)
    *
    * @param entries the key to value mappings
-   * @return the set of values actually inserted or updated
+   * @throws BulkCacheWriterException This writer must throw this exception to indicate partial success. The exception
+   * declares which keys were actually written (if any)
+   * @throws Exception a generic failure. All entries will be considered not written in this case
    *
    * @see org.ehcache.Cache#putAll(Iterable)
    */
-  Set<K> writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws Exception;
+  void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws BulkCacheWriterException, Exception;
 
   /**
    * Deletes a single entry from the underlying system of record.
    *
    * @param key the key to delete
-   * @return {@code true} if a entry was deleted, {@code false} otherwise
    *
    * @see org.ehcache.Cache#remove(Object)
    */
-  boolean delete(K key) throws Exception;
+  void delete(K key) throws Exception;
 
   /**
-   * Deletes a set of entry from the underlying system of record.
+   * Deletes a set of entry from the underlying system of record. It is legal for this method to result in "partial success" where some subset of the keys
+   * are deleted. In this case a {@link BulkCacheWriterException} must be thrown (see below)
    *
    * @param keys the keys to delete
-   * @return the set of keys that were effectively deleted from the system of record
+   * @throws BulkCacheWriterException This writer must throw this exception to indicate partial success. The exception
+   * declares which keys were actually deleted (if any)
+   * @throws Exception a generic failure. All entries will be considered not deleted in this case
    *
    * @see org.ehcache.Cache#removeAll(Iterable)
    */
-  Set<K> deleteAll(Iterable<? extends K> keys) throws Exception;
+  void deleteAll(Iterable<? extends K> keys) throws BulkCacheWriterException, Exception;
 
 }

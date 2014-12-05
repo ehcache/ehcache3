@@ -22,7 +22,7 @@ import java.util.Set;
 
 /**
  * Exception thrown by a {@link org.ehcache.Cache} when the {@link org.ehcache.spi.writer.CacheWriter} it uses threw an
- * {@link java.lang.RuntimeException} while bulk writing / removing values for a given set of keys
+ * exception while bulk writing / removing values for a given set of keys
  *
  * @author Anthony Dahanne
  */

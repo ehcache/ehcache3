@@ -94,17 +94,17 @@ public class DefaultCacheWriterFactoryTest {
     }
 
     @Override
-    public Set<Object> writeAll(final Iterable<? extends Map.Entry<?, ?>> entries) throws Exception {
+    public void writeAll(final Iterable<? extends Map.Entry<?, ?>> entries) throws Exception {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public boolean delete(final Object key) throws Exception {
+    public void delete(final Object key) throws Exception {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public Set<Object> deleteAll(final Iterable<?> keys) throws Exception {
+    public void deleteAll(final Iterable<?> keys) throws Exception {
       throw new UnsupportedOperationException("Implement me!");
     }
   }

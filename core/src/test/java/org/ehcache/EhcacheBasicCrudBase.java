@@ -370,6 +370,7 @@ public abstract class EhcacheBasicCrudBase {
 
           return new Cache.Entry<String, ValueHolder<String>>() {
 
+            @Override
             public String getKey() {
               return cacheEntry.getKey();
             }
@@ -577,18 +578,18 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public Set<String> writeAll(final Iterable<? extends Map.Entry<? extends String, ? extends String>> entries)
+    public void writeAll(final Iterable<? extends Map.Entry<? extends String, ? extends String>> entries)
         throws Exception {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean delete(final String key) throws Exception {
-      return (null == this.cache.remove(key));
+    public void delete(final String key) throws Exception {
+      this.cache.remove(key);
     }
 
     @Override
-    public Set<String> deleteAll(final Iterable<? extends String> keys) throws Exception {
+    public void deleteAll(final Iterable<? extends String> keys) throws Exception {
       throw new UnsupportedOperationException();
     }
   }

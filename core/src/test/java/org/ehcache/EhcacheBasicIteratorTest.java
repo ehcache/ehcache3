@@ -362,10 +362,10 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
 
     @SuppressWarnings("unchecked")
     final CacheWriter<String, String> cacheWriter = mock(CacheWriter.class);
-    when(cacheWriter.delete(anyString())).thenThrow(new UnsupportedOperationException());
-    when(cacheWriter.deleteAll(getAnyStringIterable())).thenThrow(new UnsupportedOperationException());
+    doThrow(new UnsupportedOperationException()).when(cacheWriter).delete(anyString());
+    doThrow(new UnsupportedOperationException()).when(cacheWriter).deleteAll(getAnyStringIterable());
     doThrow(new UnsupportedOperationException()).when(cacheWriter).write(anyString(), anyString());
-    when(cacheWriter.writeAll(getAnyMapEntryIterable())).thenThrow(new UnsupportedOperationException());
+    doThrow(new UnsupportedOperationException()).when(cacheWriter).writeAll(getAnyMapEntryIterable());
 
     return this.getEhcache(cacheWriter);
   }

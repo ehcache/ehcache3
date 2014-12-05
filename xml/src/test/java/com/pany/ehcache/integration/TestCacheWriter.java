@@ -34,17 +34,17 @@ public class TestCacheWriter implements CacheWriter<Number, String> {
   }
 
   @Override
-  public Set<Number> writeAll(final Iterable<? extends Map.Entry<? extends Number, ? extends String>> entries) throws Exception {
+  public void writeAll(final Iterable<? extends Map.Entry<? extends Number, ? extends String>> entries) throws Exception {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public boolean delete(final Number key) throws Exception {
+  public void delete(final Number key) throws Exception {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public Set<Number> deleteAll(final Iterable<? extends Number> keys) throws Exception {
+  public void deleteAll(final Iterable<? extends Number> keys) throws Exception {
     throw new UnsupportedOperationException("Implement me!");
   }
 }

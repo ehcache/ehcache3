@@ -22,10 +22,8 @@ import org.ehcache.spi.writer.CacheWriter;
 import com.pany.domain.Product;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
 /**
@@ -49,28 +47,17 @@ public class ProductCacheWriter implements CacheWriter<Long, Product> {
   }
 
   @Override
-  public Set<Long> writeAll(final Iterable<? extends Map.Entry<? extends Long, ? extends Product>> entries) throws Exception {
+  public void writeAll(final Iterable<? extends Map.Entry<? extends Long, ? extends Product>> entries) throws Exception {
     // no-op
-    final Set<Long> set = new HashSet<Long>();
-    for (Map.Entry<? extends Long, ? extends Product> entry : entries) {
-      set.add(entry.getKey());
-    }
-    return set;
   }
 
   @Override
-  public boolean delete(final Long key) throws Exception {
+  public void delete(final Long key) throws Exception {
     // no-op
-    return true;
   }
 
   @Override
-  public Set<Long> deleteAll(final Iterable<? extends Long> keys) throws Exception {
+  public void deleteAll(final Iterable<? extends Long> keys) throws Exception {
     // no-op
-    final Set<Long> set = new HashSet<Long>();
-    for (Long key : keys) {
-      set.add(key);
-    }
-    return set;
   }
 }
