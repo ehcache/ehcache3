@@ -15,6 +15,7 @@
  */
 package org.ehcache.internal.store;
 
+import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.exceptions.SerializerException;
@@ -36,11 +37,6 @@ import java.util.List;
 import static org.junit.Assert.fail;
 
 public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
-
-  @Override
-  protected <K, V> OnHeapStore<K, V> newStore() {
-    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration());
-  }
 
   @Test
   public void testPutNotSerializableValue() throws Exception {
@@ -101,10 +97,25 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
       throw new AssertionError();
     }
   }
-  
+
+  @Override
+  protected <K, V> OnHeapStore<K, V> newStore() {
+    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.none());
+  }
+
+  @Override
+  protected <K, V> OnHeapStore<K, V> newStore(EvictionVeto<? super K, ? super V> veto) {
+    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), veto);
+  }
+
+  @Override
+  protected <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry) {
+    return newStore(timeSource, expiry, Eviction.none());
+  }
+
   @Override
   protected <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
-      final Expiry<? super K, ? super V> expiry) {
+      final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto) {
     return new OnHeapStore<K, V>(new Store.Configuration<K, V>() {
       @Override
       public Class<K> getKeyType() {
@@ -123,12 +134,12 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
 
       @Override
       public EvictionVeto<? super K, ? super V> getEvictionVeto() {
-        return null;
+        return veto;
       }
 
       @Override
       public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
-        return null;
+        return Eviction.Prioritizer.LRU;
       }
 
       @Override
