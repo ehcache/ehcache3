@@ -95,7 +95,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   private final StatusTransitioner statusTransitioner = new StatusTransitioner();
 
-  @ContextChild
   private final Store<K, V> store;
   private final CacheLoader<? super K, ? extends V> cacheLoader;
   private final CacheWriter<? super K, ? super V> cacheWriter;
