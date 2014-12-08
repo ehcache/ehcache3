@@ -58,6 +58,7 @@ import org.ehcache.statistics.CacheStatistics;
 import org.ehcache.statistics.DisabledStatistics;
 import org.ehcache.statistics.StatisticsGateway;
 import org.terracotta.context.annotations.ContextChild;
+import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
 
 import java.util.AbstractMap;
@@ -94,7 +95,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   private final StatusTransitioner statusTransitioner = new StatusTransitioner();
 
-  @ContextChild
   private final Store<K, V> store;
   private final CacheLoader<? super K, ? extends V> cacheLoader;
   private final CacheWriter<? super K, ? super V> cacheWriter;
@@ -136,6 +136,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       CacheEventNotificationService<K, V> eventNotifier,
       ScheduledExecutorService statisticsExecutor) {
     this.store = store;
+    StatisticsManager.associate(store).withParent(this);
     this.cacheLoader = cacheLoader;
     this.cacheWriter = cacheWriter;
     if (statisticsExecutor != null) {

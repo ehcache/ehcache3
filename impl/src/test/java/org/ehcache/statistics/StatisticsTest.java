@@ -54,7 +54,6 @@ public class StatisticsTest {
   }
 
   @Test
-  @Ignore("issue-151")
   public void testEvict() throws Exception {
     assertThat(cache.getRuntimeConfiguration().getCapacityConstraint(),
         equalTo((Comparable<Long>) capacity));
