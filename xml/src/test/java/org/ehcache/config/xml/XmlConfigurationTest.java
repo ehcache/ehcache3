@@ -57,7 +57,29 @@ import static org.junit.Assert.fail;
  * @author Chris Dennis
  */
 public class XmlConfigurationTest {
-  
+
+  @Test
+  public void testDefaultTypesConfig() throws Exception {
+    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/defaultTypes-cache.xml"));
+
+    assertThat(xmlConfig.getCacheConfigurations().keySet(), hasItem("foo"));
+    assertThat(xmlConfig.getCacheConfigurations().get("foo").getKeyType(), sameInstance((Class)Object.class));
+    assertThat(xmlConfig.getCacheConfigurations().get("foo").getValueType(), sameInstance((Class)Object.class));
+
+    assertThat(xmlConfig.getCacheConfigurations().keySet(), hasItem("bar"));
+    assertThat(xmlConfig.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class)Number.class));
+    assertThat(xmlConfig.getCacheConfigurations().get("bar").getValueType(), sameInstance((Class)Object.class));
+
+    assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("example"), notNullValue());
+    assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Object.class, Object.class), notNullValue());
+    try {
+      assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Number.class, Object.class), notNullValue());
+      fail();
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("CacheTemplate 'example' declares key type of java.lang.Object"));
+    }
+  }
+
   @Test
   public void testOneServiceConfig() throws Exception {
     Configuration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-service.xml"));

@@ -206,7 +206,7 @@ public class XmlConfiguration implements Configuration {
       return klazz.asSubclass(type).newInstance();
     }
   }
-  
+
   private static Class<?> getClassForName(String name, ClassLoader classLoader, Class<?> or) {
     if (name == null) {
       return or;
@@ -218,7 +218,7 @@ public class XmlConfiguration implements Configuration {
       }
     }
   }
-  
+
   private static Class<?> getClassForName(String name, ClassLoader classLoader) throws ClassNotFoundException {
     return Class.forName(name, true, classLoader);
   }
@@ -294,7 +294,6 @@ public class XmlConfiguration implements Configuration {
           .maxEntriesInCache(cacheTemplate.capacityConstraint());
     }
     builder = builder
-        .maxEntriesInCache(cacheTemplate.capacityConstraint())
         .usingEvictionPrioritizer(getInstanceOfName(cacheTemplate.evictionPrioritizer(), ClassLoading.getDefaultClassLoader(), EvictionPrioritizer.class))
         .evitionVeto(getInstanceOfName(cacheTemplate.evictionVeto(), ClassLoading.getDefaultClassLoader(), EvictionVeto.class));
     for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {
