@@ -81,6 +81,37 @@ public class XmlConfigurationTest {
   }
 
   @Test
+  public void testPrioritizerCache() throws Exception {
+    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/prioritizer-cache.xml"));
+
+    assertThat(xmlConfig.getCacheConfigurations().keySet(), hasItem("foo"));
+    assertThat(xmlConfig.getCacheConfigurations().get("foo").getEvictionPrioritizer(), sameInstance((EvictionPrioritizer)Eviction.Prioritizer.LFU));
+
+    CacheConfigurationBuilder<Object, Object> example = xmlConfig.newCacheConfigurationBuilderFromTemplate("example");
+    assertThat(example.buildConfig(Object.class, Object.class).getEvictionPrioritizer(), sameInstance((EvictionPrioritizer) Eviction.Prioritizer.LFU));
+  }
+
+  @Test
+  public void testNonExistentVetoClassInCacheThrowsException() throws Exception {
+    try {
+      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/nonExistentVeto-cache.xml"));
+      fail();
+    } catch (ClassNotFoundException cnfe) {
+      // expected
+    }
+  }
+
+  @Test
+  public void testNonExistentVetoClassInTemplateThrowsException() throws Exception {
+    try {
+      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/nonExistentVeto-template.xml"));
+      fail();
+    } catch (ClassNotFoundException cnfe) {
+      // expected
+    }
+  }
+
+  @Test
   public void testOneServiceConfig() throws Exception {
     Configuration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-service.xml"));
 
