@@ -154,14 +154,7 @@ public class XmlConfiguration implements Configuration {
       Class valueType = getClassForName(cacheDefinition.valueType(), cacheClassLoader);
       Long capacityConstraint = cacheDefinition.capacityConstraint();
       EvictionVeto evictionVeto = getInstanceOfName(cacheDefinition.evictionVeto(), cacheClassLoader, EvictionVeto.class);
-      EvictionPrioritizer evictionPrioritizer;
-      try {
-        evictionPrioritizer = Eviction.Prioritizer.valueOf(cacheDefinition.evictionPrioritizer());
-      } catch (IllegalArgumentException e) {
-        evictionPrioritizer = getInstanceOfName(cacheDefinition.evictionPrioritizer(), cacheClassLoader, EvictionPrioritizer.class);
-      } catch (NullPointerException e) {
-        evictionPrioritizer = null;
-      }
+      EvictionPrioritizer evictionPrioritizer = getInstanceOfName(cacheDefinition.evictionPrioritizer(), cacheClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class);
       final Expiry<? super Object, ? super Object> expiry;
       final ConfigurationParser.Expiry parsedExpiry = cacheDefinition.expiry();
       if (parsedExpiry.isUserDef()) {
@@ -199,26 +192,24 @@ public class XmlConfiguration implements Configuration {
   }
 
   private static <T> T getInstanceOfName(String name, ClassLoader classLoader, Class<T> type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
-    Class<?> klazz = getClassForName(name, classLoader, null);
-    if (klazz == null) {
-      return null;
-    } else {
-      return klazz.asSubclass(type).newInstance();
-    }
-  }
-  
-  private static Class<?> getClassForName(String name, ClassLoader classLoader, Class<?> or) {
     if (name == null) {
-      return or;
-    } else {
-      try {
-        return getClassForName(name, classLoader);
-      } catch (ClassNotFoundException e) {
-        return or;
-      }
+      return null;
+    }
+    Class<?> klazz = getClassForName(name, classLoader);
+    return klazz.asSubclass(type).newInstance();
+  }
+
+  private static <T> T getInstanceOfName(String name, ClassLoader classLoader, Class<T> type, Class<? extends Enum> shortcutValues) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+    if (name == null) {
+      return null;
+    }
+    try {
+      return (T) Enum.valueOf(shortcutValues, name);
+    } catch (IllegalArgumentException iae) {
+      return getInstanceOfName(name, classLoader, type);
     }
   }
-  
+
   private static Class<?> getClassForName(String name, ClassLoader classLoader) throws ClassNotFoundException {
     return Class.forName(name, true, classLoader);
   }
@@ -294,8 +285,7 @@ public class XmlConfiguration implements Configuration {
           .maxEntriesInCache(cacheTemplate.capacityConstraint());
     }
     builder = builder
-        .maxEntriesInCache(cacheTemplate.capacityConstraint())
-        .usingEvictionPrioritizer(getInstanceOfName(cacheTemplate.evictionPrioritizer(), ClassLoading.getDefaultClassLoader(), EvictionPrioritizer.class))
+        .usingEvictionPrioritizer(getInstanceOfName(cacheTemplate.evictionPrioritizer(), ClassLoading.getDefaultClassLoader(), EvictionPrioritizer.class, Eviction.Prioritizer.class))
         .evitionVeto(getInstanceOfName(cacheTemplate.evictionVeto(), ClassLoading.getDefaultClassLoader(), EvictionVeto.class));
     for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {
       builder = builder.addServiceConfig(serviceConfiguration);

@@ -141,6 +141,12 @@ class ConfigurationParser {
               value = source.getKeyType();
               if (value != null) break;
             }
+            if (value == null) {
+              for (BaseCacheType source : sources) {
+                value = JaxbHelper.findDefaultValue(source, "keyType");
+                if (value != null) break;
+              }
+            }
             return value;
           }
 
@@ -150,6 +156,12 @@ class ConfigurationParser {
             for (BaseCacheType source : sources) {
               value = source.getValueType();
               if (value != null) break;
+            }
+            if (value == null) {
+              for (BaseCacheType source : sources) {
+                value = JaxbHelper.findDefaultValue(source, "valueType");
+                if (value != null) break;
+              }
             }
             return value;
           }
@@ -259,12 +271,20 @@ class ConfigurationParser {
 
           @Override
           public String keyType() {
-            return cacheTemplate.getKeyType();
+            String keyType = cacheTemplate.getKeyType();
+            if (keyType == null) {
+              keyType = JaxbHelper.findDefaultValue(cacheTemplate, "keyType");
+            }
+            return keyType;
           }
 
           @Override
           public String valueType() {
-            return cacheTemplate.getValueType();
+            String valueType = cacheTemplate.getValueType();
+            if (valueType == null) {
+              valueType = JaxbHelper.findDefaultValue(cacheTemplate, "valueType");
+            }
+            return valueType;
           }
 
           @Override
