@@ -59,12 +59,12 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   private final CacheResources<K, V> cacheResources;
   private final Eh107CacheMXBean managementBean;
   private final Eh107CacheStatisticsMXBean statisticsBean;
-  private final Eh107CompleteConfiguration<K, V> config;
+  private final Eh107Configuration<K, V> config;
   private final CacheLoader<K, V> cacheLoader;
   private final CacheWriter<? super K, ? super V> cacheWriter;
   private final Eh107Expiry expiry;
 
-  Eh107Cache(String name, Eh107CompleteConfiguration<K, V> config, CacheResources<K, V> cacheResources,
+  Eh107Cache(String name, Eh107Configuration<K, V> config, CacheResources<K, V> cacheResources,
       org.ehcache.Cache<K, V> ehCache, Eh107CacheManager cacheManager, Eh107Expiry expiry) {
     this.expiry = expiry;
     this.cacheLoader = cacheResources.getCacheLoader();

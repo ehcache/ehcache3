@@ -31,7 +31,7 @@ import javax.cache.integration.CacheWriter;
 /**
  * @author teck
  */
-class Eh107CompleteConfiguration<K, V> implements CompleteConfiguration<K, V> {
+class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implements CompleteConfiguration<K, V> {
 
   private static final long serialVersionUID = -142083640934760400L;
 
@@ -130,18 +130,22 @@ class Eh107CompleteConfiguration<K, V> implements CompleteConfiguration<K, V> {
     return this.expiryPolicyFactory;
   }
 
+  @Override
   void setManagementEnabled(boolean isManagementEnabled) {
     this.isManagementEnabled = isManagementEnabled;
   }
 
+  @Override
   void setStatisticsEnabled(boolean isStatisticsEnabled) {
     this.isStatisticsEnabled = isStatisticsEnabled;
   }
-  
+
+  @Override
   void addCacheEntryListenerConfiguration(CacheEntryListenerConfiguration<K, V> listenerConfig) {
     this.cacheEntryListenerConfigs.add(listenerConfig);
   }
-  
+
+  @Override
   void removeCacheEntryListenerConfiguration(CacheEntryListenerConfiguration<K, V> listenerConfig) {
     this.cacheEntryListenerConfigs.remove(listenerConfig);
   }
