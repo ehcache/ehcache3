@@ -35,6 +35,7 @@ import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServer;
 
 import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.loader.CacheLoader;
@@ -72,6 +73,18 @@ class Eh107CacheManager implements CacheManager {
     this.cacheWriterFactory = cacheWriterFactory;
     this.ehXmlConfig = ehXmlConfig;
     this.jsr107Service = jsr107Service;
+  }
+
+  <K, V> Eh107Cache<K, V> loadEhcacheCacheIfExist(String alias, Class<K> keyClass, Class<V> valueClass) {
+    org.ehcache.Cache<K, V> cache = ehCacheManager.getCache(alias, keyClass, valueClass);
+    if (cache != null) {
+      Eh107Configuration<K, V> config = new Eh107ReverseConfiguration<K, V>(cache);
+      CacheResources<K, V> resources = null;
+      Eh107Expiry expiry = new EhcacheExpiryWrapper((Expiry<Object, Object>)cache.getRuntimeConfiguration().getExpiry());
+      return new Eh107Cache<K, V>(alias, config, resources, cache, this, expiry);
+    } else {
+      return null;
+    }
   }
 
   @Override
