@@ -29,7 +29,6 @@ import javax.cache.configuration.CompleteConfiguration;
 import javax.cache.configuration.Factory;
 import javax.cache.event.CacheEntryEventFilter;
 import javax.cache.event.CacheEntryListener;
-import javax.cache.expiry.ExpiryPolicy;
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
 
@@ -40,7 +39,7 @@ import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
  */
 class CacheResources<K, V> {
 
-  private final ExpiryPolicy expiryPolicy;
+  private final Eh107Expiry expiryPolicy;
   private final CacheLoader<K, V> cacheLoader;
   private final CacheWriter<? super K, ? super V> cacheWriter;
   private final Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> listenerResources = new ConcurrentHashMap<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>>();
@@ -69,8 +68,8 @@ class CacheResources<K, V> {
     }
   }
 
-  private ExpiryPolicy initExpiryPolicy(CompleteConfiguration<K, V> config, MultiCacheException mce) {
-    return config.getExpiryPolicyFactory().create();
+  private Eh107Expiry initExpiryPolicy(CompleteConfiguration<K, V> config, MultiCacheException mce) {
+    return new ExpiryPolicyToEhcacheExpiry(config.getExpiryPolicyFactory().create());
   }
 
   private void initCacheEventListeners(CompleteConfiguration<K, V> config, MultiCacheException mce) {
@@ -79,7 +78,7 @@ class CacheResources<K, V> {
     }
   }
 
-  ExpiryPolicy getExpiryPolicy() {
+  Eh107Expiry getExpiryPolicy() {
     return expiryPolicy;
   }
 

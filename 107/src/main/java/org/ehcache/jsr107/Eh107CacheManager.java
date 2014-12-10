@@ -114,7 +114,7 @@ class Eh107CacheManager implements CacheManager {
       }
 
       CacheResources<K, V> cacheResources = new CacheResources<K, V>(cacheName, completeConfig);
-      Eh107Expiry expiry = new Eh107Expiry(cacheResources.getExpiryPolicy());
+      Eh107Expiry expiry = cacheResources.getExpiryPolicy();
 
       final org.ehcache.Cache<K, V> ehCache;
       try {
