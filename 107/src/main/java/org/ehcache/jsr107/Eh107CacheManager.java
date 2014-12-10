@@ -29,8 +29,6 @@ import javax.cache.CacheException;
 import javax.cache.CacheManager;
 import javax.cache.configuration.CompleteConfiguration;
 import javax.cache.configuration.Configuration;
-import javax.cache.integration.CacheLoader;
-import javax.cache.integration.CacheWriter;
 import javax.cache.spi.CachingProvider;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.InstanceNotFoundException;
@@ -39,6 +37,8 @@ import javax.management.MBeanServer;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
+import org.ehcache.spi.loader.CacheLoader;
+import org.ehcache.spi.writer.CacheWriter;
 
 /**
  * @author teck

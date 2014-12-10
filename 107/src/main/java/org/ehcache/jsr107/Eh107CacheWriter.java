@@ -32,6 +32,10 @@ import org.ehcache.exceptions.BulkCacheWriterException;
  */
 class Eh107CacheWriter<K, V> implements org.ehcache.spi.writer.CacheWriter<K, V> {
 
+  static <K1, V1> Eh107CacheWriter<K1, V1> createCacheWriterWrapper(CacheWriter<K1, V1> writer) {
+    return new Eh107CacheWriter<K1, V1>(writer);
+  }
+
   private final CacheWriter<K, V> cacheWriter;
 
   Eh107CacheWriter(CacheWriter<K, V> cacheWriter) {

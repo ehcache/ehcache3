@@ -18,9 +18,8 @@ package org.ehcache.jsr107;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import javax.cache.integration.CacheWriter;
-
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.writer.CacheWriter;
 
 /**
  * @author teck
@@ -48,7 +47,7 @@ class Eh107CacheWriterFactory implements org.ehcache.spi.writer.CacheWriterFacto
       return null;
     }
 
-    return new Eh107CacheWriter<K, V>((CacheWriter<K, V>) cacheWriter);
+    return (CacheWriter<K, V>) cacheWriter;
   }
 
   @Override

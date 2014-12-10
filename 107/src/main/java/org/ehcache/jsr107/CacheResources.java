@@ -29,10 +29,12 @@ import javax.cache.configuration.CompleteConfiguration;
 import javax.cache.configuration.Factory;
 import javax.cache.event.CacheEntryEventFilter;
 import javax.cache.event.CacheEntryListener;
-import javax.cache.integration.CacheLoader;
-import javax.cache.integration.CacheWriter;
 
 import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
+import org.ehcache.spi.loader.CacheLoader;
+import org.ehcache.spi.writer.CacheWriter;
+
+import static org.ehcache.jsr107.Eh107CacheWriter.createCacheWriterWrapper;
 
 /**
  * @author teck
@@ -159,19 +161,19 @@ class CacheResources<K, V> {
   }
 
   private CacheLoader<K, V> initCacheLoader(CompleteConfiguration<K, V> config, MultiCacheException mce) {
-    Factory<CacheLoader<K, V>> cacheLoaderFactory = config.getCacheLoaderFactory();
+    Factory<javax.cache.integration.CacheLoader<K, V>> cacheLoaderFactory = config.getCacheLoaderFactory();
     if (cacheLoaderFactory == null) {
       return null;
     }
-    return cacheLoaderFactory.create();
+    return new Eh107CacheLoader<K, V>(cacheLoaderFactory.create());
   }
 
   private CacheWriter<? super K, ? super V> initCacheWriter(CompleteConfiguration<K, V> config, MultiCacheException mce) {
-    Factory<CacheWriter<? super K, ? super V>> cacheWriterFactory = config.getCacheWriterFactory();
+    Factory<javax.cache.integration.CacheWriter<? super K, ? super V>> cacheWriterFactory = config.getCacheWriterFactory();
     if (cacheWriterFactory == null) {
       return null;
     }
-    return cacheWriterFactory.create();
+    return createCacheWriterWrapper(cacheWriterFactory.create());
   }
 
   synchronized void closeResources(MultiCacheException mce) {

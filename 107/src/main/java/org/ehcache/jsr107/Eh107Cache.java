@@ -28,9 +28,7 @@ import javax.cache.CacheException;
 import javax.cache.CacheManager;
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.Configuration;
-import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheLoaderException;
-import javax.cache.integration.CacheWriter;
 import javax.cache.integration.CacheWriterException;
 import javax.cache.integration.CompletionListener;
 import javax.cache.processor.EntryProcessor;
@@ -45,6 +43,8 @@ import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.jsr107.CacheResources.ListenerResources;
 import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
+import org.ehcache.spi.loader.CacheLoader;
+import org.ehcache.spi.writer.CacheWriter;
 
 /**
  * @author teck
@@ -149,7 +149,20 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       jsr107Cache.loadAll(keys, replaceExistingValues, new Function<Iterable<? extends K>, Map<K, V>>() {
         @Override
         public Map<K, V> apply(Iterable<? extends K> keys) {
-          return cacheLoader.loadAll(keys);
+          try {
+            return cacheLoader.loadAll(keys);
+          } catch (Exception e) {
+            final CacheLoaderException cle;
+            if (e instanceof CacheLoaderException) {
+              cle = (CacheLoaderException) e;
+            } else if (e.getCause() instanceof CacheLoaderException) {
+              cle = (CacheLoaderException) e.getCause();
+            } else {
+              cle = new CacheLoaderException(e);
+            }
+
+            throw cle;
+          }
         }
       });
     } catch (Exception e) {

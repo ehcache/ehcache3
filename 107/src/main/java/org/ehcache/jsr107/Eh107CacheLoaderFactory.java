@@ -18,8 +18,7 @@ package org.ehcache.jsr107;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import javax.cache.integration.CacheLoader;
-
+import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
@@ -48,7 +47,7 @@ class Eh107CacheLoaderFactory implements org.ehcache.spi.loader.CacheLoaderFacto
       return null;
     }
 
-    return new Eh107CacheLoader<K, V>((CacheLoader<K, V>) cacheLoader);
+    return (CacheLoader<? super K, ? extends V>)cacheLoader;
   }
 
   @Override
