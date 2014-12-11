@@ -19,6 +19,7 @@ import java.lang.management.ManagementFactory;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -29,13 +30,14 @@ import javax.cache.CacheException;
 import javax.cache.CacheManager;
 import javax.cache.configuration.CompleteConfiguration;
 import javax.cache.configuration.Configuration;
+import javax.cache.configuration.MutableConfiguration;
 import javax.cache.spi.CachingProvider;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServer;
 
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.loader.CacheLoader;
@@ -63,7 +65,8 @@ class Eh107CacheManager implements CacheManager {
 
   Eh107CacheManager(EhcacheCachingProvider cachingProvider, org.ehcache.CacheManager ehCacheManager, Properties props,
       ClassLoader classLoader, URI uri, Eh107CacheLoaderFactory cacheLoaderFactory,
-      Eh107CacheWriterFactory cacheWriterFactory, org.ehcache.config.xml.XmlConfiguration ehXmlConfig, Jsr107Service jsr107Service) {
+      Eh107CacheWriterFactory cacheWriterFactory, org.ehcache.config.xml.XmlConfiguration ehXmlConfig,
+      Jsr107Service jsr107Service) {
     this.cachingProvider = cachingProvider;
     this.ehCacheManager = ehCacheManager;
     this.props = props;
@@ -73,18 +76,24 @@ class Eh107CacheManager implements CacheManager {
     this.cacheWriterFactory = cacheWriterFactory;
     this.ehXmlConfig = ehXmlConfig;
     this.jsr107Service = jsr107Service;
+
+    loadExistingEhcaches();
   }
 
-  <K, V> Eh107Cache<K, V> loadEhcacheCacheIfExist(String alias, Class<K> keyClass, Class<V> valueClass) {
-    org.ehcache.Cache<K, V> cache = ehCacheManager.getCache(alias, keyClass, valueClass);
-    if (cache != null) {
-      Eh107Configuration<K, V> config = new Eh107ReverseConfiguration<K, V>(cache);
-      CacheResources<K, V> resources = null;
-      Eh107Expiry expiry = new EhcacheExpiryWrapper((Expiry<Object, Object>)cache.getRuntimeConfiguration().getExpiry());
-      return new Eh107Cache<K, V>(alias, config, resources, cache, this, expiry);
-    } else {
-      return null;
+  private void loadExistingEhcaches() {
+    for (Map.Entry<String, CacheConfiguration<?, ?>> entry : ehXmlConfig.getCacheConfigurations().entrySet()) {
+      String name = entry.getKey();
+      CacheConfiguration<?, ?> config = entry.getValue();
+      caches.put(name, wrapEhcacheCache(name, config.getKeyType(), config.getValueType()));
     }
+  }
+
+  private <K, V> Eh107Cache<K, V> wrapEhcacheCache(String alias, Class<K> keyClass, Class<V> valueClass) {
+    org.ehcache.Cache<K, V> cache = ehCacheManager.getCache(alias, keyClass, valueClass);
+    Eh107Configuration<K, V> config = new Eh107ReverseConfiguration<K, V>(cache);
+    CacheResources<K, V> resources = new CacheResources<K, V>(alias, new MutableConfiguration<K, V>());
+    Eh107Expiry<K, V> expiry = new EhcacheExpiryWrapper<K, V>(cache.getRuntimeConfiguration().getExpiry());
+    return new Eh107Cache<K, V>(alias, config, resources, cache, this, expiry);
   }
 
   @Override
@@ -110,10 +119,10 @@ class Eh107CacheManager implements CacheManager {
   @Override
   public <K, V, C extends Configuration<K, V>> Cache<K, V> createCache(String cacheName, C config)
       throws IllegalArgumentException {
-    
+
     synchronized (cachesLock) {
       checkClosed();
-      
+
       // TCK expects the "closed" check before these null checks
       if (cacheName == null || config == null) {
         throw new NullPointerException();
@@ -127,13 +136,16 @@ class Eh107CacheManager implements CacheManager {
       }
 
       CacheResources<K, V> cacheResources = new CacheResources<K, V>(cacheName, completeConfig);
-      Eh107Expiry expiry = cacheResources.getExpiryPolicy();
+      Eh107Expiry<K, V> expiry = cacheResources.getExpiryPolicy();
 
       final org.ehcache.Cache<K, V> ehCache;
       try {
-        ehCache = ehCacheManager.createCache(cacheName, toEhcacheConfig(cacheName, completeConfig, cacheResources, expiry));
+        ehCache = ehCacheManager.createCache(cacheName,
+            toEhcacheConfig(cacheName, completeConfig, cacheResources, expiry));
       } catch (Throwable t) {
         // something went wrong in ehcache land, make sure to clean up our stuff
+        // NOTE: one relatively simple error path is if a pre-configured cache of the same name already exists in
+        // ehcache
         MultiCacheException mce = new MultiCacheException(t);
         cacheResources.closeResources(mce);
         throw mce;
@@ -165,15 +177,17 @@ class Eh107CacheManager implements CacheManager {
   }
 
   private <K, V> org.ehcache.config.CacheConfiguration<K, V> toEhcacheConfig(String cacheName,
-      CompleteConfiguration<K, V> jsr107Config, CacheResources<K, V> cacheResources, Eh107Expiry expiry) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+      CompleteConfiguration<K, V> jsr107Config, CacheResources<K, V> cacheResources, Eh107Expiry<K, V> expiry)
+      throws InstantiationException, IllegalAccessException, ClassNotFoundException {
 
     CacheConfigurationBuilder<K, V> builder = null;
 
     String cacheTemplate = getCacheTemplateName(cacheName);
     if (cacheTemplate != null) {
-      builder = ehXmlConfig.newCacheConfigurationBuilderFromTemplate(cacheTemplate, jsr107Config.getKeyType(), jsr107Config.getValueType());
+      builder = ehXmlConfig.newCacheConfigurationBuilderFromTemplate(cacheTemplate, jsr107Config.getKeyType(),
+          jsr107Config.getValueType());
     }
-    
+
     if (builder == null) {
       builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
     }
@@ -460,7 +474,7 @@ class Eh107CacheManager implements CacheManager {
         } catch (Throwable t) {
           closeException.addThrowable(t);
         }
-        
+
         try {
           cache.closeInternal(closeException);
         } catch (Throwable t) {

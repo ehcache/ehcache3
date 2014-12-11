@@ -34,14 +34,12 @@ import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.writer.CacheWriter;
 
-import static org.ehcache.jsr107.Eh107CacheWriter.createCacheWriterWrapper;
-
 /**
  * @author teck
  */
 class CacheResources<K, V> {
 
-  private final Eh107Expiry expiryPolicy;
+  private final Eh107Expiry<K, V> expiryPolicy;
   private final CacheLoader<K, V> cacheLoader;
   private final CacheWriter<? super K, ? super V> cacheWriter;
   private final Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> listenerResources = new ConcurrentHashMap<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>>();
@@ -70,8 +68,8 @@ class CacheResources<K, V> {
     }
   }
 
-  private Eh107Expiry initExpiryPolicy(CompleteConfiguration<K, V> config, MultiCacheException mce) {
-    return new ExpiryPolicyToEhcacheExpiry(config.getExpiryPolicyFactory().create());
+  private Eh107Expiry<K, V> initExpiryPolicy(CompleteConfiguration<K, V> config, MultiCacheException mce) {
+    return new ExpiryPolicyToEhcacheExpiry<K, V>(config.getExpiryPolicyFactory().create());
   }
 
   private void initCacheEventListeners(CompleteConfiguration<K, V> config, MultiCacheException mce) {
@@ -80,7 +78,7 @@ class CacheResources<K, V> {
     }
   }
 
-  Eh107Expiry getExpiryPolicy() {
+  Eh107Expiry<K, V> getExpiryPolicy() {
     return expiryPolicy;
   }
 
@@ -168,12 +166,21 @@ class CacheResources<K, V> {
     return new Eh107CacheLoader<K, V>(cacheLoaderFactory.create());
   }
 
-  private CacheWriter<? super K, ? super V> initCacheWriter(CompleteConfiguration<K, V> config, MultiCacheException mce) {
-    Factory<javax.cache.integration.CacheWriter<? super K, ? super V>> cacheWriterFactory = config.getCacheWriterFactory();
+  private CacheWriter<K, V> initCacheWriter(CompleteConfiguration<K, V> config, MultiCacheException mce) {
+    Factory<javax.cache.integration.CacheWriter<K, V>> cacheWriterFactory = getCacheWriterFactory(config);
     if (cacheWriterFactory == null) {
       return null;
     }
-    return createCacheWriterWrapper(cacheWriterFactory.create());
+    
+    return new Eh107CacheWriter<K, V>(cacheWriterFactory.create());
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <K, V> Factory<javax.cache.integration.CacheWriter<K, V>> getCacheWriterFactory(CompleteConfiguration<K, V> config) {
+    // I could be wrong, but I don't think this factory should be typed the way it is. The factory
+    // should be parameterized with (K, V) and it's methods take <? extend K>, etc
+    Object factory = config.getCacheWriterFactory();
+    return (Factory<javax.cache.integration.CacheWriter<K, V>>) factory;
   }
 
   synchronized void closeResources(MultiCacheException mce) {

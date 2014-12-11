@@ -15,6 +15,8 @@
  */
 package org.ehcache.jsr107;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -30,11 +32,7 @@ import org.ehcache.exceptions.BulkCacheWriterException;
 /**
  * @author teck
  */
-class Eh107CacheWriter<K, V> implements org.ehcache.spi.writer.CacheWriter<K, V> {
-
-  static <K1, V1> Eh107CacheWriter<K1, V1> createCacheWriterWrapper(CacheWriter<K1, V1> writer) {
-    return new Eh107CacheWriter<K1, V1>(writer);
-  }
+class Eh107CacheWriter<K, V> implements org.ehcache.spi.writer.CacheWriter<K, V>, Closeable {
 
   private final CacheWriter<K, V> cacheWriter;
 
@@ -114,8 +112,15 @@ class Eh107CacheWriter<K, V> implements org.ehcache.spi.writer.CacheWriter<K, V>
       throw new BulkCacheWriterException(failures, successes);
     }
   }
+  
+  @Override
+  public void close() throws IOException {
+    if (cacheWriter instanceof Closeable) {
+      ((Closeable)cacheWriter).close();
+    }
+  }
 
-  private Cache.Entry<? extends K, ? extends V> cacheEntryFor(K key, V value) {
+  private Cache.Entry<K, V> cacheEntryFor(K key, V value) {
     return new Entry<K, V>(key, value);
   }
 

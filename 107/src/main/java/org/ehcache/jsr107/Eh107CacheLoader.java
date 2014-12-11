@@ -15,6 +15,8 @@
  */
 package org.ehcache.jsr107;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Map;
 
 import javax.cache.integration.CacheLoader;
@@ -22,7 +24,7 @@ import javax.cache.integration.CacheLoader;
 /**
  * @author teck
  */
-class Eh107CacheLoader<K, V> implements org.ehcache.spi.loader.CacheLoader<K, V> {
+class Eh107CacheLoader<K, V> implements org.ehcache.spi.loader.CacheLoader<K, V>, Closeable {
 
   private final CacheLoader<K, V> cacheLoader;
 
@@ -38,5 +40,12 @@ class Eh107CacheLoader<K, V> implements org.ehcache.spi.loader.CacheLoader<K, V>
   @Override
   public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
     return cacheLoader.loadAll(keys);
+  }
+
+  @Override
+  public void close() throws IOException {
+    if (cacheLoader instanceof Closeable) {
+      ((Closeable)cacheLoader).close();
+    }
   }
 }

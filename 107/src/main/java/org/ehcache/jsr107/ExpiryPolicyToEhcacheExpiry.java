@@ -15,10 +15,13 @@
  */
 package org.ehcache.jsr107;
 
+import java.io.Closeable;
+import java.io.IOException;
+
 import javax.cache.expiry.Duration;
 import javax.cache.expiry.ExpiryPolicy;
 
-class ExpiryPolicyToEhcacheExpiry extends Eh107Expiry {
+class ExpiryPolicyToEhcacheExpiry<K, V> extends Eh107Expiry<K, V> implements Closeable {
 
   private final ExpiryPolicy expiryPolicy;
 
@@ -27,7 +30,7 @@ class ExpiryPolicyToEhcacheExpiry extends Eh107Expiry {
   }
 
   @Override
-  public org.ehcache.expiry.Duration getExpiryForCreation(Object key, Object value) {
+  public org.ehcache.expiry.Duration getExpiryForCreation(K key, V value) {
     try {
       Duration duration = expiryPolicy.getExpiryForCreation();
       if (duration.isEternal()) {
@@ -40,7 +43,7 @@ class ExpiryPolicyToEhcacheExpiry extends Eh107Expiry {
   }
 
   @Override
-  public org.ehcache.expiry.Duration getExpiryForAccess(Object key, Object value) {
+  public org.ehcache.expiry.Duration getExpiryForAccess(K key, V value) {
     if (isShortCircuitAccessCalls()) {
       return null;
     }
@@ -60,7 +63,7 @@ class ExpiryPolicyToEhcacheExpiry extends Eh107Expiry {
   }
 
   @Override
-  public org.ehcache.expiry.Duration getExpiryForUpdate(Object key, Object oldValue, Object newValue) {
+  public org.ehcache.expiry.Duration getExpiryForUpdate(K key, V oldValue, V newValue) {
     try {
       Duration duration = expiryPolicy.getExpiryForUpdate();
       if (duration == null) {
@@ -72,6 +75,13 @@ class ExpiryPolicyToEhcacheExpiry extends Eh107Expiry {
       return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
     } catch (Throwable t) {
       return org.ehcache.expiry.Duration.ZERO;
+    }
+  }
+  
+  @Override
+  public void close() throws IOException {
+    if (expiryPolicy instanceof Closeable) {
+      ((Closeable)expiryPolicy).close();
     }
   }
 }

@@ -165,12 +165,12 @@ public class ParsesConfigExtensionTest {
   }
 
   @Test
-  public void testXMLExampleIn107() throws Exception {
+  public void testXmlExampleIn107() throws Exception {
     CachingProvider cachingProvider = Caching.getCachingProvider();
     javax.cache.CacheManager cacheManager = cachingProvider.getCacheManager(getClass().getResource("/ehcache-example.xml")
         .toURI(), cachingProvider.getDefaultClassLoader());
 
-    javax.cache.Cache<Object, Object> productCache = cacheManager.getCache("productCache");
+    javax.cache.Cache<Long, Product> productCache = cacheManager.getCache("productCache", Long.class, Product.class);
     assertThat(productCache, is(notNullValue()));
   }
 }

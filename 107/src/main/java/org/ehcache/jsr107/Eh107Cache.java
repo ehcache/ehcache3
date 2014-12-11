@@ -62,10 +62,10 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   private final Eh107Configuration<K, V> config;
   private final CacheLoader<K, V> cacheLoader;
   private final CacheWriter<? super K, ? super V> cacheWriter;
-  private final Eh107Expiry expiry;
+  private final Eh107Expiry<K, V> expiry;
 
   Eh107Cache(String name, Eh107Configuration<K, V> config, CacheResources<K, V> cacheResources,
-      org.ehcache.Cache<K, V> ehCache, Eh107CacheManager cacheManager, Eh107Expiry expiry) {
+      org.ehcache.Cache<K, V> ehCache, Eh107CacheManager cacheManager, Eh107Expiry<K, V> expiry) {
     this.expiry = expiry;
     this.cacheLoader = cacheResources.getCacheLoader();
     this.cacheWriter = cacheResources.getCacheWriter();

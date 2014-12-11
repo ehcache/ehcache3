@@ -15,8 +15,6 @@
  */
 package org.ehcache.jsr107;
 
-import javax.cache.configuration.CompleteConfiguration;
-import javax.cache.configuration.Configuration;
 import javax.cache.management.CacheMXBean;
 
 /**
