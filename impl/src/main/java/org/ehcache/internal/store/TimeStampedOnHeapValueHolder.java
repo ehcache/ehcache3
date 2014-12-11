@@ -67,6 +67,7 @@ class TimeStampedOnHeapValueHolder<V> implements OnHeapValueHolder<V> {
     return delegate.lastAccessTime(unit);
   }
 
+  @Override
   public void setAccessTimeMillis(long accessTime) {
     delegate.setAccessTimeMillis(accessTime);
   }
@@ -92,6 +93,11 @@ class TimeStampedOnHeapValueHolder<V> implements OnHeapValueHolder<V> {
     }
     
     return false;
+  }
+  
+  @Override
+  public long getExpireTimeMillis() {
+    return this.expireTime;
   }
 
 }

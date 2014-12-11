@@ -46,6 +46,9 @@ enum StandardOperationStatistic {
     /** The cache remove. */
     CACHE_REMOVE(true, cache(), CacheOperationOutcomes.RemoveOutcome.class, "remove", "cache"),
     
+    /** The cache remove(K, V) */
+    CACHE_CONDITIONAL_REMOVE(true, cache(), CacheOperationOutcomes.ConditionalRemoveOutcome.class, "conditionalRemove", "cache"),
+    
     /** The cache putIfAbsent. */
     CACHE_PUT_IF_ABSENT(true, cache(), CacheOperationOutcomes.PutIfAbsentOutcome.class, "putIfAbsent", "cache"),
     

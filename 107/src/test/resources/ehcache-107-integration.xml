@@ -1,0 +1,67 @@
+<ehcache:config
+    xmlns:ehcache="http://www.ehcache.org/v3"
+    xmlns:jcache="http://www.ehcache.org/v3/jsr107">
+
+  <ehcache:service>
+    <jcache:defaults>
+      <jcache:cache name="productCache2" template="productCacheTemplate"/>
+    </jcache:defaults>
+  </ehcache:service>
+
+  <ehcache:cache alias="productCache"
+                 storeByValueOnHeap="true"> <!-- OPTIONAL: storing by value on heap, will result in keys and values being copied in and out of the Cache -->
+
+    <ehcache:key-type>java.lang.Long</ehcache:key-type>
+
+    <ehcache:value-type>com.pany.domain.Product</ehcache:value-type>
+
+    <ehcache:capacity>200</ehcache:capacity>
+
+    <ehcache:expiry>
+      <ehcache:tti unit="minutes">2</ehcache:tti>
+    </ehcache:expiry>
+
+    <ehcache:eviction-veto>com.pany.ehcache.MyEvictionVeto</ehcache:eviction-veto>
+
+    <ehcache:eviction-prioritizer>LFU</ehcache:eviction-prioritizer>
+
+    <ehcache:integration>
+        <ehcache:loader>
+          <ehcache:class>com.pany.ehcache.integration.ProductCacheLoader</ehcache:class>
+      </ehcache:loader>
+      <ehcache:writer>
+        <ehcache:class>com.pany.ehcache.integration.ProductCacheWriter</ehcache:class>
+      </ehcache:writer>
+    </ehcache:integration>
+  </ehcache:cache>
+
+  <ehcache:cache-template name="productCacheTemplate">
+    <ehcache:key-type>java.lang.Long</ehcache:key-type>
+
+    <ehcache:value-type>com.pany.domain.Product</ehcache:value-type>
+
+    <ehcache:capacity>200</ehcache:capacity>
+
+    <ehcache:integration>
+        <ehcache:loader>
+          <ehcache:class>com.pany.ehcache.integration.ProductCacheLoader</ehcache:class>
+      </ehcache:loader>
+    </ehcache:integration>
+  </ehcache:cache-template>
+
+  <ehcache:cache-template storeByValueOnHeap="false" name="myDefaultTemplate">
+    <ehcache:capacity>2000</ehcache:capacity>
+    <ehcache:expiry>
+      <ehcache:none/>
+    </ehcache:expiry>
+    <ehcache:eviction-prioritizer>LRU</ehcache:eviction-prioritizer>
+  </ehcache:cache-template>
+
+  <ehcache:cache alias="customerCache" usesTemplate="myDefaultTemplate">
+    <ehcache:key-type>java.lang.Long</ehcache:key-type>
+    <ehcache:value-type>com.pany.domain.Customer</ehcache:value-type>
+
+    <ehcache:capacity>200</ehcache:capacity>
+  </ehcache:cache>
+
+</ehcache:config>

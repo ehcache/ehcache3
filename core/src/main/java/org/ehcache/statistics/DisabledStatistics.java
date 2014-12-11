@@ -27,10 +27,6 @@ import java.util.concurrent.atomic.AtomicLong;
 public class DisabledStatistics implements CacheStatistics {
 
   @Override
-  public void clear() {
-  }
-
-  @Override
   public long getCacheHits() {
     return 0;
   }
@@ -86,7 +82,7 @@ public class DisabledStatistics implements CacheStatistics {
   }
 
   @Override
-  public ConcurrentMap<String, AtomicLong> getBulkMethodEntries() {
-    return new ConcurrentHashMap<String, AtomicLong>();
+  public ConcurrentMap<BulkOps, AtomicLong> getBulkMethodEntries() {
+    return new ConcurrentHashMap<BulkOps, AtomicLong>();
   }
 }

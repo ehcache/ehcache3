@@ -45,6 +45,7 @@ public class ClassInstanceProvider<T> {
     Class<? extends T> clazz = null;
     for (ServiceConfiguration<?> serviceConfiguration : cacheConfiguration.getServiceConfigurations()) {
       if(cacheLevelConfig.isAssignableFrom(serviceConfiguration.getClass())) {
+        // TODO: What if we have multiple of the same type?
         clazz = cacheLevelConfig.cast(serviceConfiguration).getClazz();
       }
     }

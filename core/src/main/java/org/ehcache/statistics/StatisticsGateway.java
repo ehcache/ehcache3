@@ -22,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.ehcache.Ehcache;
+import org.ehcache.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.ehcache.statistics.extended.ExtendedStatisticsImpl;
 import org.terracotta.statistics.StatisticsManager;
 
@@ -50,9 +52,9 @@ public class StatisticsGateway implements CacheStatistics {
 
   private final CoreStatistics         core;
   
-  private final ConcurrentMap<String, AtomicLong> bulkMethodEntries;
+  private final ConcurrentMap<BulkOps, AtomicLong> bulkMethodEntries;
 
-  public StatisticsGateway(Ehcache<?, ?> ehcache, ScheduledExecutorService executor, ConcurrentMap<String, AtomicLong> bulkMethodEntries) {
+  public StatisticsGateway(Ehcache<?, ?> ehcache, ScheduledExecutorService executor, ConcurrentMap<BulkOps, AtomicLong> bulkMethodEntries) {
     this.bulkMethodEntries = bulkMethodEntries;
     StatisticsManager statsManager = new StatisticsManager();
     statsManager.root(ehcache);
@@ -66,16 +68,14 @@ public class StatisticsGateway implements CacheStatistics {
   }
 
   @Override
-  public void clear() {
-    // TODO: implement base line in jsr107 wrapper
-  }
-
-  @Override
   public long getCacheHits() {
     return core.get().value(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER)
         + core.get().value(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER)
         + core.putIfAbsent().value(CacheOperationOutcomes.PutIfAbsentOutcome.HIT)
-        + core.replace().value(CacheOperationOutcomes.ReplaceOutcome.HIT);
+        + core.replace().value(CacheOperationOutcomes.ReplaceOutcome.HIT)
+        + core.replace().value(ReplaceOutcome.MISS_PRESENT)
+        + core.condtionalRemove().value(ConditionalRemoveOutcome.SUCCESS) 
+        + core.condtionalRemove().value(ConditionalRemoveOutcome.FAILURE_KEY_PRESENT);
   }
 
   @Override
@@ -88,7 +88,8 @@ public class StatisticsGateway implements CacheStatistics {
     return core.get().value(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER)
         + core.get().value(CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER)
         + core.putIfAbsent().value(CacheOperationOutcomes.PutIfAbsentOutcome.PUT)
-        + core.replace().value(CacheOperationOutcomes.ReplaceOutcome.MISS);
+        + core.replace().value(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT)
+        + core.condtionalRemove().value(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_MISSING);
   }
 
   @Override
@@ -110,7 +111,8 @@ public class StatisticsGateway implements CacheStatistics {
 
   @Override
   public long getCacheRemovals() {
-    return core.remove().value(CacheOperationOutcomes.RemoveOutcome.SUCCESS);
+    return core.remove().value(CacheOperationOutcomes.RemoveOutcome.SUCCESS)
+        + core.condtionalRemove().value(CacheOperationOutcomes.ConditionalRemoveOutcome.SUCCESS);
   }
 
   @Override
@@ -148,7 +150,7 @@ public class StatisticsGateway implements CacheStatistics {
   }
   
   @Override
-  public ConcurrentMap<String, AtomicLong> getBulkMethodEntries() {
+  public ConcurrentMap<BulkOps, AtomicLong> getBulkMethodEntries() {
     return bulkMethodEntries;
   }
 }

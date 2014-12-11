@@ -20,6 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerFactory;
 import org.ehcache.event.EventFiring;
@@ -36,9 +37,11 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoaderException;
 import org.ehcache.exceptions.CacheWriterException;
 import org.ehcache.exceptions.StateTransitionException;
+import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
+import org.ehcache.function.NullaryFunction;
 import org.ehcache.resilience.LoggingRobustResilienceStrategy;
 import org.ehcache.resilience.RecoveryCache;
 import org.ehcache.resilience.ResilienceStrategy;
@@ -48,7 +51,9 @@ import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriter;
+import org.ehcache.statistics.BulkOps;
 import org.ehcache.statistics.CacheOperationOutcomes.CacheLoaderOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.PutOutcome;
@@ -102,17 +107,26 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   private final RuntimeConfiguration runtimeConfiguration;
   private final CacheEventNotificationService<K, V> eventNotificationService;
   private final StoreEventListener<K, V> storeListener;
-
+  private final Jsr107CacheImpl jsr107Cache; 
+  
   private final OperationObserver<GetOutcome> getObserver = operation(GetOutcome.class).named("get").of(this).tag("cache").build();
   private final OperationObserver<PutOutcome> putObserver = operation(PutOutcome.class).named("put").of(this).tag("cache").build();
   private final OperationObserver<RemoveOutcome> removeObserver = operation(RemoveOutcome.class).named("remove").of(this).tag("cache").build();
+  private final OperationObserver<ConditionalRemoveOutcome> conditionalRemoveObserver = operation(ConditionalRemoveOutcome.class).named("conditionalRemove").of(this).tag("cache").build();
   private final OperationObserver<CacheLoaderOutcome> cacheLoaderObserver = operation(CacheLoaderOutcome.class).named("cacheLoader").of(this).tag("cache").build();
   private final OperationObserver<PutIfAbsentOutcome> putIfAbsentObserver = operation(PutIfAbsentOutcome.class).named("putIfAbsent").of(this).tag("cache").build();
   private final OperationObserver<ReplaceOutcome> replaceObserver = operation(ReplaceOutcome.class).named("replace").of(this).tag("cache").build();  
-  private final ConcurrentMap<String, AtomicLong> bulkMethodEntries = new ConcurrentHashMap<String, AtomicLong>();
+  private final ConcurrentMap<BulkOps, AtomicLong> bulkMethodEntries = new ConcurrentHashMap<BulkOps, AtomicLong>();
   
   private final CacheStatistics cacheStatistics;
 
+  private static final NullaryFunction<Boolean> REPLACE_FALSE = new NullaryFunction<Boolean>() {
+    @Override
+    public Boolean apply() {
+      return Boolean.FALSE;
+    }
+  };
+  
   public Ehcache(CacheConfiguration<K, V> config, final Store<K, V> store) {
     this(config, store, null);
   }
@@ -157,6 +171,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
     this.runtimeConfiguration = new RuntimeConfiguration(config);
     this.storeListener = new StoreListener();
+    this.jsr107Cache = new Jsr107CacheImpl();
   }
 
   @Override
@@ -234,6 +249,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         } catch (Exception e) {
           throw newCacheWriterException(e);
         }
+        
+        if (newValueAlreadyExpired(key, previousValue, value)) {
+          return null;
+        }
+        
         Cache.Entry<K, V> entry = newCacheEntry(key, value);
         eventNotificationService.onEvent(previousValue == null ? 
             CacheEvents.creation(entry, Ehcache.this) : CacheEvents.update(newCacheEntry(key, previousValue), 
@@ -243,8 +263,12 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     });
 
     try {
-      store.compute(key, remappingFunction);
-      putObserver.end(PutOutcome.ADDED);
+      ValueHolder<V> computed = store.compute(key, remappingFunction);
+      if (computed != null) {
+        putObserver.end(PutOutcome.ADDED);
+      } else {
+        // XXX: is there an outcome we want here?
+      }
     } catch (CacheAccessException e) {
       try {
         if (cacheWriter == null) {
@@ -263,7 +287,22 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     }
   }
-
+  
+  private boolean newValueAlreadyExpired(K key, V oldValue, V newValue) {
+    if (newValue == null) {
+      return false;
+    }
+    
+    final Duration duration;
+    if (oldValue == null) {
+      duration = runtimeConfiguration.getExpiry().getExpiryForCreation(key, newValue);
+    } else {
+      duration = runtimeConfiguration.getExpiry().getExpiryForUpdate(key, oldValue, newValue);
+    }
+    
+    return Duration.ZERO.equals(duration); 
+  }
+  
   @Override
   public boolean containsKey(final K key) {
     statusTransitioner.checkAvailable();
@@ -276,14 +315,23 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   }
 
   @Override
-  public void remove(final K key) throws CacheWriterException {
+  public void remove(K key) throws CacheWriterException {
+    removeInternal(key); // ignore return value;
+  }
+  
+  
+  private boolean removeInternal(final K key) throws CacheWriterException {
     removeObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key);
-
+    
+    final AtomicBoolean modified = new AtomicBoolean();
+    
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
       @Override
       public V apply(final K key, final V previousValue) {
+        modified.set(previousValue != null);
+        
         try {
           if (cacheWriter != null) {
             cacheWriter.delete(key);
@@ -298,7 +346,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
     try {
       store.compute(key, remappingFunction);
-      removeObserver.end(RemoveOutcome.SUCCESS);
+      if (modified.get()) {
+        removeObserver.end(RemoveOutcome.SUCCESS);
+      } else {
+        // XXX: Is there an outcome we want here?
+      }
     } catch (CacheAccessException e) {
       try {
         try {
@@ -311,6 +363,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         removeObserver.end(RemoveOutcome.FAILURE);
       }
     }
+    
+    return modified.get();
   }
 
   @Override
@@ -326,56 +380,84 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   @Override
   public Iterator<Entry<K, V>> iterator() {
     statusTransitioner.checkAvailable();
-    return new CacheEntryIterator();
+    return new CacheEntryIterator(false);
   }
 
   @Override
   public Map<K, V> getAll(Set<? extends K> keys) throws BulkCacheLoaderException {
+    return getAllInternal(keys, true);
+  }
+  
+  private Map<K, V> getAllInternal(Set<? extends K> keys, boolean includeNulls) throws BulkCacheLoaderException {
     statusTransitioner.checkAvailable();
     checkNonNullContent(keys);
-    final Map<K, V> successes = new HashMap<K, V>();
-    final Map<K, Exception> failures = new HashMap<K, Exception>();
-    Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction = new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+
+    final Map<K, V> successes;
+    final Map<K, Exception> failures;
+    if (cacheLoader != null) {
+      successes = new HashMap<K, V>();
+      failures = new HashMap<K, Exception>();
+    } else {
+      successes = Collections.emptyMap();
+      failures = Collections.emptyMap();
+    }
+    
+    Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> computeFunction =
+        new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
       @Override
       public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> keys) {
+        Map<K, V> computeResult = new LinkedHashMap<K ,V>();
+        
+        // put all the entries to get ordering correct
+        for (K key : keys) {
+          computeResult.put(key, null);
+        }
+
         if (cacheLoader != null) {
-          Map<K, V> loaded;
+          Map<K, V> loaded = Collections.emptyMap();
           try {
-            loaded = (Map<K, V>)cacheLoader.loadAll(keys);
-            successes.putAll(loaded);
+            loaded = (Map<K, V>) cacheLoader.loadAll(computeResult.keySet());
           } catch (Exception e) {
-            for (K key: keys) {
+            for (K key : computeResult.keySet()) {
               failures.put(key, e);
             }
-            return nullValuesForKeys(keys);
           }
-          return loaded.entrySet();
+          
+          for (Map.Entry<K, V> loadedEntry : loaded.entrySet()) {
+            K key = loadedEntry.getKey();
+            if (! computeResult.containsKey(key)) {
+              throw newCacheLoaderException(new RuntimeException("Cache loader returned value for key: " + key));
+            }
+            V value = loadedEntry.getValue();
+            successes.put(key, value);
+            computeResult.put(key, value);
+          }
         }
-        return nullValuesForKeys(keys);
+
+        return computeResult.entrySet();
       }
     };
 
     Map<K, V> result = new HashMap<K, V>();
     try {
-      Map<K, Store.ValueHolder<V>> computedMap = store.bulkComputeIfAbsent(keys, mappingFunction);
-     
-      if (computedMap == null) {
-        for (K key : keys) {
-          result.put(key, null);
-        }
-        return result;
-      }
+      Map<K, Store.ValueHolder<V>> computedMap = store.bulkComputeIfAbsent(keys, computeFunction);
 
       int hits = 0;
       for (Map.Entry<K, Store.ValueHolder<V>> entry : computedMap.entrySet()) {
         if (entry.getValue() != null) {
           result.put(entry.getKey(), entry.getValue().value());
           hits++;
-        } else {
+        } else if (includeNulls) {
           result.put(entry.getKey(), null);
         }
       }
-      addBulkMethodEntriesCount("getAll", hits);
+      
+      addBulkMethodEntriesCount(BulkOps.GET_ALL, hits);
+      if (failures.isEmpty()) {
+        return result;
+      } else {
+        throw new BulkCacheLoaderException(failures, successes);
+      }
     } catch (CacheAccessException e) {
       if (cacheLoader == null) {
         return resilienceStrategy.getAllFailure(keys, e);
@@ -386,18 +468,13 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         }
         toLoad.removeAll(successes.keySet());
         toLoad.removeAll(failures.keySet());
-        mappingFunction.apply(toLoad);
+        computeFunction.apply(toLoad);
         if (failures.isEmpty()) {
           return resilienceStrategy.getAllFailure(keys, successes, e);
         } else {
           return resilienceStrategy.getAllFailure(keys, e, new BulkCacheLoaderException(failures, successes));
         }
       }
-    }
-    if (failures.isEmpty()) {
-      return result;
-    } else {
-      throw new BulkCacheLoaderException(failures, successes);
     }
   }
 
@@ -435,9 +512,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     
     final AtomicInteger actualPutCount = new AtomicInteger();
 
-    // The remapping function that will return the keys to their NEW values, taking the keys to their old values as input;
-    // but this could happen in batches, i.e. not the same unique Set as passed to this method
-    Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction =
+    // The compute function that will return the keys to their NEW values, taking the keys to their old values as input;
+    // but this could happen in batches, i.e. not necessary containing all of the entries of the Iterable passed to this method
+    Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> computeFunction =
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
       @Override
       public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
@@ -450,10 +527,12 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         for (Map.Entry<? extends K, ? extends V> entry: entries) {
           K key = entry.getKey();
           V existingValue = entry.getValue();
-          
-          if (cacheWriter == null || successes.contains(key)) {
+          V newValue = entriesToRemap.remove(key);
+         
+          if (newValueAlreadyExpired(key, existingValue, newValue)) {
+            mutations.put(key, null);
+          } else if (cacheWriter == null || successes.contains(key)) {
             actualPutCount.incrementAndGet();
-            V newValue = entriesToRemap.remove(key);
             mutations.put(key, newValue);
           
             Cache.Entry<K, V> newEntry = newCacheEntry(key, newValue);
@@ -471,8 +550,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     };
 
     try {
-      store.bulkCompute(entries.keySet(), remappingFunction);
-      addBulkMethodEntriesCount("putAll", actualPutCount.get());
+      store.bulkCompute(entries.keySet(), computeFunction);
+      addBulkMethodEntriesCount(BulkOps.PUT_ALL, actualPutCount.get());
       if (! failures.isEmpty()) {
         throw new BulkCacheWriterException(failures, successes);
       }
@@ -558,7 +637,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
             V existingValue = entry.getValue();
             
             if (cacheWriter == null || successes.contains(key)) {
-              actualRemoveCount.incrementAndGet();
+              if (existingValue != null) {
+                actualRemoveCount.incrementAndGet();
+              }
               results.put(key, null);
               entriesToRemove.remove(key);
               eventNotificationService.onEvent(CacheEvents.removal(newCacheEntry(key, existingValue), Ehcache.this));
@@ -573,7 +654,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
     try {
       store.bulkCompute(keys, removalFunction);
-      addBulkMethodEntriesCount("removeAll", actualRemoveCount.get());
+      addBulkMethodEntriesCount(BulkOps.REMOVE_ALL, actualRemoveCount.get());
       if (! failures.isEmpty()) {
         throw new BulkCacheWriterException(failures, successes);
       }
@@ -632,6 +713,10 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
               throw newCacheWriterException(e);
             }
           }
+
+          if (newValueAlreadyExpired(key, null, value)) {
+            return null;
+          }
           
           installed.set(true);
           return value;
@@ -676,40 +761,40 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   @Override
   public boolean remove(final K key, final V value) throws CacheWriterException {
-    removeObserver.begin();
+    conditionalRemoveObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key, value);
+    final AtomicBoolean hit = new AtomicBoolean();
     final AtomicBoolean removed = new AtomicBoolean();
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
       @Override
       public V apply(final K k, final V inCache) {
-        try {
-            if (value.equals(inCache)) {
-              if (cacheWriter != null) {
-                try {
-                  cacheWriter.delete(k);
-                } catch (Exception e) {
-                  throw newCacheWriterException(e);
-                }
-              }
-              removed.set(true);
-              return null;
+        hit.set(true);
+        if (value.equals(inCache)) {
+          if (cacheWriter != null) {
+            try {
+              cacheWriter.delete(k);
+            } catch (Exception e) {
+              throw newCacheWriterException(e);
             }
-            return inCache;
-        } finally {
-          if (removed.get()) {
-            // Okay - the flag is always false when exceptions are thrown
-            eventNotificationService.onEvent(CacheEvents.removal(newCacheEntry(k, value), Ehcache.this));
           }
+          eventNotificationService.onEvent(CacheEvents.removal(newCacheEntry(k, value), Ehcache.this));
+          removed.set(true);
+          return null;
         }
+        return inCache;
       }
     });
     try {
-      store.computeIfPresent(key, remappingFunction);
+      store.computeIfPresent(key, remappingFunction, REPLACE_FALSE);
       if (removed.get()) {
-        removeObserver.end(RemoveOutcome.SUCCESS);
+        conditionalRemoveObserver.end(ConditionalRemoveOutcome.SUCCESS);
       } else {
-        removeObserver.end(RemoveOutcome.FAILURE);
+        if (hit.get()) {
+          conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_PRESENT);
+        } else {
+          conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_MISSING);
+        }
       }
     } catch (CacheAccessException e) {
       try {
@@ -724,7 +809,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
           return resilienceStrategy.removeFailure(key, value, e, removed.get());
         }
       } finally {
-        removeObserver.end(RemoveOutcome.FAILURE);
+        conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE);
       }
     }
     return removed.get();
@@ -747,6 +832,10 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
           }
         }
         
+        if (newValueAlreadyExpired(key, inCache, value)) {
+          return null;
+        }
+        
         old.set(inCache);
         eventNotificationService.onEvent(CacheEvents.update(newCacheEntry(k, inCache), 
             newCacheEntry(k, value), Ehcache.this));
@@ -759,7 +848,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       if (old.get() != null) {
         replaceObserver.end(ReplaceOutcome.HIT);
       } else {
-        replaceObserver.end(ReplaceOutcome.MISS);
+        replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
       }
       return old.get();
     } catch (CacheAccessException e) {
@@ -783,9 +872,12 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     checkNonNull(key, oldValue, newValue);
 
     final AtomicBoolean success = new AtomicBoolean();
+    final AtomicBoolean hit = new AtomicBoolean();
+    
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
       @Override
       public V apply(final K k, final V inCache) {
+        hit.set(true);
         try {
           if (oldValue.equals(inCache)) {
             if (cacheWriter != null) {
@@ -795,6 +887,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
                 throw newCacheWriterException(e);
               }
             }
+            
+            if (newValueAlreadyExpired(key, oldValue, newValue)) {
+              return null;
+            }
+            
             success.set(true);
             return newValue;
           }
@@ -808,11 +905,15 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     });
     try {
-      store.computeIfPresent(key, remappingFunction);
+      store.computeIfPresent(key, remappingFunction, REPLACE_FALSE);
       if (success.get()) {
         replaceObserver.end(ReplaceOutcome.HIT);
       } else {
-        replaceObserver.end(ReplaceOutcome.MISS);
+        if (hit.get()) {
+          replaceObserver.end(ReplaceOutcome.MISS_PRESENT);
+        } else {
+          replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
+        }
       }
       return success.get();
     } catch (CacheAccessException e) {
@@ -888,6 +989,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       throw new StateTransitionException(e);
     }
   }
+  
+  @Override
+  public CacheStatistics getStatistics() {
+    return cacheStatistics;
+  }
 
   void create() {
     statusTransitioner.checkMaintenance();
@@ -937,16 +1043,28 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
   }
 
-  private void addBulkMethodEntriesCount(String key, long count) {
-    AtomicLong current = bulkMethodEntries.get(key);
+  private void addBulkMethodEntriesCount(BulkOps op, long count) {
+    AtomicLong current = bulkMethodEntries.get(op);
     if (current == null) {
       AtomicLong newCount = new AtomicLong();
-      current = bulkMethodEntries.putIfAbsent(key, newCount);
+      current = bulkMethodEntries.putIfAbsent(op, newCount);
       if (current == null) {
         current = newCount;
       }
     }
     current.addAndGet(count);
+  }
+  
+  Jsr107Cache<K, V> getJsr107Cache() {
+    return jsr107Cache;
+  }
+  
+  CacheLoader<? super K, ? extends V> getCacheLoader() {
+    return this.cacheLoader;
+  }
+  
+  CacheWriter<? super K, ? super V> getCacheWriter() {
+    return this.cacheWriter;
   }
 
   private static <K, V> Cache.Entry<K, V> newCacheEntry(final K key, final V value) {
@@ -978,17 +1096,241 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
     };
   }
-  CacheLoader<? super K, ? extends V> getCacheLoader() {
-    return cacheLoader;
-  }
-  
-  @Override
-  public CacheStatistics getStatistics() {
-    return cacheStatistics;
-  }
 
-  CacheWriter<? super K, ? super V> getCacheWriter() {
-    return cacheWriter;
+  private final class Jsr107CacheImpl implements Jsr107Cache<K, V> {
+    @Override
+    public void loadAll(Set<? extends K> keys, boolean replaceExistingValues, Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
+      if (replaceExistingValues) {
+        loadAllReplace(keys, loadFunction);
+      } else {
+        loadAllAbsent(keys, loadFunction);
+      }
+    }
+    
+    @Override
+    public Map<K, V> getAll(Set<? extends K> keys) {
+      return Ehcache.this.getAllInternal(keys, false);
+    }
+
+    private void loadAllAbsent(Set<? extends K> keys, final Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
+      try {
+        store.bulkComputeIfAbsent(keys, new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+          @Override
+          public Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> absentKeys) {
+            return cacheLoaderLoadAllForKeys(absentKeys, loadFunction).entrySet();
+          }
+        });
+      } catch (CacheAccessException e) {
+        throw newCacheLoaderException(e);
+      }
+    }
+
+    Map<K, V> cacheLoaderLoadAllForKeys(Iterable<? extends K> keys, Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
+      try {
+        Map<K, V> loaded = loadFunction.apply(keys);
+        
+        // put into a new map since we can't assume the 107 cache loader returns things ordered, or necessarily with all the desired keys
+        Map<K, V> rv = new LinkedHashMap<K, V>();
+        for (K key : keys) {
+          rv.put(key, loaded.get(key));
+        }
+        return rv;
+      } catch (Exception e) {
+        throw newCacheLoaderException(e);
+      }
+    }
+
+    private void loadAllReplace(Set<? extends K> keys, final Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
+      try {
+        store.bulkCompute(keys, new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+          @Override
+          public Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>> apply(
+              Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>> entries) {
+            Collection<K> keys = new ArrayList<K>();
+            for (Map.Entry<? extends K, ? extends V> entry : entries) {
+              keys.add(entry.getKey());
+            }
+            return cacheLoaderLoadAllForKeys(keys, loadFunction).entrySet();
+          }            
+        });
+      } catch (CacheAccessException e) {
+        throw newCacheLoaderException(e);
+      }
+    }
+
+    @Override
+    public V compute(K key, final BiFunction<? super K, ? super V, ? extends V> computeFunction,
+        final NullaryFunction<Boolean> replaceEqual, final NullaryFunction<Boolean> invokeWriter, final NullaryFunction<Boolean> withStatsAndEvents) {
+      putObserver.begin();
+      removeObserver.begin();
+      getObserver.begin();
+      
+      try {
+        BiFunction<K, V, V> fn = new BiFunction<K, V, V>() {
+          @Override
+          public V apply(K mappedKey, V mappedValue) {
+            if (mappedValue == null) {
+              getObserver.end(GetOutcome.MISS_NO_LOADER);
+            } else {
+              getObserver.end(GetOutcome.HIT_NO_LOADER);
+            }
+            
+            V newValue = computeFunction.apply(mappedKey, mappedValue);
+            
+            if (newValue == mappedValue) {
+              if (! replaceEqual.apply()) {
+                return mappedValue;
+              }
+            }
+
+            if (invokeWriter.apply() && cacheWriter != null) {
+              try {
+                if (newValue != null) {
+                  cacheWriter.write(mappedKey, newValue);
+                } else {
+                  cacheWriter.delete(mappedKey);
+                }
+              } catch (Exception e) {
+                throw newCacheWriterException(e);
+              }
+            }
+            
+            if (newValueAlreadyExpired(mappedKey, mappedValue, newValue)) {
+              return null;
+            }
+            
+            if (withStatsAndEvents.apply()) {
+              final CacheEvent<K, V> event;
+              if (newValue == null) {
+                removeObserver.end(RemoveOutcome.SUCCESS);
+                event = CacheEvents.removal(newCacheEntry(mappedKey, mappedValue), Ehcache.this);
+              } else {
+                putObserver.end(PutOutcome.ADDED);
+                if (mappedValue == null) {
+                  event = CacheEvents.creation(newCacheEntry(mappedKey, newValue), Ehcache.this);
+                } else {
+                  event = CacheEvents.update(newCacheEntry(mappedKey, mappedValue), newCacheEntry(mappedKey, newValue), Ehcache.this);
+                }
+              }
+              eventNotificationService.onEvent(event);
+            }
+            
+            return newValue;
+          }
+        };
+
+        ValueHolder<V> valueHolder = store.compute(key, fn, replaceEqual);
+        return valueHolder == null ? null : valueHolder.value();
+      } catch (CacheAccessException e) {
+        // XXX:
+        throw new RuntimeException(e);
+      }
+    }
+
+    @Override
+    public V getAndRemove(K key) {
+      getObserver.begin();
+      removeObserver.begin();
+      
+      final AtomicReference<V> existingValue = new AtomicReference<V>();
+      try {
+        store.compute(key, new BiFunction<K, V, V>() {
+          @Override
+          public V apply(K mappedKey, V mappedValue) {
+            existingValue.set(mappedValue);
+            
+            if (cacheWriter != null) {
+              try {
+                cacheWriter.delete(mappedKey);
+              } catch (Exception e) {
+                throw newCacheWriterException(e);
+              }
+            }
+
+            eventNotificationService.onEvent(CacheEvents.removal(newCacheEntry(mappedKey, mappedValue), Ehcache.this));
+            return null;
+          }
+        });
+      } catch (CacheAccessException e) {
+        getObserver.end(GetOutcome.FAILURE);
+        removeObserver.end(RemoveOutcome.FAILURE);
+        // XXX:
+        throw new RuntimeException(e);
+      }
+      
+      V returnValue = existingValue.get();
+      if (returnValue != null) {
+        getObserver.end(GetOutcome.HIT_NO_LOADER);
+        removeObserver.end(RemoveOutcome.SUCCESS);
+      } else {
+        getObserver.end(GetOutcome.MISS_NO_LOADER);          
+      }
+      return returnValue;
+    }
+
+    @Override
+    public V getAndPut(K key, final V value) {
+      getObserver.begin();
+      putObserver.begin();
+      
+      final AtomicReference<V> existingValue = new AtomicReference<V>();
+      try {
+        store.compute(key, new BiFunction<K, V, V>() {
+          @Override
+          public V apply(K mappedKey, V mappedValue) {              
+            existingValue.set(mappedValue);
+            
+            if (cacheWriter != null) {
+              try {
+                cacheWriter.write(mappedKey, value);
+              } catch (Exception e) {
+                throw newCacheWriterException(e);
+              }
+            }
+            
+            if (newValueAlreadyExpired(mappedKey, mappedValue, value)) {
+              return null;
+            }
+            
+            Cache.Entry<K, V> entry = newCacheEntry(mappedKey, value);
+            if (mappedValue != null) {
+              eventNotificationService.onEvent(CacheEvents.update(newCacheEntry(mappedKey, mappedValue), entry, Ehcache.this)); 
+            } else {
+              eventNotificationService.onEvent(CacheEvents.creation(entry, Ehcache.this));
+            }
+            
+            return value;
+          }
+        });
+      } catch (CacheAccessException e) {
+        getObserver.end(GetOutcome.FAILURE);
+        putObserver.end(PutOutcome.FAILURE);
+        // XXX:
+        throw new RuntimeException(e);
+      }
+      
+      V returnValue = existingValue.get();        
+      if (returnValue != null) {
+        getObserver.end(GetOutcome.HIT_NO_LOADER);
+      } else {
+        getObserver.end(GetOutcome.MISS_NO_LOADER);          
+      }
+      putObserver.end(PutOutcome.ADDED);
+      return returnValue;
+    }
+
+    @Override
+    public boolean remove(K key) {
+      return removeInternal(key);
+    }
+
+    @Override
+    public void removeAll() {
+      for (Iterator<Cache.Entry<K, V>> iter = new CacheEntryIterator(true); iter.hasNext(); ) {
+        K key = iter.next().getKey();
+        remove(key);
+      }
+    }
   }
 
   private class RuntimeConfiguration implements CacheRuntimeConfiguration<K, V> {
@@ -1101,90 +1443,64 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   private class CacheEntryIterator implements Iterator<Entry<K, V>> {
 
     private final Store.Iterator<Entry<K, Store.ValueHolder<V>>> iterator;
-    private Entry<K, Store.ValueHolder<V>> current;
-    private Entry<K, Store.ValueHolder<V>> next;
+    private final boolean quiet;
+    private boolean cacheAccessError = false;
+    private Cache.Entry<K, ValueHolder<V>> current;
 
-    public CacheEntryIterator() {
-      Store.Iterator<Entry<K, Store.ValueHolder<V>>> storeIterator;
+    public CacheEntryIterator(boolean quiet) {
+      this.quiet = quiet;
+      
+      Store.Iterator<Entry<K, Store.ValueHolder<V>>> storeIterator = null;
       try {
         storeIterator = store.iterator();
       } catch (CacheAccessException e) {
-        resilienceStrategy.iteratorFailure(e);
-        storeIterator = new Store.Iterator<Entry<K, Store.ValueHolder<V>>>() {
-
-          @Override
-          public boolean hasNext() throws CacheAccessException {
-            return false;
-          }
-
-          @Override
-          public Entry<K, ValueHolder<V>> next() throws CacheAccessException {
-            throw new NoSuchElementException();
-          }
-        };
+        cacheAccessError(e);
       }
       this.iterator = storeIterator;
-      advance();
     }
 
-    private void advance() {
-      Entry<K, ValueHolder<V>> nextNext;
-      try {
-        if (iterator.hasNext()) {
-          nextNext = iterator.next();
-        } else {
-          nextNext = null;
-        }
-      } catch (CacheAccessException e) {
-        resilienceStrategy.iteratorFailure(e);
-        nextNext = null;
-      }
-      current = next;
-      next = nextNext;
+    private void cacheAccessError(CacheAccessException e) {
+      resilienceStrategy.iteratorFailure(e);
+      cacheAccessError = true;
     }
     
     @Override
     public boolean hasNext() {
       statusTransitioner.checkAvailable();
-      return next != null;
+      
+      if (cacheAccessError) {
+        return false;
+      }
+      
+      try {
+        return iterator.hasNext();
+      } catch (CacheAccessException e) {
+        cacheAccessError(e);
+        return false;
+      }
     }
 
     @Override
     public Entry<K, V> next() {
-      getObserver.begin();
       statusTransitioner.checkAvailable();
-      if (next == null) {
+      
+      if (cacheAccessError) {
         throw new NoSuchElementException();
-      } else {
-        advance();
       }
-      getObserver.end(GetOutcome.HIT_NO_LOADER);
-      return new Entry<K, V>() {
-        @Override
-        public K getKey() {
-          return current.getKey();
-        }
-
-        @Override
-        public V getValue() {
-          return current.getValue().value();
-        }
-
-        @Override
-        public long getCreationTime(TimeUnit unit) {
-          return current.getCreationTime(unit);
-        }
-
-        @Override
-        public long getLastAccessTime(TimeUnit unit) {
-          return current.getLastAccessTime(unit);
-        }
-
-        @Override
-        public float getHitRate(TimeUnit unit) {
-          return current.getHitRate(unit);
-        }
-      };
+      
+      if (!quiet) getObserver.begin();
+      try {
+        current = iterator.next();
+        if (!quiet) getObserver.end(GetOutcome.HIT_NO_LOADER);
+      } catch (CacheAccessException e) {
+        if (!quiet) getObserver.end(GetOutcome.FAILURE);
+        cacheAccessError(e);
+        
+        // XXX: not what we want!
+        throw new RuntimeException(e);
+      }
+      
+      return new ValueHolderBasedEntry<K, V>(current);
     }
 
     @Override
@@ -1231,6 +1547,39 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     @Override
     public void onExpiration(Cache.Entry<K, V> entry) {
       eventNotificationService.onEvent(CacheEvents.expiry(entry, Ehcache.this));
+    }
+  }
+  
+  private static class ValueHolderBasedEntry<K, V> implements Cache.Entry<K, V> {
+    private final Cache.Entry<K, ValueHolder<V>> storeEntry;
+
+    ValueHolderBasedEntry(Cache.Entry<K, Store.ValueHolder<V>> storeEntry) {
+      this.storeEntry = storeEntry;
+    }
+    
+    @Override
+    public K getKey() {
+      return storeEntry.getKey();
+    }
+
+    @Override
+    public V getValue() {
+      return storeEntry.getValue().value();
+    }
+
+    @Override
+    public long getCreationTime(TimeUnit unit) {
+      return storeEntry.getCreationTime(unit);
+    }
+
+    @Override
+    public long getLastAccessTime(TimeUnit unit) {
+      return storeEntry.getLastAccessTime(unit);
+    }
+
+    @Override
+    public float getHitRate(TimeUnit unit) {
+      return storeEntry.getHitRate(unit);
     }
   }
   

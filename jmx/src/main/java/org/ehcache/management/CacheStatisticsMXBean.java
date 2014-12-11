@@ -22,10 +22,6 @@ package org.ehcache.management;
  *
  */
 public interface CacheStatisticsMXBean {
-  /**
-   * Clears the statistics counters to 0 for the associated Cache.
-   */
-  void clear();
 
   /**
    * The number of get requests that were satisfied by the cache.

@@ -52,10 +52,12 @@ public final class Expirations {
 
     private final Duration create;
     private final Duration access;
+    private final Duration update;
     
-    BaseExpiry(Duration create, Duration access) {
+    BaseExpiry(Duration create, Duration access, Duration update) {
       this.create = create;
       this.access = access;
+      this.update = update;
     }
 
     @Override
@@ -77,6 +79,7 @@ public final class Expirations {
 
       if (access != null ? !access.equals(that.access) : that.access != null) return false;
       if (create != null ? !create.equals(that.create) : that.create != null) return false;
+      if (update != null ? !update.equals(that.update) : that.update != null) return false;
 
       return true;
     }
@@ -85,27 +88,34 @@ public final class Expirations {
     public int hashCode() {
       int result = create != null ? create.hashCode() : 0;
       result = 31 * result + (access != null ? access.hashCode() : 0);
+      result = 31 * result + (update != null ? update.hashCode() : 0);
       return result;
     }
 
     @Override
     public String toString() {
       return this.getClass().getSimpleName() + "{" +
-             "create=" + create +
-             ", access=" + access +
-             '}';
+          "create=" + create +
+          ", access=" + access +
+          ", update=" + update +
+          '}';
     }
+    
+    @Override
+    public Duration getExpiryForUpdate(K key, V oldValue, V newValue) {
+      return update;
+    }   
   }
 
   private static class TimeToLiveExpiry<K, V> extends BaseExpiry<K, V> {
     TimeToLiveExpiry(Duration ttl) {
-      super(ttl, null);
+      super(ttl, null, ttl);
     }
   }
 
   private static class TimeToIdleExpiry<K, V> extends BaseExpiry<K, V> {
     TimeToIdleExpiry(Duration tti) {
-      super(tti, tti);
+      super(tti, tti, tti);
     }
   }
 
@@ -114,7 +124,7 @@ public final class Expirations {
     private static final Expiry<Object, Object> INSTANCE = new NoExpiry<Object, Object>();
 
     private NoExpiry() {
-      super(Duration.FOREVER, null);
+      super(Duration.FOREVER, null, null);
     }
   }
 }

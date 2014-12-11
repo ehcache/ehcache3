@@ -13,26 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.statistics;
 
-package org.ehcache.exceptions;
-
-/**
- *
- * @author cdennis
- */
-public class PermanentPartialCacheAccessException extends CacheAccessException {
-
-  public PermanentPartialCacheAccessException(String message) {
-    super(message);
-  }
-
-  public PermanentPartialCacheAccessException(String message, Throwable cause) {
-    super(message, cause);
-  }
-
-  public PermanentPartialCacheAccessException(Throwable cause) {
-    super(cause);
-  }
-
+public enum BulkOps {
   
+  GET_ALL, PUT_ALL, REMOVE_ALL;
+
 }

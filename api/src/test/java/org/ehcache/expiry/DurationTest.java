@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
 import org.junit.Test;
 
@@ -64,6 +65,7 @@ public class DurationTest {
   @Test
   public void testForever() {
     assertThat(Duration.FOREVER.isForever(), equalTo(true));
+    assertThat(Duration.FOREVER.equals(Duration.ZERO), is(false));
 
     try {
       Duration.FOREVER.getAmount();
@@ -85,6 +87,7 @@ public class DurationTest {
     assertThat(Duration.ZERO.isForever(), equalTo(false));
     assertThat(Duration.ZERO.getAmount(), equalTo(0L));
     assertThat(Duration.ZERO.getTimeUnit(), any(TimeUnit.class));
+    assertThat(Duration.ZERO.equals(Duration.FOREVER), is(false));
   }
 
 }
