@@ -36,6 +36,9 @@ shadowJar {
   baseName = 'ehcache'
   classifier = ''
   projectsToInclude.each {projName -> dependencies {include(project(projName))}}
+  dependencies {
+    include(dependency('org.terracotta.internal:statistics:1.0.3'))
+  }
   fillManifest(manifest, 'ehcache')
   mergeServiceFiles()
 }
