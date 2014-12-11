@@ -27,23 +27,27 @@ class Eh107ReverseConfiguration<K, V> extends Eh107Configuration<K, V> {
   private static final long serialVersionUID = 7690458739466020356L;
   
   private final Cache<K, V> cache;
+  private final boolean readThrough;
+  private final boolean writeThrough;
+  private final boolean storeByValueOnHeap;
   private boolean managementEnabled = false;
-  private boolean statisticsEnabled = false;
+  private boolean statisticsEnabled = true;
 
-  Eh107ReverseConfiguration(Cache<K, V> cache) {
+  Eh107ReverseConfiguration(Cache<K, V> cache, boolean readThrough, boolean writeThrough, boolean storeByValueOnHeap) {
     this.cache = cache;
+    this.readThrough = readThrough;
+    this.writeThrough = writeThrough;
+    this.storeByValueOnHeap = storeByValueOnHeap;
   }
 
   @Override
   public boolean isReadThrough() {
-    // FIXME
-    return false;
+    return readThrough;
   }
 
   @Override
   public boolean isWriteThrough() {
-    // FIXME
-    return false;
+    return writeThrough;
   }
 
   @Override
@@ -68,13 +72,12 @@ class Eh107ReverseConfiguration<K, V> extends Eh107Configuration<K, V> {
 
   @Override
   public void addCacheEntryListenerConfiguration(CacheEntryListenerConfiguration<K, V> cacheEntryListenerConfiguration) {
-    // FIXME: need some behavior here
+    // Nothing to do - we do not maintain / expose them
   }
 
   @Override
-  public void removeCacheEntryListenerConfiguration(
-      CacheEntryListenerConfiguration<K, V> cacheEntryListenerConfiguration) {
-    // FIXME: need some behavior here
+  public void removeCacheEntryListenerConfiguration(CacheEntryListenerConfiguration<K, V> cacheEntryListenerConfiguration) {
+    // Nothing to do - we do not maintain / expose them
   }
 
   @Override
@@ -89,7 +92,6 @@ class Eh107ReverseConfiguration<K, V> extends Eh107Configuration<K, V> {
 
   @Override
   public boolean isStoreByValue() {
-    // FIXME: need to find value from cache
-    return false;
+    return storeByValueOnHeap;
   }
 }

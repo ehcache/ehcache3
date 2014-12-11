@@ -30,6 +30,7 @@ import javax.cache.configuration.Factory;
 import javax.cache.event.CacheEntryEventFilter;
 import javax.cache.event.CacheEntryListener;
 
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.writer.CacheWriter;
@@ -66,6 +67,13 @@ class CacheResources<K, V> {
       }
       throw mce;
     }
+  }
+
+  CacheResources(String cacheName, CacheLoader<? super K, ? extends V> cacheLoader, CacheWriter<? super K, ? super V> cacheWriter, Eh107Expiry<K, V> expiry) {
+    this.cacheName = cacheName;
+    this.cacheLoader = (CacheLoader<K, V>)cacheLoader;
+    this.cacheWriter = cacheWriter;
+    this.expiryPolicy = expiry;
   }
 
   private Eh107Expiry<K, V> initExpiryPolicy(CompleteConfiguration<K, V> config, MultiCacheException mce) {

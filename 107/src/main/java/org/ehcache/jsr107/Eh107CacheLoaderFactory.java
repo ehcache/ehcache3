@@ -19,12 +19,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.ehcache.spi.loader.CacheLoader;
+import org.ehcache.spi.loader.DefaultCacheLoaderFactory;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author teck
  */
-class Eh107CacheLoaderFactory implements org.ehcache.spi.loader.CacheLoaderFactory {
+class Eh107CacheLoaderFactory extends DefaultCacheLoaderFactory {
 
   private final ConcurrentMap<String, CacheLoader<?, ?>> cacheLoaders = new ConcurrentHashMap<String, CacheLoader<?, ?>>();
 
@@ -44,7 +45,7 @@ class Eh107CacheLoaderFactory implements org.ehcache.spi.loader.CacheLoaderFacto
       org.ehcache.config.CacheConfiguration<K, V> cacheConfiguration) {
     CacheLoader<?, ?> cacheLoader = cacheLoaders.remove(alias);
     if (cacheLoader == null) {
-      return null;
+      return super.createCacheLoader(alias, cacheConfiguration);
     }
 
     return (CacheLoader<? super K, ? extends V>)cacheLoader;

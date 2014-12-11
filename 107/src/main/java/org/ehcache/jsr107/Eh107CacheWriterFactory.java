@@ -20,11 +20,12 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriter;
+import org.ehcache.spi.writer.DefaultCacheWriterFactory;
 
 /**
  * @author teck
  */
-class Eh107CacheWriterFactory implements org.ehcache.spi.writer.CacheWriterFactory {
+class Eh107CacheWriterFactory extends DefaultCacheWriterFactory {
 
   private final ConcurrentMap<String, CacheWriter<?, ?>> cacheWriters = new ConcurrentHashMap<String, CacheWriter<?, ?>>();
 
@@ -44,7 +45,7 @@ class Eh107CacheWriterFactory implements org.ehcache.spi.writer.CacheWriterFacto
       org.ehcache.config.CacheConfiguration<K, V> cacheConfiguration) {
     CacheWriter<?, ?> cacheWriter = cacheWriters.remove(alias);
     if (cacheWriter == null) {
-      return null;
+      return super.createCacheWriter(alias, cacheConfiguration);
     }
 
     return (CacheWriter<K, V>) cacheWriter;

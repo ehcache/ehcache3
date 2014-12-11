@@ -36,11 +36,14 @@ import javax.management.InstanceAlreadyExistsException;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServer;
 
+import org.ehcache.Ehcache;
+import org.ehcache.EhcacheHackAccessor;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.loader.CacheLoader;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.writer.CacheWriter;
 
 /**
@@ -84,15 +87,26 @@ class Eh107CacheManager implements CacheManager {
     for (Map.Entry<String, CacheConfiguration<?, ?>> entry : ehXmlConfig.getCacheConfigurations().entrySet()) {
       String name = entry.getKey();
       CacheConfiguration<?, ?> config = entry.getValue();
-      caches.put(name, wrapEhcacheCache(name, config.getKeyType(), config.getValueType()));
+      caches.put(name, wrapEhcacheCache(name, config));
     }
   }
 
-  private <K, V> Eh107Cache<K, V> wrapEhcacheCache(String alias, Class<K> keyClass, Class<V> valueClass) {
-    org.ehcache.Cache<K, V> cache = ehCacheManager.getCache(alias, keyClass, valueClass);
-    Eh107Configuration<K, V> config = new Eh107ReverseConfiguration<K, V>(cache);
-    CacheResources<K, V> resources = new CacheResources<K, V>(alias, new MutableConfiguration<K, V>());
+  private <K, V> Eh107Cache<K, V> wrapEhcacheCache(String alias, CacheConfiguration<K, V> ehConfig) {
+    org.ehcache.Cache<K, V> cache = ehCacheManager.getCache(alias, ehConfig.getKeyType(), ehConfig.getValueType());
+
+    CacheLoader<? super K, ? extends V> cacheLoader = EhcacheHackAccessor.getCacheLoader((Ehcache<K, V>)cache);
+    CacheWriter<? super K, ? super V> cacheWriter = EhcacheHackAccessor.getCacheWriter((Ehcache<K, V>)cache);
+
+    boolean storeByValueOnHeap = false;
+    for (ServiceConfiguration<?> serviceConfiguration : ehConfig.getServiceConfigurations()) {
+      if (serviceConfiguration instanceof OnHeapStoreServiceConfig) {
+        OnHeapStoreServiceConfig onHeapStoreServiceConfig = (OnHeapStoreServiceConfig)serviceConfiguration;
+        storeByValueOnHeap = onHeapStoreServiceConfig.storeByValue();
+      }
+    }
+    Eh107Configuration<K, V> config = new Eh107ReverseConfiguration<K, V>(cache, cacheLoader != null, cacheWriter != null, storeByValueOnHeap);
     Eh107Expiry<K, V> expiry = new EhcacheExpiryWrapper<K, V>(cache.getRuntimeConfiguration().getExpiry());
+    CacheResources<K, V> resources = new CacheResources<K, V>(alias, cacheLoader, cacheWriter, expiry);
     return new Eh107Cache<K, V>(alias, config, resources, cache, this, expiry);
   }
 
