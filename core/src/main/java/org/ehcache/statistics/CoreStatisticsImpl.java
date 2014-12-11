@@ -19,6 +19,7 @@ package org.ehcache.statistics;
 import java.util.Arrays;
 import java.util.EnumSet;
 
+import org.ehcache.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.EvictionOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.ReplaceOutcome;
@@ -36,6 +37,7 @@ public class CoreStatisticsImpl implements CoreStatistics {
   private final CountOperation     cacheGet;
   private final CountOperation     cachePut;
   private final CountOperation     cacheRemove;
+  private final CountOperation     cacheConditionalRemove;
   private final CountOperation     evicted;
   private final CountOperation     cachePutIfAbsent;
   private final CountOperation     cacheReplace;
@@ -52,6 +54,7 @@ public class CoreStatisticsImpl implements CoreStatistics {
     this.cacheGet = asCountOperation(extended.get());
     this.cachePut = asCountOperation(extended.put());
     this.cacheRemove = asCountOperation(extended.remove());
+    this.cacheConditionalRemove = asCountOperation(extended.conditionalRemove());
     this.evicted = asCountOperation(extended.eviction());
     this.cachePutIfAbsent = asCountOperation(extended.putIfAbsent());
     this.cacheReplace = asCountOperation(extended.replace());
@@ -89,6 +92,12 @@ public class CoreStatisticsImpl implements CoreStatistics {
   @Override
   public CountOperation<CacheOperationOutcomes.RemoveOutcome> remove() {
     return cacheRemove;
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Override
+  public CountOperation<ConditionalRemoveOutcome> condtionalRemove() {
+    return cacheConditionalRemove;
   }
 
   @SuppressWarnings("unchecked")

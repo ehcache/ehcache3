@@ -21,6 +21,7 @@ import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
+import org.ehcache.function.NullaryFunction;
 import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.writer.CacheWriter;
@@ -45,6 +46,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -398,6 +400,13 @@ public abstract class EhcacheBasicCrudBase {
         }
       };
     }
+    
+    @Override
+    public ValueHolder<String> compute(String key,
+        BiFunction<? super String, ? super String, ? extends String> mappingFunction,
+        NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+      return compute(key, mappingFunction);
+    }
 
     @Override
     public ValueHolder<String> compute(final String key, final BiFunction<? super String, ? super String, ? extends String> mappingFunction)
@@ -446,10 +455,24 @@ public abstract class EhcacheBasicCrudBase {
       }
       return null;
     }
+    
+    @Override
+    public ValueHolder<String> computeIfPresent(String key, BiFunction<? super String, ? super String, ? extends String> remappingFunction,
+        NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+      return computeIfPresent(key, remappingFunction);
+    }
 
     @Override
     public Map<String, ValueHolder<String>> bulkCompute(final Set<? extends String> keys, final Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> remappingFunction)
         throws CacheAccessException {
+      throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public Map<String, org.ehcache.spi.cache.Store.ValueHolder<String>> bulkCompute(
+        Set<? extends String> keys,
+        Function<Iterable<? extends Entry<? extends String, ? extends String>>, Iterable<? extends Entry<? extends String, ? extends String>>> remappingFunction,
+        NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
       throw new UnsupportedOperationException();
     }
 

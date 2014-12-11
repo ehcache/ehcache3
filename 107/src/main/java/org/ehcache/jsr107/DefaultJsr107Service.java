@@ -28,15 +28,29 @@ public class DefaultJsr107Service implements Jsr107Service {
 
   @Override
   public void start(final ServiceConfiguration<?> serviceConfiguration) {
-    configuration = (Jsr107Configuration)serviceConfiguration;
+    configuration = (Jsr107Configuration) serviceConfiguration;
   }
 
+  @Override
   public String getDefaultTemplate() {
-    return configuration.getDefaultTemplate();
+    final Jsr107Configuration cfg = configuration;
+    if (cfg == null) {
+      return null;
+    }
+    return cfg.getDefaultTemplate();
   }
 
+  @Override
   public String getTemplateNameForCache(String name) {
-    return configuration.getTemplates().get(name);
+    final Jsr107Configuration cfg = configuration;
+    if (cfg == null) {
+      return null;
+    }
+    String template = cfg.getTemplates().get(name);
+    if (template != null) {
+      return template;
+    }
+    return null;
   }
 
   @Override

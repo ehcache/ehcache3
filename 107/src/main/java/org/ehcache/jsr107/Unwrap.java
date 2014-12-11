@@ -13,23 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.jsr107;
 
-package org.ehcache;
+/**
+ * @author teck
+ */
+final class Unwrap {
 
-import org.junit.Test;
+  static <T> T unwrap(Class<T> clazz, Object obj) {
+    if (clazz == null || obj == null) {
+      throw new NullPointerException();
+    }
 
-import javax.cache.Caching;
-import javax.cache.spi.CachingProvider;
+    if (clazz.isAssignableFrom(obj.getClass())) {
+      return clazz.cast(obj);
+    }
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+    throw new IllegalArgumentException("Cannot unwrap to " + clazz);
+  }
 
-public class EhCachingProviderTest {
-  
-  @Test
-  public void testLoadsAsCachingProvider() {
-    final CachingProvider provider = Caching.getCachingProvider();
-    assertThat(provider, is(instanceOf(EhCachingProvider.class)));
+  private Unwrap() {
+    //
   }
 }

@@ -48,6 +48,7 @@ abstract class BaseOnHeapValueHolder<V> implements OnHeapValueHolder<V> {
 
   @Override
   public float hitRate(TimeUnit unit) {
+    // XXX:
     throw new AssertionError();
   }
 
@@ -61,4 +62,10 @@ abstract class BaseOnHeapValueHolder<V> implements OnHeapValueHolder<V> {
     throw new AssertionError();
   }
 
+  @Override
+  public long getExpireTimeMillis() {
+    // XXX: this shouldn't be called, but we shouldn't need to do this in the base class
+    throw new AssertionError();
+  }
+  
 }

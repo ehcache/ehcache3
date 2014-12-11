@@ -60,6 +60,16 @@ public interface CacheOperationOutcomes {
   };
 
   /**
+   * The outcomes for conditional remove operations.
+   */
+  enum ConditionalRemoveOutcome {
+    SUCCESS,
+    FAILURE_KEY_PRESENT,
+    FAILURE_KEY_MISSING,
+    FAILURE
+  };
+  
+  /**
    * The eviction outcomes.
    */
   enum EvictionOutcome {
@@ -93,7 +103,8 @@ public interface CacheOperationOutcomes {
    */
   enum ReplaceOutcome {
     HIT,
-    MISS,
+    MISS_PRESENT,
+    MISS_NOT_PRESENT,
     FAILURE
   };  
 }

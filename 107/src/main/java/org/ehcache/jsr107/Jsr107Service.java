@@ -28,4 +28,8 @@ public interface Jsr107Service extends Service {
 
   @Override
   void stop();
+
+  String getDefaultTemplate();
+
+  String getTemplateNameForCache(String name);
 }

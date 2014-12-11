@@ -91,7 +91,11 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
   @Override
   public void releaseAllListeners(CacheEventListenerFactory factory) {
     for (EventListenerWrapper wrapper: registeredListeners) {
-      factory.releaseEventListener(wrapper.listener);
+      
+      // XXX: should this null check be required (or is it an error state)? 
+      if (factory != null) {
+        factory.releaseEventListener(wrapper.listener);
+      }
       registeredListeners.remove(wrapper);
     }
   }
@@ -107,6 +111,7 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
         continue;
       }
       Runnable notificationTask = new Runnable() {
+        @Override
         public void run() {
           CacheEventListener<K, V> listener = (CacheEventListener<K, V>)wrapper.listener;
           listener.onEvent(event);
@@ -180,10 +185,12 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
       };
     }
     
+    @Override
     public int hashCode() {
       return listener.hashCode();
     }
     
+    @Override
     public boolean equals(Object other) {
       if (!(other instanceof EventListenerWrapper)) {
         return false;

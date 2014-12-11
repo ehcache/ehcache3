@@ -102,7 +102,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_MISSING));
   }
 
   /**
@@ -123,7 +123,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_PRESENT));
   }
 
   /**
@@ -144,7 +144,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.SUCCESS));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.SUCCESS));
   }
 
   /**
@@ -167,7 +167,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
   /**
@@ -190,7 +190,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
   /**
@@ -213,7 +213,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
   /**
@@ -236,7 +236,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(false));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_MISSING));
   }
 
   /**
@@ -259,7 +259,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     // Broken initial state: CacheWriter check omitted
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_PRESENT));
   }
 
   /**
@@ -282,7 +282,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     // Broken initial state: CacheWriter check omitted
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.SUCCESS));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.SUCCESS));
   }
 
   /**
@@ -308,7 +308,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(false));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
   /**
@@ -334,7 +334,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     // Broken initial state: CacheWriter check omitted
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
   /**
@@ -360,7 +360,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     // Broken initial state: CacheWriter check omitted
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
   /**
@@ -383,7 +383,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_MISSING));
   }
 
   /**
@@ -406,7 +406,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_PRESENT));
   }
 
   /**
@@ -429,7 +429,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     // Broken initial state: CacheWriter check omitted
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.SUCCESS));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.SUCCESS));
   }
 
   /**
@@ -455,7 +455,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
   /**
@@ -481,7 +481,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));   // TODO: Confirm correctness
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
   /**
@@ -507,7 +507,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     // Broken initial state: CacheWriter check omitted
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
   /**
@@ -530,7 +530,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(true));    // TODO: Confirm correctness
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_MISSING));
   }
 
   /**
@@ -553,7 +553,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     // Broken initial state: CacheWriter check omitted
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_PRESENT));
   }
 
   /**
@@ -576,7 +576,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(false));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.SUCCESS));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.SUCCESS));
   }
 
   /**
@@ -602,7 +602,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(true));    // TODO: Confirm correctness
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
   /**
@@ -628,7 +628,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     // Broken initial state: CacheWriter check omitted
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
   /**
@@ -654,7 +654,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(true));    // TODO: Confirm correctness
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
   /**
@@ -677,7 +677,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     assertFalse(ehcache.remove("key", "value"));
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_MISSING));
   }
 
   /**
@@ -701,7 +701,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_PRESENT));
   }
 
   /**
@@ -755,7 +755,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
   /**
@@ -781,7 +781,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
   /**
@@ -807,7 +807,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
   /**

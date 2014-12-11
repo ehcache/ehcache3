@@ -24,6 +24,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
+import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -244,18 +245,31 @@ public interface Store<K, V> {
    * Compute the value for the given key by invoking the given function to produce the value.
    * The entire operation is performed atomically.
    * 
+   * This is equivalent to calling {@link Store#compute(Object, BiFunction, NullaryFunction)}
+   * with a "replaceEquals" function that returns {@link Boolean#TRUE}
+   */
+  ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException;
+  
+  /**
+   * Compute the value for the given key by invoking the given function to produce the value.
+   * The entire operation is performed atomically.
+   * 
    * @param key the key to operate on
    * @param mappingFunction the function that will produce the value. The function will be supplied
    *        with the key and existing value (or null if no entry exists) as parameters. The function should
    *        return the desired new value for the entry or null to remove the entry. If the method throws
    *        an unchecked exception the Store will not be modified (the caller will receive the exception)
+   * @param replaceEqual If the existing value in the store is {@link java.lang.Object#equals(Object)} to
+   *        the value returned from the mappingFunction this function will be invoked. If this function
+   *        returns {@link java.lang.Boolean#FALSE} then the existing entry in the store will not be replaced
+   *        with a new entry and the existing entry will have its access time updated 
    * @return the new value associated with the key or null if none
    * @throws ClassCastException If the specified key is not of the correct type ({@code K}) or if the
    *         function returns a value that is not of type ({@code V})
    * @throws CacheAccessException
    */
-  ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException;
-
+  ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException;
+  
   /**
    * Compute the value for the given key (only if absent or expired) by invoking the given function to produce the value.
    * The entire operation is performed atomically.
@@ -275,19 +289,41 @@ public interface Store<K, V> {
   /**
    * Compute the value for the given key (only if present and non-expired) by invoking the given function to produce the value.
    * The entire operation is performed atomically.
+   * <p>
+   * This is equivalent to calling {@link Store#computeIfPresent(Object, BiFunction, NullaryFunction)}
+   * with a "replaceEquals" function that returns {@link Boolean#TRUE}
+   * 
+   */
+  ValueHolder<V> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException;
+  
+  /**
+   * Compute the value for the given key (only if present and non-expired) by invoking the given function to produce the value.
+   * The entire operation is performed atomically.
    * 
    * @param key the key to operate on
    * @param remappingFunction the function that will produce the value. The function will be supplied
    *        with the key and existing value as parameters. The function should
    *        return the desired new value for the entry or null to remove the entry. If the method throws
    *        an unchecked exception the Store will not be modified (the caller will receive the exception)
+   * @param replaceEqual If the existing value in the store is {@link java.lang.Object#equals(Object)} to
+   *        the value returned from the mappingFunction this function will be invoked. If this function
+   *        returns {@link java.lang.Boolean#FALSE} then the existing entry in the store will not be replaced
+   *        with a new entry and the existing entry will have its access time updated 
    * @return the new value associated with the key or null if none
    * @throws ClassCastException If the specified key is not of the correct type ({@code K}) or if the
    *         function returns a value that is not of type ({@code V})
    * @throws CacheAccessException
    */
-  ValueHolder<V> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException;
-
+  ValueHolder<V> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException;
+  
+  /**
+   * Compute a value for every key passed in the {@link Set} {@code keys} argument, using the {@code remappingFunction} to compute the value.
+   * <p>
+   * This is equivalent to calling {@link Store#bulkCompute(Set, Function, NullaryFunction)}
+   * with a "replaceEquals" function that returns {@link Boolean#TRUE}
+   */
+  Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException;  
+  
   /**
    * Compute a value for every key passed in the {@link Set} {@code keys} argument, using the {@code remappingFunction} to compute the value.
    * <p>
@@ -302,12 +338,16 @@ public interface Store<K, V> {
    *
    * @param keys the keys to compute a new value for.
    * @param remappingFunction the function that generates new values.
+   * @param replaceEqual If the existing value in the store is {@link java.lang.Object#equals(Object)} to
+   *        the value returned from the mappingFunction this function will be invoked. If this function
+   *        returns {@link java.lang.Boolean#FALSE} then the existing entry in the store will not be replaced
+   *        with a new entry and the existing entry will have its access time updated 
    * @return a {@link Map} of key/value pairs for each key in <code>keys</code> to the value computed.
    * @throws ClassCastException if the specified key(s) are not of the correct type ({@code K}). Also thrown if the given function produces
    *         entries with either incorrect key or value types   
    * @throws CacheAccessException
    */
-  Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException;
+  Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException;
 
   /**
    * Compute a value for every key passed in the {@link Set} <code>keys</code> argument using the <code>mappingFunction</code>

@@ -73,6 +73,14 @@ public interface CoreStatistics {
    */
   public CountOperation<CacheOperationOutcomes.RemoveOutcome> remove();
   
+
+  /**
+   * remove(K, V) operation.
+   *
+   * @return the count operation
+   */
+  public CountOperation<CacheOperationOutcomes.ConditionalRemoveOutcome> condtionalRemove();
+  
   /**
    * putIfAbsent operation.
    *

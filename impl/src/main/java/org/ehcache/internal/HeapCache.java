@@ -25,6 +25,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
+import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -113,6 +114,7 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
         throw new UnsupportedOperationException("Implement me!");
       }
 
+      @Override
       public ValueHolder<V> get(final K key) throws CacheAccessException {
         throw new UnsupportedOperationException("Implement me!");
       }
@@ -171,6 +173,12 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
       public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
         throw new UnsupportedOperationException("Implement me!");
       }
+      
+      @Override 
+      public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction,
+          NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+        throw new UnsupportedOperationException("Implement me!");
+      }
 
       @Override
       public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) {
@@ -186,9 +194,21 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
       public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
         throw new UnsupportedOperationException("Implement me!");
       }
+      
+      @Override
+      public Map<K, org.ehcache.spi.cache.Store.ValueHolder<V>> bulkCompute(Set<? extends K> keys,
+              Function<Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>>, Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>>> remappingFunction,
+              NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+        throw new UnsupportedOperationException("Implement me!");
+      }
 
       @Override
       public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+      
+      @Override
+      public ValueHolder<V> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
         throw new UnsupportedOperationException("Implement me!");
       }
 
@@ -208,6 +228,7 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
     super(cacheConfig, store);
   }
 
+  @Override
   public V get(K key) {
     return underlying.get(key);
   }

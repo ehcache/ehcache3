@@ -38,6 +38,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.ehcache.statistics.CacheOperationOutcomes;
+import org.ehcache.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.EvictionOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.PutOutcome;
@@ -108,7 +109,7 @@ public class ExtendedStatisticsImpl implements ExtendedStatistics {
   private final Result                                                         cacheLoader;
 
   /** The cache hit ratio. */
-  private Statistic<Double>                                                    cacheHitRatio;
+  private final Statistic<Double>                                                    cacheHitRatio;
 
   private final int                                                            defaultHistorySize;
 
@@ -263,6 +264,12 @@ public class ExtendedStatisticsImpl implements ExtendedStatistics {
   @Override
   public Operation<RemoveOutcome> remove() {
     return (Operation<RemoveOutcome>) getStandardOperation(StandardOperationStatistic.CACHE_REMOVE);
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Override
+  public Operation<ConditionalRemoveOutcome> conditionalRemove() {
+    return (Operation<ConditionalRemoveOutcome>) getStandardOperation(StandardOperationStatistic.CACHE_CONDITIONAL_REMOVE);
   }
 
   @SuppressWarnings("unchecked")

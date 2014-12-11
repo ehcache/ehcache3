@@ -144,6 +144,10 @@ public final class Duration {
     if (amount != other.amount) {
       return false;
     }
+    
+    if (timeUnit == null || other.timeUnit == null) {
+      return timeUnit == other.timeUnit;
+    }
 
     if (timeUnit != other.timeUnit) {
       if (amount == 0) {

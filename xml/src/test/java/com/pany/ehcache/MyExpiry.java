@@ -34,4 +34,9 @@ public class MyExpiry implements Expiry<Object, Object> {
   public Duration getExpiryForAccess(final Object key, final Object value) {
     return new Duration(42, TimeUnit.SECONDS);
   }
+  
+  @Override
+  public Duration getExpiryForUpdate(Object key, Object oldValue, Object newValue) {
+    return new Duration(42, TimeUnit.SECONDS);
+  }
 }

@@ -118,7 +118,9 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
   void removeAll(Set<? extends K> keys) throws BulkCacheWriterException;
   
   /**
-   * Removes all mapping currently present in the Cache. This is not an atomic operation and can be very costly operation as well...
+   * Removes all mapping currently present in the Cache without invoking the {@link org.ehcache.spi.writer.CacheWriter} or any
+   * registered {@link org.ehcache.event.CacheEventListener} instances
+   * This is not an atomic operation and can potentially be very expensive
    */
   void clear();
 

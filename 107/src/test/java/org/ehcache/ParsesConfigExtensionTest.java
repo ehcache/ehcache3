@@ -37,11 +37,14 @@ import com.pany.domain.Product;
 import com.pany.ehcache.integration.ProductCacheWriter;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import javax.cache.Caching;
 import javax.cache.configuration.CompleteConfiguration;
 import javax.cache.configuration.MutableConfiguration;
+import javax.cache.spi.CachingProvider;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -159,5 +162,15 @@ public class ParsesConfigExtensionTest {
       assertThat(runtimeConfiguration.getEvictionPrioritizer(), is((EvictionPrioritizer) Eviction.Prioritizer.LRU));
       assertThat(runtimeConfiguration.getCapacityConstraint(), CoreMatchers.<Comparable<Long>>is(200L));
     }
+  }
+
+  @Test
+  public void testXmlExampleIn107() throws Exception {
+    CachingProvider cachingProvider = Caching.getCachingProvider();
+    javax.cache.CacheManager cacheManager = cachingProvider.getCacheManager(getClass().getResource("/ehcache-example.xml")
+        .toURI(), cachingProvider.getDefaultClassLoader());
+
+    javax.cache.Cache<Long, Product> productCache = cacheManager.getCache("productCache", Long.class, Product.class);
+    assertThat(productCache, is(notNullValue()));
   }
 }
