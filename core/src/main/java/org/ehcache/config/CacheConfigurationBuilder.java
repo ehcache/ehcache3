@@ -86,6 +86,15 @@ public class CacheConfigurationBuilder<K, V> {
     return this;
   }
 
+  public <T extends ServiceConfiguration<?>> T getExistingServiceConfiguration(Class<T> clazz) {
+    for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
+      if (clazz.equals(serviceConfiguration.getClass())) {
+        return clazz.cast(serviceConfiguration);
+      }
+    }
+    return null;
+  }
+
   public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType) {
     return new BaseCacheConfiguration<CK, CV>(keyType, valueType, capacityConstraint, evictionVeto,
         evictionPrioritizer, classLoader, expiry,

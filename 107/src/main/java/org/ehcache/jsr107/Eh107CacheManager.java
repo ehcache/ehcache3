@@ -208,9 +208,11 @@ class Eh107CacheManager implements CacheManager {
 
     builder = builder.withExpiry(expiry);
 
-    if (jsr107Config.isStoreByValue()) {
-      builder.addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true));
-      builder.withSerializationProvider(new JavaSerializationProvider());
+    OnHeapStoreServiceConfig onHeapStoreServiceConfig = builder.getExistingServiceConfiguration(OnHeapStoreServiceConfig.class);
+    if (onHeapStoreServiceConfig == null) {
+      builder.addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(jsr107Config.isStoreByValue()));
+    } else {
+      onHeapStoreServiceConfig.storeByValue(jsr107Config.isStoreByValue());
     }
 
     // This code is a little weird. In particular that it doesn't
