@@ -58,6 +58,7 @@ task shadowJavadocJar(type: Jar, dependsOn: shadowJar) {
 artifacts {
   archives shadowJar
   archives shadowSourceJar
+  archives shadowJavadocJar
 }
 
 def artifactFiltering = {
