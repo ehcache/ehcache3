@@ -21,7 +21,6 @@ import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
-import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
@@ -37,12 +36,12 @@ import com.pany.domain.Product;
 import com.pany.ehcache.integration.ProductCacheWriter;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import javax.cache.Caching;
 import javax.cache.configuration.CompleteConfiguration;
+import javax.cache.configuration.Configuration;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.spi.CachingProvider;
 
@@ -172,5 +171,22 @@ public class ParsesConfigExtensionTest {
 
     javax.cache.Cache<Long, Product> productCache = cacheManager.getCache("productCache", Long.class, Product.class);
     assertThat(productCache, is(notNullValue()));
+    Configuration<Long, Product> configuration = productCache.getConfiguration(Configuration.class);
+    assertThat(configuration.getKeyType(), is(equalTo(Long.class)));
+    assertThat(configuration.getValueType(), is(equalTo(Product.class)));
+
+    Product product = new Product(1L);
+    productCache.put(1L, product);
+    assertThat(productCache.get(1L).getId(), equalTo(product.getId()));
+
+    javax.cache.Cache<Long, Customer> customerCache = cacheManager.getCache("customerCache", Long.class, Customer.class);
+    assertThat(customerCache, is(notNullValue()));
+    Configuration<Long, Customer> customerConfiguration = customerCache.getConfiguration(Configuration.class);
+    assertThat(customerConfiguration.getKeyType(), is(equalTo(Long.class)));
+    assertThat(customerConfiguration.getValueType(), is(equalTo(Customer.class)));
+
+    Customer customer = new Customer(1L);
+    customerCache.put(1L, customer);
+    assertThat(customerCache.get(1L).getId(), equalTo(customer.getId()));
   }
 }
