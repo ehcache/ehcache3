@@ -30,7 +30,6 @@ import javax.cache.configuration.Factory;
 import javax.cache.event.CacheEntryEventFilter;
 import javax.cache.event.CacheEntryListener;
 
-import org.ehcache.config.CacheConfiguration;
 import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.writer.CacheWriter;
@@ -41,7 +40,7 @@ import org.ehcache.spi.writer.CacheWriter;
 class CacheResources<K, V> {
 
   private final Eh107Expiry<K, V> expiryPolicy;
-  private final CacheLoader<K, V> cacheLoader;
+  private final CacheLoader<? super K, ? extends V> cacheLoader;
   private final CacheWriter<? super K, ? super V> cacheWriter;
   private final Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> listenerResources = new ConcurrentHashMap<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>>();
   private final AtomicBoolean closed = new AtomicBoolean();
@@ -71,7 +70,7 @@ class CacheResources<K, V> {
 
   CacheResources(String cacheName, CacheLoader<? super K, ? extends V> cacheLoader, CacheWriter<? super K, ? super V> cacheWriter, Eh107Expiry<K, V> expiry) {
     this.cacheName = cacheName;
-    this.cacheLoader = (CacheLoader<K, V>)cacheLoader;
+    this.cacheLoader = cacheLoader;
     this.cacheWriter = cacheWriter;
     this.expiryPolicy = expiry;
   }
@@ -90,7 +89,7 @@ class CacheResources<K, V> {
     return expiryPolicy;
   }
 
-  CacheLoader<K, V> getCacheLoader() {
+  CacheLoader<? super K, ? extends V> getCacheLoader() {
     return cacheLoader;
   }
 

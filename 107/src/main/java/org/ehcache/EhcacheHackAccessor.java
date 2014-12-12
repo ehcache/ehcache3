@@ -34,5 +34,9 @@ public final class EhcacheHackAccessor {
   public static <K, V> CacheWriter<? super K, ? super V> getCacheWriter(Ehcache<K, V> ehcache) {
     return ehcache.getCacheWriter();
   }
+  
+  public static <K, V> Jsr107Cache<K, V> getJsr107Cache(Ehcache<K, V> ehcache) {
+    return ehcache.getJsr107Cache();
+  }
 
 }

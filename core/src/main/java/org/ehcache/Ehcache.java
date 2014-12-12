@@ -1099,7 +1099,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   private final class Jsr107CacheImpl implements Jsr107Cache<K, V> {
     @Override
-    public void loadAll(Set<? extends K> keys, boolean replaceExistingValues, Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
+    public void loadAll(Set<? extends K> keys, boolean replaceExistingValues, Function<Iterable<? extends K>, Map<? super K, ? extends V>> loadFunction) {
       if (replaceExistingValues) {
         loadAllReplace(keys, loadFunction);
       } else {
@@ -1112,7 +1112,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       return Ehcache.this.getAllInternal(keys, false);
     }
 
-    private void loadAllAbsent(Set<? extends K> keys, final Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
+    private void loadAllAbsent(Set<? extends K> keys, final Function<Iterable<? extends K>, Map<? super K, ? extends V>> loadFunction) {
       try {
         store.bulkComputeIfAbsent(keys, new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
           @Override
@@ -1125,9 +1125,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     }
 
-    Map<K, V> cacheLoaderLoadAllForKeys(Iterable<? extends K> keys, Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
+    Map<K, V> cacheLoaderLoadAllForKeys(Iterable<? extends K> keys, Function<Iterable<? extends K>, Map<? super K, ? extends V>> loadFunction) {
       try {
-        Map<K, V> loaded = loadFunction.apply(keys);
+        Map<? super K, ? extends V> loaded = loadFunction.apply(keys);
         
         // put into a new map since we can't assume the 107 cache loader returns things ordered, or necessarily with all the desired keys
         Map<K, V> rv = new LinkedHashMap<K, V>();
@@ -1140,7 +1140,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     }
 
-    private void loadAllReplace(Set<? extends K> keys, final Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
+    private void loadAllReplace(Set<? extends K> keys, final Function<Iterable<? extends K>, Map<? super K, ? extends V>> loadFunction) {
       try {
         store.bulkCompute(keys, new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
           @Override

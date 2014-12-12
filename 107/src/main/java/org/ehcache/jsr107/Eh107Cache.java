@@ -15,7 +15,6 @@
  */
 package org.ehcache.jsr107;
 
-import java.lang.reflect.Method;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,7 +23,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.cache.Cache;
-import javax.cache.CacheException;
 import javax.cache.CacheManager;
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.Configuration;
@@ -35,7 +33,8 @@ import javax.cache.processor.EntryProcessor;
 import javax.cache.processor.EntryProcessorException;
 import javax.cache.processor.EntryProcessorResult;
 
-import org.ehcache.Jsr107Cache;
+import org.ehcache.Ehcache;
+import org.ehcache.EhcacheHackAccessor;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.function.BiFunction;
@@ -60,7 +59,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   private final Eh107CacheMXBean managementBean;
   private final Eh107CacheStatisticsMXBean statisticsBean;
   private final Eh107Configuration<K, V> config;
-  private final CacheLoader<K, V> cacheLoader;
+  private final CacheLoader<? super K, ? extends V> cacheLoader;
   private final CacheWriter<? super K, ? super V> cacheWriter;
   private final Eh107Expiry<K, V> expiry;
 
@@ -82,19 +81,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       registerEhcacheListeners(entry.getKey(), entry.getValue());
     }
 
-    this.jsr107Cache = getJsr107Cache(ehCache);
-
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <K, V> Jsr107Cache<K, V> getJsr107Cache(org.ehcache.Cache<K, V> ehCache) {
-    try {
-      Method method = ehCache.getClass().getDeclaredMethod("getJsr107Cache");
-      method.setAccessible(true);
-      return (Jsr107Cache<K, V>) method.invoke(ehCache);
-    } catch (Exception e) {
-      throw new CacheException(e);
-    }
+    this.jsr107Cache = EhcacheHackAccessor.getJsr107Cache((Ehcache<K, V>) ehCache);
   }
 
   @Override
@@ -146,9 +133,9 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     }
 
     try {
-      jsr107Cache.loadAll(keys, replaceExistingValues, new Function<Iterable<? extends K>, Map<K, V>>() {
+      jsr107Cache.loadAll(keys, replaceExistingValues, new Function<Iterable<? extends K>, Map<? super K, ? extends V>>() {
         @Override
-        public Map<K, V> apply(Iterable<? extends K> keys) {
+        public Map<? super K, ? extends V> apply(Iterable<? extends K> keys) {
           try {
             return cacheLoader.loadAll(keys);
           } catch (Exception e) {

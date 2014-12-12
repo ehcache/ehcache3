@@ -30,7 +30,6 @@ import javax.cache.CacheException;
 import javax.cache.CacheManager;
 import javax.cache.configuration.CompleteConfiguration;
 import javax.cache.configuration.Configuration;
-import javax.cache.configuration.MutableConfiguration;
 import javax.cache.spi.CachingProvider;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.InstanceNotFoundException;
@@ -40,7 +39,6 @@ import org.ehcache.Ehcache;
 import org.ehcache.EhcacheHackAccessor;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
-import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -218,7 +216,7 @@ class Eh107CacheManager implements CacheManager {
     // This code is a little weird. In particular that it doesn't
     // complain if you have config.isReadThrough() true and a null
     // loader -- see https://github.com/jsr107/jsr107tck/issues/59
-    CacheLoader<K, V> cacheLoader = cacheResources.getCacheLoader();
+    CacheLoader<? super K, ? extends V> cacheLoader = cacheResources.getCacheLoader();
     if (cacheLoader != null && jsr107Config.isReadThrough()) {
       cacheLoaderFactory.registerJsr107Loader(cacheName, cacheLoader);
     }
