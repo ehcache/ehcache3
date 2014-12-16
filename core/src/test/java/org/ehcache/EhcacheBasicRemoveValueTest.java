@@ -99,7 +99,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     assertFalse(ehcache.remove("key", "value"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_MISSING));
@@ -120,7 +120,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     assertFalse(ehcache.remove("key", "value"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_PRESENT));
@@ -141,7 +141,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     assertTrue(ehcache.remove("key", "value"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.SUCCESS));
@@ -151,7 +151,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>>{@code Store.compute} throws</li>
+   *   <li>>{@code Store.computeIfPresent} throws</li>
    *   <li>no {@code CacheWriter}</li>
    * </ul>
    */
@@ -159,12 +159,12 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
   public void testRemoveValueNoStoreEntryCacheAccessExceptionNoCacheWriter() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     ehcache.remove("key", "value");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
@@ -174,7 +174,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object, Object)} for
    * <ul>
    *   <li>key with unequal value present in {@code Store}</li>
-   *   <li>>{@code Store.compute} throws</li>
+   *   <li>>{@code Store.computeIfPresent} throws</li>
    *   <li>no {@code CacheWriter}</li>
    * </ul>
    */
@@ -182,12 +182,12 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
   public void testRemoveValueUnequalStoreEntryCacheAccessExceptionNoCacheWriter() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     ehcache.remove("key", "value");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
@@ -197,7 +197,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object, Object)} for
    * <ul>
    *   <li>key with equal value present in {@code Store}</li>
-   *   <li>>{@code Store.compute} throws</li>
+   *   <li>>{@code Store.computeIfPresent} throws</li>
    *   <li>no {@code CacheWriter}</li>
    * </ul>
    */
@@ -205,12 +205,12 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
   public void testRemoveValueEqualStoreEntryCacheAccessExceptionNoCacheWriter() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "value"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     ehcache.remove("key", "value");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
@@ -232,7 +232,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter);
 
     assertFalse(ehcache.remove("key", "value"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(false));
@@ -255,7 +255,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter);
 
     assertFalse(ehcache.remove("key", "value"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     // Broken initial state: CacheWriter check omitted
@@ -278,7 +278,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter);
 
     assertTrue(ehcache.remove("key", "value"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     // Broken initial state: CacheWriter check omitted
@@ -289,7 +289,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>>{@code Store.compute} throws</li>
+   *   <li>>{@code Store.computeIfPresent} throws</li>
    *   <li>key not present via {@code CacheWriter}</li>
    * </ul>
    */
@@ -297,14 +297,14 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
   public void testRemoveValueNoStoreEntryCacheAccessExceptionNoCacheWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheWriter fakeWriter = new FakeCacheWriter(Collections.<String, String>emptyMap());
     this.cacheWriter = spy(fakeWriter);
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     ehcache.remove("key", "value");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(false));
@@ -315,7 +315,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object, Object)} for
    * <ul>
    *   <li>key with unequal value present in {@code Store}</li>
-   *   <li>>{@code Store.compute} throws</li>
+   *   <li>>{@code Store.computeIfPresent} throws</li>
    *   <li>key not present via {@code CacheWriter}</li>
    * </ul>
    */
@@ -323,14 +323,14 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
   public void testRemoveValueUnequalStoreEntryCacheAccessExceptionNoCacheWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheWriter fakeWriter = new FakeCacheWriter(Collections.<String, String>emptyMap());
     this.cacheWriter = spy(fakeWriter);
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     ehcache.remove("key", "value");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     // Broken initial state: CacheWriter check omitted
@@ -341,7 +341,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object, Object)} for
    * <ul>
    *   <li>key with equal value present in {@code Store}</li>
-   *   <li>>{@code Store.compute} throws</li>
+   *   <li>>{@code Store.computeIfPresent} throws</li>
    *   <li>key not present via {@code CacheWriter}</li>
    * </ul>
    */
@@ -349,14 +349,14 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
   public void testRemoveValueEqualStoreEntryCacheAccessExceptionNoCacheWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "value"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheWriter fakeWriter = new FakeCacheWriter(Collections.<String, String>emptyMap());
     this.cacheWriter = spy(fakeWriter);
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     ehcache.remove("key", "value");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     // Broken initial state: CacheWriter check omitted
@@ -379,7 +379,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter);
 
     assertFalse(ehcache.remove("key", "value"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));
@@ -402,7 +402,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter);
 
     assertFalse(ehcache.remove("key", "value"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));
@@ -425,7 +425,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter);
 
     assertTrue(ehcache.remove("key", "value"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     // Broken initial state: CacheWriter check omitted
@@ -436,7 +436,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>>{@code Store.compute} throws</li>
+   *   <li>>{@code Store.computeIfPresent} throws</li>
    *   <li>key with unequal value present via {@code CacheWriter}</li>
    * </ul>
    */
@@ -444,14 +444,14 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
   public void testRemoveValueNoStoreEntryCacheAccessExceptionUnequalCacheWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheWriter fakeWriter = new FakeCacheWriter(Collections.singletonMap("key", "unequalValue"));
     this.cacheWriter = spy(fakeWriter);
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     ehcache.remove("key", "value");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));
@@ -462,7 +462,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object, Object)} for
    * <ul>
    *   <li>key with unequal value present in {@code Store}</li>
-   *   <li>>{@code Store.compute} throws</li>
+   *   <li>>{@code Store.computeIfPresent} throws</li>
    *   <li>key with unequal value present via {@code CacheWriter}</li>
    * </ul>
    */
@@ -470,14 +470,14 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
   public void testRemoveValueUnequalStoreEntryCacheAccessExceptionUnequalCacheWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheWriter fakeWriter = new FakeCacheWriter(Collections.singletonMap("key", "unequalValue"));
     this.cacheWriter = spy(fakeWriter);
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     ehcache.remove("key", "value");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));   // TODO: Confirm correctness
@@ -488,7 +488,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object, Object)} for
    * <ul>
    *   <li>key with equal value present in {@code Store}</li>
-   *   <li>>{@code Store.compute} throws</li>
+   *   <li>>{@code Store.computeIfPresent} throws</li>
    *   <li>key with unequal value present via {@code CacheWriter}</li>
    * </ul>
    */
@@ -496,14 +496,14 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
   public void testRemoveValueEqualStoreEntryCacheAccessExceptionUnequalCacheWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "value"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheWriter fakeWriter = new FakeCacheWriter(Collections.singletonMap("key", "unequalValue"));
     this.cacheWriter = spy(fakeWriter);
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     ehcache.remove("key", "value");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     // Broken initial state: CacheWriter check omitted
@@ -526,7 +526,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter);
 
     assertFalse(ehcache.remove("key", "value"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(true));    // TODO: Confirm correctness
@@ -549,7 +549,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter);
 
     assertFalse(ehcache.remove("key", "value"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     // Broken initial state: CacheWriter check omitted
@@ -572,7 +572,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter);
 
     assertTrue(ehcache.remove("key", "value"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(false));
@@ -583,7 +583,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>>{@code Store.compute} throws</li>
+   *   <li>>{@code Store.computeIfPresent} throws</li>
    *   <li>key with equal value present via {@code CacheWriter}</li>
    * </ul>
    */
@@ -591,14 +591,14 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
   public void testRemoveValueNoStoreEntryCacheAccessExceptionEqualCacheWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheWriter fakeWriter = new FakeCacheWriter(Collections.singletonMap("key", "value"));
     this.cacheWriter = spy(fakeWriter);
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     ehcache.remove("key", "value");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(true));    // TODO: Confirm correctness
@@ -609,7 +609,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object, Object)} for
    * <ul>
    *   <li>key with unequal value present in {@code Store}</li>
-   *   <li>>{@code Store.compute} throws</li>
+   *   <li>>{@code Store.computeIfPresent} throws</li>
    *   <li>key with equal value present via {@code CacheWriter}</li>
    * </ul>
    */
@@ -617,14 +617,14 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
   public void testRemoveValueUnequalStoreEntryCacheAccessExceptionEqualCacheWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheWriter fakeWriter = new FakeCacheWriter(Collections.singletonMap("key", "value"));
     this.cacheWriter = spy(fakeWriter);
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     ehcache.remove("key", "value");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     // Broken initial state: CacheWriter check omitted
@@ -635,7 +635,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object, Object)} for
    * <ul>
    *   <li>key with equal value present in {@code Store}</li>
-   *   <li>>{@code Store.compute} throws</li>
+   *   <li>>{@code Store.computeIfPresent} throws</li>
    *   <li>key with equal value present via {@code CacheWriter}</li>
    * </ul>
    */
@@ -643,14 +643,14 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
   public void testRemoveValueEqualStoreEntryCacheAccessExceptionEqualCacheWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "value"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheWriter fakeWriter = new FakeCacheWriter(Collections.singletonMap("key", "value"));
     this.cacheWriter = spy(fakeWriter);
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     ehcache.remove("key", "value");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(true));    // TODO: Confirm correctness
@@ -675,7 +675,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     assertFalse(ehcache.remove("key", "value"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_MISSING));
   }
@@ -698,7 +698,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     assertFalse(ehcache.remove("key", "value"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_PRESENT));
@@ -727,7 +727,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     } catch (CacheWriterException e) {
       // Expected
     }
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
   }
@@ -736,7 +736,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>>{@code Store.compute} throws</li>
+   *   <li>>{@code Store.computeIfPresent} throws</li>
    *   <li>{@code CacheWriter.delete} throws</li>
    * </ul>
    */
@@ -744,7 +744,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
   public void testRemoveValueNoStoreEntryCacheAccessExceptionCacheWriterException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheWriter fakeWriter = new FakeCacheWriter(Collections.singletonMap("key", "value"));
     this.cacheWriter = spy(fakeWriter);
@@ -752,7 +752,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     ehcache.remove("key", "value");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
@@ -762,7 +762,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object, Object)} for
    * <ul>
    *   <li>key with unequal value present in {@code Store}</li>
-   *   <li>>{@code Store.compute} throws</li>
+   *   <li>>{@code Store.computeIfPresent} throws</li>
    *   <li>{@code CacheWriter.delete} throws</li>
    * </ul>
    */
@@ -770,7 +770,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
   public void testRemoveValueUnequalStoreEntryCacheAccessExceptionCacheWriterException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheWriter fakeWriter = new FakeCacheWriter(Collections.singletonMap("key", "unequalValue"));
     this.cacheWriter = spy(fakeWriter);
@@ -778,7 +778,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     ehcache.remove("key", "value");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
@@ -788,7 +788,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#remove(Object, Object)} for
    * <ul>
    *   <li>key with equal value present in {@code Store}</li>
-   *   <li>>{@code Store.compute} throws</li>
+   *   <li>>{@code Store.computeIfPresent} throws</li>
    *   <li>{@code CacheWriter.delete} throws</li>
    * </ul>
    */
@@ -796,7 +796,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
   public void testRemoveValueEqualStoreEntryCacheAccessExceptionCacheWriterException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "value"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheWriter fakeWriter = new FakeCacheWriter(Collections.singletonMap("key", "value"));
     this.cacheWriter = spy(fakeWriter);
@@ -804,7 +804,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     ehcache.remove("key", "value");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
+    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));

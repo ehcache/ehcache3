@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -155,10 +156,10 @@ final class EhcacheBasicBulkUtil {
    *
    * @param subset the {@code Iterable} over the keys for entries to copy into the result {@code Map}
    *
-   * @return a new, modifiable {@code Map} holding the designated entries
+   * @return a new, insert-ordered, modifiable {@code Map} holding the designated entries
    */
   static Map<String, String> getEntryMap(final Iterable<String> subset) {
-    return getEntryMap(Collections.singletonList(subset));
+    return getEntryMap(Collections.singletonList(subset), null);
   }
 
   /**
@@ -167,13 +168,13 @@ final class EhcacheBasicBulkUtil {
    * @param subset1 the first {@code Iterable} over the keys for entries to copy into the result {@code Map}
    * @param subset2 the second {@code Iterable}s over the keys for entries to copy into the result {@code Map}
    *
-   * @return a new, modifiable {@code Map} holding the designated entries
+   * @return a new, insert-ordered, modifiable {@code Map} holding the designated entries
    */
   static Map<String, String> getEntryMap(final Iterable<String> subset1, final Iterable<String> subset2) {
     final List<Iterable<String>> subsets = new ArrayList<Iterable<String>>(2);
     subsets.add(subset1);
     subsets.add(subset2);
-    return getEntryMap(subsets);
+    return getEntryMap(subsets, null);
   }
 
   /**
@@ -183,7 +184,7 @@ final class EhcacheBasicBulkUtil {
    * @param subset2 the second {@code Iterable}s over the keys for entries to copy into the result {@code Map}
    * @param subset3 the third {@code Iterable}s over the keys for entries to copy into the result {@code Map}
    *
-   * @return a new, modifiable {@code Map} holding the designated entries
+   * @return a new, insert-ordered, modifiable {@code Map} holding the designated entries
    */
   static Map<String, String> getEntryMap(
       final Iterable<String> subset1, final Iterable<String> subset2, final Iterable<String> subset3) {
@@ -191,7 +192,7 @@ final class EhcacheBasicBulkUtil {
     subsets.add(subset1);
     subsets.add(subset2);
     subsets.add(subset3);
-    return getEntryMap(subsets);
+    return getEntryMap(subsets, null);
   }
 
   /**
@@ -202,7 +203,7 @@ final class EhcacheBasicBulkUtil {
    * @param subset3 the third {@code Iterable}s over the keys for entries to copy into the result {@code Map}
    * @param subset4 the fourth {@code Iterable}s over the keys for entries to copy into the result {@code Map}
    *
-   * @return a new, modifiable {@code Map} holding the designated entries
+   * @return a new, insert-ordered, modifiable {@code Map} holding the designated entries
    */
   static Map<String, String> getEntryMap(
       final Iterable<String> subset1, final Iterable<String> subset2, final Iterable<String> subset3, final Iterable<String> subset4) {
@@ -211,21 +212,42 @@ final class EhcacheBasicBulkUtil {
     subsets.add(subset2);
     subsets.add(subset3);
     subsets.add(subset4);
-    return getEntryMap(subsets);
+    return getEntryMap(subsets, null);
+  }
+
+  /**
+   * Gets a {@code Map} holding entries corresponding to the key {@code Iterable} provided.  Each entry
+   * value is prepended with the prefix value provided.
+   *
+   * @param prefix the non-{@code null} prefix used to alter each entry's value
+   * @param subset the {@code Iterable} over the keys for entries to copy into the result {@code Map}
+   *
+   * @return a new, insert-ordered, modifiable {@code Map} holding the designated entries
+   */
+  static Map<String, String> getAltEntryMap(final String prefix, final Iterable<String> subset) {
+    assert prefix != null;
+    return getEntryMap(Collections.singletonList(subset), prefix);
   }
 
   /**
    * Gets a {@code Map} holding entries corresponding to the key {@code Iterable}s provided.
    *
    * @param subsets the {@code Iterable}s over the keys for entries to copy into the result {@code Map}
+   * @param prefix the value to prepend to each entry value; if {@code null}, the values are not altered
    *
-   * @return a new, modifiable {@code Map} holding the designated entries
+   * @return a new, insert-ordered, modifiable {@code Map} holding the designated entries
    */
-  private static Map<String, String> getEntryMap(final List<Iterable<String>> subsets) {
+  private static Map<String, String> getEntryMap(final List<Iterable<String>> subsets, final String prefix) {
+    final StringBuilder sb = (prefix == null ? null : new StringBuilder(prefix));
     final Map<String, String> entryMap = new LinkedHashMap<String, String>();
     for (final Iterable<String> subset : subsets) {
       for (final String key : subset) {
-        entryMap.put(key, TEST_ENTRIES.get(key));
+        String value = TEST_ENTRIES.get(key);
+        if (prefix != null) {
+          sb.setLength(prefix.length());
+          value = sb.append(value).toString();
+        }
+        entryMap.put(key, value);
       }
     }
     return entryMap;
@@ -236,7 +258,7 @@ final class EhcacheBasicBulkUtil {
    *
    * @param keySet the {@code Iterable} over the keys for the result {@code Map}
    *
-   * @return a new, modifiable {@code Map} holding {@code null} values for each key provided
+   * @return a new, insert-ordered, modifiable {@code Map} holding {@code null} values for each key provided
    */
   static Map<String, String> getNullEntryMap(final Iterable<String> keySet) {
     return getNullEntryMap(Collections.singletonList(keySet));
@@ -248,7 +270,7 @@ final class EhcacheBasicBulkUtil {
    * @param keySet1 the first {@code Iterable} over the keys for the result {@code Map}
    * @param keySet2 the second {@code Iterable} over the keys for the result {@code Map}
    *
-   * @return a new, modifiable {@code Map} holding {@code null} values for each key provided
+   * @return a new, insert-ordered, modifiable {@code Map} holding {@code null} values for each key provided
    */
   static Map<String, String> getNullEntryMap(final Iterable<String> keySet1, final Iterable<String> keySet2) {
     final List<Iterable<String>> keySets = new ArrayList<Iterable<String>>(2);
@@ -262,7 +284,7 @@ final class EhcacheBasicBulkUtil {
    *
    * @param keySets the {@code Iterable}s over the keys for the result {@code Map}
    *
-   * @return a new, modifiable {@code Map} holding {@code null} values for each key provided
+   * @return a new, insert-ordered, modifiable {@code Map} holding {@code null} values for each key provided
    */
   private static Map<String, String> getNullEntryMap(final List<Iterable<String>> keySets) {
     final Map<String, String> entryMap = new LinkedHashMap<String, String>();
@@ -318,6 +340,36 @@ final class EhcacheBasicBulkUtil {
     final Map<String, String> union = new HashMap<String, String>();
     for (Map<String, String> map : maps) {
       union.putAll(map);
+    }
+    return union;
+  }
+
+  /**
+   * Gets a {@code Set} containing all of the elements from the sets provided
+   *
+   * @param set1 the first {@code Set} instance to combine
+   * @param set2 the second {@code Set} instance to combine
+   *
+   * @return a new {@code Set} containing all of the elements
+   */
+  static Set<String> union(final Set<String> set1, final Set<String> set2) {
+    final List<Set<String>> sets = new ArrayList<Set<String>>();
+    sets.add(set1);
+    sets.add(set2);
+    return union(sets);
+  }
+
+  /**
+   * Gets a {@code Set} containing all of the entries from the sets provided.
+   *
+   * @param sets the {@code Set} instances to combine
+   *
+   * @return a new {@code Set} containing all of the elements
+   */
+  private static Set<String> union(final List<Set<String>> sets) {
+    final Set<String> union = new HashSet<String>();
+    for (final Set<String> set : sets) {
+      union.addAll(set);
     }
     return union;
   }
@@ -473,6 +525,37 @@ final class EhcacheBasicBulkUtil {
   static Set<String> copyWithout(final Set<String> source, final Collection<String> removed) {
     final Set<String> copy = new LinkedHashSet<String>(source);
     copy.removeAll(removed);
+    return copy;
+  }
+
+  /**
+   * Makes a shallow copy of the {@code Map} provided retaining only those entries identified
+   * by the keys in the {@code Collection} {@code retained}.
+   *
+   * @param source the {@code Map} from which the copy is made
+   * @param retained the keys of the entries to keep in the copy
+   *
+   * @return a new, entry-ordered {@code Map} containing the just the retained entries
+   */
+  static Map<String, String> copyOnly(final Map<String, String> source, final Collection<String> retained) {
+    final Map<String, String> copy = new LinkedHashMap<String, String>(source);
+    copy.keySet().retainAll(retained);
+    return copy;
+  }
+
+  /**
+   * Makes a shallow copy of the {@code Map} provided omitting those entries identified by the
+   * keys in the {@code Collection} {@code removed}.
+   *
+   * @param source the {@code Map} from which the copy is made
+   * @param removed the keys of the entries to omit from the copy
+   *
+   * @return a new, entry-ordered {@code Map} containing the entries from {@code source} less those
+   *    specified in {@code removed}
+   */
+  static Map<String, String> copyWithout(final Map<String, String> source, final Collection<String> removed) {
+    final Map<String, String> copy = new LinkedHashMap<String, String>(source);
+    copy.keySet().removeAll(removed);
     return copy;
   }
 }
