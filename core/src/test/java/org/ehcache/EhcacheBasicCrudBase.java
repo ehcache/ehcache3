@@ -430,7 +430,7 @@ public abstract class EhcacheBasicCrudBase {
     public ValueHolder<String> compute(String key,
         BiFunction<? super String, ? super String, ? extends String> mappingFunction,
         NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
-      return compute(key, mappingFunction);
+      return this.compute(key, mappingFunction);
     }
 
     @Override
@@ -487,7 +487,7 @@ public abstract class EhcacheBasicCrudBase {
     @Override
     public ValueHolder<String> computeIfPresent(String key, BiFunction<? super String, ? super String, ? extends String> remappingFunction,
         NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
-      return computeIfPresent(key, remappingFunction);
+      return this.computeIfPresent(key, remappingFunction);
     }
 
     @Override

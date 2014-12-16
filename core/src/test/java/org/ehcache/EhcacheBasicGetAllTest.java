@@ -29,16 +29,14 @@ import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static org.ehcache.EhcacheBasicBulkUtil.*;
 
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -72,118 +70,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
   @Mock
   private CacheLoader<String, String> loader;
-
-  /**
-   * Entries for populating {@link org.ehcache.spi.cache.Store Store} and
-   * {@link org.ehcache.spi.loader.CacheLoader CacheLoader} instances in the
-   * unit tests.  The entries used are generally subset using the key sets
-   * {@link #KEY_SET_A}, {@link #KEY_SET_B}, {@link #KEY_SET_C}, and/or
-   * {@link #KEY_SET_F}.
-   * <p/>
-   * Some tests are dependent on the order of the keys/entries.  In general,
-   * for each key set ('xxxXn'), the keys/entries must be ordered by 'n'.
-   */
-  private static final Map<String, String> TEST_ENTRIES;
-  static {
-    final Map<String, String> testEntries = new LinkedHashMap<String, String>();
-    testEntries.put("keyA1", "valueA1");   // keySet A
-    testEntries.put("keyB1", "valueB1");   // keySet B
-    testEntries.put("keyC1", "valueC1");   // keySet C
-    testEntries.put("keyD1", "valueD1");   // KeySet D
-    testEntries.put("keyE1", "valueE1");   // KeySet E
-    testEntries.put("keyF1", "valueF1");   // KeySet F
-
-    testEntries.put("keyC2", "valueC2");   // keySet C
-    testEntries.put("keyD2", "valueD2");   // KeySet D
-    testEntries.put("keyA2", "valueA2");   // keySet A
-    testEntries.put("keyB2", "valueB2");   // ketSet B
-    testEntries.put("keyF2", "valueF2");   // keySet F
-    testEntries.put("keyE2", "valueE2");   // KeySet E
-
-    testEntries.put("keyD3", "valueD3");   // KeySet D
-    testEntries.put("keyC3", "valueC3");   // keySet C
-    testEntries.put("keyF3", "valueF3");   // keySet F
-    testEntries.put("keyE3", "valueE3");   // KeySet E
-    testEntries.put("keyA3", "valueA3");   // keySet A
-    testEntries.put("keyB3", "valueB3");   // ketSet B
-
-    testEntries.put("keyF4", "valueF4");   // KeySet F
-    testEntries.put("keyE4", "valueE4");   // KeySet E
-    testEntries.put("keyD4", "valueD4");   // KeySet D
-    testEntries.put("keyC4", "valueC4");   // keySet C
-    testEntries.put("keyB4", "valueB4");   // keySet B
-    testEntries.put("keyA4", "valueA4");   // keySet A
-
-    testEntries.put("keyE5", "valueE5");   // KeySet E
-    testEntries.put("keyF5", "valueF5");   // KeySet F
-    testEntries.put("keyB5", "valueB5");   // keySet B
-    testEntries.put("keyA5", "valueA5");   // keySet A
-    testEntries.put("keyD5", "valueD5");   // KeySet D
-    testEntries.put("keyC5", "valueC5");   // keySet C
-
-    testEntries.put("keyB6", "valueB6");   // keySet B
-    testEntries.put("keyA6", "valueA6");   // keySet A
-    testEntries.put("keyE6", "valueE6");   // KeySet E
-    testEntries.put("keyF6", "valueF6");   // KeySet F
-    testEntries.put("keyC6", "valueC6");   // keySet C
-    testEntries.put("keyD6", "valueD6");   // KeySet D
-
-    TEST_ENTRIES = Collections.unmodifiableMap(testEntries);
-  }
-
-  /** The {@link #TEST_ENTRIES} key subset matching {@code xxxAx}. */
-  private static final Set<String> KEY_SET_A;
-  /** The {@link #TEST_ENTRIES} key subset matching {@code xxxBx}. */
-  private static final Set<String> KEY_SET_B;
-  /** The {@link #TEST_ENTRIES} key subset matching {@code xxxCx}. */
-  private static final Set<String> KEY_SET_C;
-  /** The {@link #TEST_ENTRIES} key subset matching {@code xxxDx}. */
-  private static final Set<String> KEY_SET_D;
-  /** The {@link #TEST_ENTRIES} key subset matching {@code xxxEx}. */
-  private static final Set<String> KEY_SET_E;
-  /** The {@link #TEST_ENTRIES} key subset matching {@code xxxFx}. */
-  private static final Set<String> KEY_SET_F;
-  static {
-    final Set<String> keySetA = new LinkedHashSet<String>();
-    final Set<String> keySetB = new LinkedHashSet<String>();
-    final Set<String> keySetC = new LinkedHashSet<String>();
-    final Set<String> keySetD = new LinkedHashSet<String>();
-    final Set<String> keySetE = new LinkedHashSet<String>();
-    final Set<String> keySetF = new LinkedHashSet<String>();
-
-    for (final String key : TEST_ENTRIES.keySet()) {
-      final char set = key.charAt(3);
-      switch (set) {
-        case 'A':
-          keySetA.add(key);
-          break;
-        case 'B':
-          keySetB.add(key);
-          break;
-        case 'C':
-          keySetC.add(key);
-          break;
-        case 'D':
-          keySetD.add(key);
-          break;
-        case 'E':
-          keySetE.add(key);
-          break;
-        case 'F':
-          keySetF.add(key);
-          break;
-        default:
-          throw new AssertionError();
-      }
-    }
-
-    KEY_SET_A = Collections.unmodifiableSet(keySetA);
-    KEY_SET_B = Collections.unmodifiableSet(keySetB);
-    KEY_SET_C = Collections.unmodifiableSet(keySetC);
-    KEY_SET_D = Collections.unmodifiableSet(keySetD);
-    KEY_SET_E = Collections.unmodifiableSet(keySetE);
-    KEY_SET_F = Collections.unmodifiableSet(keySetF);
-  }
 
   /**
    * A Mockito {@code ArgumentCaptor} for the {@code Set} argument to the
@@ -2486,332 +2372,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Gets a {@code Map} holding entries corresponding to the key {@code Iterable} provided.
-   *
-   * @param subset the {@code Iterable} over the keys for entries to copy into the result {@code Map}
-   *
-   * @return a new, modifiable {@code Map} holding the designated entries
-   */
-  private static Map<String, String> getEntryMap(final Iterable<String> subset) {
-    return getEntryMap(Collections.singletonList(subset));
-  }
-
-  /**
-   * Gets a {@code Map} holding entries corresponding to the key {@code Iterable}s provided.
-   *
-   * @param subset1 the first {@code Iterable} over the keys for entries to copy into the result {@code Map}
-   * @param subset2 the second {@code Iterable}s over the keys for entries to copy into the result {@code Map}
-   *
-   * @return a new, modifiable {@code Map} holding the designated entries
-   */
-  private static Map<String, String> getEntryMap(final Iterable<String> subset1, final Iterable<String> subset2) {
-    final List<Iterable<String>> subsets = new ArrayList<Iterable<String>>(2);
-    subsets.add(subset1);
-    subsets.add(subset2);
-    return getEntryMap(subsets);
-  }
-
-  /**
-   * Gets a {@code Map} holding entries corresponding to the key {@code Iterable}s provided.
-   *
-   * @param subset1 the first {@code Iterable} over the keys for entries to copy into the result {@code Map}
-   * @param subset2 the second {@code Iterable}s over the keys for entries to copy into the result {@code Map}
-   * @param subset3 the third {@code Iterable}s over the keys for entries to copy into the result {@code Map}
-   *
-   * @return a new, modifiable {@code Map} holding the designated entries
-   */
-  private static Map<String, String> getEntryMap(
-      final Iterable<String> subset1, final Iterable<String> subset2, final Iterable<String> subset3) {
-    final List<Iterable<String>> subsets = new ArrayList<Iterable<String>>(3);
-    subsets.add(subset1);
-    subsets.add(subset2);
-    subsets.add(subset3);
-    return getEntryMap(subsets);
-  }
-
-  /**
-   * Gets a {@code Map} holding entries corresponding to the key {@code Iterable}s provided.
-   *
-   * @param subset1 the first {@code Iterable} over the keys for entries to copy into the result {@code Map}
-   * @param subset2 the second {@code Iterable}s over the keys for entries to copy into the result {@code Map}
-   * @param subset3 the third {@code Iterable}s over the keys for entries to copy into the result {@code Map}
-   * @param subset4 the fourth {@code Iterable}s over the keys for entries to copy into the result {@code Map}
-   *
-   * @return a new, modifiable {@code Map} holding the designated entries
-   */
-  private static Map<String, String> getEntryMap(
-      final Iterable<String> subset1, final Iterable<String> subset2, final Iterable<String> subset3, final Iterable<String> subset4) {
-    final List<Iterable<String>> subsets = new ArrayList<Iterable<String>>(4);
-    subsets.add(subset1);
-    subsets.add(subset2);
-    subsets.add(subset3);
-    subsets.add(subset4);
-    return getEntryMap(subsets);
-  }
-
-  /**
-   * Gets a {@code Map} holding entries corresponding to the key {@code Iterable}s provided.
-   *
-   * @param subsets the {@code Iterable}s over the keys for entries to copy into the result {@code Map}
-   *
-   * @return a new, modifiable {@code Map} holding the designated entries
-   */
-  private static Map<String, String> getEntryMap(final List<Iterable<String>> subsets) {
-    final Map<String, String> entryMap = new LinkedHashMap<String, String>();
-    for (final Iterable<String> subset : subsets) {
-      for (final String key : subset) {
-        entryMap.put(key, TEST_ENTRIES.get(key));
-      }
-    }
-    return entryMap;
-  }
-
-  /**
-   * Gets a {@code Map} having a {@code null} value for each of the keys provided in {@code keySet}.
-   *
-   * @param keySet the {@code Iterable} over the keys for the result {@code Map}
-   *
-   * @return a new, modifiable {@code Map} holding {@code null} values for each key provided
-   */
-  private static Map<String, String> getNullEntryMap(final Iterable<String> keySet) {
-    return getNullEntryMap(Collections.singletonList(keySet));
-  }
-
-  /**
-   * Gets a {@code Map} having a {@code null} value for each of the keys provided all identified keySets.
-   *
-   * @param keySet1 the first {@code Iterable} over the keys for the result {@code Map}
-   * @param keySet2 the second {@code Iterable} over the keys for the result {@code Map}
-   *
-   * @return a new, modifiable {@code Map} holding {@code null} values for each key provided
-   */
-  private static Map<String, String> getNullEntryMap(final Iterable<String> keySet1, final Iterable<String> keySet2) {
-    final List<Iterable<String>> keySets = new ArrayList<Iterable<String>>(2);
-    keySets.add(keySet1);
-    keySets.add(keySet2);
-    return getNullEntryMap(keySets);
-  }
-
-  /**
-   * Gets a {@code Map} having a {@code null} value for each of the keys provided in {@code keySets}.
-   *
-   * @param keySets the {@code Iterable}s over the keys for the result {@code Map}
-   *
-   * @return a new, modifiable {@code Map} holding {@code null} values for each key provided
-   */
-  private static Map<String, String> getNullEntryMap(final List<Iterable<String>> keySets) {
-    final Map<String, String> entryMap = new LinkedHashMap<String, String>();
-    for (final Iterable<String> keySet : keySets) {
-      for (final String key : keySet) {
-        entryMap.put(key, null);
-      }
-    }
-    return entryMap;
-  }
-
-  /**
-   * Gets a {@code Map} containing all of the entries from the maps provided.
-   *
-   * @param map1 the first {@code Map} instance to combine
-   * @param map2 the second {@code Map} instance to combine
-   *
-   * @return a new {@code Map} containing all of the entries
-   */
-  private static Map<String, String> union(final Map<String, String> map1, final Map<String, String> map2) {
-    final List<Map<String, String>> maps = new ArrayList<Map<String, String>>();
-    maps.add(map1);
-    maps.add(map2);
-    return union(maps);
-  }
-
-  /**
-   * Gets a {@code Map} containing all of the entries from the maps provided.
-   *
-   * @param map1 the first {@code Map} instance to combine
-   * @param map2 the second {@code Map} instance to combine
-   * @param map3 the third {@code Map} instance to combine
-   *
-   * @return a new {@code Map} containing all of the entries
-   */
-  private static Map<String, String> union(
-      final Map<String, String> map1, final Map<String, String> map2, final Map<String, String> map3) {
-    final List<Map<String, String>> maps = new ArrayList<Map<String, String>>();
-    maps.add(map1);
-    maps.add(map2);
-    maps.add(map3);
-    return union(maps);
-  }
-
-  /**
-   * Gets a {@code Map} containing all of the entries from the maps provided.
-   *
-   * @param maps the {@code Map} instances to combine
-   *
-   * @return a new {@code Map} containing all of the entries
-   */
-  private static Map<String, String> union(final List<Map<String, String>> maps) {
-    final Map<String, String> union = new HashMap<String, String>();
-    for (Map<String, String> map : maps) {
-      union.putAll(map);
-    }
-    return union;
-  }
-
-  /**
-   * Gets a new {@code Set} that is the interleaved union of the {@code Set}s provided.
-   *
-   * @param keySet1 the first {@code Set} of keys to appear in the result {@code Set}
-   * @param keySet2 the second {@code Set} of keys to appear in the result {@code Set}
-   *
-   * @return a new, modifiable {@code Set} holding the designated keys
-   *
-   * @see #fanIn(java.util.List)
-   */
-  private static Set<String> fanIn(final Set<String> keySet1, final Set<String> keySet2) {
-    final List<Set<String>> keySets = new ArrayList<Set<String>>();
-    keySets.add(keySet1);
-    keySets.add(keySet2);
-    return fanIn(keySets);
-  }
-
-  /**
-   * Gets a new {@code Set} that is the interleaved union of the {@code Set}s provided.
-   *
-   * @param keySet1 the first {@code Set} of keys to appear in the result {@code Set}
-   * @param keySet2 the second {@code Set} of keys to appear in the result {@code Set}
-   * @param keySet3 the third {@code Set} of keys to appear in the result {@code Set}
-   *
-   * @return a new, modifiable {@code Set} holding the designated keys
-   *
-   * @see #fanIn(java.util.List)
-   */
-  private static Set<String> fanIn(final Set<String> keySet1, final Set<String> keySet2, final Set<String> keySet3) {
-    final List<Set<String>> keySets = new ArrayList<Set<String>>();
-    keySets.add(keySet1);
-    keySets.add(keySet2);
-    keySets.add(keySet3);
-    return fanIn(keySets);
-  }
-
-  /**
-   * Gets a new {@code Set} that is the interleaved union of the {@code Set}s provided.
-   *
-   * @param keySet1 the first {@code Set} of keys to appear in the result {@code Set}
-   * @param keySet2 the second {@code Set} of keys to appear in the result {@code Set}
-   * @param keySet3 the third {@code Set} of keys to appear in the result {@code Set}
-   * @param keySet4 the fourth {@code Set} of keys to appear in the result {@code Set}
-   *
-   * @return a new, modifiable {@code Set} holding the designated keys
-   *
-   * @see #fanIn(java.util.List)
-   */
-  private static Set<String> fanIn(
-      final Set<String> keySet1, final Set<String> keySet2, final Set<String> keySet3, final Set<String> keySet4) {
-    final List<Set<String>> keySets = new ArrayList<Set<String>>();
-    keySets.add(keySet1);
-    keySets.add(keySet2);
-    keySets.add(keySet3);
-    keySets.add(keySet4);
-    return fanIn(keySets);
-  }
-
-  /**
-   * Gets a new {@code Set} that is the interleaved union of the {@code Set}s provided.  The
-   * set returned from this operation is in the following order:
-   * <ul>
-   *   <li>keySet[0][0]</li>
-   *   <li>keySet[1][0]</li>
-   *   <li>...</li>
-   *   <li>keySet[N][0]</li>
-   *   <li>keySet[0][1]</li>
-   *   <li>keySet[1][1]</li>
-   *   <li>...</li>
-   *   <li>keySet[N][1]</li>
-   *   <li>keySet[0][2]</li>
-   *   <li>keySet[1][2]</li>
-   *   <li>...</li>
-   *   <li>keySet[N][2]</li>
-   *   <li>...</li>
-   * </ul>
-   * where {@code keySet[0][0]} is the first item returned from the {@code Iterator} obtained from
-   * {@code {@code keySets.get(0).iterator()}, {@code keySet[1][0]} is the first item obtained from
-   * {@code {@code keySets.get(1).iterator()}, etc.
-
-   *
-   * @param keySets the {@code Set}s of keys to appear in the result {@code Set}
-   *
-   * @return a new, modifiable {@code Set} holding the designated keys
-   */
-  private static Set<String> fanIn(final List<Set<String>> keySets) {
-    final Set<String> union = new LinkedHashSet<String>();
-
-    /*
-     * Collect the keys from the sets provided in the iteration order of the main
-     * test entry map.
-     */
-    for (final String key : TEST_ENTRIES.keySet()) {
-      for (final Set<String> keySet : keySets) {
-        if (keySet.contains(key)) {
-          union.add(key);
-          break;
-        }
-      }
-    }
-    return union;
-  }
-
-  /**
-   * Copies entries from the {@code Set} provided until reaching a barrier item.
-   * The items are copied in iterator order and the result does not include the barrier.
-   *
-   * @param source the {@code Set} from which the items are copied
-   * @param barrier the barrier indicating the end of the copy
-   *
-   * @return a new, entry-ordered {@code Set} containing the subset of {@code source}
-   */
-  private static Set<String> copyUntil(final Set<String> source, final String barrier) {
-    final Set<String> subset = new LinkedHashSet<String>();
-    for (final String sourceItem : source) {
-      if (barrier.equals(sourceItem)) {
-        break;
-      }
-      subset.add(sourceItem);
-    }
-    return subset;
-  }
-
-  /**
-   * Makes a shallow copy of the {@code Set} provided retaining only those elements identified
-   * by in the {@code Collection} {@code retained}.
-   *
-   * @param source the {@code Set} from which the copy is made
-   * @param retained the elements to keep in the copy
-   *
-   * @return a new, entry-ordered {@code Set} containing the just the retained elements
-   */
-  private static Set<String> copyOnly(final Set<String> source, final Collection<String> retained) {
-    final Set<String> copy = new LinkedHashSet<String>(source);
-    copy.retainAll(retained);
-    return copy;
-  }
-
-  /**
-   * Makes a shallow copy of the {@code Set} provided omitting those elements identified by the
-   * {@code Collection} {@code removed}.
-   *
-   * @param source the {@code Set} from which the copy is made
-   * @param removed the elements to omit from the copy
-   *
-   * @return a new, entry-ordered {@code Set} containing the elements from {@code source} less those
-   *    specified in {@code removed}
-   */
-  private static Set<String> copyWithout(final Set<String> source, final Collection<String> removed) {
-    final Set<String> copy = new LinkedHashSet<String>(source);
-    copy.removeAll(removed);
-    return copy;
-  }
-
-  /**
    * Gets an initialized {@link Ehcache Ehcache} instance using the
    * {@link org.ehcache.spi.loader.CacheLoader CacheLoader} provided.
    *
@@ -2827,13 +2387,14 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
+
   /**
    * Returns a Mockito {@code any} Matcher for {@code java.util.Set<String>}.
    *
    * @return a Mockito {@code any} matcher for {@code Set<String>}.
    */
   @SuppressWarnings("unchecked")
-  protected static Set<? extends String> getAnyStringSet() {
+  private static Set<? extends String> getAnyStringSet() {
     return any(Set.class);   // unchecked
   }
 
@@ -2843,7 +2404,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    * @return a Mockito {@code any} matcher for {@code Function}.
    */
   @SuppressWarnings("unchecked")
-  protected static Function<Iterable<? extends String>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> getAnyIterableFunction() {
+  private static Function<Iterable<? extends String>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> getAnyIterableFunction() {
     return any(Function.class);   // unchecked
   }
 
