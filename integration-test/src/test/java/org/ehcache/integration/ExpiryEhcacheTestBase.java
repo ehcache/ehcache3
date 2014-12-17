@@ -49,6 +49,7 @@ public abstract class ExpiryEhcacheTestBase {
 
   @Before
   public void setUp() throws Exception {
+    manualTimeSource.setTime(0L);
     CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder();
     cacheManager = builder.build();
     CacheConfigurationBuilder<Object, Object> objectObjectCacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder()

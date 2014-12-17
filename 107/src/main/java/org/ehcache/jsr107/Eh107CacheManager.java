@@ -39,6 +39,7 @@ import org.ehcache.Ehcache;
 import org.ehcache.EhcacheHackAccessor;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.service.EhcacheServiceConfiguration;
 import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.loader.CacheLoader;
@@ -213,6 +214,13 @@ class Eh107CacheManager implements CacheManager {
       builder.addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(jsr107Config.isStoreByValue()));
     } else {
       onHeapStoreServiceConfig.storeByValue(jsr107Config.isStoreByValue());
+    }
+
+    EhcacheServiceConfiguration ehcacheServiceConfiguration = builder.getExistingServiceConfiguration(EhcacheServiceConfiguration.class);
+    if (ehcacheServiceConfiguration == null) {
+      builder.addServiceConfig(new EhcacheServiceConfiguration().noLoadInAtomics(true));
+    } else {
+      ehcacheServiceConfiguration.noLoadInAtomics(true);
     }
 
     // This code is a little weird. In particular that it doesn't

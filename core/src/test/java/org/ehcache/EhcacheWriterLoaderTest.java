@@ -172,17 +172,38 @@ public class EhcacheWriterLoaderTest {
   }
 
   @Test
-  public void testPutIfAbsent() throws Exception {
+  public void testPutIfAbsent_present() throws Exception {
     when(store.computeIfAbsent(any(Number.class), anyFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         Function<Number, String> function = asFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0]);
+        Number key = (Number) invocation.getArguments()[0];
+        if (!key.equals(1)) {
+          function.apply(key);
+        }
         return null;
       }
     });
+
     cache.putIfAbsent(1, "foo");
     verifyZeroInteractions(cache.getCacheLoader());
+    verifyZeroInteractions(cache.getCacheWriter());
+  }
+
+  @Test
+  public void testPutIfAbsent_absent() throws Exception {
+    when(store.computeIfAbsent(any(Number.class), anyFunction())).thenAnswer(new Answer<Object>() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        Function<Number, String> function = asFunction(invocation);
+        Number key = (Number) invocation.getArguments()[0];
+        function.apply(key);
+        return null;
+      }
+    });
+
+    cache.putIfAbsent(1, "foo");
+    verify(cache.getCacheLoader()).load(1);
     verify(cache.getCacheWriter()).write(1, "foo");
   }
   

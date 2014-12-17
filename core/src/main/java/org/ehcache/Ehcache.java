@@ -20,6 +20,8 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.service.EhcacheService;
+import org.ehcache.config.service.EhcacheServiceConfiguration;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerFactory;
@@ -106,8 +108,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   private final RuntimeConfiguration runtimeConfiguration;
   private final CacheEventNotificationService<K, V> eventNotificationService;
   private final StoreEventListener<K, V> storeListener;
-  private final Jsr107CacheImpl jsr107Cache; 
-  
+  private final Jsr107CacheImpl jsr107Cache;
+  private final boolean useLoaderInAtomics;
+
   private final OperationObserver<GetOutcome> getObserver = operation(GetOutcome.class).named("get").of(this).tag("cache").build();
   private final OperationObserver<PutOutcome> putObserver = operation(PutOutcome.class).named("put").of(this).tag("cache").build();
   private final OperationObserver<RemoveOutcome> removeObserver = operation(RemoveOutcome.class).named("remove").of(this).tag("cache").build();
@@ -125,7 +128,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       return Boolean.FALSE;
     }
   };
-  
+
   public Ehcache(CacheConfiguration<K, V> config, final Store<K, V> store) {
     this(config, store, null);
   }
@@ -171,6 +174,17 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     this.runtimeConfiguration = new RuntimeConfiguration(config);
     this.storeListener = new StoreListener();
     this.jsr107Cache = new Jsr107CacheImpl();
+
+    boolean useLoaderInAtomics = true;
+    Collection<ServiceConfiguration<?>> serviceConfigurations = config.getServiceConfigurations();
+    for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
+      if (serviceConfiguration.getServiceType().equals(EhcacheService.class)) {
+        EhcacheServiceConfiguration  ehcacheServiceConfiguration = (EhcacheServiceConfiguration) serviceConfiguration;
+        useLoaderInAtomics = !ehcacheServiceConfiguration.noLoadInAtomics();
+        break;
+      }
+    }
+    this.useLoaderInAtomics = useLoaderInAtomics;
   }
 
   @SuppressWarnings("unchecked")
@@ -705,6 +719,17 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       @Override
       public V apply(final K k) {
         try {
+          if (useLoaderInAtomics && cacheLoader != null) {
+            try {
+              V loaded = cacheLoader.load(k);
+              if (loaded != null) {
+                return loaded; // populate the cache
+              }
+            } catch (Exception e) {
+              throw newCacheLoaderException(e);
+            }
+          }
+
           if (cacheWriter != null) {
             try {
               cacheWriter.write(k, value);
@@ -747,6 +772,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         } else {
           try {
             mappingFunction.apply(key);
+          } catch (CacheLoaderException f) {
+            return resilienceStrategy.putIfAbsentFailure(key, value, e, f);
           } catch (CacheWriterException f) {
             return resilienceStrategy.putIfAbsentFailure(key, value, e, f);
           }
