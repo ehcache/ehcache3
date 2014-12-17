@@ -20,6 +20,7 @@ import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.service.EhcacheServiceConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
 import org.hamcrest.Matchers;
@@ -46,7 +47,7 @@ import static org.mockito.Mockito.when;
 /**
  * @author Ludovic Orban
  */
-public class LoaderWriterSimpleEhcacheTest {
+public class LoaderWriterSimple107CompliantEhcacheTest {
 
   private CacheManager cacheManager;
   private Cache<Number, CharSequence> testCache;
@@ -60,7 +61,7 @@ public class LoaderWriterSimpleEhcacheTest {
     when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), (CacheConfiguration<Number, CharSequence>)anyObject())).thenReturn((CacheLoaderWriter) cacheLoaderWriter);
     builder.using(cacheLoaderWriterFactory);
     cacheManager = builder.build();
-    testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
+    testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().addServiceConfig(new EhcacheServiceConfiguration().noLoadInAtomics(true)).buildConfig(Number.class, CharSequence.class));
   }
 
   @After
@@ -77,8 +78,8 @@ public class LoaderWriterSimpleEhcacheTest {
     assertThat(testCache.putIfAbsent(1, "one"), is(nullValue()));
     assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("one"));
 
-    verify(cacheLoaderWriter, times(1)).load(eq(1));
     verify(cacheLoaderWriter, times(1)).write(eq(1), eq("one"));
+    verifyNoMoreInteractions(cacheLoaderWriter);
   }
 
   @Test
@@ -91,10 +92,10 @@ public class LoaderWriterSimpleEhcacheTest {
     });
 
     assertThat(testCache.containsKey(1), is(false));
-    assertThat(testCache.putIfAbsent(1, "one"), Matchers.<CharSequence>equalTo("un"));
-    assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("un"));
+    assertThat(testCache.putIfAbsent(1, "one"), is(nullValue()));
+    assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("one"));
 
-    verify(cacheLoaderWriter, times(1)).load(eq(1));
+    verify(cacheLoaderWriter, times(1)).write(eq(1), eq("one"));
     verifyNoMoreInteractions(cacheLoaderWriter);
   }
 

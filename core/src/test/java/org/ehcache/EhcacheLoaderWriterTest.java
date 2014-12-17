@@ -19,6 +19,7 @@ package org.ehcache;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -169,16 +170,37 @@ public class EhcacheLoaderWriterTest {
   }
 
   @Test
-  public void testPutIfAbsent() throws Exception {
+  public void testPutIfAbsent_present() throws Exception {
     when(store.computeIfAbsent(any(Number.class), anyFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         Function<Number, String> function = asFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0]);
+        Number key = (Number) invocation.getArguments()[0];
+        if (!key.equals(1)) {
+          function.apply(key);
+        }
         return null;
       }
     });
+
     cache.putIfAbsent(1, "foo");
+    verifyZeroInteractions(cache.getCacheLoaderWriter());
+  }
+
+  @Test
+  public void testPutIfAbsent_absent() throws Exception {
+    when(store.computeIfAbsent(any(Number.class), anyFunction())).thenAnswer(new Answer<Object>() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        Function<Number, String> function = asFunction(invocation);
+        Number key = (Number) invocation.getArguments()[0];
+        function.apply(key);
+        return null;
+      }
+    });
+
+    cache.putIfAbsent(1, "foo");
+    verify(cache.getCacheLoaderWriter()).load(1);
     verify(cache.getCacheLoaderWriter()).write(1, "foo");
   }
   
