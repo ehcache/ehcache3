@@ -189,7 +189,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
                 cacheLoaderObserver.begin();
                 loaded = cacheLoader.load(k);
                 cacheLoaderObserver.end(CacheLoaderOutcome.SUCCESS);
-                getObserver.end(loaded != null ? GetOutcome.HIT_WITH_LOADER : GetOutcome.MISS_WITH_LOADER);
               }
             } catch (Exception e) {
               cacheLoaderObserver.end(CacheLoaderOutcome.FAILURE);
@@ -205,14 +204,10 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       
       // Check for expiry first
       if (valueHolder == null) {
-        if (cacheLoader == null) {
-          getObserver.end(GetOutcome.MISS_NO_LOADER);
-        }
+        getObserver.end(cacheLoader == null ? GetOutcome.MISS_NO_LOADER : GetOutcome.MISS_WITH_LOADER);
         return null;
       } else {
-        if (cacheLoader == null) {
-          getObserver.end(GetOutcome.HIT_NO_LOADER);
-        }
+        getObserver.end(cacheLoader == null ? GetOutcome.HIT_NO_LOADER : GetOutcome.HIT_WITH_LOADER);
         return valueHolder.value();
       }
     } catch (CacheAccessException e) {
