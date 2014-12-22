@@ -199,8 +199,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.cacheLoader).load(eq("key"));
     verify(this.spiedResilienceStrategy).getFailure(eq("key"), isNull(String.class), any(CacheAccessException.class));
-    validateStats(ehcache,
-        EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER, CacheOperationOutcomes.GetOutcome.FAILURE));   // TODO: Confirm correctness - Issue #195
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.CacheLoaderOutcome.SUCCESS));
   }
 
@@ -225,8 +224,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.cacheLoader).load(eq("key"));
     verify(this.spiedResilienceStrategy).getFailure(eq("key"), eq("value"), any(CacheAccessException.class));
-    validateStats(ehcache,
-        EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER, CacheOperationOutcomes.GetOutcome.FAILURE));    // TODO: Confirm correctness - Issue #195
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.CacheLoaderOutcome.SUCCESS));
   }
 
@@ -303,7 +301,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.cacheLoader, never()).load(eq("key"));
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));    // TODO: Confirm correctness - Issue #196
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoaderOutcome.class));
   }
 
@@ -328,7 +326,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.cacheLoader, never()).load(eq("key"));
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));    // TODO: Confirm correctness - Issue #196
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoaderOutcome.class));
   }
 
@@ -353,7 +351,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.cacheLoader, never()).load(eq("key"));
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));    // TODO: Confirm correctness - Issue #196
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoaderOutcome.class));
   }
 
@@ -402,8 +400,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.cacheLoader).load(eq("key"));
     verify(this.spiedResilienceStrategy).getFailure(eq("key"), isNull(String.class), any(CacheAccessException.class));
-    validateStats(ehcache,
-        EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER, CacheOperationOutcomes.GetOutcome.FAILURE));   // TODO: Confirm correctness - Issue #195
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.CacheLoaderOutcome.SUCCESS));
   }
 
@@ -429,8 +426,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.cacheLoader).load(eq("key"));
     verify(this.spiedResilienceStrategy).getFailure(eq("key"), eq("value"), any(CacheAccessException.class));
-    validateStats(ehcache,
-        EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER, CacheOperationOutcomes.GetOutcome.FAILURE));    // TODO: Confirm correctness - Issue #195
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.CacheLoaderOutcome.SUCCESS));
   }
 
