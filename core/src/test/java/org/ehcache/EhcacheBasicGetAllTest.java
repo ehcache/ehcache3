@@ -1409,6 +1409,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
       ehcache.getAll(fetchKeys);
+      fail();
     } catch (BulkCacheLoaderException e) {
       // Expected
     }
@@ -1921,6 +1922,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
       ehcache.getAll(fetchKeys);
+      fail();
     } catch (BulkCacheLoaderException e) {
       // Expected
     }
@@ -1964,6 +1966,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
       ehcache.getAll(fetchKeys);
+      fail();
     } catch (BulkCacheLoaderException e) {
       // Expected
     }
@@ -2153,6 +2156,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
       ehcache.getAll(fetchKeys);
+      fail();
     } catch (BulkCacheLoaderException e) {
       // Expected
     }
@@ -2196,6 +2200,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
       ehcache.getAll(fetchKeys);
+      fail();
     } catch (BulkCacheLoaderException e) {
       // Expected
     }
