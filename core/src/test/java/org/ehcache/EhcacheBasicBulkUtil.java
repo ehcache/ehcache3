@@ -308,7 +308,7 @@ final class EhcacheBasicBulkUtil {
     final List<Map<String, String>> maps = new ArrayList<Map<String, String>>();
     maps.add(map1);
     maps.add(map2);
-    return union(maps);
+    return unionMaps(maps);
   }
 
   /**
@@ -326,7 +326,7 @@ final class EhcacheBasicBulkUtil {
     maps.add(map1);
     maps.add(map2);
     maps.add(map3);
-    return union(maps);
+    return unionMaps(maps);
   }
 
   /**
@@ -336,7 +336,7 @@ final class EhcacheBasicBulkUtil {
    *
    * @return a new {@code Map} containing all of the entries
    */
-  private static Map<String, String> union(final List<Map<String, String>> maps) {
+  private static Map<String, String> unionMaps(final List<Map<String, String>> maps) {
     final Map<String, String> union = new HashMap<String, String>();
     for (Map<String, String> map : maps) {
       union.putAll(map);
@@ -356,7 +356,7 @@ final class EhcacheBasicBulkUtil {
     final List<Set<String>> sets = new ArrayList<Set<String>>();
     sets.add(set1);
     sets.add(set2);
-    return union(sets);
+    return unionSets(sets);
   }
 
   /**
@@ -366,7 +366,7 @@ final class EhcacheBasicBulkUtil {
    *
    * @return a new {@code Set} containing all of the elements
    */
-  private static Set<String> union(final List<Set<String>> sets) {
+  private static Set<String> unionSets(final List<Set<String>> sets) {
     final Set<String> union = new HashSet<String>();
     for (final Set<String> set : sets) {
       union.addAll(set);
