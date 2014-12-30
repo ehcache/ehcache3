@@ -20,6 +20,9 @@ buildscript {
     mavenCentral()
     // added for gradle-jaxb-plugin:1.3.5.tc
     maven { url "http://repo.terracotta.org/maven2" }
+
+    // XXX: This should be removed, but needed until org.gradle.jacobo:gradle-xsd-wsdl-slurping:1.1.1 reappears on bintray/maven-central    
+    maven { url "http://repo.springsource.org/libs-milestone" }
   }
 
   dependencies {
