@@ -561,20 +561,21 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
+    final Set<String> expectedFailures = KEY_SET_C;
+    final Map<String, String> expectedSuccesses = copyWithout(contentUpdates, expectedFailures);
     try {
       ehcache.putAll(contentUpdates);
       fail();
     } catch (BulkCacheWriterException e) {
       // Expected
-      assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(KEY_SET_A));
-      assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_C));
+      assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses.keySet()));
+      assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
     }
 
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), equalTo(contentUpdates.keySet()));
-    final Map<String, String> successfulUpdates = copyWithout(contentUpdates, KEY_SET_C);
-    assertThat(fakeStore.getEntryMap(), equalTo(union(originalStoreContent, successfulUpdates)));
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, successfulUpdates)));
+    assertThat(fakeStore.getEntryMap(), equalTo(union(originalStoreContent, expectedSuccesses)));
+    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
@@ -605,6 +606,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
+    final Set<String> expectedFailures = KEY_SET_C;
+    final Map<String, String> expectedSuccesses = copyWithout(contentUpdates, expectedFailures);
     try {
       ehcache.putAll(contentUpdates);
       fail();
@@ -618,13 +621,12 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     // ResilienceStrategy invoked; no assertions about Store content
 
     ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    final Map<String, String> successfulUpdates = copyWithout(contentUpdates, KEY_SET_C);
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, successfulUpdates)));
+    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
 
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Set<?>>equalTo(successfulUpdates.keySet()));
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_C));
+    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses.keySet()));
+    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
   }
@@ -652,6 +654,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
+    final Set<String> expectedFailures = KEY_SET_C;
+    final Map<String, String> expectedSuccesses = copyWithout(contentUpdates, expectedFailures);
     try {
       ehcache.putAll(contentUpdates);
       fail();
@@ -665,13 +669,12 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     // ResilienceStrategy invoked; no assertions about Store content
 
     ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    final Map<String, String> successfulUpdates = copyWithout(contentUpdates, KEY_SET_C);
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, successfulUpdates)));
+    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
 
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Set<?>>equalTo(successfulUpdates.keySet()));
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_C));
+    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses.keySet()));
+    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
   }
@@ -700,21 +703,22 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
+    final Set<String> expectedFailures = KEY_SET_C;
+    final Map<String, String> expectedSuccesses = copyWithout(contentUpdates, expectedFailures);
     try {
       ehcache.putAll(contentUpdates);
       fail();
     } catch (BulkCacheWriterException e) {
       // Expected
-      assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(KEY_SET_A));
-      assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_C));
+      assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses.keySet()));
+      assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
     }
 
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
-    final Map<String, String> successfulUpdates = copyWithout(contentUpdates, KEY_SET_C);
-    assertThat(fakeStore.getEntryMap(), equalTo(union(originalStoreContent, successfulUpdates)));
+    assertThat(fakeStore.getEntryMap(), equalTo(union(originalStoreContent, expectedSuccesses)));
     verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, successfulUpdates)));
+    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
@@ -747,7 +751,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
-    final Map<String, String> expectedSuccesses = copyWithout(contentUpdates, KEY_SET_C);
+    final Set<String> expectedFailures = KEY_SET_C;
+    final Map<String, String> expectedSuccesses = copyWithout(contentUpdates, expectedFailures);
     try {
       ehcache.putAll(contentUpdates);
       fail();
@@ -771,7 +776,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(union(bcweSuccesses, bcweFailures.keySet()), equalTo(contentUpdates.keySet()));
     assertThat(Collections.disjoint(bcweSuccesses, bcweFailures.keySet()), is(true));
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses.keySet())));
-    assertThat(KEY_SET_C, everyItem(isIn(bcweFailures.keySet())));
+    assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
     // TODO: Confirm correctness - BulkCacheWriterException miscategorizes success as failure  (Issue #238)
     assertThat(copyWithout(fakeWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
@@ -804,7 +809,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
-    final Map<String, String> expectedSuccesses = copyWithout(contentUpdates, KEY_SET_C);
+    final Set<String> expectedFailures = KEY_SET_C;
+    final Map<String, String> expectedSuccesses = copyWithout(contentUpdates, expectedFailures);
     try {
       ehcache.putAll(contentUpdates);
       fail();
@@ -828,7 +834,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(union(bcweSuccesses, bcweFailures.keySet()), equalTo(contentUpdates.keySet()));
     assertThat(Collections.disjoint(bcweSuccesses, bcweFailures.keySet()), is(true));
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses.keySet())));
-    assertThat(KEY_SET_C, everyItem(isIn(bcweFailures.keySet())));
+    assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
     // TODO: Confirm correctness - BulkCacheWriterException miscategorizes success as failure  (Issue #238)
     assertThat(copyWithout(fakeWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
@@ -1108,21 +1114,22 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
-    final Map<String, String> successfulUpdates = copyWithout(contentUpdates, KEY_SET_D);
+    final Set<String> expectedFailures = KEY_SET_D;
+    final Map<String, String> expectedSuccesses = copyWithout(contentUpdates, expectedFailures);
     try {
       ehcache.putAll(contentUpdates);
       fail();
     } catch (BulkCacheWriterException e) {
       // Expected
-      assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(successfulUpdates.keySet()));
-      assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_D));
+      assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses.keySet()));
+      assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
     }
 
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
-    assertThat(fakeStore.getEntryMap(), equalTo(union(originalStoreContent, successfulUpdates)));
+    assertThat(fakeStore.getEntryMap(), equalTo(union(originalStoreContent, expectedSuccesses)));
     verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, successfulUpdates)));
+    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
@@ -1153,7 +1160,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
-    final Map<String, String> successfulUpdates = copyWithout(contentUpdates, KEY_SET_D);
+    final Set<String> expectedFailures = KEY_SET_D;
+    final Map<String, String> expectedSuccesses = copyWithout(contentUpdates, expectedFailures);
     try {
       ehcache.putAll(contentUpdates);
       fail();
@@ -1167,12 +1175,12 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, successfulUpdates)));
+    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Set<?>>equalTo(successfulUpdates.keySet()));
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_D));
+    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses.keySet()));
+    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
   }
@@ -1200,7 +1208,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
-    final Map<String, String> successfulUpdates = copyWithout(contentUpdates, KEY_SET_D);
+    final Set<String> expectedFailures = KEY_SET_D;
+    final Map<String, String> expectedSuccesses = copyWithout(contentUpdates, expectedFailures);
     try {
       ehcache.putAll(contentUpdates);
       fail();
@@ -1214,12 +1223,12 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, successfulUpdates)));
+    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Set<?>>equalTo(successfulUpdates.keySet()));
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_D));
+    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses.keySet()));
+    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
   }
@@ -1658,14 +1667,15 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
-    final Map<String, String> expectedSuccesses = copyWithout(contentUpdates, KEY_SET_D);
+    final Set<String> expectedFailures = KEY_SET_D;
+    final Map<String, String> expectedSuccesses = copyWithout(contentUpdates, expectedFailures);
     try {
       ehcache.putAll(contentUpdates);
       fail();
     } catch (BulkCacheWriterException e) {
       // Expected
       assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses.keySet()));
-      assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_D));
+      assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
     }
 
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
@@ -1703,7 +1713,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
-    final Map<String, String> expectedSuccesses = copyWithout(contentUpdates, KEY_SET_D);
+    final Set<String> expectedFailures = KEY_SET_D;
+    final Map<String, String> expectedSuccesses = copyWithout(contentUpdates, expectedFailures);
     try {
       ehcache.putAll(contentUpdates);
       fail();
@@ -1722,7 +1733,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
     assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses.keySet()));
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_D));
+    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
   }
@@ -1750,7 +1761,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
-    final Map<String, String> expectedSuccesses = copyWithout(contentUpdates, KEY_SET_D);
+    final Set<String> expectedFailures = KEY_SET_D;
+    final Map<String, String> expectedSuccesses = copyWithout(contentUpdates, expectedFailures);
     try {
       ehcache.putAll(contentUpdates);
       fail();
@@ -1769,7 +1781,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
     assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses.keySet()));
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_D));
+    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
   }
@@ -2113,7 +2125,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * @return a Mockito {@code any} matcher for {@code Function}
    */
   @SuppressWarnings("unchecked")
-  private static  Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> getAnyEntryIterableFunction() {
+  private static Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> getAnyEntryIterableFunction() {
     return any(Function.class);   // unchecked
   }
 
