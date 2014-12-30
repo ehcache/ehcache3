@@ -56,7 +56,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 /**
- * Provides testing of basic GET_ALL operations on an {@code Ehcache}.
+ * Provides testing of basic PUT_ALL operations on an {@code Ehcache}.
  * <p/>
  * In an effort compromise, this class intentionally omits test cases in which
  * the {@code Store} is pre-populated with no entries, pre-populated only with
