@@ -1,0 +1,4 @@
+# Set the default behavior to LF, because checkstyle enforces it
+* text eol=lf
+
+*.jar binary
