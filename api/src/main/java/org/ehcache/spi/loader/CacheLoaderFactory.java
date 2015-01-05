@@ -42,7 +42,7 @@ public interface CacheLoaderFactory extends Service {
    * @param <V> the value type for the associated {@link org.ehcache.Cache}
    * @return the {@link org.ehcache.spi.loader.CacheLoader} to be used by the {@link org.ehcache.Cache} or null if none
    */
-  <K, V> CacheLoader<? super K, ? extends V> createCacheLoader(String alias, CacheConfiguration<K, V> cacheConfiguration);
+  <K, V> CacheLoader<K, ? extends V> createCacheLoader(String alias, CacheConfiguration<K, V> cacheConfiguration);
 
   /**
    * Invoked by {@link org.ehcache.CacheManager} when a {@link org.ehcache.Cache} is being removed from it.

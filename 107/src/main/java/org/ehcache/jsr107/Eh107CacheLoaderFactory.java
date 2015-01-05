@@ -41,14 +41,14 @@ class Eh107CacheLoaderFactory extends DefaultCacheLoaderFactory {
 
   @SuppressWarnings("unchecked")
   @Override
-  public <K, V> org.ehcache.spi.loader.CacheLoader<? super K, ? extends V> createCacheLoader(String alias,
+  public <K, V> org.ehcache.spi.loader.CacheLoader<K, ? extends V> createCacheLoader(String alias,
       org.ehcache.config.CacheConfiguration<K, V> cacheConfiguration) {
     CacheLoader<?, ?> cacheLoader = cacheLoaders.remove(alias);
     if (cacheLoader == null) {
       return super.createCacheLoader(alias, cacheConfiguration);
     }
 
-    return (CacheLoader<? super K, ? extends V>)cacheLoader;
+    return (CacheLoader<K, ? extends V>)cacheLoader;
   }
 
   @Override

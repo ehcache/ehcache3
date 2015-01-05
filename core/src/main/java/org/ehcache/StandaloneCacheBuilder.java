@@ -47,7 +47,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   private Comparable<Long> capacityConstraint;
   private EvictionVeto<? super K, ? super V> evictionVeto;
   private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
-  private CacheLoader<? super K, ? extends V> cacheLoader;
+  private CacheLoader<K, ? extends V> cacheLoader;
   private CacheWriter<? super K, ? super V> cacheWriter;
   private SerializationProvider serializationProvider;
   private ScheduledExecutorService statisticsExecutor;
@@ -104,7 +104,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     return this;
   }
 
-  public final StandaloneCacheBuilder<K, V, T> loadingWith(CacheLoader<? super K, ? extends V> cacheLoader) {
+  public final StandaloneCacheBuilder<K, V, T> loadingWith(CacheLoader<K, ? extends V> cacheLoader) {
     this.cacheLoader = cacheLoader;
     return this;
   }

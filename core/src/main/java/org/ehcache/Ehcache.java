@@ -100,7 +100,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   private final StatusTransitioner statusTransitioner = new StatusTransitioner();
 
   private final Store<K, V> store;
-  private final CacheLoader<? super K, ? extends V> cacheLoader;
+  private final CacheLoader<K, ? extends V> cacheLoader;
   private final CacheWriter<? super K, ? super V> cacheWriter;
   private final ResilienceStrategy<K, V> resilienceStrategy;
   private final RuntimeConfiguration runtimeConfiguration;
@@ -130,21 +130,21 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     this(config, store, null);
   }
 
-  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader) {
+  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoader<K, ? extends V> cacheLoader) {
     this(config, store, cacheLoader, null, null);
   }
 
-  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader, CacheWriter<? super K, ? super V> cacheWriter) {
+  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoader<K, ? extends V> cacheLoader, CacheWriter<? super K, ? super V> cacheWriter) {
     this(config, store, cacheLoader, cacheWriter, null);
   }
 
-  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoader<? super K, ? extends V> cacheLoader, CacheWriter<? super K, ? super V> cacheWriter,
+  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoader<K, ? extends V> cacheLoader, CacheWriter<? super K, ? super V> cacheWriter,
       ScheduledExecutorService statisticsExecutor) {
     this(config, store, cacheLoader, cacheWriter, null, statisticsExecutor);
   }
 
   public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, 
-      final CacheLoader<? super K, ? extends V> cacheLoader, 
+      CacheLoader<K, ? extends V> cacheLoader, 
       CacheWriter<? super K, ? super V> cacheWriter,
       CacheEventNotificationService<K, V> eventNotifier,
       ScheduledExecutorService statisticsExecutor) {
@@ -413,16 +413,16 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         }
 
         if (cacheLoader != null) {
-          Map<K, V> loaded = Collections.emptyMap();
+          Map<K, ? extends V> loaded = Collections.emptyMap();
           try {
-            loaded = (Map<K, V>) cacheLoader.loadAll(computeResult.keySet());
+            loaded = cacheLoader.loadAll(computeResult.keySet());
           } catch (Exception e) {
             for (K key : computeResult.keySet()) {
               failures.put(key, e);
             }
           }
           
-          for (Map.Entry<K, V> loadedEntry : loaded.entrySet()) {
+          for (Map.Entry<K, ? extends V> loadedEntry : loaded.entrySet()) {
             K key = loadedEntry.getKey();
             if (! computeResult.containsKey(key)) {
               throw newCacheLoaderException(new RuntimeException("Cache loader returned value for key: " + key));

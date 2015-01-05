@@ -177,7 +177,7 @@ public class EhcacheManager implements PersistentCacheManager {
                                         final Class<K> keyType, final Class<V> valueType) {
     final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
     final CacheLoaderFactory cacheLoaderFactory = serviceLocator.findService(CacheLoaderFactory.class);
-    CacheLoader<? super K, ? extends V> loader = null;
+    CacheLoader<K, ? extends V> loader = null;
     if(cacheLoaderFactory != null) {
       loader = cacheLoaderFactory.createCacheLoader(alias, config);
     }
