@@ -21,7 +21,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.ehcache.statistics.extended.ExtendedStatistics.Statistic;
-import org.terracotta.statistics.SourceStatistic;
+import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.archive.Timestamped;
 import org.terracotta.statistics.derived.EventRateSimpleMovingAverage;
 import org.terracotta.statistics.derived.OperationResultFilter;
@@ -49,7 +49,7 @@ public class RateImpl<T extends Enum<T>> implements Statistic<Double> {
      * @param historySize the history size
      * @param historyNanos the history nanos
      */
-    public RateImpl(final SourceStatistic<ChainedOperationObserver<T>> source, final Set<T> targets, long averageNanos,
+    public RateImpl(final OperationStatistic<T> source, final Set<T> targets, long averageNanos,
             ScheduledExecutorService executor, int historySize, long historyNanos) {
         this.rate = new EventRateSimpleMovingAverage(averageNanos, TimeUnit.NANOSECONDS);
         this.delegate = new ExpiringStatistic<Double>(rate, executor, historySize, historyNanos) {

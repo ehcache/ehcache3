@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 import org.ehcache.statistics.extended.ExtendedStatistics.Operation;
 import org.ehcache.statistics.extended.ExtendedStatistics.Result;
 import org.ehcache.statistics.extended.ExtendedStatistics.Statistic;
-
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.ValueStatistic;
 
@@ -79,9 +78,9 @@ class CompoundOperationImpl<T extends Enum<T>> implements Operation<T> {
         this.historySize = historySize;
         this.historyNanos = historyUnit.toNanos(historyPeriod);
 
-        this.operations = new EnumMap(type);
+        this.operations = new EnumMap<T, OperationImpl<T>>(type);
         for (T result : type.getEnumConstants()) {
-            operations.put(result, new OperationImpl(source, EnumSet.of(result), averageNanos, executor, historySize, historyNanos));
+            operations.put(result, new OperationImpl<T>(source, EnumSet.of(result), averageNanos, executor, historySize, historyNanos));
         }
     }
 
@@ -118,7 +117,7 @@ class CompoundOperationImpl<T extends Enum<T>> implements Operation<T> {
             Set<T> key = EnumSet.copyOf(results);
             OperationImpl<T> existing = compounds.get(key);
             if (existing == null) {
-                OperationImpl<T> created = new OperationImpl(source, key, averageNanos, executor, historySize, historyNanos);
+                OperationImpl<T> created = new OperationImpl<T>(source, key, averageNanos, executor, historySize, historyNanos);
                 OperationImpl<T> racer = compounds.putIfAbsent(key, created);
                 if (racer == null) {
                     return created;
@@ -138,12 +137,14 @@ class CompoundOperationImpl<T extends Enum<T>> implements Operation<T> {
      */
     @Override
     public Statistic<Double> ratioOf(Set<T> numerator, Set<T> denominator) {
+        @SuppressWarnings("unchecked")
         List<Set<T>> key = Arrays.<Set<T>> asList(EnumSet.copyOf(numerator), EnumSet.copyOf(denominator));
+        
         ExpiringStatistic<Double> existing = ratios.get(key);
         if (existing == null) {
             final Statistic<Double> numeratorRate = compound(numerator).rate();
             final Statistic<Double> denominatorRate = compound(denominator).rate();
-            ExpiringStatistic<Double> created = new ExpiringStatistic(new ValueStatistic<Double>() {
+            ExpiringStatistic<Double> created = new ExpiringStatistic<Double>(new ValueStatistic<Double>() {
                 @Override
                 public Double value() {
                     return numeratorRate.value() / denominatorRate.value();

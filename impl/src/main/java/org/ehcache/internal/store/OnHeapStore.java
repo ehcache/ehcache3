@@ -700,7 +700,9 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     final Random random = new Random();
     final int sampleSize = 8;
 
+    @SuppressWarnings("unchecked")
     Set<Map.Entry<K, OnHeapValueHolder<V>>> values = map.getRandomValues(random, sampleSize, (Predicate<Map.Entry<K, OnHeapValueHolder<V>>>)evictionVeto);
+   
     if (values.isEmpty()) {
       // 2nd attempt without any veto
       values = map.getRandomValues(random, sampleSize, Predicates.<Map.Entry<K, OnHeapValueHolder<V>>>none());
@@ -709,7 +711,9 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     if (values.isEmpty()) {
       return false;
     } else {
+      @SuppressWarnings("unchecked")
       Map.Entry<K, OnHeapValueHolder<V>> evict = Collections.max(values, (Comparator<? super Map.Entry<K, OnHeapValueHolder<V>>>)evictionPrioritizer);
+      
       if (map.remove(evict.getKey(), evict.getValue())) {
         evictionObserver.end(EvictionOutcome.SUCCESS);
         eventListener.onEviction(wrap(evict));

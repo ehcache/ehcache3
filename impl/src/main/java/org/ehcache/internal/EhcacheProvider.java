@@ -17,7 +17,6 @@
 package org.ehcache.internal;
 
 import org.ehcache.Ehcache;
-import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.CacheProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -28,10 +27,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
  */
 public class EhcacheProvider implements CacheProvider {
 
-  private final ServiceLocator serviceLocator;
-
-  public EhcacheProvider(final ServiceLocator serviceLocator) {this.serviceLocator = serviceLocator;}
-
+  @SuppressWarnings("deprecation")
   @Override
   public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
     return new HeapCache<K, V>();

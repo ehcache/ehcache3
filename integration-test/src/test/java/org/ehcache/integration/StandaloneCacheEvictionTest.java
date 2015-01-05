@@ -38,7 +38,7 @@ public class StandaloneCacheEvictionTest {
         .build();
     cache.init();
     assertThat(cache.getRuntimeConfiguration().getCapacityConstraint(),
-        equalTo((Comparable)1L));
+        equalTo((Comparable<Long>)1L));
 
     // we put 3 elements, but there's only capacity for 1
     for (int i = 0; i < 3; i++) {
@@ -63,7 +63,7 @@ public class StandaloneCacheEvictionTest {
         .build();
     cache.init();
     assertThat(cache.getRuntimeConfiguration().getCapacityConstraint(),
-        equalTo((Comparable)1L));
+        equalTo((Comparable<Long>)1L));
 
     // we put 3 elements, but there's only capacity for 1
     for (int i = 0; i < 3; i++) {

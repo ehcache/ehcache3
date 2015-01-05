@@ -49,6 +49,7 @@ import static org.mockito.Mockito.when;
 /**
  * @author Ludovic Orban
  */
+@SuppressWarnings({ "unchecked", "serial", "rawtypes" })
 public class EhcacheBulkMethodsTest {
   
   private final CacheConfiguration<Number, CharSequence> cacheConfig = mock(CacheConfiguration.class);

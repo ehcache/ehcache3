@@ -17,8 +17,6 @@ package org.ehcache.integration;
 
 import org.ehcache.Cache;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
 /**

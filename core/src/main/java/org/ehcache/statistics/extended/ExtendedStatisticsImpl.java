@@ -88,7 +88,7 @@ public class ExtendedStatisticsImpl implements ExtendedStatistics {
   private TimeUnit                                                             timeToDisableUnit;
 
   /** The disable status. */
-  private ScheduledFuture                                                      disableStatus;
+  private ScheduledFuture<?>                                                      disableStatus;
 
   /** The all cache get. */
   private final Result                                                         allCacheGet;

@@ -22,6 +22,8 @@ package org.ehcache.exceptions;
  */
 public class CacheAccessException extends Exception {
 
+  private static final long serialVersionUID = 5249505200891654776L;
+
   public CacheAccessException(Throwable cause) {
     super(cause);
   }

@@ -43,7 +43,6 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     super(factory);
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void mappingFunctionReturnsIterableOfEntriesForEachInputEntry() throws Exception {
      Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
@@ -73,7 +72,6 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void missingIterableEntriesAreIgnoredByTheStore() throws Exception {
      Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
@@ -108,7 +106,6 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void mappingIsSameInTheStoreForEntriesReturnedWithDifferentValueFromMappingFunction() throws Exception {
      Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
@@ -149,7 +146,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings({ "unchecked" })
   @SPITest
   public void testWrongKeyType() throws Exception {
      Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
@@ -181,7 +178,6 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void computeValuesForEveryKeyUsingAMappingFunction() throws Exception {
      Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
@@ -217,7 +213,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings({ "unchecked" })
   @SPITest
   public void testMappingFunctionProducesWrongKeyType() throws Exception {
      Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
@@ -257,7 +253,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings({ "unchecked" })
   @SPITest
   public void testMappingFunctionProducesWrongValueType() throws Exception {
      Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));

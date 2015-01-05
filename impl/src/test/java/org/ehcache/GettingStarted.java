@@ -28,11 +28,13 @@ import static org.hamcrest.core.Is.is;
 /**
  * @author Alex Snaps
  */
+@SuppressWarnings("unused")
 public class GettingStarted {
 
   /**
    * If you change this somehow, you probably want to fix the /README.adoc as well!
    */
+
   @Test
   public void testWikiExample() {
 

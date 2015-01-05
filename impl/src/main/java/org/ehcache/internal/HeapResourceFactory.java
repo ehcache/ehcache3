@@ -27,7 +27,7 @@ public class HeapResourceFactory implements ServiceFactory<EhcacheProvider> {
 
   @Override
   public EhcacheProvider create(final ServiceConfiguration<EhcacheProvider> serviceConfiguration, final ServiceLocator serviceLocator) {
-    return new EhcacheProvider(serviceLocator);
+    return new EhcacheProvider();
   }
 
   @Override

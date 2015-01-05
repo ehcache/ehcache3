@@ -27,13 +27,13 @@ public class ResultState {
   private final String methodName;
   private final String reason;
 
-  public ResultState(Class testClass, String methodName, Throwable thrownException) {
+  public ResultState(Class<?> testClass, String methodName, Throwable thrownException) {
     this.className = testClass.getCanonicalName();
     this.methodName = methodName;
     this.reason = getStackTraceAsString(thrownException);
   }
 
-  public ResultState(Class testClass, String methodName, String reason) {
+  public ResultState(Class<?> testClass, String methodName, String reason) {
     this.className = testClass.getCanonicalName();
     this.methodName = methodName;
     this.reason = reason;

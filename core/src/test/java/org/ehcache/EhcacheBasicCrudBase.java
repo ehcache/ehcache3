@@ -180,7 +180,7 @@ public abstract class EhcacheBasicCrudBase {
    * @return a Mockito {@code any} matcher for {@code BiFunction}.
    */
   @SuppressWarnings("unchecked")
-  protected static <V extends String> BiFunction<? super String, V, V> getAnyBiFunction() {
+  protected static BiFunction<? super String, String, String> getAnyBiFunction() {
     return any(BiFunction.class);   // unchecked
   }
 

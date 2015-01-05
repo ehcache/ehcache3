@@ -35,6 +35,7 @@ public class CacheManagerBuilderTest {
     final AtomicInteger counter = new AtomicInteger(0);
 
     final PersistentCacheManager cacheManager = newCacheManagerBuilder().with(new CacheManagerConfiguration<PersistentCacheManager>() {
+      @SuppressWarnings("unchecked")
       @Override
       public CacheManagerBuilder<PersistentCacheManager> builder(final CacheManagerBuilder<? extends CacheManager> other) {
         counter.getAndIncrement();

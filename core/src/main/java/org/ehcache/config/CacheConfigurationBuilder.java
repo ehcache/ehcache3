@@ -120,7 +120,7 @@ public class CacheConfigurationBuilder<K, V> {
     return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, capacityConstraint, evictionPrioritizer, evictionVeto, serviceConfigurations);
   }
 
-  public CacheConfigurationBuilder withSerializationProvider(SerializationProvider serializationProvider) {
+  public CacheConfigurationBuilder<K, V> withSerializationProvider(SerializationProvider serializationProvider) {
     this.serializationProvider = serializationProvider;
     return this;
   }

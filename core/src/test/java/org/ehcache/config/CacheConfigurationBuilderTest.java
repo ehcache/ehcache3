@@ -27,8 +27,7 @@ public class CacheConfigurationBuilderTest {
   @Test
   public void testNothing() {
     final CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-    final CacheConfiguration<Long, String> config = builder.buildConfig(Long.class, String.class);
-
+   
     builder.usingEvictionPrioritizer(Eviction.Prioritizer.LFU)
         .buildConfig(Long.class, CharSequence.class);
 
@@ -41,7 +40,7 @@ public class CacheConfigurationBuilderTest {
 
     final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
 
-    final CacheConfiguration<Long, String> cacheConfiguration = builder
+    builder
         .evitionVeto(new EvictionVeto<Long, String>() {
           @Override
           public boolean test(final Cache.Entry<Long, String> argument) {

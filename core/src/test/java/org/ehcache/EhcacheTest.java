@@ -45,6 +45,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class EhcacheTest {
 
   @Test

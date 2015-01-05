@@ -53,6 +53,7 @@ public class OnHeapStoreBulkMethodsTest {
     return config;
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void testBulkComputeFunctionGetsValuesOfEntries() throws Exception {
     @SuppressWarnings("rawtypes")
