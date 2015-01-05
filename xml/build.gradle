@@ -46,9 +46,9 @@ sourceSets.main.java {
 }
 
 jaxb {
-  xsdDir = "xml/src/main/resources"
-  episodesDir = "$buildDir/xsd/episodes"
-  bindingsDir = "$buildDir/xsd/bindings"
+  xsdDir = "$name/src/main/resources"
+  episodesDir = "$name/build/xsd/episodes"
+  bindingsDir = "$name/build/xsd/bindings"
   xjc {
     destinationDir = generatedSources
     generatePackage    = "org.ehcache.config.xml.model"
