@@ -124,7 +124,7 @@ class Eh107CacheWriter<K, V> implements org.ehcache.spi.writer.CacheWriter<K, V>
     return new Entry<K, V>(key, value);
   }
 
-  private static class Entry<K, V> implements Cache.Entry<K, V> {
+  static class Entry<K, V> implements Cache.Entry<K, V> {
 
     private final K key;
     private final V value;
@@ -147,6 +147,43 @@ class Eh107CacheWriter<K, V> implements org.ehcache.spi.writer.CacheWriter<K, V>
     @Override
     public <T> T unwrap(Class<T> clazz) {
       throw new IllegalArgumentException();
+    }
+
+    @Override
+    public int hashCode() {
+      int hashCode = 31;
+      if (key != null) {
+        hashCode += key.hashCode();
+      }
+      if (value != null) {
+        hashCode += value.hashCode();
+      }
+      return hashCode;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj instanceof Entry) {
+        Entry other = (Entry) obj;
+        boolean equals;
+
+        if (key != null) {
+          equals = key.equals(other.key);
+        } else {
+          equals = other.key == null;
+        }
+
+        if (equals) {
+          if (value != null) {
+            equals = value.equals(other.value);
+          } else {
+            equals = other.value == null;
+          }
+        }
+
+        return equals;
+      }
+      return false;
     }
   }
 }
