@@ -29,8 +29,8 @@ sourceSets {
 
 dependencies {
   compile project(':impl'), project(':xml'), 'javax.cache:cache-api:1.0.0'
-  tckTestRuntime 'javax.cache:cache-tests:1.0.0'
-  tckTestClasses('javax.cache:cache-tests:1.0.0:tests') {
+  tckTestRuntime 'javax.cache:cache-tests:1.0.1'
+  tckTestClasses('javax.cache:cache-tests:1.0.1:tests') {
     transitive = false
   }
 }
