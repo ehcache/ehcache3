@@ -109,4 +109,191 @@ public class LoaderWriterSimpleEhcacheTest {
     verifyZeroInteractions(cacheLoaderWriter);
   }
 
+  @Test
+  public void testSimpleReplace2ArgsWithLoaderAndWriter_absent() throws Exception {
+    when(cacheLoaderWriter.load(eq(1))).thenAnswer(new Answer() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        return null;
+      }
+    });
+
+    assertThat(testCache.containsKey(1), is(false));
+    assertThat(testCache.replace(1, "one"), is(nullValue()));
+
+    verify(cacheLoaderWriter, times(1)).load(eq(1));
+    verifyNoMoreInteractions(cacheLoaderWriter);
+  }
+
+  @Test
+  public void testSimpleReplace2ArgsWithLoaderAndWriter_existsInSor() throws Exception {
+    when(cacheLoaderWriter.load(eq(1))).thenAnswer(new Answer() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        return "un";
+      }
+    });
+
+    assertThat(testCache.containsKey(1), is(false));
+    assertThat(testCache.replace(1, "one"), Matchers.<CharSequence>equalTo("un"));
+    assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("one"));
+
+    verify(cacheLoaderWriter, times(1)).load(eq(1));
+    verify(cacheLoaderWriter, times(1)).write(eq(1), eq("one"));
+  }
+
+  @Test
+  public void testSimpleReplace2ArgsWithLoaderAndWriter_existsInStore() throws Exception {
+    testCache.put(1, "un");
+    reset(cacheLoaderWriter);
+
+    assertThat(testCache.replace(1, "one"), Matchers.<CharSequence>equalTo("un"));
+    assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("one"));
+
+    verify(cacheLoaderWriter, times(1)).write(eq(1), eq("one"));
+    verifyNoMoreInteractions(cacheLoaderWriter);
+  }
+
+  @Test
+  public void testSimpleReplace3ArgsWithLoaderAndWriter_absent() throws Exception {
+    when(cacheLoaderWriter.load(eq(1))).thenAnswer(new Answer() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        return null;
+      }
+    });
+
+    assertThat(testCache.containsKey(1), is(false));
+    assertThat(testCache.replace(1, "un", "one"), is(false));
+
+    verify(cacheLoaderWriter, times(1)).load(eq(1));
+    verifyNoMoreInteractions(cacheLoaderWriter);
+  }
+
+  @Test
+  public void testSimpleReplace3ArgsWithLoaderAndWriter_existsInSor() throws Exception {
+    when(cacheLoaderWriter.load(eq(1))).thenAnswer(new Answer() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        return "un";
+      }
+    });
+
+    assertThat(testCache.containsKey(1), is(false));
+    assertThat(testCache.replace(1, "un", "one"), is(true));
+    assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("one"));
+
+    verify(cacheLoaderWriter, times(1)).load(eq(1));
+    verify(cacheLoaderWriter, times(1)).write(eq(1), eq("one"));
+  }
+
+  @Test
+  public void testSimpleReplace3ArgsWithLoaderAndWriter_existsInSor_notEquals() throws Exception {
+    when(cacheLoaderWriter.load(eq(1))).thenAnswer(new Answer() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        return "un";
+      }
+    });
+
+    assertThat(testCache.containsKey(1), is(false));
+    assertThat(testCache.replace(1, "uno", "one"), is(false));
+    assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("un"));
+
+    verify(cacheLoaderWriter, times(1)).load(eq(1));
+    verifyNoMoreInteractions(cacheLoaderWriter);
+  }
+
+  @Test
+  public void testSimpleReplace3ArgsWithLoaderAndWriter_existsInStore() throws Exception {
+    testCache.put(1, "un");
+    reset(cacheLoaderWriter);
+
+    assertThat(testCache.replace(1, "un", "one"), is(true));
+    assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("one"));
+
+    verify(cacheLoaderWriter, times(1)).write(eq(1), eq("one"));
+    verifyNoMoreInteractions(cacheLoaderWriter);
+  }
+
+  @Test
+  public void testSimpleReplace3ArgsWithLoaderAndWriter_existsInStore_notEquals() throws Exception {
+    testCache.put(1, "un");
+    reset(cacheLoaderWriter);
+
+    assertThat(testCache.replace(1, "uno", "one"), is(false));
+    assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("un"));
+
+    verifyZeroInteractions(cacheLoaderWriter);
+  }
+
+  @Test
+  public void testSimpleRemove2ArgsWithLoaderAndWriter_absent() throws Exception {
+    when(cacheLoaderWriter.load(eq(1))).thenAnswer(new Answer() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        return null;
+      }
+    });
+
+    assertThat(testCache.containsKey(1), is(false));
+    assertThat(testCache.remove(1, "one"), is(false));
+
+    verify(cacheLoaderWriter, times(1)).load(eq(1));
+    verifyNoMoreInteractions(cacheLoaderWriter);
+  }
+
+  @Test
+  public void testSimpleRemove2ArgsWithLoaderAndWriter_existsInSor() throws Exception {
+    when(cacheLoaderWriter.load(eq(1))).thenAnswer(new Answer() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        return "un";
+      }
+    });
+
+    assertThat(testCache.containsKey(1), is(false));
+    assertThat(testCache.remove(1, "un"), is(true));
+
+    verify(cacheLoaderWriter, times(1)).load(eq(1));
+    verify(cacheLoaderWriter, times(1)).delete(eq(1));
+  }
+
+  @Test
+  public void testSimpleRemove2ArgsWithLoaderAndWriter_existsInSor_notEquals() throws Exception {
+    when(cacheLoaderWriter.load(eq(1))).thenAnswer(new Answer() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        return "un";
+      }
+    });
+
+    assertThat(testCache.containsKey(1), is(false));
+    assertThat(testCache.remove(1, "one"), is(false));
+
+    verify(cacheLoaderWriter, times(1)).load(eq(1));
+    verifyNoMoreInteractions(cacheLoaderWriter);
+  }
+
+  @Test
+  public void testSimpleRemove2ArgsWithLoaderAndWriter_existsInStore() throws Exception {
+    testCache.put(1, "un");
+    reset(cacheLoaderWriter);
+
+    assertThat(testCache.remove(1, "un"), is(true));
+
+    verify(cacheLoaderWriter, times(1)).delete(eq(1));
+    verifyNoMoreInteractions(cacheLoaderWriter);
+  }
+
+  @Test
+  public void testSimpleRemove2ArgsWithLoaderAndWriter_existsInStore_notEquals() throws Exception {
+    testCache.put(1, "un");
+    reset(cacheLoaderWriter);
+
+    assertThat(testCache.remove(1, "one"), is(false));
+
+    verifyZeroInteractions(cacheLoaderWriter);
+  }
+
 }
