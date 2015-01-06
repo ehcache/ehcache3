@@ -51,6 +51,7 @@ public class EhcacheWriterLoaderTest {
   private Ehcache<Number, String> cache;
   private Store<Number, String> store;
    
+  @SuppressWarnings("unchecked")
   @Before
   public void setUp() throws Exception {
     store = mock(Store.class);
@@ -374,7 +375,10 @@ public class EhcacheWriterLoaderTest {
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
         final String applied = function.apply((Number)invocation.getArguments()[0], "old");
-        final Store.ValueHolder mock = mock(Store.ValueHolder.class);
+        
+        @SuppressWarnings("unchecked")
+        final Store.ValueHolder<Object> mock = mock(Store.ValueHolder.class);
+        
         when(mock.value()).thenReturn(applied);
         return mock;
       }

@@ -60,7 +60,7 @@ class ByValueOnHeapValueHolder<V> extends BaseOnHeapValueHolder<V> {
     if (o == this) return true;
     if (!(o instanceof ValueHolder)) return false;
     try {
-      return serializer.equals(((ValueHolder<V>)o).value(), buffer);
+      return serializerEquals(o, buffer);
     } catch (IOException ioe) {
       throw new SerializerException(ioe);
     } catch (ClassNotFoundException cnfe) {
@@ -68,6 +68,11 @@ class ByValueOnHeapValueHolder<V> extends BaseOnHeapValueHolder<V> {
     }
   }
 
+  @SuppressWarnings("unchecked")
+  boolean serializerEquals(Object o, ByteBuffer buffer2) throws ClassNotFoundException, IOException {
+    return serializer.equals(((ValueHolder<V>)o).value(), buffer);
+  }
+  
   @Override
   public int hashCode() {
     return hash;

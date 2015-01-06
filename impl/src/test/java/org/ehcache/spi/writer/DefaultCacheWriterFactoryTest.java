@@ -28,8 +28,6 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -90,7 +88,7 @@ public class DefaultCacheWriterFactoryTest {
 
     @Override
     public void write(final Object key, final Object value) throws Exception {
-      this.lastWritten = value;
+      MyWriter.lastWritten = value;
     }
 
     @Override
@@ -115,7 +113,7 @@ public class DefaultCacheWriterFactoryTest {
 
     @Override
     public void write(final Object key, final Object value) throws Exception {
-      this.lastWritten = value;
+      MyOtherWriter.lastWritten = value;
     }
 
   }

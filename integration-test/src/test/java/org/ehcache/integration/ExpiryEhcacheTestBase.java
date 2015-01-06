@@ -45,7 +45,7 @@ public abstract class ExpiryEhcacheTestBase {
 
   private CacheManager cacheManager;
   private Cache<Number, CharSequence> testCache;
-  private ManualTimeSource manualTimeSource = new ManualTimeSource();
+  private final ManualTimeSource manualTimeSource = new ManualTimeSource();
 
   @Before
   public void setUp() throws Exception {
@@ -151,7 +151,7 @@ public abstract class ExpiryEhcacheTestBase {
 
   private static int cacheSize(Cache<?, ?> cache) {
     int count = 0;
-    for (Cache.Entry<?, ?> entry : cache) {
+    for (@SuppressWarnings("unused") Cache.Entry<?, ?> entry : cache) {
       count++;
     }
     return count;

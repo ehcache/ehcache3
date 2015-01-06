@@ -58,6 +58,7 @@ import static org.mockito.Mockito.when;
 /**
  * Created by anthony on 2014-10-23.
  */
+@SuppressWarnings({ "unchecked", "rawtypes", "serial" })
 public class EhcacheBulkMethodsITest {
 
   @Test

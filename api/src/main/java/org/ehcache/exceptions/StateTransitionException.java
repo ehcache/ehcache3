@@ -21,6 +21,8 @@ package org.ehcache.exceptions;
  */
 public class StateTransitionException extends RuntimeException {
 
+  private static final long serialVersionUID = 7602752670854885218L;
+
   public StateTransitionException(final Exception e) {
     super(e.getMessage(), e);
   }

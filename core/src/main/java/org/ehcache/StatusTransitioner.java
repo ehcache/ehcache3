@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * @author Alex Snaps
  */
-@SuppressWarnings("StatementWithEmptyBody")
 final class StatusTransitioner {
 
   private final AtomicReference<InternalStatus.Transition> currentState;

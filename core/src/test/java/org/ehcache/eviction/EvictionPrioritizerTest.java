@@ -20,13 +20,15 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.concurrent.TimeUnit;
+
 import org.ehcache.Cache;
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionPrioritizer;
-import org.hamcrest.CoreMatchers;
+
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+
 import org.junit.Test;
+
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -37,6 +39,7 @@ import static org.mockito.Mockito.when;
  */
 public class EvictionPrioritizerTest {
   
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @Test
   public void testLruOrdering() {
     Cache.Entry<String, String> a = mock(Cache.Entry.class);
@@ -52,6 +55,7 @@ public class EvictionPrioritizerTest {
   }
 
   @Test
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   public void testLfuOrdering() {
     Cache.Entry<String, String> a = mock(Cache.Entry.class);
     when(a.getHitRate(any(TimeUnit.class))).thenReturn(0.0f);
@@ -66,6 +70,7 @@ public class EvictionPrioritizerTest {
   }
 
   @Test
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   public void testFifoOrdering() {
     Cache.Entry<String, String> a = mock(Cache.Entry.class);
     when(a.getCreationTime(any(TimeUnit.class))).thenReturn(0L);

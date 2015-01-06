@@ -24,12 +24,13 @@ import org.ehcache.internal.classes.ClassInstanceProvider;
 /**
  * @author Alex Snaps
  */
-public class DefaultCacheWriterFactory  extends ClassInstanceProvider<CacheWriter<?, ?>> implements CacheWriterFactory {
+public class DefaultCacheWriterFactory extends ClassInstanceProvider<CacheWriter<?, ?>> implements CacheWriterFactory {
 
   public DefaultCacheWriterFactory() {
     super(DefaultCacheWriterFactoryConfiguration.class, DefaultCacheWriterConfiguration.class);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public <K, V> CacheWriter<? super K, ? super V> createCacheWriter(final String alias, final CacheConfiguration<K, V> cacheConfiguration) {
     return (CacheWriter<? super K, ? super V>)newInstance(alias, cacheConfiguration);

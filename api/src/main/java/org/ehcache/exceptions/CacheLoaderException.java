@@ -23,6 +23,8 @@ package org.ehcache.exceptions;
  */
 public class CacheLoaderException extends RuntimeException {
 
+  private static final long serialVersionUID = 4794738044299044587L;
+
   CacheLoaderException() {
     super();
   }

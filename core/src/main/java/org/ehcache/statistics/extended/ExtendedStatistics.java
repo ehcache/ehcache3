@@ -17,7 +17,6 @@ package org.ehcache.statistics.extended;
 
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.ehcache.statistics.StoreOperationOutcomes;
-import org.ehcache.statistics.extended.ExtendedStatistics.Operation;
 import org.terracotta.statistics.archive.Timestamped;
 
 import java.util.EnumSet;

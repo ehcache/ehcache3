@@ -35,6 +35,7 @@ class TimeStampedOnHeapValueHolder<V> implements OnHeapValueHolder<V> {
     this.expireTime = expireTime;
   }
 
+  @SuppressWarnings("rawtypes")
   @Override
   public boolean equals(Object o) {
     if (o == this) return true;

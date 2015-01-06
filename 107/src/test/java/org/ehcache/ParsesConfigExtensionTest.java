@@ -16,7 +16,6 @@
 
 package org.ehcache;
 
-import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.Eviction;
@@ -38,12 +37,6 @@ import com.pany.ehcache.integration.ProductCacheWriter;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import javax.cache.Caching;
-import javax.cache.configuration.CompleteConfiguration;
-import javax.cache.configuration.Configuration;
-import javax.cache.configuration.MutableConfiguration;
-import javax.cache.spi.CachingProvider;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -70,30 +63,9 @@ public class ParsesConfigExtensionTest {
     assertThat(jsr107Service.getDefaultTemplate(), equalTo("tinyCache"));
     assertThat(jsr107Service.getTemplateNameForCache("foos"), equalTo("stringCache"));
     assertThat(jsr107Service.getTemplateNameForCache("bars"), nullValue());
-
-    // TEST ENDS HERE, BELOW IS AN EXAMPLE OF CODE FOR OUR 107 CACHE MANAGER
-    // IT WOULD BUILD OUR 107 CACHE MANAGER INSTANCE AS ABOVE, KEEPING A REF TO THE DefaultJsr107Service ABOVE
-
-    // random javax.cache.CacheManager.createCache(name, cfg) example:
-    String name = "bar";
-    CompleteConfiguration cfg = new MutableConfiguration();
-
-    CacheConfigurationBuilder configurationBuilder = configuration
-        .newCacheConfigurationBuilderFromTemplate(jsr107Service.getDefaultTemplate(), cfg.getKeyType(), cfg.getValueType());
-    final String template = jsr107Service.getTemplateNameForCache(name);
-    if(template != null) {
-      configurationBuilder = configuration
-          .newCacheConfigurationBuilderFromTemplate(name, cfg.getKeyType(), cfg.getValueType());
-    }
-    if(configurationBuilder != null) {
-      configurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-    }
-    // set all attributes from cfg, to complete or override
-    // and finally build our CacheConfig:
-    final CacheConfiguration cacheConfiguration = configurationBuilder.buildConfig(cfg.getKeyType(), cfg.getValueType());
-    // final Cache cache = cacheManager.createCache(name, cacheConfiguration); // throws NPE because of no Store.Provider Service present
   }
 
+  @SuppressWarnings("rawtypes")
   @Test
   public void testXmlExample() throws ClassNotFoundException, SAXException, InstantiationException, IOException, IllegalAccessException {
     XmlConfiguration config = new XmlConfiguration(ParsesConfigExtensionTest.class.getResource("/ehcache-example.xml"));

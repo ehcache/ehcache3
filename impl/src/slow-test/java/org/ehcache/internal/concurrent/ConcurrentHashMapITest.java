@@ -54,7 +54,7 @@ public class ConcurrentHashMapITest {
 
     @Test
     public void testRandomValuesWithComparable() {
-        ConcurrentHashMap<Comparable, KeyHolder<Object>> map = new ConcurrentHashMap<Comparable, KeyHolder<Object>>();
+        ConcurrentHashMap<Comparable<?>, KeyHolder<Object>> map = new ConcurrentHashMap<Comparable<?>, KeyHolder<Object>>();
 
         for(int i = 0; i < ENTRIES; i++) {
             final EvilComparableKey o = new EvilComparableKey(UUID.randomUUID().toString());
@@ -143,6 +143,7 @@ public class ConcurrentHashMapITest {
     }
 
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     private void assertThings(final ConcurrentHashMap<?, ?> map) {
         assertThat(map.size(), is(ENTRIES));
 

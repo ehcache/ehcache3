@@ -30,6 +30,7 @@ public class DefaultCacheLoaderFactory extends ClassInstanceProvider<CacheLoader
     super(DefaultCacheLoaderFactoryConfiguration.class, DefaultCacheLoaderConfiguration.class);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public <K, V> CacheLoader<? super K, ? extends V> createCacheLoader(final String alias, final CacheConfiguration<K, V> cacheConfiguration) {
     return (CacheLoader<? super K, ? extends V>) newInstance(alias, cacheConfiguration);

@@ -25,7 +25,6 @@ import org.ehcache.exceptions.CacheWriterException;
 
 import static java.util.Collections.emptyMap;
 import org.ehcache.exceptions.CacheLoaderException;
-import static org.ehcache.util.KeysIterable.keysOf;
 
 /**
  *

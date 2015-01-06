@@ -39,10 +39,12 @@ public final class Comparables {
     //no instances
   }
   
+  @SuppressWarnings("unchecked")
   public static <T> Comparable<T> biggest() {
     return (Comparable<T>) BIGGEST;
   }
 
+  @SuppressWarnings("unchecked")
   public static <T> Comparable<T> smallest() {
     return (Comparable<T>) SMALLEST;
   }

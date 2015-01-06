@@ -99,7 +99,7 @@ public class EhcacheManager implements PersistentCacheManager {
     statusTransitioner.checkAvailable();
     final CacheHolder cacheHolder = caches.remove(alias);
     if(cacheHolder != null) {
-      final Ehcache ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
+      final Ehcache<?, ?> ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
       if(!statusTransitioner.isTransitioning()) {
         for (CacheManagerListener listener : listeners) {
           listener.cacheRemoved(alias, ehcache);
@@ -109,7 +109,7 @@ public class EhcacheManager implements PersistentCacheManager {
     }
   }
 
-  void closeEhcache(final String alias, final Ehcache ehcache) {
+  void closeEhcache(final String alias, final Ehcache<?, ?> ehcache) {
     ehcache.close();
     final CacheLoader<?, ?> cacheLoader = ehcache.getCacheLoader();
     if (cacheLoader != null) {
@@ -192,7 +192,7 @@ public class EhcacheManager implements PersistentCacheManager {
       serializationProvider = serviceLocator.findService(SerializationProvider.class);
     }
 
-    ServiceConfiguration[] serviceConfigs = config.getServiceConfigurations().toArray(new ServiceConfiguration[config.getServiceConfigurations().size()]);
+    ServiceConfiguration<?>[] serviceConfigs = config.getServiceConfigurations().toArray(new ServiceConfiguration[config.getServiceConfigurations().size()]);
 
     // XXX this may need to become an actual "service" with its own service configuration etc
     CacheEventNotificationService<K, V> evtService;
@@ -413,10 +413,15 @@ public class EhcacheManager implements PersistentCacheManager {
         }
       }
       if (keyType == refKeyType && valueType == refValueType) {
-        return (Ehcache<K, V>)cache;
+        return cast(cache);
       } else {
         throw new IllegalArgumentException();
       }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <K, V> Ehcache<K, V> cast(Ehcache<?, ?> cache) {
+      return (Ehcache<K, V>)cache;
     }
 
     public synchronized void setCache(final Ehcache<?, ?> cache) {
