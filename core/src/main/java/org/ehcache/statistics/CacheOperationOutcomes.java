@@ -26,7 +26,7 @@ public interface CacheOperationOutcomes {
   /**
    * Outcomes for cache Get operations.
    */
-  enum GetOutcome {
+  enum GetOutcome implements CacheOperationOutcomes {
     /** hit, no loader. */
     HIT_NO_LOADER,
     /** miss, no loader */
@@ -42,7 +42,7 @@ public interface CacheOperationOutcomes {
   /**
    * The outcomes for Put Outcomes.
    */
-  enum PutOutcome {
+  enum PutOutcome implements CacheOperationOutcomes {
     /** added. */
     ADDED,
     /** failure */
@@ -52,7 +52,7 @@ public interface CacheOperationOutcomes {
   /**
    * The outcomes for remove operations.
    */
-  enum RemoveOutcome {
+  enum RemoveOutcome implements CacheOperationOutcomes {
     /** success. */
     SUCCESS,
     /** failure */
@@ -62,7 +62,7 @@ public interface CacheOperationOutcomes {
   /**
    * The outcomes for conditional remove operations.
    */
-  enum ConditionalRemoveOutcome {
+  enum ConditionalRemoveOutcome implements CacheOperationOutcomes {
     SUCCESS,
     FAILURE_KEY_PRESENT,
     FAILURE_KEY_MISSING,
@@ -72,7 +72,7 @@ public interface CacheOperationOutcomes {
   /**
    * The eviction outcomes.
    */
-  enum EvictionOutcome {
+  enum EvictionOutcome implements CacheOperationOutcomes {
     /** success. */
     SUCCESS,
     /** failure */
@@ -82,7 +82,7 @@ public interface CacheOperationOutcomes {
   /**
    * The cacheloader outcomes.
    */
-  enum CacheLoaderOutcome {
+  enum CacheLoaderOutcome implements CacheOperationOutcomes {
     /** success. */
     SUCCESS,
     /** failure */
@@ -92,7 +92,7 @@ public interface CacheOperationOutcomes {
   /**
    * The putIfAbsent outcomes.
    */
-  enum PutIfAbsentOutcome {
+  enum PutIfAbsentOutcome implements CacheOperationOutcomes {
     PUT,
     HIT,
     FAILURE
@@ -101,7 +101,7 @@ public interface CacheOperationOutcomes {
   /**
    * The replace outcomes.
    */
-  enum ReplaceOutcome {
+  enum ReplaceOutcome implements CacheOperationOutcomes {
     HIT,
     MISS_PRESENT,
     MISS_NOT_PRESENT,

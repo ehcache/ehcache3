@@ -40,10 +40,12 @@ public final class Predicates {
     //no instances
   }
   
+  @SuppressWarnings("unchecked")
   public static <T> Predicate<T> all() {
     return (Predicate<T>) ALL;
   }
 
+  @SuppressWarnings("unchecked")
   public static <T> Predicate<T> none() {
     return (Predicate<T>) NONE;
   }

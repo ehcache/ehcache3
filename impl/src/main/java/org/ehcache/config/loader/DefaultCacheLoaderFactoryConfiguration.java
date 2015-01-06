@@ -18,12 +18,8 @@ package org.ehcache.config.loader;
 
 import org.ehcache.internal.classes.ClassInstanceProviderFactoryConfig;
 import org.ehcache.spi.loader.CacheLoader;
-import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.loader.DefaultCacheLoaderFactory;
 import org.ehcache.spi.service.ServiceConfiguration;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author Alex Snaps

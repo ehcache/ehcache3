@@ -26,7 +26,6 @@ import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -59,6 +58,7 @@ public class LoaderErrorEhcacheTest {
   private Cache<Number, CharSequence> testCache;
   private CacheLoader<? super Number, ? super CharSequence> cacheLoader;
 
+  @SuppressWarnings({ "unchecked", "rawtypes" })
   @Before
   public void setUp() throws Exception {
     CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder();
@@ -91,6 +91,7 @@ public class LoaderErrorEhcacheTest {
     verify(cacheLoader, times(1)).load(eq(1));
   }
 
+  @SuppressWarnings({ "unchecked", "rawtypes" })
   @Test
   public void testGetAllWithLoaderException() throws Exception {
     when(cacheLoader.loadAll((Iterable)any())).thenAnswer(new Answer() {

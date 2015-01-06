@@ -61,12 +61,12 @@ class ConfigurationParser {
 
   private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 
-  private final Map<URI, XmlConfigurationParser> xmlParsers = new HashMap<URI, XmlConfigurationParser>();
+  private final Map<URI, XmlConfigurationParser<?>> xmlParsers = new HashMap<URI, XmlConfigurationParser<?>>();
   private final ConfigType config;
 
   public ConfigurationParser(String xml, URL... sources) throws IOException, SAXException {
     Collection<Source> schemaSources = new ArrayList<Source>();
-    for (XmlConfigurationParser parser : ClassLoading.libraryServiceLoaderFor(XmlConfigurationParser.class)) {
+    for (XmlConfigurationParser<?> parser : ClassLoading.libraryServiceLoaderFor(XmlConfigurationParser.class)) {
       schemaSources.add(parser.getXmlSchema());
       xmlParsers.put(parser.getNamespace(), parser);
     }
@@ -99,9 +99,9 @@ class ConfigurationParser {
 
   }
 
-  public Iterable<ServiceConfiguration> getServiceConfigurations() {
+  public Iterable<ServiceConfiguration<?>> getServiceConfigurations() {
 
-    final ArrayList<ServiceConfiguration> serviceConfigurations = new ArrayList<ServiceConfiguration>();
+    final ArrayList<ServiceConfiguration<?>> serviceConfigurations = new ArrayList<ServiceConfiguration<?>>();
 
     for (ServiceType serviceType : config.getService()) {
       final ServiceConfiguration<?> serviceConfiguration = parseExtension((Element)serviceType.getAny());
@@ -344,7 +344,7 @@ class ConfigurationParser {
 
   private ServiceConfiguration<?> parseExtension(final Element element) {
     URI namespace = URI.create(element.getNamespaceURI());
-    final XmlConfigurationParser xmlConfigurationParser = xmlParsers.get(namespace);
+    final XmlConfigurationParser<?> xmlConfigurationParser = xmlParsers.get(namespace);
     if(xmlConfigurationParser == null) {
       throw new IllegalArgumentException("Can't find parser for namespace: " + namespace);
     }

@@ -27,7 +27,7 @@ public class JavaSerializationProvider implements SerializationProvider {
 
   @Override
   public <T> Serializer<T> createSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... config) {
-    return new JavaSerializer(classLoader);
+    return new JavaSerializer<T>(classLoader);
   }
 
   @Override

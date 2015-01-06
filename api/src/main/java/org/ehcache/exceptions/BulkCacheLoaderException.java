@@ -27,6 +27,8 @@ import java.util.Map;
  */
 public class BulkCacheLoaderException extends CacheLoaderException {
 
+  private static final long serialVersionUID = -5296309607929568779L;
+
   private final Map<?, Exception> failures;
   private final Map<?, ?> successes;
 

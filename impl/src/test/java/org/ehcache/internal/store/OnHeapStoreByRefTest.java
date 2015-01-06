@@ -46,11 +46,13 @@ public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
   protected <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
       final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto) {
     return new OnHeapStore<K, V>(new Store.Configuration<K, V>() {
+      @SuppressWarnings("unchecked")
       @Override
       public Class<K> getKeyType() {
         return (Class<K>) String.class;
       }
 
+      @SuppressWarnings("unchecked")
       @Override
       public Class<V> getValueType() {
         return (Class<V>) String.class;

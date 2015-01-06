@@ -17,12 +17,11 @@
 package org.ehcache.internal.concurrent;
 
 import java.util.Collection;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+
 import org.ehcache.function.Predicate;
 import org.ehcache.function.Predicates;
-
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -159,7 +158,10 @@ public class ConcurrentHashMapTest {
     }
 
     static class Element {
+        @SuppressWarnings("unused")
         private final Object key;
+        
+        @SuppressWarnings("unused")
         private final Object value;
 
         Element(final Object key, final Object value) {

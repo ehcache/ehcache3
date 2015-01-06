@@ -130,6 +130,7 @@ public class V8FeaturesTest {
         assertThat(chm.get(1), equalTo("one#un"));
     }
 
+    @SuppressWarnings("serial")
     @Test
     public void testReplaceAll() throws Exception {
         ConcurrentHashMap<Integer, String> chm = new ConcurrentHashMap<Integer, String>();

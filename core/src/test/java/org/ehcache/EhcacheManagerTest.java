@@ -42,6 +42,7 @@ import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfiguration
 import static org.ehcache.config.ConfigurationBuilder.newConfigurationBuilder;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
@@ -52,6 +53,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class EhcacheManagerTest {
 
   @Test
@@ -150,6 +152,7 @@ public class EhcacheManagerTest {
         .build(), new ServiceLocator(storeProvider));
     cacheManager.init();
     final Cache<Object, Object> cache = cacheManager.getCache("bar", Object.class, Object.class);
+    assertNotNull(cache);
     try {
       cacheManager.createCache("bar", cacheConfiguration);
       fail("Should have thrown");
@@ -233,6 +236,7 @@ public class EhcacheManagerTest {
 
     when(cacheLoaderFactory.createCacheLoader("foo", fooConfig)).thenReturn(fooLoader);
 
+    @SuppressWarnings("serial")
     final Configuration cfg = new DefaultConfiguration(
         new HashMap<String, CacheConfiguration<?, ?>>() {{
           put("bar", barConfig);

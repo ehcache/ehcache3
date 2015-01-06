@@ -62,7 +62,6 @@ import org.ehcache.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.ehcache.statistics.CacheStatistics;
 import org.ehcache.statistics.DisabledStatistics;
 import org.ehcache.statistics.StatisticsGateway;
-import org.terracotta.context.annotations.ContextChild;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
 
@@ -159,7 +158,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       this.cacheStatistics = new DisabledStatistics();
     }
     if (store instanceof RecoveryCache) {
-      this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>((RecoveryCache) store);
+      this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>(castToRecoveryCache(store));
     } else {
       this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>(recoveryCache(store));
     }
@@ -172,6 +171,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     this.runtimeConfiguration = new RuntimeConfiguration(config);
     this.storeListener = new StoreListener();
     this.jsr107Cache = new Jsr107CacheImpl();
+  }
+
+  @SuppressWarnings("unchecked")
+  private RecoveryCache<K> castToRecoveryCache(Store<K, V> store) {
+    return (RecoveryCache<K>) store;
   }
 
   @Override

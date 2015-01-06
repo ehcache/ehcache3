@@ -52,5 +52,5 @@ public interface CacheEvent<K, V> {
    * @return the cache you should only use to identify the source, not to use it!
    */
   @Deprecated
-  Cache getSource();
+  Cache<K, V> getSource();
 }

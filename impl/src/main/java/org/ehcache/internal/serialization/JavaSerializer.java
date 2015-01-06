@@ -21,7 +21,6 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
-import java.io.Serializable;
 import java.lang.reflect.Proxy;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -34,7 +33,7 @@ import org.ehcache.spi.serialization.Serializer;
  * 
  * @author cdennis
  */
-public class JavaSerializer<T extends Serializable> implements Serializer<T> {
+public class JavaSerializer<T> implements Serializer<T> {
 
   private final ClassLoader classLoader;
 

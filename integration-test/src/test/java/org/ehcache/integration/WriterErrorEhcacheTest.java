@@ -58,6 +58,7 @@ public class WriterErrorEhcacheTest {
   private Cache<Number, CharSequence> testCache;
   private CacheWriter<? super Number, ? super CharSequence> cacheWriter;
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @Before
   public void setUp() throws Exception {
     CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder();
@@ -100,6 +101,7 @@ public class WriterErrorEhcacheTest {
     }
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @Test
   public void testRemoveAllWithWriterException() throws Exception {
     doAnswer(new Answer() {
@@ -228,6 +230,7 @@ public class WriterErrorEhcacheTest {
     testCache.putIfAbsent(2, "two#2");
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @Test
   public void testPutAllWithWriterException() throws Exception {
     doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheWriter).writeAll(Matchers.<Iterable>any());

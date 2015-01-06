@@ -16,6 +16,8 @@
 
 package org.ehcache;
 
+import static org.junit.Assert.assertNotNull;
+
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.StandaloneCacheConfiguration;
 import org.ehcache.exceptions.BulkCacheWriterException;
@@ -43,6 +45,8 @@ public class StandaloneCacheBuilderTest {
         };
       }
     };
+    
+    assertNotNull(cfg);
 
     // OpenJDK 1.6's javac is not happy about the type inference here...
     // java version "1.6.0_32"

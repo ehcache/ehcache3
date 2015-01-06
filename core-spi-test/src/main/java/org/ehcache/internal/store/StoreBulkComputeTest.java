@@ -21,7 +21,6 @@ import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -46,7 +45,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     super(factory);
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings({ "unchecked" })
   @SPITest
   public void remappingFunctionReturnsIterableOfEntriesForEachInputEntry() throws Exception {
     Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
@@ -80,7 +79,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings({ "unchecked" })
   @SPITest
   public void testWrongKeyType() throws Exception {
     Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
@@ -112,7 +111,6 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void mappingIsRemovedFromStoreForNullValueEntriesFromRemappingFunction() throws Exception {
     Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
@@ -147,7 +145,6 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void remappingFunctionGetsIterableWithMappedStoreEntryValueOrNull() throws Exception {
     Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
@@ -190,7 +187,6 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void computeValuesForEveryKeyUsingARemappingFunction() throws Exception {
     Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
@@ -227,7 +223,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings({ "unchecked" })
   @SPITest
   public void remappingFunctionProducesWrongKeyType() throws Exception {
     Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
@@ -267,7 +263,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings({ "unchecked" })
   @SPITest
   public void remappingFunctionProducesWrongValueType() throws Exception {
     Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
