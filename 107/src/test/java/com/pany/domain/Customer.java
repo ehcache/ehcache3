@@ -21,6 +21,7 @@ import java.io.Serializable;
 /**
  * @author Alex Snaps
  */
+@SuppressWarnings("serial")
 public class Customer implements Serializable {
   private final long id;
 

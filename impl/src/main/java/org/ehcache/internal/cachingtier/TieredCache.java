@@ -73,6 +73,11 @@ public class TieredCache<K, V> implements Cache<K, V> {
       }
     }
 
+    return unwrapFault(cachedValue);
+  }
+
+  @SuppressWarnings("unchecked")
+  V unwrapFault(Object cachedValue) {
     if (cachedValue instanceof Fault) {
       return ((Fault<V>)cachedValue).get();
     } else {

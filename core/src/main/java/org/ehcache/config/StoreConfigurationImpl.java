@@ -20,8 +20,6 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
 
-import java.util.Comparator;
-
 /**
  *
  * @author Chris Dennis

@@ -58,6 +58,7 @@ import static org.junit.Assert.fail;
  */
 public class XmlConfigurationTest {
 
+  @SuppressWarnings("rawtypes")
   @Test
   public void testDefaultTypesConfig() throws Exception {
     XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/defaultTypes-cache.xml"));
@@ -80,6 +81,7 @@ public class XmlConfigurationTest {
     }
   }
 
+  @SuppressWarnings("rawtypes")
   @Test
   public void testPrioritizerCache() throws Exception {
     XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/prioritizer-cache.xml"));
@@ -128,6 +130,7 @@ public class XmlConfigurationTest {
     assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(FooConfiguration.class)));
   }
 
+  @SuppressWarnings("rawtypes")
   @Test
   public void testOneCacheConfigWithTemplate() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/template-cache.xml");
@@ -188,6 +191,7 @@ public class XmlConfigurationTest {
     assertThat(storeByValueOnHeap, is(true));
   }
 
+  @SuppressWarnings("rawtypes")
   @Test
   public void testEvictionPrioritizer() throws ClassNotFoundException, SAXException, InstantiationException, IOException, IllegalAccessException {
     final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/cache-eviction.xml"));
@@ -199,6 +203,7 @@ public class XmlConfigurationTest {
 
   }
 
+  @SuppressWarnings("rawtypes")
   @Test
   public void testExpiryIsParsed() throws Exception {
     final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/expiry-caches.xml"));

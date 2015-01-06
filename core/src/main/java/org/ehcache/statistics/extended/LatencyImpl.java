@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.ehcache.statistics.extended.ExtendedStatistics.Latency;
 import org.ehcache.statistics.extended.ExtendedStatistics.Statistic;
-
+import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.SourceStatistic;
 import org.terracotta.statistics.Time;
 import org.terracotta.statistics.ValueStatistic;
@@ -38,7 +38,7 @@ import org.terracotta.statistics.observer.ChainedOperationObserver;
  * @author cdennis
  */
 class LatencyImpl<T extends Enum<T>> implements Latency {
-    private final SourceStatistic<ChainedOperationObserver<T>> source;
+    private final SourceStatistic<ChainedOperationObserver<? super T>> source;
     private final LatencySampling<T> latencySampler;
     private final EventParameterSimpleMovingAverage average;
     private final StatisticImpl<Long> minimumStatistic;
@@ -58,14 +58,14 @@ class LatencyImpl<T extends Enum<T>> implements Latency {
      * @param historySize the history size
      * @param historyNanos the history nanos
      */
-    public LatencyImpl(SourceStatistic<ChainedOperationObserver<T>> statistic, Set<T> targets, long averageNanos,
+    public LatencyImpl(OperationStatistic<T> statistic, Set<T> targets, long averageNanos,
             ScheduledExecutorService executor, int historySize, long historyNanos) {
         this.average = new EventParameterSimpleMovingAverage(averageNanos, TimeUnit.NANOSECONDS);
         this.minimumStatistic = new StatisticImpl<Long>(average.minimumStatistic(), executor, historySize, historyNanos);
         this.maximumStatistic = new StatisticImpl<Long>(average.maximumStatistic(), executor, historySize, historyNanos);
         this.averageStatistic = new StatisticImpl<Double>(average.averageStatistic(), executor, historySize, historyNanos);
-        this.latencySampler = new LatencySampling(targets, 1.0);
-        latencySampler.addDerivedStatistic(average);
+        this.latencySampler = new LatencySampling<T>(targets, 1.0);
+        this.latencySampler.addDerivedStatistic(average);
         this.source = statistic;
     }
 
@@ -85,6 +85,7 @@ class LatencyImpl<T extends Enum<T>> implements Latency {
     /**
      * Get the minimum
      */
+    @Override
     public Statistic<Long> minimum() {
         return minimumStatistic;
     }
@@ -157,7 +158,7 @@ class LatencyImpl<T extends Enum<T>> implements Latency {
      *
      * @param <T> the generic type
      */
-    class StatisticImpl<T extends Number> extends AbstractStatistic<T> {
+    class StatisticImpl<T2 extends Number> extends AbstractStatistic<T2> {
 
         /**
          * Instantiates a new statistic impl.
@@ -167,7 +168,7 @@ class LatencyImpl<T extends Enum<T>> implements Latency {
          * @param historySize the history size
          * @param historyNanos the history nanos
          */
-        public StatisticImpl(ValueStatistic<T> value, ScheduledExecutorService executor, int historySize, long historyNanos) {
+        public StatisticImpl(ValueStatistic<T2> value, ScheduledExecutorService executor, int historySize, long historyNanos) {
             super(value, executor, historySize, historyNanos);
         }
 
@@ -187,7 +188,7 @@ class LatencyImpl<T extends Enum<T>> implements Latency {
          * @see net.sf.ehcache.statistics.extended.ExtendedStatistics.Statistic#value()
          */
         @Override
-        public T value() {
+        public T2 value() {
             touch();
             return super.value();
         }
@@ -198,7 +199,7 @@ class LatencyImpl<T extends Enum<T>> implements Latency {
          * @see net.sf.ehcache.statistics.extended.ExtendedStatistics.Statistic#history()
          */
         @Override
-        public List<Timestamped<T>> history() throws UnsupportedOperationException {
+        public List<Timestamped<T2>> history() throws UnsupportedOperationException {
             touch();
             return super.history();
         }

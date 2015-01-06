@@ -113,7 +113,7 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
       Runnable notificationTask = new Runnable() {
         @Override
         public void run() {
-          CacheEventListener<K, V> listener = (CacheEventListener<K, V>)wrapper.listener;
+          CacheEventListener<K, V> listener = wrapper.getListener();
           listener.onEvent(event);
         }
       };
@@ -185,6 +185,11 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
       };
     }
     
+    @SuppressWarnings("unchecked")
+    <K, V> CacheEventListener<K, V> getListener() {
+      return (CacheEventListener<K, V>) listener;
+    }
+
     @Override
     public int hashCode() {
       return listener.hashCode();

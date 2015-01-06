@@ -57,6 +57,7 @@ public class LoaderSimpleEhcacheTest {
   private CacheLoader<? super Number, ? super CharSequence> cacheLoader;
 
   @Before
+  @SuppressWarnings({ "unchecked", "rawtypes"})
   public void setUp() throws Exception {
     CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder();
     CacheLoaderFactory cacheLoaderFactory = mock(CacheLoaderFactory.class);
@@ -85,6 +86,7 @@ public class LoaderSimpleEhcacheTest {
     verify(cacheLoader, times(1)).load(eq(2));
   }
 
+  @SuppressWarnings({ "unchecked", "rawtypes"})
   @Test
   public void testSimpleGetAllWithLoader() throws Exception {
     when(cacheLoader.loadAll((Iterable)any())).thenAnswer(new Answer() {

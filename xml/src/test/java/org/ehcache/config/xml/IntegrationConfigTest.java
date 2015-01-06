@@ -19,9 +19,7 @@ package org.ehcache.config.xml;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
-import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.loader.DefaultCacheLoaderConfiguration;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -29,7 +27,6 @@ import com.pany.ehcache.integration.TestCacheWriter;
 
 import java.io.IOException;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;

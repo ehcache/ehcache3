@@ -26,7 +26,6 @@ import org.ehcache.statistics.extended.ExtendedStatistics.Latency;
 import org.ehcache.statistics.extended.ExtendedStatistics.Operation;
 import org.ehcache.statistics.extended.ExtendedStatistics.Result;
 import org.ehcache.statistics.extended.ExtendedStatistics.Statistic;
-
 import org.terracotta.statistics.archive.Timestamped;
 
 
@@ -38,6 +37,7 @@ import org.terracotta.statistics.archive.Timestamped;
  */
 final class NullCompoundOperation<T extends Enum<T>> implements Operation<T> {
 
+    @SuppressWarnings("rawtypes")
     private static final Operation INSTANCE = new NullCompoundOperation();
 
     private NullCompoundOperation() {
@@ -50,6 +50,7 @@ final class NullCompoundOperation<T extends Enum<T>> implements Operation<T> {
      * @param <T> the generic type
      * @return the operation
      */
+    @SuppressWarnings("unchecked")
     static <T extends Enum<T>> Operation<T> instance(Class<T> klazz) {
         return INSTANCE;
     }
@@ -262,7 +263,7 @@ final class NullStatistic<T extends Number> implements Statistic<T> {
         COMMON.put(Double.NaN, new NullStatistic<Double>(Double.NaN));
         COMMON.put(Float.NaN, new NullStatistic<Float>(Float.NaN));
         COMMON.put(Long.valueOf(0L), new NullStatistic<Long>(0L));
-        COMMON.put(null, new NullStatistic(null));
+        COMMON.put(null, new NullStatistic<Long>(null));
     }
 
     private final T value;
@@ -304,6 +305,7 @@ final class NullStatistic<T extends Number> implements Statistic<T> {
      * @return
      */
     static <T extends Number> Statistic<T> instance(T value) {
+        @SuppressWarnings("unchecked")
         Statistic<T> cached = (Statistic<T>) COMMON.get(value);
         if (cached == null) {
             return new NullStatistic<T>(value);

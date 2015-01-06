@@ -16,12 +16,10 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.Cache;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.expiry.Expirations;
-import org.ehcache.function.Predicate;
 import org.ehcache.internal.HeapResourceCacheConfiguration;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
@@ -30,8 +28,6 @@ import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
-
-import java.util.Comparator;
 
 /**
  * Test the {@link org.ehcache.internal.store.OnHeapStore} compliance to the
@@ -87,7 +83,7 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
-      public ServiceConfiguration[] getServiceConfigurations() {
+      public ServiceConfiguration<?>[] getServiceConfigurations() {
         return new ServiceConfiguration[] { new HeapResourceCacheConfiguration(100), new OnHeapStoreServiceConfig().storeByValue(true)};
       }
 

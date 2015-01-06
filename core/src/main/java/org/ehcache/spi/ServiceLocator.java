@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
@@ -43,6 +44,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public final class ServiceLocator {
 
   private final ConcurrentMap<Class<? extends Service>, Service> services = new ConcurrentHashMap<Class<? extends Service>, Service>();
+  
+  @SuppressWarnings("rawtypes")
   private final ServiceLoader<ServiceFactory> serviceFactory = ClassLoading.libraryServiceLoaderFor(ServiceFactory.class);
 
   private final ReadWriteLock runningLock = new ReentrantReadWriteLock();
@@ -61,7 +64,7 @@ public final class ServiceLocator {
 
   public <T extends Service> T discoverService(Class<T> serviceClass, ServiceConfiguration<T> config) {
     // TODO Fix me!
-    for (ServiceFactory<T> factory : serviceFactory) {
+    for (ServiceFactory<T> factory : ServiceLocator.<T> getServiceFactories(serviceFactory)) {
       if (serviceClass.isAssignableFrom(factory.getServiceType())) {
         T service = factory.create(config, this);
         addService(service);
@@ -70,7 +73,16 @@ public final class ServiceLocator {
     }
     return null;
   }
-  
+
+  @SuppressWarnings("unchecked")
+  private static <T extends Service> Iterable<ServiceFactory<T>> getServiceFactories(@SuppressWarnings("rawtypes") ServiceLoader<ServiceFactory> serviceFactory) {
+    List<ServiceFactory<T>> list = new ArrayList<ServiceFactory<T>>();
+    for (ServiceFactory<?> factory : serviceFactory) {
+      list.add((ServiceFactory<T>) factory);
+    }
+    return list;
+  }
+
   public <T extends Service> T discoverService(ServiceConfiguration<T> config) {
     return discoverService(config.getServiceType(), config);
   }
@@ -82,8 +94,12 @@ public final class ServiceLocator {
       Set<Class<? extends Service>> serviceClazzes = new HashSet<Class<? extends Service>>();
 
       for (Class<?> i : getAllInterfaces(service.getClass())) {
-        if(Service.class != i && Service.class.isAssignableFrom(i)) {
-          serviceClazzes.add((Class<? extends Service>) i);
+        if (Service.class != i && Service.class.isAssignableFrom(i)) {
+          
+          @SuppressWarnings("unchecked")
+          Class<? extends Service> serviceClass = (Class<? extends Service>) i;
+          
+          serviceClazzes.add(serviceClass);
         }
       }
 

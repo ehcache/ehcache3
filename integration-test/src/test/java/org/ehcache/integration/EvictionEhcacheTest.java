@@ -63,7 +63,7 @@ public class EvictionEhcacheTest {
     testCache.put(4, "four");
 
     int count = 0;
-    for (Cache.Entry<Number, CharSequence> entry : testCache) {
+    for (@SuppressWarnings("unused") Cache.Entry<Number, CharSequence> entry : testCache) {
       count++;
     }
     assertThat(count, is(2));
@@ -82,7 +82,7 @@ public class EvictionEhcacheTest {
     testCache.putIfAbsent(4, "four");
 
     int count = 0;
-    for (Cache.Entry<Number, CharSequence> entry : testCache) {
+    for (@SuppressWarnings("unused") Cache.Entry<Number, CharSequence> entry : testCache) {
       count++;
     }
     assertThat(count, is(2));
@@ -101,7 +101,7 @@ public class EvictionEhcacheTest {
     testCache.putAll(values);
 
     int count = 0;
-    for (Cache.Entry<Number, CharSequence> entry : testCache) {
+    for (@SuppressWarnings("unused") Cache.Entry<Number, CharSequence> entry : testCache) {
       count++;
     }
     assertThat(count, is(2));

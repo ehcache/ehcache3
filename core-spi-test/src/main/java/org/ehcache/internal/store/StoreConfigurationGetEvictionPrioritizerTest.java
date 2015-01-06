@@ -39,7 +39,7 @@ public class StoreConfigurationGetEvictionPrioritizerTest<K, V> extends SPIStore
   }
 
   @SPITest
-  @SuppressWarnings({ "cast", "unchecked" })
+  @SuppressWarnings({ "cast" })
   public void returnsCorrectEvictionPrioritizer() throws IllegalAccessException, InstantiationException {
     final Eviction.Prioritizer evictionPrioritizer = Eviction.Prioritizer.LFU;
     Store.Configuration<K, V> kvConfiguration = factory.newConfiguration(factory.getKeyType(), factory.getValueType(),

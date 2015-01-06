@@ -583,6 +583,7 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testComputeIfAbsentExpired() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
@@ -746,6 +747,7 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testComputeIfPresentExpired() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
@@ -785,12 +787,14 @@ public abstract class BaseOnHeapStoreTest {
     return counter;
   }
 
+  @SuppressWarnings("unchecked")
   private static <K, V> StoreEventListener<K, V> addExpiryListener(OnHeapStore<K, V> store) {
     StoreEventListener<K, V> listener = mock(StoreEventListener.class);
     store.enableStoreEventNotifications(listener);
     return listener;
   }
-  
+
+  @SuppressWarnings("unchecked")
   private static <K, V> void checkExpiryEvent(StoreEventListener<K, V> listener, final K key, final V value) {
     verify(listener).onExpiration(argThat(new ArgumentMatcher<Cache.Entry<K, V>>() {
 

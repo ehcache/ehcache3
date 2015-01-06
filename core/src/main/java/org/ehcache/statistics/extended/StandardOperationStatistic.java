@@ -57,25 +57,22 @@ enum StandardOperationStatistic {
 
     /** The evicted. */
     EVICTION(false, cache().add(children().exclude(Ehcache.class).add(descendants())), CacheOperationOutcomes.EvictionOutcome.class, "eviction");
-
-    private static final int THIRTY = 30;
-    private static final int TEN = 10;
     
     private final boolean required;
     private final Query context;
-    private final Class<? extends Enum> type;
+    private final Class<? extends Enum<?>> type;
     private final String name;
     private final Set<String> tags;
 
-    private StandardOperationStatistic(Class<? extends Enum> type, String name, String ... tags) {
+    private StandardOperationStatistic(Class<? extends Enum<?>> type, String name, String ... tags) {
         this(false, type, name, tags);
     }
 
-    private StandardOperationStatistic(boolean required, Class<? extends Enum> type, String name, String ... tags) {
+    private StandardOperationStatistic(boolean required, Class<? extends Enum<?>> type, String name, String ... tags) {
         this(required, descendants(), type, name, tags);
     }
 
-    private StandardOperationStatistic(boolean required, Query context, Class<? extends Enum> type, String name, String ... tags) {
+    private StandardOperationStatistic(boolean required, Query context, Class<? extends Enum<?>> type, String name, String ... tags) {
         this.required = required;
         this.context = context;
         this.type = type;
@@ -108,6 +105,7 @@ enum StandardOperationStatistic {
      *
      * @return operation result type
      */
+    @SuppressWarnings("rawtypes")
     final Class<? extends Enum> type() {
         return type;
     }

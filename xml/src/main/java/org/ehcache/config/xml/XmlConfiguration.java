@@ -125,11 +125,12 @@ public class XmlConfiguration implements Configuration {
     parseConfiguration();
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   private void parseConfiguration()
       throws ClassNotFoundException, IOException, SAXException, InstantiationException, IllegalAccessException {
     ConfigurationParser configurationParser = new ConfigurationParser(xml.toExternalForm(), CORE_SCHEMA_URL);
 
-    for (ServiceConfiguration serviceConfiguration : configurationParser.getServiceConfigurations()) {
+    for (ServiceConfiguration<?> serviceConfiguration : configurationParser.getServiceConfigurations()) {
       serviceConfigurations.add(serviceConfiguration);
     }
 
@@ -184,7 +185,7 @@ public class XmlConfiguration implements Configuration {
       final OnHeapStoreServiceConfig onHeapStoreServiceConfig = new OnHeapStoreServiceConfig();
       onHeapStoreServiceConfig.storeByValue(cacheDefinition.storeByValueOnHeap());
       builder.addServiceConfig(onHeapStoreServiceConfig);
-      final CacheConfiguration config = builder.buildConfig(keyType, valueType, evictionVeto, evictionPrioritizer);
+      final CacheConfiguration<?, ?> config = builder.buildConfig(keyType, valueType, evictionVeto, evictionPrioritizer);
       cacheConfigurations.put(alias, config);
     }
 
@@ -199,7 +200,8 @@ public class XmlConfiguration implements Configuration {
     return klazz.asSubclass(type).newInstance();
   }
 
-  private static <T> T getInstanceOfName(String name, ClassLoader classLoader, Class<T> type, Class<? extends Enum> shortcutValues) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+  @SuppressWarnings("unchecked")
+  private static <T> T getInstanceOfName(String name, ClassLoader classLoader, Class<T> type, @SuppressWarnings("rawtypes") Class<? extends Enum> shortcutValues) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
     if (name == null) {
       return null;
     }

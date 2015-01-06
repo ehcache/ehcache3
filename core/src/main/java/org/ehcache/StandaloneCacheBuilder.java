@@ -73,7 +73,12 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     
     final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoader, cacheWriter, cacheEventNotificationService, statisticsExecutor);
 
-    return (T) ehcache;
+    return cast(ehcache);
+  }
+  
+  @SuppressWarnings("unchecked")
+  T cast(Ehcache<K, V> ehcache) {
+    return (T)ehcache;
   }
 
   public final T build() {
@@ -136,7 +141,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     return this;
   }
 
-  public final StandaloneCacheBuilder<K, V, T> withCacheEvents(CacheEventNotificationService cacheEventNotificationService) {
+  public final StandaloneCacheBuilder<K, V, T> withCacheEvents(CacheEventNotificationService<K, V> cacheEventNotificationService) {
     this.cacheEventNotificationService = cacheEventNotificationService;
     return this;
   }
