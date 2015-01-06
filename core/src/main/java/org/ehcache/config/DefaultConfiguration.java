@@ -18,9 +18,12 @@ package org.ehcache.config;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.util.ClassLoading;
 
 import static java.util.Collections.*;
 
@@ -32,7 +35,11 @@ public final class DefaultConfiguration implements Configuration {
   private final Map<String,CacheConfiguration<?, ?>> caches;
   private final Collection<ServiceConfiguration<?>> services;
   private final ClassLoader classLoader;
-
+  
+  public DefaultConfiguration() {
+    this(emptyCacheMap(), ClassLoading.getDefaultClassLoader());
+  }
+  
   public DefaultConfiguration(Map<String, CacheConfiguration<?, ?>> caches, ClassLoader classLoader, ServiceConfiguration<?>... services) {
     this.services = unmodifiableCollection(Arrays.asList(services));
     this.caches = unmodifiableMap(new HashMap<String,CacheConfiguration<?, ?>>(caches));
@@ -52,5 +59,10 @@ public final class DefaultConfiguration implements Configuration {
   @Override
   public ClassLoader getClassLoader() {
     return classLoader;
-  }  
+  }
+
+  private static Map<String, CacheConfiguration<?, ?>> emptyCacheMap() {
+    return Collections.emptyMap();
+  }
+  
 }

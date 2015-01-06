@@ -39,6 +39,7 @@ import org.ehcache.Ehcache;
 import org.ehcache.EhcacheHackAccessor;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.loader.CacheLoader;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -61,13 +62,12 @@ class Eh107CacheManager implements CacheManager {
   private final Properties props;
   private final Eh107CacheLoaderFactory cacheLoaderFactory;
   private final Eh107CacheWriterFactory cacheWriterFactory;
-  private final org.ehcache.config.xml.XmlConfiguration ehXmlConfig;
   private final Jsr107Service jsr107Service;
+  private final org.ehcache.config.Configuration ehConfig;
 
   Eh107CacheManager(EhcacheCachingProvider cachingProvider, org.ehcache.CacheManager ehCacheManager, Properties props,
       ClassLoader classLoader, URI uri, Eh107CacheLoaderFactory cacheLoaderFactory,
-      Eh107CacheWriterFactory cacheWriterFactory, org.ehcache.config.xml.XmlConfiguration ehXmlConfig,
-      Jsr107Service jsr107Service) {
+      Eh107CacheWriterFactory cacheWriterFactory, org.ehcache.config.Configuration ehConfig, Jsr107Service jsr107Service) {
     this.cachingProvider = cachingProvider;
     this.ehCacheManager = ehCacheManager;
     this.props = props;
@@ -75,14 +75,14 @@ class Eh107CacheManager implements CacheManager {
     this.uri = uri;
     this.cacheLoaderFactory = cacheLoaderFactory;
     this.cacheWriterFactory = cacheWriterFactory;
-    this.ehXmlConfig = ehXmlConfig;
+    this.ehConfig = ehConfig;
     this.jsr107Service = jsr107Service;
 
     loadExistingEhcaches();
   }
 
   private void loadExistingEhcaches() {
-    for (Map.Entry<String, CacheConfiguration<?, ?>> entry : ehXmlConfig.getCacheConfigurations().entrySet()) {
+    for (Map.Entry<String, CacheConfiguration<?, ?>> entry : ehConfig.getCacheConfigurations().entrySet()) {
       String name = entry.getKey();
       CacheConfiguration<?, ?> config = entry.getValue();
       caches.put(name, wrapEhcacheCache(name, config));
@@ -196,8 +196,10 @@ class Eh107CacheManager implements CacheManager {
 
     String cacheTemplate = getCacheTemplateName(cacheName);
     if (cacheTemplate != null) {
-      builder = ehXmlConfig.newCacheConfigurationBuilderFromTemplate(cacheTemplate, jsr107Config.getKeyType(),
-          jsr107Config.getValueType());
+      if (ehConfig instanceof XmlConfiguration) {
+        builder = ((XmlConfiguration) ehConfig).newCacheConfigurationBuilderFromTemplate(cacheTemplate,
+            jsr107Config.getKeyType(), jsr107Config.getValueType());
+      }
     }
 
     if (builder == null) {
