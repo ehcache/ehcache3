@@ -39,7 +39,7 @@ import org.ehcache.util.ClassLoading;
  */
 public class EhcacheCachingProvider implements CachingProvider {
 
-  private static final String DEFAULT_URI_STRING = "ehcache://default";
+  private static final String DEFAULT_URI_STRING = "urn:X-ehcache:jsr107-default-config";
 
   private static final URI URI_DEFAULT;
 
