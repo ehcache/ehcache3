@@ -24,18 +24,26 @@ import org.ehcache.spi.writer.CacheWriter;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.hamcrest.Matchers;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.Formatter;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import static org.ehcache.EhcacheBasicBulkUtil.*;
 
@@ -782,6 +790,9 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+
+    this.dumpResults(fakeStore, originalStoreContent, fakeWriter, originalWriterContent, contentUpdates, expectedFailures,
+        expectedSuccesses, bcweSuccesses, bcweFailures);
   }
 
   /**
@@ -840,6 +851,9 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+
+    this.dumpResults(fakeStore, originalStoreContent, fakeWriter, originalWriterContent, contentUpdates, expectedFailures,
+        expectedSuccesses, bcweSuccesses, bcweFailures);
   }
 
   /**
@@ -1336,6 +1350,9 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+
+    this.dumpResults(fakeStore, originalStoreContent, fakeWriter, originalWriterContent, contentUpdates, expectedFailures,
+        expectedSuccesses, bcweSuccesses, bcweFailures);
   }
 
   /**
@@ -1394,6 +1411,9 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+
+    this.dumpResults(fakeStore, originalStoreContent, fakeWriter, originalWriterContent, contentUpdates, expectedFailures,
+        expectedSuccesses, bcweSuccesses, bcweFailures);
   }
 
   /**
@@ -1891,6 +1911,9 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+
+    this.dumpResults(fakeStore, originalStoreContent, fakeWriter, originalWriterContent, contentUpdates, expectedFailures,
+        expectedSuccesses, bcweSuccesses, bcweFailures);
   }
 
   /**
@@ -1950,6 +1973,9 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+
+    this.dumpResults(fakeStore, originalStoreContent, fakeWriter, originalWriterContent, contentUpdates, expectedFailures,
+        expectedSuccesses, bcweSuccesses, bcweFailures);
   }
 
   /**
@@ -2152,5 +2178,74 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       bulkComputeArgs.addAll(set);
     }
     return bulkComputeArgs;
+  }
+
+  /**
+   * Indicates whether or not {@link #dumpResults} should emit output.
+   */
+  private static final boolean debugResults;
+  static {
+    debugResults = Boolean.parseBoolean(System.getProperty(EhcacheBasicPutAllTest.class.getName() + ".debug", "false"));
+  }
+
+  @Rule
+  public TestName name = new TestName();
+
+  /**
+   * Writes a dump of test object details to {@code System.out} if, and only if, {@link #debugResults} is enabled.
+   *
+   * @param fakeStore the {@link org.ehcache.EhcacheBasicCrudBase.FakeStore FakeStore} instance used in the test
+   * @param originalStoreContent  the original content provided to {@code fakeStore}
+   * @param fakeWriter the {@link org.ehcache.EhcacheBasicCrudBase.FakeCacheWriter FakeCacheWriter} instances used in the test
+   * @param originalWriterContent the original content provided to {@code fakeWriter}
+   * @param contentUpdates the {@code Map} provided to the {@link org.ehcache.Ehcache#putAll(java.util.Map)} call in the test
+   * @param expectedFailures the {@code Set} of failing keys expected for the test
+   * @param expectedSuccesses the {@code Set} of successful keys expected for the test
+   * @param bcweSuccesses the {@code Set} from {@link org.ehcache.exceptions.BulkCacheWriterException#getSuccesses()}
+   * @param bcweFailures the {@code Map} from {@link org.ehcache.exceptions.BulkCacheWriterException#getFailures()}
+   */
+  private void dumpResults(
+      final FakeStore fakeStore,
+      final Map<String, String> originalStoreContent,
+      final FakeCacheWriter fakeWriter,
+      final Map<String, String> originalWriterContent,
+      final Map<String, String> contentUpdates,
+      final Set<String> expectedFailures,
+      final Map<String, String> expectedSuccesses,
+      final Set<String> bcweSuccesses,
+      final Map<String, Exception> bcweFailures) {
+
+    if (!debugResults) {
+      return;
+    }
+
+    final StringBuilder sb = new StringBuilder(2048);
+    final Formatter fmt = new Formatter(sb);
+    fmt.format("Dumping results of %s:%n", this.name.getMethodName());
+
+    fmt.format("    Content Update Entries: %s%n", sortMap(contentUpdates));
+    fmt.format("    Original Store Entries : %s%n", sortMap(originalStoreContent));
+    fmt.format("    Final Store Entries    : %s%n", sortMap(fakeStore.getEntryMap()));
+    fmt.format("    Original Writer Entries: %s%n", sortMap(originalWriterContent));
+    fmt.format("    Final Writer Entries   : %s%n", sortMap(fakeWriter.getEntryMap()));
+    fmt.format("    Expected Successes: %s%n", sort(expectedSuccesses.keySet()));
+    fmt.format("    Declared Successes: %s%n", sort(bcweSuccesses));
+    fmt.format("    Expected Failures: %s%n", sort(expectedFailures));
+    fmt.format("    Declared Failures: %s%n", sort(bcweFailures.keySet()));
+
+    System.err.flush();
+    System.out.append(sb);
+    System.out.flush();
+  }
+
+  private static List<String> sort(final Collection<String> input) {
+    final String[] sortArray = new String[input.size()];
+    input.toArray(sortArray);
+    Arrays.sort(sortArray);
+    return Arrays.asList(sortArray);
+  }
+
+  private static SortedMap<String, String> sortMap(final Map<String, String> input) {
+    return new TreeMap<String, String>(input);
   }
 }
