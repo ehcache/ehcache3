@@ -24,8 +24,6 @@ import org.ehcache.exceptions.BulkCacheWriterException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoaderException;
 import org.ehcache.exceptions.CacheWriterException;
-import org.ehcache.spi.loader.CacheLoader;
-import org.ehcache.spi.writer.CacheWriter;
 
 /**
  * A strategy for providing cache resilience in the face of failure.

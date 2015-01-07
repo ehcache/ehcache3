@@ -26,12 +26,9 @@
     <ehcache:eviction-prioritizer>LFU</ehcache:eviction-prioritizer>
 
     <ehcache:integration>
-        <ehcache:loader>
-          <ehcache:class>com.pany.ehcache.integration.ProductCacheLoader</ehcache:class>
-      </ehcache:loader>
-      <ehcache:writer>
-        <ehcache:class>com.pany.ehcache.integration.ProductCacheWriter</ehcache:class>
-      </ehcache:writer>
+      <ehcache:loaderwriter>
+        <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>
+      </ehcache:loaderwriter>
     </ehcache:integration>
   </ehcache:cache>
 
@@ -43,9 +40,9 @@
     <ehcache:capacity>200</ehcache:capacity>
 
     <ehcache:integration>
-        <ehcache:loader>
-          <ehcache:class>com.pany.ehcache.integration.ProductCacheLoader</ehcache:class>
-      </ehcache:loader>
+        <ehcache:loaderwriter>
+          <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>
+      </ehcache:loaderwriter>
     </ehcache:integration>
   </ehcache:cache-template>
 

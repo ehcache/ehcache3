@@ -18,16 +18,16 @@ package org.ehcache.jsr107;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.DefaultCacheLoaderWriterFactory;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.writer.CacheWriter;
-import org.ehcache.spi.writer.DefaultCacheWriterFactory;
 
 /**
  * @author teck
  */
-class Eh107CacheWriterFactory extends DefaultCacheWriterFactory {
+class Eh107CacheLoaderWriterFactory extends DefaultCacheLoaderWriterFactory {
 
-  private final ConcurrentMap<String, CacheWriter<?, ?>> cacheWriters = new ConcurrentHashMap<String, CacheWriter<?, ?>>();
+  private final ConcurrentMap<String, CacheLoaderWriter<?, ?>> cacheLoaderWriters = new ConcurrentHashMap<String, CacheLoaderWriter<?, ?>>();
 
   @Override
   public void start(ServiceConfiguration<?> config) {
@@ -41,25 +41,25 @@ class Eh107CacheWriterFactory extends DefaultCacheWriterFactory {
 
   @SuppressWarnings("unchecked")
   @Override
-  public <K, V> org.ehcache.spi.writer.CacheWriter<? super K, ? super V> createCacheWriter(String alias,
+  public <K, V> CacheLoaderWriter<? super K, V> createCacheLoaderWriter(String alias,
       org.ehcache.config.CacheConfiguration<K, V> cacheConfiguration) {
-    CacheWriter<?, ?> cacheWriter = cacheWriters.remove(alias);
-    if (cacheWriter == null) {
-      return super.createCacheWriter(alias, cacheConfiguration);
+    CacheLoaderWriter<?, ?> cacheLoaderWriter = cacheLoaderWriters.remove(alias);
+    if (cacheLoaderWriter == null) {
+      return super.createCacheLoaderWriter(alias, cacheConfiguration);
     }
 
-    return (CacheWriter<K, V>) cacheWriter;
+    return (CacheLoaderWriter<? super K, V>)cacheLoaderWriter;
   }
 
   @Override
-  public void releaseCacheWriter(org.ehcache.spi.writer.CacheWriter<?, ?> cacheWriter) {
+  public void releaseCacheLoaderWriter(CacheLoaderWriter<?, ?> cacheLoader) {
     //
   }
 
-  <K, V> void registerJsr107Loader(String alias, CacheWriter<? super K, ? super V> cacheWriter) {
-    CacheWriter<?, ?> prev = cacheWriters.putIfAbsent(alias, cacheWriter);
+  <K, V> void registerJsr107Loader(String alias, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+    CacheLoaderWriter<?, ?> prev = cacheLoaderWriters.putIfAbsent(alias, cacheLoaderWriter);
     if (prev != null) {
-      throw new IllegalStateException("writer already registered for [" + alias + "]");
+      throw new IllegalStateException("loader already registered for [" + alias + "]");
     }
   }
 

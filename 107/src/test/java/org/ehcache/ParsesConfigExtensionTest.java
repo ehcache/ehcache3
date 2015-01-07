@@ -32,7 +32,7 @@ import org.xml.sax.SAXException;
 
 import com.pany.domain.Customer;
 import com.pany.domain.Product;
-import com.pany.ehcache.integration.ProductCacheWriter;
+import com.pany.ehcache.integration.ProductCacheLoaderWriter;
 
 import java.io.IOException;
 import java.util.List;
@@ -114,7 +114,7 @@ public class ParsesConfigExtensionTest {
       {
         final Product value = new Product(42L);
         productCache.put(42L, value);
-        final List<Product> products = ProductCacheWriter.written.get(value.getId());
+        final List<Product> products = ProductCacheLoaderWriter.written.get(value.getId());
         assertThat(products, notNullValue());
         assertThat(products.get(0), sameInstance(value));
       }

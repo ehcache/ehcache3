@@ -23,7 +23,7 @@ import java.util.Enumeration;
 
 import org.ehcache.Ehcache;
 import org.ehcache.spi.cache.CacheProvider;
-import org.ehcache.spi.loader.CacheLoaderFactory;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.CoreMatchers;
@@ -113,7 +113,7 @@ public class ServiceLocatorTest {
   public void testAttemptsToStopAllServicesOnCloseFailure() {
     Service s1 = mock(CacheProvider.class);
     Service s2 = mock(FooProvider.class);
-    Service s3 = mock(CacheLoaderFactory.class);
+    Service s3 = mock(CacheLoaderWriterFactory.class);
 
     ServiceLocator locator = new ServiceLocator(s1, s2, s3);
     try {

@@ -30,14 +30,10 @@ import org.ehcache.events.DisabledCacheEventNotificationService;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.loader.CacheLoader;
-import org.ehcache.spi.loader.CacheLoaderFactory;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ThreadPoolsService;
-import org.ehcache.spi.writer.CacheWriter;
-import org.ehcache.spi.writer.CacheWriterFactory;
 import org.ehcache.util.ClassLoading;
 
 import java.util.ArrayDeque;
@@ -50,6 +46,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
 
 
 /**
@@ -111,13 +109,9 @@ public class EhcacheManager implements PersistentCacheManager {
 
   void closeEhcache(final String alias, final Ehcache<?, ?> ehcache) {
     ehcache.close();
-    final CacheLoader<?, ?> cacheLoader = ehcache.getCacheLoader();
-    if (cacheLoader != null) {
-      serviceLocator.findService(CacheLoaderFactory.class).releaseCacheLoader(cacheLoader);
-    }
-    final CacheWriter<?, ?> cacheWriter = ehcache.getCacheWriter();
-    if (cacheWriter != null) {
-      serviceLocator.findService(CacheWriterFactory.class).releaseCacheWriter(cacheWriter);
+    final CacheLoaderWriter<?, ?> cacheLoaderWriter = ehcache.getCacheLoaderWriter();
+    if (cacheLoaderWriter != null) {
+      serviceLocator.findService(CacheLoaderWriterFactory.class).releaseCacheLoaderWriter(cacheLoaderWriter);
     }
     
     ehcache.getRuntimeConfiguration().releaseAllEventListeners(serviceLocator.findService(CacheEventListenerFactory.class));
@@ -176,15 +170,10 @@ public class EhcacheManager implements PersistentCacheManager {
   <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
                                         final Class<K> keyType, final Class<V> valueType) {
     final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
-    final CacheLoaderFactory cacheLoaderFactory = serviceLocator.findService(CacheLoaderFactory.class);
-    CacheLoader<? super K, ? extends V> loader = null;
-    if(cacheLoaderFactory != null) {
-      loader = cacheLoaderFactory.createCacheLoader(alias, config);
-    }
-    final CacheWriterFactory cacheWriterFactory = serviceLocator.findService(CacheWriterFactory.class);
-    CacheWriter<? super K, ? super V> writer = null;
-    if (cacheWriterFactory != null) {
-      writer = cacheWriterFactory.createCacheWriter(alias, config);
+    final CacheLoaderWriterFactory cacheLoaderWriterFactory = serviceLocator.findService(CacheLoaderWriterFactory.class);
+    CacheLoaderWriter<? super K, V> loaderWriter = null;
+    if(cacheLoaderWriterFactory != null) {
+      loaderWriter = cacheLoaderWriterFactory.createCacheLoaderWriter(alias, config);
     }
 
     SerializationProvider serializationProvider = config.getSerializationProvider();
@@ -228,7 +217,7 @@ public class EhcacheManager implements PersistentCacheManager {
     );
 
     Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(adjustedConfig), serviceConfigs);
-    return new Ehcache<K, V>(adjustedConfig, store, loader, writer, evtService, statisticsExecutor);
+    return new Ehcache<K, V>(adjustedConfig, store, loaderWriter, evtService, statisticsExecutor);
   }
 
   public void registerListener(CacheManagerListener listener) {

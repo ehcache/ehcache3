@@ -16,16 +16,30 @@
 
 package com.pany.ehcache.integration;
 
-import org.ehcache.spi.writer.CacheWriter;
-
+import java.util.HashMap;
 import java.util.Map;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
  * @author Alex Snaps
  */
-public class TestCacheWriter implements CacheWriter<Number, String> {
+public class TestCacheLoaderWriter implements CacheLoaderWriter<Number, String> {
 
   public static Number lastWrittenKey;
+
+  @Override
+  public String load(final Number key) throws Exception {
+    return key.toString();
+  }
+
+  @Override
+  public Map<Number, String> loadAll(final Iterable<? extends Number> keys) throws Exception {
+    final Map<Number, String> loaded = new HashMap<Number, String>();
+    for (Number key : keys) {
+      loaded.put(key, load(key));
+    }
+    return loaded;
+  }
 
   @Override
   public void write(final Number key, final String value) throws Exception {

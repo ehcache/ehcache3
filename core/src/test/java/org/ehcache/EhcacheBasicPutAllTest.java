@@ -20,7 +20,6 @@ import org.ehcache.exceptions.BulkCacheWriterException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.writer.CacheWriter;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.hamcrest.Matchers;
 import org.junit.Ignore;
@@ -46,6 +45,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import static org.ehcache.EhcacheBasicBulkUtil.*;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -85,7 +85,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
 
   @Mock
-  protected CacheWriter<String, String> cacheWriter;
+  protected CacheLoaderWriter<String, String> cacheLoaderWriter;
 
   /**
    * A Mockito {@code ArgumentCaptor} for the {@code Set} argument to the
@@ -238,15 +238,15 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalStoreContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalStoreContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
     ehcache.putAll(Collections.<String, String>emptyMap());
 
     verify(this.store).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
-    assertThat(fakeWriter.getEntryMap(), equalTo(originalStoreContent));
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(originalStoreContent));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
@@ -269,15 +269,15 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalStoreContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalStoreContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
     ehcache.putAll(Collections.<String, String>emptyMap());
 
     verify(this.store).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
     // ResilienceStrategy invoked; no assertions about Store content
-    assertThat(fakeWriter.getEntryMap(), equalTo(originalStoreContent));
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(originalStoreContent));
     verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(Collections.<String, String>emptyMap()), any(CacheAccessException.class));
 
@@ -289,8 +289,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>empty request map</li>
    *    <li>populated {@code Store} (keys not relevant)</li>
-   *    <li>populated {@code CacheWriter} (keys not relevant)</li>
-   *    <li>all {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} (keys not relevant)</li>
+   *    <li>all {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -299,11 +299,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalStoreContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("writeAll failed")).when(this.cacheWriter).writeAll(getAnyEntryIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalStoreContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
     ehcache.putAll(Collections.<String, String>emptyMap());
 
     verify(this.store).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
@@ -319,8 +319,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>empty request map</li>
    *    <li>populated {@code Store} (keys not relevant)</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} (keys not relevant)</li>
-   *    <li>all {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} (keys not relevant)</li>
+   *    <li>all {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -331,11 +331,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalStoreContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("writeAll failed")).when(this.cacheWriter).writeAll(getAnyEntryIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalStoreContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
     ehcache.putAll(Collections.<String, String>emptyMap());
 
     verify(this.store).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
@@ -351,7 +351,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>no {@code CacheWriter}</li>
+   *    <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
@@ -379,7 +379,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>no {@code CacheWriter}</li>
+   *    <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
@@ -411,7 +411,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>no {@code CacheWriter}</li>
+   *    <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
@@ -440,8 +440,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>no {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>no {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -451,10 +451,10 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     ehcache.putAll(contentUpdates);
@@ -462,7 +462,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), equalTo(contentUpdates.keySet()));
     assertThat(fakeStore.getEntryMap(), equalTo(union(originalStoreContent, contentUpdates)));
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
@@ -474,8 +474,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>no {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>no {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -487,20 +487,20 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     ehcache.putAll(contentUpdates);
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
@@ -513,8 +513,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>no {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>no {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -524,23 +524,23 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     ehcache.putAll(contentUpdates);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
@@ -552,8 +552,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>some {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -563,10 +563,10 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_C);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     final Set<String> expectedFailures = KEY_SET_C;
@@ -583,7 +583,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), equalTo(contentUpdates.keySet()));
     assertThat(fakeStore.getEntryMap(), equalTo(union(originalStoreContent, expectedSuccesses)));
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
@@ -595,8 +595,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>some {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -608,10 +608,10 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_C);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     final Set<String> expectedFailures = KEY_SET_C;
@@ -623,13 +623,13 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
 
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
 
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
@@ -645,8 +645,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>some {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -656,10 +656,10 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_C);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     final Set<String> expectedFailures = KEY_SET_C;
@@ -671,13 +671,13 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
 
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
 
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
@@ -692,9 +692,9 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>some {@link CacheWriter#writeAll(Iterable)} calls fail</li>
-   *    <li>at least one {@link CacheWriter#writeAll(Iterable)} call aborts</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>at least one {@link CacheLoaderWriter#writeAll(Iterable)} call aborts</li>
    * </ul>
    */
   @Test
@@ -704,11 +704,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_C);
-    fakeWriter.setCompleteFailureKey("keyC4");
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
+    fakeLoaderWriter.setCompleteFailureKey("keyC4");
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     final Set<String> expectedFailures = KEY_SET_C;
@@ -725,8 +725,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     assertThat(fakeStore.getEntryMap(), equalTo(union(originalStoreContent, expectedSuccesses)));
-    verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
+    verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
@@ -738,9 +738,9 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>some {@link CacheWriter#writeAll(Iterable)} calls fail</li>
-   *    <li>at least one {@link CacheWriter#writeAll(Iterable)} call aborts</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>at least one {@link CacheLoaderWriter#writeAll(Iterable)} call aborts</li>
    * </ul>
    */
   @Test
@@ -752,11 +752,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_C);
-    fakeWriter.setCompleteFailureKey("keyC4");
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
+    fakeLoaderWriter.setCompleteFailureKey("keyC4");
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     final Set<String> expectedFailures = KEY_SET_C;
@@ -768,11 +768,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -786,12 +786,12 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses.keySet())));
     assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
     // TODO: Confirm correctness - BulkCacheWriterException miscategorizes success as failure  (Issue #238)
-    assertThat(copyWithout(fakeWriter.getEntryMap(), bcweFailures.keySet()),
+    assertThat(copyWithout(fakeLoaderWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
 
-    this.dumpResults(fakeStore, originalStoreContent, fakeWriter, originalWriterContent, contentUpdates, expectedFailures,
+    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
         expectedSuccesses, bcweSuccesses, bcweFailures);
   }
 
@@ -801,9 +801,9 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>some {@link CacheWriter#writeAll(Iterable)} calls fail</li>
-   *    <li>at least one {@link CacheWriter#writeAll(Iterable)} call aborts</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>at least one {@link CacheLoaderWriter#writeAll(Iterable)} call aborts</li>
    * </ul>
    */
   @Test
@@ -813,11 +813,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_C);
-    fakeWriter.setCompleteFailureKey("keyC4");
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
+    fakeLoaderWriter.setCompleteFailureKey("keyC4");
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     final Set<String> expectedFailures = KEY_SET_C;
@@ -829,11 +829,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -847,12 +847,12 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses.keySet())));
     assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
     // TODO: Confirm correctness - BulkCacheWriterException miscategorizes success as failure  (Issue #238)
-    assertThat(copyWithout(fakeWriter.getEntryMap(), bcweFailures.keySet()),
+    assertThat(copyWithout(fakeLoaderWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
 
-    this.dumpResults(fakeStore, originalStoreContent, fakeWriter, originalWriterContent, contentUpdates, expectedFailures,
+    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
         expectedSuccesses, bcweSuccesses, bcweFailures);
   }
 
@@ -861,8 +861,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>all {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>all {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Ignore("Issue #239")
@@ -873,11 +873,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("writeAll failed")).when(this.cacheWriter).writeAll(getAnyEntryIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     try {
@@ -892,7 +892,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates.keySet())));   // TODO: Confirm correctness (Issue #239)
-    verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
@@ -904,8 +904,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>all {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>all {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -917,11 +917,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("writeAll failed")).when(this.cacheWriter).writeAll(getAnyEntryIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     try {
@@ -931,12 +931,12 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(),
         getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -953,8 +953,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>all {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>all {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -964,11 +964,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("writeAll failed")).when(this.cacheWriter).writeAll(getAnyEntryIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     try {
@@ -978,12 +978,12 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(),
         getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -999,8 +999,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>no {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>no {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1010,10 +1010,10 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     ehcache.putAll(contentUpdates);
@@ -1021,8 +1021,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), equalTo(contentUpdates.keySet()));
     assertThat(fakeStore.getEntryMap(), equalTo(union(originalStoreContent, contentUpdates)));
-    verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
+    verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
@@ -1034,8 +1034,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>no {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>no {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1047,21 +1047,21 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     ehcache.putAll(contentUpdates);
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
@@ -1074,8 +1074,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>no {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>no {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1085,21 +1085,21 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     ehcache.putAll(contentUpdates);
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
@@ -1111,8 +1111,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>some {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1122,10 +1122,10 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1142,8 +1142,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     assertThat(fakeStore.getEntryMap(), equalTo(union(originalStoreContent, expectedSuccesses)));
-    verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
+    verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
@@ -1155,8 +1155,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>some {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1168,10 +1168,10 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1183,13 +1183,13 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1205,8 +1205,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>some {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1216,10 +1216,10 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1231,13 +1231,13 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1252,9 +1252,9 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>some {@link CacheWriter#writeAll(Iterable)} calls fail</li>
-   *    <li>at least one {@link CacheWriter#writeAll(Iterable)} call aborts</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>at least one {@link CacheLoaderWriter#writeAll(Iterable)} call aborts</li>
    * </ul>
    */
   @Test
@@ -1264,11 +1264,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    fakeWriter.setCompleteFailureKey("keyC4");
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    fakeLoaderWriter.setCompleteFailureKey("keyC4");
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1285,8 +1285,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     assertThat(fakeStore.getEntryMap(), equalTo(union(originalStoreContent, expectedSuccesses)));
-    verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
+    verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
@@ -1298,9 +1298,9 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>some {@link CacheWriter#writeAll(Iterable)} calls fail</li>
-   *    <li>at least one {@link CacheWriter#writeAll(Iterable)} call aborts</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>at least one {@link CacheLoaderWriter#writeAll(Iterable)} call aborts</li>
    * </ul>
    */
   @Test
@@ -1312,11 +1312,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    fakeWriter.setCompleteFailureKey("keyC4");
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    fakeLoaderWriter.setCompleteFailureKey("keyC4");
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1328,11 +1328,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1346,12 +1346,12 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses.keySet())));
     assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
     // TODO: Confirm correctness - BulkCacheWriterException miscategorizes success as failure  (Issue #238)
-    assertThat(copyWithout(fakeWriter.getEntryMap(), bcweFailures.keySet()),
+    assertThat(copyWithout(fakeLoaderWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
 
-    this.dumpResults(fakeStore, originalStoreContent, fakeWriter, originalWriterContent, contentUpdates, expectedFailures,
+    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
         expectedSuccesses, bcweSuccesses, bcweFailures);
   }
 
@@ -1361,9 +1361,9 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>some {@link CacheWriter#writeAll(Iterable)} calls fail</li>
-   *    <li>at least one {@link CacheWriter#writeAll(Iterable)} call aborts</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>at least one {@link CacheLoaderWriter#writeAll(Iterable)} call aborts</li>
    * </ul>
    */
   @Test
@@ -1373,11 +1373,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    fakeWriter.setCompleteFailureKey("keyC4");
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    fakeLoaderWriter.setCompleteFailureKey("keyC4");
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1389,11 +1389,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1407,12 +1407,12 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses.keySet())));
     assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
     // TODO: Confirm correctness - BulkCacheWriterException miscategorizes success as failure  (Issue #238)
-    assertThat(copyWithout(fakeWriter.getEntryMap(), bcweFailures.keySet()),
+    assertThat(copyWithout(fakeLoaderWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
 
-    this.dumpResults(fakeStore, originalStoreContent, fakeWriter, originalWriterContent, contentUpdates, expectedFailures,
+    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
         expectedSuccesses, bcweSuccesses, bcweFailures);
   }
 
@@ -1421,8 +1421,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>all {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>all {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1432,11 +1432,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("writeAll failed")).when(this.cacheWriter).writeAll(getAnyEntryIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     try {
@@ -1451,7 +1451,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
-    verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
@@ -1463,8 +1463,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>all {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>all {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1476,11 +1476,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("writeAll failed")).when(this.cacheWriter).writeAll(getAnyEntryIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     try {
@@ -1490,12 +1490,12 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1512,8 +1512,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>all {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>all {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1523,11 +1523,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("writeAll failed")).when(this.cacheWriter).writeAll(getAnyEntryIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     try {
@@ -1537,12 +1537,12 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1558,8 +1558,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>no {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>no {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1569,10 +1569,10 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C));
     ehcache.putAll(contentUpdates);
@@ -1580,8 +1580,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), equalTo(contentUpdates.keySet()));
     assertThat(fakeStore.getEntryMap(), equalTo(union(originalStoreContent, contentUpdates)));
-    verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
+    verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
@@ -1593,8 +1593,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>no {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>no {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1606,21 +1606,21 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C));
     ehcache.putAll(contentUpdates);
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
@@ -1633,8 +1633,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>no {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>no {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1644,21 +1644,21 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C));
     ehcache.putAll(contentUpdates);
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
@@ -1670,8 +1670,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>some {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1681,10 +1681,10 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1701,8 +1701,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     assertThat(fakeStore.getEntryMap(), equalTo(union(originalStoreContent, expectedSuccesses)));
-    verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
+    verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
@@ -1714,8 +1714,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>some {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1727,10 +1727,10 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1742,13 +1742,13 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1764,8 +1764,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>some {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1775,10 +1775,10 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1790,13 +1790,13 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1811,9 +1811,9 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>some {@link CacheWriter#writeAll(Iterable)} calls fail</li>
-   *    <li>at least one {@link CacheWriter#writeAll(Iterable)} call aborts</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>at least one {@link CacheLoaderWriter#writeAll(Iterable)} call aborts</li>
    * </ul>
    */
   @Test
@@ -1823,11 +1823,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    fakeWriter.setCompleteFailureKey("keyC4");
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    fakeLoaderWriter.setCompleteFailureKey("keyC4");
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1845,8 +1845,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     assertThat(fakeStore.getEntryMap(), equalTo(union(originalStoreContent, expectedSuccesses)));
-    verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
+    verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, expectedSuccesses)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
@@ -1858,9 +1858,9 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>some {@link CacheWriter#writeAll(Iterable)} calls fail</li>
-   *    <li>at least one {@link CacheWriter#writeAll(Iterable)} call aborts</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>at least one {@link CacheLoaderWriter#writeAll(Iterable)} call aborts</li>
    * </ul>
    */
   @Test
@@ -1872,11 +1872,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    fakeWriter.setCompleteFailureKey("keyC4");
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    fakeLoaderWriter.setCompleteFailureKey("keyC4");
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1888,12 +1888,12 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1907,12 +1907,12 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses.keySet())));
     assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
     // TODO: Confirm correctness - BulkCacheWriterException miscategorizes success as failure  (Issue #238)
-    assertThat(copyWithout(fakeWriter.getEntryMap(), bcweFailures.keySet()),
+    assertThat(copyWithout(fakeLoaderWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
 
-    this.dumpResults(fakeStore, originalStoreContent, fakeWriter, originalWriterContent, contentUpdates, expectedFailures,
+    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
         expectedSuccesses, bcweSuccesses, bcweFailures);
   }
 
@@ -1922,9 +1922,9 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>some {@link CacheWriter#writeAll(Iterable)} calls fail</li>
-   *    <li>at least one {@link CacheWriter#writeAll(Iterable)} call aborts</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>at least one {@link CacheLoaderWriter#writeAll(Iterable)} call aborts</li>
    * </ul>
    */
   @Test
@@ -1934,11 +1934,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    fakeWriter.setCompleteFailureKey("keyC4");
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    fakeLoaderWriter.setCompleteFailureKey("keyC4");
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1950,12 +1950,12 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1969,12 +1969,12 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses.keySet())));
     assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
     // TODO: Confirm correctness - BulkCacheWriterException miscategorizes success as failure  (Issue #238)
-    assertThat(copyWithout(fakeWriter.getEntryMap(), bcweFailures.keySet()),
+    assertThat(copyWithout(fakeLoaderWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
 
-    this.dumpResults(fakeStore, originalStoreContent, fakeWriter, originalWriterContent, contentUpdates, expectedFailures,
+    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
         expectedSuccesses, bcweSuccesses, bcweFailures);
   }
 
@@ -1983,8 +1983,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>all {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>all {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1994,11 +1994,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("writeAll failed")).when(this.cacheWriter).writeAll(getAnyEntryIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
     try {
@@ -2014,7 +2014,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
-    verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
@@ -2026,8 +2026,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>all {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>all {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -2039,11 +2039,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("writeAll failed")).when(this.cacheWriter).writeAll(getAnyEntryIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
     try {
@@ -2053,13 +2053,13 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(originalWriterContent));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(originalWriterContent));
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -2076,8 +2076,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>all {@link CacheWriter#writeAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>all {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -2087,11 +2087,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("writeAll failed")).when(this.cacheWriter).writeAll(getAnyEntryIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
     try {
@@ -2101,13 +2101,13 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).writeAll(getAnyEntryIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(originalWriterContent));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(originalWriterContent));
     ordered.verify(this.spiedResilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -2120,15 +2120,15 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
 
   /**
    * Gets an initialized {@link Ehcache Ehcache} instance using the
-   * {@link org.ehcache.spi.writer.CacheWriter CacheWriter} provided.
+   * {@link CacheLoaderWriter} provided.
    *
-   * @param cacheWriter
-   *    the {@code CacheWriter} to use; may be {@code null}
+   * @param cacheLoaderWriter
+   *    the {@code CacheLoaderWriter} to use; may be {@code null}
    *
    * @return a new {@code Ehcache} instance
    */
-  private Ehcache<String, String> getEhcache(final CacheWriter<String, String> cacheWriter) {
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, null, cacheWriter);
+  private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
+    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter);
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
@@ -2196,8 +2196,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *
    * @param fakeStore the {@link org.ehcache.EhcacheBasicCrudBase.FakeStore FakeStore} instance used in the test
    * @param originalStoreContent  the original content provided to {@code fakeStore}
-   * @param fakeWriter the {@link org.ehcache.EhcacheBasicCrudBase.FakeCacheWriter FakeCacheWriter} instances used in the test
-   * @param originalWriterContent the original content provided to {@code fakeWriter}
+   * @param fakeLoaderWriter the {@link org.ehcache.EhcacheBasicCrudBase.FakeCacheLoaderWriter FakeCacheLoaderWriter} instances used in the test
+   * @param originalWriterContent the original content provided to {@code fakeLoaderWriter}
    * @param contentUpdates the {@code Map} provided to the {@link org.ehcache.Ehcache#putAll(java.util.Map)} call in the test
    * @param expectedFailures the {@code Set} of failing keys expected for the test
    * @param expectedSuccesses the {@code Set} of successful keys expected for the test
@@ -2207,7 +2207,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   private void dumpResults(
       final FakeStore fakeStore,
       final Map<String, String> originalStoreContent,
-      final FakeCacheWriter fakeWriter,
+      final FakeCacheLoaderWriter fakeLoaderWriter,
       final Map<String, String> originalWriterContent,
       final Map<String, String> contentUpdates,
       final Set<String> expectedFailures,
@@ -2227,7 +2227,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     fmt.format("    Original Store Entries : %s%n", sortMap(originalStoreContent));
     fmt.format("    Final Store Entries    : %s%n", sortMap(fakeStore.getEntryMap()));
     fmt.format("    Original Writer Entries: %s%n", sortMap(originalWriterContent));
-    fmt.format("    Final Writer Entries   : %s%n", sortMap(fakeWriter.getEntryMap()));
+    fmt.format("    Final Writer Entries   : %s%n", sortMap(fakeLoaderWriter.getEntryMap()));
     fmt.format("    Expected Successes: %s%n", sort(expectedSuccesses.keySet()));
     fmt.format("    Declared Successes: %s%n", sort(bcweSuccesses));
     fmt.format("    Expected Failures: %s%n", sort(expectedFailures));

@@ -217,27 +217,13 @@ class ConfigurationParser {
           }
 
           @Override
-          public String loader() {
+          public String loaderWriter() {
             String configClass = null;
             for (BaseCacheType source : sources) {
               final CacheIntegration integration = source.getIntegration();
-              final CacheIntegration.Loader loader = integration != null ? integration.getLoader() : null;
-              if(loader != null) {
-                configClass = loader.getClazz();
-                break;
-              }
-            }
-            return configClass;
-          }
-
-          @Override
-          public String writer() {
-            String configClass = null;
-            for (BaseCacheType source : sources) {
-              final CacheIntegration integration = source.getIntegration();
-              final CacheIntegration.Writer writer = integration != null ? integration.getWriter() : null;
-              if(writer != null) {
-                configClass = writer.getClazz();
+              final CacheIntegration.Loaderwriter loaderWriter = integration != null ? integration.getLoaderwriter(): null;
+              if(loaderWriter != null) {
+                configClass = loaderWriter.getClazz();
                 break;
               }
             }
@@ -315,17 +301,10 @@ class ConfigurationParser {
           }
 
           @Override
-          public String loader() {
+          public String loaderWriter() {
             final CacheIntegration integration = cacheTemplate.getIntegration();
-            final CacheIntegration.Loader loader = integration != null ? integration.getLoader() : null;
-            return loader != null ? loader.getClazz() : null;
-          }
-
-          @Override
-          public String writer() {
-            final CacheIntegration integration = cacheTemplate.getIntegration();
-            final CacheIntegration.Writer writer = integration != null ? integration.getWriter() : null;
-            return writer != null ? writer.getClazz() : null;
+            final CacheIntegration.Loaderwriter loaderWriter = integration != null ? integration.getLoaderwriter(): null;
+            return loaderWriter != null ? loaderWriter.getClazz() : null;
           }
 
           @Override
@@ -386,9 +365,7 @@ class ConfigurationParser {
 
     boolean storeByValueOnHeap();
 
-    String loader();
-
-    String writer();
+    String loaderWriter();
 
     Iterable<ServiceConfiguration<?>> serviceConfigs();
 

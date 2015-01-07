@@ -17,14 +17,13 @@
 package org.ehcache;
 
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.spi.loader.CacheLoader;
-import org.ehcache.spi.writer.CacheWriter;
 import org.junit.Test;
 import org.mockito.Mock;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
@@ -46,10 +45,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
 
   @Mock
-  private CacheLoader<String, String> cacheLoader;
-
-  @Mock
-  private CacheWriter<String, String> cacheWriter;
+  private CacheLoaderWriter<String, String> cacheLoaderWriter;
 
   /**
    * Tests {@link org.ehcache.Ehcache#containsKey(Object) Ehcache.containsKey} with a {@code null} key.
@@ -66,8 +62,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     } catch (NullPointerException e) {
       // Expected
     }
-    verifyZeroInteractions(this.cacheLoader);
-    verifyZeroInteractions(this.cacheWriter);
+    verifyZeroInteractions(this.cacheLoaderWriter);
     verifyZeroInteractions(this.spiedResilienceStrategy);
   }
 
@@ -81,8 +76,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     assertFalse(ehcache.containsKey("key"));
-    verifyZeroInteractions(this.cacheLoader);
-    verifyZeroInteractions(this.cacheWriter);
+    verifyZeroInteractions(this.cacheLoaderWriter);
     verifyZeroInteractions(this.spiedResilienceStrategy);
   }
 
@@ -99,8 +93,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.containsKey("key");
-    verifyZeroInteractions(this.cacheLoader);
-    verifyZeroInteractions(this.cacheWriter);
+    verifyZeroInteractions(this.cacheLoaderWriter);
     verify(this.spiedResilienceStrategy).containsKeyFailure(eq("key"), any(CacheAccessException.class));
   }
 
@@ -115,8 +108,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     assertTrue(ehcache.containsKey("keyA"));
-    verifyZeroInteractions(this.cacheLoader);
-    verifyZeroInteractions(this.cacheWriter);
+    verifyZeroInteractions(this.cacheLoaderWriter);
     verifyZeroInteractions(this.spiedResilienceStrategy);
   }
 
@@ -133,8 +125,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.containsKey("keyA");
-    verifyZeroInteractions(this.cacheLoader);
-    verifyZeroInteractions(this.cacheWriter);
+    verifyZeroInteractions(this.cacheLoaderWriter);
     verify(this.spiedResilienceStrategy).containsKeyFailure(eq("keyA"), any(CacheAccessException.class));
   }
 
@@ -149,8 +140,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     assertFalse(ehcache.containsKey("missingKey"));
-    verifyZeroInteractions(this.cacheLoader);
-    verifyZeroInteractions(this.cacheWriter);
+    verifyZeroInteractions(this.cacheLoaderWriter);
     verifyZeroInteractions(this.spiedResilienceStrategy);
   }
 
@@ -167,8 +157,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.containsKey("missingKey");
-    verifyZeroInteractions(this.cacheLoader);
-    verifyZeroInteractions(this.cacheWriter);
+    verifyZeroInteractions(this.cacheLoaderWriter);
     verify(this.spiedResilienceStrategy).containsKeyFailure(eq("missingKey"), any(CacheAccessException.class));
   }
 
@@ -182,7 +171,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Gets an initialized {@link Ehcache Ehcache} instance using {@link #cacheLoader}
+   * Gets an initialized {@link Ehcache Ehcache} instance using {@link #cacheLoaderWriter}
    * and {@link #cacheWriter}.
    *
    * @return a new {@code Ehcache} instance
@@ -190,7 +179,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
   private Ehcache<String, String> getEhcache()
       throws Exception {
     final Ehcache<String, String> ehcache =
-        new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, this.cacheLoader, this.cacheWriter);
+        new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, this.cacheLoaderWriter);
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

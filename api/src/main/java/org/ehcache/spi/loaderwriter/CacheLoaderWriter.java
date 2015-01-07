@@ -14,26 +14,46 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.writer;
+package org.ehcache.spi.loaderwriter;
 
 import java.util.Map;
-
 import org.ehcache.exceptions.BulkCacheWriterException;
 
 /**
- * A CacheWriter is associated with a given {@link org.ehcache.Cache} instance and will be used to maintain it in sync
- * with an underlying system of record during normal operations on the Cache.
+ * A CacheLoaderWriter is associated with a given {@link org.ehcache.Cache} instance and will be used to keep it
+ * in sync with another system.
  * <p>
  * Instances of this class have to be thread safe.
  * <p>
  * Any {@link java.lang.Exception} thrown by methods of this interface will be wrapped into a
- * {@link org.ehcache.exceptions.CacheWriterException} by the {@link org.ehcache.Cache} and will need to be handled by
+ * {@link org.ehcache.exceptions.CacheLoaderException} by the {@link org.ehcache.Cache} and will need to be handled by
  * the user.
  *
- * @see org.ehcache.exceptions.CacheWriterException
+ * @see org.ehcache.exceptions.CacheLoaderException
  * @author Alex Snaps
  */
-public interface CacheWriter<K, V> {
+public interface CacheLoaderWriter<K, V> {
+
+  /**
+   * Loads the value to be associated with the given key in the {@link org.ehcache.Cache} using this
+   * {@link org.ehcache.spi.loader.CacheLoader} instance.
+   *
+   * @param key the key that will map to the {@code value} returned
+   * @return the value to be mapped
+   */
+  V load(K key) throws Exception;
+
+  /**
+   * Loads the values to be associated with the keys in the {@link org.ehcache.Cache} using this
+   * {@link org.ehcache.spi.loader.CacheLoader} instance. The returned {@link java.util.Map} should contain
+   * {@code null} mapped keys for values that couldn't be found. Only keys passed in the
+   * <code>loadAll</code> method will be mapped.
+   * Any other mapping will be ignored
+   *
+   * @param keys the keys that will be mapped to the values returned in the map
+   * @return the {@link java.util.Map} of values for each key passed in, where no mapping means no value to map.
+   */
+  Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception;
 
   /**
    * Writes a single entry to the underlying system of record, maybe a brand new value or an update to an existing value

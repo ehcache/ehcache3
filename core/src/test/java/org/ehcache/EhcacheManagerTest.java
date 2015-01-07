@@ -24,8 +24,8 @@ import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.config.ConfigurationBuilder;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.loader.CacheLoader;
-import org.ehcache.spi.loader.CacheLoaderFactory;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.CoreMatchers;
@@ -225,16 +225,16 @@ public class EhcacheManagerTest {
   @Test
   public void testLifeCyclesCacheLoaders() {
 
-    final CacheLoaderFactory cacheLoaderFactory = mock(CacheLoaderFactory.class);
+    final CacheLoaderWriterFactory cacheLoaderFactory = mock(CacheLoaderWriterFactory.class);
 
     final CacheConfiguration<Long, Long> barConfig = mock(CacheConfiguration.class);
     when(barConfig.getClassLoader()).thenReturn(getClass().getClassLoader());
     final CacheConfiguration<Integer, CharSequence> fooConfig = mock(CacheConfiguration.class);
     when(fooConfig.getClassLoader()).thenReturn(getClass().getClassLoader());
 
-    CacheLoader fooLoader = mock(CacheLoader.class);
+    CacheLoaderWriter fooLoader = mock(CacheLoaderWriter.class);
 
-    when(cacheLoaderFactory.createCacheLoader("foo", fooConfig)).thenReturn(fooLoader);
+    when(cacheLoaderFactory.createCacheLoaderWriter("foo", fooConfig)).thenReturn(fooLoader);
 
     @SuppressWarnings("serial")
     final Configuration cfg = new DefaultConfiguration(
@@ -253,13 +253,13 @@ public class EhcacheManagerTest {
     final EhcacheManager manager = new EhcacheManager(cfg, new ServiceLocator(cacheLoaderFactory, storeProvider));
     manager.init();
 
-    verify(cacheLoaderFactory).createCacheLoader("bar", barConfig);
-    verify(cacheLoaderFactory).createCacheLoader("foo", fooConfig);
+    verify(cacheLoaderFactory).createCacheLoaderWriter("bar", barConfig);
+    verify(cacheLoaderFactory).createCacheLoaderWriter("foo", fooConfig);
 
     manager.removeCache("bar");
-    verify(cacheLoaderFactory, never()).releaseCacheLoader((CacheLoader<?, ?>)Mockito.anyObject());
+    verify(cacheLoaderFactory, never()).releaseCacheLoaderWriter((CacheLoaderWriter<?, ?>)Mockito.anyObject());
     manager.removeCache("foo");
-    verify(cacheLoaderFactory).releaseCacheLoader(fooLoader);
+    verify(cacheLoaderFactory).releaseCacheLoaderWriter(fooLoader);
   }
 
   @Test

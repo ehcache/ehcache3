@@ -14,24 +14,24 @@
  * limitations under the License.
  */
 
-package org.ehcache.config.writer;
+package org.ehcache.spi.loaderwriter;
 
-import org.ehcache.internal.classes.ClassInstanceProviderConfig;
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.writer.CacheWriter;
-import org.ehcache.spi.writer.DefaultCacheWriterFactory;
+import org.ehcache.spi.service.ServiceFactory;
 
 /**
  * @author Alex Snaps
  */
-public class DefaultCacheWriterConfiguration extends ClassInstanceProviderConfig<CacheWriter<?, ?>> implements ServiceConfiguration<DefaultCacheWriterFactory> {
+public class DefaultCacheLoaderWriterFactoryProvider implements ServiceFactory<DefaultCacheLoaderWriterFactory> {
 
-  public DefaultCacheWriterConfiguration(final Class<? extends CacheWriter<?, ?>> clazz) {
-    super(clazz);
+  @Override
+  public DefaultCacheLoaderWriterFactory create(final ServiceConfiguration<DefaultCacheLoaderWriterFactory> serviceConfiguration, final ServiceLocator serviceLocator) {
+    return new DefaultCacheLoaderWriterFactory();
   }
 
   @Override
-  public Class<DefaultCacheWriterFactory> getServiceType() {
-    return DefaultCacheWriterFactory.class;
+  public Class<DefaultCacheLoaderWriterFactory> getServiceType() {
+    return DefaultCacheLoaderWriterFactory.class;
   }
 }

@@ -41,9 +41,8 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
-import org.ehcache.spi.loader.CacheLoader;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.writer.CacheWriter;
 
 /**
  * @author teck
@@ -60,21 +59,19 @@ class Eh107CacheManager implements CacheManager {
   private final ClassLoader classLoader;
   private final URI uri;
   private final Properties props;
-  private final Eh107CacheLoaderFactory cacheLoaderFactory;
-  private final Eh107CacheWriterFactory cacheWriterFactory;
+  private final Eh107CacheLoaderWriterFactory cacheLoaderWriterFactory;
   private final Jsr107Service jsr107Service;
   private final org.ehcache.config.Configuration ehConfig;
 
   Eh107CacheManager(EhcacheCachingProvider cachingProvider, org.ehcache.CacheManager ehCacheManager, Properties props,
-      ClassLoader classLoader, URI uri, Eh107CacheLoaderFactory cacheLoaderFactory,
-      Eh107CacheWriterFactory cacheWriterFactory, org.ehcache.config.Configuration ehConfig, Jsr107Service jsr107Service) {
+      ClassLoader classLoader, URI uri, Eh107CacheLoaderWriterFactory cacheLoaderWriterFactory,
+      org.ehcache.config.Configuration ehConfig, Jsr107Service jsr107Service) {
     this.cachingProvider = cachingProvider;
     this.ehCacheManager = ehCacheManager;
     this.props = props;
     this.classLoader = classLoader;
     this.uri = uri;
-    this.cacheLoaderFactory = cacheLoaderFactory;
-    this.cacheWriterFactory = cacheWriterFactory;
+    this.cacheLoaderWriterFactory = cacheLoaderWriterFactory;
     this.ehConfig = ehConfig;
     this.jsr107Service = jsr107Service;
 
@@ -92,8 +89,7 @@ class Eh107CacheManager implements CacheManager {
   private <K, V> Eh107Cache<K, V> wrapEhcacheCache(String alias, CacheConfiguration<K, V> ehConfig) {
     org.ehcache.Cache<K, V> cache = ehCacheManager.getCache(alias, ehConfig.getKeyType(), ehConfig.getValueType());
 
-    CacheLoader<? super K, ? extends V> cacheLoader = EhcacheHackAccessor.getCacheLoader((Ehcache<K, V>)cache);
-    CacheWriter<? super K, ? super V> cacheWriter = EhcacheHackAccessor.getCacheWriter((Ehcache<K, V>)cache);
+    CacheLoaderWriter<? super K, V> cacheLoaderWriter = EhcacheHackAccessor.getCacheLoaderWriter((Ehcache<K, V>)cache);
 
     boolean storeByValueOnHeap = false;
     for (ServiceConfiguration<?> serviceConfiguration : ehConfig.getServiceConfigurations()) {
@@ -102,9 +98,9 @@ class Eh107CacheManager implements CacheManager {
         storeByValueOnHeap = onHeapStoreServiceConfig.storeByValue();
       }
     }
-    Eh107Configuration<K, V> config = new Eh107ReverseConfiguration<K, V>(cache, cacheLoader != null, cacheWriter != null, storeByValueOnHeap);
+    Eh107Configuration<K, V> config = new Eh107ReverseConfiguration<K, V>(cache, cacheLoaderWriter != null, cacheLoaderWriter != null, storeByValueOnHeap);
     Eh107Expiry<K, V> expiry = new EhcacheExpiryWrapper<K, V>(cache.getRuntimeConfiguration().getExpiry());
-    CacheResources<K, V> resources = new CacheResources<K, V>(alias, cacheLoader, cacheWriter, expiry);
+    CacheResources<K, V> resources = new CacheResources<K, V>(alias, cacheLoaderWriter, expiry);
     return new Eh107Cache<K, V>(alias, config, resources, cache, this, expiry);
   }
 
@@ -218,13 +214,9 @@ class Eh107CacheManager implements CacheManager {
     // This code is a little weird. In particular that it doesn't
     // complain if you have config.isReadThrough() true and a null
     // loader -- see https://github.com/jsr107/jsr107tck/issues/59
-    CacheLoader<? super K, ? extends V> cacheLoader = cacheResources.getCacheLoader();
-    if (cacheLoader != null && jsr107Config.isReadThrough()) {
-      cacheLoaderFactory.registerJsr107Loader(cacheName, cacheLoader);
-    }
-    CacheWriter<? super K, ? super V> cacheWriter = cacheResources.getCacheWriter();
-    if (cacheWriter != null && jsr107Config.isWriteThrough()) {
-      cacheWriterFactory.registerJsr107Loader(cacheName, cacheWriter);
+    CacheLoaderWriter<? super K, V> cacheLoader = cacheResources.getCacheLoaderWriter();
+    if (cacheLoader != null && (jsr107Config.isReadThrough() || jsr107Config.isWriteThrough())) {
+      cacheLoaderWriterFactory.registerJsr107Loader(cacheName, cacheLoader);
     }
 
     return builder.buildConfig(jsr107Config.getKeyType(), jsr107Config.getValueType());

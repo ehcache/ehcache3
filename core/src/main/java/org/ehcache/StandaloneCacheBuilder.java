@@ -29,11 +29,10 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.loader.CacheLoader;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
-import org.ehcache.spi.writer.CacheWriter;
 
 /**
  * @author Alex Snaps
@@ -47,8 +46,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   private Comparable<Long> capacityConstraint;
   private EvictionVeto<? super K, ? super V> evictionVeto;
   private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
-  private CacheLoader<? super K, ? extends V> cacheLoader;
-  private CacheWriter<? super K, ? super V> cacheWriter;
+  private CacheLoaderWriter<? super K, V> cacheLoaderWriter;
   private SerializationProvider serializationProvider;
   private ScheduledExecutorService statisticsExecutor;
   private CacheEventNotificationService<K, V> cacheEventNotificationService;
@@ -71,7 +69,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto,
         evictionPrioritizer, classLoader, expiry, serializationProvider, new ServiceConfiguration<?>[]{});
     
-    final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoader, cacheWriter, cacheEventNotificationService, statisticsExecutor);
+    final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, cacheEventNotificationService, statisticsExecutor);
 
     return cast(ehcache);
   }
@@ -104,8 +102,8 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     return this;
   }
 
-  public final StandaloneCacheBuilder<K, V, T> loadingWith(CacheLoader<? super K, ? extends V> cacheLoader) {
-    this.cacheLoader = cacheLoader;
+  public final StandaloneCacheBuilder<K, V, T> loadingAndWritingWith(CacheLoaderWriter<? super K, V> cacheLoaderWriter) {
+    this.cacheLoaderWriter = cacheLoaderWriter;
     return this;
   }
   
@@ -126,11 +124,6 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     return this;
   }
   
-  public final StandaloneCacheBuilder<K, V, T> writingWith(CacheWriter<? super K, ? super V> cacheWriter) {
-    this.cacheWriter = cacheWriter;
-    return this;
-  }
-
   public final StandaloneCacheBuilder<K, V, T> withSerializationProvider(SerializationProvider serializationProvider) {
     this.serializationProvider = serializationProvider;
     return this;

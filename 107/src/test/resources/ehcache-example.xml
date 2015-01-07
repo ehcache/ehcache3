@@ -78,25 +78,14 @@
         i.e. a Cache that uses a CacheLoader to load on misses, and a CacheWriter on mutative operations.
     -->
     <ehcache:integration>
-        <!--
-          OPTIONAL
-            The FQCN implementing org.ehcache.spi.loader.CacheLoader
-        -->
-        <ehcache:loader>
-          <ehcache:class>com.pany.ehcache.integration.ProductCacheLoader</ehcache:class>
-          <!-- Any further elements in another namespace -->
-      </ehcache:loader>
-      <ehcache:writer>
-        <!--
-          OPTIONAL
-            The FQCN implementing org.ehcache.spi.writer.CacheWriter
-        -->
-        <ehcache:class>com.pany.ehcache.integration.ProductCacheWriter</ehcache:class>
-        <!--
-           OPTIONAL
-            Any further elements in another namespace
-        -->
-      </ehcache:writer>
+      <!--
+        OPTIONAL
+          The FQCN implementing org.ehcache.spi.loaderwriter.CacheLoaderWriter
+      -->
+      <ehcache:loaderwriter>
+        <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>
+        <!-- Any further elements in another namespace -->
+      </ehcache:loaderwriter>
     </ehcache:integration>
     <!--
        OPTIONAL

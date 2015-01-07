@@ -21,7 +21,6 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.writer.CacheWriter;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -43,6 +42,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.ehcache.EhcacheBasicBulkUtil.*;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -69,7 +69,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
   @Mock
-  protected CacheWriter<String, String> cacheWriter;
+  protected CacheLoaderWriter<String, String> cacheLoaderWriter;
 
   /**
    * A Mockito {@code ArgumentCaptor} for the {@code Set} argument to the
@@ -136,7 +136,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>empty request set</li>
    *    <li>populated {@code Store} (keys not relevant)</li>
-   *    <li>no {@code CacheWriter}</li>
+   *    <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
@@ -161,7 +161,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>empty request set</li>
    *    <li>populated {@code Store} (keys not relevant)</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>no {@code CacheWriter}</li>
+   *    <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
@@ -188,7 +188,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>empty request set</li>
    *    <li>populated {@code Store} (keys not relevant)</li>
-   *    <li>populated {@code CacheWriter} (keys not relevant)</li>
+   *    <li>populated {@code CacheLoaderWriter} (keys not relevant)</li>
    * </ul>
    */
   @Test
@@ -197,15 +197,15 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalStoreContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalStoreContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
     ehcache.removeAll(Collections.<String>emptySet());
 
     verify(this.store).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
-    assertThat(fakeWriter.getEntryMap(), equalTo(originalStoreContent));
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(originalStoreContent));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -217,7 +217,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>empty request set</li>
    *    <li>populated {@code Store} (keys not relevant)</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} (keys not relevant)</li>
+   *    <li>populated {@code CacheLoaderWriter} (keys not relevant)</li>
    * </ul>
    */
   @Test
@@ -228,15 +228,15 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalStoreContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalStoreContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
     ehcache.removeAll(Collections.<String>emptySet());
 
     verify(this.store).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
     // ResilienceStrategy invoked; no assertions about Store content
-    assertThat(fakeWriter.getEntryMap(), equalTo(originalStoreContent));
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(originalStoreContent));
     verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(Collections.<String>emptySet()), any(CacheAccessException.class));
 
@@ -248,8 +248,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>empty request set</li>
    *    <li>populated {@code Store} (keys not relevant)</li>
-   *    <li>populated {@code CacheWriter} (keys not relevant)</li>
-   *    <li>all {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} (keys not relevant)</li>
+   *    <li>all {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -258,11 +258,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalStoreContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("deleteAll failed")).when(this.cacheWriter).deleteAll(getAnyStringIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalStoreContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
     ehcache.removeAll(Collections.<String>emptySet());
 
     verify(this.store).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
@@ -278,8 +278,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>empty request set</li>
    *    <li>populated {@code Store} (keys not relevant)</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} (keys not relevant)</li>
-   *    <li>all {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} (keys not relevant)</li>
+   *    <li>all {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -290,11 +290,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalStoreContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("deleteAll failed")).when(this.cacheWriter).deleteAll(getAnyStringIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalStoreContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
     ehcache.removeAll(Collections.<String>emptySet());
 
     verify(this.store).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
@@ -310,7 +310,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>no {@code CacheWriter}</li>
+   *    <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
@@ -338,7 +338,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>no {@code CacheWriter}</li>
+   *    <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
@@ -370,7 +370,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>no {@code CacheWriter}</li>
+   *    <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
@@ -399,8 +399,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>no {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>no {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -410,10 +410,10 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
@@ -421,7 +421,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), equalTo(contentUpdates));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -433,8 +433,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>no {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>no {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -446,20 +446,20 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
@@ -472,8 +472,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>no {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>no {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -483,23 +483,23 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
@@ -511,8 +511,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>some {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -522,10 +522,10 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_C);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     final Set<String> expectedFailures = KEY_SET_C;
@@ -542,7 +542,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), equalTo(contentUpdates));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, expectedSuccesses)));
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -554,8 +554,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>some {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -567,10 +567,10 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_C);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     final Set<String> expectedFailures = KEY_SET_C;
@@ -582,13 +582,13 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
 
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
 
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
@@ -604,8 +604,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>some {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -615,10 +615,10 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_C);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     final Set<String> expectedFailures = KEY_SET_C;
@@ -630,13 +630,13 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
 
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
 
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
@@ -651,9 +651,9 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>some {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
-   *    <li>at least one {@link CacheWriter#deleteAll(Iterable)} call aborts</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>at least one {@link CacheLoaderWriter#deleteAll(Iterable)} call aborts</li>
    * </ul>
    */
   @Test
@@ -663,11 +663,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_C);
-    fakeWriter.setCompleteFailureKey("keyC4");
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
+    fakeLoaderWriter.setCompleteFailureKey("keyC4");
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     final Set<String> expectedFailures = KEY_SET_C;
@@ -684,8 +684,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, expectedSuccesses)));
-    verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
+    verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -697,9 +697,9 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>some {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
-   *    <li>at least one {@link CacheWriter#deleteAll(Iterable)} call aborts</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>at least one {@link CacheLoaderWriter#deleteAll(Iterable)} call aborts</li>
    * </ul>
    */
   @Test
@@ -711,11 +711,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_C);
-    fakeWriter.setCompleteFailureKey("keyC4");
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
+    fakeLoaderWriter.setCompleteFailureKey("keyC4");
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     final Set<String> expectedFailures = KEY_SET_C;
@@ -727,11 +727,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -744,12 +744,12 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(Collections.disjoint(bcweSuccesses, bcweFailures.keySet()), is(true));
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses)));
     assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
-    assertThat(copyWithout(fakeWriter.getEntryMap(), bcweFailures.keySet()),
+    assertThat(copyWithout(fakeLoaderWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(copyWithout(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
 
-    this.dumpResults(fakeStore, originalStoreContent, fakeWriter, originalWriterContent, contentUpdates, expectedFailures,
+    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
         expectedSuccesses, bcweSuccesses, bcweFailures);
   }
 
@@ -759,9 +759,9 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>some {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
-   *    <li>at least one {@link CacheWriter#deleteAll(Iterable)} call aborts</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>at least one {@link CacheLoaderWriter#deleteAll(Iterable)} call aborts</li>
    * </ul>
    */
   @Test
@@ -771,11 +771,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_C);
-    fakeWriter.setCompleteFailureKey("keyC4");
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
+    fakeLoaderWriter.setCompleteFailureKey("keyC4");
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     final Set<String> expectedFailures = KEY_SET_C;
@@ -787,11 +787,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -804,12 +804,12 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(Collections.disjoint(bcweSuccesses, bcweFailures.keySet()), is(true));
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses)));
     assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
-    assertThat(copyWithout(fakeWriter.getEntryMap(), bcweFailures.keySet()),
+    assertThat(copyWithout(fakeLoaderWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(copyWithout(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
 
-    this.dumpResults(fakeStore, originalStoreContent, fakeWriter, originalWriterContent, contentUpdates, expectedFailures,
+    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
         expectedSuccesses, bcweSuccesses, bcweFailures);
   }
 
@@ -818,8 +818,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>all {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>all {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -829,11 +829,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("deleteAll failed")).when(this.cacheWriter).deleteAll(getAnyStringIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     try {
@@ -848,7 +848,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));
-    verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -860,8 +860,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>all {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>all {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -873,11 +873,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("deleteAll failed")).when(this.cacheWriter).deleteAll(getAnyStringIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     try {
@@ -887,12 +887,12 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(),
         getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -908,8 +908,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - no keys overlap</li>
-   *    <li>all {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>all {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -919,11 +919,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("deleteAll failed")).when(this.cacheWriter).deleteAll(getAnyStringIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     try {
@@ -933,12 +933,12 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(),
         getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -953,8 +953,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>no {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>no {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -964,10 +964,10 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     ehcache.removeAll(contentUpdates);
@@ -975,8 +975,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), equalTo(contentUpdates));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));
-    verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
+    verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -988,8 +988,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>no {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>no {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1001,21 +1001,21 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     ehcache.removeAll(contentUpdates);
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
@@ -1028,8 +1028,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>no {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>no {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1039,21 +1039,21 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     ehcache.removeAll(contentUpdates);
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
@@ -1065,8 +1065,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>some {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1076,10 +1076,10 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1096,8 +1096,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, expectedSuccesses)));
-    verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
+    verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -1109,8 +1109,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>some {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1122,10 +1122,10 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1137,13 +1137,13 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1159,8 +1159,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>some {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1170,10 +1170,10 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1185,13 +1185,13 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1206,9 +1206,9 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>some {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
-   *    <li>at least one {@link CacheWriter#deleteAll(Iterable)} call aborts</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>at least one {@link CacheLoaderWriter#deleteAll(Iterable)} call aborts</li>
    * </ul>
    */
   @Test
@@ -1218,11 +1218,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    fakeWriter.setCompleteFailureKey("keyC4");
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    fakeLoaderWriter.setCompleteFailureKey("keyC4");
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1239,8 +1239,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, expectedSuccesses)));
-    verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
+    verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -1252,9 +1252,9 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>some {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
-   *    <li>at least one {@link CacheWriter#deleteAll(Iterable)} call aborts</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>at least one {@link CacheLoaderWriter#deleteAll(Iterable)} call aborts</li>
    * </ul>
    */
   @Test
@@ -1266,11 +1266,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    fakeWriter.setCompleteFailureKey("keyC4");
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    fakeLoaderWriter.setCompleteFailureKey("keyC4");
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1282,11 +1282,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1299,13 +1299,13 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(Collections.disjoint(bcweSuccesses, bcweFailures.keySet()), is(true));
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses)));
     assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
-    assertThat(copyWithout(fakeWriter.getEntryMap(), bcweFailures.keySet()),
+    assertThat(copyWithout(fakeLoaderWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(copyWithout(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)),
             bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
 
-    this.dumpResults(fakeStore, originalStoreContent, fakeWriter, originalWriterContent, contentUpdates, expectedFailures,
+    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
         expectedSuccesses, bcweSuccesses, bcweFailures);
   }
 
@@ -1315,9 +1315,9 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>some {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
-   *    <li>at least one {@link CacheWriter#deleteAll(Iterable)} call aborts</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>at least one {@link CacheLoaderWriter#deleteAll(Iterable)} call aborts</li>
    * </ul>
    */
   @Test
@@ -1327,11 +1327,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    fakeWriter.setCompleteFailureKey("keyC4");
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    fakeLoaderWriter.setCompleteFailureKey("keyC4");
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1343,11 +1343,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1360,13 +1360,13 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(Collections.disjoint(bcweSuccesses, bcweFailures.keySet()), is(true));
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses)));
     assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
-    assertThat(copyWithout(fakeWriter.getEntryMap(), bcweFailures.keySet()),
+    assertThat(copyWithout(fakeLoaderWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(copyWithout(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)),
             bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
 
-    this.dumpResults(fakeStore, originalStoreContent, fakeWriter, originalWriterContent, contentUpdates, expectedFailures,
+    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
         expectedSuccesses, bcweSuccesses, bcweFailures);
   }
 
@@ -1375,8 +1375,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>all {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>all {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1386,11 +1386,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("deleteAll failed")).when(this.cacheWriter).deleteAll(getAnyStringIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
@@ -1405,7 +1405,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));
-    verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -1417,8 +1417,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>all {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>all {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1430,11 +1430,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("deleteAll failed")).when(this.cacheWriter).deleteAll(getAnyStringIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
@@ -1444,12 +1444,12 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1465,8 +1465,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - some keys overlap</li>
-   *    <li>all {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
+   *    <li>all {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1476,11 +1476,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("deleteAll failed")).when(this.cacheWriter).deleteAll(getAnyStringIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
@@ -1490,12 +1490,12 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1510,8 +1510,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>no {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>no {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1521,10 +1521,10 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
@@ -1532,8 +1532,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), equalTo(contentUpdates));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));
-    verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
+    verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -1545,8 +1545,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>no {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>no {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1558,21 +1558,21 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
@@ -1585,8 +1585,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>no {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>no {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1596,21 +1596,21 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
@@ -1622,8 +1622,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>some {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1633,10 +1633,10 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1653,8 +1653,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, expectedSuccesses)));
-    verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
+    verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -1666,8 +1666,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>some {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1679,10 +1679,10 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1694,13 +1694,13 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1716,8 +1716,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>some {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1727,10 +1727,10 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1742,13 +1742,13 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1763,9 +1763,9 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>some {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
-   *    <li>at least one {@link CacheWriter#deleteAll(Iterable)} call aborts</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>at least one {@link CacheLoaderWriter#deleteAll(Iterable)} call aborts</li>
    * </ul>
    */
   @Test
@@ -1775,11 +1775,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    fakeWriter.setCompleteFailureKey("keyC4");
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    fakeLoaderWriter.setCompleteFailureKey("keyC4");
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1797,8 +1797,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, expectedSuccesses)));
-    verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
+    verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -1810,9 +1810,9 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>some {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
-   *    <li>at least one {@link CacheWriter#deleteAll(Iterable)} call aborts</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>at least one {@link CacheLoaderWriter#deleteAll(Iterable)} call aborts</li>
    * </ul>
    */
   @Test
@@ -1824,11 +1824,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    fakeWriter.setCompleteFailureKey("keyC4");
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    fakeLoaderWriter.setCompleteFailureKey("keyC4");
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1840,12 +1840,12 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1858,13 +1858,13 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(Collections.disjoint(bcweSuccesses, bcweFailures.keySet()), is(true));
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses)));
     assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
-    assertThat(copyWithout(fakeWriter.getEntryMap(), bcweFailures.keySet()),
+    assertThat(copyWithout(fakeLoaderWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(copyWithout(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)),
             bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
 
-    this.dumpResults(fakeStore, originalStoreContent, fakeWriter, originalWriterContent, contentUpdates, expectedFailures,
+    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
         expectedSuccesses, bcweSuccesses, bcweFailures);
   }
 
@@ -1874,9 +1874,9 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>some {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
-   *    <li>at least one {@link CacheWriter#deleteAll(Iterable)} call aborts</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>some {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>at least one {@link CacheLoaderWriter#deleteAll(Iterable)} call aborts</li>
    * </ul>
    */
   @Test
@@ -1886,11 +1886,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent, KEY_SET_D);
-    fakeWriter.setCompleteFailureKey("keyC4");
-    this.cacheWriter = spy(fakeWriter);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
+    fakeLoaderWriter.setCompleteFailureKey("keyC4");
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1902,12 +1902,12 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -1920,13 +1920,13 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(Collections.disjoint(bcweSuccesses, bcweFailures.keySet()), is(true));
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses)));
     assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
-    assertThat(copyWithout(fakeWriter.getEntryMap(), bcweFailures.keySet()),
+    assertThat(copyWithout(fakeLoaderWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(copyWithout(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)),
             bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
 
-    this.dumpResults(fakeStore, originalStoreContent, fakeWriter, originalWriterContent, contentUpdates, expectedFailures,
+    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
         expectedSuccesses, bcweSuccesses, bcweFailures);
   }
 
@@ -1935,8 +1935,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>all {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>all {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1946,11 +1946,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("deleteAll failed")).when(this.cacheWriter).deleteAll(getAnyStringIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D);
     try {
@@ -1966,7 +1966,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));
-    verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -1978,8 +1978,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>all {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>all {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1991,11 +1991,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("deleteAll failed")).when(this.cacheWriter).deleteAll(getAnyStringIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D);
     try {
@@ -2005,13 +2005,13 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(originalWriterContent));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(originalWriterContent));
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -2027,8 +2027,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheWriter} - all keys overlap</li>
-   *    <li>all {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
+   *    <li>populated {@code CacheLoaderWriter} - all keys overlap</li>
+   *    <li>all {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -2038,11 +2038,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
-    final FakeCacheWriter fakeWriter = new FakeCacheWriter(originalWriterContent);
-    this.cacheWriter = spy(fakeWriter);
-    doThrow(new Exception("deleteAll failed")).when(this.cacheWriter).deleteAll(getAnyStringIterable());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D);
     try {
@@ -2052,13 +2052,13 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    final InOrder ordered = inOrder(this.store, this.cacheWriter, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    assertThat(fakeWriter.getEntryMap(), equalTo(originalWriterContent));
+    ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(originalWriterContent));
     ordered.verify(this.spiedResilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
 
@@ -2070,15 +2070,15 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
   /**
    * Gets an initialized {@link Ehcache Ehcache} instance using the
-   * {@link org.ehcache.spi.writer.CacheWriter CacheWriter} provided.
+   * {@link CacheLoaderWriter} provided.
    *
-   * @param cacheWriter
-   *    the {@code CacheWriter} to use; may be {@code null}
+   * @param cacheLoaderWriter
+   *    the {@code CacheLoaderWriter} to use; may be {@code null}
    *
    * @return a new {@code Ehcache} instance
    */
-  private Ehcache<String, String> getEhcache(final CacheWriter<String, String> cacheWriter) {
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, null, cacheWriter);
+  private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
+    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter);
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
@@ -2145,8 +2145,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *
    * @param fakeStore the {@link org.ehcache.EhcacheBasicCrudBase.FakeStore FakeStore} instance used in the test
    * @param originalStoreContent  the original content provided to {@code fakeStore}
-   * @param fakeWriter the {@link org.ehcache.EhcacheBasicCrudBase.FakeCacheWriter FakeCacheWriter} instances used in the test
-   * @param originalWriterContent the original content provided to {@code fakeWriter}
+   * @param fakeLoaderWriter the {@link org.ehcache.EhcacheBasicCrudBase.FakeCacheLoaderWriter FakeCacheLoaderWriter} instances used in the test
+   * @param originalWriterContent the original content provided to {@code fakeLoaderWriter}
    * @param contentUpdates the {@code Set} provided to the {@link Ehcache#removeAll(java.util.Set)} call in the test
    * @param expectedFailures the {@code Set} of failing keys expected for the test
    * @param expectedSuccesses the {@code Set} of successful keys expected for the test
@@ -2156,7 +2156,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   private void dumpResults(
       final FakeStore fakeStore,
       final Map<String, String> originalStoreContent,
-      final FakeCacheWriter fakeWriter,
+      final FakeCacheLoaderWriter fakeLoaderWriter,
       final Map<String, String> originalWriterContent,
       final Set<String> contentUpdates,
       final Set<String> expectedFailures,
@@ -2176,7 +2176,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     fmt.format("    Original Store Keys : %s%n", sort(originalStoreContent.keySet()));
     fmt.format("    Final Store Keys    : %s%n", sort(fakeStore.getEntryMap().keySet()));
     fmt.format("    Original Writer Keys: %s%n", sort(originalWriterContent.keySet()));
-    fmt.format("    Final Writer Keys   : %s%n", sort(fakeWriter.getEntryMap().keySet()));
+    fmt.format("    Final Writer Keys   : %s%n", sort(fakeLoaderWriter.getEntryMap().keySet()));
     fmt.format("    Expected Successes: %s%n", sort(expectedSuccesses));
     fmt.format("    Declared Successes: %s%n", sort(bcweSuccesses));
     fmt.format("    Expected Failures: %s%n", sort(expectedFailures));

@@ -25,7 +25,7 @@ import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.writer.CacheWriter;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.Description;
 import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
@@ -722,12 +722,9 @@ public abstract class EhcacheBasicCrudBase {
    * testing.  The contract implemented by this {@code CacheWriter} may not be strictly
    * conformant but should be sufficient for {@code Ehcache} implementation testing.
    */
-  protected static class FakeCacheWriter implements CacheWriter<String, String> {
+  protected static class FakeCacheLoaderWriter implements CacheLoaderWriter<String, String> {
 
-    /**
-     * The key:value pairs held by this {@code CacheWriter}.
-     */
-    private final Map<String, String> cache = new HashMap<String, String>();
+    private final Map<String, String> entries = new HashMap<String, String>();
 
     /**
      * Keys for which access results in a thrown {@code Exception}.  This set may be empty.
@@ -743,11 +740,13 @@ public abstract class EhcacheBasicCrudBase {
      */
     private volatile String completeFailureKey = null;
 
-    public FakeCacheWriter(final Map<String, String> entries, final Set<String> failingKeys) {
-      assert failingKeys != null;
-
+    public FakeCacheLoaderWriter(final Map<String, String> entries) {
+      this(entries, Collections.<String>emptySet());
+    }
+    
+    public FakeCacheLoaderWriter(final Map<String, String> entries, final Set<String> failingKeys) {
       if (entries != null) {
-        this.cache.putAll(entries);
+        this.entries.putAll(entries);
       }
 
       this.failingKeys = (failingKeys.isEmpty()
@@ -755,12 +754,8 @@ public abstract class EhcacheBasicCrudBase {
           : Collections.unmodifiableSet(new HashSet<String>(failingKeys)));
     }
 
-    public FakeCacheWriter(final Map<String, String> entries) {
-      this(entries, Collections.<String>emptySet());
-    }
-
-    final Map<String, String> getEntryMap() {
-      return Collections.unmodifiableMap(this.cache);
+    Map<String, String> getEntryMap() {
+      return Collections.unmodifiableMap(this.entries);
     }
 
     /**
@@ -781,7 +776,7 @@ public abstract class EhcacheBasicCrudBase {
     @Override
     public void write(final String key, final String value) throws Exception {
       this.checkFailingKey(key);
-      this.cache.put(key, value);
+      this.entries.put(key, value);
     }
 
     /**
@@ -820,7 +815,7 @@ public abstract class EhcacheBasicCrudBase {
     @Override
     public void delete(final String key) throws Exception {
       this.checkFailingKey(key);
-      this.cache.remove(key);
+      this.entries.remove(key);
     }
 
     /**
@@ -865,8 +860,29 @@ public abstract class EhcacheBasicCrudBase {
       }
     }
 
-    private final static class FailedKeyException extends Exception {
+    @Override
+    public String load(final String key) throws Exception {
+      if (this.failingKeys.contains(key)) {
+        throw new FailedKeyException(key);
+      }
+      return this.entries.get(key);
+    }
+
+    @Override
+    public Map<String, String> loadAll(final Iterable<? extends String> keys) throws Exception {
+      final Map<String, String> resultMap = new HashMap<String, String>();
+      for (final String key : keys) {
+        if (this.failingKeys.contains(key)) {
+          throw new FailedKeyException(key);
+        }
+        resultMap.put(key, this.entries.get(key));
+      }
+      return resultMap;
+    }
+
+    private static final class FailedKeyException extends Exception {
       private static final long serialVersionUID = 1085055801147786691L;
+
       public FailedKeyException(final String message) {
         super(message);
       }

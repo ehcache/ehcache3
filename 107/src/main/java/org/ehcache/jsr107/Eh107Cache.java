@@ -42,8 +42,7 @@ import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.jsr107.CacheResources.ListenerResources;
 import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
-import org.ehcache.spi.loader.CacheLoader;
-import org.ehcache.spi.writer.CacheWriter;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
  * @author teck
@@ -59,15 +58,13 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   private final Eh107CacheMXBean managementBean;
   private final Eh107CacheStatisticsMXBean statisticsBean;
   private final Eh107Configuration<K, V> config;
-  private final CacheLoader<? super K, ? extends V> cacheLoader;
-  private final CacheWriter<? super K, ? super V> cacheWriter;
+  private final CacheLoaderWriter<? super K, V> cacheLoader;
   private final Eh107Expiry<K, V> expiry;
 
   Eh107Cache(String name, Eh107Configuration<K, V> config, CacheResources<K, V> cacheResources,
       org.ehcache.Cache<K, V> ehCache, Eh107CacheManager cacheManager, Eh107Expiry<K, V> expiry) {
     this.expiry = expiry;
-    this.cacheLoader = cacheResources.getCacheLoader();
-    this.cacheWriter = cacheResources.getCacheWriter();
+    this.cacheLoader = cacheResources.getCacheLoaderWriter();
     this.config = config;
     this.ehCache = ehCache;
     this.cacheManager = cacheManager;
@@ -356,7 +353,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
         invokeResult.set(processResult);
 
-        return mutableEntry.apply(config.isWriteThrough(), cacheWriter);
+        return mutableEntry.apply(config.isWriteThrough(), cacheLoader);
       }
     }, new NullaryFunction<Boolean>() {
       @Override
@@ -725,7 +722,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       finalValue = value;
     }
 
-    V apply(boolean isWriteThrough, CacheWriter<? super K, ? super V> cacheWriter) {
+    V apply(boolean isWriteThrough, CacheLoaderWriter<? super K, ? super V> cacheLoaderWriter) {
       switch (operation) {
       case NONE:
       case ACCESS:

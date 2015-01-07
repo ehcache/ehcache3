@@ -16,22 +16,33 @@
 
 package com.pany.ehcache.integration;
 
-import org.ehcache.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.spi.writer.CacheWriter;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import com.pany.domain.Product;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
  * @author Alex Snaps
  */
-public class ProductCacheWriter implements CacheWriter<Long, Product> {
+public class ProductCacheLoaderWriter implements CacheLoaderWriter<Long, Product> {
 
   public static final ConcurrentMap<Long, List<Product>> written = new ConcurrentHashMap<Long, List<Product>>();
+  
+  @Override
+  public Product load(final Long key) throws Exception {
+    return new Product(key);
+  }
+
+  @Override
+  public Map<Long, Product> loadAll(final Iterable<? extends Long> keys) throws Exception {
+    return Collections.emptyMap();
+  }
 
   @Override
   public void write(final Long key, final Product value) throws Exception {

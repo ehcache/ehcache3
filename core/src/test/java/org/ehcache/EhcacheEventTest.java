@@ -46,7 +46,7 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.writer.CacheWriter;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -77,11 +77,10 @@ public class EhcacheEventTest {
   public void setUp() throws Exception {
     store = mock(Store.class);
     eventNotifier = mock(CacheEventNotificationService.class);
-    CacheWriter<Number, String> writer = mock(CacheWriter.class);
+    CacheLoaderWriter<Number, String> loaderWriter = mock(CacheLoaderWriter.class);
 
     cache = new Ehcache<Number, String>(
-        newCacheConfigurationBuilder().buildConfig(Number.class, String.class), store, null, writer, eventNotifier,
-        null);
+        newCacheConfigurationBuilder().buildConfig(Number.class, String.class), store, loaderWriter, eventNotifier, null);
     cache.init();
   }
   
@@ -189,7 +188,7 @@ public class EhcacheEventTest {
         return null;
       }
     });
-    doThrow(new Exception()).when(cache.getCacheWriter()).write(any(Number.class), anyString());
+    doThrow(new Exception()).when(cache.getCacheLoaderWriter()).write(any(Number.class), anyString());
     cache.put(1, "one");
   }
 
@@ -222,7 +221,7 @@ public class EhcacheEventTest {
         return null;
       }
     });
-    doThrow(new Exception()).when(cache.getCacheWriter()).delete(any(Number.class));
+    doThrow(new Exception()).when(cache.getCacheLoaderWriter()).delete(any(Number.class));
     cache.remove(1);
   }
 
@@ -259,7 +258,7 @@ public class EhcacheEventTest {
         return null;
       }
     });
-    doThrow(new Exception()).when(cache.getCacheWriter()).write(any(Number.class), anyString());
+    doThrow(new Exception()).when(cache.getCacheLoaderWriter()).write(any(Number.class), anyString());
     cache.replace(1, "bar");
   }
 
@@ -328,7 +327,7 @@ public class EhcacheEventTest {
         return function.apply((Number)invocation.getArguments()[0], "old");
       }
     });
-    doThrow(new Exception()).when(cache.getCacheWriter()).write(any(Number.class), anyString());
+    doThrow(new Exception()).when(cache.getCacheLoaderWriter()).write(any(Number.class), anyString());
     cache.replace(1, "old", "new");
   }
 
@@ -359,7 +358,7 @@ public class EhcacheEventTest {
         return null;
       }
     });
-    doThrow(new Exception()).when(cache.getCacheWriter()).write(any(Number.class), anyString());
+    doThrow(new Exception()).when(cache.getCacheLoaderWriter()).write(any(Number.class), anyString());
     cache.putIfAbsent(1, "one");
   }
   
@@ -409,7 +408,7 @@ public class EhcacheEventTest {
     });
     String toRemove = "foo";
     assertThat(cache.remove(1, toRemove), is(false));
-    verify(cache.getCacheWriter(), never()).delete(any(Number.class));
+    verify(cache.getCacheLoaderWriter(), never()).delete(any(Number.class));
     verify(eventNotifier, never()).onEvent(any(CacheEvent.class));
   }
   
@@ -426,7 +425,7 @@ public class EhcacheEventTest {
         return mock;
       }
     });
-    doThrow(new Exception()).when(cache.getCacheWriter()).delete(any(Number.class));
+    doThrow(new Exception()).when(cache.getCacheLoaderWriter()).delete(any(Number.class));
     cache.remove(1, expected);
   }
 
