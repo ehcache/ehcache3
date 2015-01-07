@@ -17,7 +17,6 @@ package org.ehcache.jsr107;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.Map;
 import java.util.Properties;
 import java.util.WeakHashMap;
@@ -29,6 +28,8 @@ import javax.cache.configuration.OptionalFeature;
 import javax.cache.spi.CachingProvider;
 
 import org.ehcache.EhcacheManager;
+import org.ehcache.config.Configuration;
+import org.ehcache.config.DefaultConfiguration;
 import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.util.ClassLoading;
@@ -38,35 +39,32 @@ import org.ehcache.util.ClassLoading;
  */
 public class EhcacheCachingProvider implements CachingProvider {
 
+  private static final String DEFAULT_URI_STRING = "urn:X-ehcache:jsr107-default-config";
+
   private static final URI URI_DEFAULT;
 
   private final Map<ClassLoader, ConcurrentMap<URI, Eh107CacheManager>> cacheManagers = new WeakHashMap<ClassLoader, ConcurrentMap<URI, Eh107CacheManager>>();
 
   static {
-    URI uri;
     try {
-      URL resource = EhcacheCachingProvider.class.getResource("/ehcache.xml");
-      if (resource == null) {
-        resource = EhcacheCachingProvider.class.getResource("/ehcache-failsafe.xml");
-      }
-
-      if (resource == null) {
-        throw new javax.cache.CacheException("No default URI could be found for ehcache");
-      }
-
-      uri = new URI(resource.toString());
+      URI_DEFAULT = new URI(DEFAULT_URI_STRING);
     } catch (URISyntaxException e) {
       throw new javax.cache.CacheException(e);
     }
-
-    URI_DEFAULT = uri;
   }
 
   @Override
   public CacheManager getCacheManager(URI uri, ClassLoader classLoader, Properties properties) {
     uri = uri == null ? getDefaultURI() : uri;
     classLoader = classLoader == null ? getDefaultClassLoader() : classLoader;
-    properties = properties == null ? new Properties() : new Properties(properties);
+    properties = properties == null ? new Properties() : cloneProperties(properties);
+
+    if (URI_DEFAULT.equals(uri)) {
+      URI override = DefaultConfigResolver.resolveConfigURI(properties);
+      if (override != null) {
+        uri = override;
+      }
+    }
 
     Eh107CacheManager cacheManager;
     ConcurrentMap<URI, Eh107CacheManager> byURI;
@@ -80,9 +78,13 @@ public class EhcacheCachingProvider implements CachingProvider {
 
       cacheManager = byURI.get(uri);
       if (cacheManager == null) {
-        XmlConfiguration config;
+        Configuration config;
         try {
-          config = new XmlConfiguration(uri.toURL(), classLoader);
+          if (URI_DEFAULT.equals(uri)) {
+            config = new DefaultConfiguration();
+          } else {
+            config = new XmlConfiguration(uri.toURL(), classLoader);
+          }
         } catch (Exception e) {
           throw new javax.cache.CacheException(e);
         }
@@ -210,4 +212,13 @@ public class EhcacheCachingProvider implements CachingProvider {
       closeException.addThrowable(t);
     }
   }
+  
+  private static Properties cloneProperties(Properties properties) {
+    Properties clone = new Properties();
+    for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+      clone.put(entry.getKey(), entry.getValue());
+    }
+    return clone;
+  }
+  
 }
