@@ -84,12 +84,18 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
       public ClassLoader getClassLoader() {
         throw new UnsupportedOperationException("Implement me!");
       }
-      
+
       @Override
       public Expiry<? super K, ? super V> getExpiry() {
         throw new UnsupportedOperationException("Implement me!");
       }
-        },
+
+      @Override
+      public boolean isPersistent() {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      },
         new Store<K, V>() {
       @Override
       public ValueHolder<V> putIfAbsent(K key, V value)

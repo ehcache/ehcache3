@@ -91,4 +91,6 @@ public interface CacheConfiguration<K, V> {
    *  Get the expiration policy instance for this {@link Cache}
    */
   Expiry<? super K, ? super V> getExpiry();
+
+  boolean isPersistent();
 }

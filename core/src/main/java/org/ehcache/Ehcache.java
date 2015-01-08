@@ -1408,6 +1408,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     private final SerializationProvider serializationProvider;
     private final ClassLoader classLoader;
     private final Expiry<? super K, ? super V> expiry;
+    private final boolean persistent;
 
     RuntimeConfiguration(CacheConfiguration<K, V> config) {
       this.serviceConfigurations = copy(config.getServiceConfigurations());
@@ -1419,6 +1420,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       this.serializationProvider = config.getSerializationProvider();
       this.classLoader = config.getClassLoader();
       this.expiry = config.getExpiry();
+      this.persistent = config.isPersistent();
     }
     
     @Override
@@ -1465,7 +1467,12 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     public Expiry<? super K, ? super V> getExpiry() {
       return expiry;
     }
-    
+
+    @Override
+    public boolean isPersistent() {
+      return this.persistent;
+    }
+
     @Override
     public synchronized void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener) {
       eventNotificationService.deregisterCacheEventListener(listener);

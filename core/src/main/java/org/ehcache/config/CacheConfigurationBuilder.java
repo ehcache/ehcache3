@@ -37,6 +37,7 @@ public class CacheConfigurationBuilder<K, V> {
   private Comparable<Long> capacityConstraint;
   private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private EvictionVeto<? super K, ? super V> evictionVeto;
+  private boolean persistent;
 
   private CacheConfigurationBuilder() {
   }
@@ -98,14 +99,14 @@ public class CacheConfigurationBuilder<K, V> {
   public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType) {
     return new BaseCacheConfiguration<CK, CV>(keyType, valueType, capacityConstraint, evictionVeto,
         evictionPrioritizer, classLoader, expiry,
-        serializationProvider, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
+        serializationProvider, persistent, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
   public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType,
                                                      EvictionVeto<? super CK, ? super CV> evictionVeto,
                                                      EvictionPrioritizer<? super CK, ? super CV> evictionPrioritizer) {
     return new BaseCacheConfiguration<CK, CV>(keyType, valueType, this.capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, expiry,
-        serializationProvider, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
+        serializationProvider, persistent, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
   
   public CacheConfigurationBuilder<K, V> withClassLoader(ClassLoader classLoader) {
@@ -118,6 +119,11 @@ public class CacheConfigurationBuilder<K, V> {
       throw new NullPointerException("Null expiry");
     }
     return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, capacityConstraint, evictionPrioritizer, evictionVeto, serviceConfigurations);
+  }
+
+  public CacheConfigurationBuilder<K, V> persistent(boolean persistent) {
+    this.persistent = persistent;
+    return this;
   }
 
   public CacheConfigurationBuilder<K, V> withSerializationProvider(SerializationProvider serializationProvider) {
