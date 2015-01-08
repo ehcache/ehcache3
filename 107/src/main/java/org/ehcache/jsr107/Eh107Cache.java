@@ -130,11 +130,16 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     }
 
     try {
-      jsr107Cache.loadAll(keys, replaceExistingValues, new Function<Iterable<? extends K>, Map<? super K, ? extends V>>() {
+      jsr107Cache.loadAll(keys, replaceExistingValues, new Function<Iterable<? extends K>, Map<K, V>>() {
         @Override
-        public Map<? super K, ? extends V> apply(Iterable<? extends K> keys) {
+        public Map<K, V> apply(Iterable<? extends K> keys) {
           try {
-            return cacheLoaderWriter.loadAll(keys);
+            Map<? super K, ? extends V> loadResult = cacheLoaderWriter.loadAll(keys);
+            HashMap<K, V> resultMap = new HashMap<K, V>();
+            for (K key : keys) {
+              resultMap.put(key, loadResult.get(key));
+            }
+            return resultMap;
           } catch (Exception e) {
             final CacheLoaderException cle;
             if (e instanceof CacheLoaderException) {
