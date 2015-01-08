@@ -156,18 +156,8 @@ public class XmlConfiguration implements Configuration {
       Long capacityConstraint = cacheDefinition.capacityConstraint();
       EvictionVeto evictionVeto = getInstanceOfName(cacheDefinition.evictionVeto(), cacheClassLoader, EvictionVeto.class);
       EvictionPrioritizer evictionPrioritizer = getInstanceOfName(cacheDefinition.evictionPrioritizer(), cacheClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class);
-      final Expiry<? super Object, ? super Object> expiry;
       final ConfigurationParser.Expiry parsedExpiry = cacheDefinition.expiry();
-      if (parsedExpiry.isUserDef()) {
-        expiry = getInstanceOfName(parsedExpiry.type(), cacheClassLoader, Expiry.class);
-      } else if (parsedExpiry.isTTL()) {
-        expiry = Expirations.timeToLiveExpiration(new Duration(parsedExpiry.value(), parsedExpiry.unit()));
-      } else if (parsedExpiry.isTTI()) {
-        expiry = Expirations.timeToIdleExpiration(new Duration(parsedExpiry.value(), parsedExpiry.unit()));
-      } else {
-        expiry = Expirations.noExpiration();
-      }
-      builder = builder.withExpiry(expiry);
+      builder = builder.withExpiry(getExpiry(cacheClassLoader, parsedExpiry));
       for (ServiceConfiguration<?> serviceConfig : cacheDefinition.serviceConfigs()) {
         builder = builder.addServiceConfig(serviceConfig);
       }
@@ -190,6 +180,21 @@ public class XmlConfiguration implements Configuration {
     }
 
     templates.putAll(configurationParser.getTemplates());
+  }
+
+  private Expiry<? super Object, ? super Object> getExpiry(ClassLoader cacheClassLoader, ConfigurationParser.Expiry parsedExpiry)
+      throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+    final Expiry<? super Object, ? super Object> expiry;
+    if (parsedExpiry.isUserDef()) {
+      expiry = getInstanceOfName(parsedExpiry.type(), cacheClassLoader, Expiry.class);
+    } else if (parsedExpiry.isTTL()) {
+      expiry = Expirations.timeToLiveExpiration(new Duration(parsedExpiry.value(), parsedExpiry.unit()));
+    } else if (parsedExpiry.isTTI()) {
+      expiry = Expirations.timeToIdleExpiration(new Duration(parsedExpiry.value(), parsedExpiry.unit()));
+    } else {
+      expiry = Expirations.noExpiration();
+    }
+    return expiry;
   }
 
   private static <T> T getInstanceOfName(String name, ClassLoader classLoader, Class<T> type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
@@ -286,9 +291,12 @@ public class XmlConfiguration implements Configuration {
       builder = builder
           .maxEntriesInCache(cacheTemplate.capacityConstraint());
     }
+    final ConfigurationParser.Expiry parsedExpiry = cacheTemplate.expiry();
+    final ClassLoader defaultClassLoader = ClassLoading.getDefaultClassLoader();
     builder = builder
-        .usingEvictionPrioritizer(getInstanceOfName(cacheTemplate.evictionPrioritizer(), ClassLoading.getDefaultClassLoader(), EvictionPrioritizer.class, Eviction.Prioritizer.class))
-        .evitionVeto(getInstanceOfName(cacheTemplate.evictionVeto(), ClassLoading.getDefaultClassLoader(), EvictionVeto.class));
+        .usingEvictionPrioritizer(getInstanceOfName(cacheTemplate.evictionPrioritizer(), defaultClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class))
+        .evitionVeto(getInstanceOfName(cacheTemplate.evictionVeto(), defaultClassLoader, EvictionVeto.class))
+        .withExpiry(getExpiry(defaultClassLoader, parsedExpiry));
     for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {
       builder = builder.addServiceConfig(serviceConfiguration);
     }
