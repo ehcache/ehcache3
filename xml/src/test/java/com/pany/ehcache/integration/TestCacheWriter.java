@@ -19,7 +19,6 @@ package com.pany.ehcache.integration;
 import org.ehcache.spi.writer.CacheWriter;
 
 import java.util.Map;
-import java.util.Set;
 
 /**
  * @author Alex Snaps

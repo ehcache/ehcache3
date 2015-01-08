@@ -114,7 +114,7 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   // @Ignore(reason = "Failing test to fix")
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({ "unchecked", "rawtypes" })
   public void wrongKeyTypeThrowsException()
       throws IllegalAccessException, InstantiationException {
     final Store kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));

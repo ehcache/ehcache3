@@ -21,7 +21,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import org.ehcache.statistics.extended.ExtendedStatistics.Latency;
 import org.ehcache.statistics.extended.ExtendedStatistics.Result;
 import org.ehcache.statistics.extended.ExtendedStatistics.Statistic;
-
 import org.terracotta.statistics.OperationStatistic;
 
 /**
@@ -32,17 +31,14 @@ import org.terracotta.statistics.OperationStatistic;
  */
 class OperationImpl<T extends Enum<T>> implements Result {
 
-    /** The source. */
-    private final OperationStatistic<T> source;
-
     /** The count. */
     private final SemiExpiringStatistic<Long> count;
 
     /** The rate. */
-    private final RateImpl rate;
+    private final RateImpl<T> rate;
 
     /** The latency. */
-    private final LatencyImpl latency;
+    private final LatencyImpl<T> latency;
 
     /**
      * Instantiates a new operation impl.
@@ -56,10 +52,9 @@ class OperationImpl<T extends Enum<T>> implements Result {
      */
     public OperationImpl(OperationStatistic<T> source, Set<T> targets, long averageNanos,
             ScheduledExecutorService executor, int historySize, long historyNanos) {
-        this.source = source;
         this.count = new SemiExpiringStatistic<Long>(source.statistic(targets), executor, historySize, historyNanos);
-        this.latency = new LatencyImpl(source, targets, averageNanos, executor, historySize, historyNanos);
-        this.rate = new RateImpl(source, targets, averageNanos, executor, historySize, historyNanos);
+        this.latency = new LatencyImpl<T>(source, targets, averageNanos, executor, historySize, historyNanos);
+        this.rate = new RateImpl<T>(source, targets, averageNanos, executor, historySize, historyNanos);
     }
 
     /* (non-Javadoc)

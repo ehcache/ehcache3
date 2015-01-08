@@ -17,7 +17,6 @@ package org.ehcache.internal.store;
 
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.exceptions.SerializerException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -30,11 +29,9 @@ import org.ehcache.spi.serialization.SerializationProvider;
 import org.junit.Test;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.fail;
 
 public class OnHeapStoreEvictionTest {
 
@@ -77,11 +74,13 @@ public class OnHeapStoreEvictionTest {
   protected <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource,
       final Expiry<? super K, ? super V> expiry) {
     return new OnHeapStoreForTests<K, V>(new Store.Configuration<K, V>() {
+      @SuppressWarnings("unchecked")
       @Override
       public Class<K> getKeyType() {
         return (Class<K>) String.class;
       }
 
+      @SuppressWarnings("unchecked")
       @Override
       public Class<V> getValueType() {
         return (Class<V>) Serializable.class;
@@ -120,12 +119,13 @@ public class OnHeapStoreEvictionTest {
   }
 
   static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
-    public OnHeapStoreForTests(final Configuration config, final TimeSource timeSource) {
+    public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
       super(config, timeSource, false);
     }
 
     private boolean enforceCapacityWasCalled = false;
 
+    @Override
     ValueHolder<V> enforceCapacityIfValueNotNull(final OnHeapValueHolder<V> computeResult) {
       enforceCapacityWasCalled = true;
       return super.enforceCapacityIfValueNotNull(computeResult);

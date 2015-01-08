@@ -1814,7 +1814,7 @@ class ForkJoinPool extends AbstractExecutorService {
             else if (spins > 0) {
                 r ^= r << 6; r ^= r >>> 21; r ^= r << 7;
                 if (r >= 0 && --spins == 0) {         // randomize spins
-                    WorkQueue v; WorkQueue[] ws; int s, j; AtomicLong sc;
+                    WorkQueue v; WorkQueue[] ws; int j;
                     if (pred != 0 && (ws = workQueues) != null &&
                         (j = pred & SMASK) < ws.length &&
                         (v = ws[j]) != null &&        // see if pred parking

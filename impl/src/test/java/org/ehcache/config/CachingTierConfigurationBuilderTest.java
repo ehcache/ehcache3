@@ -35,6 +35,7 @@ import static org.mockito.Mockito.mock;
 /**
  * @author Alex Snaps
  */
+@SuppressWarnings("deprecation")
 public class CachingTierConfigurationBuilderTest {
 
   @Test
@@ -46,6 +47,9 @@ public class CachingTierConfigurationBuilderTest {
     Collection<ServiceConfiguration<?>> serviceConfigs = config.getServiceConfigurations();
     ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
     final Store<String, String> store = service.createStore(new StoreConfigurationImpl<String, String>(config), serviceConfigArray);
+    
+    
+    @SuppressWarnings("unchecked")
     final Cache<String, String> cache = new HeapCache<String, String>(mock(CacheConfiguration.class), store);
 
     assertThat(cache, not(hasKey("key")));

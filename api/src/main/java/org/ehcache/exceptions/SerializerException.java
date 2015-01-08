@@ -22,6 +22,8 @@ package org.ehcache.exceptions;
  */
 public class SerializerException extends RuntimeException {
 
+  private static final long serialVersionUID = -4008956327217206643L;
+
   public SerializerException() {
     super();
   }

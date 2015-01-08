@@ -24,6 +24,8 @@ package org.ehcache.exceptions;
  */
 public class CacheWriterException extends RuntimeException {
 
+  private static final long serialVersionUID = -3547750364991417531L;
+
   CacheWriterException() {
     super();
   }

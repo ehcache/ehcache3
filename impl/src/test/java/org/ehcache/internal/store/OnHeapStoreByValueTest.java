@@ -36,13 +36,14 @@ import java.util.List;
 
 import static org.junit.Assert.fail;
 
+@SuppressWarnings("serial")
 public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
 
   @Test
   public void testPutNotSerializableValue() throws Exception {
     OnHeapStore<Serializable, Serializable> store = newStore();
     try {
-      store.put("key1", new ArrayList() {{ add(new Object()); }});
+      store.put("key1", new ArrayList<Object>() {{ add(new Object()); }});
       fail();
     } catch (SerializerException se) {
       // expected
@@ -53,7 +54,7 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
   public void testPutNotSerializableKey() throws Exception {
     OnHeapStore<Serializable, Serializable> store = newStore();
     try {
-      store.put(new ArrayList() {{ add(new Object()); }}, "value");
+      store.put(new ArrayList<Object>() {{ add(new Object()); }}, "value");
       fail();
     } catch (SerializerException se) {
       // expected
@@ -117,11 +118,14 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
   protected <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
       final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto) {
     return new OnHeapStore<K, V>(new Store.Configuration<K, V>() {
+      
+      @SuppressWarnings("unchecked")
       @Override
       public Class<K> getKeyType() {
         return (Class<K>) Serializable.class;
       }
 
+      @SuppressWarnings("unchecked")
       @Override
       public Class<V> getValueType() {
         return (Class<V>) Serializable.class;

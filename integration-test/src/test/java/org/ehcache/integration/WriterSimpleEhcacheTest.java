@@ -52,6 +52,7 @@ public class WriterSimpleEhcacheTest {
   private Cache<Number, CharSequence> testCache;
   private CacheWriter<? super Number, ? super CharSequence> cacheWriter;
 
+  @SuppressWarnings({ "unchecked", "rawtypes" })
   @Before
   public void setUp() throws Exception {
     CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder();
@@ -127,6 +128,7 @@ public class WriterSimpleEhcacheTest {
     verify(cacheWriter, times(1)).write(eq(1), eq("one#3"));
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void testSimplePutAllWithWriter() throws Exception {
     Map<Integer, String> values = new HashMap<Integer, String>();

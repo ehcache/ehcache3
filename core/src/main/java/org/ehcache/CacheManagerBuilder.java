@@ -52,9 +52,14 @@ public class CacheManagerBuilder<T extends CacheManager> {
   T newCacheManager(final ServiceLocator serviceLocator, final Configuration configuration) {
     final EhcacheManager ehcacheManager = new EhcacheManager(configuration, serviceLocator);
     ehcacheManager.init();
-    return (T)ehcacheManager;
+    return cast(ehcacheManager);
   }
-
+  
+  @SuppressWarnings("unchecked")
+  T cast(EhcacheManager ehcacheManager) {
+    return (T) ehcacheManager;
+  }
+  
   public <K, V> CacheManagerBuilder<T> withCache(String alias, CacheConfiguration<K, V> configuration) {
     caches.put(alias, configuration);
     return this;

@@ -78,7 +78,7 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
-      public ServiceConfiguration[] getServiceConfigurations() {
+      public ServiceConfiguration<?>[] getServiceConfigurations() {
         return new ServiceConfiguration[] { new HeapResourceCacheConfiguration(100) };
       }
 

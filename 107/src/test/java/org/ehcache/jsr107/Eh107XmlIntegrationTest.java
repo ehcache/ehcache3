@@ -52,6 +52,7 @@ public class Eh107XmlIntegrationTest {
         .toURI(), cachingProvider.getDefaultClassLoader());
   }
 
+  @SuppressWarnings("serial")
   @Test
   public void test107BasedOnEhcacheTemplate() {
     final DumbCacheLoader product2CacheLoader = new DumbCacheLoader();
@@ -71,16 +72,16 @@ public class Eh107XmlIntegrationTest {
     assertThat(product2CacheLoader.seen, contains(124L));
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void testXmlExampleIn107() throws Exception {
-
     javax.cache.Cache<Long, Product> productCache = cacheManager.getCache("productCache", Long.class, Product.class);
     assertThat(productCache, is(notNullValue()));
     Configuration<Long, Product> configuration = productCache.getConfiguration(Configuration.class);
     assertThat(configuration.getKeyType(), is(equalTo(Long.class)));
     assertThat(configuration.getValueType(), is(equalTo(Product.class)));
 
-    Eh107ReverseConfiguration eh107ReverseConfiguration = productCache.getConfiguration(Eh107ReverseConfiguration.class);
+    Eh107ReverseConfiguration<Long, Product> eh107ReverseConfiguration = productCache.getConfiguration(Eh107ReverseConfiguration.class);
     assertThat(eh107ReverseConfiguration.isReadThrough(), is(true));
     assertThat(eh107ReverseConfiguration.isWriteThrough(), is(true));
     assertThat(eh107ReverseConfiguration.isStoreByValue(), is(true));

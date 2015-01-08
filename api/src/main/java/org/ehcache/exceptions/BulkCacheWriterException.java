@@ -27,6 +27,9 @@ import java.util.Set;
  * @author Anthony Dahanne
  */
 public class BulkCacheWriterException extends CacheWriterException {
+
+  private static final long serialVersionUID = -9019459887947633422L;
+
   private final Map<?, Exception> failures;
   private final Set<?> successes;
 

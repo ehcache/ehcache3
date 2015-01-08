@@ -34,13 +34,13 @@ import org.ehcache.statistics.extended.ExtendedStatistics.Operation;
  */
 public class CoreStatisticsImpl implements CoreStatistics {
 
-  private final CountOperation     cacheGet;
-  private final CountOperation     cachePut;
-  private final CountOperation     cacheRemove;
-  private final CountOperation     cacheConditionalRemove;
-  private final CountOperation     evicted;
-  private final CountOperation     cachePutIfAbsent;
-  private final CountOperation     cacheReplace;
+  private final CountOperation<CacheOperationOutcomes.GetOutcome>     cacheGet;
+  private final CountOperation<CacheOperationOutcomes.PutOutcome>     cachePut;
+  private final CountOperation<CacheOperationOutcomes.RemoveOutcome>     cacheRemove;
+  private final CountOperation<CacheOperationOutcomes.ConditionalRemoveOutcome>     cacheConditionalRemove;
+  private final CountOperation<CacheOperationOutcomes.EvictionOutcome>     evicted;
+  private final CountOperation<CacheOperationOutcomes.PutIfAbsentOutcome>     cachePutIfAbsent;
+  private final CountOperation<CacheOperationOutcomes.ReplaceOutcome>     cacheReplace;
   private final ExtendedStatistics extended;
 
   /**
@@ -60,8 +60,7 @@ public class CoreStatisticsImpl implements CoreStatistics {
     this.cacheReplace = asCountOperation(extended.replace());
   }
 
-  @SuppressWarnings("rawtypes")
-  private static <T extends Enum<T>> CountOperation asCountOperation(final Operation<T> compoundOp) {
+  private static <T extends Enum<T>> CountOperation<T> asCountOperation(final Operation<T> compoundOp) {
     return new CountOperation<T>() {
       @Override
       public long value(T result) {
@@ -76,43 +75,36 @@ public class CoreStatisticsImpl implements CoreStatistics {
     };
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public CountOperation<CacheOperationOutcomes.GetOutcome> get() {
     return cacheGet;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public CountOperation<CacheOperationOutcomes.PutOutcome> put() {
     return cachePut;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public CountOperation<CacheOperationOutcomes.RemoveOutcome> remove() {
     return cacheRemove;
   }
   
-  @SuppressWarnings("unchecked")
   @Override
   public CountOperation<ConditionalRemoveOutcome> condtionalRemove() {
     return cacheConditionalRemove;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public CountOperation<EvictionOutcome> cacheEviction() {
     return evicted;
   }
   
-  @SuppressWarnings("unchecked")
   @Override
   public CountOperation<PutIfAbsentOutcome> putIfAbsent() {
     return cachePutIfAbsent;
   }
   
-  @SuppressWarnings("unchecked")
   @Override
   public CountOperation<ReplaceOutcome> replace() {
     return cacheReplace;

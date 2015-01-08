@@ -18,12 +18,10 @@ package org.ehcache.config;
 
 import org.ehcache.Cache;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.function.Predicate;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
-import java.util.Comparator;
 
 /**
  * Represents the minimal read-only configuration for a Cache to be, or an already existing one
