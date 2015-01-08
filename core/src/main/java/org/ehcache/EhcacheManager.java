@@ -275,7 +275,7 @@ public class EhcacheManager implements PersistentCacheManager {
       } catch (Exception e) {
         st.failed();
         LOGGER.error("Initialization of EhcacheManager failed while starting Services.");
-        throw new StateTransitionException(e);
+        throw e;
       }
       Deque<String> initiatedCaches = new ArrayDeque<String>();
       try {
@@ -296,7 +296,7 @@ public class EhcacheManager implements PersistentCacheManager {
         }
         throw e;
       }
-    } catch (RuntimeException e) {
+    } catch (Exception e) {
       st.failed();
       LOGGER.error("Initialization of EhcacheManager failed while initiating Caches.");
       throw new StateTransitionException(e);
