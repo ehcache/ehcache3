@@ -13,28 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.jsr107;
 
-package org.ehcache.config.service;
-
+import org.ehcache.config.service.EhcacheService;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author Ludovic Orban
  */
-public class EhcacheServiceConfiguration implements ServiceConfiguration<EhcacheService> {
-  private boolean jsr107CompliantAtomics;
+public class Eh107CacheService implements EhcacheService {
 
-  @Override
-  public Class<EhcacheService> getServiceType() {
-    return EhcacheService.class;
+  private final boolean jsr107CompliantAtomics;
+
+  public Eh107CacheService(boolean jsr107CompliantAtomics) {
+    this.jsr107CompliantAtomics = jsr107CompliantAtomics;
   }
 
+  @Override
   public boolean jsr107CompliantAtomics() {
     return jsr107CompliantAtomics;
   }
 
-  public EhcacheServiceConfiguration jsr107CompliantAtomics(boolean jsr107CompliantAtomics) {
-    this.jsr107CompliantAtomics = jsr107CompliantAtomics;
-    return this;
+  @Override
+  public void start(ServiceConfiguration<?> config) {
+  }
+
+  @Override
+  public void stop() {
   }
 }

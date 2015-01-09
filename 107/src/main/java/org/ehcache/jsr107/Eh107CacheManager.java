@@ -65,10 +65,12 @@ class Eh107CacheManager implements CacheManager {
   private final Eh107CacheWriterFactory cacheWriterFactory;
   private final Jsr107Service jsr107Service;
   private final org.ehcache.config.Configuration ehConfig;
+  private final Eh107CacheService eh107CacheService;
 
   Eh107CacheManager(EhcacheCachingProvider cachingProvider, org.ehcache.CacheManager ehCacheManager, Properties props,
       ClassLoader classLoader, URI uri, Eh107CacheLoaderFactory cacheLoaderFactory,
-      Eh107CacheWriterFactory cacheWriterFactory, org.ehcache.config.Configuration ehConfig, Jsr107Service jsr107Service) {
+      Eh107CacheWriterFactory cacheWriterFactory, org.ehcache.config.Configuration ehConfig,
+      Jsr107Service jsr107Service, Eh107CacheService eh107CacheService) {
     this.cachingProvider = cachingProvider;
     this.ehCacheManager = ehCacheManager;
     this.props = props;
@@ -78,6 +80,7 @@ class Eh107CacheManager implements CacheManager {
     this.cacheWriterFactory = cacheWriterFactory;
     this.ehConfig = ehConfig;
     this.jsr107Service = jsr107Service;
+    this.eh107CacheService = eh107CacheService;
 
     loadExistingEhcaches();
   }
@@ -216,12 +219,7 @@ class Eh107CacheManager implements CacheManager {
       onHeapStoreServiceConfig.storeByValue(jsr107Config.isStoreByValue());
     }
 
-    EhcacheServiceConfiguration ehcacheServiceConfiguration = builder.getExistingServiceConfiguration(EhcacheServiceConfiguration.class);
-    if (ehcacheServiceConfiguration == null) {
-      builder.addServiceConfig(new EhcacheServiceConfiguration().noLoadInAtomics(true));
-    } else {
-      ehcacheServiceConfiguration.noLoadInAtomics(true);
-    }
+    builder.addServiceConfig(new EhcacheServiceConfiguration().jsr107CompliantAtomics(eh107CacheService.jsr107CompliantAtomics()));
 
     // This code is a little weird. In particular that it doesn't
     // complain if you have config.isReadThrough() true and a null

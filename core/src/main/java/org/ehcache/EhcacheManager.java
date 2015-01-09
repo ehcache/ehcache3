@@ -20,6 +20,8 @@ import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.config.service.EhcacheService;
+import org.ehcache.config.service.EhcacheServiceConfiguration;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerFactory;
@@ -41,6 +43,7 @@ import org.ehcache.spi.writer.CacheWriterFactory;
 import org.ehcache.util.ClassLoading;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -192,7 +195,7 @@ public class EhcacheManager implements PersistentCacheManager {
       serializationProvider = serviceLocator.findService(SerializationProvider.class);
     }
 
-    ServiceConfiguration<?>[] serviceConfigs = config.getServiceConfigurations().toArray(new ServiceConfiguration[config.getServiceConfigurations().size()]);
+    Collection<ServiceConfiguration<?>> adjustedServiceConfigs = new ArrayList<ServiceConfiguration<?>>(config.getServiceConfigurations());
 
     // XXX this may need to become an actual "service" with its own service configuration etc
     CacheEventNotificationService<K, V> evtService;
@@ -220,6 +223,14 @@ public class EhcacheManager implements PersistentCacheManager {
             lsnrConfig.fireOn());  
       }
     }
+
+    final EhcacheService ehcacheService = serviceLocator.findService(EhcacheService.class);
+    if (ehcacheService != null) {
+      EhcacheServiceConfiguration ehcacheServiceConfiguration = new EhcacheServiceConfiguration().jsr107CompliantAtomics(ehcacheService.jsr107CompliantAtomics());
+      adjustedServiceConfigs.add(ehcacheServiceConfiguration);
+    }
+
+    ServiceConfiguration[] serviceConfigs = adjustedServiceConfigs.toArray(new ServiceConfiguration[adjustedServiceConfigs.size()]);
 
     CacheConfiguration<K, V> adjustedConfig = new BaseCacheConfiguration<K, V>(
         keyType, valueType, config.getCapacityConstraint(),

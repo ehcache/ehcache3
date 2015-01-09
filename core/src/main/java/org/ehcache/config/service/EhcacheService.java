@@ -17,16 +17,12 @@
 package org.ehcache.config.service;
 
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author Ludovic Orban
  */
-public class EhcacheService implements Service {
-  @Override
-  public void start(ServiceConfiguration<?> config) {
-  }
-  @Override
-  public void stop() {
-  }
+public interface EhcacheService extends Service {
+
+  boolean jsr107CompliantAtomics();
+
 }

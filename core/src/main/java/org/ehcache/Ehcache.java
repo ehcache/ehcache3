@@ -180,7 +180,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
       if (serviceConfiguration.getServiceType().equals(EhcacheService.class)) {
         EhcacheServiceConfiguration  ehcacheServiceConfiguration = (EhcacheServiceConfiguration) serviceConfiguration;
-        useLoaderInAtomics = !ehcacheServiceConfiguration.noLoadInAtomics();
+        useLoaderInAtomics = !ehcacheServiceConfiguration.jsr107CompliantAtomics();
         break;
       }
     }
