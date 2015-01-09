@@ -26,6 +26,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
  * Utility methods and common data for {@link org.ehcache.Ehcache Ehcache}
@@ -41,7 +42,7 @@ final class EhcacheBasicBulkUtil {
 
   /**
    * Entries for populating {@link org.ehcache.spi.cache.Store Store} and
-   * {@link org.ehcache.spi.loader.CacheLoader CacheLoader} instances in the
+   * {@link CacheLoaderWriter} instances in the
    * unit tests.  The entries used are generally subset using the key sets
    * {@link #KEY_SET_A}, {@link #KEY_SET_B}, {@link #KEY_SET_C}, and/or
    * {@link #KEY_SET_F}.

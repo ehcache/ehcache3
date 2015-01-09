@@ -476,10 +476,9 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
 
   /**
    * Gets an initialized {@link org.ehcache.Ehcache Ehcache} instance using the
-   * {@link org.ehcache.spi.writer.CacheWriter CacheWriter} provided.
+   * {@link CacheLoaderWriter} provided.
    *
-   * @param cacheWriter
-   *    the {@code CacheWriter} to use; may be {@code null}
+   * @param cacheLoaderWriter the {@code CacheLoaderWriter} to use; may be {@code null}
    *
    * @return a new {@code Ehcache} instance
    */

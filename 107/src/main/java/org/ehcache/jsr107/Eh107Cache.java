@@ -58,13 +58,13 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   private final Eh107CacheMXBean managementBean;
   private final Eh107CacheStatisticsMXBean statisticsBean;
   private final Eh107Configuration<K, V> config;
-  private final CacheLoaderWriter<? super K, V> cacheLoader;
+  private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
   private final Eh107Expiry<K, V> expiry;
 
   Eh107Cache(String name, Eh107Configuration<K, V> config, CacheResources<K, V> cacheResources,
       org.ehcache.Cache<K, V> ehCache, Eh107CacheManager cacheManager, Eh107Expiry<K, V> expiry) {
     this.expiry = expiry;
-    this.cacheLoader = cacheResources.getCacheLoaderWriter();
+    this.cacheLoaderWriter = cacheResources.getCacheLoaderWriter();
     this.config = config;
     this.ehCache = ehCache;
     this.cacheManager = cacheManager;
@@ -124,7 +124,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
     completionListener = completionListener != null ? completionListener : NullCompletionListener.INSTANCE;
 
-    if (cacheLoader == null) {
+    if (cacheLoaderWriter == null) {
       completionListener.onCompletion();
       return;
     }
@@ -134,7 +134,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
         @Override
         public Map<? super K, ? extends V> apply(Iterable<? extends K> keys) {
           try {
-            return cacheLoader.loadAll(keys);
+            return cacheLoaderWriter.loadAll(keys);
           } catch (Exception e) {
             final CacheLoaderException cle;
             if (e instanceof CacheLoaderException) {
@@ -353,7 +353,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
         invokeResult.set(processResult);
 
-        return mutableEntry.apply(config.isWriteThrough(), cacheLoader);
+        return mutableEntry.apply(config.isWriteThrough(), cacheLoaderWriter);
       }
     }, new NullaryFunction<Boolean>() {
       @Override
@@ -667,7 +667,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     @Override
     public V getValue() {
       if (finalValue == UNDEFINED) {
-        if (initialValue == null && config.isReadThrough() && cacheLoader != null) {
+        if (initialValue == null && config.isReadThrough() && cacheLoaderWriter != null) {
           finalValue = tryLoad();
           if (finalValue != null) {
             operation = MutableEntryOperation.LOAD;
@@ -683,7 +683,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
     private V tryLoad() {
       try {
-        return cacheLoader.load(key);
+        return cacheLoaderWriter.load(key);
       } catch (Exception e) {
         if (e instanceof CacheLoaderException) {
           throw (CacheLoaderException) e;

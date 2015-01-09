@@ -2567,15 +2567,14 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
   /**
    * Gets an initialized {@link Ehcache Ehcache} instance using the
-   * {@link org.ehcache.spi.loader.CacheLoader CacheLoader} provided.
+   * {@link CacheLoaderWriter} provided.
    *
-   * @param cacheLoader
-   *    the {@code CacheLoader} to use; may be {@code null}
+   * @param cacheLoaderWriter the {@code CacheLoaderWriter} to use; may be {@code null}
    *
    * @return a new {@code Ehcache} instance
    */
-  private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoader) {
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheLoader);
+  private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
+    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter);
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

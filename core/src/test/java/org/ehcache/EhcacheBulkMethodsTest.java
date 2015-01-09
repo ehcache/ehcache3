@@ -140,9 +140,9 @@ public class EhcacheBulkMethodsTest {
       }
     });
 
-    CacheLoaderWriter<Number, CharSequence> cacheLoader = mock(CacheLoaderWriter.class);
+    CacheLoaderWriter<Number, CharSequence> cacheLoaderWriter = mock(CacheLoaderWriter.class);
     
-    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(cacheConfig, store, cacheLoader);
+    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(cacheConfig, store, cacheLoaderWriter);
     ehcache.init();
     Map<Number, CharSequence> result = ehcache.getAll(new HashSet<Number>(Arrays.asList(1, 2, 3)));
 
@@ -150,7 +150,7 @@ public class EhcacheBulkMethodsTest {
     assertThat(result, hasEntry((Number)2, (CharSequence) "two"));
     assertThat(result, hasEntry((Number)3, (CharSequence) null));
     verify(store).bulkComputeIfAbsent((Set<? extends Number>)argThat(hasItems(1, 2, 3)), any(Function.class));
-    verify(cacheLoader).loadAll(argThat(hasItems(1, 2, 3)));
+    verify(cacheLoaderWriter).loadAll(argThat(hasItems(1, 2, 3)));
   }
 
   @Test

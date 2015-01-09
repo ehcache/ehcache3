@@ -351,30 +351,29 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Gets an initialized {@link org.ehcache.Ehcache Ehcache} instance using mock
-   * {@link org.ehcache.spi.loader.CacheLoader CacheLoader} and
-   * {@link org.ehcache.spi.writer.CacheLoaderWriter CacheLoaderWriter} instances
-   * which throw for any method called.
+   * Gets an initialized {@link org.ehcache.Ehcache Ehcache} instance using a 
+   * mock {@link CacheLoaderWriter} instance which throws for any method called.
    *
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache() throws Exception {
 
     @SuppressWarnings("unchecked")
-    final CacheLoaderWriter<String, String> cacheWriter = mock(CacheLoaderWriter.class);
-    doThrow(new UnsupportedOperationException()).when(cacheWriter).delete(anyString());
-    doThrow(new UnsupportedOperationException()).when(cacheWriter).deleteAll(getAnyStringIterable());
-    doThrow(new UnsupportedOperationException()).when(cacheWriter).write(anyString(), anyString());
-    doThrow(new UnsupportedOperationException()).when(cacheWriter).writeAll(getAnyMapEntryIterable());
+    final CacheLoaderWriter<String, String> cacheLoaderWriter = mock(CacheLoaderWriter.class);
+    doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).delete(anyString());
+    doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).deleteAll(getAnyStringIterable());
+    doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).write(anyString(), anyString());
+    doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).writeAll(getAnyMapEntryIterable());
+    doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).load(anyString());
+    doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).loadAll(getAnyStringIterable());
+    
 
-    return this.getEhcache(cacheWriter);
+    return this.getEhcache(cacheLoaderWriter);
   }
 
   /**
-   * Gets an initialized {@link Ehcache Ehcache} instance using a mock
-   * {@link org.ehcache.spi.loader.CacheLoader CacheLoader} instance which throws for
-   * any any method called and the
-   * {@link org.ehcache.spi.writer.CacheLoaderWriter CacheLoaderWriter} provided.
+   * Gets an initialized {@link Ehcache Ehcache} instance using the
+   * {@link CacheLoaderWriter} provided.
    *
    * @param cacheLoaderWriter the {@code CacheLoaderWriter} to use in the {@link org.ehcache.Ehcache Ehcache} instance
    * @return a new {@code Ehcache} instance

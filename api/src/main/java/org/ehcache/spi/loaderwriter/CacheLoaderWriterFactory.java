@@ -46,7 +46,7 @@ public interface CacheLoaderWriterFactory extends Service {
 
   /**
    * Invoked by {@link org.ehcache.CacheManager} when a {@link org.ehcache.Cache} is being removed from it.
-   * @param cacheLoader the {@link org.ehcache.spi.loader.CacheLoader} that was initially associated with
+   * @param cacheLoaderWriter the {@link org.ehcache.spi.loader.CacheLoader} that was initially associated with
    *                    the {@link org.ehcache.Cache} being removed
    */
   void releaseCacheLoaderWriter(CacheLoaderWriter<?, ?> cacheLoaderWriter);

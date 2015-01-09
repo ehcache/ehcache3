@@ -75,7 +75,7 @@
     <!--
       OPTIONAL,
         Let's you configure your cache as a "cache-through",
-        i.e. a Cache that uses a CacheLoader to load on misses, and a CacheWriter on mutative operations.
+        i.e. a Cache that uses a CacheLoaderWriter to load on misses, and write on mutative operations.
     -->
     <ehcache:integration>
       <!--

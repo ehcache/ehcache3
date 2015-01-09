@@ -214,9 +214,9 @@ class Eh107CacheManager implements CacheManager {
     // This code is a little weird. In particular that it doesn't
     // complain if you have config.isReadThrough() true and a null
     // loader -- see https://github.com/jsr107/jsr107tck/issues/59
-    CacheLoaderWriter<? super K, V> cacheLoader = cacheResources.getCacheLoaderWriter();
-    if (cacheLoader != null && (jsr107Config.isReadThrough() || jsr107Config.isWriteThrough())) {
-      cacheLoaderWriterFactory.registerJsr107Loader(cacheName, cacheLoader);
+    CacheLoaderWriter<? super K, V> cacheLoaderWriter = cacheResources.getCacheLoaderWriter();
+    if (cacheLoaderWriter != null && (jsr107Config.isReadThrough() || jsr107Config.isWriteThrough())) {
+      cacheLoaderWriterFactory.registerJsr107Loader(cacheName, cacheLoaderWriter);
     }
 
     return builder.buildConfig(jsr107Config.getKeyType(), jsr107Config.getValueType());

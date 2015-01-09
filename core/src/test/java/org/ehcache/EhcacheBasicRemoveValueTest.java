@@ -258,7 +258,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
-    // Broken initial state: CacheWriter check omitted
+    // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_PRESENT));
   }
 
@@ -281,7 +281,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
-    // Broken initial state: CacheWriter check omitted
+    // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.SUCCESS));
   }
 
@@ -333,7 +333,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
-    // Broken initial state: CacheWriter check omitted
+    // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
@@ -359,7 +359,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
-    // Broken initial state: CacheWriter check omitted
+    // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
@@ -428,7 +428,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
-    // Broken initial state: CacheWriter check omitted
+    // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.SUCCESS));
   }
 
@@ -506,7 +506,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
-    // Broken initial state: CacheWriter check omitted
+    // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
@@ -552,7 +552,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
-    // Broken initial state: CacheWriter check omitted
+    // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_PRESENT));
   }
 
@@ -627,7 +627,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
-    // Broken initial state: CacheWriter check omitted
+    // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
@@ -812,10 +812,10 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
 
   /**
    * Gets an initialized {@link org.ehcache.Ehcache Ehcache} instance using the
-   * {@link org.ehcache.spi.writer.CacheWriter CacheWriter} provided.
+   * {@link CacheLoaderWriter} provided.
    *
    * @param cacheLoaderWriter
-   *    the {@code CacheWriter} to use; may be {@code null}
+   *    the {@code CacheLoaderWriter} to use; may be {@code null}
    *
    * @return a new {@code Ehcache} instance
    */

@@ -175,7 +175,11 @@ class CacheResources<K, V> {
       throw mce;
     }
     
-    return new Eh107CacheLoaderWriter<K, V>(cacheLoader, cacheWriter);
+    if (cacheLoader == null && cacheWriter == null) {
+      return null;
+    } else {
+      return new Eh107CacheLoaderWriter<K, V>(cacheLoader, cacheWriter);
+    }
   }
 
   @SuppressWarnings("unchecked")

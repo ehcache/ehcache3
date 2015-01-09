@@ -42,7 +42,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return the value mapped to the key, null if none
    *
    * @throws java.lang.NullPointerException if the provided key is null
-   * @throws CacheLoaderException if the {@link org.ehcache.spi.loader.CacheLoader CacheLoader}
+   * @throws CacheLoaderException if the {@link CacheLoaderWriter}
    * associated with this cache was invoked and threw an {@link Exception}
    */
   V get(K key) throws CacheLoaderException;
@@ -54,7 +54,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @param value the value, may not be null
    *
    * @throws java.lang.NullPointerException if either key or value is null
-   * @throws CacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter} 
+   * @throws CacheWriterException if the {@link CacheLoaderWriter} 
    * associated with this cache threw an {@link Exception}
    * while writing the value for the given key to underlying system of record.
    */
@@ -76,9 +76,9 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @param key the key to remove the value for
    *
    * @throws java.lang.NullPointerException if the provided key is null
-   * @throws CacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter}
-   * associated with this cache threw an {@link Exception}
-   * while removing the value for the given key from underlying system of record.
+   * @throws CacheWriterException if the {@link CacheLoaderWriter} associated
+   * with this cache threw an {@link Exception} while removing the value for the
+   * given key from the underlying system of record.
    */
   void remove(K key) throws CacheWriterException;
 
@@ -99,7 +99,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @param entries key:value pairs to associate
    *
    * @throws NullPointerException if the {@code Map} or any of the contained keys or values are {@code null}.
-   * @throws BulkCacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter}
+   * @throws BulkCacheWriterException if the {@link CacheLoaderWriter}
    * associated with this cache threw an {@link Exception}
    * while writing given key:value pairs to underlying system of record.
    */
@@ -111,7 +111,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @param keys keys to remove values for
    *
    * @throws NullPointerException if the {@code Set} or any of the contained keys are {@code null}.
-   * @throws BulkCacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter}
+   * @throws BulkCacheWriterException if the {@link CacheLoaderWriter}
    * associated with this cache threw an {@link Exception}
    * while removing mappings for given keys from underlying system of record.
    */
@@ -132,10 +132,10 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return the value that was associated with the key, or {@code null} if none
    * 
    * @throws NullPointerException if either key or value is null
-   * @throws CacheLoaderException if the {@link org.ehcache.spi.loader.CacheLoader CacheLoader}
+   * @throws CacheLoaderException if the {@link CacheLoaderWriter}
    * associated with this cache was invoked and threw an {@link Exception} while loading
    * the value for the key
-   * @throws CacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter} 
+   * @throws CacheWriterException if the {@link CacheLoaderWriter} 
    * associated with this cache threw an {@link Exception}
    * while writing the value for the given key to underlying system of record.
    */
@@ -149,7 +149,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return {@code true} if the entry was removed
    * 
    * @throws NullPointerException if either key or value is null
-   * @throws CacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter}
+   * @throws CacheWriterException if the {@link CacheLoaderWriter}
    * associated with this cache threw an {@link Exception} while removing the given key:value mapping
    */
   boolean remove(K key, V value) throws CacheWriterException;
@@ -162,10 +162,10 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return the value that was associated with the key, or {@code null} if none
    * 
    * @throws NullPointerException if either key or value is null
-   * @throws CacheLoaderException if the {@link org.ehcache.spi.loader.CacheLoader CacheLoader}
+   * @throws CacheLoaderException if the {@link CacheLoaderWriter}
    * associated with this cache was invoked and threw an {@link Exception} while loading
    * the value for the key
-   * @throws CacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter}
+   * @throws CacheWriterException if the {@link CacheLoaderWriter}
    * associated with this cache was invoked and threw an {@link Exception}
    * while replacing value for given key on underlying system of record.
    */
@@ -180,10 +180,10 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return {@code true} if the value was replaced
    * 
    * @throws NullPointerException if any of the values, or the key is null
-   * @throws CacheLoaderException if the {@link org.ehcache.spi.loader.CacheLoader CacheLoader}
+   * @throws CacheLoaderException if the {@link CacheLoaderWriter}
    * associated with this cache was invoked and threw an {@link Exception} while loading
    * the value for the key
-   * @throws CacheWriterException if the {@link org.ehcache.spi.writer.CacheWriter CacheWriter}
+   * @throws CacheWriterException if the {@link CacheLoaderWriter}
    * associated with this cache was invoked and threw an {@link Exception}
    * while replacing value for given key on underlying system of record.
   */
