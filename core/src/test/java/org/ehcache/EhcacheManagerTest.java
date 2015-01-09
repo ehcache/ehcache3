@@ -225,16 +225,16 @@ public class EhcacheManagerTest {
   @Test
   public void testLifeCyclesCacheLoaders() {
 
-    final CacheLoaderWriterFactory cacheLoaderFactory = mock(CacheLoaderWriterFactory.class);
+    final CacheLoaderWriterFactory cacheLoaderWriterFactory = mock(CacheLoaderWriterFactory.class);
 
     final CacheConfiguration<Long, Long> barConfig = mock(CacheConfiguration.class);
     when(barConfig.getClassLoader()).thenReturn(getClass().getClassLoader());
     final CacheConfiguration<Integer, CharSequence> fooConfig = mock(CacheConfiguration.class);
     when(fooConfig.getClassLoader()).thenReturn(getClass().getClassLoader());
 
-    CacheLoaderWriter fooLoader = mock(CacheLoaderWriter.class);
+    CacheLoaderWriter fooLoaderWriter = mock(CacheLoaderWriter.class);
 
-    when(cacheLoaderFactory.createCacheLoaderWriter("foo", fooConfig)).thenReturn(fooLoader);
+    when(cacheLoaderWriterFactory.createCacheLoaderWriter("foo", fooConfig)).thenReturn(fooLoaderWriter);
 
     @SuppressWarnings("serial")
     final Configuration cfg = new DefaultConfiguration(
@@ -250,16 +250,16 @@ public class EhcacheManagerTest {
     when(storeProvider
         .createStore(Matchers.<Store.Configuration>anyObject(), Matchers.<ServiceConfiguration[]>anyVararg())).thenReturn(mock);
 
-    final EhcacheManager manager = new EhcacheManager(cfg, new ServiceLocator(cacheLoaderFactory, storeProvider));
+    final EhcacheManager manager = new EhcacheManager(cfg, new ServiceLocator(cacheLoaderWriterFactory, storeProvider));
     manager.init();
 
-    verify(cacheLoaderFactory).createCacheLoaderWriter("bar", barConfig);
-    verify(cacheLoaderFactory).createCacheLoaderWriter("foo", fooConfig);
+    verify(cacheLoaderWriterFactory).createCacheLoaderWriter("bar", barConfig);
+    verify(cacheLoaderWriterFactory).createCacheLoaderWriter("foo", fooConfig);
 
     manager.removeCache("bar");
-    verify(cacheLoaderFactory, never()).releaseCacheLoaderWriter((CacheLoaderWriter<?, ?>)Mockito.anyObject());
+    verify(cacheLoaderWriterFactory, never()).releaseCacheLoaderWriter((CacheLoaderWriter<?, ?>)Mockito.anyObject());
     manager.removeCache("foo");
-    verify(cacheLoaderFactory).releaseCacheLoaderWriter(fooLoader);
+    verify(cacheLoaderWriterFactory).releaseCacheLoaderWriter(fooLoaderWriter);
   }
 
   @Test

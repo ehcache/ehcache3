@@ -16,7 +16,7 @@
 package org.ehcache;
 
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.exceptions.CacheWriterException;
+import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.junit.Test;
@@ -155,7 +155,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link Ehcache#put(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>{@code CacheLoader.write} throws</li>
+   *   <li>{@code CacheLoaderWriter.write} throws</li>
    * </ul>
    */
   @Test
@@ -171,7 +171,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     try {
       ehcache.put("key", "value");
       fail();
-    } catch (CacheWriterException e) {
+    } catch (CacheWritingException e) {
       // Expected
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
@@ -262,7 +262,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.compute} throws</li>
-   *   <li>{@code CacheLoader.write} throws</li>
+   *   <li>{@code CacheLoaderWriter.write} throws</li>
    * </ul>
    */
   @Test
@@ -281,13 +281,13 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     try {
       ehcache.put("key", "value");
       fail();
-    } catch (CacheWriterException e) {
+    } catch (CacheWritingException e) {
       // Expected
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
     ordered.verify(this.cacheLoaderWriter).write(eq("key"), eq("value"));
     ordered.verify(this.spiedResilienceStrategy)
-        .putFailure(eq("key"), eq("value"), any(CacheAccessException.class), any(CacheWriterException.class));
+        .putFailure(eq("key"), eq("value"), any(CacheAccessException.class), any(CacheWritingException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
@@ -362,7 +362,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link Ehcache#put(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
-   *   <li>{@code CacheLoader.write} throws</li>
+   *   <li>{@code CacheLoaderWriter.write} throws</li>
    * </ul>
    */
   @Test
@@ -378,7 +378,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     try {
       ehcache.put("key", "value");
       fail();
-    } catch (CacheWriterException e) {
+    } catch (CacheWritingException e) {
       // Expected
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
@@ -470,7 +470,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>{@code Store.compute} throws</li>
-   *   <li>{@code CacheLoader.write} throws</li>
+   *   <li>{@code CacheLoaderWriter.write} throws</li>
    * </ul>
    */
   @Test
@@ -489,13 +489,13 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     try {
       ehcache.put("key", "value");
       fail();
-    } catch (CacheWriterException e) {
+    } catch (CacheWritingException e) {
       // Expected
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
     ordered.verify(this.cacheLoaderWriter).write(eq("key"), eq("value"));
     ordered.verify(this.spiedResilienceStrategy)
-        .putFailure(eq("key"), eq("value"), any(CacheAccessException.class), any(CacheWriterException.class));
+        .putFailure(eq("key"), eq("value"), any(CacheAccessException.class), any(CacheWritingException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
@@ -503,13 +503,13 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
    * Gets an initialized {@link Ehcache Ehcache} instance using the
    * {@link org.ehcache.spi.writer.CacheLoaderWriter CacheLoaderWriter} provided.
    *
-   * @param cacheWriter
+   * @param cacheLoaderWriter
    *    the {@code CacheLoaderWriter} to use; may be {@code null}
    *
    * @return a new {@code Ehcache} instance
    */
-  private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheWriter) {
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheWriter);
+  private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
+    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter);
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

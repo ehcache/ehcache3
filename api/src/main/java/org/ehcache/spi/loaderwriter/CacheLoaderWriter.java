@@ -17,7 +17,7 @@
 package org.ehcache.spi.loaderwriter;
 
 import java.util.Map;
-import org.ehcache.exceptions.BulkCacheWriterException;
+import org.ehcache.exceptions.BulkCacheWritingException;
 
 /**
  * A CacheLoaderWriter is associated with a given {@link org.ehcache.Cache} instance and will be used to keep it
@@ -26,17 +26,18 @@ import org.ehcache.exceptions.BulkCacheWriterException;
  * Instances of this class have to be thread safe.
  * <p>
  * Any {@link java.lang.Exception} thrown by methods of this interface will be wrapped into a
- * {@link org.ehcache.exceptions.CacheLoaderException} by the {@link org.ehcache.Cache} and will need to be handled by
+ * {@link org.ehcache.exceptions.CacheLoadingException} by the {@link org.ehcache.Cache} and will need to be handled by
  * the user.
  *
- * @see org.ehcache.exceptions.CacheLoaderException
+ * @see org.ehcache.exceptions.CacheLoadingException
+ * 
  * @author Alex Snaps
  */
 public interface CacheLoaderWriter<K, V> {
 
   /**
    * Loads the value to be associated with the given key in the {@link org.ehcache.Cache} using this
-   * {@link org.ehcache.spi.loader.CacheLoader} instance.
+   * {@link CacheLoaderWriter} instance.
    *
    * @param key the key that will map to the {@code value} returned
    * @return the value to be mapped
@@ -45,7 +46,7 @@ public interface CacheLoaderWriter<K, V> {
 
   /**
    * Loads the values to be associated with the keys in the {@link org.ehcache.Cache} using this
-   * {@link org.ehcache.spi.loader.CacheLoader} instance. The returned {@link java.util.Map} should contain
+   * {@link CacheLoaderWriter} instance. The returned {@link java.util.Map} should contain
    * {@code null} mapped keys for values that couldn't be found. Only keys passed in the
    * <code>loadAll</code> method will be mapped.
    * Any other mapping will be ignored
@@ -68,16 +69,16 @@ public interface CacheLoaderWriter<K, V> {
   /**
    * Writes multiple entries to the underlying system of record. These can either be new entries or updates to
    * existing ones. It is legal for this method to result in "partial success" where some subset of the entries
-   * are written. In this case a {@link BulkCacheWriterException} must be thrown (see below)
+   * are written. In this case a {@link BulkCacheWritingException} must be thrown (see below)
    *
    * @param entries the key to value mappings
-   * @throws BulkCacheWriterException This writer must throw this exception to indicate partial success. The exception
+   * @throws BulkCacheWritingException This writer must throw this exception to indicate partial success. The exception
    * declares which keys were actually written (if any)
    * @throws Exception a generic failure. All entries will be considered not written in this case
    *
    * @see org.ehcache.Cache#putAll(java.util.Map)
    */
-  void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws BulkCacheWriterException, Exception;
+  void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception;
 
   /**
    * Deletes a single entry from the underlying system of record.
@@ -90,15 +91,15 @@ public interface CacheLoaderWriter<K, V> {
 
   /**
    * Deletes a set of entry from the underlying system of record. It is legal for this method to result in "partial success" where some subset of the keys
-   * are deleted. In this case a {@link BulkCacheWriterException} must be thrown (see below)
+   * are deleted. In this case a {@link BulkCacheWritingException} must be thrown (see below)
    *
    * @param keys the keys to delete
-   * @throws BulkCacheWriterException This writer must throw this exception to indicate partial success. The exception
+   * @throws BulkCacheWritingException This writer must throw this exception to indicate partial success. The exception
    * declares which keys were actually deleted (if any)
    * @throws Exception a generic failure. All entries will be considered not deleted in this case
    *
    * @see org.ehcache.Cache#removeAll(java.util.Set)
    */
-  void deleteAll(Iterable<? extends K> keys) throws BulkCacheWriterException, Exception;
+  void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException, Exception;
 
 }

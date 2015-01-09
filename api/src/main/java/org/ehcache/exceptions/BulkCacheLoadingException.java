@@ -18,14 +18,15 @@ package org.ehcache.exceptions;
 
 import java.util.Collections;
 import java.util.Map;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
- * Exception thrown by a {@link org.ehcache.Cache} when the {@link org.ehcache.spi.loader.CacheLoader} it uses threw an
+ * Exception thrown by a {@link org.ehcache.Cache} when the {@link CacheLoaderWriter} it uses threw an
  * {@link java.lang.RuntimeException} while bulk loading values for a given set of keys
  *
  * @author Alex Snaps
  */
-public class BulkCacheLoaderException extends CacheLoaderException {
+public class BulkCacheLoadingException extends CacheLoadingException {
 
   private static final long serialVersionUID = -5296309607929568779L;
 
@@ -33,29 +34,29 @@ public class BulkCacheLoaderException extends CacheLoaderException {
   private final Map<?, ?> successes;
 
   /**
-   * Constructs a new BulkCacheLoaderException providing the key set that failed, including the exception loading these
+   * Constructs a new BulkCacheLoadingException providing the key set that failed, including the exception loading these
    * threw, as well as all keys we managed to load a value for, including the value loaded. This latter set of keys was
    * loaded successfully into the {@link org.ehcache.Cache}.
    *
    * @param failures the map of keys to failure encountered while loading the values
    * @param successes the map of keys successfully loaded and their associated values
    */
-  public BulkCacheLoaderException(final Map<?, Exception> failures, final Map<?, ?> successes) {
+  public BulkCacheLoadingException(final Map<?, Exception> failures, final Map<?, ?> successes) {
     this.failures = Collections.unmodifiableMap(failures);
     this.successes = Collections.unmodifiableMap(successes);
   }
 
   /**
-   * Constructs a new BulkCacheLoaderException providing a message, the key set that failed, including the exception
+   * Constructs a new BulkCacheLoadingException providing a message, the key set that failed, including the exception
    * loading these threw, as well as all keys we managed to load a value for, including the value loaded. This latter
    * set of keys was loaded successfully into the {@link org.ehcache.Cache}.
    *
    * @param message the message
    * @param failures the map of keys to failure encountered while loading the values
    * @param successes the map of keys successfully loaded and their associated values
-   * @see org.ehcache.exceptions.BulkCacheLoaderException#BulkCacheLoaderException(java.util.Map, java.util.Map)
+   * @see #BulkCacheLoadingException(java.util.Map, java.util.Map)
    */
-  public BulkCacheLoaderException(final String message, final Map<Object, Exception> failures, final Map<Object, Object> successes) {
+  public BulkCacheLoadingException(final String message, final Map<Object, Exception> failures, final Map<Object, Object> successes) {
     super(message);
     this.failures = Collections.unmodifiableMap(failures);
     this.successes = Collections.unmodifiableMap(successes);

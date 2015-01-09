@@ -64,10 +64,10 @@ public class LoaderWriterSimpleEhcacheTest {
   @Before
   public void setUp() throws Exception {
     CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder();
-    CacheLoaderWriterFactory cacheLoaderFactory = mock(CacheLoaderWriterFactory.class);
+    CacheLoaderWriterFactory cacheLoaderWriterFactory = mock(CacheLoaderWriterFactory.class);
     cacheLoaderWriter = mock(CacheLoaderWriter.class);
-    when(cacheLoaderFactory.createCacheLoaderWriter(anyString(), (CacheConfiguration<Number, CharSequence>) anyObject())).thenReturn((CacheLoaderWriter) cacheLoaderWriter);
-    builder.using(cacheLoaderFactory);
+    when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), (CacheConfiguration<Number, CharSequence>) anyObject())).thenReturn((CacheLoaderWriter) cacheLoaderWriter);
+    builder.using(cacheLoaderWriterFactory);
     cacheManager = builder.build();
     testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
   }

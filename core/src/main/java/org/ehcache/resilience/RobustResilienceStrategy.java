@@ -18,13 +18,13 @@ package org.ehcache.resilience;
 
 import java.util.Map;
 
-import org.ehcache.exceptions.BulkCacheLoaderException;
-import org.ehcache.exceptions.BulkCacheWriterException;
+import org.ehcache.exceptions.BulkCacheLoadingException;
+import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.exceptions.CacheWriterException;
+import org.ehcache.exceptions.CacheLoadingException;
+import org.ehcache.exceptions.CacheWritingException;
 
 import static java.util.Collections.emptyMap;
-import org.ehcache.exceptions.CacheLoaderException;
 
 /**
  *
@@ -51,7 +51,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
-  public V getFailure(K key, CacheAccessException e, CacheLoaderException f) {
+  public V getFailure(K key, CacheAccessException e, CacheLoadingException f) {
     cleanup(key, e);
     throw f;
   }
@@ -68,7 +68,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
-  public void putFailure(K key, V value, CacheAccessException e, CacheWriterException f) {
+  public void putFailure(K key, V value, CacheAccessException e, CacheWritingException f) {
     cleanup(key, e);
     throw f;
   }
@@ -79,7 +79,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
-  public void removeFailure(K key, CacheAccessException e, CacheWriterException f) {
+  public void removeFailure(K key, CacheAccessException e, CacheWritingException f) {
     cleanup(key, e);
     throw f;
   }
@@ -99,7 +99,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
-  public V putIfAbsentFailure(K key, V value, CacheAccessException e, CacheWriterException f) {
+  public V putIfAbsentFailure(K key, V value, CacheAccessException e, CacheWritingException f) {
     cleanup(key, e);
     throw f;
   }
@@ -111,7 +111,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
-  public boolean removeFailure(K key, V value, CacheAccessException e, CacheWriterException f) {
+  public boolean removeFailure(K key, V value, CacheAccessException e, CacheWritingException f) {
     cleanup(key, e);
     throw f;
   }
@@ -123,7 +123,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
-  public V replaceFailure(K key, V value, CacheAccessException e, CacheWriterException f) {
+  public V replaceFailure(K key, V value, CacheAccessException e, CacheWritingException f) {
     cleanup(key, e);
     throw f;
   }
@@ -135,7 +135,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
-  public boolean replaceFailure(K key, V value, V newValue, CacheAccessException e, CacheWriterException f) {
+  public boolean replaceFailure(K key, V value, V newValue, CacheAccessException e, CacheWritingException f) {
     cleanup(key, e);
     throw f;
   }
@@ -153,7 +153,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
-  public Map<K, V> getAllFailure(Iterable<? extends K> keys, CacheAccessException e, BulkCacheLoaderException f) {
+  public Map<K, V> getAllFailure(Iterable<? extends K> keys, CacheAccessException e, BulkCacheLoadingException f) {
     cleanup(keys, e);
     throw f;
   }
@@ -164,7 +164,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
-  public void putAllFailure(Map<? extends K, ? extends V> entries, CacheAccessException e, BulkCacheWriterException f) {
+  public void putAllFailure(Map<? extends K, ? extends V> entries, CacheAccessException e, BulkCacheWritingException f) {
     cleanup(entries.keySet(), e);
     throw f;
   }
@@ -176,7 +176,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
-  public Map<K, V> removeAllFailure(Iterable<? extends K> entries, CacheAccessException e, BulkCacheWriterException f) {
+  public Map<K, V> removeAllFailure(Iterable<? extends K> entries, CacheAccessException e, BulkCacheWritingException f) {
     cleanup(entries, e);
     throw f;
   }

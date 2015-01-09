@@ -120,8 +120,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Gets an initialized {@link Ehcache Ehcache} instance using {@link #cacheLoader}
-   * and {@link #cacheWriter}.
+   * Gets an initialized {@link Ehcache Ehcache} instance using {@link #cacheLoaderWriter}.
    *
    * @return a new {@code Ehcache} instance
    */

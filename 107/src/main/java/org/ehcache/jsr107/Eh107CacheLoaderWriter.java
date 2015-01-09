@@ -28,7 +28,7 @@ import javax.cache.Cache;
 
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
-import org.ehcache.exceptions.BulkCacheWriterException;
+import org.ehcache.exceptions.BulkCacheWritingException;
 
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
@@ -95,7 +95,7 @@ class Eh107CacheLoaderWriter<K, V> implements CacheLoaderWriter<K, V>, Closeable
         // the remaining keys were not written per 107 spec
         Map<?, Exception> failures = failures(allKeys, e);
         Set<?> successes = successes(keys, failures.keySet());
-        throw new BulkCacheWriterException(failures, successes);
+        throw new BulkCacheWritingException(failures, successes);
       }
     }
   }
@@ -143,7 +143,7 @@ class Eh107CacheLoaderWriter<K, V> implements CacheLoaderWriter<K, V>, Closeable
           }
         }
 
-        throw new BulkCacheWriterException(failures, successes);
+        throw new BulkCacheWritingException(failures, successes);
       }
     }
   }

@@ -19,29 +19,30 @@ package org.ehcache.exceptions;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
- * Exception thrown by a {@link org.ehcache.Cache} when the {@link org.ehcache.spi.writer.CacheWriter} it uses threw an
+ * Exception thrown by a {@link org.ehcache.Cache} when the {@link CacheLoaderWriter} it uses threw an
  * exception while bulk writing / removing values for a given set of keys
  *
  * @author Anthony Dahanne
  */
-public class BulkCacheWriterException extends CacheWriterException {
-
+public class BulkCacheWritingException extends CacheWritingException {
+  
   private static final long serialVersionUID = -9019459887947633422L;
 
   private final Map<?, Exception> failures;
   private final Set<?> successes;
 
   /**
-   * Constructs a new BulkCacheWriterException providing the key set that failed, including the exception loading these
+   * Constructs a new BulkCacheWritingException providing the key set that failed, including the exception loading these
    * threw, as well as all keys we managed to write a value for. This latter set of keys was
    * written successfully into the {@link org.ehcache.Cache}.
    *
    * @param failures the map of keys to failure encountered while loading the values
    * @param successes the set of keys successfully written / removed
    */
-  public BulkCacheWriterException(final Map<?, Exception> failures, final Set<?> successes) {
+  public BulkCacheWritingException(final Map<?, Exception> failures, final Set<?> successes) {
     this.failures = Collections.unmodifiableMap(failures);
     this.successes = Collections.unmodifiableSet(successes);
   }

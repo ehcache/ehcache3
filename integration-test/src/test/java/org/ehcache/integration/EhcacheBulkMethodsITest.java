@@ -20,8 +20,8 @@ import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
-import org.ehcache.exceptions.BulkCacheLoaderException;
-import org.ehcache.exceptions.BulkCacheWriterException;
+import org.ehcache.exceptions.BulkCacheLoadingException;
+import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.internal.SystemTimeSource;
@@ -90,13 +90,13 @@ public class EhcacheBulkMethodsITest {
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
         .buildConfig(String.class, String.class);
 
-    CacheLoaderWriterFactory cacheWriterFactory = mock(CacheLoaderWriterFactory.class);
+    CacheLoaderWriterFactory cacheLoaderWriterFactory = mock(CacheLoaderWriterFactory.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
     doThrow(new RuntimeException("We should not have called .write() but .writeAll()")).when(cacheLoaderWriter).write(Matchers
         .anyObject(), Matchers.anyObject());
-    when(cacheWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
+    when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
 
-    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheWriterFactory);
+    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterFactory);
     CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
 
 
@@ -130,14 +130,14 @@ public class EhcacheBulkMethodsITest {
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
         .buildConfig(String.class, String.class);
 
-    CacheLoaderWriterFactory cacheWriterFactory = mock(CacheLoaderWriterFactory.class);
-    CacheLoaderWriter cacheWriterThatThrows = mock(CacheLoaderWriter.class);
-    doThrow(new RuntimeException("We should not have called .write() but .writeAll()")).when(cacheWriterThatThrows).write(Matchers
+    CacheLoaderWriterFactory cacheLoaderWriterFactory = mock(CacheLoaderWriterFactory.class);
+    CacheLoaderWriter cacheLoaderWriterThatThrows = mock(CacheLoaderWriter.class);
+    doThrow(new RuntimeException("We should not have called .write() but .writeAll()")).when(cacheLoaderWriterThatThrows).write(Matchers
         .anyObject(), Matchers.anyObject());
-    doThrow(new Exception("Simulating an exception from the cache writer")).when(cacheWriterThatThrows).writeAll(Matchers.any(Iterable.class));
-    when(cacheWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheWriterThatThrows);
+    doThrow(new Exception("Simulating an exception from the cache writer")).when(cacheLoaderWriterThatThrows).writeAll(Matchers.any(Iterable.class));
+    when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriterThatThrows);
 
-    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheWriterFactory);
+    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterFactory);
     CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
 
 
@@ -152,7 +152,7 @@ public class EhcacheBulkMethodsITest {
     try {
       myCache.putAll(stringStringHashMap);
       fail();
-    } catch (BulkCacheWriterException bcwe) {
+    } catch (BulkCacheWritingException bcwe) {
       assertThat(bcwe.getFailures().size(), is(3));
       assertThat(bcwe.getSuccesses().size(), is(0));
     }
@@ -167,12 +167,12 @@ public class EhcacheBulkMethodsITest {
         .buildConfig(String.class, String.class);
 
 
-    CacheLoaderWriterFactory cacheWriterFactory = mock(CacheLoaderWriterFactory.class);
+    CacheLoaderWriterFactory cacheLoaderWriterFactory = mock(CacheLoaderWriterFactory.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
     doThrow(new RuntimeException("We should not have called .write() but .writeAll()")).when(cacheLoaderWriter).write(Matchers.anyObject(), Matchers.anyObject());
-    when(cacheWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
+    when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
 
-    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheWriterFactory).using(new CustomStoreProvider());
+    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterFactory).using(new CustomStoreProvider());
     CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
 
 
@@ -237,11 +237,11 @@ public class EhcacheBulkMethodsITest {
     CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildConfig(String.class, String.class);
 
-    CacheLoaderWriterFactory cacheLoaderFactory = mock(CacheLoaderWriterFactory.class);
+    CacheLoaderWriterFactory cacheLoaderWriterFactory = mock(CacheLoaderWriterFactory.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
     when(cacheLoaderWriter.load(Matchers.anyObject())).thenThrow(new RuntimeException("We should not have called .load() but .loadAll()"));
-    when(cacheLoaderFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
-    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderFactory);
+    when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
+    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterFactory);
     CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
 
     when(cacheLoaderWriter.loadAll(argThat(hasItem("key0")))).thenReturn( new HashMap(){{put("key0","value0");}});
@@ -269,12 +269,12 @@ public class EhcacheBulkMethodsITest {
     CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildConfig(String.class, String.class);
 
-    CacheLoaderWriterFactory cacheLoaderFactory = mock(CacheLoaderWriterFactory.class);
+    CacheLoaderWriterFactory cacheLoaderWriterFactory = mock(CacheLoaderWriterFactory.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
     when(cacheLoaderWriter.load(Matchers.anyObject())).thenThrow(new RuntimeException("We should not have called .load() but .loadAll()"));
     when(cacheLoaderWriter.loadAll(Matchers.any(Iterable.class))).thenThrow(new Exception("Simulating an exception from the cache loader"));
-    when(cacheLoaderFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
-    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderFactory);
+    when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
+    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterFactory);
     CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
@@ -291,7 +291,7 @@ public class EhcacheBulkMethodsITest {
     try {
       myCache.getAll(fewKeysSet);
       fail();
-    } catch (BulkCacheLoaderException bcwe) {
+    } catch (BulkCacheLoadingException bcwe) {
       // since onHeapStore.bulkComputeIfAbsent sends batches of 1 element,
       assertThat(bcwe.getFailures().size(), is(2));
       assertThat(bcwe.getSuccesses().size(), is(0));
@@ -304,11 +304,11 @@ public class EhcacheBulkMethodsITest {
     CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildConfig(String.class, String.class);
 
-    CacheLoaderWriterFactory cacheLoaderFactory = mock(CacheLoaderWriterFactory.class);
+    CacheLoaderWriterFactory cacheLoaderWriterFactory = mock(CacheLoaderWriterFactory.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
     when(cacheLoaderWriter.load(Matchers.anyObject())).thenThrow(new RuntimeException("We should not have called .load() but .loadAll()"));
-    when(cacheLoaderFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
-    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderFactory).using(new CustomStoreProvider());
+    when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
+    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterFactory).using(new CustomStoreProvider());
     CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
 
     when(cacheLoaderWriter.loadAll(argThat(hasItems("key0", "key2")))).thenReturn( new HashMap(){{put("key0","value0");  put("key2","value2");}});
@@ -371,12 +371,12 @@ public class EhcacheBulkMethodsITest {
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
         .buildConfig(String.class, String.class);
 
-    CacheLoaderWriterFactory cacheWriterFactory = mock(CacheLoaderWriterFactory.class);
+    CacheLoaderWriterFactory cacheLoaderWriterFactory = mock(CacheLoaderWriterFactory.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
     doThrow(new RuntimeException("We should not have called .write() but .writeAll()")).when(cacheLoaderWriter).delete(Matchers.anyObject());
-    when(cacheWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
+    when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
 
-    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheWriterFactory);
+    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterFactory);
     CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
 
 
@@ -417,12 +417,12 @@ public class EhcacheBulkMethodsITest {
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
         .buildConfig(String.class, String.class);
 
-    CacheLoaderWriterFactory cacheWriterFactory = mock(CacheLoaderWriterFactory.class);
-    CacheLoaderWriter cacheWriterThatThrows = mock(CacheLoaderWriter.class);
-    doThrow(new Exception("Simulating an exception from the cache writer")).when(cacheWriterThatThrows).deleteAll(Matchers.any(Iterable.class));
-    when(cacheWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheWriterThatThrows);
+    CacheLoaderWriterFactory cacheLoaderWriterFactory = mock(CacheLoaderWriterFactory.class);
+    CacheLoaderWriter cacheLoaderWriterThatThrows = mock(CacheLoaderWriter.class);
+    doThrow(new Exception("Simulating an exception from the cache writer")).when(cacheLoaderWriterThatThrows).deleteAll(Matchers.any(Iterable.class));
+    when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriterThatThrows);
 
-    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheWriterFactory);
+    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterFactory);
     CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
 
 
@@ -432,7 +432,7 @@ public class EhcacheBulkMethodsITest {
       myCache.put("key" + i, "value" + i);
     }
 
-    doThrow(new RuntimeException("We should not have called .write() but .writeAll()")).when(cacheWriterThatThrows).write(Matchers
+    doThrow(new RuntimeException("We should not have called .write() but .writeAll()")).when(cacheLoaderWriterThatThrows).write(Matchers
         .anyObject(), Matchers.anyObject());
 
     Set<String> fewKeysSet = new HashSet<String>() {
@@ -446,7 +446,7 @@ public class EhcacheBulkMethodsITest {
     try {
       myCache.removeAll(fewKeysSet);
       fail();
-    } catch (BulkCacheWriterException bcwe) {
+    } catch (BulkCacheWritingException bcwe) {
       assertThat(bcwe.getFailures().size(), is(2));
       assertThat(bcwe.getSuccesses().size(), is(0));
     }
@@ -460,11 +460,11 @@ public class EhcacheBulkMethodsITest {
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
         .buildConfig(String.class, String.class);
 
-    CacheLoaderWriterFactory cacheWriterFactory = mock(CacheLoaderWriterFactory.class);
+    CacheLoaderWriterFactory cacheLoaderWriterFactory = mock(CacheLoaderWriterFactory.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
-    when(cacheWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
+    when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
 
-    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheWriterFactory).using(new CustomStoreProvider());
+    CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterFactory).using(new CustomStoreProvider());
     CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
 
 

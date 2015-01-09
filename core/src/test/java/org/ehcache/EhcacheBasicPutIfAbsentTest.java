@@ -17,7 +17,7 @@
 package org.ehcache;
 
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.exceptions.CacheWriterException;
+import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.junit.Test;
@@ -386,7 +386,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link Ehcache#putIfAbsent(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>{@code CacheLoader.write} throws</li>
+   *   <li>{@code CacheLoaderWriter.write} throws</li>
    * </ul>
    */
   @Test
@@ -402,7 +402,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putIfAbsent("key", "value");
       fail();
-    } catch (CacheWriterException e) {
+    } catch (CacheWritingException e) {
       // Expected
     }
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
@@ -414,7 +414,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link Ehcache#putIfAbsent(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
-   *   <li>{@code CacheLoader.write} throws</li>
+   *   <li>{@code CacheLoaderWriter.write} throws</li>
    * </ul>
    */
   @Test
@@ -439,7 +439,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.computeIfPresent} throws</li>
-   *   <li>{@code CacheLoader.write} throws</li>
+   *   <li>{@code CacheLoaderWriter.write} throws</li>
    * </ul>
    */
   @Test
@@ -458,13 +458,13 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putIfAbsent("key", "value");
       fail();
-    } catch (CacheWriterException e) {
+    } catch (CacheWritingException e) {
       // Expected
     }
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     ordered.verify(this.cacheLoaderWriter).write(eq("key"), eq("value"));
     ordered.verify(this.spiedResilienceStrategy)
-        .putIfAbsentFailure(eq("key"), eq("value"), any(CacheAccessException.class), any(CacheWriterException.class));
+        .putIfAbsentFailure(eq("key"), eq("value"), any(CacheAccessException.class), any(CacheWritingException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));
   }
 
@@ -473,7 +473,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>{@code Store.computeIfPresent} throws</li>
-   *   <li>{@code CacheLoader.write} throws</li>
+   *   <li>{@code CacheLoaderWriter.write} throws</li>
    * </ul>
    */
   @Test
@@ -492,13 +492,13 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putIfAbsent("key", "value");
       fail();
-    } catch (CacheWriterException e) {
+    } catch (CacheWritingException e) {
       // Expected
     }
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     ordered.verify(this.cacheLoaderWriter).write(eq("key"), eq("value"));
     ordered.verify(this.spiedResilienceStrategy)
-        .putIfAbsentFailure(eq("key"), eq("value"), any(CacheAccessException.class), any(CacheWriterException.class));
+        .putIfAbsentFailure(eq("key"), eq("value"), any(CacheAccessException.class), any(CacheWritingException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));
   }
 

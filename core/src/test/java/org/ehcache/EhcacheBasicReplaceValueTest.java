@@ -17,7 +17,7 @@
 package org.ehcache;
 
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.exceptions.CacheWriterException;
+import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.junit.Test;
@@ -774,7 +774,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     try {
       ehcache.replace("key", "oldValue", "newValue");
       fail();
-    } catch (CacheWriterException e) {
+    } catch (CacheWritingException e) {
       // Expected
     }
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());

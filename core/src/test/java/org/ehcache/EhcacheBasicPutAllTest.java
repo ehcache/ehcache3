@@ -16,7 +16,7 @@
 
 package org.ehcache;
 
-import org.ehcache.exceptions.BulkCacheWriterException;
+import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
@@ -97,13 +97,13 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
 
   /**
    * A Mockito {@code ArgumentCaptor} for the
-   * {@link org.ehcache.exceptions.BulkCacheWriterException BulkCacheWriterException}
+   * {@link org.ehcache.exceptions.BulkCacheWritingException BulkCacheWritingException}
    * provided to the
-   * {@link org.ehcache.resilience.ResilienceStrategy#putAllFailure(Map, CacheAccessException, BulkCacheWriterException)}
-   *    ResilienceStrategy.putAllFailure(Iterable, CacheAccessException, BulkCacheWriterException)} method.
+   * {@link org.ehcache.resilience.ResilienceStrategy#putAllFailure(Map, CacheAccessException, BulkCacheWritingException)}
+   *    ResilienceStrategy.putAllFailure(Iterable, CacheAccessException, BulkCacheWritingException)} method.
    */
   @Captor
-  private ArgumentCaptor<BulkCacheWriterException> bulkExceptionCaptor;
+  private ArgumentCaptor<BulkCacheWritingException> bulkExceptionCaptor;
 
   @Test
   public void testPutAllNull() throws Exception {
@@ -177,7 +177,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>empty request map</li>
    *    <li>populated {@code Store} (keys not relevant)</li>
-   *    <li>no {@code CacheWriter}</li>
+   *    <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
@@ -202,7 +202,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>empty request map</li>
    *    <li>populated {@code Store} (keys not relevant)</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>no {@code CacheWriter}</li>
+   *    <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
@@ -229,7 +229,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>empty request map</li>
    *    <li>populated {@code Store} (keys not relevant)</li>
-   *    <li>populated {@code CacheWriter} (keys not relevant)</li>
+   *    <li>populated {@code CacheLoaderWriter} (keys not relevant)</li>
    * </ul>
    */
   @Test
@@ -258,7 +258,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>empty request map</li>
    *    <li>populated {@code Store} (keys not relevant)</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheWriter} (keys not relevant)</li>
+   *    <li>populated {@code CacheLoaderWriter} (keys not relevant)</li>
    * </ul>
    */
   @Test
@@ -574,7 +574,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
       assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses.keySet()));
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
@@ -619,7 +619,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -667,7 +667,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -716,7 +716,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
       assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses.keySet()));
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
@@ -764,7 +764,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -785,7 +785,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(Collections.disjoint(bcweSuccesses, bcweFailures.keySet()), is(true));
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses.keySet())));
     assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
-    // TODO: Confirm correctness - BulkCacheWriterException miscategorizes success as failure  (Issue #238)
+    // TODO: Confirm correctness - BulkCacheWritingException miscategorizes success as failure  (Issue #238)
     assertThat(copyWithout(fakeLoaderWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
@@ -825,7 +825,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -846,7 +846,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(Collections.disjoint(bcweSuccesses, bcweFailures.keySet()), is(true));
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses.keySet())));
     assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
-    // TODO: Confirm correctness - BulkCacheWriterException miscategorizes success as failure  (Issue #238)
+    // TODO: Confirm correctness - BulkCacheWritingException miscategorizes success as failure  (Issue #238)
     assertThat(copyWithout(fakeLoaderWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
@@ -883,7 +883,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
       assertThat(e.getSuccesses(), empty());
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(contentUpdates.keySet()));
@@ -927,7 +927,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -974,7 +974,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1133,7 +1133,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
       assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses.keySet()));
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
@@ -1179,7 +1179,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1227,7 +1227,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1276,7 +1276,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
       assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses.keySet()));
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
@@ -1324,7 +1324,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1345,7 +1345,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(Collections.disjoint(bcweSuccesses, bcweFailures.keySet()), is(true));
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses.keySet())));
     assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
-    // TODO: Confirm correctness - BulkCacheWriterException miscategorizes success as failure  (Issue #238)
+    // TODO: Confirm correctness - BulkCacheWritingException miscategorizes success as failure  (Issue #238)
     assertThat(copyWithout(fakeLoaderWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
@@ -1385,7 +1385,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1406,7 +1406,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(Collections.disjoint(bcweSuccesses, bcweFailures.keySet()), is(true));
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses.keySet())));
     assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
-    // TODO: Confirm correctness - BulkCacheWriterException miscategorizes success as failure  (Issue #238)
+    // TODO: Confirm correctness - BulkCacheWritingException miscategorizes success as failure  (Issue #238)
     assertThat(copyWithout(fakeLoaderWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
@@ -1442,7 +1442,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
       assertThat(e.getSuccesses(), empty());
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(contentUpdates.keySet()));
@@ -1486,7 +1486,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1533,7 +1533,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1692,7 +1692,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
       assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses.keySet()));
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
@@ -1738,7 +1738,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1786,7 +1786,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1835,7 +1835,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
       assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses.keySet()));
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
@@ -1884,7 +1884,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1906,7 +1906,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(Collections.disjoint(bcweSuccesses, bcweFailures.keySet()), is(true));
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses.keySet())));
     assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
-    // TODO: Confirm correctness - BulkCacheWriterException miscategorizes success as failure  (Issue #238)
+    // TODO: Confirm correctness - BulkCacheWritingException miscategorizes success as failure  (Issue #238)
     assertThat(copyWithout(fakeLoaderWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
@@ -1946,7 +1946,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1968,7 +1968,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(Collections.disjoint(bcweSuccesses, bcweFailures.keySet()), is(true));
     assertThat(bcweSuccesses, everyItem(isIn(expectedSuccesses.keySet())));
     assertThat(expectedFailures, everyItem(isIn(bcweFailures.keySet())));
-    // TODO: Confirm correctness - BulkCacheWriterException miscategorizes success as failure  (Issue #238)
+    // TODO: Confirm correctness - BulkCacheWritingException miscategorizes success as failure  (Issue #238)
     assertThat(copyWithout(fakeLoaderWriter.getEntryMap(), bcweFailures.keySet()),
         equalTo(copyWithout(union(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
@@ -2004,7 +2004,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
       assertThat(e.getSuccesses(), empty());
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(contentUpdates.keySet()));
@@ -2049,7 +2049,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -2097,7 +2097,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.putAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -2201,8 +2201,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * @param contentUpdates the {@code Map} provided to the {@link org.ehcache.Ehcache#putAll(java.util.Map)} call in the test
    * @param expectedFailures the {@code Set} of failing keys expected for the test
    * @param expectedSuccesses the {@code Set} of successful keys expected for the test
-   * @param bcweSuccesses the {@code Set} from {@link org.ehcache.exceptions.BulkCacheWriterException#getSuccesses()}
-   * @param bcweFailures the {@code Map} from {@link org.ehcache.exceptions.BulkCacheWriterException#getFailures()}
+   * @param bcweSuccesses the {@code Set} from {@link org.ehcache.exceptions.BulkCacheWritingException#getSuccesses()}
+   * @param bcweFailures the {@code Map} from {@link org.ehcache.exceptions.BulkCacheWritingException#getFailures()}
    */
   private void dumpResults(
       final FakeStore fakeStore,

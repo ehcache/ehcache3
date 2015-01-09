@@ -67,9 +67,9 @@ class CacheResources<K, V> {
     }
   }
 
-  CacheResources(String cacheName, CacheLoaderWriter<? super K, V> cacheLoader, Eh107Expiry<K, V> expiry) {
+  CacheResources(String cacheName, CacheLoaderWriter<? super K, V> cacheLoaderWriter, Eh107Expiry<K, V> expiry) {
     this.cacheName = cacheName;
-    this.cacheLoaderWriter = cacheLoader;
+    this.cacheLoaderWriter = cacheLoaderWriter;
     this.expiryPolicy = expiry;
   }
 

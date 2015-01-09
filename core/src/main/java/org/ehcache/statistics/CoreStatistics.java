@@ -121,20 +121,20 @@ public interface CoreStatistics {
   public Latency removeLatency();
   
   /**
-   * Latency of get with cache loader
+   * Latency of get with cache loading
    * @return the latency
    */
-  public Latency getWithLoaderLatency();
+  public Latency getWithLoadingLatency();
   
   /**
-   * Latency of get without cache loader
+   * Latency of get without cache loading
    * @return the latency
    */
-  public Latency getNoLoaderLatency();
+  public Latency getNoLoadingLatency();
   
   /**
-   * Latency of cache loader
+   * Latency of cache loading
    * @return the latency
    */
-  public Latency cacheLoaderLatency();
+  public Latency cacheLoadingLatency();
 }

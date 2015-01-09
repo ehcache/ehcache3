@@ -18,7 +18,7 @@ package org.ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.events.StoreEventListener;
-import org.ehcache.exceptions.BulkCacheWriterException;
+import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
@@ -718,8 +718,8 @@ public abstract class EhcacheBasicCrudBase {
   }
 
   /**
-   * Provides a basic {@link org.ehcache.spi.writer.CacheWriter} implementation for
-   * testing.  The contract implemented by this {@code CacheWriter} may not be strictly
+   * Provides a basic {@link CacheLoaderWriter} implementation for
+   * testing.  The contract implemented by this {@code CacheLoaderWriter} may not be strictly
    * conformant but should be sufficient for {@code Ehcache} implementation testing.
    */
   protected static class FakeCacheLoaderWriter implements CacheLoaderWriter<String, String> {
@@ -734,7 +734,7 @@ public abstract class EhcacheBasicCrudBase {
     /**
      * The entry key causing the {@link #writeAll(Iterable)} and {@link #deleteAll(Iterable)}
      * methods to fail by throwing an exception <i>other</i> than a
-     * {@link org.ehcache.exceptions.BulkCacheWriterException BulkCacheWriterException}.
+     * {@link org.ehcache.exceptions.BulkCacheWritingException BulkCacheWritingException}.
      *
      * @see #setCompleteFailureKey
      */
@@ -761,7 +761,7 @@ public abstract class EhcacheBasicCrudBase {
     /**
      * Sets the key causing the {@link #writeAll(Iterable)} and {@link #deleteAll(Iterable)}
      * methods to throw an exception <i>other</i> that a
-     * {@link org.ehcache.exceptions.BulkCacheWriterException BulkCacheWriterException}.
+     * {@link org.ehcache.exceptions.BulkCacheWritingException BulkCacheWritingException}.
      * <p/>
      * If a complete failure is recognized, the cache image maintained by this instance
      * is in an inconsistent state.
@@ -783,8 +783,8 @@ public abstract class EhcacheBasicCrudBase {
      * {@inheritDoc}
      * <p/>
      * If this method throws an exception <i>other</i> than a
-     * {@link org.ehcache.exceptions.BulkCacheWriterException BulkCacheWriterException}, the
-     * cache image maintained by this {@code CacheWriter} is in an inconsistent state.
+     * {@link org.ehcache.exceptions.BulkCacheWritingException BulkCacheWritingException}, the
+     * cache image maintained by this {@code CacheLoaderWriter} is in an inconsistent state.
      */
     @Override
     public void writeAll(final Iterable<? extends Map.Entry<? extends String, ? extends String>> entries)
@@ -808,7 +808,7 @@ public abstract class EhcacheBasicCrudBase {
       }
 
       if (!failures.isEmpty()) {
-        throw new BulkCacheWriterException(failures, successes);
+        throw new BulkCacheWritingException(failures, successes);
       }
     }
 
@@ -822,8 +822,8 @@ public abstract class EhcacheBasicCrudBase {
      * {@inheritDoc}
      * <p/>
      * If this method throws an exception <i>other</i> than a
-     * {@link org.ehcache.exceptions.BulkCacheWriterException BulkCacheWriterException}, the
-     * cache image maintained by this {@code CacheWriter} is in an inconsistent state.
+     * {@link org.ehcache.exceptions.BulkCacheWritingException BulkCacheWritingException}, the
+     * cache image maintained by this {@code CacheLoaderWriter} is in an inconsistent state.
      */
     @Override
     public void deleteAll(final Iterable<? extends String> keys) throws Exception {
@@ -844,7 +844,7 @@ public abstract class EhcacheBasicCrudBase {
       }
 
       if (!failures.isEmpty()) {
-        throw new BulkCacheWriterException(failures, successes);
+        throw new BulkCacheWritingException(failures, successes);
       }
     }
 

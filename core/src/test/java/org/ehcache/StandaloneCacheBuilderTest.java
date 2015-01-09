@@ -20,7 +20,7 @@ import static org.junit.Assert.assertNotNull;
 
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.StandaloneCacheConfiguration;
-import org.ehcache.exceptions.BulkCacheWriterException;
+import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.statistics.CacheStatistics;
 import org.junit.Test;
@@ -142,7 +142,7 @@ public class StandaloneCacheBuilderTest {
     }
 
     @Override
-    public void putAll(Map<? extends K, ? extends V> entries) throws BulkCacheWriterException {
+    public void putAll(Map<? extends K, ? extends V> entries) throws BulkCacheWritingException {
       throw new UnsupportedOperationException("Implement me!");
     }
 

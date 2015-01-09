@@ -16,7 +16,7 @@
 
 package org.ehcache;
 
-import org.ehcache.exceptions.BulkCacheWriterException;
+import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
@@ -81,13 +81,13 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
   /**
    * A Mockito {@code ArgumentCaptor} for the
-   * {@link org.ehcache.exceptions.BulkCacheWriterException BulkCacheWriterException}
+   * {@link org.ehcache.exceptions.BulkCacheWritingException BulkCacheWritingException}
    * provided to the
-   * {@link org.ehcache.resilience.ResilienceStrategy#removeAllFailure(Iterable, CacheAccessException, BulkCacheWriterException)}
-   *    ResilienceStrategy.putAllFailure(Iterable, CacheAccessException, BulkCacheWriterException)} method.
+   * {@link org.ehcache.resilience.ResilienceStrategy#removeAllFailure(Iterable, CacheAccessException, BulkCacheWritingException)}
+   *    ResilienceStrategy.putAllFailure(Iterable, CacheAccessException, BulkCacheWritingException)} method.
    */
   @Captor
-  private ArgumentCaptor<BulkCacheWriterException> bulkExceptionCaptor;
+  private ArgumentCaptor<BulkCacheWritingException> bulkExceptionCaptor;
 
 
   @Test
@@ -533,7 +533,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
       assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses));
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
@@ -578,7 +578,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -626,7 +626,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -675,7 +675,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
       assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses));
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
@@ -723,7 +723,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -783,7 +783,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -839,7 +839,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
       assertThat(e.getSuccesses(), empty());
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(contentUpdates));
@@ -883,7 +883,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -929,7 +929,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1087,7 +1087,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
       assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses));
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
@@ -1133,7 +1133,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1181,7 +1181,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1230,7 +1230,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
       assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses));
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
@@ -1278,7 +1278,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1339,7 +1339,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1396,7 +1396,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
       assertThat(e.getSuccesses(), empty());
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(contentUpdates));
@@ -1440,7 +1440,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1486,7 +1486,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1644,7 +1644,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
       assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses));
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
@@ -1690,7 +1690,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1738,7 +1738,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1787,7 +1787,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
       assertThat(e.getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses));
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
@@ -1836,7 +1836,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1898,7 +1898,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -1956,7 +1956,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
       assertThat(e.getSuccesses(), empty());
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(contentUpdates));
@@ -2001,7 +2001,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -2048,7 +2048,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     try {
       ehcache.removeAll(contentUpdates);
       fail();
-    } catch (BulkCacheWriterException e) {
+    } catch (BulkCacheWritingException e) {
       // Expected
     }
 
@@ -2150,8 +2150,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * @param contentUpdates the {@code Set} provided to the {@link Ehcache#removeAll(java.util.Set)} call in the test
    * @param expectedFailures the {@code Set} of failing keys expected for the test
    * @param expectedSuccesses the {@code Set} of successful keys expected for the test
-   * @param bcweSuccesses the {@code Set} from {@link org.ehcache.exceptions.BulkCacheWriterException#getSuccesses()}
-   * @param bcweFailures the {@code Map} from {@link org.ehcache.exceptions.BulkCacheWriterException#getFailures()}
+   * @param bcweSuccesses the {@code Set} from {@link org.ehcache.exceptions.BulkCacheWritingException#getSuccesses()}
+   * @param bcweFailures the {@code Map} from {@link org.ehcache.exceptions.BulkCacheWritingException#getFailures()}
    */
   private void dumpResults(
       final FakeStore fakeStore,

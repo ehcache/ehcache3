@@ -16,29 +16,31 @@
 
 package org.ehcache.exceptions;
 
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+
 /**
- * Exception thrown by a {@link org.ehcache.Cache} when the {@link org.ehcache.spi.loader.CacheLoader} it uses threw an
- * {@link java.lang.Exception} while loading a value for a given key
+ * Exception thrown by a {@link org.ehcache.Cache} when the {@link CacheLoaderWriter} it uses threw an
+ * {@link java.lang.Exception} while writing a value for a given key
+ *
  * @author Alex Snaps
  */
-public class CacheLoaderException extends RuntimeException {
+public class CacheWritingException extends RuntimeException {
 
-  private static final long serialVersionUID = 4794738044299044587L;
+  private static final long serialVersionUID = -3547750364991417531L;
 
-  CacheLoaderException() {
+  CacheWritingException() {
     super();
   }
 
-  CacheLoaderException(final String message) {
+  CacheWritingException(final String message) {
     super(message);
   }
 
-  CacheLoaderException(final String message, final Throwable cause) {
+  CacheWritingException(final String message, final Throwable cause) {
     super(message, cause);
   }
 
-  CacheLoaderException(final Throwable cause) {
+  CacheWritingException(final Throwable cause) {
     super(cause);
   }
-
 }

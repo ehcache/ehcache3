@@ -129,14 +129,14 @@ public class StatisticsGateway implements CacheStatistics {
    */
   @Override
   public float getAverageGetTime() {
-    float avgGetWithLoader = core.getWithLoaderLatency().average().value().floatValue();
-    float avgGetWithoutCountingLoader = avgGetWithLoader - core.cacheLoaderLatency().average().value().floatValue();
-    float avgGetNoLoader = core.getNoLoaderLatency().average().value().floatValue();
+    float avgGetWithLoading = core.getWithLoadingLatency().average().value().floatValue();
+    float avgGetWithoutCountingLoading = avgGetWithLoading - core.cacheLoadingLatency().average().value().floatValue();
+    float avgGetNoLoading = core.getNoLoadingLatency().average().value().floatValue();
     
-    long getNoLoaderCount = extended.getNoLoader().count().value().longValue();
-    long getWithLoaderCount = extended.getWithLoader().count().value().longValue();
+    long getNoLoadingCount = extended.getNoLoading().count().value().longValue();
+    long getWithLoadingCount = extended.getWithLoading().count().value().longValue();
         
-    return ((avgGetWithoutCountingLoader * getWithLoaderCount + avgGetNoLoader * getNoLoaderCount) / (getNoLoaderCount + getWithLoaderCount)) / 1000;
+    return ((avgGetWithoutCountingLoading * getWithLoadingCount + avgGetNoLoading * getNoLoadingCount) / (getNoLoadingCount + getWithLoadingCount)) / 1000;
   }
 
   @Override

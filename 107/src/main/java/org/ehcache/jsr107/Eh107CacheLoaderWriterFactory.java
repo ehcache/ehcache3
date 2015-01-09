@@ -52,7 +52,7 @@ class Eh107CacheLoaderWriterFactory extends DefaultCacheLoaderWriterFactory {
   }
 
   @Override
-  public void releaseCacheLoaderWriter(CacheLoaderWriter<?, ?> cacheLoader) {
+  public void releaseCacheLoaderWriter(CacheLoaderWriter<?, ?> cacheLoaderWriter) {
     //
   }
 

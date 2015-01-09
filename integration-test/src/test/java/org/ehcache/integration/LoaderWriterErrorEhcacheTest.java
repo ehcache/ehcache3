@@ -20,8 +20,8 @@ import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
-import org.ehcache.exceptions.BulkCacheLoaderException;
-import org.ehcache.exceptions.CacheLoaderException;
+import org.ehcache.exceptions.BulkCacheLoadingException;
+import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
 import org.junit.After;
@@ -37,8 +37,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.ehcache.exceptions.BulkCacheWriterException;
-import org.ehcache.exceptions.CacheWriterException;
+import org.ehcache.exceptions.BulkCacheWritingException;
+import org.ehcache.exceptions.CacheWritingException;
 
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;
@@ -69,10 +69,10 @@ public class LoaderWriterErrorEhcacheTest {
   @Before
   public void setUp() throws Exception {
     CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder();
-    CacheLoaderWriterFactory cacheLoaderFactory = mock(CacheLoaderWriterFactory.class);
+    CacheLoaderWriterFactory cacheLoaderWriterFactory = mock(CacheLoaderWriterFactory.class);
     cacheLoaderWriter = mock(CacheLoaderWriter.class);
-    when(cacheLoaderFactory.createCacheLoaderWriter(anyString(), (CacheConfiguration<Number, CharSequence>) anyObject())).thenReturn((CacheLoaderWriter) cacheLoaderWriter);
-    builder.using(cacheLoaderFactory);
+    when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), (CacheConfiguration<Number, CharSequence>) anyObject())).thenReturn((CacheLoaderWriter) cacheLoaderWriter);
+    builder.using(cacheLoaderWriterFactory);
     cacheManager = builder.build();
     testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
   }
@@ -90,8 +90,8 @@ public class LoaderWriterErrorEhcacheTest {
 
     try {
       testCache.get(1);
-      fail("expected CacheLoaderException");
-    } catch (CacheLoaderException ex) {
+      fail("expected CacheLoadingException");
+    } catch (CacheLoadingException ex) {
       // expected
     }
 
@@ -131,8 +131,8 @@ public class LoaderWriterErrorEhcacheTest {
 
     try {
       testCache.getAll(new HashSet<Number>(Arrays.asList(1, 2, 3, 4)));
-      fail("expected BulkCacheLoaderException");
-    } catch (BulkCacheLoaderException ex) {
+      fail("expected BulkCacheLoadingException");
+    } catch (BulkCacheLoadingException ex) {
       assertThat(ex.getFailures().size(), is(1));
       assertThat(ex.getFailures().get(2), is(notNullValue()));
       assertThat(ex.getSuccesses().size(), is(lessThan(4)));
@@ -146,8 +146,8 @@ public class LoaderWriterErrorEhcacheTest {
 
     try {
       testCache.put(1, "one");
-      fail("expected CacheWriterException");
-    } catch (CacheWriterException ex) {
+      fail("expected CacheWritingException");
+    } catch (CacheWritingException ex) {
       // expected
     }
   }
@@ -158,8 +158,8 @@ public class LoaderWriterErrorEhcacheTest {
 
     try {
       testCache.remove(1);
-      fail("expected CacheWriterException");
-    } catch (CacheWriterException ex) {
+      fail("expected CacheWritingException");
+    } catch (CacheWritingException ex) {
       // expected
     }
   }
@@ -193,8 +193,8 @@ public class LoaderWriterErrorEhcacheTest {
 
     try {
       testCache.removeAll(new HashSet<Number>(Arrays.asList(1, 2, 3, 4)));
-      fail("expected CacheWriterException");
-    } catch (BulkCacheWriterException ex) {
+      fail("expected CacheWritingException");
+    } catch (BulkCacheWritingException ex) {
       assertThat(ex.getFailures().size(), is(1));
       assertThat(ex.getFailures().get(2), is(notNullValue()));
       assertThat(ex.getSuccesses().size(), is(3));
@@ -224,8 +224,8 @@ public class LoaderWriterErrorEhcacheTest {
     testCache.put(1, "one");
     try {
       testCache.remove(1, "one");
-      fail("expected CacheWriterException");
-    } catch (CacheWriterException ex) {
+      fail("expected CacheWritingException");
+    } catch (CacheWritingException ex) {
       // expected
     }
   }
@@ -237,8 +237,8 @@ public class LoaderWriterErrorEhcacheTest {
     testCache.put(1, "one");
     try {
       testCache.replace(1, "one#2");
-      fail("expected CacheWriterException");
-    } catch (CacheWriterException ex) {
+      fail("expected CacheWritingException");
+    } catch (CacheWritingException ex) {
       // expected
     }
   }
@@ -257,8 +257,8 @@ public class LoaderWriterErrorEhcacheTest {
     testCache.put(1, "one");
     try {
       testCache.replace(1, "one", "one#2");
-      fail("expected CacheWriterException");
-    } catch (CacheWriterException ex) {
+      fail("expected CacheWritingException");
+    } catch (CacheWritingException ex) {
       // expected
     }
   }
@@ -284,8 +284,8 @@ public class LoaderWriterErrorEhcacheTest {
 
     try {
       testCache.putIfAbsent(1, "one");
-      fail("expected CacheWriterException");
-    } catch (CacheWriterException ex) {
+      fail("expected CacheWritingException");
+    } catch (CacheWritingException ex) {
       // expected
     }
 
@@ -304,8 +304,8 @@ public class LoaderWriterErrorEhcacheTest {
 
     try {
       testCache.putAll(values);
-      fail("expected CacheWriterException");
-    } catch (CacheWriterException ex) {
+      fail("expected CacheWritingException");
+    } catch (CacheWritingException ex) {
       // expected
     }
   }

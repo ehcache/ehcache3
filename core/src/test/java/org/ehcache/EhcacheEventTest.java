@@ -41,7 +41,7 @@ import org.ehcache.event.EventType;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.exceptions.CacheWriterException;
+import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
@@ -178,7 +178,7 @@ public class EhcacheEventTest {
     verify(eventNotifier, never()).onEvent(any(CacheEvent.class));
   }
   
-  @Test(expected=CacheWriterException.class)
+  @Test(expected=CacheWritingException.class)
   public void testPutThrowsOnWrite() throws Exception {
     when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
@@ -211,7 +211,7 @@ public class EhcacheEventTest {
     verify(eventNotifier).onEvent(eventMatching(EventType.REMOVED, key, value, value));
   }
   
-  @Test(expected=CacheWriterException.class)
+  @Test(expected=CacheWritingException.class)
   public void testRemoveThrowsOnWrite() throws Exception {
     when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
@@ -247,7 +247,7 @@ public class EhcacheEventTest {
     verify(eventNotifier).onEvent(eventMatching(EventType.UPDATED, key, newValue, oldValue));
   }
   
-  @Test(expected=CacheWriterException.class)
+  @Test(expected=CacheWritingException.class)
   public void testReplaceThrowsOnWrite() throws Exception {
     final String expected = "old";
     when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
@@ -318,7 +318,7 @@ public class EhcacheEventTest {
     verify(eventNotifier, never()).onEvent(any(CacheEvent.class));
   }
   
-  @Test(expected=CacheWriterException.class)
+  @Test(expected=CacheWritingException.class)
   public void testThreeArgReplaceThrowsOnWrite() throws Exception {
     when(store.computeIfPresent(any(Number.class), anyBiFunction(), any(NullaryFunction.class))).thenAnswer(new Answer<Object>() {
       @Override
@@ -348,7 +348,7 @@ public class EhcacheEventTest {
     verify(eventNotifier).onEvent(eventMatching(EventType.CREATED, key, "foo", null));
   }
   
-  @Test(expected=CacheWriterException.class)
+  @Test(expected=CacheWritingException.class)
   public void testPutIfAbsentThrowsOnWrite() throws Exception {
     when(store.computeIfAbsent(any(Number.class), anyFunction())).thenAnswer(new Answer<Object>() {
       @Override
@@ -412,7 +412,7 @@ public class EhcacheEventTest {
     verify(eventNotifier, never()).onEvent(any(CacheEvent.class));
   }
   
-  @Test(expected=CacheWriterException.class)
+  @Test(expected=CacheWritingException.class)
   public void testTwoArgRemoveThrowsOnWrite() throws Exception {
     final String expected = "foo";
     when(store.computeIfPresent(any(Number.class), anyBiFunction(), any(NullaryFunction.class))).thenAnswer(new Answer<Object>() {

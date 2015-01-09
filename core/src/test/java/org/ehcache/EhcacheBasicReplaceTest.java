@@ -16,7 +16,7 @@
 package org.ehcache;
 
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.exceptions.CacheWriterException;
+import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.junit.Test;
@@ -90,11 +90,11 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>no {@code CacheWriter}</li>
+   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testReplaceNoStoreEntryNoCacheWriter() throws Exception {
+  public void testReplaceNoStoreEntryNoCacheLoaderWriter() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
@@ -111,11 +111,11 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>key not present via {@code CacheWriter}</li>
+   *   <li>key not present via {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testReplaceNoStoreEntryNoCacheWriterEntry() throws Exception {
+  public void testReplaceNoStoreEntryNoCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
@@ -134,11 +134,11 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>key present via {@code CacheWriter}</li>
+   *   <li>key present via {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testReplaceNoStoreEntryHasCacheWriterEntry() throws Exception {
+  public void testReplaceNoStoreEntryHasCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
@@ -157,11 +157,11 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>{@code CacheLoader.write} throws</li>
+   *   <li>{@code CacheLoaderWriter.write} throws</li>
    * </ul>
    */
   @Test
-  public void testReplaceNoStoreEntryCacheWriterException() throws Exception {
+  public void testReplaceNoStoreEntryCacheWritingException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
@@ -183,11 +183,11 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.computeIfPresent} throws</li>
-   *   <li>no {@code CacheWriter}</li>
+   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testReplaceNoStoreEntryCacheAccessExceptionNoCacheWriter() throws Exception {
+  public void testReplaceNoStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
@@ -205,11 +205,11 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.computeIfPresent} throws</li>
-   *   <li>key not present via {@code CacheWriter}</li>
+   *   <li>key not present via {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testReplaceNoStoreEntryCacheAccessExceptionNoCacheWriterEntry() throws Exception {
+  public void testReplaceNoStoreEntryCacheAccessExceptionNoCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
@@ -233,11 +233,11 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.computeIfPresent} throws</li>
-   *   <li>key present via {@code CacheWriter}</li>
+   *   <li>key present via {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testReplaceNoStoreEntryCacheAccessExceptionHasCacheWriterEntry() throws Exception {
+  public void testReplaceNoStoreEntryCacheAccessExceptionHasCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
@@ -261,11 +261,11 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.computeIfPresent} throws</li>
-   *   <li>{@code CacheLoader.write} throws</li>
+   *   <li>{@code CacheLoaderWriter.write} throws</li>
    * </ul>
    */
   @Test
-  public void testReplaceNoStoreEntryCacheAccessExceptionCacheWriterException() throws Exception {
+  public void testReplaceNoStoreEntryCacheAccessExceptionCacheWritingException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
@@ -280,13 +280,13 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     try {
       ehcache.replace("key", "value");
       fail();
-    } catch (CacheWriterException e) {
+    } catch (CacheWritingException e) {
       // Expected
     }
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     ordered.verify(this.cacheLoaderWriter).write(eq("key"), any(String.class));
     ordered.verify(this.spiedResilienceStrategy)
-        .replaceFailure(eq("key"), eq("value"), any(CacheAccessException.class), any(CacheWriterException.class));
+        .replaceFailure(eq("key"), eq("value"), any(CacheAccessException.class), any(CacheWritingException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
@@ -294,11 +294,11 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
-   *   <li>no {@code CacheWriter}</li>
+   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testReplaceHasStoreEntryNoCacheWriter() throws Exception {
+  public void testReplaceHasStoreEntryNoCacheLoaderWriter() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
 
@@ -315,11 +315,11 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
-   *   <li>key not present via {@code CacheWriter}</li>
+   *   <li>key not present via {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testReplaceHasStoreEntryNoCacheWriterEntry() throws Exception {
+  public void testReplaceHasStoreEntryNoCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
 
@@ -338,11 +338,11 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
-   *   <li>key present via {@code CacheWriter}</li>
+   *   <li>key present via {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testReplaceHasStoreEntryHasCacheWriterEntry() throws Exception {
+  public void testReplaceHasStoreEntryHasCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
 
@@ -361,11 +361,11 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
-   *   <li>{@code CacheLoader.write} throws</li>
+   *   <li>{@code CacheLoaderWriter.write} throws</li>
    * </ul>
    */
   @Test
-  public void testReplaceHasStoreEntryCacheWriterException() throws Exception {
+  public void testReplaceHasStoreEntryCacheWritingException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
 
@@ -377,7 +377,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     try {
       ehcache.replace("key", "value");
       fail();
-    } catch (CacheWriterException e) {
+    } catch (CacheWritingException e) {
       // Expected
     }
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
@@ -390,11 +390,11 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>{@code Store.computeIfPresent} throws</li>
-   *   <li>no {@code CacheWriter}</li>
+   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testReplaceHasStoreEntryCacheAccessExceptionNoCacheWriter() throws Exception {
+  public void testReplaceHasStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
@@ -412,11 +412,11 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>{@code Store.computeIfPresent} throws</li>
-   *   <li>key not present via {@code CacheWriter}</li>
+   *   <li>key not present via {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testReplaceHasStoreEntryCacheAccessExceptionNoCacheWriterEntry() throws Exception {
+  public void testReplaceHasStoreEntryCacheAccessExceptionNoCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
@@ -441,11 +441,11 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>{@code Store.computeIfPresent} throws</li>
-   *   <li>key present via {@code CacheWriter}</li>
+   *   <li>key present via {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testReplaceHasStoreEntryCacheAccessExceptionHasCacheWriterEntry() throws Exception {
+  public void testReplaceHasStoreEntryCacheAccessExceptionHasCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
@@ -469,11 +469,11 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>{@code Store.computeIfPresent} throws</li>
-   *   <li>{@code CacheLoader.write} throws</li>
+   *   <li>{@code CacheLoaderWriter.write} throws</li>
    * </ul>
    */
   @Test
-  public void testReplaceHasStoreEntryCacheAccessExceptionCacheWriterException() throws Exception {
+  public void testReplaceHasStoreEntryCacheAccessExceptionCacheWritingException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
@@ -488,13 +488,13 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     try {
       ehcache.replace("key", "value");
       fail();
-    } catch (CacheWriterException e) {
+    } catch (CacheWritingException e) {
       // Expected
     }
     verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction());
     ordered.verify(this.cacheLoaderWriter).write(eq("key"), any(String.class));
     ordered.verify(this.spiedResilienceStrategy)
-        .replaceFailure(eq("key"), eq("value"), any(CacheAccessException.class), any(CacheWriterException.class));
+        .replaceFailure(eq("key"), eq("value"), any(CacheAccessException.class), any(CacheWritingException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
   

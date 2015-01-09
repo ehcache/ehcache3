@@ -19,11 +19,12 @@ package org.ehcache.resilience;
 import java.util.Map;
 
 import org.ehcache.Cache;
-import org.ehcache.exceptions.BulkCacheLoaderException;
-import org.ehcache.exceptions.BulkCacheWriterException;
+import org.ehcache.exceptions.BulkCacheLoadingException;
+import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.exceptions.CacheLoaderException;
-import org.ehcache.exceptions.CacheWriterException;
+import org.ehcache.exceptions.CacheLoadingException;
+import org.ehcache.exceptions.CacheWritingException;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
  * A strategy for providing cache resilience in the face of failure.
@@ -35,8 +36,8 @@ import org.ehcache.exceptions.CacheWriterException;
  * exception which will be propagated to the thread calling in to the cache.
  * <p>
  * Resilience in this context refers only to resilience against cache failures
- * and not to resilience against failures of any underlying {@link CacheWriter}
- * or {@link CacheLoader}.  To this end writer or loader failures will only be
+ * and not to resilience against failures of any underlying
+ * {@link CacheLoaderWriter}.  To this end writer or loader failures will only be
  * reported to the strategy in the context of a coincident cache failure.
  * Isolated writer and loader exceptions will be thrown directly.
  * 
@@ -74,7 +75,7 @@ public interface ResilienceStrategy<K, V> {
    * @param f the loader failure
    * @return the value to return from the operation
    */
-  V getFailure(K key, CacheAccessException e, CacheLoaderException f);
+  V getFailure(K key, CacheAccessException e, CacheLoadingException f);
   
   /**
    * Called when a {@link Cache#containsKey(java.lang.Object)} fails due to an
@@ -106,7 +107,7 @@ public interface ResilienceStrategy<K, V> {
    * @param e the cache failure
    * @param f the writer failure
    */
-  void putFailure(K key, V value, CacheAccessException e, CacheWriterException f);
+  void putFailure(K key, V value, CacheAccessException e, CacheWritingException f);
 
   /**
    * Called when a {@link Cache#remove(java.lang.Object)} fails due to an
@@ -126,7 +127,7 @@ public interface ResilienceStrategy<K, V> {
    * @param e the cache failure
    * @param f the writer failure
    */
-  void removeFailure(K key, CacheAccessException e, CacheWriterException f);
+  void removeFailure(K key, CacheAccessException e, CacheWritingException f);
  
   /**
    * Called when a {@link Cache#clear()} fails due to an underlying store
@@ -171,7 +172,7 @@ public interface ResilienceStrategy<K, V> {
    * @param f the writer failure
    * @return the value to return from the operation
    */
-  V putIfAbsentFailure(K key, V value, CacheAccessException e, CacheWriterException f);
+  V putIfAbsentFailure(K key, V value, CacheAccessException e, CacheWritingException f);
   
   /**
    * Called when a {@link Cache#remove(java.lang.Object, java.lang.Object)}
@@ -200,7 +201,7 @@ public interface ResilienceStrategy<K, V> {
    * @param f the writer failure
    * @return the value to return from the operation
    */
-  boolean removeFailure(K key, V value, CacheAccessException e, CacheWriterException f);
+  boolean removeFailure(K key, V value, CacheAccessException e, CacheWritingException f);
   
   /**
    * Called when a {@link Cache#replace(java.lang.Object, java.lang.Object)}
@@ -224,7 +225,7 @@ public interface ResilienceStrategy<K, V> {
    * @param f the writer failure
    * @return the value to return from the operation
    */
-  V replaceFailure(K key, V value, CacheAccessException e, CacheWriterException f);
+  V replaceFailure(K key, V value, CacheAccessException e, CacheWritingException f);
   
   /**
    * Called when a {@link Cache#replace(java.lang.Object, java.lang.Object, java.lang.Object)}
@@ -255,7 +256,7 @@ public interface ResilienceStrategy<K, V> {
    * @param f the writer failure
    * @return the value to return from the operation
    */
-  boolean replaceFailure(K key, V value, V newValue, CacheAccessException e, CacheWriterException f);
+  boolean replaceFailure(K key, V value, V newValue, CacheAccessException e, CacheWritingException f);
   
   /**
    * Called when a {@link Cache#getAll(java.util.Set)} fails on a cache
@@ -288,7 +289,7 @@ public interface ResilienceStrategy<K, V> {
    * @param f the writer failure
    * @return the value to return from the operation
    */
-  Map<K, V> getAllFailure(Iterable<? extends K> keys, CacheAccessException e, BulkCacheLoaderException f);
+  Map<K, V> getAllFailure(Iterable<? extends K> keys, CacheAccessException e, BulkCacheLoadingException f);
   
   /**
    * Called when a {@link Cache#putAll(java.util.Map)} fails due to an
@@ -308,7 +309,7 @@ public interface ResilienceStrategy<K, V> {
    * @param e the cache failure
    * @param f the writer failure
    */
-  void putAllFailure(Map<? extends K, ? extends V> entries, CacheAccessException e, BulkCacheWriterException f);
+  void putAllFailure(Map<? extends K, ? extends V> entries, CacheAccessException e, BulkCacheWritingException f);
 
   /**
    * Called when a {@link Cache#removeAll(java.util.Set)} fails due to an
@@ -330,5 +331,5 @@ public interface ResilienceStrategy<K, V> {
    * @param f the writer failure
    * @return the value to return from the operation
    */
-  Map<K, V> removeAllFailure(Iterable<? extends K> keys, CacheAccessException e, BulkCacheWriterException f);
+  Map<K, V> removeAllFailure(Iterable<? extends K> keys, CacheAccessException e, BulkCacheWritingException f);
 }

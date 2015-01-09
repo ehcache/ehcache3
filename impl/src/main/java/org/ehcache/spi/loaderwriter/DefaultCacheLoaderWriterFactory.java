@@ -36,7 +36,7 @@ public class DefaultCacheLoaderWriterFactory extends ClassInstanceProvider<Cache
   }
 
   @Override
-  public void releaseCacheLoaderWriter(final CacheLoaderWriter<?, ?> cacheLoader) {
+  public void releaseCacheLoaderWriter(final CacheLoaderWriter<?, ?> cacheLoaderWriter) {
     // noop
   }
 
