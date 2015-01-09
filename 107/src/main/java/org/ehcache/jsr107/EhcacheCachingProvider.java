@@ -90,6 +90,7 @@ public class EhcacheCachingProvider implements CachingProvider {
         }
 
         Eh107CacheLoaderWriterFactory cacheLoaderWriterFactory = new Eh107CacheLoaderWriterFactory();
+        Eh107CacheService cacheService = new Eh107CacheService(true);
         Jsr107Service jsr107Service = new DefaultJsr107Service();
 
         ServiceLocator serviceLocator = new ServiceLocator();
@@ -99,7 +100,7 @@ public class EhcacheCachingProvider implements CachingProvider {
         org.ehcache.CacheManager ehcacheManager = new EhcacheManager(config, serviceLocator);
         ehcacheManager.init();
         cacheManager = new Eh107CacheManager(this, ehcacheManager, properties, classLoader, uri, cacheLoaderWriterFactory,
-            config, jsr107Service);
+            config, jsr107Service, cacheService);
         byURI.put(uri, cacheManager);
       }
     }

@@ -16,8 +16,6 @@
 
 package org.ehcache;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.ehcache.config.BaseCacheConfiguration;
@@ -26,7 +24,6 @@ import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.StandaloneCacheConfiguration;
-import org.ehcache.config.service.EhcacheServiceConfiguration;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -34,7 +31,6 @@ import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.SerializationProvider;
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
 
 /**
@@ -53,7 +49,6 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   private SerializationProvider serializationProvider;
   private ScheduledExecutorService statisticsExecutor;
   private CacheEventNotificationService<K, V> cacheEventNotificationService;
-  private boolean noLoadInAtomics;
 
   public StandaloneCacheBuilder(final Class<K> keyType, final Class<V> valueType) {
     this.keyType = keyType;
@@ -70,11 +65,8 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
         capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, expiry, serializationProvider);
     final Store<K, V> store = storeProvider.createStore(storeConfig);
 
-    List<ServiceConfiguration<?>> serviceConfigurations = new ArrayList<ServiceConfiguration<?>>();
-    serviceConfigurations.add(new EhcacheServiceConfiguration().noLoadInAtomics(noLoadInAtomics));
-
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto,
-        evictionPrioritizer, classLoader, expiry, serializationProvider, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
+        evictionPrioritizer, classLoader, expiry, serializationProvider);
     
     final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, cacheEventNotificationService, statisticsExecutor);
 
@@ -143,11 +135,6 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
 
   public final StandaloneCacheBuilder<K, V, T> withCacheEvents(CacheEventNotificationService<K, V> cacheEventNotificationService) {
     this.cacheEventNotificationService = cacheEventNotificationService;
-    return this;
-  }
-
-  public final StandaloneCacheBuilder<K, V, T> withNoLoadInAtomics(boolean noLoadInAtomics) {
-    this.noLoadInAtomics = noLoadInAtomics;
     return this;
   }
 
