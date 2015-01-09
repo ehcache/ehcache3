@@ -146,6 +146,8 @@ public class XmlConfigurationTest {
     assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("example"), notNullValue());
     final CacheConfigurationBuilder<String, String> example = xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, String.class);
     assertThat(example.buildConfig(String.class, String.class).getCapacityConstraint(), Is.<Comparable<Long>>is(120L));
+    assertThat(example.buildConfig(String.class, String.class).getExpiry(),
+        equalTo((Expiry)Expirations.timeToLiveExpiration(new Duration(30, TimeUnit.SECONDS))));
 
     try {
       xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, Number.class);
