@@ -24,7 +24,6 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.writer.CacheWriter;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.hamcrest.Matchers;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -823,7 +822,6 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    <li>all {@link CacheWriter#deleteAll(Iterable)} calls fail</li>
    * </ul>
    */
-  @Ignore("Issue #242")
   @Test
   public void testRemoveAllStoreSomeOverlapWriterNoOverlapAllFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
@@ -849,7 +847,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
-    assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));    // TODO: Confirm correctness (Issue #242)
+    assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));
     verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
@@ -1406,7 +1404,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
-    assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
+    assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));
     verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
@@ -1967,7 +1965,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
-    assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
+    assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));
     verify(this.cacheWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
