@@ -39,8 +39,6 @@ import org.ehcache.Ehcache;
 import org.ehcache.EhcacheHackAccessor;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
-import org.ehcache.config.service.EhcacheService;
-import org.ehcache.config.service.EhcacheServiceConfiguration;
 import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.loader.CacheLoader;
@@ -66,12 +64,11 @@ class Eh107CacheManager implements CacheManager {
   private final Eh107CacheWriterFactory cacheWriterFactory;
   private final Jsr107Service jsr107Service;
   private final org.ehcache.config.Configuration ehConfig;
-  private final EhcacheService ehcacheService;
 
   Eh107CacheManager(EhcacheCachingProvider cachingProvider, org.ehcache.CacheManager ehCacheManager, Properties props,
       ClassLoader classLoader, URI uri, Eh107CacheLoaderFactory cacheLoaderFactory,
       Eh107CacheWriterFactory cacheWriterFactory, org.ehcache.config.Configuration ehConfig,
-      Jsr107Service jsr107Service, EhcacheService ehcacheService) {
+      Jsr107Service jsr107Service) {
     this.cachingProvider = cachingProvider;
     this.ehCacheManager = ehCacheManager;
     this.props = props;
@@ -81,7 +78,6 @@ class Eh107CacheManager implements CacheManager {
     this.cacheWriterFactory = cacheWriterFactory;
     this.ehConfig = ehConfig;
     this.jsr107Service = jsr107Service;
-    this.ehcacheService = ehcacheService;
 
     loadExistingEhcaches();
   }
@@ -219,8 +215,6 @@ class Eh107CacheManager implements CacheManager {
     } else {
       onHeapStoreServiceConfig.storeByValue(jsr107Config.isStoreByValue());
     }
-
-    builder.addServiceConfig(new EhcacheServiceConfiguration().jsr107CompliantAtomics(ehcacheService.jsr107CompliantAtomics()));
 
     // This code is a little weird. In particular that it doesn't
     // complain if you have config.isReadThrough() true and a null
