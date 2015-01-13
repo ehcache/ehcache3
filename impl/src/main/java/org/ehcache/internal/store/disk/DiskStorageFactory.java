@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.store.disk;
 
+import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.store.disk.ods.FileAllocationTree;
 import org.ehcache.internal.store.disk.ods.Region;
@@ -58,24 +59,20 @@ import java.util.concurrent.locks.Lock;
 public class DiskStorageFactory<K, V> {
 
     interface Element<K, V> extends Serializable, Map.Entry<K, DiskValueHolder<V>> {
-
-        boolean isExpired();
-
+        boolean isExpired(TimeSource timeSource);
     }
 
     static class ElementImpl<K, V> implements Element<K, V> {
-        private final TimeSource timeSource;
         private volatile DiskValueHolder<V> valueHolder;
         private final K key;
 
-        public ElementImpl(K key, V value, TimeSource timeSource) {
+        public ElementImpl(K key, V value) {
             this.key = key;
             this.valueHolder = new DiskValueHolderImpl<V>(value);
-            this.timeSource = timeSource;
         }
 
         @Override
-        public boolean isExpired() {
+        public boolean isExpired(TimeSource timeSource) {
             return valueHolder.isExpired(timeSource.getTimeMillis());
         }
 
@@ -97,7 +94,7 @@ public class DiskStorageFactory<K, V> {
         }
     }
 
-    public static class DiskValueHolderImpl<V> implements DiskValueHolder<V>, Serializable {
+    static class DiskValueHolderImpl<V> implements DiskValueHolder<V>, Serializable {
       private final V value;
 
       public DiskValueHolderImpl(V value) {
@@ -160,7 +157,7 @@ public class DiskStorageFactory<K, V> {
     /**
      * The store bound to this factory.
      */
-    protected volatile DiskStore<K, V>                  store;
+    protected volatile DiskStore<K, V> store;
 
     private final BlockingQueue<Runnable> diskQueue;
     /**
@@ -191,6 +188,7 @@ public class DiskStorageFactory<K, V> {
 
     private final TimeSource timeSource;
     private final DiskStorePathManager diskStorePathManager;
+    private final String alias;
 
     private final ClassLoader classLoader;
 
@@ -201,6 +199,7 @@ public class DiskStorageFactory<K, V> {
         this.classLoader = classLoader;
         this.timeSource = timeSource;
         this.diskStorePathManager = diskStorePathManager;
+        this.alias = alias;
         this.file = diskStorePathManager.getFile(alias, ".data");
 
         this.indexFile = diskStorePathManager.getFile(alias, ".index");
@@ -306,7 +305,7 @@ public class DiskStorageFactory<K, V> {
      * @param lock the lock protecting the DiskSubstitute
      * @param substitute DiskSubstitute being freed.
      */
-    public void free(Lock lock, DiskSubstitute substitute) {
+    public void free(Lock lock, DiskSubstitute<K, V> substitute) {
         free(lock, substitute, false);
     }
 
@@ -317,7 +316,7 @@ public class DiskStorageFactory<K, V> {
      * @param substitute DiskSubstitute being freed.
      * @param faultFailure true if this DiskSubstitute should be freed because of a disk failure
      */
-    public void free(Lock lock, DiskSubstitute substitute, boolean faultFailure) {
+    public void free(Lock lock, DiskSubstitute<K, V> substitute, boolean faultFailure) {
         if (substitute instanceof DiskStorageFactory.DiskMarker) {
             if (!faultFailure) {
                 onDisk.decrementAndGet();
@@ -341,7 +340,7 @@ public class DiskStorageFactory<K, V> {
      *
      * @param marker on-disk marker to mark as used
      */
-    protected void markUsed(DiskMarker marker) {
+    protected void markUsed(DiskMarker<K, V> marker) {
         allocator.mark(new Region(marker.getPosition(), marker.getPosition() + marker.getSize() - 1));
     }
 
@@ -970,7 +969,7 @@ public class DiskStorageFactory<K, V> {
     /**
      * Unbinds a store instance from this factory
      */
-    public void unbind() {
+    public void unbind(boolean destroy) {
         try {
             flushTask.call();
         } catch (Throwable t) {
@@ -979,7 +978,7 @@ public class DiskStorageFactory<K, V> {
 
         try {
             shutdown();
-            if (diskStorePathManager.isAutoCreated()) {
+            if (destroy || diskStorePathManager.isAutoCreated()) {
                 deleteFile(indexFile);
                 delete();
             }
@@ -1083,7 +1082,7 @@ public class DiskStorageFactory<K, V> {
         List<DiskSubstitute<K, V>> sample = store.getRandomSample(onDiskFilter, Math.min(SAMPLE_SIZE, size), keyHint);
         DiskSubstitute<K, V> target = null;
         DiskSubstitute<K, V> hintTarget = null;
-        for (DiskSubstitute substitute : sample) {
+        for (DiskSubstitute<K, V> substitute : sample) {
             if ((target == null) || (substitute.getHitRate() < target.getHitRate())) {
                 if (substitute.getKey().equals(keyHint)) {
                     hintTarget = substitute;
@@ -1158,7 +1157,7 @@ public class DiskStorageFactory<K, V> {
                     }
 
                     if (o instanceof DiskMarker) {
-                        DiskMarker marker = (DiskMarker) o;
+                        DiskMarker<K, V> marker = (DiskMarker) o;
                         oos.writeObject(key);
                         oos.writeObject(marker);
                     }
@@ -1203,7 +1202,11 @@ public class DiskStorageFactory<K, V> {
         } catch (Exception e) {
             LOG.warn("Index file {} is corrupt, deleting and ignoring it : {}", indexFile, e);
             LOG.debug("Corrupt index file {} error :", indexFile, e);
-            store.removeAll();
+            try {
+                store.clear();
+            } catch (CacheAccessException cae) {
+                LOG.warn("Error clearing disk store " + alias, cae);
+            }
             deleteFile(indexFile);
         } finally {
             shrinkDataFile();

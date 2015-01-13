@@ -46,7 +46,7 @@ public final class DiskStorePathManager {
     private static final Logger LOG = LoggerFactory.getLogger(DiskStorePathManager.class);
     private static final String LOCK_FILE_NAME = ".ehcache-diskstore.lock";
 
-    private static final String DEFAULT_PATH = "/tmp";
+    private static final String DEFAULT_PATH = System.getProperty("java.io.tmpdir");
 
     private static final int DEL = 0x7F;
     private static final char ESCAPE = '%';
