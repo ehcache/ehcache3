@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.store.disk;
 
+import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.store.disk.ods.FileAllocationTree;
 import org.ehcache.internal.store.disk.ods.Region;
 import org.ehcache.internal.store.disk.utils.CacheException;
@@ -62,18 +63,20 @@ public class DiskStorageFactory<K, V> {
 
     }
 
-    public static class ElementImpl<K, V> implements Element<K, V> {
+    static class ElementImpl<K, V> implements Element<K, V> {
+        private final TimeSource timeSource;
         private volatile DiskValueHolder<V> valueHolder;
         private final K key;
 
-        public ElementImpl(K key, V value) {
+        public ElementImpl(K key, V value, TimeSource timeSource) {
             this.key = key;
             this.valueHolder = new DiskValueHolderImpl<V>(value);
+            this.timeSource = timeSource;
         }
 
         @Override
         public boolean isExpired() {
-            return valueHolder.isExpired(System.currentTimeMillis());
+            return valueHolder.isExpired(timeSource.getTimeMillis());
         }
 
         @Override
@@ -186,6 +189,7 @@ public class DiskStorageFactory<K, V> {
 
     private final boolean diskPersistent;
 
+    private final TimeSource timeSource;
     private final DiskStorePathManager diskStorePathManager;
 
     private final ClassLoader classLoader;
@@ -193,8 +197,9 @@ public class DiskStorageFactory<K, V> {
     /**
      * Constructs an disk persistent factory for the given cache and disk path.
      */
-    public DiskStorageFactory(ClassLoader classLoader, DiskStorePathManager diskStorePathManager, String alias, boolean persistent, int stripes, long queueCapacity, int maxOnDisk, int expiryThreadInterval, boolean clearOnFlush) {
+    public DiskStorageFactory(ClassLoader classLoader, TimeSource timeSource, DiskStorePathManager diskStorePathManager, String alias, boolean persistent, int stripes, long queueCapacity, int maxOnDisk, int expiryThreadInterval, boolean clearOnFlush) {
         this.classLoader = classLoader;
+        this.timeSource = timeSource;
         this.diskStorePathManager = diskStorePathManager;
         this.file = diskStorePathManager.getFile(alias, ".data");
 
@@ -290,7 +295,7 @@ public class DiskStorageFactory<K, V> {
      *
      * @param store store to bind
      */
-    public void bind(DiskStore store) {
+    public void bind(DiskStore<K, V> store) {
         this.store = store;
         loadIndex();
     }
@@ -451,7 +456,7 @@ public class DiskStorageFactory<K, V> {
         return marker;
     }
 
-    private MemoryEfficientByteArrayOutputStream serializeElement(Element element) throws IOException {
+    private MemoryEfficientByteArrayOutputStream serializeElement(Element<K, V> element) throws IOException {
         // A ConcurrentModificationException can occur because Java's serialization
         // mechanism is not threadsafe and POJOs are seldom implemented in a threadsafe way.
         // e.g. we are serializing an ArrayList field while another thread somewhere in the application is appending to it.
@@ -464,7 +469,7 @@ public class DiskStorageFactory<K, V> {
         }
     }
 
-    private DiskMarker<K, V> alloc(Element element, int size) throws IOException {
+    private DiskMarker<K, V> alloc(Element<K, V> element, int size) throws IOException {
         //check for a matching chunk
         Region r = allocator.alloc(size);
         return createMarker(r.start(), size, element);
@@ -862,7 +867,7 @@ public class DiskStorageFactory<K, V> {
          * {@inheritDoc}
          */
         public void run() {
-            long now = System.currentTimeMillis();
+            long now = timeSource.getTimeMillis();
             for (K key : store.keySet()) {
                 DiskSubstitute<K, V> value = store.unretrievedGet(key);
                 if (created(value) && value instanceof DiskStorageFactory.DiskMarker) {
@@ -929,11 +934,11 @@ public class DiskStorageFactory<K, V> {
      * @param object ElementSubstitute to decode
      * @return the decoded element
      */
-    public Element retrieve(DiskSubstitute<K, V> object, Segment segment) {
+    public Element<K, V> retrieve(DiskSubstitute<K, V> object, Segment<K, V> segment) {
         if (object instanceof DiskMarker) {
             try {
                 DiskMarker<K, V> marker = (DiskMarker) object;
-                Element e = read(marker);
+                Element<K, V> e = read(marker);
                 marker.hit(e);
                 return e;
             } catch (IOException e) {
@@ -991,7 +996,7 @@ public class DiskStorageFactory<K, V> {
         return schedule(flushTask);
     }
 
-    private DiskMarker<K, V> createMarker(long position, int size, Element element) {
+    private DiskMarker<K, V> createMarker(long position, int size, Element<K, V> element) {
         return new DiskMarker<K, V>(this, position, size, element);
     }
 
@@ -1007,7 +1012,7 @@ public class DiskStorageFactory<K, V> {
         for (int i = 0; i < count; i++) {
             DiskSubstitute<K, V> target = this.getDiskEvictionTarget(null, count);
             if (target != null) {
-                Element evictedElement = store.evictElement(target.getKey(), null);
+                Element<K, V> evictedElement = store.evictElement(target.getKey(), null);
                 if (evictedElement != null) {
                     evicted++;
                 }
@@ -1065,7 +1070,7 @@ public class DiskStorageFactory<K, V> {
             for (int i = 0; i < Math.min(MAX_EVICT, overflow); i++) {
                 DiskSubstitute<K, V> target = getDiskEvictionTarget(keyHint, size);
                 if (target != null) {
-                    final Element element = store.evictElement(target.getKey(), target);
+                    final Element<K, V> element = store.evictElement(target.getKey(), target);
                     if (element != null && onDisk.get() <= diskCapacity) {
                         break;
                     }
@@ -1197,6 +1202,7 @@ public class DiskStorageFactory<K, V> {
             // end of file reached, stop processing
         } catch (Exception e) {
             LOG.warn("Index file {} is corrupt, deleting and ignoring it : {}", indexFile, e);
+            LOG.debug("Corrupt index file {} error :", indexFile, e);
             store.removeAll();
             deleteFile(indexFile);
         } finally {
