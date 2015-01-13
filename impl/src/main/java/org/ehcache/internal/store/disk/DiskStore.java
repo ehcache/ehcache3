@@ -46,18 +46,18 @@ import static org.terracotta.statistics.StatisticsBuilder.operation;
 public class DiskStore<K, V> implements Store<K, V> {
 
     private final DiskStorageFactory<K, V> diskStorageFactory;
-
-    OperationObserver<CacheOperationOutcomes.EvictionOutcome> evictionOutcomeOperationObserver = operation(CacheOperationOutcomes.EvictionOutcome.class).named("eviction").of(this).build();;
-
+    private final TimeSource timeSource;
     private final Segment<K, V>[] segments;
     private final int segmentShift;
+
+    private final OperationObserver<CacheOperationOutcomes.EvictionOutcome> evictionOutcomeOperationObserver = operation(CacheOperationOutcomes.EvictionOutcome.class).named("eviction").of(this).build();
 
     private volatile Set<? extends K> keySet;
 
 
     public DiskStore(final Configuration<K, V> config, String alias, TimeSource timeSource, boolean storeByValue) {
-        diskStorageFactory = new DiskStorageFactory<K, V>(config.getClassLoader(), new DiskStorePathManager(), alias, true, 16, 16, 0, 30000, false);
-        diskStorageFactory.bind(this);
+        this.timeSource = timeSource;
+        diskStorageFactory = new DiskStorageFactory<K, V>(config.getClassLoader(), timeSource, new DiskStorePathManager(), alias, true, 16, 16, 0, 30000, false);
 
         segments = new Segment[16];
         for (int i = 0; i < segments.length; i++) {
@@ -65,6 +65,8 @@ public class DiskStore<K, V> implements Store<K, V> {
         }
 
         this.segmentShift = Integer.numberOfLeadingZeros(segments.length - 1);
+
+        diskStorageFactory.bind(this);
     }
 
     private static int hash(int hash) {
@@ -97,7 +99,7 @@ public class DiskStore<K, V> implements Store<K, V> {
     @Override
     public void put(K key, V value) throws CacheAccessException {
         int hash = hash(key.hashCode());
-        DiskStorageFactory.Element<K, V> element = new DiskStorageFactory.ElementImpl<K, V>(key, value);
+        DiskStorageFactory.Element<K, V> element = new DiskStorageFactory.ElementImpl<K, V>(key, value, timeSource);
         DiskStorageFactory.Element<K, V> oldElement = segmentFor(hash).put(key, hash, element, false, false);
     }
 
@@ -211,13 +213,13 @@ public class DiskStore<K, V> implements Store<K, V> {
         return null;
     }
 
-    public boolean fault(K key, DiskStorageFactory.Placeholder expect, DiskStorageFactory.DiskMarker fault) {
+    public boolean fault(K key, DiskStorageFactory.Placeholder<K, V> expect, DiskStorageFactory.DiskMarker<K, V> fault) {
         int hash = hash(key.hashCode());
         return segmentFor(hash).fault(key, hash, expect, fault, false);
     }
 
-    public void evict(K key, DiskStorageFactory.DiskSubstitute diskSubstitute) {
-
+    public void evict(K key, DiskStorageFactory.DiskSubstitute<K, V> diskSubstitute) {
+        throw new UnsupportedOperationException();
     }
 
     public DiskStorageFactory.DiskSubstitute<K, V> unretrievedGet(K key) {
@@ -240,19 +242,20 @@ public class DiskStore<K, V> implements Store<K, V> {
     }
 
     public void removeAll() {
-
+        throw new UnsupportedOperationException();
     }
 
-    public boolean putRawIfAbsent(K key, DiskStorageFactory.DiskMarker<K, V> marker) {
-        return false;
+    public boolean putRawIfAbsent(K key, DiskStorageFactory.DiskMarker<K, V> encoded) {
+        int hash = hash(key.hashCode());
+        return segmentFor(hash).putRawIfAbsent(key, hash, encoded);
     }
 
     public List<DiskStorageFactory.DiskSubstitute<K, V>> getRandomSample(ElementSubstituteFilter onDiskFilter, int min, K keyHint) {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
-    public DiskStorageFactory.Element evictElement(K key, DiskStorageFactory.DiskSubstitute target) {
-        return null;
+    public DiskStorageFactory.Element<K, V> evictElement(K key, DiskStorageFactory.DiskSubstitute<K, V> target) {
+        throw new UnsupportedOperationException();
     }
 
 
@@ -342,7 +345,7 @@ public class DiskStore<K, V> implements Store<K, V> {
 
     abstract class HashIterator {
         private int segmentIndex;
-        private java.util.Iterator<HashEntry> currentIterator;
+        private java.util.Iterator<HashEntry<K, V>> currentIterator;
 
         /**
          * Constructs a new HashIterator
@@ -414,7 +417,7 @@ public class DiskStore<K, V> implements Store<K, V> {
 
     }
 
-    private final class KeyIterator extends HashIterator implements java.util.Iterator<K> {
+    class KeyIterator extends HashIterator implements java.util.Iterator<K> {
         /**
          * {@inheritDoc}
          */

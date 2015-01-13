@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.statistics.observer.OperationObserver;
 
-import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -45,7 +44,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class Segment<K, V> extends ReentrantReadWriteLock {
 
     private static final Logger LOG = LoggerFactory.getLogger(Segment.class.getName());
-    private static final HashEntry<?, ?> NULL_HASH_ENTRY = new HashEntry(null, 0, null, null, new AtomicBoolean(false));
+    private static final HashEntry<?, ?> NULL_HASH_ENTRY = new HashEntry<Object, Object>(null, 0, null, null, new AtomicBoolean(false));
 
     private static final float LOAD_FACTOR = 0.75f;
     private static final int MAXIMUM_CAPACITY = Integer.highestOneBit(Integer.MAX_VALUE);
@@ -101,7 +100,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
      * @param loadFactor fraction of capacity at which rehash occurs
      * @param primary primary element substitute factory
      */
-    public Segment(int initialCapacity, float loadFactor, DiskStorageFactory primary,
+    public Segment(int initialCapacity, float loadFactor, DiskStorageFactory<K, V> primary,
                    OperationObserver<CacheOperationOutcomes.EvictionOutcome> evictionObserver) {
         this.evictionObserver = evictionObserver;
         this.table = new HashEntry[initialCapacity];
@@ -111,49 +110,46 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
     }
 
     private HashEntry<K, V> getFirst(int hash) {
-        HashEntry[] tab = table;
+        HashEntry<K, V>[] tab = table;
         return tab[hash & (tab.length - 1)];
     }
 
     /**
      * Decode the possible DiskSubstitute
      *
-     * @param object the DiskSubstitute to decode
+     * @param substitute the DiskSubstitute to decode
      * @return the decoded DiskSubstitute
      */
-    private DiskStorageFactory.Element<K, V> decode(Object object) {
-        DiskStorageFactory.DiskSubstitute<K, V> substitute = (DiskStorageFactory.DiskSubstitute) object;
+    private DiskStorageFactory.Element<K, V> decode(DiskStorageFactory.DiskSubstitute<K, V> substitute) {
         return substitute.getFactory().retrieve(substitute);
     }
 
     /**
      * Decode the possible DiskSubstitute, updating the statistics
      *
-     * @param object the DiskSubstitute to decode
+     * @param substitute the DiskSubstitute to decode
      * @return the decoded DiskSubstitute
      */
-    private DiskStorageFactory.Element decodeHit(Object object) {
-        DiskStorageFactory.DiskSubstitute<K, V> substitute = (DiskStorageFactory.DiskSubstitute) object;
+    private DiskStorageFactory.Element<K, V> decodeHit(DiskStorageFactory.DiskSubstitute<K, V> substitute) {
         return substitute.getFactory().retrieve(substitute, this);
     }
 
     /**
      * Free the DiskSubstitute
      *
-     * @param object the DiskSubstitute to free
+     * @param diskSubstitute the DiskSubstitute to free
      */
-    private void free(Object object) {
-        free(object, false);
+    private void free(DiskStorageFactory.DiskSubstitute<K, V> diskSubstitute) {
+        free(diskSubstitute, false);
     }
 
     /**
      * Free the DiskSubstitute indicating if it could not be faulted
      *
-     * @param object the DiskSubstitute to free
+     * @param diskSubstitute the DiskSubstitute to free
      * @param faultFailure true if the DiskSubstitute should be freed because of a fault failure
      */
-    private void free(Object object, boolean faultFailure) {
-        DiskStorageFactory.DiskSubstitute diskSubstitute = (DiskStorageFactory.DiskSubstitute) object;
+    private void free(DiskStorageFactory.DiskSubstitute<K, V> diskSubstitute, boolean faultFailure) {
         diskSubstitute.getFactory().free(writeLock(), diskSubstitute, faultFailure);
     }
 
@@ -166,12 +162,12 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
      * @param markFaulted
      * @return mapped element
      */
-    DiskStorageFactory.Element<K, V> get(Object key, int hash, final boolean markFaulted) {
+    DiskStorageFactory.Element<K, V> get(K key, int hash, final boolean markFaulted) {
         readLock().lock();
         try {
             // read-volatile
             if (count != 0) {
-                HashEntry e = getFirst(hash);
+                HashEntry<K, V> e = getFirst(hash);
                 while (e != null) {
                     if (e.hash == hash && key.equals(e.key)) {
                         if (markFaulted) {
@@ -195,11 +191,11 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
      * @param hash spread-hash for the key
      * @return Element or ElementSubstitute
      */
-    DiskStorageFactory.DiskSubstitute<K, V> unretrievedGet(Object key, int hash) {
+    DiskStorageFactory.DiskSubstitute<K, V> unretrievedGet(K key, int hash) {
         readLock().lock();
         try {
             if (count != 0) {
-                HashEntry e = getFirst(hash);
+                HashEntry<K, V> e = getFirst(hash);
                 while (e != null) {
                     if (e.hash == hash && key.equals(e.key)) {
                         return e.element;
@@ -220,12 +216,12 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
      * @param hash spread-hash for key
      * @return <code>true</code> if there is a mapping for this key
      */
-    boolean containsKey(Object key, int hash) {
+    boolean containsKey(K key, int hash) {
         readLock().lock();
         try {
             // read-volatile
             if (count != 0) {
-                HashEntry e = getFirst(hash);
+                HashEntry<K, V> e = getFirst(hash);
                 while (e != null) {
                     if (e.hash == hash && key.equals(e.key)) {
                         return true;
@@ -249,13 +245,13 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
      * @param newElement element to add
      * @return <code>true</code> on a successful replace
      */
-    boolean replace(Object key, int hash, DiskStorageFactory.Element<K, V> oldElement, DiskStorageFactory.Element<K, V> newElement) {
+    boolean replace(K key, int hash, DiskStorageFactory.Element<K, V> oldElement, DiskStorageFactory.Element<K, V> newElement) {
         boolean installed = false;
-        DiskStorageFactory.DiskSubstitute encoded = disk.create(newElement);
+        DiskStorageFactory.DiskSubstitute<K, V> encoded = disk.create(newElement);
 
         writeLock().lock();
         try {
-            HashEntry e = getFirst(hash);
+            HashEntry<K, V> e = getFirst(hash);
             while (e != null && (e.hash != hash || !key.equals(e.key))) {
                 e = e.next;
             }
@@ -296,13 +292,13 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
      * @param newElement element to add
      * @return previous element mapped to this key
      */
-    DiskStorageFactory.Element<K, V> replace(Object key, int hash, DiskStorageFactory.Element<K, V> newElement) {
+    DiskStorageFactory.Element<K, V> replace(K key, int hash, DiskStorageFactory.Element<K, V> newElement) {
         boolean installed = false;
-        DiskStorageFactory.DiskSubstitute encoded = disk.create(newElement);
+        DiskStorageFactory.DiskSubstitute<K, V> encoded = disk.create(newElement);
 
         writeLock().lock();
         try {
-            HashEntry e = getFirst(hash);
+            HashEntry<K, V> e = getFirst(hash);
             while (e != null && (e.hash != hash || !key.equals(e.key))) {
                 e = e.next;
             }
@@ -354,7 +350,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
             if (count + 1 > threshold) {
                 rehash();
             }
-            HashEntry[] tab = table;
+            HashEntry<K, V>[] tab = table;
             int index = hash & (tab.length - 1);
             HashEntry<K, V> first = tab[index];
             HashEntry<K, V> e = first;
@@ -416,7 +412,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
             if (count + 1 > threshold) {
                 rehash();
             }
-            HashEntry[] tab = table;
+            HashEntry<K, V>[] tab = table;
             int index = hash & (tab.length - 1);
             HashEntry<K, V> first = tab[index];
             HashEntry<K, V> e = first;
@@ -439,7 +435,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
     }
 
     private void rehash() {
-        HashEntry[] oldTable = table;
+        HashEntry<K, V>[] oldTable = table;
         int oldCapacity = oldTable.length;
         if (oldCapacity >= MAXIMUM_CAPACITY) {
             return;
@@ -459,16 +455,16 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
          * right now.
          */
 
-        HashEntry[] newTable = new HashEntry[oldCapacity << 1];
+        HashEntry<K, V>[] newTable = new HashEntry[oldCapacity << 1];
         threshold = (int)(newTable.length * LOAD_FACTOR);
         int sizeMask = newTable.length - 1;
         for (int i = 0; i < oldCapacity; i++) {
             // We need to guarantee that any existing reads of old Map can
             //  proceed. So we cannot yet null out each bin.
-            HashEntry e = oldTable[i];
+            HashEntry<K, V> e = oldTable[i];
 
             if (e != null) {
-                HashEntry next = e.next;
+                HashEntry<K, V> next = e.next;
                 int idx = e.hash & sizeMask;
 
                 //  Single node on list
@@ -476,9 +472,9 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
                     newTable[idx] = e;
                 } else {
                     // Reuse trailing consecutive sequence at same slot
-                    HashEntry lastRun = e;
+                    HashEntry<K, V> lastRun = e;
                     int lastIdx = idx;
-                    for (HashEntry last = next;
+                    for (HashEntry<K, V> last = next;
                          last != null;
                          last = last.next) {
                         int k = last.hash & sizeMask;
@@ -490,10 +486,10 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
                     newTable[lastIdx] = lastRun;
 
                     // Clone all remaining nodes
-                    for (HashEntry p = e; p != lastRun; p = p.next) {
+                    for (HashEntry<K, V> p = e; p != lastRun; p = p.next) {
                         int k = p.hash & sizeMask;
-                        HashEntry n = newTable[k];
-                        newTable[k] = new HashEntry(p.key, p.hash, n, p.element, p.faulted);
+                        HashEntry<K, V> n = newTable[k];
+                        newTable[k] = new HashEntry<K, V>(p.key, p.hash, n, p.element, p.faulted);
                     }
                 }
             }
@@ -516,7 +512,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
     DiskStorageFactory.Element<K, V> remove(K key, int hash, DiskStorageFactory.Element<K, V> value) {
         writeLock().lock();
         try {
-            HashEntry[] tab = table;
+            HashEntry<K, V>[] tab = table;
             int index = hash & (tab.length - 1);
             HashEntry<K, V> first = tab[index];
             HashEntry<K, V> e = first;
@@ -569,9 +565,9 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
         writeLock().lock();
         try {
             if (count != 0) {
-                HashEntry[] tab = table;
+                HashEntry<K, V>[] tab = table;
                 for (int i = 0; i < tab.length; i++) {
-                    for (HashEntry e = tab[i]; e != null; e = e.next) {
+                    for (HashEntry<K, V> e = tab[i]; e != null; e = e.next) {
                         free(e.element);
                     }
                     tab[i] = null;
@@ -635,7 +631,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
     }
 
     private boolean findAndFree(final K key, final int hash, final DiskStorageFactory.Placeholder<K, V> expect, final DiskStorageFactory.DiskMarker<K, V> fault) {
-        for (HashEntry e = getFirst(hash); e != null; e = e.next) {
+        for (HashEntry<K, V> e = getFirst(hash); e != null; e = e.next) {
             if (e.hash == hash && key.equals(e.key)) {
                 if (expect == e.element) {
                     e.element = fault;
@@ -679,16 +675,15 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
      * @param notify whether to notify if we evict something
      * @return <code>true</code> on a successful remove
      */
-    DiskStorageFactory.Element<K, V> evict(Object key, int hash, DiskStorageFactory.DiskSubstitute<K, V> value, boolean notify) {
-
+    DiskStorageFactory.Element<K, V> evict(K key, int hash, DiskStorageFactory.DiskSubstitute<K, V> value, boolean notify) {
         if (writeLock().tryLock()) {
             evictionObserver.begin();
             DiskStorageFactory.Element<K, V> evictedElement = null;
             try {
-                HashEntry[] tab = table;
+                HashEntry<K, V>[] tab = table;
                 int index = hash & (tab.length - 1);
-                HashEntry first = tab[index];
-                HashEntry e = first;
+                HashEntry<K, V> first = tab[index];
+                HashEntry<K, V> e = first;
                 while (e != null && (e.hash != hash || !key.equals(e.key))) {
                     e = e.next;
                 }
@@ -703,9 +698,9 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
                     // in list, but all preceding ones need to be
                     // cloned.
                     ++modCount;
-                    HashEntry newFirst = e.next;
-                    for (HashEntry p = first; p != e; p = p.next) {
-                        newFirst = new HashEntry(p.key, p.hash, newFirst, p.element, p.faulted);
+                    HashEntry<K, V> newFirst = e.next;
+                    for (HashEntry<K, V> p = first; p != e; p = p.next) {
+                        newFirst = new HashEntry<K, V>(p.key, p.hash, newFirst, p.element, p.faulted);
                     }
                     tab[index] = newFirst;
                     /*
@@ -726,7 +721,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
                 writeLock().unlock();
                 if (notify && evictedElement != null) {
                     if (evictedElement.isExpired()) {
-                        // ?
+                        // todo: do something?
                     } else {
                         evictionObserver.end(CacheOperationOutcomes.EvictionOutcome.SUCCESS);
 
@@ -754,7 +749,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
         final int tableStart = seed & (tab.length - 1);
         int tableIndex = tableStart;
         do {
-            for (HashEntry e = tab[tableIndex]; e != null; e = e.next) {
+            for (HashEntry<K, V> e = tab[tableIndex]; e != null; e = e.next) {
                 Object value = e.element;
                 if (!e.faulted.get() && filter.allows(value)) {
                     sampled.add((DiskStorageFactory.DiskSubstitute) value);
@@ -774,7 +769,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
      * Creates an iterator over the HashEntry objects within this Segment.
      * @return an iterator over the HashEntry objects within this Segment.
      */
-    Iterator<HashEntry> hashIterator() {
+    Iterator<HashEntry<K, V>> hashIterator() {
         return new HashIterator();
     }
 
@@ -790,7 +785,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
      * @param hash the key's hash
      * @return true if a failed marker was or is still there, false otherwise
      */
-    boolean cleanUpFailedMarker(final Serializable key, final int hash) {
+    boolean cleanUpFailedMarker(final K key, final int hash) {
         boolean readLocked = false;
         boolean failedMarker = false;
         if (!isWriteLockedByCurrentThread()) {
@@ -835,7 +830,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
         DiskStorageFactory.DiskSubstitute<K, V> diskSubstitute = null;
         readLock().lock();
         try {
-            HashEntry e = getFirst(hash);
+            HashEntry<K, V> e = getFirst(hash);
             while (e != null) {
                 if (e.hash == hash && key.equals(e.key)) {
                     final boolean b = e.faulted.compareAndSet(true, false);
@@ -846,7 +841,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
                         }
                     } else {
                         if (diskSubstitute instanceof DiskStorageFactory.DiskMarker) {
-                            final DiskStorageFactory.DiskMarker diskMarker = (DiskStorageFactory.DiskMarker)diskSubstitute;
+                            final DiskStorageFactory.DiskMarker<K, V> diskMarker = (DiskStorageFactory.DiskMarker)diskSubstitute;
                             diskMarker.updateStats(element);
                         }
                     }
@@ -869,8 +864,8 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
     void clearFaultedBit() {
         writeLock().lock();
         try {
-            HashEntry entry;
-            for (HashEntry hashEntry : table) {
+            HashEntry<K, V> entry;
+            for (HashEntry<K, V> hashEntry : table) {
                 entry = hashEntry;
                 while (entry != null) {
                     entry.faulted.set(false);
@@ -887,12 +882,12 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
      * @param key the key to check the mapping for
      * @return true if faulted, false otherwise (including no mapping)
      */
-    public boolean isFaulted(final int hash, final Object key) {
+    public boolean isFaulted(final int hash, final K key) {
         readLock().lock();
         try {
             // read-volatile
             if (count != 0) {
-                HashEntry e = getFirst(hash);
+                HashEntry<K, V> e = getFirst(hash);
                 while (e != null) {
                     if (e.hash == hash && key.equals(e.key)) {
                         return e.faulted.get();
@@ -909,9 +904,9 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
     /**
      * An iterator over the HashEntry objects within this Segment.
      */
-    final class HashIterator implements Iterator<HashEntry> {
+    final class HashIterator implements Iterator<HashEntry<K, V>> {
         private int nextTableIndex;
-        private final HashEntry[] ourTable;
+        private final HashEntry<K, V>[] ourTable;
         private HashEntry<K, V> nextEntry;
         private HashEntry<K, V> lastReturned;
 
@@ -958,7 +953,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
         /**
          * {@inheritDoc}
          */
-        public HashEntry next() {
+        public HashEntry<K, V> next() {
             if (nextEntry == null) {
                 throw new NoSuchElementException();
             }
