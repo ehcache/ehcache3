@@ -59,7 +59,7 @@ import java.util.concurrent.locks.Lock;
 public class DiskStorageFactory<K, V> {
 
     interface Element<K, V> extends Serializable, Map.Entry<K, DiskValueHolder<V>> {
-        boolean isExpired(TimeSource timeSource);
+        boolean isExpired(long time);
     }
 
     static class ElementImpl<K, V> implements Element<K, V> {
@@ -72,8 +72,8 @@ public class DiskStorageFactory<K, V> {
         }
 
         @Override
-        public boolean isExpired(TimeSource timeSource) {
-            return valueHolder.isExpired(timeSource.getTimeMillis());
+        public boolean isExpired(long time) {
+            return valueHolder.isExpired(time);
         }
 
         @Override

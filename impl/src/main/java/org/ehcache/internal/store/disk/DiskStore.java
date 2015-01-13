@@ -19,6 +19,8 @@ package org.ehcache.internal.store.disk;
 import org.ehcache.Cache;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
@@ -42,12 +44,15 @@ import java.util.concurrent.TimeUnit;
  */
 public class DiskStore<K, V> implements Store<K, V> {
 
+    static final long NO_EXPIRE = -1;
+
     private final Class<K> keyType;
     private final Class<V> valueType;
     private final TimeSource timeSource;
     private final Set<? extends K> keySet = new KeySet();
     private final String alias;
     private final ClassLoader classLoader;
+    private final Expiry<? super K, ? super V> expiry;
 
     private volatile DiskStorageFactory<K, V> diskStorageFactory;
     private volatile Segment<K, V>[] segments;
@@ -60,6 +65,7 @@ public class DiskStore<K, V> implements Store<K, V> {
         this.valueType = config.getValueType();
         this.timeSource = timeSource;
         this.classLoader = config.getClassLoader();
+        this.expiry = config.getExpiry();
     }
 
     private void checkKey(K keyObject) {
@@ -272,14 +278,111 @@ public class DiskStore<K, V> implements Store<K, V> {
         };
     }
 
-    @Override
-    public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException {
-        return null;
+    private static final NullaryFunction<Boolean> REPLACE_EQUALS_TRUE = new NullaryFunction<Boolean>() {
+        @Override
+        public Boolean apply() {
+            return Boolean.TRUE;
+        }
+    };
+
+    private static boolean eq(Object o1, Object o2) {
+        return (o1 == o2) || (o1 != null && o1.equals(o2));
+    }
+
+    private void setAccessTimeAndExpiry(K key, DiskStorageFactory.Element<K, V> element, long now) {
+        element.getValue().setAccessTimeMillis(now);
+
+        DiskValueHolder<V> valueHolder = element.getValue();
+        Duration duration = expiry.getExpiryForAccess(key, valueHolder.value());
+        if (duration != null) {
+            if (duration.isForever()) {
+                valueHolder.setExpireTimeMillis(NO_EXPIRE);
+            } else {
+                valueHolder.setExpireTimeMillis(safeExpireTime(now, duration));
+            }
+        }
+    }
+
+    private static long safeExpireTime(long now, Duration duration) {
+        long millis = TimeUnit.MILLISECONDS.convert(duration.getAmount(), duration.getTimeUnit());
+
+        if (millis == Long.MAX_VALUE) {
+            return Long.MAX_VALUE;
+        }
+
+        long result = now + millis;
+        if (result < 0) {
+            return Long.MAX_VALUE;
+        }
+        return result;
+    }
+
+    private DiskStorageFactory.Element<K, V> newUpdateValueHolder(K key, DiskStorageFactory.Element<K, V> oldValue, V newValue, long now) {
+        if (oldValue == null || newValue == null) {
+            throw new NullPointerException();
+        }
+
+        Duration duration = expiry.getExpiryForUpdate(key, oldValue.getValue().value(), newValue);
+        if (Duration.ZERO.equals(duration)) {
+            return null;
+        }
+
+        return new DiskStorageFactory.ElementImpl<K, V>(key, newValue);
+    }
+
+    private DiskStorageFactory.Element<K, V> newCreateValueHolder(K key, V value, long now) {
+        if (value == null) {
+            throw new NullPointerException();
+        }
+
+        Duration duration = expiry.getExpiryForCreation(key, value);
+        if (Duration.ZERO.equals(duration)) {
+            return null;
+        }
+
+        return new DiskStorageFactory.ElementImpl<K, V>(key, value);
     }
 
     @Override
-    public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
-        return null;
+    public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException {
+        return compute(key, mappingFunction, REPLACE_EQUALS_TRUE);
+    }
+
+    @Override
+    public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+        checkKey(key);
+        int hash = hash(key.hashCode());
+        final long now = timeSource.getTimeMillis();
+
+        BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>> biFunction = new BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>>() {
+            @Override
+            public DiskStorageFactory.Element<K, V> apply(K mappedKey, DiskStorageFactory.Element<K, V> mappedElement) {
+                if (mappedElement != null && mappedElement.isExpired(now)) {
+                    mappedElement = null;
+                }
+
+                V existingValue = mappedElement == null ? null : mappedElement.getValue().value();
+                V computedValue = mappingFunction.apply(mappedKey, existingValue);
+                if (computedValue == null) {
+                    return null;
+                } else if ((eq(existingValue, computedValue)) && (! replaceEqual.apply())) {
+                    if (mappedElement != null) {
+                        setAccessTimeAndExpiry(key, mappedElement, now);
+                    }
+                    return mappedElement;
+                }
+
+                checkValue(computedValue);
+                if (mappedElement != null) {
+                    return newUpdateValueHolder(key, mappedElement, computedValue, now);
+                } else {
+                    return newCreateValueHolder(key, computedValue, now);
+                }
+            }
+        };
+
+        DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction);
+        return computedElement == null ? null : computedElement.getValue();
     }
 
     @Override

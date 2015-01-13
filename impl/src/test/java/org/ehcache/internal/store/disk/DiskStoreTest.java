@@ -1,6 +1,8 @@
 package org.ehcache.internal.store.disk;
 
 import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.function.BiFunction;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.spi.cache.Store;
 import org.junit.Test;
@@ -12,7 +14,7 @@ public class DiskStoreTest {
 
   @Test
   public void testMisc() throws Exception {
-    StoreConfigurationImpl<Integer, String> configuration = new StoreConfigurationImpl<Integer, String>(Integer.class, String.class, null, null, null, getClass().getClassLoader(), null, null);
+    StoreConfigurationImpl<Integer, String> configuration = new StoreConfigurationImpl<Integer, String>(Integer.class, String.class, null, null, null, getClass().getClassLoader(), Expirations.noExpiration(), null);
     DiskStore<Integer, String> diskStore = new DiskStore<Integer, String>(configuration, "diskStore", SystemTimeSource.INSTANCE);
     diskStore.init();
 
@@ -21,6 +23,20 @@ public class DiskStoreTest {
     diskStore.put(1, "one");
 
     System.out.println("value: " + getValue(diskStore, 1));
+
+    diskStore.compute(2, new BiFunction<Integer, String, String>() {
+      @Override
+      public String apply(Integer k, String v) {
+        String result;
+        if (v == null || !v.equals("two")) {
+          result = "two";
+        } else {
+          result = "deux";
+        }
+        System.out.println("compute : " + k + "/" + v + " -> " + result);
+        return result;
+      }
+    });
 
     diskStore.close();
   }

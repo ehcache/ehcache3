@@ -19,6 +19,7 @@
  */
 package org.ehcache.internal.store.disk;
 
+import org.ehcache.function.BiFunction;
 import org.ehcache.internal.TimeSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -715,7 +716,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
             } finally {
                 writeLock().unlock();
                 if (notify && evictedElement != null) {
-                    if (evictedElement.isExpired(timeSource)) {
+                    if (evictedElement.isExpired(timeSource.getTimeMillis())) {
                         // todo: stats
                     } else {
                         // todo: stats
@@ -845,7 +846,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
             }
         } finally {
             readLock().unlock();
-            if (diskSubstitute != null && element.isExpired(timeSource)) {
+            if (diskSubstitute != null && element.isExpired(timeSource.getTimeMillis())) {
                 evict(key, hash, diskSubstitute);
             }
         }
@@ -892,6 +893,60 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
             return false;
         } finally {
             readLock().unlock();
+        }
+    }
+
+    public DiskStorageFactory.Element<K, V> compute(K key, int hash, BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>> mappingFunction) {
+        boolean installed = false;
+        DiskStorageFactory.DiskSubstitute<K, V> encoded = null;
+
+        writeLock().lock();
+        try {
+            // ensure capacity
+            if (count + 1 > threshold) {
+                rehash();
+            }
+            HashEntry<K, V>[] tab = table;
+            int index = hash & (tab.length - 1);
+            HashEntry<K, V> first = tab[index];
+            HashEntry<K, V> e = first;
+            while (e != null && (e.hash != hash || !key.equals(e.key))) {
+                e = e.next;
+            }
+
+            DiskStorageFactory.Element<K, V> oldElement;
+            if (e != null) {
+                DiskStorageFactory.DiskSubstitute<K, V> onDiskSubstitute = e.element;
+                installed = true;
+                oldElement = decode(onDiskSubstitute);
+
+                DiskStorageFactory.Element<K, V> newElement = mappingFunction.apply(key, oldElement);
+                encoded = disk.create(newElement);
+
+                e.element = encoded;
+
+                free(onDiskSubstitute);
+                e.faulted.set(false);
+            } else {
+                oldElement = null;
+
+                DiskStorageFactory.Element<K, V> newElement = mappingFunction.apply(key, null);
+                encoded = disk.create(newElement);
+
+                ++modCount;
+                tab[index] = new HashEntry<K, V>(key, hash, first, encoded, new AtomicBoolean(false));
+                installed = true;
+                // write-volatile
+                count = count + 1;
+            }
+
+            return oldElement;
+        } finally {
+            writeLock().unlock();
+
+            if (installed && encoded != null) {
+                encoded.installed();
+            }
         }
     }
 
