@@ -188,37 +188,23 @@ class Eh107CacheLoaderWriter<K, V> implements CacheLoaderWriter<K, V>, Closeable
 
     @Override
     public int hashCode() {
-      int hashCode = 31;
-      if (key != null) {
-        hashCode += key.hashCode();
-      }
-      if (value != null) {
-        hashCode += value.hashCode();
-      }
-      return hashCode;
+      return (key == null ? 0 : key.hashCode()) ^
+          (value == null ? 0 : value.hashCode());
     }
 
     @Override
     public boolean equals(Object obj) {
       if (obj instanceof Entry) {
-        Entry other = (Entry)obj;
-        boolean equals;
+        Entry other = (Entry) obj;
 
-        if (key != null) {
-          equals = key.equals(other.key);
-        } else {
-          equals = other.key == null;
+        Object key1 = getKey();
+        Object key2 = other.getKey();
+        if (key1 == key2 || (key1 != null && key1.equals(key2))) {
+          Object value1 = getValue();
+          Object value2 = other.getValue();
+          if (value1 == value2 || (value1 != null && value1.equals(value2)))
+            return true;
         }
-
-        if (equals) {
-          if (value != null) {
-            equals = value.equals(other.value);
-          } else {
-            equals = other.value == null;
-          }
-        }
-
-        return equals;
       }
       return false;
     }
