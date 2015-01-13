@@ -211,8 +211,9 @@ public class DiskStore<K, V> implements Store<K, V> {
         return null;
     }
 
-    public boolean fault(K key, DiskStorageFactory.Placeholder placeholder, DiskStorageFactory.DiskMarker marker) {
-        return false;
+    public boolean fault(K key, DiskStorageFactory.Placeholder expect, DiskStorageFactory.DiskMarker fault) {
+        int hash = hash(key.hashCode());
+        return segmentFor(hash).fault(key, hash, expect, fault, false);
     }
 
     public void evict(K key, DiskStorageFactory.DiskSubstitute diskSubstitute) {
