@@ -24,8 +24,6 @@ import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.statistics.CacheOperationOutcomes;
-import org.terracotta.statistics.observer.OperationObserver;
 
 import java.util.AbstractSet;
 import java.util.ArrayList;
@@ -33,8 +31,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.terracotta.statistics.StatisticsBuilder.operation;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Implements a persistent-to-disk store.
@@ -45,28 +42,50 @@ import static org.terracotta.statistics.StatisticsBuilder.operation;
  */
 public class DiskStore<K, V> implements Store<K, V> {
 
-    private final DiskStorageFactory<K, V> diskStorageFactory;
+    private final Class<K> keyType;
+    private final Class<V> valueType;
     private final TimeSource timeSource;
-    private final Segment<K, V>[] segments;
-    private final int segmentShift;
+    private final Set<? extends K> keySet = new KeySet();
+    private final String alias;
+    private final ClassLoader classLoader;
 
-    private final OperationObserver<CacheOperationOutcomes.EvictionOutcome> evictionOutcomeOperationObserver = operation(CacheOperationOutcomes.EvictionOutcome.class).named("eviction").of(this).build();
+    private volatile DiskStorageFactory<K, V> diskStorageFactory;
+    private volatile Segment<K, V>[] segments;
+    private volatile int segmentShift;
 
-    private volatile Set<? extends K> keySet;
 
-
-    public DiskStore(final Configuration<K, V> config, String alias, TimeSource timeSource, boolean storeByValue) {
+    public DiskStore(final Configuration<K, V> config, String alias, TimeSource timeSource) {
+        this.alias = alias;
+        this.keyType = config.getKeyType();
+        this.valueType = config.getValueType();
         this.timeSource = timeSource;
-        diskStorageFactory = new DiskStorageFactory<K, V>(config.getClassLoader(), timeSource, new DiskStorePathManager(), alias, true, 16, 16, 0, 30000, false);
+        this.classLoader = config.getClassLoader();
+    }
 
-        segments = new Segment[16];
-        for (int i = 0; i < segments.length; i++) {
-            segments[i] = new Segment<K, V>(16, .75f, diskStorageFactory, evictionOutcomeOperationObserver);
+    private void checkKey(K keyObject) {
+        if (keyObject == null) {
+            throw new NullPointerException();
         }
+        if (!keyType.isAssignableFrom(keyObject.getClass())) {
+            throw new ClassCastException("Invalid key type, expected : " + keyType.getName() + " but was : " + keyObject.getClass().getName());
+        }
+    }
 
-        this.segmentShift = Integer.numberOfLeadingZeros(segments.length - 1);
+    private void checkValue(V valueObject) {
+        if (valueObject == null) {
+            throw new NullPointerException();
+        }
+        if (!valueType.isAssignableFrom(valueObject.getClass())) {
+            throw new ClassCastException("Invalid value type, expected : " + valueType.getName() + " but was : " + valueObject.getClass().getName());
+        }
+    }
 
-        diskStorageFactory.bind(this);
+    private int size() {
+        int size = 0;
+        for (Segment<K, V> segment : segments) {
+            size += segment.count;
+        }
+        return size;
     }
 
     private static int hash(int hash) {
@@ -85,57 +104,88 @@ public class DiskStore<K, V> implements Store<K, V> {
 
     @Override
     public ValueHolder<V> get(K key) throws CacheAccessException {
+        checkKey(key);
         int hash = hash(key.hashCode());
-        DiskStorageFactory.Element<K, V> element = segmentFor(hash).get(key, hash, false);
-        return element == null ? null : element.getValue();
+        DiskStorageFactory.Element<K, V> existingElement = segmentFor(hash).get(key, hash, false);
+        return existingElement == null ? null : existingElement.getValue();
     }
 
     @Override
     public boolean containsKey(K key) throws CacheAccessException {
+        checkKey(key);
         int hash = hash(key.hashCode());
         return segmentFor(hash).containsKey(key, hash);
     }
 
     @Override
     public void put(K key, V value) throws CacheAccessException {
+        checkKey(key);
+        checkValue(value);
         int hash = hash(key.hashCode());
-        DiskStorageFactory.Element<K, V> element = new DiskStorageFactory.ElementImpl<K, V>(key, value, timeSource);
-        DiskStorageFactory.Element<K, V> oldElement = segmentFor(hash).put(key, hash, element, false, false);
+        DiskStorageFactory.Element<K, V> newElement = new DiskStorageFactory.ElementImpl<K, V>(key, value);
+        segmentFor(hash).put(key, hash, newElement, false, false);
     }
 
     @Override
     public ValueHolder<V> putIfAbsent(K key, V value) throws CacheAccessException {
-        return null;
+        checkKey(key);
+        checkValue(value);
+        int hash = hash(key.hashCode());
+        DiskStorageFactory.Element<K, V> newElement = new DiskStorageFactory.ElementImpl<K, V>(key, value);
+        DiskStorageFactory.Element<K, V> existingElement = segmentFor(hash).put(key, hash, newElement, true, false);
+        return existingElement == null ? null : existingElement.getValue();
     }
 
     @Override
     public void remove(K key) throws CacheAccessException {
-
+        checkKey(key);
+        int hash = hash(key.hashCode());
+        segmentFor(hash).remove(key, hash, null);
     }
 
     @Override
     public boolean remove(K key, V value) throws CacheAccessException {
-        return false;
+        checkKey(key);
+        checkValue(value);
+        int hash = hash(key.hashCode());
+        DiskStorageFactory.Element<K, V> newElement = new DiskStorageFactory.ElementImpl<K, V>(key, value);
+        DiskStorageFactory.Element<K, V> existingElement = segmentFor(hash).remove(key, hash, newElement);
+        return existingElement != null && existingElement.getValue() != null;
     }
 
     @Override
     public ValueHolder<V> replace(K key, V value) throws CacheAccessException {
-        return null;
+        checkKey(key);
+        checkValue(value);
+        int hash = hash(key.hashCode());
+        DiskStorageFactory.Element<K, V> newElement = new DiskStorageFactory.ElementImpl<K, V>(key, value);
+        DiskStorageFactory.Element<K, V> existingElement = segmentFor(hash).replace(key, hash, newElement);
+        return existingElement == null ? null : existingElement.getValue();
     }
 
     @Override
     public boolean replace(K key, V oldValue, V newValue) throws CacheAccessException {
-        return false;
+        checkKey(key);
+        checkValue(oldValue);
+        checkValue(newValue);
+        int hash = hash(key.hashCode());
+        DiskStorageFactory.Element<K, V> oldElement = new DiskStorageFactory.ElementImpl<K, V>(key, oldValue);
+        DiskStorageFactory.Element<K, V> newElement = new DiskStorageFactory.ElementImpl<K, V>(key, newValue);
+        return segmentFor(hash).replace(key, hash, oldElement, newElement);
     }
 
     @Override
     public void clear() throws CacheAccessException {
-
+        for (Segment s : segments) {
+            s.clear();
+        }
     }
 
     @Override
     public void destroy() throws CacheAccessException {
-
+        diskStorageFactory.unbind(true);
+        diskStorageFactory = null;
+        segments = null;
     }
 
     @Override
@@ -145,12 +195,23 @@ public class DiskStore<K, V> implements Store<K, V> {
 
     @Override
     public void close() {
-        diskStorageFactory.unbind();
+        diskStorageFactory.unbind(false);
+        diskStorageFactory = null;
+        segments = null;
     }
 
     @Override
     public void init() {
+        diskStorageFactory = new DiskStorageFactory<K, V>(classLoader, timeSource, new DiskStorePathManager(), alias, true, 16, 16, 0, 30000, false);
 
+        segments = new Segment[16];
+        for (int i = 0; i < segments.length; i++) {
+            segments[i] = new Segment<K, V>(16, .75f, diskStorageFactory, timeSource);
+        }
+
+        this.segmentShift = Integer.numberOfLeadingZeros(segments.length - 1);
+
+        diskStorageFactory.bind(this);
     }
 
     @Override
@@ -170,7 +231,45 @@ public class DiskStore<K, V> implements Store<K, V> {
 
     @Override
     public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() throws CacheAccessException {
-        return null;
+        final KeyIterator keyIterator = new KeyIterator();
+        return new Iterator<Cache.Entry<K, ValueHolder<V>>>() {
+            @Override
+            public boolean hasNext() throws CacheAccessException {
+                return keyIterator.hasNext();
+            }
+
+            @Override
+            public Cache.Entry<K, ValueHolder<V>> next() throws CacheAccessException {
+                final K key = keyIterator.next();
+                final ValueHolder<V> valueHolder = get(key);
+                return new Cache.Entry<K, ValueHolder<V>>() {
+                    @Override
+                    public K getKey() {
+                        return key;
+                    }
+
+                    @Override
+                    public ValueHolder<V> getValue() {
+                        return valueHolder;
+                    }
+
+                    @Override
+                    public long getCreationTime(TimeUnit unit) {
+                        return valueHolder == null ? 0 : valueHolder.creationTime(unit);
+                    }
+
+                    @Override
+                    public long getLastAccessTime(TimeUnit unit) {
+                        return valueHolder == null ? 0 : valueHolder.lastAccessTime(unit);
+                    }
+
+                    @Override
+                    public float getHitRate(TimeUnit unit) {
+                        return valueHolder == null ? 0 : valueHolder.hitRate(unit);
+                    }
+                };
+            }
+        };
     }
 
     @Override
@@ -213,16 +312,17 @@ public class DiskStore<K, V> implements Store<K, V> {
         return null;
     }
 
-    public boolean fault(K key, DiskStorageFactory.Placeholder<K, V> expect, DiskStorageFactory.DiskMarker<K, V> fault) {
+
+    boolean fault(K key, DiskStorageFactory.Placeholder<K, V> expect, DiskStorageFactory.DiskMarker<K, V> fault) {
         int hash = hash(key.hashCode());
         return segmentFor(hash).fault(key, hash, expect, fault, false);
     }
 
-    public void evict(K key, DiskStorageFactory.DiskSubstitute<K, V> diskSubstitute) {
+    void evict(K key, DiskStorageFactory.DiskSubstitute<K, V> diskSubstitute) {
         throw new UnsupportedOperationException();
     }
 
-    public DiskStorageFactory.DiskSubstitute<K, V> unretrievedGet(K key) {
+    DiskStorageFactory.DiskSubstitute<K, V> unretrievedGet(K key) {
         if (key == null) {
             return null;
         }
@@ -232,40 +332,23 @@ public class DiskStore<K, V> implements Store<K, V> {
         return o;
     }
 
-    public Set<? extends K> keySet() {
-        if (keySet != null) {
-            return keySet;
-        } else {
-            keySet = new KeySet();
-            return keySet;
-        }
+    Set<? extends K> keySet() {
+        return keySet;
     }
 
-    public void removeAll() {
-        throw new UnsupportedOperationException();
-    }
-
-    public boolean putRawIfAbsent(K key, DiskStorageFactory.DiskMarker<K, V> encoded) {
+    boolean putRawIfAbsent(K key, DiskStorageFactory.DiskMarker<K, V> encoded) {
         int hash = hash(key.hashCode());
         return segmentFor(hash).putRawIfAbsent(key, hash, encoded);
     }
 
-    public List<DiskStorageFactory.DiskSubstitute<K, V>> getRandomSample(ElementSubstituteFilter onDiskFilter, int min, K keyHint) {
+    List<DiskStorageFactory.DiskSubstitute<K, V>> getRandomSample(ElementSubstituteFilter onDiskFilter, int min, K keyHint) {
         throw new UnsupportedOperationException();
     }
 
-    public DiskStorageFactory.Element<K, V> evictElement(K key, DiskStorageFactory.DiskSubstitute<K, V> target) {
+    DiskStorageFactory.Element<K, V> evictElement(K key, DiskStorageFactory.DiskSubstitute<K, V> target) {
         throw new UnsupportedOperationException();
     }
 
-
-    private int getSize() {
-        int size = 0;
-        for (Segment<K, V> segment : segments) {
-            size += segment.count;
-        }
-        return size;
-    }
 
     final class KeySet extends AbstractSet<K> {
 
@@ -282,7 +365,7 @@ public class DiskStore<K, V> implements Store<K, V> {
          */
         @Override
         public int size() {
-            return DiskStore.this.getSize();
+            return DiskStore.this.size();
         }
 
         /**
@@ -304,6 +387,7 @@ public class DiskStore<K, V> implements Store<K, V> {
         public boolean remove(Object o) {
             try {
                 DiskStore.this.remove((K) o);
+                //todo: fix return code
                 return false;
             } catch (CacheAccessException e) {
                 throw new RuntimeException(e);
@@ -315,7 +399,11 @@ public class DiskStore<K, V> implements Store<K, V> {
          */
         @Override
         public void clear() {
-            DiskStore.this.removeAll();
+            try {
+                DiskStore.this.clear();
+            } catch (CacheAccessException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         /**

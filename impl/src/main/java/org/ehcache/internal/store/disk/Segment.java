@@ -19,10 +19,9 @@
  */
 package org.ehcache.internal.store.disk;
 
-import org.ehcache.statistics.CacheOperationOutcomes;
+import org.ehcache.internal.TimeSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.statistics.observer.OperationObserver;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -44,10 +43,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class Segment<K, V> extends ReentrantReadWriteLock {
 
     private static final Logger LOG = LoggerFactory.getLogger(Segment.class.getName());
-    private static final HashEntry<?, ?> NULL_HASH_ENTRY = new HashEntry<Object, Object>(null, 0, null, null, new AtomicBoolean(false));
 
     private static final float LOAD_FACTOR = 0.75f;
     private static final int MAXIMUM_CAPACITY = Integer.highestOneBit(Integer.MAX_VALUE);
+    private final TimeSource timeSource;
 
     /**
      * Count of elements in the map.
@@ -84,8 +83,6 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
      */
     private int threshold;
 
-    private final OperationObserver<CacheOperationOutcomes.EvictionOutcome> evictionObserver;
-
     /**
      * Create a Segment with the given initial capacity, load-factor, primary element substitute factory, and identity element substitute factory.
      * <p>
@@ -100,9 +97,8 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
      * @param loadFactor fraction of capacity at which rehash occurs
      * @param primary primary element substitute factory
      */
-    public Segment(int initialCapacity, float loadFactor, DiskStorageFactory<K, V> primary,
-                   OperationObserver<CacheOperationOutcomes.EvictionOutcome> evictionObserver) {
-        this.evictionObserver = evictionObserver;
+    public Segment(int initialCapacity, float loadFactor, DiskStorageFactory<K, V> primary, TimeSource timeSource) {
+        this.timeSource = timeSource;
         this.table = new HashEntry[initialCapacity];
         this.threshold = (int) (table.length * loadFactor);
         this.modCount = 0;
@@ -677,7 +673,6 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
      */
     DiskStorageFactory.Element<K, V> evict(K key, int hash, DiskStorageFactory.DiskSubstitute<K, V> value, boolean notify) {
         if (writeLock().tryLock()) {
-            evictionObserver.begin();
             DiskStorageFactory.Element<K, V> evictedElement = null;
             try {
                 HashEntry<K, V>[] tab = table;
@@ -720,11 +715,10 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
             } finally {
                 writeLock().unlock();
                 if (notify && evictedElement != null) {
-                    if (evictedElement.isExpired()) {
-                        // todo: do something?
+                    if (evictedElement.isExpired(timeSource)) {
+                        // todo: stats
                     } else {
-                        evictionObserver.end(CacheOperationOutcomes.EvictionOutcome.SUCCESS);
-
+                        // todo: stats
                     }
                 }
             }
@@ -851,7 +845,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
             }
         } finally {
             readLock().unlock();
-            if (diskSubstitute != null && element.isExpired()) {
+            if (diskSubstitute != null && element.isExpired(timeSource)) {
                 evict(key, hash, diskSubstitute);
             }
         }
