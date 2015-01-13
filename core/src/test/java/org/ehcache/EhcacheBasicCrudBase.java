@@ -102,7 +102,7 @@ public abstract class EhcacheBasicCrudBase {
     @SuppressWarnings("unchecked")
     final List<EnumSet<E>> sets = Arrays.asList(changed, unchanged);
     Class<E> statsClass = null;
-    for (EnumSet<E> set : sets) {
+    for (final EnumSet<E> set : sets) {
       if (!set.isEmpty()) {
         statsClass = set.iterator().next().getDeclaringClass();
         break;
@@ -832,7 +832,25 @@ public abstract class EhcacheBasicCrudBase {
      */
     @Override
     public void deleteAll(final Iterable<? extends String> keys) throws Exception {
-      throw new UnsupportedOperationException();
+      final Set<String> successes = new LinkedHashSet<String>();
+      final Map<String, Exception> failures = new LinkedHashMap<String, Exception>();
+
+      for (final String key : keys) {
+        if (key.equals(this.completeFailureKey)) {
+          throw new CompleteFailureException();
+        }
+        try {
+          this.delete(key);
+          successes.add(key);
+        } catch (Exception e) {
+          //noinspection ThrowableResultOfMethodCallIgnored
+          failures.put(key, e);
+        }
+      }
+
+      if (!failures.isEmpty()) {
+        throw new BulkCacheWriterException(failures, successes);
+      }
     }
 
     private void checkFailingKey(final String key) throws FailedKeyException {
