@@ -67,7 +67,8 @@ class Eh107CacheManager implements CacheManager {
 
   Eh107CacheManager(EhcacheCachingProvider cachingProvider, org.ehcache.CacheManager ehCacheManager, Properties props,
       ClassLoader classLoader, URI uri, Eh107CacheLoaderFactory cacheLoaderFactory,
-      Eh107CacheWriterFactory cacheWriterFactory, org.ehcache.config.Configuration ehConfig, Jsr107Service jsr107Service) {
+      Eh107CacheWriterFactory cacheWriterFactory, org.ehcache.config.Configuration ehConfig,
+      Jsr107Service jsr107Service) {
     this.cachingProvider = cachingProvider;
     this.ehCacheManager = ehCacheManager;
     this.props = props;

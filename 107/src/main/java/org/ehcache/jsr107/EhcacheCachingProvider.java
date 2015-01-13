@@ -91,7 +91,7 @@ public class EhcacheCachingProvider implements CachingProvider {
 
         Eh107CacheLoaderFactory cacheLoaderFactory = new Eh107CacheLoaderFactory();
         Eh107CacheWriterFactory cacheWriterFactory = new Eh107CacheWriterFactory();
-        Jsr107Service jsr107Service = new DefaultJsr107Service();
+        DefaultJsr107Service jsr107Service = new DefaultJsr107Service();
 
         ServiceLocator serviceLocator = new ServiceLocator();
         serviceLocator.addService(cacheLoaderFactory);

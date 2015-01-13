@@ -17,12 +17,13 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.config.Jsr107Configuration;
+import org.ehcache.config.service.EhcacheService;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author Alex Snaps
  */
-public class DefaultJsr107Service implements Jsr107Service {
+public class DefaultJsr107Service implements Jsr107Service, EhcacheService {
 
   private volatile Jsr107Configuration configuration;
 
@@ -56,5 +57,10 @@ public class DefaultJsr107Service implements Jsr107Service {
   @Override
   public void stop() {
     configuration = null;
+  }
+
+  @Override
+  public boolean jsr107CompliantAtomics() {
+    return true;
   }
 }
