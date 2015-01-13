@@ -627,7 +627,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-          cacheWriterDeleteAllCall(entries, successes, failures);
+          Set<K> unknowns = cacheWriterDeleteAllCall(entries, successes, failures);
           
           Map<K, V> results = new LinkedHashMap<K, V>();
           
@@ -643,7 +643,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
               entriesToRemove.remove(key);
               eventNotificationService.onEvent(CacheEvents.removal(newCacheEntry(key, existingValue), Ehcache.this));
             } else {
-              results.put(key, existingValue);
+              if (unknowns.contains(key)) {
+                results.put(key, null);
+              } else {
+                results.put(key, existingValue);
+              }
             }
           }
           
@@ -674,7 +678,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
   }
 
-  private void cacheWriterDeleteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Set<K> successes, Map<K, Exception> failures) {
+  private Set<K> cacheWriterDeleteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Set<K> successes, Map<K, Exception> failures) {
+    final Set<K> unknowns = new HashSet<K>();
     if (cacheWriter != null) {
       Set<K> toDelete = new HashSet<K>();
       for (Map.Entry<? extends K, ? extends V> entry: entries) {
@@ -689,9 +694,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       } catch (Exception e) {
         for (K key : toDelete) {
           failures.put(key, e);
+          unknowns.add(key);
         }
       }
     }
+    return unknowns;
   }
 
   @Override
