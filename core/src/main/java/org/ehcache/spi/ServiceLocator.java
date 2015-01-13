@@ -20,6 +20,8 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 import org.ehcache.util.ClassLoading;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -43,6 +45,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public final class ServiceLocator {
 
+  
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceLocator.class);
   private final ConcurrentMap<Class<? extends Service>, Service> services = new ConcurrentHashMap<Class<? extends Service>, Service>();
   
   @SuppressWarnings("rawtypes")
@@ -180,14 +184,16 @@ public final class ServiceLocator {
       }
       for (Service service : services.values()) {
         service.start(serviceConfigs.get(service));
-        started.push(service);
+        started.push(service);        
       }
+      LOGGER.info("All Services successfully started.");
     } catch (Exception e) {
       while(!started.isEmpty()) {
+        Service toBeStopped = started.pop(); 
         try {
-          started.pop().stop();
+          toBeStopped.stop();
         } catch (Exception e1) {
-          // todo probably should log these exceptions
+          LOGGER.error("Stopping Service failed due to ", e1);
         }
       }
       throw e;
@@ -211,7 +217,7 @@ public final class ServiceLocator {
           if (firstException == null) {
             firstException = e;
           } else {
-            // todo probably should log these exceptions
+            LOGGER.error("Stopping Service failed due to ", e);
           }
         }
       }

@@ -35,6 +35,8 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ThreadPoolsService;
 import org.ehcache.util.ClassLoading;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -56,6 +58,8 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
  */
 public class EhcacheManager implements PersistentCacheManager {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheManager.class);
+  
   private final StatusTransitioner statusTransitioner = new StatusTransitioner();
 
   private final ServiceLocator serviceLocator;
@@ -110,6 +114,7 @@ public class EhcacheManager implements PersistentCacheManager {
         }
       }
       closeEhcache(alias, ehcache);
+      LOGGER.info("Cache '{}' is removed from EhcacheManager.", alias);
     }
   }
 
@@ -121,6 +126,7 @@ public class EhcacheManager implements PersistentCacheManager {
     }
     
     ehcache.getRuntimeConfiguration().releaseAllEventListeners(serviceLocator.findService(CacheEventListenerFactory.class));
+    LOGGER.info("Cache '{}' is closed from EhcacheManager.", alias);
   }
 
   @Override
@@ -128,6 +134,8 @@ public class EhcacheManager implements PersistentCacheManager {
     statusTransitioner.checkAvailable();
     Class<K> keyType = config.getKeyType();
     Class<V> valueType = config.getValueType();
+    
+    LOGGER.info("Cache '{}' is getting created in EhcacheManager.", alias);
     
     ClassLoader cacheClassLoader = config.getClassLoader();
     if (cacheClassLoader == null) {
@@ -168,8 +176,9 @@ public class EhcacheManager implements PersistentCacheManager {
     } else {
       caches.remove(alias);
       value.setCache(null);
-      throw failure;
+      throw new IllegalStateException("Cache '"+alias+"' creation in EhcacheManager failed.", failure);
     }
+    LOGGER.info("Cache '{}' created in EhcacheManager.", alias);
     return cache;
   }
 
@@ -248,6 +257,7 @@ public class EhcacheManager implements PersistentCacheManager {
   public void init() {
     final StatusTransitioner.Transition st = statusTransitioner.init();
 
+    LOGGER.info("Initializing EhcacheManager.");
     try {
       Map<Service, ServiceConfiguration<?>> serviceConfigs = new HashMap<Service, ServiceConfiguration<?>>();
       for (ServiceConfiguration<?> serviceConfig : configuration.getServiceConfigurations()) {
@@ -264,6 +274,7 @@ public class EhcacheManager implements PersistentCacheManager {
         serviceLocator.startAllServices(serviceConfigs);
       } catch (Exception e) {
         st.failed();
+        LOGGER.error("Initialization of EhcacheManager failed while starting Services.");
         throw new StateTransitionException(e);
       }
       Deque<String> initiatedCaches = new ArrayDeque<String>();
@@ -276,19 +287,22 @@ public class EhcacheManager implements PersistentCacheManager {
         }
       } catch (RuntimeException e) {
         while (!initiatedCaches.isEmpty()) {
+          String toBeClosed = initiatedCaches.pop();
           try {
-            removeCache(initiatedCaches.pop());
+            removeCache(toBeClosed);
           } catch (Exception exceptionClosingCache) {
-            // todo probably should log these exceptions
+              LOGGER.error("Cache '{}' could not be removed due to ", toBeClosed, exceptionClosingCache);
           }
         }
         throw e;
       }
     } catch (RuntimeException e) {
       st.failed();
+      LOGGER.error("Initialization of EhcacheManager failed while initiating Caches.");
       throw new StateTransitionException(e);
     }
     st.succeeded();
+    LOGGER.info("Initialization of EhcacheManager succeeded.");
   }
 
   @Override
@@ -300,6 +314,7 @@ public class EhcacheManager implements PersistentCacheManager {
   public void close() {
     final StatusTransitioner.Transition st = statusTransitioner.close();
 
+    LOGGER.info("Closing EhcacheManager.");
     Exception firstException = null;
     try {
       for (String alias : caches.keySet()) {
@@ -309,12 +324,13 @@ public class EhcacheManager implements PersistentCacheManager {
           if(firstException == null) {
             firstException = e;
           } else {
-            // todo probably should log these exceptions
+            LOGGER.error("Cache '{}' could not be removed due to ", alias, e);
           }
         }
       }
       serviceLocator.stopAllServices();
     } catch (Exception e) {
+       LOGGER.error("Closing EhcacheManager failed.");
       if(firstException == null) {
         firstException = e;
       }
@@ -327,6 +343,7 @@ public class EhcacheManager implements PersistentCacheManager {
       throw new StateTransitionException(firstException);
     }
     st.succeeded();
+    LOGGER.info("EhcacheManager Closed.");
   }
 
   @Override

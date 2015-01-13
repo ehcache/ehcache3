@@ -336,7 +336,9 @@ public class EhcacheManagerTest {
       fail();
     } catch (StateTransitionException e) {
       assertThat(cacheManager.getStatus(), is(Status.UNINITIALIZED));
-      assertThat(e.getCause(), CoreMatchers.<Throwable>sameInstance(thrown));
+      assertThat(e.getCause().getMessage(), CoreMatchers.startsWith("Cache '"));
+      assertThat(e.getCause().getMessage(), CoreMatchers.endsWith("' creation in EhcacheManager failed."));
+      
     }
     assertThat(caches.isEmpty(), is(true));
   }
