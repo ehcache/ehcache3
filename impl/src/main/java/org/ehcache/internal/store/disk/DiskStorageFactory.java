@@ -20,14 +20,12 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.store.disk.ods.FileAllocationTree;
 import org.ehcache.internal.store.disk.ods.Region;
-import org.ehcache.internal.store.disk.utils.CacheException;
 import org.ehcache.internal.store.disk.utils.ConcurrencyUtil;
-import org.ehcache.internal.store.disk.utils.MemoryEfficientByteArrayOutputStream;
 import org.ehcache.internal.store.disk.utils.PreferredLoaderObjectInputStream;
+import org.ehcache.spi.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,6 +36,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.RandomAccessFile;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Map;
@@ -197,12 +196,15 @@ public class DiskStorageFactory<K, V> {
 
     private final ClassLoader classLoader;
 
+    private final Serializer<Element> serializer;
+
     /**
      * Constructs an disk persistent factory for the given cache and disk path.
      */
-    public DiskStorageFactory(ClassLoader classLoader, TimeSource timeSource, DiskStorePathManager diskStorePathManager, String alias, boolean persistent, int stripes, long queueCapacity, int maxOnDisk, int expiryThreadInterval, boolean clearOnFlush) {
+    public DiskStorageFactory(ClassLoader classLoader, TimeSource timeSource, Serializer<Element> serializer, DiskStorePathManager diskStorePathManager, String alias, boolean persistent, int stripes, long queueCapacity, int maxOnDisk, int expiryThreadInterval, boolean clearOnFlush) {
         this.classLoader = classLoader;
         this.timeSource = timeSource;
+        this.serializer = serializer;
         this.diskStorePathManager = diskStorePathManager;
         this.alias = alias;
         this.file = diskStorePathManager.getFile(alias, ".data");
@@ -429,13 +431,7 @@ public class DiskStorageFactory<K, V> {
             data.readFully(buffer);
         }
 
-        ObjectInputStream objstr = new PreferredLoaderObjectInputStream(new ByteArrayInputStream(buffer), classLoader);
-
-        try {
-            return (Element) objstr.readObject();
-        } finally {
-            objstr.close();
-        }
+        return serializer.read(ByteBuffer.wrap(buffer));
     }
 
 
@@ -447,27 +443,29 @@ public class DiskStorageFactory<K, V> {
      * @throws java.io.IOException on write error
      */
     protected DiskMarker<K, V> write(Element<K, V> element) throws IOException {
-        MemoryEfficientByteArrayOutputStream buffer = serializeElement(element);
-        int bufferLength = buffer.size();
+        ByteBuffer buffer = serializeElement(element);
+        int bufferLength = buffer.remaining();
         elementSize = bufferLength;
         DiskMarker<K, V> marker = alloc(element, bufferLength);
         // Write the record
         final RandomAccessFile data = getDataAccess(element.getKey());
         synchronized (data) {
             data.seek(marker.getPosition());
-            data.write(buffer.toByteArray(), 0, bufferLength);
+            byte[] bytes = new byte[bufferLength];
+            buffer.get(bytes);
+            data.write(bytes, 0, bufferLength);
         }
         return marker;
     }
 
-    private MemoryEfficientByteArrayOutputStream serializeElement(Element<K, V> element) throws IOException {
+    private ByteBuffer serializeElement(Element<K, V> element) throws IOException {
         // A ConcurrentModificationException can occur because Java's serialization
         // mechanism is not threadsafe and POJOs are seldom implemented in a threadsafe way.
         // e.g. we are serializing an ArrayList field while another thread somewhere in the application is appending to it.
         try {
-            return MemoryEfficientByteArrayOutputStream.serialize(element);
+            return serializer.serialize(element);
         } catch (ConcurrentModificationException e) {
-            throw new CacheException("Failed to serialize element due to ConcurrentModificationException. " +
+            throw new RuntimeException("Failed to serialize element due to ConcurrentModificationException. " +
                                      "This is frequently the result of inappropriately sharing thread unsafe object " +
                                      "(eg. ArrayList, HashMap, etc) between threads", e);
         }
@@ -921,9 +919,9 @@ public class DiskStorageFactory<K, V> {
                 DiskMarker<K, V> marker = (DiskMarker) object;
                 return read(marker);
             } catch (IOException e) {
-                throw new CacheException(e);
+                throw new RuntimeException(e);
             } catch (ClassNotFoundException e) {
-                throw new CacheException(e);
+                throw new RuntimeException(e);
             }
         } else if (object instanceof DiskStorageFactory.Placeholder) {
             return ((Placeholder) object).getElement();
@@ -946,9 +944,9 @@ public class DiskStorageFactory<K, V> {
                 marker.hit(e);
                 return e;
             } catch (IOException e) {
-                throw new CacheException(e);
+                throw new RuntimeException(e);
             } catch (ClassNotFoundException e) {
-                throw new CacheException(e);
+                throw new RuntimeException(e);
             }
         } else if (object instanceof DiskStorageFactory.Placeholder) {
             return ((Placeholder) object).getElement();

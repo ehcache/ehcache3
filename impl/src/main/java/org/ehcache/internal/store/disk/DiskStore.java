@@ -28,6 +28,8 @@ import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.serialization.SerializationProvider;
+import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.AbstractSet;
@@ -60,6 +62,7 @@ public class DiskStore<K, V> implements Store<K, V> {
     private final String alias;
     private final ClassLoader classLoader;
     private final Expiry<? super K, ? super V> expiry;
+    private final SerializationProvider serializationProvider;
 
     private volatile DiskStorageFactory<K, V> diskStorageFactory;
     private volatile Segment<K, V>[] segments;
@@ -73,6 +76,7 @@ public class DiskStore<K, V> implements Store<K, V> {
         this.timeSource = timeSource;
         this.classLoader = config.getClassLoader();
         this.expiry = config.getExpiry();
+        this.serializationProvider = config.getSerializationProvider();
     }
 
     private void checkKey(K keyObject) {
@@ -220,7 +224,8 @@ public class DiskStore<K, V> implements Store<K, V> {
 
     @Override
     public void init() {
-        diskStorageFactory = new DiskStorageFactory<K, V>(classLoader, timeSource, new DiskStorePathManager(), alias, true, 16, 16, 0, 30000, false);
+        Serializer<DiskStorageFactory.Element> serializer = serializationProvider.createSerializer(DiskStorageFactory.Element.class, classLoader);
+        diskStorageFactory = new DiskStorageFactory<K, V>(classLoader, timeSource, serializer, new DiskStorePathManager(), alias, true, 16, 16, 0, 30000, false);
 
         segments = new Segment[16];
         for (int i = 0; i < segments.length; i++) {
