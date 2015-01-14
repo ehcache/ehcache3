@@ -16,7 +16,6 @@
 
 package org.ehcache.internal.store.disk;
 
-import org.ehcache.internal.store.disk.utils.CacheException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,7 +112,7 @@ public final class DiskStorePathManager {
                 try {
                     path = new DiskStorePath(initialPath, false, defaultPath);
                 } catch (DiskstoreNotExclusiveException e) {
-                    throw new CacheException(e);
+                    throw new RuntimeException(e);
                 }
 
                 LOG.debug("Using diskstore path {}", path.getDiskStorePath());
@@ -139,7 +138,7 @@ public final class DiskStorePathManager {
             while (true) {
                 // ensure disk store path exists
                 if (!candidate.isDirectory() && !candidate.mkdirs()) {
-                    throw new CacheException("Disk store path can't be created: " + candidate);
+                    throw new RuntimeException("Disk store path can't be created: " + candidate);
                 }
 
                 try {
@@ -154,7 +153,7 @@ public final class DiskStorePathManager {
                         // we want to create a directory with this temp name so deleting the file first
                         candidate.delete();
                     } catch (IOException ioe) {
-                        throw new CacheException(ioe);
+                        throw new RuntimeException(ioe);
                     }
                 }
             }
@@ -262,7 +261,7 @@ public final class DiskStorePathManager {
         try {
             resolveAndLockIfNeeded(true);
         } catch (DiskstoreNotExclusiveException e) {
-            throw new CacheException(e);
+            throw new RuntimeException(e);
         }
 
         File diskStorePath = path.getDiskStorePath();
@@ -329,7 +328,7 @@ public final class DiskStorePathManager {
             } catch (OverlappingFileLockException ofle) {
                 dirLock = null;
             } catch (IOException ioe) {
-                throw new CacheException(ioe);
+                throw new RuntimeException(ioe);
             }
 
             if (dirLock == null) {
@@ -362,7 +361,7 @@ public final class DiskStorePathManager {
                     directoryLock.channel().close();
                     deleteFile(lockFile);
                 } catch (IOException e) {
-                    throw new CacheException("Failed to release disk store path's lock file:" + lockFile, e);
+                    throw new RuntimeException("Failed to release disk store path's lock file:" + lockFile, e);
                 }
             }
 
