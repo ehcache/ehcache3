@@ -17,14 +17,13 @@
 package org.ehcache;
 
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.spi.loader.CacheLoader;
-import org.ehcache.spi.writer.CacheWriter;
 import org.junit.Test;
 import org.mockito.Mock;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -42,10 +41,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
 
   @Mock
-  private CacheLoader<String, String> cacheLoader;
-
-  @Mock
-  private CacheWriter<String, String> cacheWriter;
+  private CacheLoaderWriter<String, String> cacheLoaderWriter;
 
   /**
    * Tests {@link Ehcache#clear()} over an empty cache.
@@ -57,8 +53,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.clear();
-    verifyZeroInteractions(this.cacheLoader);
-    verifyZeroInteractions(this.cacheWriter);
+    verifyZeroInteractions(this.cacheLoaderWriter);
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(realStore.getEntryMap().isEmpty(), is(true));
   }
@@ -76,8 +71,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.clear();
-    verifyZeroInteractions(this.cacheLoader);
-    verifyZeroInteractions(this.cacheWriter);
+    verifyZeroInteractions(this.cacheLoaderWriter);
     verify(this.spiedResilienceStrategy).clearFailure(any(CacheAccessException.class));
   }
 
@@ -92,8 +86,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
     assertThat(realStore.getEntryMap().isEmpty(), is(false));
 
     ehcache.clear();
-    verifyZeroInteractions(this.cacheLoader);
-    verifyZeroInteractions(this.cacheWriter);
+    verifyZeroInteractions(this.cacheLoaderWriter);
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(realStore.getEntryMap().isEmpty(), is(true));
   }
@@ -112,8 +105,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
     assertThat(realStore.getEntryMap().isEmpty(), is(false));
 
     ehcache.clear();
-    verifyZeroInteractions(this.cacheLoader);
-    verifyZeroInteractions(this.cacheWriter);
+    verifyZeroInteractions(this.cacheLoaderWriter);
     verify(this.spiedResilienceStrategy).clearFailure(any(CacheAccessException.class));
     // Not testing ResilienceStrategy implementation here
   }
@@ -128,15 +120,14 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Gets an initialized {@link Ehcache Ehcache} instance using {@link #cacheLoader}
-   * and {@link #cacheWriter}.
+   * Gets an initialized {@link Ehcache Ehcache} instance using {@link #cacheLoaderWriter}.
    *
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache()
       throws Exception {
     final Ehcache<String, String> ehcache =
-        new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, this.cacheLoader, this.cacheWriter);
+        new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, this.cacheLoaderWriter);
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

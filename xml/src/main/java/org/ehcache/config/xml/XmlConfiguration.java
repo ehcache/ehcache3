@@ -21,15 +21,13 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.config.loader.DefaultCacheLoaderConfiguration;
-import org.ehcache.config.writer.DefaultCacheWriterConfiguration;
+import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
-import org.ehcache.spi.loader.CacheLoader;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.writer.CacheWriter;
 import org.ehcache.util.ClassLoading;
 import org.xml.sax.SAXException;
 
@@ -164,13 +162,9 @@ public class XmlConfiguration implements Configuration {
       if (capacityConstraint != null) {
         builder = builder.maxEntriesInCache(capacityConstraint);
       }
-      if(cacheDefinition.loader() != null) {
-        final Class<CacheLoader<?, ?>> cacheLoaderClass = (Class<CacheLoader<?,?>>)getClassForName(cacheDefinition.loader(), cacheClassLoader);
-        builder = builder.addServiceConfig(new DefaultCacheLoaderConfiguration(cacheLoaderClass));
-      }
-      if(cacheDefinition.writer() != null) {
-        final Class<CacheWriter<?, ?>> cacheWriterClass = (Class<CacheWriter<?,?>>)getClassForName(cacheDefinition.writer(), cacheClassLoader);
-        builder = builder.addServiceConfig(new DefaultCacheWriterConfiguration(cacheWriterClass));
+      if(cacheDefinition.loaderWriter()!= null) {
+        final Class<CacheLoaderWriter<?, ?>> cacheLoaderWriterClass = (Class<CacheLoaderWriter<?,?>>)getClassForName(cacheDefinition.loaderWriter(), cacheClassLoader);
+        builder = builder.addServiceConfig(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriterClass));
       }
       final OnHeapStoreServiceConfig onHeapStoreServiceConfig = new OnHeapStoreServiceConfig();
       onHeapStoreServiceConfig.storeByValue(cacheDefinition.storeByValueOnHeap());

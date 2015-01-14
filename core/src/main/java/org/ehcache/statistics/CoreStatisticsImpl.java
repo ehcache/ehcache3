@@ -126,17 +126,17 @@ public class CoreStatisticsImpl implements CoreStatistics {
   }
   
   @Override
-  public Latency getWithLoaderLatency() {
-    return extended.getWithLoader().latency();
+  public Latency getWithLoadingLatency() {
+    return extended.getWithLoading().latency();
   }
   
   @Override
-  public Latency getNoLoaderLatency() {
-    return extended.getNoLoader().latency();
+  public Latency getNoLoadingLatency() {
+    return extended.getNoLoading().latency();
   }
   
   @Override
-  public Latency cacheLoaderLatency() {
-    return extended.cacheLoader().latency();
+  public Latency cacheLoadingLatency() {
+    return extended.cacheLoading().latency();
   }
 }

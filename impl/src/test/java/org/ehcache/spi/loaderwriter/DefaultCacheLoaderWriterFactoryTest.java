@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.loader;
+package org.ehcache.spi.loaderwriter;
 
 import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.DefaultConfiguration;
-import org.ehcache.config.loader.DefaultCacheLoaderConfiguration;
-import org.ehcache.config.loader.DefaultCacheLoaderFactoryConfiguration;
+import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterFactoryConfiguration;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -31,14 +31,14 @@ import java.util.Map;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
-public class DefaultCacheLoaderFactoryTest {
+public class DefaultCacheLoaderWriterFactoryTest {
 
   @Test
   public void testCacheConfigUsage() {
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("foo",
             CacheConfigurationBuilder.newCacheConfigurationBuilder()
-                .addServiceConfig(new DefaultCacheLoaderConfiguration(MyLoader.class))
+                .addServiceConfig(new DefaultCacheLoaderWriterConfiguration(MyLoader.class))
                 .buildConfig(Object.class, Object.class)).build();
     final Object foo = manager.getCache("foo", Object.class, Object.class).get(new Object());
     assertThat(foo, is(MyLoader.object));
@@ -52,7 +52,7 @@ public class DefaultCacheLoaderFactoryTest {
 
     final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
     caches.put("foo", cacheConfiguration);
-    final DefaultConfiguration configuration = new DefaultConfiguration(caches, null, new DefaultCacheLoaderFactoryConfiguration()
+    final DefaultConfiguration configuration = new DefaultConfiguration(caches, null, new DefaultCacheLoaderWriterFactoryConfiguration()
         .addLoaderFor("foo", MyLoader.class));
     final CacheManager manager = CacheManagerBuilder.newCacheManager(configuration);
     final Object foo = manager.getCache("foo", Object.class, Object.class).get(new Object());
@@ -62,19 +62,19 @@ public class DefaultCacheLoaderFactoryTest {
   @Test
   public void testCacheConfigOverridesCacheManagerConfig() {
     final CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .addServiceConfig(new DefaultCacheLoaderConfiguration(MyOtherLoader.class))
+        .addServiceConfig(new DefaultCacheLoaderWriterConfiguration(MyOtherLoader.class))
         .buildConfig(Object.class, Object.class);
 
     final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
     caches.put("foo", cacheConfiguration);
-    final DefaultConfiguration configuration = new DefaultConfiguration(caches, null, new DefaultCacheLoaderFactoryConfiguration()
+    final DefaultConfiguration configuration = new DefaultConfiguration(caches, null, new DefaultCacheLoaderWriterFactoryConfiguration()
         .addLoaderFor("foo", MyLoader.class));
     final CacheManager manager = CacheManagerBuilder.newCacheManager(configuration);
     final Object foo = manager.getCache("foo", Object.class, Object.class).get(new Object());
     assertThat(foo, is(MyOtherLoader.object));
   }
 
-  public static class MyLoader implements CacheLoader<Object, Object> {
+  public static class MyLoader implements CacheLoaderWriter<Object, Object> {
 
     private static final Object object = new Object() {
       @Override
@@ -92,6 +92,28 @@ public class DefaultCacheLoaderFactoryTest {
     public Map<Object, Object> loadAll(final Iterable<?> keys) throws Exception {
       throw new UnsupportedOperationException("Implement me!");
     }
+
+    private static Object lastWritten;
+
+    @Override
+    public void write(final Object key, final Object value) throws Exception {
+      this.lastWritten = value;
+    }
+
+    @Override
+    public void writeAll(final Iterable<? extends Map.Entry<?, ?>> entries) throws Exception {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public void delete(final Object key) throws Exception {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public void deleteAll(final Iterable<?> keys) throws Exception {
+      throw new UnsupportedOperationException("Implement me!");
+    }
   }
 
   public static class MyOtherLoader extends MyLoader {
@@ -103,9 +125,17 @@ public class DefaultCacheLoaderFactoryTest {
       }
     };
 
+    private static Object lastWritten;
+
     @Override
     public Object load(final Object key) throws Exception {
       return object;
     }
+ 
+    @Override
+    public void write(final Object key, final Object value) throws Exception {
+      this.lastWritten = value;
+    }
+
   }
 }

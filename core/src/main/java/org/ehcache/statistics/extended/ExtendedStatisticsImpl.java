@@ -102,11 +102,11 @@ public class ExtendedStatisticsImpl implements ExtendedStatistics {
   /** The all cache remove. */
   private final Result                                                         allCacheRemove;
 
-  private final Result                                                         getWithLoader;
+  private final Result                                                         getWithLoading;
 
-  private final Result                                                         getNoLoader;
+  private final Result                                                         getNoLoading;
   
-  private final Result                                                         cacheLoader;
+  private final Result                                                         cacheLoading;
 
   /** The cache hit ratio. */
   private final Statistic<Double>                                                    cacheHitRatio;
@@ -152,9 +152,9 @@ public class ExtendedStatisticsImpl implements ExtendedStatistics {
     this.allCacheMiss = get().compound(ALL_CACHE_MISS_OUTCOMES);
     this.allCachePut = put().compound(ALL_CACHE_PUT_OUTCOMES);
     this.allCacheRemove = remove().compound(ALL_CACHE_REMOVE_OUTCOMES);
-    this.getWithLoader = get().compound(GET_WITH_LOADER_OUTCOMES);
-    this.getNoLoader = get().compound(GET_NO_LOADER_OUTCOMES);
-    this.cacheLoader = ((Operation<CacheOperationOutcomes.CacheLoaderOutcome>) getStandardOperation(StandardOperationStatistic.CACHE_LOADER))
+    this.getWithLoading = get().compound(GET_WITH_LOADER_OUTCOMES);
+    this.getNoLoading = get().compound(GET_NO_LOADER_OUTCOMES);
+    this.cacheLoading = ((Operation<CacheOperationOutcomes.CacheLoadingOutcome>) getStandardOperation(StandardOperationStatistic.CACHE_LOADING))
         .compound(ALL_CACHE_LOADER_OUTCOMES);
 
     this.cacheHitRatio = get().ratioOf(EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER),
@@ -304,18 +304,18 @@ public class ExtendedStatisticsImpl implements ExtendedStatistics {
   }
 
   @Override
-  public Result getWithLoader() {
-    return getWithLoader;
+  public Result getWithLoading() {
+    return getWithLoading;
   }
 
   @Override
-  public Result getNoLoader() {
-    return getNoLoader;
+  public Result getNoLoading() {
+    return getNoLoading;
   }
 
   @Override
-  public Result cacheLoader() {
-    return cacheLoader;
+  public Result cacheLoading() {
+    return cacheLoading;
   }
 
   @SuppressWarnings("unchecked")

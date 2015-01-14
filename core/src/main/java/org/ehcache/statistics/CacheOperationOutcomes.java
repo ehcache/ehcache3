@@ -80,9 +80,9 @@ public interface CacheOperationOutcomes {
   };
   
   /**
-   * The cacheloader outcomes.
+   * The cache loading outcomes.
    */
-  enum CacheLoaderOutcome implements CacheOperationOutcomes {
+  enum CacheLoadingOutcome implements CacheOperationOutcomes {
     /** success. */
     SUCCESS,
     /** failure */

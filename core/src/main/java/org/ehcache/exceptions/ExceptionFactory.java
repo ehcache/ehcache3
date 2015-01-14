@@ -25,10 +25,10 @@ public final class ExceptionFactory {
     throw new UnsupportedOperationException("Thou shalt not instantiate me!");
   }
 
-  public static CacheWriterException newCacheWriterException(Exception e) {
-    return new CacheWriterException(e);
+  public static CacheWritingException newCacheWritingException(Exception e) {
+    return new CacheWritingException(e);
   }
-  public static CacheLoaderException newCacheLoaderException(Exception e) {
-    return new CacheLoaderException(e);
+  public static CacheLoadingException newCacheLoadingException(Exception e) {
+    return new CacheLoadingException(e);
   }
 }

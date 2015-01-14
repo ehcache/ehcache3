@@ -14,30 +14,30 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.loader;
+package org.ehcache.spi.loaderwriter;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.loader.DefaultCacheLoaderConfiguration;
-import org.ehcache.config.loader.DefaultCacheLoaderFactoryConfiguration;
+import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterFactoryConfiguration;
 import org.ehcache.internal.classes.ClassInstanceProvider;
 
 /**
  * @author Alex Snaps
  */
-public class DefaultCacheLoaderFactory extends ClassInstanceProvider<CacheLoader<?, ?>> implements CacheLoaderFactory {
+public class DefaultCacheLoaderWriterFactory extends ClassInstanceProvider<CacheLoaderWriter<?, ?>> implements CacheLoaderWriterFactory {
 
-  public DefaultCacheLoaderFactory() {
-    super(DefaultCacheLoaderFactoryConfiguration.class, DefaultCacheLoaderConfiguration.class);
+  public DefaultCacheLoaderWriterFactory() {
+    super(DefaultCacheLoaderWriterFactoryConfiguration.class, DefaultCacheLoaderWriterConfiguration.class);
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public <K, V> CacheLoader<? super K, ? extends V> createCacheLoader(final String alias, final CacheConfiguration<K, V> cacheConfiguration) {
-    return (CacheLoader<? super K, ? extends V>) newInstance(alias, cacheConfiguration);
+  public <K, V> CacheLoaderWriter<? super K, V> createCacheLoaderWriter(final String alias, final CacheConfiguration<K, V> cacheConfiguration) {
+    return (CacheLoaderWriter<? super K, V>) newInstance(alias, cacheConfiguration);
   }
 
   @Override
-  public void releaseCacheLoader(final CacheLoader<?, ?> cacheLoader) {
+  public void releaseCacheLoaderWriter(final CacheLoaderWriter<?, ?> cacheLoaderWriter) {
     // noop
   }
 

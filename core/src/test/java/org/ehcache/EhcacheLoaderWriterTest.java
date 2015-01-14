@@ -22,7 +22,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.doThrow;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -30,14 +29,13 @@ import static org.hamcrest.Matchers.nullValue;
 
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.exceptions.CacheLoaderException;
-import org.ehcache.exceptions.CacheWriterException;
+import org.ehcache.exceptions.CacheLoadingException;
+import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.loader.CacheLoader;
-import org.ehcache.spi.writer.CacheWriter;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -47,7 +45,7 @@ import org.mockito.stubbing.Answer;
 /**
  * @author vfunshteyn
  */
-public class EhcacheWriterLoaderTest {
+public class EhcacheLoaderWriterTest {
   private Ehcache<Number, String> cache;
   private Store<Number, String> store;
    
@@ -55,10 +53,9 @@ public class EhcacheWriterLoaderTest {
   @Before
   public void setUp() throws Exception {
     store = mock(Store.class);
-    CacheWriter<Number, String> writer = mock(CacheWriter.class);
-    CacheLoader<Number, String> loader = mock(CacheLoader.class);
+    CacheLoaderWriter<Number, String> loaderWriter = mock(CacheLoaderWriter.class);
     cache = new Ehcache<Number, String>(
-        CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, String.class), store, loader, writer);
+        CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, String.class), store, loaderWriter);
     cache.init();
   }
   
@@ -73,19 +70,19 @@ public class EhcacheWriterLoaderTest {
       }
     });
     cache.get(1);
-    verify(cache.getCacheLoader()).load(1);
+    verify(cache.getCacheLoaderWriter()).load(1);
   }
 
   @Test
   public void testGetThrowsOnCompute() throws Exception {
     when(store.computeIfAbsent(any(Number.class), anyFunction())).thenThrow(new CacheAccessException("boom"));
     String expected = "foo";
-    when((String)cache.getCacheLoader().load(any(Number.class))).thenReturn(expected);
+    when((String)cache.getCacheLoaderWriter().load(any(Number.class))).thenReturn(expected);
     assertThat(cache.get(1), is(expected));
     verify(store).remove(1);
   }
   
-  @Test(expected=CacheLoaderException.class)
+  @Test(expected=CacheLoadingException.class)
   public void testGetThrowsOnLoad() throws Exception {
     when(store.computeIfAbsent(any(Number.class), anyFunction())).thenAnswer(new Answer<Object>() {
       @Override
@@ -95,7 +92,7 @@ public class EhcacheWriterLoaderTest {
         return null;
       }
     });
-    when(cache.getCacheLoader().load(any(Number.class))).thenThrow(new Exception());
+    when(cache.getCacheLoaderWriter().load(any(Number.class))).thenThrow(new Exception());
     cache.get(1);
   }
   
@@ -110,7 +107,7 @@ public class EhcacheWriterLoaderTest {
       }
     });
     cache.put(1, "one");
-    verify(cache.getCacheWriter()).write(1, "one");
+    verify(cache.getCacheLoaderWriter()).write(1, "one");
   }
 
   @Test
@@ -118,10 +115,10 @@ public class EhcacheWriterLoaderTest {
     when(store.compute(any(Number.class), anyBiFunction())).thenThrow(new CacheAccessException("boom"));
     cache.put(1, "one");
     verify(store).remove(1);
-    verify(cache.getCacheWriter()).write(1, "one");
+    verify(cache.getCacheLoaderWriter()).write(1, "one");
   }
   
-  @Test(expected=CacheWriterException.class)
+  @Test(expected=CacheWritingException.class)
   public void testPutThrowsOnWrite() throws Exception {
     when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
@@ -131,7 +128,7 @@ public class EhcacheWriterLoaderTest {
         return null;
       }
     });
-    doThrow(new Exception()).when(cache.getCacheWriter()).write(any(Number.class), anyString());
+    doThrow(new Exception()).when(cache.getCacheLoaderWriter()).write(any(Number.class), anyString());
     cache.put(1, "one");
   }
   
@@ -146,7 +143,7 @@ public class EhcacheWriterLoaderTest {
       }
     });
     cache.remove(1);
-    verify(cache.getCacheWriter()).delete(1);
+    verify(cache.getCacheLoaderWriter()).delete(1);
   }
 
   @Test
@@ -154,10 +151,10 @@ public class EhcacheWriterLoaderTest {
     when(store.compute(any(Number.class), anyBiFunction())).thenThrow(new CacheAccessException("boom"));
     cache.remove(1);
     verify(store).remove(1);
-    verify(cache.getCacheWriter()).delete(1);
+    verify(cache.getCacheLoaderWriter()).delete(1);
   }
   
-  @Test(expected=CacheWriterException.class)
+  @Test(expected=CacheWritingException.class)
   public void testRemoveThrowsOnWrite() throws Exception {
     when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
@@ -167,7 +164,7 @@ public class EhcacheWriterLoaderTest {
         return null;
       }
     });
-    doThrow(new Exception()).when(cache.getCacheWriter()).delete(any(Number.class));
+    doThrow(new Exception()).when(cache.getCacheLoaderWriter()).delete(any(Number.class));
     cache.remove(1);
   }
 
@@ -182,19 +179,18 @@ public class EhcacheWriterLoaderTest {
       }
     });
     cache.putIfAbsent(1, "foo");
-    verifyZeroInteractions(cache.getCacheLoader());
-    verify(cache.getCacheWriter()).write(1, "foo");
+    verify(cache.getCacheLoaderWriter()).write(1, "foo");
   }
   
   @Test
   public void testPutIfAbsentThrowsOnCompute() throws Exception {
     when(store.computeIfAbsent(any(Number.class), anyFunction())).thenThrow(new CacheAccessException("boom"));
     cache.putIfAbsent(1, "one");
-    verify(cache.getCacheWriter()).write(1, "one");
+    verify(cache.getCacheLoaderWriter()).write(1, "one");
     verify(store).remove(1);
   }
   
-  @Test(expected=CacheWriterException.class)
+  @Test(expected=CacheWritingException.class)
   public void testPutIfAbsentThrowsOnWrite() throws Exception {
     when(store.computeIfAbsent(any(Number.class), anyFunction())).thenAnswer(new Answer<Object>() {
       @Override
@@ -204,7 +200,7 @@ public class EhcacheWriterLoaderTest {
         return null;
       }
     });
-    doThrow(new Exception()).when(cache.getCacheWriter()).write(any(Number.class), anyString());
+    doThrow(new Exception()).when(cache.getCacheLoaderWriter()).write(any(Number.class), anyString());
     cache.putIfAbsent(1, "one");
   }
   
@@ -220,7 +216,7 @@ public class EhcacheWriterLoaderTest {
       }
     });
     assertThat(cache.remove(1, cachedValue), is(true));
-    verify(cache.getCacheWriter()).delete(1);
+    verify(cache.getCacheLoaderWriter()).delete(1);
   }
   
   @Test
@@ -235,7 +231,7 @@ public class EhcacheWriterLoaderTest {
     });
     String toRemove = "foo";
     assertThat(cache.remove(1, toRemove), is(false));
-    verify(cache.getCacheWriter(), never()).delete(1);
+    verify(cache.getCacheLoaderWriter(), never()).delete(1);
   }
   
   @Test
@@ -250,7 +246,7 @@ public class EhcacheWriterLoaderTest {
     });
     String toRemove = "foo";
     assertThat(cache.remove(1, toRemove), is(false));
-    verify(cache.getCacheWriter(), never()).delete(1);
+    verify(cache.getCacheLoaderWriter(), never()).delete(1);
     
   }
 
@@ -259,11 +255,11 @@ public class EhcacheWriterLoaderTest {
     String toRemove = "foo";
     when(store.computeIfPresent(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenThrow(new CacheAccessException("boom"));
     assertThat(cache.remove(1, toRemove), is(false));
-    verify(cache.getCacheWriter(), never()).delete(1);
+    verify(cache.getCacheLoaderWriter(), never()).delete(1);
     verify(store).remove(1);
   }
   
-  @Test(expected=CacheWriterException.class)
+  @Test(expected=CacheWritingException.class)
   public void testTwoArgRemoveThrowsOnWrite() throws Exception {
     final String expected = "foo";
     when(store.computeIfPresent(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenAnswer(new Answer<Object>() {
@@ -274,7 +270,7 @@ public class EhcacheWriterLoaderTest {
         return null;
       }
     });
-    doThrow(new Exception()).when(cache.getCacheWriter()).delete(any(Number.class));
+    doThrow(new Exception()).when(cache.getCacheLoaderWriter()).delete(any(Number.class));
     cache.remove(1, expected);
   }
   
@@ -290,10 +286,10 @@ public class EhcacheWriterLoaderTest {
         return null;
       }
     });
-    when((String)cache.getCacheLoader().load(any(Number.class))).thenReturn(oldValue);
+    when((String)cache.getCacheLoaderWriter().load(any(Number.class))).thenReturn(oldValue);
 
     assertThat(cache.replace(1, newValue), is(oldValue));
-    verify(cache.getCacheWriter()).write(1, newValue);
+    verify(cache.getCacheLoaderWriter()).write(1, newValue);
   }
   
   @Test
@@ -301,11 +297,11 @@ public class EhcacheWriterLoaderTest {
     when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenThrow(new CacheAccessException("boom"));
     String value = "foo";
     assertThat(cache.replace(1, value), nullValue());
-    verify(cache.getCacheWriter()).write(1, value);
+    verify(cache.getCacheLoaderWriter()).write(1, value);
     verify(store).remove(1);
   }
   
-  @Test(expected=CacheWriterException.class)
+  @Test(expected=CacheWritingException.class)
   public void testReplaceThrowsOnWrite() throws Exception {
     final String expected = "old";
     when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
@@ -316,8 +312,8 @@ public class EhcacheWriterLoaderTest {
         return null;
       }
     });
-    when((String)cache.getCacheLoader().load(any(Number.class))).thenReturn(expected);
-    doThrow(new Exception()).when(cache.getCacheWriter()).write(any(Number.class), anyString());
+    when((String)cache.getCacheLoaderWriter().load(any(Number.class))).thenReturn(expected);
+    doThrow(new Exception()).when(cache.getCacheLoaderWriter()).write(any(Number.class), anyString());
     cache.replace(1, "bar");
   }
   
@@ -336,7 +332,7 @@ public class EhcacheWriterLoaderTest {
     });
 
     assertThat(cache.replace(1, cachedValue, newValue), is(true));
-    verify(cache.getCacheWriter()).write(1, newValue);
+    verify(cache.getCacheLoaderWriter()).write(1, newValue);
   }
   
   @Test
@@ -354,7 +350,7 @@ public class EhcacheWriterLoaderTest {
     });
 
     assertThat(cache.replace(1, oldValue, newValue), is(false));
-    verify(cache.getCacheWriter(), never()).write(1, newValue);
+    verify(cache.getCacheLoaderWriter(), never()).write(1, newValue);
   }
 
   @Test
@@ -364,11 +360,11 @@ public class EhcacheWriterLoaderTest {
     when(store.computeIfPresent(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenThrow(new CacheAccessException("boom"));
 
     assertThat(cache.replace(1, oldValue, newValue), is(false));
-    verify(cache.getCacheWriter(), never()).write(1, newValue);
+    verify(cache.getCacheLoaderWriter(), never()).write(1, newValue);
     verify(store).remove(1);
   }
   
-  @Test(expected=CacheWriterException.class)
+  @Test(expected=CacheWritingException.class)
   public void testThreeArgReplaceThrowsOnWrite() throws Exception {
     when(store.computeIfPresent(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenAnswer(new Answer<Object>() {
       @Override
@@ -383,7 +379,7 @@ public class EhcacheWriterLoaderTest {
         return mock;
       }
     });
-    doThrow(new Exception()).when(cache.getCacheWriter()).write(any(Number.class), anyString());
+    doThrow(new Exception()).when(cache.getCacheLoaderWriter()).write(any(Number.class), anyString());
     cache.replace(1, "old", "new");
   }
   

@@ -17,8 +17,7 @@
 package org.ehcache;
 
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.spi.loader.CacheLoader;
-import org.ehcache.spi.writer.CacheWriter;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -39,6 +38,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.spy;
 
 /**
  * Provides testing of basic ITERATOR operations on an {@code Ehcache}.
@@ -164,8 +164,8 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(testStoreEntries);
     this.store = fakeStore;
 
-    // Set CacheWriter & Store to have the same entries initially
-    final FakeCacheWriter fakeWriterWriter = new FakeCacheWriter(testStoreEntries);
+    // Set CacheLoaderWriter & Store to have the same entries initially
+    final FakeCacheLoaderWriter fakeWriterWriter = new FakeCacheLoaderWriter(testStoreEntries);
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriterWriter);
 
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
@@ -203,9 +203,9 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(testStoreEntries);
     this.store = fakeStore;
 
-    // Set CacheWriter & Store to have the same entries initially
-    final FakeCacheWriter fakeWriterWriter = new FakeCacheWriter(testStoreEntries);
-    final Ehcache<String, String> ehcache = this.getEhcache(fakeWriterWriter);
+    // Set CacheLoaderWriter & Store to have the same entries initially
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(testStoreEntries);
+    final Ehcache<String, String> ehcache = this.getEhcache(fakeLoaderWriter);
 
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     while (iterator.hasNext()) {
@@ -213,7 +213,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
       iterator.remove();
     }
     assertThat("Failed to remove all entries from Store", fakeStore.getEntryMap().isEmpty(), is(true));
-    assertThat("Failed to remove all entries via CacheWriter", fakeWriterWriter.getEntryMap().isEmpty(), is(true));
+    assertThat("Failed to remove all entries via CacheLoaderWriter", fakeLoaderWriter.getEntryMap().isEmpty(), is(true));
   }
 
   /**
@@ -264,8 +264,8 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     final Map<String, String> testStoreEntries = this.getTestStoreEntries();
     this.store = new FakeStore(testStoreEntries);
 
-    // Set CacheWriter & Store to have the same entries initially
-    final FakeCacheWriter fakeWriterWriter = new FakeCacheWriter(testStoreEntries);
+    // Set CacheLoaderWriter & Store to have the same entries initially
+    final FakeCacheLoaderWriter fakeWriterWriter = new FakeCacheLoaderWriter(testStoreEntries);
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriterWriter);
 
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
@@ -293,8 +293,8 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     final Map<String, String> testStoreEntries = this.getTestStoreEntries();
     this.store = new FakeStore(testStoreEntries);
 
-    // Set CacheWriter & Store to have the same entries initially
-    final FakeCacheWriter fakeWriterWriter = new FakeCacheWriter(testStoreEntries);
+    // Set CacheLoaderWriter & Store to have the same entries initially
+    final FakeCacheLoaderWriter fakeWriterWriter = new FakeCacheLoaderWriter(testStoreEntries);
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriterWriter);
 
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
@@ -351,41 +351,35 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Gets an initialized {@link org.ehcache.Ehcache Ehcache} instance using mock
-   * {@link org.ehcache.spi.loader.CacheLoader CacheLoader} and
-   * {@link org.ehcache.spi.writer.CacheWriter CacheWriter} instances
-   * which throw for any method called.
+   * Gets an initialized {@link org.ehcache.Ehcache Ehcache} instance using a 
+   * mock {@link CacheLoaderWriter} instance which throws for any method called.
    *
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache() throws Exception {
 
     @SuppressWarnings("unchecked")
-    final CacheWriter<String, String> cacheWriter = mock(CacheWriter.class);
-    doThrow(new UnsupportedOperationException()).when(cacheWriter).delete(anyString());
-    doThrow(new UnsupportedOperationException()).when(cacheWriter).deleteAll(getAnyStringIterable());
-    doThrow(new UnsupportedOperationException()).when(cacheWriter).write(anyString(), anyString());
-    doThrow(new UnsupportedOperationException()).when(cacheWriter).writeAll(getAnyMapEntryIterable());
+    final CacheLoaderWriter<String, String> cacheLoaderWriter = mock(CacheLoaderWriter.class);
+    doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).delete(anyString());
+    doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).deleteAll(getAnyStringIterable());
+    doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).write(anyString(), anyString());
+    doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).writeAll(getAnyMapEntryIterable());
+    doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).load(anyString());
+    doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).loadAll(getAnyStringIterable());
+    
 
-    return this.getEhcache(cacheWriter);
+    return this.getEhcache(cacheLoaderWriter);
   }
 
   /**
-   * Gets an initialized {@link Ehcache Ehcache} instance using a mock
-   * {@link org.ehcache.spi.loader.CacheLoader CacheLoader} instance which throws for
-   * any any method called and the
-   * {@link org.ehcache.spi.writer.CacheWriter CacheWriter} provided.
+   * Gets an initialized {@link Ehcache Ehcache} instance using the
+   * {@link CacheLoaderWriter} provided.
    *
-   * @param cacheWriter the {@code CacheWriter} to use in the {@link org.ehcache.Ehcache Ehcache} instance
+   * @param cacheLoaderWriter the {@code CacheLoaderWriter} to use in the {@link org.ehcache.Ehcache Ehcache} instance
    * @return a new {@code Ehcache} instance
    */
-  private Ehcache<String, String> getEhcache(final CacheWriter<String, String> cacheWriter) throws Exception {
-    @SuppressWarnings("unchecked")
-    final CacheLoader<String, String> cacheLoader = mock(CacheLoader.class);
-    when(cacheLoader.load(anyString())).thenThrow(new UnsupportedOperationException());
-    when(cacheLoader.loadAll(getAnyStringIterable())).thenThrow(new UnsupportedOperationException());
-
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheLoader, cacheWriter);
+  private Ehcache<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter) throws Exception {
+    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter);
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

@@ -54,7 +54,7 @@ public interface ExtendedStatistics {
     static final Set<CacheOperationOutcomes.GetOutcome> GET_NO_LOADER_OUTCOMES = EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER, CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER);
     
     /** The Constant CACHE_LOADER_OUTCOMES. */
-    static final Set<CacheOperationOutcomes.CacheLoaderOutcome> ALL_CACHE_LOADER_OUTCOMES = EnumSet.allOf(CacheOperationOutcomes.CacheLoaderOutcome.class);
+    static final Set<CacheOperationOutcomes.CacheLoadingOutcome> ALL_CACHE_LOADER_OUTCOMES = EnumSet.allOf(CacheOperationOutcomes.CacheLoadingOutcome.class);
     
     /**
      * Sets the time to disable.
@@ -150,22 +150,22 @@ public interface ExtendedStatistics {
     Result allRemove();
     
     /**
-     * Get with cacheLoader
+     * Get with cache loading
      * @return result
      */
-    Result getWithLoader();
+    Result getWithLoading();
     
     /**
-     * Get without cacheLoader
+     * Get without cache loading
      * @return result
      */
-    Result getNoLoader();
+    Result getNoLoading();
     
     /**
-     * cache loader dedicated stats
+     * cache loading dedicated stats
      * @return result
      */
-    Result cacheLoader();
+    Result cacheLoading();
     
     /**
      * Cache hit ratio.

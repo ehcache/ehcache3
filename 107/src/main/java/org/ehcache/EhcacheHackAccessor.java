@@ -15,8 +15,7 @@
  */
 package org.ehcache;
 
-import org.ehcache.spi.loader.CacheLoader;
-import org.ehcache.spi.writer.CacheWriter;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
  * EhcacheHackAccessor
@@ -27,14 +26,10 @@ public final class EhcacheHackAccessor {
     // Do not instantiate
   }
 
-  public static <K, V> CacheLoader<? super K, ? extends V> getCacheLoader(Ehcache<K, V> ehcache) {
-    return ehcache.getCacheLoader();
+  public static <K, V> CacheLoaderWriter<? super K, V> getCacheLoaderWriter(Ehcache<K, V> ehcache) {
+    return ehcache.getCacheLoaderWriter();
   }
 
-  public static <K, V> CacheWriter<? super K, ? super V> getCacheWriter(Ehcache<K, V> ehcache) {
-    return ehcache.getCacheWriter();
-  }
-  
   public static <K, V> Jsr107Cache<K, V> getJsr107Cache(Ehcache<K, V> ehcache) {
     return ehcache.getJsr107Cache();
   }

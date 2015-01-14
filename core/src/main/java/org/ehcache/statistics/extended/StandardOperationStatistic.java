@@ -35,7 +35,7 @@ import static org.ehcache.statistics.extended.EhcacheQueryBuilder.descendants;
  * @author cdennis
  */
 enum StandardOperationStatistic {
-    CACHE_LOADER(false, cache(), CacheOperationOutcomes.CacheLoaderOutcome.class, "cacheLoader", "cache"),
+    CACHE_LOADING(false, cache(), CacheOperationOutcomes.CacheLoadingOutcome.class, "cacheLoading", "cache"),
   
     /** The cache get. */
     CACHE_GET(true, cache(), CacheOperationOutcomes.GetOutcome.class, "get", "cache"),

@@ -162,29 +162,15 @@
 
   <xs:complexType name="cache-integration">
     <xs:sequence>
-      <xs:element name="loader" minOccurs="0" maxOccurs="1">
+      <xs:element name="loaderwriter" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:sequence>
             <xs:element name="class" type="xs:string" minOccurs="1" maxOccurs="1">
               <xs:annotation>
                 <xs:documentation xml:lang="en">
                   A fully qualified class name to a concrete type that implements
-                  org.ehcache.spi.loader.CacheLoader and has a public default no argument constructor.
-                </xs:documentation>
-              </xs:annotation>
-            </xs:element>
-            <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
-          </xs:sequence>
-        </xs:complexType>
-      </xs:element>
-      <xs:element name="writer" minOccurs="0" maxOccurs="1">
-        <xs:complexType>
-          <xs:sequence>
-            <xs:element name="class" type="xs:string" minOccurs="1" maxOccurs="1">
-              <xs:annotation>
-                <xs:documentation xml:lang="en">
-                  A fully qualified class name to a concrete type that implements
-                  org.ehcache.spi.loader.CacheWriter and has a public default no argument constructor.
+                  org.ehcache.spi.loaderwriter.CacheLoaderWriter and has a public
+                  default no argument constructor.
                 </xs:documentation>
               </xs:annotation>
             </xs:element>

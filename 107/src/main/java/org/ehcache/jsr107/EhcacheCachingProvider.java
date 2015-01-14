@@ -89,19 +89,17 @@ public class EhcacheCachingProvider implements CachingProvider {
           throw new javax.cache.CacheException(e);
         }
 
-        Eh107CacheLoaderFactory cacheLoaderFactory = new Eh107CacheLoaderFactory();
-        Eh107CacheWriterFactory cacheWriterFactory = new Eh107CacheWriterFactory();
+        Eh107CacheLoaderWriterFactory cacheLoaderWriterFactory = new Eh107CacheLoaderWriterFactory();
         Jsr107Service jsr107Service = new DefaultJsr107Service();
 
         ServiceLocator serviceLocator = new ServiceLocator();
-        serviceLocator.addService(cacheLoaderFactory);
-        serviceLocator.addService(cacheWriterFactory);
+        serviceLocator.addService(cacheLoaderWriterFactory);
         serviceLocator.addService(jsr107Service);
        
         org.ehcache.CacheManager ehcacheManager = new EhcacheManager(config, serviceLocator);
         ehcacheManager.init();
-        cacheManager = new Eh107CacheManager(this, ehcacheManager, properties, classLoader, uri, cacheLoaderFactory,
-            cacheWriterFactory, config, jsr107Service);
+        cacheManager = new Eh107CacheManager(this, ehcacheManager, properties, classLoader, uri, cacheLoaderWriterFactory,
+            config, jsr107Service);
         byURI.put(uri, cacheManager);
       }
     }
