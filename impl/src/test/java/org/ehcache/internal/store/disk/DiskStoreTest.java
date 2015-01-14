@@ -24,7 +24,7 @@ public class DiskStoreTest {
 
     System.out.println("value: " + getValue(diskStore, 1));
 
-    diskStore.compute(2, new BiFunction<Integer, String, String>() {
+    Store.ValueHolder<String> computed = diskStore.compute(2, new BiFunction<Integer, String, String>() {
       @Override
       public String apply(Integer k, String v) {
         String result;
@@ -37,6 +37,7 @@ public class DiskStoreTest {
         return result;
       }
     });
+    System.out.println("computed : " + computed);
 
     diskStore.close();
   }

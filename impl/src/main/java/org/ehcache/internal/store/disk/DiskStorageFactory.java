@@ -140,6 +140,11 @@ public class DiskStorageFactory<K, V> {
       public float hitRate(TimeUnit unit) {
         return 0;
       }
+
+        @Override
+        public String toString() {
+            return "" + value;
+        }
     }
 
 
