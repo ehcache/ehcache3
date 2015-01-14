@@ -20,8 +20,6 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.config.service.EhcacheService;
-import org.ehcache.config.service.EhcacheServiceConfiguration;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerFactory;
@@ -143,6 +141,12 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       final CacheLoaderWriter<? super K, V> cacheLoaderWriter, 
       CacheEventNotificationService<K, V> eventNotifier,
       ScheduledExecutorService statisticsExecutor) {
+    this(config, store, cacheLoaderWriter, eventNotifier, statisticsExecutor, true);
+  }
+
+  Ehcache(CacheConfiguration<K, V> config, Store<K, V> store,
+          CacheLoaderWriter<? super K, V> cacheLoaderWriter,
+          CacheEventNotificationService<K, V> eventNotifier, ScheduledExecutorService statisticsExecutor, boolean useLoaderInAtomics) {
     this.store = store;
     StatisticsManager.associate(store).withParent(this);
     this.cacheLoaderWriter = cacheLoaderWriter;
@@ -166,15 +170,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     this.storeListener = new StoreListener();
     this.jsr107Cache = new Jsr107CacheImpl();
 
-    boolean useLoaderInAtomics = true;
-    Collection<ServiceConfiguration<?>> serviceConfigurations = config.getServiceConfigurations();
-    for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
-      if (serviceConfiguration.getServiceType().equals(EhcacheService.class)) {
-        EhcacheServiceConfiguration  ehcacheServiceConfiguration = (EhcacheServiceConfiguration) serviceConfiguration;
-        useLoaderInAtomics = !ehcacheServiceConfiguration.jsr107CompliantAtomics();
-        break;
-      }
-    }
     this.useLoaderInAtomics = useLoaderInAtomics;
   }
 

@@ -20,8 +20,6 @@ import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.StoreConfigurationImpl;
-import org.ehcache.config.service.EhcacheService;
-import org.ehcache.config.service.EhcacheServiceConfiguration;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerFactory;
@@ -61,6 +59,7 @@ public class EhcacheManager implements PersistentCacheManager {
   private final StatusTransitioner statusTransitioner = new StatusTransitioner();
 
   private final ServiceLocator serviceLocator;
+  private final boolean useLoaderInAtomics;
   private final Configuration configuration;
 
   private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<String, CacheHolder>();
@@ -69,11 +68,15 @@ public class EhcacheManager implements PersistentCacheManager {
   private final CopyOnWriteArrayList<CacheManagerListener> listeners = new CopyOnWriteArrayList<CacheManagerListener>();
 
   public EhcacheManager(Configuration config) {
-    this(config, new ServiceLocator());
+    this(config, new ServiceLocator(), true);
   }
 
   public EhcacheManager(Configuration config, ServiceLocator serviceLocator) {
+    this(config, serviceLocator, true);
+  }
+  public EhcacheManager(Configuration config, ServiceLocator serviceLocator, boolean useLoaderInAtomics) {
     this.serviceLocator = serviceLocator;
+    this.useLoaderInAtomics = useLoaderInAtomics;
     this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
     this.configuration = config;
   }
@@ -213,12 +216,6 @@ public class EhcacheManager implements PersistentCacheManager {
       }
     }
 
-    final EhcacheService ehcacheService = serviceLocator.findService(EhcacheService.class);
-    if (ehcacheService != null) {
-      EhcacheServiceConfiguration ehcacheServiceConfiguration = new EhcacheServiceConfiguration().jsr107CompliantAtomics(ehcacheService.jsr107CompliantAtomics());
-      adjustedServiceConfigs.add(ehcacheServiceConfiguration);
-    }
-
     ServiceConfiguration[] serviceConfigs = adjustedServiceConfigs.toArray(new ServiceConfiguration[adjustedServiceConfigs.size()]);
 
     CacheConfiguration<K, V> adjustedConfig = new BaseCacheConfiguration<K, V>(
@@ -228,7 +225,7 @@ public class EhcacheManager implements PersistentCacheManager {
     );
 
     Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(adjustedConfig), serviceConfigs);
-    return new Ehcache<K, V>(adjustedConfig, store, loaderWriter, evtService, statisticsExecutor);
+    return new Ehcache<K, V>(adjustedConfig, store, loaderWriter, evtService, statisticsExecutor, useLoaderInAtomics);
   }
 
   public void registerListener(CacheManagerListener listener) {

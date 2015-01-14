@@ -32,4 +32,7 @@ public interface Jsr107Service extends Service {
   String getDefaultTemplate();
 
   String getTemplateNameForCache(String name);
+
+  boolean jsr107CompliantAtomics();
+
 }

@@ -17,13 +17,12 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.config.Jsr107Configuration;
-import org.ehcache.config.service.EhcacheService;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author Alex Snaps
  */
-public class DefaultJsr107Service implements Jsr107Service, EhcacheService {
+public class DefaultJsr107Service implements Jsr107Service {
 
   private volatile Jsr107Configuration configuration;
 
