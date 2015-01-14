@@ -254,7 +254,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
             }
 
             boolean replaced = false;
-            if (e != null && decode(e.element).equals(oldElement)) {
+            if (e != null && eq(decode(e.element), oldElement)) {
                 replaced = true;
                 /*
                  * make sure we re-get from the HashEntry - since the decode in the conditional
@@ -520,7 +520,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
             DiskStorageFactory.Element<K, V> oldValue = null;
             if (e != null) {
                 oldValue = decode(e.element);
-                if (value == null || value.equals(oldValue)) {
+                if (value == null || eq(value, oldValue)) {
                     // All entries following removed node can stay
                     // in list, but all preceding ones need to be
                     // cloned.
@@ -896,7 +896,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
         }
     }
 
-    public DiskStorageFactory.Element<K, V> compute(K key, int hash, BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>> mappingFunction) {
+    public DiskStorageFactory.Element<K, V> compute(K key, int hash, BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>> mappingFunction, Compute compute) {
         boolean installed = false;
         DiskStorageFactory.DiskSubstitute<K, V> encoded = null;
 
@@ -914,33 +914,47 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
                 e = e.next;
             }
 
-            DiskStorageFactory.Element<K, V> oldElement;
+            DiskStorageFactory.Element<K, V> newElement;
             if (e != null) {
-                DiskStorageFactory.DiskSubstitute<K, V> onDiskSubstitute = e.element;
-                installed = true;
-                oldElement = decode(onDiskSubstitute);
+                if (compute == Compute.IF_ABSENT) {
+                    newElement = null;
+                } else {
+                    DiskStorageFactory.DiskSubstitute<K, V> onDiskSubstitute = e.element;
+                    installed = true;
+                    DiskStorageFactory.Element<K, V> oldElement = decode(onDiskSubstitute);
 
-                DiskStorageFactory.Element<K, V> newElement = mappingFunction.apply(key, oldElement);
-                encoded = disk.create(newElement);
+                    newElement = mappingFunction.apply(key, oldElement);
+                    if (newElement == null) {
+                        remove(key, hash, null);
+                    } else {
+                        encoded = disk.create(newElement);
 
-                e.element = encoded;
+                        e.element = encoded;
 
-                free(onDiskSubstitute);
-                e.faulted.set(false);
+                        free(onDiskSubstitute);
+                        e.faulted.set(false);
+                    }
+                }
             } else {
-                oldElement = null;
+                if (compute == Compute.IF_PRESENT) {
+                    newElement = null;
+                } else {
+                    newElement = mappingFunction.apply(key, null);
+                    if (newElement == null) {
+                        remove(key, hash, null);
+                    } else {
+                        encoded = disk.create(newElement);
 
-                DiskStorageFactory.Element<K, V> newElement = mappingFunction.apply(key, null);
-                encoded = disk.create(newElement);
-
-                ++modCount;
-                tab[index] = new HashEntry<K, V>(key, hash, first, encoded, new AtomicBoolean(false));
-                installed = true;
-                // write-volatile
-                count = count + 1;
+                        ++modCount;
+                        tab[index] = new HashEntry<K, V>(key, hash, first, encoded, new AtomicBoolean(false));
+                        installed = true;
+                        // write-volatile
+                        count = count + 1;
+                    }
+                }
             }
 
-            return oldElement;
+            return newElement;
         } finally {
             writeLock().unlock();
 
@@ -948,6 +962,22 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
                 encoded.installed();
             }
         }
+    }
+
+    private boolean eq(DiskStorageFactory.Element<K, V> e1, DiskStorageFactory.Element<K, V> e2) {
+        V v1 = e1.getValue().value();
+        V v2 = e2.getValue().value();
+
+        if (v1 == v2) return true;
+        if (v1 == null || v2 == null) return false;
+        return v1.equals(v2);
+    }
+
+
+    static enum Compute {
+        ALWAYS,
+        IF_ABSENT,
+        IF_PRESENT
     }
 
     /**

@@ -24,16 +24,23 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
+import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
+import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * Implements a persistent-to-disk store.
@@ -104,7 +111,10 @@ public class DiskStore<K, V> implements Store<K, V> {
         return (spread ^ spread >>> 16);
     }
 
-    private Segment<K, V> segmentFor(int hash) {
+    private Segment<K, V> segmentFor(int hash) throws CacheAccessException {
+        if (segments == null) {
+            throw new CacheAccessException("disk store is closed");
+        }
         return segments[hash >>> segmentShift];
     }
 
@@ -182,8 +192,10 @@ public class DiskStore<K, V> implements Store<K, V> {
 
     @Override
     public void clear() throws CacheAccessException {
-        for (Segment s : segments) {
-            s.clear();
+        if (segments != null) {
+            for (Segment s : segments) {
+                s.clear();
+            }
         }
     }
 
@@ -343,6 +355,58 @@ public class DiskStore<K, V> implements Store<K, V> {
         return new DiskStorageFactory.ElementImpl<K, V>(key, value);
     }
 
+    DiskValueHolder<V> enforceCapacityIfValueNotNull(final DiskStorageFactory.Element<K, V> computeResult) {
+        return computeResult == null ? null : computeResult.getValue();
+    }
+
+/*
+    ValueHolder<V> enforceCapacityIfValueNotNull(final DiskValueHolder<V> computeResult) {
+        if (computeResult != null) {
+            enforceCapacity(1);
+        }
+        return computeResult;
+    }
+
+    private void enforceCapacity(int delta) {
+        for (int attempts = 0, evicted = 0; attempts < ATTEMPT_RATIO * delta && evicted < EVICTION_RATIO * delta
+            && capacityConstraint.compareTo((long) size()) < 0; attempts++) {
+            if (evict()) {
+                evicted++;
+            }
+        }
+    }
+
+    boolean evict() {
+        evictionObserver.begin();
+        final Random random = new Random();
+        final int sampleSize = 8;
+
+        @SuppressWarnings("unchecked")
+        Set<Map.Entry<K, OnHeapValueHolder<V>>> values = map.getRandomValues(random, sampleSize, (Predicate<Map.Entry<K, OnHeapValueHolder<V>>>)evictionVeto);
+
+        if (values.isEmpty()) {
+            // 2nd attempt without any veto
+            values = map.getRandomValues(random, sampleSize, Predicates.<Map.Entry<K, OnHeapValueHolder<V>>>none());
+        }
+
+        if (values.isEmpty()) {
+            return false;
+        } else {
+            @SuppressWarnings("unchecked")
+            Map.Entry<K, OnHeapValueHolder<V>> evict = Collections.max(values, (Comparator<? super Map.Entry<K, OnHeapValueHolder<V>>>) evictionPrioritizer);
+
+            if (map.remove(evict.getKey(), evict.getValue())) {
+                evictionObserver.end(CacheOperationOutcomes.EvictionOutcome.SUCCESS);
+                eventListener.onEviction(wrap(evict));
+                return true;
+            } else {
+                evictionObserver.end(CacheOperationOutcomes.EvictionOutcome.FAILURE);
+                return false;
+            }
+        }
+    }
+*/
+
     @Override
     public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException {
         return compute(key, mappingFunction, REPLACE_EQUALS_TRUE);
@@ -381,44 +445,153 @@ public class DiskStore<K, V> implements Store<K, V> {
             }
         };
 
-        DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction);
+        DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction, Segment.Compute.ALWAYS);
         return computedElement == null ? null : computedElement.getValue();
     }
 
     @Override
-    public ValueHolder<V> computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
-        return null;
+    public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
+        checkKey(key);
+        int hash = hash(key.hashCode());
+        final long now = timeSource.getTimeMillis();
+
+        BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>> biFunction = new BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>>() {
+            @Override
+            public DiskStorageFactory.Element<K, V> apply(K mappedKey, DiskStorageFactory.Element<K, V> mappedElement) {
+                if (mappedElement == null || mappedElement.isExpired(now)) {
+                    V computedValue = mappingFunction.apply(mappedKey);
+                    if (computedValue == null) {
+                        return null;
+                    }
+
+                    checkValue(computedValue);
+                    return newCreateValueHolder(key, computedValue, now);
+                } else {
+                    setAccessTimeAndExpiry(key, mappedElement, now);
+                    return mappedElement;
+                }
+            }
+        };
+        DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction, Segment.Compute.IF_ABSENT);
+        return enforceCapacityIfValueNotNull(computedElement);
     }
 
     @Override
     public ValueHolder<V> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException {
-        return null;
+        return computeIfPresent(key, remappingFunction, REPLACE_EQUALS_TRUE);
     }
 
     @Override
-    public ValueHolder<V> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
-        return null;
+    public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction, final NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+        checkKey(key);
+        int hash = hash(key.hashCode());
+
+        BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>> biFunction = new BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>>() {
+            @Override
+            public DiskStorageFactory.Element<K, V> apply(K mappedKey, DiskStorageFactory.Element<K, V> mappedElement) {
+                final long now = timeSource.getTimeMillis();
+
+                if (mappedElement != null && mappedElement.isExpired(now)) {
+                    return null;
+                }
+
+                V existingValue = mappedElement == null ? null : mappedElement.getValue().value();
+
+                V computedValue = remappingFunction.apply(mappedKey, existingValue);
+                if (computedValue == null) {
+                    return null;
+                }
+
+                if ((eq(existingValue, computedValue)) && (!replaceEqual.apply())) {
+                    setAccessTimeAndExpiry(key, mappedElement, now);
+                    return mappedElement;
+                }
+
+                checkValue(computedValue);
+                return newUpdateValueHolder(key, mappedElement, computedValue, now);            }
+        };
+
+        DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction, Segment.Compute.IF_PRESENT);
+        return computedElement == null ? null : computedElement.getValue();
     }
 
     @Override
     public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
-        return null;
+        return bulkCompute(keys, remappingFunction, REPLACE_EQUALS_TRUE);
     }
 
     @Override
-    public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
-        return null;
+    public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+        Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
+        for (K key : keys) {
+            checkKey(key);
+            BiFunction<K, V, V> biFunction = new BiFunction<K, V, V>() {
+                @Override
+                public V apply(final K k, final V v) {
+                    Map.Entry<K, V> entry = new Map.Entry<K, V>() {
+                        @Override
+                        public K getKey() {
+                            return k;
+                        }
+
+                        @Override
+                        public V getValue() {
+                            return v;
+                        }
+
+                        @Override
+                        public V setValue(V value) {
+                            throw new UnsupportedOperationException();
+                        }
+                    };
+                    java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = remappingFunction.apply(Collections.singleton(entry)).iterator();
+                    Map.Entry<? extends K, ? extends V> result = iterator.next();
+                    if (result != null) {
+                        checkKey(result.getKey());
+                        return result.getValue();
+                    } else {
+                        return null;
+                    }
+                }
+            };
+            ValueHolder<V> computed = compute(key, biFunction, replaceEqual);
+            result.put(key, computed);
+        }
+        return result;
     }
 
     @Override
-    public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
-        return null;
+    public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
+        Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
+        for (K key : keys) {
+            checkKey(key);
+            Function<K, V> function = new Function<K, V>() {
+                @Override
+                public V apply(K k) {
+                    java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = mappingFunction.apply(Collections.singleton(k)).iterator();
+                    Map.Entry<? extends K, ? extends V> result = iterator.next();
+                    if (result != null) {
+                        checkKey(result.getKey());
+                        return result.getValue();
+                    } else {
+                        return null;
+                    }
+                }
+            };
+            ValueHolder<V> computed = computeIfAbsent(key, function);
+            result.put(key, computed);
+        }
+        return result;
     }
 
 
     boolean fault(K key, DiskStorageFactory.Placeholder<K, V> expect, DiskStorageFactory.DiskMarker<K, V> fault) {
-        int hash = hash(key.hashCode());
-        return segmentFor(hash).fault(key, hash, expect, fault, false);
+        try {
+            int hash = hash(key.hashCode());
+            return segmentFor(hash).fault(key, hash, expect, fault, false);
+        } catch (CacheAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     void evict(K key, DiskStorageFactory.DiskSubstitute<K, V> diskSubstitute) {
@@ -430,9 +603,13 @@ public class DiskStore<K, V> implements Store<K, V> {
             return null;
         }
 
-        int hash = hash(key.hashCode());
-        DiskStorageFactory.DiskSubstitute<K, V> o = segmentFor(hash).unretrievedGet(key, hash);
-        return o;
+        try {
+            int hash = hash(key.hashCode());
+            DiskStorageFactory.DiskSubstitute<K, V> o = segmentFor(hash).unretrievedGet(key, hash);
+            return o;
+        } catch (CacheAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     Set<? extends K> keySet() {
@@ -440,8 +617,12 @@ public class DiskStore<K, V> implements Store<K, V> {
     }
 
     boolean putRawIfAbsent(K key, DiskStorageFactory.DiskMarker<K, V> encoded) {
-        int hash = hash(key.hashCode());
-        return segmentFor(hash).putRawIfAbsent(key, hash, encoded);
+        try {
+            int hash = hash(key.hashCode());
+            return segmentFor(hash).putRawIfAbsent(key, hash, encoded);
+        } catch (CacheAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     List<DiskStorageFactory.DiskSubstitute<K, V>> getRandomSample(ElementSubstituteFilter onDiskFilter, int min, K keyHint) {
@@ -617,4 +798,32 @@ public class DiskStore<K, V> implements Store<K, V> {
         }
     }
 
+    public static class Provider implements Store.Provider {
+        @Override
+        public <K, V> DiskStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
+            TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[])serviceConfigs);
+            TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
+
+            return new DiskStore<K, V>(storeConfig, "diskstore", timeSource);
+        }
+
+        @Override
+        public void releaseStore(final Store<?, ?> resource) {
+            try {
+                resource.clear();
+            } catch (CacheAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public void start(ServiceConfiguration<?> cfg) {
+            // nothing to do
+        }
+
+        @Override
+        public void stop() {
+            // nothing to do
+        }
+    }
 }
