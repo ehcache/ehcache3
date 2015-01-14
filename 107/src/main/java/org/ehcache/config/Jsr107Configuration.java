@@ -28,10 +28,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Jsr107Configuration implements ServiceConfiguration<Jsr107Service> {
 
   private final String defaultTemplate;
+  private final boolean jsr107CompliantAtomics;
   private final Map<String, String> templates;
 
-  public Jsr107Configuration(final String defaultTemplate, final Map<String, String> templates) {
+  public Jsr107Configuration(final String defaultTemplate, final Map<String, String> templates, boolean jsr107CompliantAtomics) {
     this.defaultTemplate = defaultTemplate;
+    this.jsr107CompliantAtomics = jsr107CompliantAtomics;
     this.templates = new ConcurrentHashMap<String, String>(templates);
   }
 
@@ -41,6 +43,10 @@ public class Jsr107Configuration implements ServiceConfiguration<Jsr107Service> 
 
   public Map<String, String> getTemplates() {
     return templates;
+  }
+
+  public boolean isJsr107CompliantAtomics() {
+    return jsr107CompliantAtomics;
   }
 
   @Override

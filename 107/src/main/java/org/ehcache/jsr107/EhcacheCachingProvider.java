@@ -30,6 +30,7 @@ import javax.cache.spi.CachingProvider;
 import org.ehcache.EhcacheManager;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.DefaultConfiguration;
+import org.ehcache.config.Jsr107Configuration;
 import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.util.ClassLoading;
@@ -90,7 +91,7 @@ public class EhcacheCachingProvider implements CachingProvider {
         }
 
         Eh107CacheLoaderWriterFactory cacheLoaderWriterFactory = new Eh107CacheLoaderWriterFactory();
-        Jsr107Service jsr107Service = new DefaultJsr107Service();
+        Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceConfigurations().toArray()));
 
         ServiceLocator serviceLocator = new ServiceLocator();
         serviceLocator.addService(cacheLoaderWriterFactory);

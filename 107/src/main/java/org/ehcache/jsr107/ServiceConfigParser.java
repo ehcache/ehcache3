@@ -50,14 +50,18 @@ public class ServiceConfigParser implements XmlConfigurationParser<Jsr107Service
 
   @Override
   public ServiceConfiguration<Jsr107Service> parse(final Element fragment) {
+    boolean jsr107CompliantAtomics = true;
+    if (fragment.hasAttribute("jsr107CompliantAtomics")) {
+      jsr107CompliantAtomics = Boolean.parseBoolean(fragment.getAttribute("jsr107CompliantAtomics"));
+    }
     final String defaultTemplate = fragment.getAttribute("default-template");
     final HashMap<String, String> templates = new HashMap<String, String>();
     final NodeList childNodes = fragment.getChildNodes();
-    for(int i = 0; i < childNodes.getLength(); i++) {
+    for (int i = 0; i < childNodes.getLength(); i++) {
       final Element item = (Element)childNodes.item(i);
       templates.put(item.getAttribute("name"), item.getAttribute("template"));
     }
 
-    return new Jsr107Configuration(defaultTemplate, templates);
+    return new Jsr107Configuration(defaultTemplate, templates, jsr107CompliantAtomics);
   }
 }

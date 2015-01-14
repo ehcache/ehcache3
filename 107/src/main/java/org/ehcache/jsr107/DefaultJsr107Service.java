@@ -26,9 +26,19 @@ public class DefaultJsr107Service implements Jsr107Service {
 
   private volatile Jsr107Configuration configuration;
 
+  public DefaultJsr107Service(Jsr107Configuration configuration) {
+    this.configuration = configuration;
+  }
+
   @Override
   public void start(final ServiceConfiguration<?> serviceConfiguration) {
-    configuration = (Jsr107Configuration) serviceConfiguration;
+    if (configuration != null) {
+      if (!configuration.equals(serviceConfiguration)) {
+        throw new IllegalStateException("Trying to start service with different configuration");
+      }
+    } else {
+      configuration = (Jsr107Configuration)serviceConfiguration;
+    }
   }
 
   @Override
@@ -60,6 +70,10 @@ public class DefaultJsr107Service implements Jsr107Service {
 
   @Override
   public boolean jsr107CompliantAtomics() {
-    return true;
+    final Jsr107Configuration cfg = configuration;
+    if (cfg == null) {
+      return true;
+    }
+    return cfg.isJsr107CompliantAtomics();
   }
 }
