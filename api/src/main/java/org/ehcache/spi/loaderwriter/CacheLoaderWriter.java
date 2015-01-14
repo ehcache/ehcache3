@@ -25,11 +25,13 @@ import org.ehcache.exceptions.BulkCacheWritingException;
  * <p>
  * Instances of this class have to be thread safe.
  * <p>
- * Any {@link java.lang.Exception} thrown by methods of this interface will be wrapped into a
+ * Any {@link java.lang.Exception} thrown by the loading methods of this interface will be wrapped into a
  * {@link org.ehcache.exceptions.CacheLoadingException} by the {@link org.ehcache.Cache} and will need to be handled by
- * the user.
+ * the user.  Any {@code java.lang.Exception} thrown by the writing methods will
+ * be wrapped into a {@link org.ehcache.exceptions.CacheWritingException}.
  *
  * @see org.ehcache.exceptions.CacheLoadingException
+ * @see org.ehcache.exceptions.CacheWritingException
  * 
  * @author Alex Snaps
  */

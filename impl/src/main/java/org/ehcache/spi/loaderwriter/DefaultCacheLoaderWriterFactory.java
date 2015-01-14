@@ -30,6 +30,7 @@ public class DefaultCacheLoaderWriterFactory extends ClassInstanceProvider<Cache
     super(DefaultCacheLoaderWriterFactoryConfiguration.class, DefaultCacheLoaderWriterConfiguration.class);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public <K, V> CacheLoaderWriter<? super K, V> createCacheLoaderWriter(final String alias, final CacheConfiguration<K, V> cacheConfiguration) {
     return (CacheLoaderWriter<? super K, V>) newInstance(alias, cacheConfiguration);

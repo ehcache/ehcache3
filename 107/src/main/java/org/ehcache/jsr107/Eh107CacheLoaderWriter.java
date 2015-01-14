@@ -65,8 +65,6 @@ class Eh107CacheLoaderWriter<K, V> implements CacheLoaderWriter<K, V>, Closeable
 
   @Override
   public void write(K key, V value) throws Exception {
-    System.out.println("Writing " + key + ", " + value);
-    new Exception().printStackTrace(System.out);
     if (cacheWriter != null) {
       cacheWriter.write(cacheEntryFor(key, value));
     }
@@ -74,8 +72,6 @@ class Eh107CacheLoaderWriter<K, V> implements CacheLoaderWriter<K, V>, Closeable
 
   @Override
   public void delete(K key) throws Exception {
-    System.out.println("Deleting " + key);
-    new Exception().printStackTrace(System.out);
     if (cacheWriter != null) {
       cacheWriter.delete(key);
     }

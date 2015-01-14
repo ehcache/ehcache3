@@ -170,7 +170,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
-    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(TEST_ENTRIES, Collections.<String>emptySet());
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(TEST_ENTRIES);
     this.loaderWriter = spy(fakeLoaderWriter);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);

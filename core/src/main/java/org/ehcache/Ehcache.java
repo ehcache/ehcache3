@@ -142,8 +142,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       ScheduledExecutorService statisticsExecutor) {
     this.store = store;
     StatisticsManager.associate(store).withParent(this);
-    System.out.println("Creating cache with " + cacheLoaderWriter);
-    new Exception().printStackTrace(System.out);
     this.cacheLoaderWriter = cacheLoaderWriter;
     if (statisticsExecutor != null) {
       this.cacheStatistics = new StatisticsGateway(this, statisticsExecutor, bulkMethodEntries);
