@@ -14,16 +14,11 @@
  * limitations under the License.
  */
 
-buildscript {
-  repositories { jcenter() }
-  dependencies {
-    classpath 'com.github.jengelman.gradle.plugins:shadow:1.1.1'
-  }
+plugins {
+  id 'java'
+  id 'maven'
+  id 'com.github.johnrengelman.shadow' version '1.2.0'
 }
-
-apply plugin: 'java'
-apply plugin: 'com.github.johnrengelman.shadow'
-apply plugin: 'maven'
 
 def projectsToInclude = [':api', ':core', ':impl', ':jmx', ':107', ':xml']
 
