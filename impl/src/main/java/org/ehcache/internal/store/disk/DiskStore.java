@@ -71,7 +71,7 @@ public class DiskStore<K, V> implements Store<K, V> {
     private final SerializationProvider serializationProvider;
     private final Comparable<Long> capacityConstraint;
     private final Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto;
-    private final Comparator<DiskStorageFactory.Element<K, V>> evictionPrioritizer;
+    private final Comparator<DiskStorageFactory.DiskSubstitute<K, V>> evictionPrioritizer;
     private final Random random = new Random();
 
     private volatile DiskStorageFactory<K, V> diskStorageFactory;
@@ -91,8 +91,7 @@ public class DiskStore<K, V> implements Store<K, V> {
             prioritizer = Eviction.Prioritizer.LRU;
         }
         this.evictionVeto = wrap((Predicate) config.getEvictionVeto());
-//        this.evictionPrioritizer = (Comparator) wrap(prioritizer);
-        this.evictionPrioritizer = null;
+        this.evictionPrioritizer = (Comparator) wrap((Comparator) prioritizer);
         this.alias = alias;
         this.keyType = config.getKeyType();
         this.valueType = config.getValueType();
@@ -148,7 +147,7 @@ public class DiskStore<K, V> implements Store<K, V> {
                     K key = value.getKey();
                     int hash = hash(key.hashCode());
                     DiskStorageFactory.Element<K, V> element = segmentFor(hash).get(key, hash, false);
-                    return element.getValueHolder();
+                    return element == null ? null : element.getValueHolder();
                 } catch (CacheAccessException e) {
                     throw new RuntimeException(e);
                 }
@@ -156,18 +155,14 @@ public class DiskStore<K, V> implements Store<K, V> {
         };
     }
 
-//    private static <K, V> Comparator<DiskStorageFactory.Element<K, V>> wrap(final Comparator<Cache.Entry<K, V>> comparator) {
-//        return new Comparator<DiskStorageFactory.Element<K, V>>() {
-//            @Override
-//            public int compare(DiskStorageFactory.Element<K, V> t, DiskStorageFactory.Element<K, V> u) {
-//                return comparator.compare(wrap(t), wrap(u));
-//            }
-//        };
-//    }
-//
-//    private static <K, V> Cache.Entry<K, V> wrap(final Map.Entry<K, DiskValueHolder<V>> value) {
-//        return wrap(value.getKey(), value.getValue());
-//    }
+    private Comparator<DiskStorageFactory.DiskSubstitute<K, V>> wrap(final Comparator<Cache.Entry<K, V>> comparator) {
+        return new Comparator<DiskStorageFactory.DiskSubstitute<K, V>>() {
+            @Override
+            public int compare(DiskStorageFactory.DiskSubstitute<K, V> t, DiskStorageFactory.DiskSubstitute<K, V> u) {
+                return comparator.compare(wrap(t), wrap(u));
+            }
+        };
+    }
 
     private void checkKey(K keyObject) {
         if (keyObject == null) {
@@ -344,16 +339,15 @@ public class DiskStore<K, V> implements Store<K, V> {
 
     @Override
     public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() throws CacheAccessException {
-        Iterator<Cache.Entry<K, ValueHolder<V>>> iterator = new x();
-        return iterator;
+        return new DiskStoreIterator();
     }
 
-    class x implements Iterator<Cache.Entry<K, ValueHolder<V>>> {
+    class DiskStoreIterator implements Iterator<Cache.Entry<K, ValueHolder<V>>> {
 
         private final DiskSubstituteIterator diskSubstituteIterator = new DiskSubstituteIterator();
         private DiskStorageFactory.Element<K, V> next;
 
-        public x() throws CacheAccessException {
+        DiskStoreIterator() throws CacheAccessException {
             advance();
         }
 
@@ -845,6 +839,7 @@ public class DiskStore<K, V> implements Store<K, V> {
             TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[])serviceConfigs);
             TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
 
+            // todo: configure alias
             return new DiskStore<K, V>(storeConfig, "diskstore", timeSource);
         }
 
