@@ -43,9 +43,12 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
@@ -60,7 +63,6 @@ public class DiskStore<K, V> implements Store<K, V> {
 
     private static final int ATTEMPT_RATIO = 4;
     private static final int EVICTION_RATIO = 2;
-    static final long NO_EXPIRE = -1;
 
     private final Class<K> keyType;
     private final Class<V> valueType;
@@ -208,10 +210,25 @@ public class DiskStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public ValueHolder<V> get(K key) throws CacheAccessException {
+    public ValueHolder<V> get(final K key) throws CacheAccessException {
         checkKey(key);
         int hash = hash(key.hashCode());
-        DiskStorageFactory.Element<K, V> existingElement = segmentFor(hash).get(key, hash, false);
+
+        DiskStorageFactory.Element<K, V> existingElement = segmentFor(hash).compute(key, hash, new BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>>() {
+            @Override
+            public DiskStorageFactory.Element<K, V> apply(K mappedKey, DiskStorageFactory.Element<K, V> mappedValue) {
+                final long now = timeSource.getTimeMillis();
+
+                if (mappedValue.isExpired(now)) {
+                    return null;
+                }
+
+                setAccessTimeAndExpiry(key, mappedValue, now);
+
+                return mappedValue;
+            }
+        }, Segment.Compute.IF_PRESENT);
+
         return existingElement == null ? null : existingElement.getValueHolder();
     }
 
@@ -223,22 +240,58 @@ public class DiskStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public void put(K key, V value) throws CacheAccessException {
+    public void put(final K key, final V value) throws CacheAccessException {
         checkKey(key);
         checkValue(value);
         int hash = hash(key.hashCode());
-        DiskStorageFactory.Element<K, V> newElement = new DiskStorageFactory.ElementImpl<K, V>(key, value);
-        segmentFor(hash).put(key, hash, newElement, false, false);
+        final long now = timeSource.getTimeMillis();
+
+        final AtomicBoolean entryActuallyAdded = new AtomicBoolean();
+        segmentFor(hash).compute(key, hash, new BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>>() {
+            @Override
+            public DiskStorageFactory.Element<K, V> apply(K mappedKey, DiskStorageFactory.Element<K, V> mappedValue) {
+                entryActuallyAdded.set(mappedValue == null);
+
+                if (mappedValue != null && mappedValue.isExpired(now)) {
+                    mappedValue = null;
+                }
+
+                if (mappedValue == null) {
+                    return newCreateValueHolder(key, value, now);
+                } else {
+                    return newUpdateValueHolder(key, mappedValue, value, now);
+                }
+            }
+        }, Segment.Compute.ALWAYS);
+
+        if (entryActuallyAdded.get()) {
+            enforceCapacity(1);
+        }
     }
 
     @Override
-    public ValueHolder<V> putIfAbsent(K key, V value) throws CacheAccessException {
+    public ValueHolder<V> putIfAbsent(final K key, final V value) throws CacheAccessException {
         checkKey(key);
         checkValue(value);
         int hash = hash(key.hashCode());
-        DiskStorageFactory.Element<K, V> newElement = new DiskStorageFactory.ElementImpl<K, V>(key, value);
-        DiskStorageFactory.Element<K, V> existingElement = segmentFor(hash).put(key, hash, newElement, true, false);
-        return existingElement == null ? null : existingElement.getValueHolder();
+        final long now = timeSource.getTimeMillis();
+
+        final AtomicReference<DiskValueHolder<V>> returnValue = new AtomicReference<DiskValueHolder<V>>(null);
+
+        segmentFor(hash).compute(key, hash, new BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>>() {
+            @Override
+            public DiskStorageFactory.Element<K, V> apply(K mappedKey, DiskStorageFactory.Element<K, V> mappedValue) {
+                if (mappedValue == null || mappedValue.isExpired(now)) {
+                    return newCreateValueHolder(key, value, now);
+                }
+
+                returnValue.set(mappedValue.getValueHolder());
+                setAccessTimeAndExpiry(key, mappedValue, now);
+                return mappedValue;
+            }
+        }, Segment.Compute.ALWAYS);
+
+        return returnValue.get();
     }
 
     @Override
@@ -249,34 +302,87 @@ public class DiskStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public boolean remove(K key, V value) throws CacheAccessException {
+    public boolean remove(final K key, final V value) throws CacheAccessException {
         checkKey(key);
         checkValue(value);
         int hash = hash(key.hashCode());
-        DiskStorageFactory.Element<K, V> newElement = new DiskStorageFactory.ElementImpl<K, V>(key, value);
-        DiskStorageFactory.Element<K, V> existingElement = segmentFor(hash).remove(key, hash, newElement);
-        return existingElement != null && existingElement.getValueHolder() != null;
+
+        final AtomicBoolean removed = new AtomicBoolean(false);
+
+        segmentFor(hash).compute(key, hash, new BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>>() {
+            @Override
+            public DiskStorageFactory.Element<K, V> apply(K mappedKey, DiskStorageFactory.Element<K, V> mappedValue) {
+                final long now = timeSource.getTimeMillis();
+
+                if (mappedValue.isExpired(now)) {
+                    return null;
+                } else if (value.equals(mappedValue.getValueHolder().value())) {
+                    removed.set(true);
+                    return null;
+                } else {
+                    setAccessTimeAndExpiry(key, mappedValue, now);
+                    return mappedValue;
+                }
+            }
+        }, Segment.Compute.IF_PRESENT);
+
+        return removed.get();
     }
 
     @Override
-    public ValueHolder<V> replace(K key, V value) throws CacheAccessException {
+    public ValueHolder<V> replace(final K key, final V value) throws CacheAccessException {
         checkKey(key);
         checkValue(value);
         int hash = hash(key.hashCode());
-        DiskStorageFactory.Element<K, V> newElement = new DiskStorageFactory.ElementImpl<K, V>(key, value);
-        DiskStorageFactory.Element<K, V> existingElement = segmentFor(hash).replace(key, hash, newElement);
-        return existingElement == null ? null : existingElement.getValueHolder();
+
+        final AtomicReference<DiskValueHolder<V>> returnValue = new AtomicReference<DiskValueHolder<V>>(null);
+
+
+        segmentFor(hash).compute(key, hash, new BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>>() {
+            @Override
+            public DiskStorageFactory.Element<K, V> apply(K mappedKey, DiskStorageFactory.Element<K, V> mappedValue) {
+                final long now = timeSource.getTimeMillis();
+
+                if (mappedValue.isExpired(now)) {
+                    return null;
+                } else {
+                    returnValue.set(mappedValue.getValueHolder());
+                    return newUpdateValueHolder(key, mappedValue, value, now);
+                }
+            }
+        }, Segment.Compute.IF_PRESENT);
+
+        return returnValue.get();
     }
 
     @Override
-    public boolean replace(K key, V oldValue, V newValue) throws CacheAccessException {
+    public boolean replace(final K key, final V oldValue, final V newValue) throws CacheAccessException {
         checkKey(key);
         checkValue(oldValue);
         checkValue(newValue);
         int hash = hash(key.hashCode());
-        DiskStorageFactory.Element<K, V> oldElement = new DiskStorageFactory.ElementImpl<K, V>(key, oldValue);
-        DiskStorageFactory.Element<K, V> newElement = new DiskStorageFactory.ElementImpl<K, V>(key, newValue);
-        return segmentFor(hash).replace(key, hash, oldElement, newElement);
+
+        final AtomicBoolean returnValue = new AtomicBoolean(false);
+
+
+        segmentFor(hash).compute(key, hash, new BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>>() {
+            @Override
+            public DiskStorageFactory.Element<K, V> apply(K mappedKey, DiskStorageFactory.Element<K, V> mappedValue) {
+                final long now = timeSource.getTimeMillis();
+
+                if (mappedValue.isExpired(now)) {
+                    return null;
+                } else if (oldValue.equals(mappedValue.getValueHolder().value())) {
+                    returnValue.set(true);
+                    return newUpdateValueHolder(key, mappedValue, newValue, now);
+                } else {
+                    setAccessTimeAndExpiry(key, mappedValue, now);
+                    return mappedValue;
+                }
+            }
+        }, Segment.Compute.IF_PRESENT);
+
+        return returnValue.get();
     }
 
     @Override
@@ -297,7 +403,7 @@ public class DiskStore<K, V> implements Store<K, V> {
 
     @Override
     public void create() throws CacheAccessException {
-
+        //todo: do something?
     }
 
     @Override
@@ -324,17 +430,17 @@ public class DiskStore<K, V> implements Store<K, V> {
 
     @Override
     public void maintenance() {
-
+        //todo: do something?
     }
 
     @Override
     public void enableStoreEventNotifications(StoreEventListener<K, V> listener) {
-
+        //todo: events are missing
     }
 
     @Override
     public void disableStoreEventNotifications() {
-
+        //todo: events are missing
     }
 
     @Override
@@ -371,6 +477,9 @@ public class DiskStore<K, V> implements Store<K, V> {
 
         @Override
         public Cache.Entry<K, ValueHolder<V>> next() throws CacheAccessException {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
             DiskStorageFactory.Element<K, V> element = next;
             advance();
 
@@ -423,7 +532,7 @@ public class DiskStore<K, V> implements Store<K, V> {
         Duration duration = expiry.getExpiryForAccess(key, valueHolder.value());
         if (duration != null) {
             if (duration.isForever()) {
-                valueHolder.setExpireTimeMillis(NO_EXPIRE);
+                valueHolder.setExpireTimeMillis(DiskStorageFactory.DiskValueHolderImpl.NO_EXPIRE);
             } else {
                 valueHolder.setExpireTimeMillis(safeExpireTime(now, duration));
             }
@@ -454,7 +563,15 @@ public class DiskStore<K, V> implements Store<K, V> {
             return null;
         }
 
-        return new DiskStorageFactory.ElementImpl<K, V>(key, newValue);
+        if (duration == null) {
+            return new DiskStorageFactory.ElementImpl<K, V>(key, newValue, now, oldValue.getValueHolder().getExpireTimeMillis());
+        } else {
+            if (duration.isForever()) {
+                return new DiskStorageFactory.ElementImpl<K, V>(key, newValue, now, DiskStorageFactory.DiskValueHolderImpl.NO_EXPIRE);
+            } else {
+                return new DiskStorageFactory.ElementImpl<K, V>(key, newValue, now, safeExpireTime(now, duration));
+            }
+        }
     }
 
     private DiskStorageFactory.Element<K, V> newCreateValueHolder(K key, V value, long now) {
@@ -467,7 +584,11 @@ public class DiskStore<K, V> implements Store<K, V> {
             return null;
         }
 
-        return new DiskStorageFactory.ElementImpl<K, V>(key, value);
+        if (duration.isForever()) {
+            return new DiskStorageFactory.ElementImpl<K, V>(key, value, now, DiskStorageFactory.DiskValueHolderImpl.NO_EXPIRE);
+        } else {
+            return new DiskStorageFactory.ElementImpl<K, V>(key, value, now, safeExpireTime(now, duration));
+        }
     }
 
     DiskValueHolder<V> enforceCapacityIfValueNotNull(final DiskStorageFactory.Element<K, V> computeResult) {
@@ -480,9 +601,7 @@ public class DiskStore<K, V> implements Store<K, V> {
     private void enforceCapacity(int delta) {
         for (int attempts = 0, evicted = 0; attempts < ATTEMPT_RATIO * delta && evicted < EVICTION_RATIO * delta
             && capacityConstraint.compareTo((long) size()) < 0; attempts++) {
-            if (diskStorageFactory.evict(1) == 1) {
-                evicted++;
-            }
+            evicted += diskStorageFactory.evict(1);
         }
     }
 
