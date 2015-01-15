@@ -17,6 +17,8 @@
 package org.ehcache.internal.store.disk;
 
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.function.Predicate;
+import org.ehcache.function.Predicates;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.store.disk.ods.FileAllocationTree;
 import org.ehcache.internal.store.disk.ods.Region;
@@ -37,9 +39,10 @@ import java.io.ObjectOutputStream;
 import java.io.RandomAccessFile;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.util.Comparator;
 import java.util.ConcurrentModificationException;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -57,8 +60,10 @@ import java.util.concurrent.locks.Lock;
  */
 public class DiskStorageFactory<K, V> {
 
-    interface Element<K, V> extends Serializable, Map.Entry<K, DiskValueHolder<V>> {
+    interface Element<K, V> extends Serializable {
         boolean isExpired(long time);
+        K getKey();
+        DiskValueHolder<V> getValueHolder();
     }
 
     static class ElementImpl<K, V> implements Element<K, V> {
@@ -81,16 +86,10 @@ public class DiskStorageFactory<K, V> {
         }
 
         @Override
-        public DiskValueHolder<V> getValue() {
+        public DiskValueHolder<V> getValueHolder() {
             return valueHolder;
         }
 
-        @Override
-        public DiskValueHolder<V> setValue(DiskValueHolder<V> value) {
-            DiskValueHolder<V> old = valueHolder;
-            valueHolder = value;
-            return old;
-        }
     }
 
     static class DiskValueHolderImpl<V> implements DiskValueHolder<V>, Serializable {
@@ -186,8 +185,6 @@ public class DiskStorageFactory<K, V> {
 
     private final IndexWriteTask flushTask;
 
-    private volatile int diskCapacity;
-
     private final boolean diskPersistent;
 
     private final TimeSource timeSource;
@@ -195,13 +192,18 @@ public class DiskStorageFactory<K, V> {
     private final String alias;
 
     private final ClassLoader classLoader;
-
     private final Serializer<Element> serializer;
+    private final Comparable<Long> capacityConstraint;
+    private final Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto;
+    private final Comparator<Element<K, V>> evictionPrioritizer;
 
     /**
      * Constructs an disk persistent factory for the given cache and disk path.
      */
-    public DiskStorageFactory(ClassLoader classLoader, TimeSource timeSource, Serializer<Element> serializer, DiskStorePathManager diskStorePathManager, String alias, boolean persistent, int stripes, long queueCapacity, int maxOnDisk, int expiryThreadInterval, boolean clearOnFlush) {
+    public DiskStorageFactory(Comparable<Long> capacityConstraint, Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto, Comparator<Element<K, V>> evictionPrioritizer, ClassLoader classLoader, TimeSource timeSource, Serializer<Element> serializer, DiskStorePathManager diskStorePathManager, String alias, boolean persistent, int stripes, long queueCapacity, int expiryThreadInterval, boolean clearOnFlush) {
+        this.capacityConstraint = capacityConstraint;
+        this.evictionVeto = evictionVeto;
+        this.evictionPrioritizer = evictionPrioritizer;
         this.classLoader = classLoader;
         this.timeSource = timeSource;
         this.serializer = serializer;
@@ -241,7 +243,6 @@ public class DiskStorageFactory<K, V> {
         });
         this.diskQueue = diskWriter.getQueue();
         this.queueCapacity = queueCapacity;
-        this.diskCapacity = maxOnDisk;
 
         diskWriter.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
         diskWriter.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
@@ -551,7 +552,11 @@ public class DiskStorageFactory<K, V> {
             } catch (Throwable e) {
                 // TODO Need to clean this up once FrontEndCacheTier is going away completely
                 LOG.error("Disk Write of " + placeholder.getKey() + " failed: ", e);
-                storageFactory.store.evict(placeholder.getKey(), placeholder);
+                try {
+                    storageFactory.store.evict(placeholder.getKey(), placeholder);
+                } catch (CacheAccessException cae) {
+                    throw new RuntimeException(cae);
+                }
                 return null;
             }
         }
@@ -710,12 +715,12 @@ public class DiskStorageFactory<K, V> {
          */
         @Override
         float getHitRate() {
-            return getElement().getValue().hitRate(TimeUnit.SECONDS);
+            return getElement().getValueHolder().hitRate(TimeUnit.SECONDS);
         }
 
         @Override
         long getExpirationTime() {
-            return getElement().getValue().getExpireTimeMillis();
+            return getElement().getValueHolder().getExpireTimeMillis();
         }
 
         /**
@@ -756,8 +761,8 @@ public class DiskStorageFactory<K, V> {
             this.size = size;
 
             this.key = element.getKey();
-            this.hitRate = element.getValue().hitRate(TimeUnit.SECONDS);
-            this.expiry = element.getValue().getExpireTimeMillis();
+            this.hitRate = element.getValueHolder().hitRate(TimeUnit.SECONDS);
+            this.expiry = element.getValueHolder().getExpireTimeMillis();
         }
 
         /**
@@ -839,7 +844,7 @@ public class DiskStorageFactory<K, V> {
          */
         void hit(Element<K, V> e) {
             hitRate++;
-            expiry = e.getValue().getExpireTimeMillis();
+            expiry = e.getValueHolder().getExpireTimeMillis();
         }
 
         /**
@@ -847,8 +852,8 @@ public class DiskStorageFactory<K, V> {
          * @param e
          */
         void updateStats(Element<K, V> e) {
-            hitRate = e.getValue().hitRate(TimeUnit.SECONDS);
-            expiry = e.getValue().getExpireTimeMillis();
+            hitRate = e.getValueHolder().hitRate(TimeUnit.SECONDS);
+            expiry = e.getValueHolder().getExpireTimeMillis();
         }
     }
 
@@ -870,8 +875,9 @@ public class DiskStorageFactory<K, V> {
          */
         public void run() {
             long now = timeSource.getTimeMillis();
-            for (K key : store.keySet()) {
-                DiskSubstitute<K, V> value = store.unretrievedGet(key);
+            Iterator<DiskSubstitute<K, V>> diskSubstituteIterator = store.diskSubstituteIterator();
+            while (diskSubstituteIterator.hasNext()) {
+                DiskSubstitute<K, V> value = diskSubstituteIterator.next();
                 if (created(value) && value instanceof DiskStorageFactory.DiskMarker) {
                     checkExpiry((DiskMarker) value, now);
                 }
@@ -880,7 +886,11 @@ public class DiskStorageFactory<K, V> {
 
         private void checkExpiry(DiskMarker<K, V> marker, long now) {
             if (marker.getExpirationTime() < now) {
-                store.evict(marker.getKey(), marker);
+                try {
+                    store.expire(marker.getKey(), marker);
+                } catch (CacheAccessException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
     }
@@ -974,7 +984,7 @@ public class DiskStorageFactory<K, V> {
      */
     public void unbind(boolean destroy) {
         try {
-            flushTask.call();
+            flush().get();
         } catch (Throwable t) {
             LOG.error("Could not flush disk cache. Initial cause was " + t.getMessage(), t);
         }
@@ -1012,11 +1022,20 @@ public class DiskStorageFactory<K, V> {
         // see void onDiskEvict(int size, Object keyHint)
         int evicted = 0;
         for (int i = 0; i < count; i++) {
-            DiskSubstitute<K, V> target = this.getDiskEvictionTarget(null, count);
+            DiskSubstitute<K, V> target = this.getDiskEvictionTarget(null, count, evictionVeto);
+            if (target == null) {
+                // 2nd attempt without any veto
+                target = this.getDiskEvictionTarget(null, count, Predicates.<DiskSubstitute<K, V>>none());
+            }
+
             if (target != null) {
-                Element<K, V> evictedElement = store.evictElement(target.getKey(), null);
-                if (evictedElement != null) {
-                    evicted++;
+                try {
+                    Element<K, V> evictedElement = store.evict(target.getKey(), null);
+                    if (evictedElement != null) {
+                        evicted++;
+                    }
+                } catch (CacheAccessException e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
@@ -1049,43 +1068,39 @@ public class DiskStorageFactory<K, V> {
         return onDisk.get();
     }
 
-    /**
-     * Set the maximum on-disk capacity for this factory.
-     *
-     * @param capacity the maximum on-disk capacity for this factory.
-     */
-    public void setOnDiskCapacity(int capacity) {
-        diskCapacity = capacity;
-    }
-
-    /**
-     * accessor to the on-disk capacity
-     * @return the capacity
-     */
-    int getDiskCapacity() {
-        return diskCapacity == 0 ? Integer.MAX_VALUE : diskCapacity;
-    }
-
     private void onDiskEvict(int size, K keyHint) {
+        long diskCapacity = (Long)capacityConstraint;
+
         if (diskCapacity > 0) {
-            int overflow = size - diskCapacity;
+            int overflow = (int) (size - diskCapacity);
             for (int i = 0; i < Math.min(MAX_EVICT, overflow); i++) {
-                DiskSubstitute<K, V> target = getDiskEvictionTarget(keyHint, size);
+                DiskSubstitute<K, V> target = getDiskEvictionTarget(keyHint, size, evictionVeto);
+                if (target == null) {
+                    // 2nd attempt without any veto
+                    target = this.getDiskEvictionTarget(keyHint, size, Predicates.<DiskSubstitute<K, V>>none());
+                }
                 if (target != null) {
-                    final Element<K, V> element = store.evictElement(target.getKey(), target);
-                    if (element != null && onDisk.get() <= diskCapacity) {
-                        break;
+                    try {
+                        final Element<K, V> element = store.evict(target.getKey(), target);
+                        if (element != null && onDisk.get() <= diskCapacity) {
+                            break;
+                        }
+                    } catch (CacheAccessException e) {
+                        throw new RuntimeException(e);
                     }
                 }
             }
         }
     }
 
-    private DiskSubstitute<K, V> getDiskEvictionTarget(K keyHint, int size) {
+    private DiskSubstitute<K, V> getDiskEvictionTarget(K keyHint, int size, Predicate<DiskSubstitute<K, V>> evictionVeto) {
         List<DiskSubstitute<K, V>> sample = store.getRandomSample(onDiskFilter, Math.min(SAMPLE_SIZE, size), keyHint);
         DiskSubstitute<K, V> target = null;
         DiskSubstitute<K, V> hintTarget = null;
         for (DiskSubstitute<K, V> substitute : sample) {
+            if (evictionVeto.test(substitute)) {
+                continue;
+            }
             if ((target == null) || (substitute.getHitRate() < target.getHitRate())) {
                 if (substitute.getKey().equals(keyHint)) {
                     hintTarget = substitute;
@@ -1150,8 +1165,10 @@ public class DiskStorageFactory<K, V> {
         public synchronized Void call() throws IOException, InterruptedException {
             ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(index));
             try {
-                for (K key : store.keySet()) {
-                    DiskSubstitute<K, V> o = store.unretrievedGet(key);
+                Iterator<DiskSubstitute<K, V>> diskSubstituteIterator = store.diskSubstituteIterator();
+                while (diskSubstituteIterator.hasNext()) {
+                    DiskSubstitute<K, V> o = diskSubstituteIterator.next();
+                    K key = o.getKey();
                     if (o instanceof Placeholder && !((Placeholder)o).failedToFlush) {
                         o = new PersistentDiskWriteTask<K, V>((Placeholder) o, DiskStorageFactory.this).call();
                         if (o == null) {
