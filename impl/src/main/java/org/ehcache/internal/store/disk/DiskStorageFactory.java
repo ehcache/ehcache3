@@ -39,6 +39,7 @@ import java.io.ObjectOutputStream;
 import java.io.RandomAccessFile;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
@@ -195,12 +196,12 @@ public class DiskStorageFactory<K, V> {
     private final Serializer<Element> serializer;
     private final Comparable<Long> capacityConstraint;
     private final Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto;
-    private final Comparator<Element<K, V>> evictionPrioritizer;
+    private final Comparator<DiskSubstitute<K, V>> evictionPrioritizer;
 
     /**
      * Constructs an disk persistent factory for the given cache and disk path.
      */
-    public DiskStorageFactory(Comparable<Long> capacityConstraint, Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto, Comparator<Element<K, V>> evictionPrioritizer, ClassLoader classLoader, TimeSource timeSource, Serializer<Element> serializer, DiskStorePathManager diskStorePathManager, String alias, boolean persistent, int stripes, long queueCapacity, int expiryThreadInterval, boolean clearOnFlush) {
+    public DiskStorageFactory(Comparable<Long> capacityConstraint, Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto, Comparator<DiskSubstitute<K, V>> evictionPrioritizer, ClassLoader classLoader, TimeSource timeSource, Serializer<Element> serializer, DiskStorePathManager diskStorePathManager, String alias, boolean persistent, int stripes, long queueCapacity, int expiryThreadInterval, boolean clearOnFlush) {
         this.capacityConstraint = capacityConstraint;
         this.evictionVeto = evictionVeto;
         this.evictionPrioritizer = evictionPrioritizer;
@@ -1097,6 +1098,8 @@ public class DiskStorageFactory<K, V> {
         List<DiskSubstitute<K, V>> sample = store.getRandomSample(onDiskFilter, Math.min(SAMPLE_SIZE, size), keyHint);
         DiskSubstitute<K, V> target = null;
         DiskSubstitute<K, V> hintTarget = null;
+
+        Collections.sort(sample, evictionPrioritizer);
         for (DiskSubstitute<K, V> substitute : sample) {
             if (evictionVeto.test(substitute)) {
                 continue;

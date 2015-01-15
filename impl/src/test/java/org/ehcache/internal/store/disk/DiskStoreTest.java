@@ -53,7 +53,7 @@ public class DiskStoreTest {
       diskStore.put(i, "val#" + i);
     }
 
-//    Thread.sleep(100);
+    Thread.sleep(100);
 
     System.out.println("\nContents");
     Store.Iterator<Cache.Entry<Integer, Store.ValueHolder<String>>> it = diskStore.iterator();
