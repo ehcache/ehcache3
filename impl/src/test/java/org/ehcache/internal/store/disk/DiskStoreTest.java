@@ -1,9 +1,12 @@
 package org.ehcache.internal.store.disk;
 
+import org.ehcache.Cache;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.function.BiFunction;
 import org.ehcache.internal.SystemTimeSource;
+import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.spi.cache.Store;
 import org.junit.Test;
 
@@ -14,7 +17,14 @@ public class DiskStoreTest {
 
   @Test
   public void testMisc() throws Exception {
-    StoreConfigurationImpl<Integer, String> configuration = new StoreConfigurationImpl<Integer, String>(Integer.class, String.class, null, null, null, getClass().getClassLoader(), Expirations.noExpiration(), null);
+
+    EvictionVeto<Integer, String> evictionVeto = new EvictionVeto<Integer, String>() {
+      @Override
+      public boolean test(Cache.Entry<Integer, String> argument) {
+        return argument.getKey() < 3;
+      }
+    };
+    StoreConfigurationImpl<Integer, String> configuration = new StoreConfigurationImpl<Integer, String>(Integer.class, String.class, 2L, evictionVeto, null, getClass().getClassLoader(), Expirations.noExpiration(), new JavaSerializationProvider());
     DiskStore<Integer, String> diskStore = new DiskStore<Integer, String>(configuration, "diskStore", SystemTimeSource.INSTANCE);
     diskStore.init();
 
@@ -38,6 +48,19 @@ public class DiskStoreTest {
       }
     });
     System.out.println("computed : " + computed);
+
+    for (int i=0;i<10;i++) {
+      diskStore.put(i, "val#" + i);
+    }
+
+//    Thread.sleep(100);
+
+    System.out.println("\nContents");
+    Store.Iterator<Cache.Entry<Integer, Store.ValueHolder<String>>> it = diskStore.iterator();
+    while (it.hasNext()) {
+      Cache.Entry<Integer, Store.ValueHolder<String>> next = it.next();
+      System.out.println(next.getKey() + "/" + next.getValue());
+    }
 
     diskStore.close();
   }

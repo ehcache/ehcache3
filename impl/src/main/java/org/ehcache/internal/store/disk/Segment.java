@@ -736,7 +736,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
      * @param sampled collection in which to place the elements
      * @param seed random seed for the selection
      */
-    void addRandomSample(ElementSubstituteFilter filter, int sampleSize, Collection<DiskStorageFactory.DiskSubstitute> sampled, int seed) {
+    void addRandomSample(ElementSubstituteFilter filter, int sampleSize, Collection<DiskStorageFactory.DiskSubstitute<K, V>> sampled, int seed) {
         if (count == 0) {
             return;
         }
@@ -965,8 +965,8 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
     }
 
     private boolean eq(DiskStorageFactory.Element<K, V> e1, DiskStorageFactory.Element<K, V> e2) {
-        V v1 = e1.getValue().value();
-        V v2 = e2.getValue().value();
+        V v1 = e1.getValueHolder().value();
+        V v2 = e2.getValueHolder().value();
 
         if (v1 == v2) return true;
         if (v1 == null || v2 == null) return false;
