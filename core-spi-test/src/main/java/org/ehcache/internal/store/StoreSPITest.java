@@ -219,4 +219,11 @@ public abstract class StoreSPITest<K, V> {
       new StoreBulkComputeIfAbsentTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
+
+  @Test
+  public void testStoreEventListener() throws Exception {
+    StoreEventListenerTest<K, V> testSuite =
+        new StoreEventListenerTest<K, V>(getStoreFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
 }
