@@ -57,7 +57,7 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new DiskStorageFactory.DiskValueHolderImpl<String>(value);
+        return new DiskStorageFactory.DiskValueHolderImpl<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), -1);
       }
 
       @Override

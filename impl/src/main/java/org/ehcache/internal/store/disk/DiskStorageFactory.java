@@ -68,12 +68,12 @@ public class DiskStorageFactory<K, V> {
     }
 
     static class ElementImpl<K, V> implements Element<K, V> {
-        private volatile DiskValueHolder<V> valueHolder;
+        private final DiskValueHolder<V> valueHolder;
         private final K key;
 
-        public ElementImpl(K key, V value) {
+        public ElementImpl(K key, V value, long createTime, long expireTime) {
             this.key = key;
-            this.valueHolder = new DiskValueHolderImpl<V>(value);
+            this.valueHolder = new DiskValueHolderImpl<V>(value, createTime, expireTime);
         }
 
         @Override
@@ -94,51 +94,73 @@ public class DiskStorageFactory<K, V> {
     }
 
     static class DiskValueHolderImpl<V> implements DiskValueHolder<V>, Serializable {
-      private final V value;
+        static final long NO_EXPIRE = -1;
 
-      public DiskValueHolderImpl(V value) {
-        this.value = value;
-      }
+        private final V value;
+        private final long createTime;
 
-      @Override
-      public void setAccessTimeMillis(long accessTime) {
+        private volatile long accessTime;
+        private volatile long expireTime;
 
-      }
+        public DiskValueHolderImpl(V value, long createTime, long expireTime) {
+            this.value = value;
+            this.createTime = createTime;
+            setExpireTimeMillis(expireTime);
+        }
 
-      @Override
-      public void setExpireTimeMillis(long expireTime) {
+        @Override
+        public void setAccessTimeMillis(long accessTime) {
+            this.accessTime = accessTime;
+        }
 
-      }
+        @Override
+        public void setExpireTimeMillis(long expireTime) {
+            if (expireTime <= 0 && expireTime != NO_EXPIRE) {
+                throw new IllegalArgumentException("invalid expire time: " + expireTime);
+            }
 
-      @Override
-      public boolean isExpired(long now) {
-        return false;
-      }
+            this.expireTime = expireTime;
+        }
 
-      @Override
-      public long getExpireTimeMillis() {
-        return 0;
-      }
+        @Override
+        public boolean isExpired(long now) {
+            final long expire = expireTime;
+            if (expire == NO_EXPIRE) {
+                return false;
+            }
 
-      @Override
-      public V value() {
-        return value;
-      }
+            if (expire <= now) {
+                return true;
+            }
 
-      @Override
-      public long creationTime(TimeUnit unit) {
-        return 0;
-      }
+            return false;
+        }
 
-      @Override
-      public long lastAccessTime(TimeUnit unit) {
-        return 0;
-      }
+        @Override
+        public long getExpireTimeMillis() {
+            return expireTime;
+        }
 
-      @Override
-      public float hitRate(TimeUnit unit) {
-        return 0;
-      }
+        @Override
+        public V value() {
+            return value;
+        }
+
+        @Override
+        public long creationTime(TimeUnit unit) {
+            return TimeUnit.MILLISECONDS.convert(createTime, unit);
+        }
+
+        @Override
+        public long lastAccessTime(TimeUnit unit) {
+            return TimeUnit.MILLISECONDS.convert(accessTime, unit);
+        }
+
+        @Override
+        public float hitRate(TimeUnit unit) {
+            // XXX:
+            return 0;
+        }
 
         @Override
         public String toString() {
