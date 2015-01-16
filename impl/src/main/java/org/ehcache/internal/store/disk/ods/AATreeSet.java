@@ -1,18 +1,19 @@
-/**
- *  Copyright Terracotta, Inc.
+/*
+ * Copyright Terracotta, Inc.
  *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 package org.ehcache.internal.store.disk.ods;
 
 import java.util.AbstractSet;
@@ -25,7 +26,6 @@ import java.util.Stack;
  * A AA-Tree based SortedSet implementation
  *
  * @param <T> type of values stored
- *
  * @author Chris Dennis
  */
 public class AATreeSet<T extends Comparable> extends AbstractSet<T> implements SortedSet<T> {
@@ -34,12 +34,12 @@ public class AATreeSet<T extends Comparable> extends AbstractSet<T> implements S
 
   private Node<T> root = terminal();
 
-  private int     size;
+  private int size;
   private boolean mutated;
 
   private Node<T> item = terminal();
   private Node<T> heir = terminal();
-  private T       removed;
+  private T removed;
 
   @Override
   public boolean add(T o) {
@@ -174,7 +174,7 @@ public class AATreeSet<T extends Comparable> extends AbstractSet<T> implements S
    * Returns the root node of this tree.
    */
   protected final Node<T> getRoot() {
-      return root;
+    return root;
   }
 
   private Node<T> find(Node<T> top, T probe) {
@@ -346,7 +346,7 @@ public class AATreeSet<T extends Comparable> extends AbstractSet<T> implements S
 
     private Node<E> left;
     private Node<E> right;
-    private int     level;
+    private int level;
 
     /**
      * Constructs an initial (leaf) node.
@@ -467,16 +467,16 @@ public class AATreeSet<T extends Comparable> extends AbstractSet<T> implements S
 
     @Override
     public void setLeft(Node<E> right) {
-        if (right != TERMINAL) {
-            throw new AssertionError();
-        }
+      if (right != TERMINAL) {
+        throw new AssertionError();
+      }
     }
 
     @Override
     public void setRight(Node<E> left) {
-        if (left != TERMINAL) {
-            throw new AssertionError();
-        }
+      if (left != TERMINAL) {
+        throw new AssertionError();
+      }
     }
 
     @Override
@@ -617,7 +617,7 @@ public class AATreeSet<T extends Comparable> extends AbstractSet<T> implements S
   private class TreeIterator implements Iterator<T> {
 
     private final Stack<Node<T>> path = new Stack<Node<T>>();
-    private Node<T>                        next;
+    private Node<T> next;
 
     TreeIterator() {
       path.push(terminal());
