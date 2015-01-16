@@ -18,11 +18,11 @@ package org.ehcache.internal.store.disk;
 import org.ehcache.spi.cache.Store.ValueHolder;
 
 interface DiskValueHolder<V> extends ValueHolder<V> {
-  
+
   void setAccessTimeMillis(long accessTime);
-  
+
   void setExpireTimeMillis(long expireTime);
-  
+
   boolean isExpired(long now);
 
   long getExpireTimeMillis();
