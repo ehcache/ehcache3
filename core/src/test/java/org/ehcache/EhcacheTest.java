@@ -17,24 +17,36 @@
 package org.ehcache;
 
 import org.ehcache.events.StateChangeListener;
+import org.ehcache.events.StoreEventListener;
+import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.StateTransitionException;
+import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
+import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -300,4 +312,199 @@ public class EhcacheTest {
     verify(listener, never()).stateTransition(Status.AVAILABLE, Status.UNINITIALIZED);
   }
 
+  @Test
+  public void testIgnoresKeysReturnedFromCacheLoaderLoadAll() {
+    LoadAllVerifyStore store = new LoadAllVerifyStore();
+    KeyFumblingCacheLoaderWriter loader = new KeyFumblingCacheLoaderWriter();
+    Ehcache<String, String> ehcache = new Ehcache<String, String>(newCacheConfigurationBuilder().buildConfig(String.class, String.class), store, loader);
+    ehcache.init();
+
+    HashSet<String> keys = new HashSet<String>();
+    keys.add("key1");
+    keys.add("key2");
+    keys.add("key3");
+    keys.add("key4");
+
+    ehcache.getAll(keys);
+    assertTrue("validation performed inline by LoadAllVerifyStore", true);
+  }
+
+  private static class LoadAllVerifyStore implements Store<String, String> {
+
+    @Override
+    public Map<String, ValueHolder<String>> bulkComputeIfAbsent(Set<? extends String> keys, Function<Iterable<? extends String>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> mappingFunction) throws CacheAccessException {
+      Iterable<? extends Map.Entry<? extends String, ? extends String>> result = mappingFunction.apply(keys);
+      ArrayList<String> functionReturnedKeys = new ArrayList<String>();
+      for (Map.Entry<? extends String, ? extends String> entry : result) {
+        functionReturnedKeys.add(entry.getKey());
+      }
+      assertThat(functionReturnedKeys.size(), is(keys.size()));
+
+      ArrayList<String> paramKeys = new ArrayList<String>(keys);
+      Collections.sort(paramKeys);
+      Collections.sort(functionReturnedKeys);
+
+      for (int i = 0; i < functionReturnedKeys.size(); i++) {
+        assertThat(functionReturnedKeys.get(i), sameInstance(paramKeys.get(i)));
+      }
+
+      return Collections.emptyMap();
+    }
+
+    @Override
+    public void init() {
+      // No-Op
+    }
+
+    @Override
+    public ValueHolder<String> get(String key) throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public boolean containsKey(String key) throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public void put(String key, String value) throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public ValueHolder<String> putIfAbsent(String key, String value) throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public void remove(String key) throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public boolean remove(String key, String value) throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public ValueHolder<String> replace(String key, String value) throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public boolean replace(String key, String oldValue, String newValue) throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public void clear() throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public void destroy() throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public void create() throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public void close() {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public void maintenance() {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public void enableStoreEventNotifications(StoreEventListener<String, String> listener) {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public void disableStoreEventNotifications() {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public Iterator<Cache.Entry<String, ValueHolder<String>>> iterator() throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public ValueHolder<String> compute(String key, BiFunction<? super String, ? super String, ? extends String> mappingFunction) throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public ValueHolder<String> compute(String key, BiFunction<? super String, ? super String, ? extends String> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public ValueHolder<String> computeIfAbsent(String key, Function<? super String, ? extends String> mappingFunction) throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public ValueHolder<String> computeIfPresent(String key, BiFunction<? super String, ? super String, ? extends String> remappingFunction) throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public ValueHolder<String> computeIfPresent(String key, BiFunction<? super String, ? super String, ? extends String> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public Map<String, ValueHolder<String>> bulkCompute(Set<? extends String> keys, Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> remappingFunction) throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public Map<String, ValueHolder<String>> bulkCompute(Set<? extends String> keys, Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+  }
+
+  private static class KeyFumblingCacheLoaderWriter implements CacheLoaderWriter<String, String> {
+    @Override
+    public Map<String, String> loadAll(Iterable<? extends String> keys) throws Exception {
+      HashMap<String, String> result = new HashMap<String, String>();
+      for (String key : keys) {
+        result.put(new String(key), "valueFor" + key);
+      }
+      return result;
+    }
+
+    @Override
+    public void write(String key, String value) throws Exception {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public void writeAll(Iterable<? extends Map.Entry<? extends String, ? extends String>> entries) throws BulkCacheWritingException, Exception {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public void delete(String key) throws Exception {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public void deleteAll(Iterable<? extends String> keys) throws BulkCacheWritingException, Exception {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public String load(String key) throws Exception {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+  }
 }

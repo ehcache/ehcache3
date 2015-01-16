@@ -412,24 +412,23 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         }
 
         if (cacheLoaderWriter != null) {
-          Map<K, V> loaded = Collections.emptyMap();
+          Map<? super K, ? extends V> loaded = Collections.emptyMap();
           try {
-            loaded = (Map<K, V>) cacheLoaderWriter.loadAll(computeResult.keySet());
+            loaded = cacheLoaderWriter.loadAll(computeResult.keySet());
           } catch (Exception e) {
             for (K key : computeResult.keySet()) {
               failures.put(key, e);
             }
           }
-          
-          for (Map.Entry<K, V> loadedEntry : loaded.entrySet()) {
-            K key = loadedEntry.getKey();
-            if (! computeResult.containsKey(key)) {
-              throw newCacheLoadingException(new RuntimeException("Cache loader returned value for key: " + key));
+
+          if (!loaded.isEmpty()) {
+            for (K key : computeResult.keySet()) {
+              V value = loaded.get(key);
+              successes.put(key, value);
+              computeResult.put(key, value);
             }
-            V value = loadedEntry.getValue();
-            successes.put(key, value);
-            computeResult.put(key, value);
           }
+
         }
 
         return computeResult.entrySet();
@@ -1164,7 +1163,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
 
   private final class Jsr107CacheImpl implements Jsr107Cache<K, V> {
     @Override
-    public void loadAll(Set<? extends K> keys, boolean replaceExistingValues, Function<Iterable<? extends K>, Map<? super K, ? extends V>> loadFunction) {
+    public void loadAll(Set<? extends K> keys, boolean replaceExistingValues, Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
       if (replaceExistingValues) {
         loadAllReplace(keys, loadFunction);
       } else {
@@ -1177,7 +1176,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       return Ehcache.this.getAllInternal(keys, false);
     }
 
-    private void loadAllAbsent(Set<? extends K> keys, final Function<Iterable<? extends K>, Map<? super K, ? extends V>> loadFunction) {
+    private void loadAllAbsent(Set<? extends K> keys, final Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
       try {
         store.bulkComputeIfAbsent(keys, new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
           @Override
@@ -1190,7 +1189,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     }
 
-    Map<K, V> cacheLoaderWriterLoadAllForKeys(Iterable<? extends K> keys, Function<Iterable<? extends K>, Map<? super K, ? extends V>> loadFunction) {
+    Map<K, V> cacheLoaderWriterLoadAllForKeys(Iterable<? extends K> keys, Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
       try {
         Map<? super K, ? extends V> loaded = loadFunction.apply(keys);
         
@@ -1205,7 +1204,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     }
 
-    private void loadAllReplace(Set<? extends K> keys, final Function<Iterable<? extends K>, Map<? super K, ? extends V>> loadFunction) {
+    private void loadAllReplace(Set<? extends K> keys, final Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
       try {
         store.bulkCompute(keys, new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
           @Override

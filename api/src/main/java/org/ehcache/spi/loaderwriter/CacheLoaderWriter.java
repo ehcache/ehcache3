@@ -49,9 +49,10 @@ public interface CacheLoaderWriter<K, V> {
   /**
    * Loads the values to be associated with the keys in the {@link org.ehcache.Cache} using this
    * {@link CacheLoaderWriter} instance. The returned {@link java.util.Map} should contain
-   * {@code null} mapped keys for values that couldn't be found. Only keys passed in the
-   * <code>loadAll</code> method will be mapped.
-   * Any other mapping will be ignored
+   * {@code null} mapped keys for values that couldn't be found.
+   * <br/>
+   * The mapping that will be installed in the cache is the {@code key} as found in the input parameter {@code keys}
+   * mapped to the result of {@code loadAllResult.get(key)}. Any other mapping will be ignored.
    *
    * @param keys the keys that will be mapped to the values returned in the map
    * @return the {@link java.util.Map} of values for each key passed in, where no mapping means no value to map.

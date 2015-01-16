@@ -39,5 +39,5 @@ public interface Jsr107Cache<K, V> {
       NullaryFunction<Boolean> replaceEqual, final NullaryFunction<Boolean> invokeWriter,
       final NullaryFunction<Boolean> withStatsAndEvents);
   
-  void loadAll(Set<? extends K> keys, boolean replaceExistingValues, Function<Iterable<? extends K>, Map<? super K, ? extends V>> function);
+  void loadAll(Set<? extends K> keys, boolean replaceExistingValues, Function<Iterable<? extends K>, Map<K, V>> function);
 }
