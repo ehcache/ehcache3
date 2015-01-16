@@ -234,7 +234,7 @@ public class EhcacheEventTest {
     assertThat(cache.replace(key, newValue), is((String)null));
     verify(eventNotifier, never()).onEvent(any(CacheEvent.class));
 
-    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, CharSequence, String> function = asBiFunction(invocation);
@@ -250,7 +250,7 @@ public class EhcacheEventTest {
   @Test(expected=CacheWritingException.class)
   public void testReplaceThrowsOnWrite() throws Exception {
     final String expected = "old";
-    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
@@ -267,7 +267,7 @@ public class EhcacheEventTest {
     final String cachedValue = "cached";
     final String newValue = "toReplace";
 
-    when(store.computeIfPresent(any(Number.class), anyBiFunction(), any(NullaryFunction.class))).thenAnswer(new Answer<Object>() {
+    when(store.compute(any(Number.class), anyBiFunction(), any(NullaryFunction.class))).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
@@ -320,7 +320,7 @@ public class EhcacheEventTest {
   
   @Test(expected=CacheWritingException.class)
   public void testThreeArgReplaceThrowsOnWrite() throws Exception {
-    when(store.computeIfPresent(any(Number.class), anyBiFunction(), any(NullaryFunction.class))).thenAnswer(new Answer<Object>() {
+    when(store.compute(any(Number.class), anyBiFunction(), any(NullaryFunction.class))).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
@@ -365,7 +365,7 @@ public class EhcacheEventTest {
   @Test
   public void testTwoArgRemoveMatch() throws Exception {
     final String cachedValue = "cached";
-    when(store.computeIfPresent(any(Number.class), anyBiFunction(), any(NullaryFunction.class))).thenAnswer(new Answer<Object>() {
+    when(store.compute(any(Number.class), anyBiFunction(), any(NullaryFunction.class))).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
@@ -415,7 +415,7 @@ public class EhcacheEventTest {
   @Test(expected=CacheWritingException.class)
   public void testTwoArgRemoveThrowsOnWrite() throws Exception {
     final String expected = "foo";
-    when(store.computeIfPresent(any(Number.class), anyBiFunction(), any(NullaryFunction.class))).thenAnswer(new Answer<Object>() {
+    when(store.compute(any(Number.class), anyBiFunction(), any(NullaryFunction.class))).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);

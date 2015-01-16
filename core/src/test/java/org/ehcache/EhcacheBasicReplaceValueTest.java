@@ -17,9 +17,11 @@
 package org.ehcache;
 
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.CacheOperationOutcomes;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 
@@ -150,7 +152,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT));
@@ -171,7 +173,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_PRESENT));
@@ -192,7 +194,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     assertTrue(ehcache.replace("key", "oldValue", "newValue"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("newValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT));
@@ -202,7 +204,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#replace(Object, Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>>{@code Store.computeIfPresent} throws</li>
+   *   <li>>{@code Store.compute} throws</li>
    *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
@@ -210,12 +212,12 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
   public void testReplaceValueNoStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     ehcache.replace("key", "oldValue", "newValue");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
@@ -225,7 +227,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#replace(Object, Object, Object)} for
    * <ul>
    *   <li>key with unequal value present in {@code Store}</li>
-   *   <li>>{@code Store.computeIfPresent} throws</li>
+   *   <li>>{@code Store.compute} throws</li>
    *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
@@ -233,12 +235,12 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
   public void testReplaceValueUnequalStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     ehcache.replace("key", "oldValue", "newValue");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
@@ -248,7 +250,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#replace(Object, Object, Object)} for
    * <ul>
    *   <li>key with equal value present in {@code Store}</li>
-   *   <li>>{@code Store.computeIfPresent} throws</li>
+   *   <li>>{@code Store.compute} throws</li>
    *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
@@ -256,12 +258,12 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
   public void testReplaceValueEqualStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     ehcache.replace("key", "oldValue", "newValue");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
@@ -283,7 +285,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter);
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(false));
@@ -306,7 +308,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter);
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     // Broken initial state: CacheLoaderWriter check omitted
@@ -329,7 +331,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter);
 
     assertTrue(ehcache.replace("key", "oldValue", "newValue"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("newValue")));
     // Broken initial state: CacheLoaderWriter check omitted
@@ -340,7 +342,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#replace(Object, Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>>{@code Store.computeIfPresent} throws</li>
+   *   <li>>{@code Store.compute} throws</li>
    *   <li>key not present via {@code CacheLoaderWriter}</li>
    * </ul>
    */
@@ -348,14 +350,14 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
   public void testReplaceValueNoStoreEntryCacheAccessExceptionNoCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.<String, String>emptyMap());
     this.cacheLoaderWriter = spy(fakeWriter);
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.replace("key", "oldValue", "newValue");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(false));
@@ -366,7 +368,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#replace(Object, Object, Object)} for
    * <ul>
    *   <li>key with unequal value present in {@code Store}</li>
-   *   <li>>{@code Store.computeIfPresent} throws</li>
+   *   <li>>{@code Store.compute} throws</li>
    *   <li>key not present via {@code CacheLoaderWriter}</li>
    * </ul>
    */
@@ -374,14 +376,14 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
   public void testReplaceValueUnequalStoreEntryCacheAccessExceptionNoCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.<String, String>emptyMap());
     this.cacheLoaderWriter = spy(fakeWriter);
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.replace("key", "oldValue", "newValue");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
     // Broken initial state: CacheLoaderWriter check omitted
@@ -392,7 +394,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#replace(Object, Object, Object)} for
    * <ul>
    *   <li>key with equal value present in {@code Store}</li>
-   *   <li>>{@code Store.computeIfPresent} throws</li>
+   *   <li>>{@code Store.compute} throws</li>
    *   <li>key not present via {@code CacheLoaderWriter}</li>
    * </ul>
    */
@@ -400,14 +402,14 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
   public void testReplaceValueEqualStoreEntryCacheAccessExceptionNoCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.<String, String>emptyMap());
     this.cacheLoaderWriter = spy(fakeWriter);
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.replace("key", "oldValue", "newValue");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
     // Broken initial state: CacheLoaderWriter check omitted
@@ -430,11 +432,11 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter);
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
-    assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
+    assertThat(fakeStore.getEntryMap().get("key"), is("unequalValue"));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_PRESENT));
   }
 
   /**
@@ -453,7 +455,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter);
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));
@@ -476,7 +478,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter);
 
     assertTrue(ehcache.replace("key", "oldValue", "newValue"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("newValue")));
     // Broken initial state: CacheLoaderWriter check omitted
@@ -487,7 +489,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#replace(Object, Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>>{@code Store.computeIfPresent} throws</li>
+   *   <li>>{@code Store.compute} throws</li>
    *   <li>key with unequal value present via {@code CacheLoaderWriter}</li>
    * </ul>
    */
@@ -495,14 +497,14 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
   public void testReplaceValueNoStoreEntryCacheAccessExceptionUnequalCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "unequalValue"));
     this.cacheLoaderWriter = spy(fakeWriter);
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.replace("key", "oldValue", "newValue");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));
@@ -513,7 +515,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#replace(Object, Object, Object)} for
    * <ul>
    *   <li>key with unequal value present in {@code Store}</li>
-   *   <li>>{@code Store.computeIfPresent} throws</li>
+   *   <li>>{@code Store.compute} throws</li>
    *   <li>key with unequal value present via {@code CacheLoaderWriter}</li>
    * </ul>
    */
@@ -521,14 +523,14 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
   public void testReplaceValueUnequalStoreEntryCacheAccessExceptionUnequalCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "unequalValue"));
     this.cacheLoaderWriter = spy(fakeWriter);
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.replace("key", "oldValue", "newValue");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));
@@ -539,7 +541,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#replace(Object, Object, Object)} for
    * <ul>
    *   <li>key with equal value present in {@code Store}</li>
-   *   <li>>{@code Store.computeIfPresent} throws</li>
+   *   <li>>{@code Store.compute} throws</li>
    *   <li>key with unequal value present via {@code CacheLoaderWriter}</li>
    * </ul>
    */
@@ -547,14 +549,14 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
   public void testReplaceValueEqualStoreEntryCacheAccessExceptionUnequalCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "unequalValue"));
     this.cacheLoaderWriter = spy(fakeWriter);
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.replace("key", "oldValue", "newValue");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
     // Broken initial state: CacheLoaderWriter check omitted
@@ -576,12 +578,12 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter);
 
-    assertFalse(ehcache.replace("key", "oldValue", "newValue"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    assertThat(ehcache.replace("key", "oldValue", "newValue"), is(true));
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
-    assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
-    assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("oldValue")));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT));
+    assertThat(fakeStore.getEntryMap().get("key"), is("newValue"));
+    assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("newValue")));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT));
   }
 
   /**
@@ -600,7 +602,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter);
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     // Broken initial state: CacheLoaderWriter check omitted
@@ -623,7 +625,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter);
 
     assertTrue(ehcache.replace("key", "oldValue", "newValue"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("newValue")));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("newValue")));
@@ -634,7 +636,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#replace(Object, Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>>{@code Store.computeIfPresent} throws</li>
+   *   <li>>{@code Store.compute} throws</li>
    *   <li>key with equal value present via {@code CacheLoaderWriter}</li>
    * </ul>
    */
@@ -642,17 +644,17 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
   public void testReplaceValueNoStoreEntryCacheAccessExceptionEqualCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheLoaderWriter = spy(fakeWriter);
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.replace("key", "oldValue", "newValue");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
-        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
-    assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("oldValue")));
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(true));
+    assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("newValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
@@ -660,7 +662,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#replace(Object, Object, Object)} for
    * <ul>
    *   <li>key with unequal value present in {@code Store}</li>
-   *   <li>>{@code Store.computeIfPresent} throws</li>
+   *   <li>>{@code Store.compute} throws</li>
    *   <li>key with equal value present via {@code CacheLoaderWriter}</li>
    * </ul>
    */
@@ -668,16 +670,16 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
   public void testReplaceValueUnequalStoreEntryCacheAccessExceptionEqualCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheLoaderWriter = spy(fakeWriter);
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.replace("key", "oldValue", "newValue");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
-        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(true));
     // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
@@ -686,7 +688,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#replace(Object, Object, Object)} for
    * <ul>
    *   <li>key with equal value present in {@code Store}</li>
-   *   <li>>{@code Store.computeIfPresent} throws</li>
+   *   <li>>{@code Store.compute} throws</li>
    *   <li>key with equal value present via {@code CacheLoaderWriter}</li>
    * </ul>
    */
@@ -694,17 +696,17 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
   public void testReplaceValueEqualStoreEntryCacheAccessExceptionEqualCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheLoaderWriter = spy(fakeWriter);
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.replace("key", "oldValue", "newValue");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
-        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
-    assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("oldValue")));
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(true));
+    assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("newValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
@@ -725,10 +727,15 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     doThrow(new Exception()).when(this.cacheLoaderWriter).write("key", "newValue");
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
-    assertFalse(ehcache.replace("key", "oldValue", "newValue"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    try {
+      ehcache.replace("key", "oldValue", "newValue");
+      fail();
+    } catch (CacheWritingException e) {
+      // expected
+    }
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT));
+    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.ReplaceOutcome.class));
   }
 
   /**
@@ -749,7 +756,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_PRESENT));
   }
@@ -777,7 +784,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     } catch (CacheWritingException e) {
       // Expected
     }
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.ReplaceOutcome.class));    // TODO: Confirm correctness
   }
@@ -786,7 +793,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#replace(Object, Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>>{@code Store.computeIfPresent} throws</li>
+   *   <li>>{@code Store.compute} throws</li>
    *   <li>{@code CacheLoaderWriter.write} throws</li>
    * </ul>
    */
@@ -794,17 +801,22 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
   public void testReplaceValueNoStoreEntryCacheAccessExceptionCacheLoaderWriterException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheLoaderWriter = spy(fakeWriter);
     doThrow(new Exception()).when(this.cacheLoaderWriter).write("key", "newValue");
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
-    ehcache.replace("key", "oldValue", "newValue");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    try {
+      ehcache.replace("key", "oldValue", "newValue");
+      fail();
+    } catch (CacheWritingException e) {
+      // expected
+    }
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
-        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), any(CacheWritingException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
@@ -812,7 +824,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#replace(Object, Object, Object)} for
    * <ul>
    *   <li>key with unequal value present in {@code Store}</li>
-   *   <li>>{@code Store.computeIfPresent} throws</li>
+   *   <li>>{@code Store.compute} throws</li>
    *   <li>{@code CacheLoaderWriter.write} throws</li>
    * </ul>
    */
@@ -820,17 +832,22 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
   public void testReplaceValueUnequalStoreEntryCacheAccessExceptionCacheLoaderWriterException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheLoaderWriter = spy(fakeWriter);
     doThrow(new Exception()).when(this.cacheLoaderWriter).write("key", "newValue");
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
-    ehcache.replace("key", "oldValue", "newValue");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    try {
+      ehcache.replace("key", "oldValue", "newValue");
+      fail();
+    } catch (CacheWritingException e) {
+      // expected
+    }
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
-        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), any(CacheWritingException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
@@ -838,7 +855,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link org.ehcache.Ehcache#replace(Object, Object, Object)} for
    * <ul>
    *   <li>key with equal value present in {@code Store}</li>
-   *   <li>>{@code Store.computeIfPresent} throws</li>
+   *   <li>>{@code Store.compute} throws</li>
    *   <li>{@code CacheLoaderWriter.write} throws</li>
    * </ul>
    */
@@ -846,23 +863,28 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
   public void testReplaceValueEqualStoreEntryCacheAccessExceptionCacheLoaderWriterException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
     final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheLoaderWriter = spy(fakeWriter);
     doThrow(new Exception()).when(this.cacheLoaderWriter).write("key", "newValue");
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
-    ehcache.replace("key", "oldValue", "newValue");
-    verify(this.store).computeIfPresent(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
+    try {
+      ehcache.replace("key", "oldValue", "newValue");
+      fail();
+    } catch (CacheWritingException e) {
+      // Expected
+    }
+    verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
-        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), eq(false));
+        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(CacheAccessException.class), any(CacheWritingException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
   /**
    * Gets an initialized {@link Ehcache Ehcache} instance using the
-   * {@link org.ehcache.spi.writer.CacheLoaderWriter CacheLoaderWriter} provided.
+   * {@link org.ehcache.spi.loaderwriter.CacheLoaderWriter CacheLoaderWriter} provided.
    *
    * @param cacheLoaderWriter
    *    the {@code CacheLoaderWriter} to use; may be {@code null}

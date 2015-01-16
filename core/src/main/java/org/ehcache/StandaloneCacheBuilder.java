@@ -31,7 +31,6 @@ import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.SerializationProvider;
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
 
 /**
@@ -65,9 +64,9 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     final StoreConfigurationImpl<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType,
         capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, expiry, serializationProvider);
     final Store<K, V> store = storeProvider.createStore(storeConfig);
-    
+
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto,
-        evictionPrioritizer, classLoader, expiry, serializationProvider, new ServiceConfiguration<?>[]{});
+        evictionPrioritizer, classLoader, expiry, serializationProvider);
     
     final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, cacheEventNotificationService, statisticsExecutor);
 

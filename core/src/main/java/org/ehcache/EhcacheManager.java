@@ -37,6 +37,7 @@ import org.ehcache.spi.service.ThreadPoolsService;
 import org.ehcache.util.ClassLoading;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -58,6 +59,7 @@ public class EhcacheManager implements PersistentCacheManager {
   private final StatusTransitioner statusTransitioner = new StatusTransitioner();
 
   private final ServiceLocator serviceLocator;
+  private final boolean useLoaderInAtomics;
   private final Configuration configuration;
 
   private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<String, CacheHolder>();
@@ -66,11 +68,15 @@ public class EhcacheManager implements PersistentCacheManager {
   private final CopyOnWriteArrayList<CacheManagerListener> listeners = new CopyOnWriteArrayList<CacheManagerListener>();
 
   public EhcacheManager(Configuration config) {
-    this(config, new ServiceLocator());
+    this(config, new ServiceLocator(), true);
   }
 
   public EhcacheManager(Configuration config, ServiceLocator serviceLocator) {
+    this(config, serviceLocator, true);
+  }
+  public EhcacheManager(Configuration config, ServiceLocator serviceLocator, boolean useLoaderInAtomics) {
     this.serviceLocator = serviceLocator;
+    this.useLoaderInAtomics = useLoaderInAtomics;
     this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
     this.configuration = config;
   }
@@ -181,7 +187,7 @@ public class EhcacheManager implements PersistentCacheManager {
       serializationProvider = serviceLocator.findService(SerializationProvider.class);
     }
 
-    ServiceConfiguration<?>[] serviceConfigs = config.getServiceConfigurations().toArray(new ServiceConfiguration[config.getServiceConfigurations().size()]);
+    Collection<ServiceConfiguration<?>> adjustedServiceConfigs = new ArrayList<ServiceConfiguration<?>>(config.getServiceConfigurations());
 
     // XXX this may need to become an actual "service" with its own service configuration etc
     CacheEventNotificationService<K, V> evtService;
@@ -210,6 +216,8 @@ public class EhcacheManager implements PersistentCacheManager {
       }
     }
 
+    ServiceConfiguration[] serviceConfigs = adjustedServiceConfigs.toArray(new ServiceConfiguration[adjustedServiceConfigs.size()]);
+
     CacheConfiguration<K, V> adjustedConfig = new BaseCacheConfiguration<K, V>(
         keyType, valueType, config.getCapacityConstraint(),
         config.getEvictionVeto(), config.getEvictionPrioritizer(), config.getClassLoader(), config.getExpiry(), serializationProvider,
@@ -217,7 +225,7 @@ public class EhcacheManager implements PersistentCacheManager {
     );
 
     Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(adjustedConfig), serviceConfigs);
-    return new Ehcache<K, V>(adjustedConfig, store, loaderWriter, evtService, statisticsExecutor);
+    return new Ehcache<K, V>(adjustedConfig, store, loaderWriter, evtService, statisticsExecutor, useLoaderInAtomics);
   }
 
   public void registerListener(CacheManagerListener listener) {

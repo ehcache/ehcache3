@@ -19,6 +19,7 @@ package org.ehcache;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -169,16 +170,37 @@ public class EhcacheLoaderWriterTest {
   }
 
   @Test
-  public void testPutIfAbsent() throws Exception {
+  public void testPutIfAbsent_present() throws Exception {
     when(store.computeIfAbsent(any(Number.class), anyFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         Function<Number, String> function = asFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0]);
+        Number key = (Number) invocation.getArguments()[0];
+        if (!key.equals(1)) {
+          function.apply(key);
+        }
         return null;
       }
     });
+
     cache.putIfAbsent(1, "foo");
+    verifyZeroInteractions(cache.getCacheLoaderWriter());
+  }
+
+  @Test
+  public void testPutIfAbsent_absent() throws Exception {
+    when(store.computeIfAbsent(any(Number.class), anyFunction())).thenAnswer(new Answer<Object>() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        Function<Number, String> function = asFunction(invocation);
+        Number key = (Number) invocation.getArguments()[0];
+        function.apply(key);
+        return null;
+      }
+    });
+
+    cache.putIfAbsent(1, "foo");
+    verify(cache.getCacheLoaderWriter()).load(1);
     verify(cache.getCacheLoaderWriter()).write(1, "foo");
   }
   
@@ -207,7 +229,7 @@ public class EhcacheLoaderWriterTest {
   @Test
   public void testTwoArgRemoveMatch() throws Exception {
     final String cachedValue = "cached";
-    when(store.computeIfPresent(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenAnswer(new Answer<Object>() {
+    when(store.compute(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
@@ -253,7 +275,7 @@ public class EhcacheLoaderWriterTest {
   @Test
   public void testTwoArgRemoveThrowsOnCompute() throws Exception {
     String toRemove = "foo";
-    when(store.computeIfPresent(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenThrow(new CacheAccessException("boom"));
+    when(store.compute(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenThrow(new CacheAccessException("boom"));
     assertThat(cache.remove(1, toRemove), is(false));
     verify(cache.getCacheLoaderWriter(), never()).delete(1);
     verify(store).remove(1);
@@ -262,7 +284,7 @@ public class EhcacheLoaderWriterTest {
   @Test(expected=CacheWritingException.class)
   public void testTwoArgRemoveThrowsOnWrite() throws Exception {
     final String expected = "foo";
-    when(store.computeIfPresent(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenAnswer(new Answer<Object>() {
+    when(store.compute(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
@@ -278,7 +300,7 @@ public class EhcacheLoaderWriterTest {
   public void testReplace() throws Exception {
     final String oldValue = "foo";
     final String newValue = "bar";
-    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, CharSequence, String> function = asBiFunction(invocation);
@@ -294,17 +316,17 @@ public class EhcacheLoaderWriterTest {
   
   @Test
   public void testReplaceThrowsOnCompute() throws Exception {
-    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenThrow(new CacheAccessException("boom"));
+    when(store.compute(any(Number.class), anyBiFunction())).thenThrow(new CacheAccessException("boom"));
     String value = "foo";
     assertThat(cache.replace(1, value), nullValue());
-    verify(cache.getCacheLoaderWriter()).write(1, value);
+    verify(cache.getCacheLoaderWriter()).load(1);
     verify(store).remove(1);
   }
   
   @Test(expected=CacheWritingException.class)
   public void testReplaceThrowsOnWrite() throws Exception {
     final String expected = "old";
-    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
@@ -322,7 +344,7 @@ public class EhcacheLoaderWriterTest {
     final String cachedValue = "cached";
     final String newValue = "toReplace";
 
-    when(store.computeIfPresent(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenAnswer(new Answer<Object>() {
+    when(store.compute(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
@@ -357,7 +379,7 @@ public class EhcacheLoaderWriterTest {
   public void testThreeArgReplaceThrowsOnCompute() throws Exception {
     final String oldValue = "cached";
     final String newValue = "toReplace";
-    when(store.computeIfPresent(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenThrow(new CacheAccessException("boom"));
+    when(store.compute(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenThrow(new CacheAccessException("boom"));
 
     assertThat(cache.replace(1, oldValue, newValue), is(false));
     verify(cache.getCacheLoaderWriter(), never()).write(1, newValue);
@@ -366,7 +388,7 @@ public class EhcacheLoaderWriterTest {
   
   @Test(expected=CacheWritingException.class)
   public void testThreeArgReplaceThrowsOnWrite() throws Exception {
-    when(store.computeIfPresent(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenAnswer(new Answer<Object>() {
+    when(store.compute(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);

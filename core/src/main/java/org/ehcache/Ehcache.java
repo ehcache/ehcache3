@@ -104,8 +104,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   private final RuntimeConfiguration runtimeConfiguration;
   private final CacheEventNotificationService<K, V> eventNotificationService;
   private final StoreEventListener<K, V> storeListener;
-  private final Jsr107CacheImpl jsr107Cache; 
-  
+  private final Jsr107CacheImpl jsr107Cache;
+  private final boolean useLoaderInAtomics;
+
   private final OperationObserver<GetOutcome> getObserver = operation(GetOutcome.class).named("get").of(this).tag("cache").build();
   private final OperationObserver<PutOutcome> putObserver = operation(PutOutcome.class).named("put").of(this).tag("cache").build();
   private final OperationObserver<RemoveOutcome> removeObserver = operation(RemoveOutcome.class).named("remove").of(this).tag("cache").build();
@@ -123,7 +124,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       return Boolean.FALSE;
     }
   };
-  
+
   public Ehcache(CacheConfiguration<K, V> config, final Store<K, V> store) {
     this(config, store, null);
   }
@@ -140,6 +141,12 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       final CacheLoaderWriter<? super K, V> cacheLoaderWriter, 
       CacheEventNotificationService<K, V> eventNotifier,
       ScheduledExecutorService statisticsExecutor) {
+    this(config, store, cacheLoaderWriter, eventNotifier, statisticsExecutor, true);
+  }
+
+  Ehcache(CacheConfiguration<K, V> config, Store<K, V> store,
+          CacheLoaderWriter<? super K, V> cacheLoaderWriter,
+          CacheEventNotificationService<K, V> eventNotifier, ScheduledExecutorService statisticsExecutor, boolean useLoaderInAtomics) {
     this.store = store;
     StatisticsManager.associate(store).withParent(this);
     this.cacheLoaderWriter = cacheLoaderWriter;
@@ -162,6 +169,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     this.runtimeConfiguration = new RuntimeConfiguration(config);
     this.storeListener = new StoreListener();
     this.jsr107Cache = new Jsr107CacheImpl();
+
+    this.useLoaderInAtomics = useLoaderInAtomics;
   }
 
   @SuppressWarnings("unchecked")
@@ -702,6 +711,17 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       @Override
       public V apply(final K k) {
         try {
+          if (useLoaderInAtomics && cacheLoaderWriter != null) {
+            try {
+              V loaded = cacheLoaderWriter.load(k);
+              if (loaded != null) {
+                return loaded; // populate the cache
+              }
+            } catch (Exception e) {
+              throw newCacheLoadingException(e);
+            }
+          }
+
           if (cacheLoaderWriter != null) {
             try {
               cacheLoaderWriter.write(k, value);
@@ -744,6 +764,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         } else {
           try {
             mappingFunction.apply(key);
+          } catch (CacheLoadingException f) {
+            return resilienceStrategy.putIfAbsentFailure(key, value, e, f);
           } catch (CacheWritingException f) {
             return resilienceStrategy.putIfAbsentFailure(key, value, e, f);
           }
@@ -764,7 +786,22 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     final AtomicBoolean removed = new AtomicBoolean();
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
       @Override
-      public V apply(final K k, final V inCache) {
+      public V apply(final K k, V inCache) {
+        if (inCache == null) {
+          if (useLoaderInAtomics && cacheLoaderWriter != null) {
+            try {
+              inCache = cacheLoaderWriter.load(key);
+              if (inCache == null) {
+                return null;
+              }
+            } catch (Exception e) {
+              throw newCacheLoadingException(e);
+            }
+          } else {
+            return null;
+          }
+        }
+
         hit.set(true);
         if (value.equals(inCache)) {
           if (cacheLoaderWriter != null) {
@@ -782,7 +819,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     });
     try {
-      store.computeIfPresent(key, remappingFunction, REPLACE_FALSE);
+      store.compute(key, remappingFunction, REPLACE_FALSE);
       if (removed.get()) {
         conditionalRemoveObserver.end(ConditionalRemoveOutcome.SUCCESS);
       } else {
@@ -799,6 +836,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         } else {
           try {
             remappingFunction.apply(key, null);
+          } catch (CacheLoadingException f) {
+            return resilienceStrategy.removeFailure(key, value, e, f);
           } catch (CacheWritingException f) {
             return resilienceStrategy.removeFailure(key, value, e, f);
           }
@@ -819,7 +858,22 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     final AtomicReference<V> old = new AtomicReference<V>();
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
       @Override
-      public V apply(final K k, final V inCache) {
+      public V apply(final K k, V inCache) {
+        if (inCache == null) {
+          if (useLoaderInAtomics && cacheLoaderWriter != null) {
+            try {
+              inCache = cacheLoaderWriter.load(key);
+              if (inCache == null) {
+                return null;
+              }
+            } catch (Exception e) {
+              throw newCacheLoadingException(e);
+            }
+          } else {
+            return null;
+          }
+        }
+
         if (cacheLoaderWriter != null) {
           try {
             cacheLoaderWriter.write(key, value);
@@ -840,7 +894,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     });
 
     try {
-      store.computeIfPresent(key, remappingFunction);
+      store.compute(key, remappingFunction);
       if (old.get() != null) {
         replaceObserver.end(ReplaceOutcome.HIT);
       } else {
@@ -851,6 +905,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       try {
         try {
           remappingFunction.apply(key, null);
+        } catch (CacheLoadingException f) {
+          return resilienceStrategy.replaceFailure(key, value, e, f);
         } catch (CacheWritingException f) {
           return resilienceStrategy.replaceFailure(key, value, e, f);
         }
@@ -872,9 +928,24 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
       @Override
-      public V apply(final K k, final V inCache) {
-        hit.set(true);
+      public V apply(final K k, V inCache) {
         try {
+          if (inCache == null) {
+            if (useLoaderInAtomics && cacheLoaderWriter != null) {
+              try {
+                inCache = cacheLoaderWriter.load(key);
+                if (inCache == null) {
+                  return null;
+                }
+              } catch (Exception e) {
+                throw newCacheLoadingException(e);
+              }
+            } else {
+              return null;
+            }
+          }
+
+          hit.set(true);
           if (oldValue.equals(inCache)) {
             if (cacheLoaderWriter != null) {
               try {
@@ -901,7 +972,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       }
     });
     try {
-      store.computeIfPresent(key, remappingFunction, REPLACE_FALSE);
+      store.compute(key, remappingFunction, REPLACE_FALSE);
       if (success.get()) {
         replaceObserver.end(ReplaceOutcome.HIT);
       } else {
@@ -919,6 +990,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         } else {
           try {
             remappingFunction.apply(key, null);
+          } catch (CacheLoadingException f) {
+            return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, f);
           } catch (CacheWritingException f) {
             return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, f);
           }

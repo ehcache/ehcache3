@@ -34,6 +34,7 @@
       </xs:element>
     </xs:sequence>
     <xs:attribute name="default-template" type="xs:IDREF" use="optional"/>
+    <xs:attribute name="jsr107CompliantAtomics" type="xs:boolean" use="optional"/>
   </xs:complexType>
 
   <xs:complexType name="cache-type">

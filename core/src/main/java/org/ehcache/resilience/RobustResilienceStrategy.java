@@ -105,6 +105,12 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
+  public V putIfAbsentFailure(K key, V value, CacheAccessException e, CacheLoadingException f) {
+    cleanup(key, e);
+    throw f;
+  }
+
+  @Override
   public boolean removeFailure(K key, V value, CacheAccessException e, boolean knownToBePresent) {
     cleanup(key, e);
     return knownToBePresent;
@@ -112,6 +118,12 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
 
   @Override
   public boolean removeFailure(K key, V value, CacheAccessException e, CacheWritingException f) {
+    cleanup(key, e);
+    throw f;
+  }
+
+  @Override
+  public boolean removeFailure(K key, V value, CacheAccessException e, CacheLoadingException f) {
     cleanup(key, e);
     throw f;
   }
@@ -129,6 +141,12 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
+  public V replaceFailure(K key, V value, CacheAccessException e, CacheLoadingException f) {
+    cleanup(key, e);
+    throw f;
+  }
+
+  @Override
   public boolean replaceFailure(K key, V value, V newValue, CacheAccessException e, boolean knownToMatch) {
     cleanup(key, e);
     return knownToMatch;
@@ -136,6 +154,12 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
 
   @Override
   public boolean replaceFailure(K key, V value, V newValue, CacheAccessException e, CacheWritingException f) {
+    cleanup(key, e);
+    throw f;
+  }
+
+  @Override
+  public boolean replaceFailure(K key, V value, V newValue, CacheAccessException e, CacheLoadingException f) {
     cleanup(key, e);
     throw f;
   }

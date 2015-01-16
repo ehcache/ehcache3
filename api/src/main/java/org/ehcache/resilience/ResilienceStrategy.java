@@ -175,6 +175,19 @@ public interface ResilienceStrategy<K, V> {
   V putIfAbsentFailure(K key, V value, CacheAccessException e, CacheWritingException f);
   
   /**
+   * Called when a {@link Cache#putIfAbsent(java.lang.Object, java.lang.Object)}
+   * fails due to an underlying store failure, and the associated cache load
+   * operation also failed.
+   *
+   * @param key the key being put
+   * @param value the value being put
+   * @param e the cache failure
+   * @param f the loader failure
+   * @return the value to return from the operation
+   */
+  V putIfAbsentFailure(K key, V value, CacheAccessException e, CacheLoadingException f);
+
+  /**
    * Called when a {@link Cache#remove(java.lang.Object, java.lang.Object)}
    * fails due to an underlying store failure.
    * <p>
@@ -204,6 +217,19 @@ public interface ResilienceStrategy<K, V> {
   boolean removeFailure(K key, V value, CacheAccessException e, CacheWritingException f);
   
   /**
+   * Called when a {@link Cache#remove(java.lang.Object, java.lang.Object)}
+   * fails due to an underlying store failure, and the associated cache load
+   * operation also failed.
+   *
+   * @param key the key being removed
+   * @param value the value being removed
+   * @param e the cache failure
+   * @param f the loader failure
+   * @return the value to return from the operation
+   */
+  boolean removeFailure(K key, V value, CacheAccessException e, CacheLoadingException f);
+
+  /**
    * Called when a {@link Cache#replace(java.lang.Object, java.lang.Object)}
    * fails due to an underlying store failure.
    * 
@@ -227,6 +253,19 @@ public interface ResilienceStrategy<K, V> {
    */
   V replaceFailure(K key, V value, CacheAccessException e, CacheWritingException f);
   
+  /**
+   * Called when a {@link Cache#replace(java.lang.Object, java.lang.Object)}
+   * fails due to an underlying store failure, and the associated cache load
+   * operation also failed.
+   *
+   * @param key the key being replaced
+   * @param value the value being replaced
+   * @param e the cache failure
+   * @param f the loader failure
+   * @return the value to return from the operation
+   */
+  V replaceFailure(K key, V value, CacheAccessException e, CacheLoadingException f);
+
   /**
    * Called when a {@link Cache#replace(java.lang.Object, java.lang.Object, java.lang.Object)}
    * fails due to an underlying store failure.
@@ -257,7 +296,21 @@ public interface ResilienceStrategy<K, V> {
    * @return the value to return from the operation
    */
   boolean replaceFailure(K key, V value, V newValue, CacheAccessException e, CacheWritingException f);
-  
+
+  /**
+   * Called when a {@link Cache#replace(java.lang.Object, java.lang.Object, java.lang.Object)}
+   * fails due to an underlying store failure, and the associated cache load
+   * operation also failed.
+   *
+   * @param key the key being replaced
+   * @param value the expected value
+   * @param newValue the replacement value
+   * @param e the cache failure
+   * @param f the loader failure
+   * @return the value to return from the operation
+   */
+  boolean replaceFailure(K key, V value, V newValue, CacheAccessException e, CacheLoadingException f);
+
   /**
    * Called when a {@link Cache#getAll(java.util.Set)} fails on a cache
    * without a cache loader due to an underlying store failure.
