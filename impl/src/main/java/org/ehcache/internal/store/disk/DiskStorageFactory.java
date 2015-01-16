@@ -23,7 +23,7 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.store.disk.ods.FileAllocationTree;
 import org.ehcache.internal.store.disk.ods.Region;
 import org.ehcache.internal.store.disk.utils.ConcurrencyUtil;
-import org.ehcache.internal.store.disk.utils.PreferredLoaderObjectInputStream;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,11 +34,12 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.RandomAccessFile;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.ConcurrentModificationException;
@@ -216,6 +217,7 @@ public class DiskStorageFactory<K, V> {
 
     private final ClassLoader classLoader;
     private final Serializer<Element> serializer;
+    private final Serializer<Object> indexSerializer;
     private final Comparable<Long> capacityConstraint;
     private final Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto;
     private final Comparator<DiskSubstitute<K, V>> evictionPrioritizer;
@@ -223,13 +225,17 @@ public class DiskStorageFactory<K, V> {
     /**
      * Constructs an disk persistent factory for the given cache and disk path.
      */
-    public DiskStorageFactory(Comparable<Long> capacityConstraint, Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto, Comparator<DiskSubstitute<K, V>> evictionPrioritizer, ClassLoader classLoader, TimeSource timeSource, Serializer<Element> serializer, DiskStorePathManager diskStorePathManager, String alias, boolean persistent, int stripes, long queueCapacity, int expiryThreadInterval, boolean clearOnFlush) {
+    public DiskStorageFactory(Comparable<Long> capacityConstraint, Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto,
+                              Comparator<DiskSubstitute<K, V>> evictionPrioritizer, ClassLoader classLoader, TimeSource timeSource,
+                              SerializationProvider serializationProvider, DiskStorePathManager diskStorePathManager, String alias,
+                              boolean persistent, int stripes, long queueCapacity, int expiryThreadInterval) {
         this.capacityConstraint = capacityConstraint;
         this.evictionVeto = evictionVeto;
         this.evictionPrioritizer = evictionPrioritizer;
         this.classLoader = classLoader;
         this.timeSource = timeSource;
-        this.serializer = serializer;
+        this.serializer = serializationProvider.createSerializer(Element.class, classLoader);
+        this.indexSerializer = serializationProvider.createSerializer(Object.class, classLoader);
         this.diskStorePathManager = diskStorePathManager;
         this.alias = alias;
         this.file = diskStorePathManager.getFile(alias, ".data");
@@ -271,7 +277,7 @@ public class DiskStorageFactory<K, V> {
         diskWriter.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
         diskWriter.scheduleWithFixedDelay(new DiskExpiryTask(), (long) expiryThreadInterval, (long) expiryThreadInterval, TimeUnit.SECONDS);
 
-        flushTask = new IndexWriteTask(indexFile, clearOnFlush);
+        flushTask = new IndexWriteTask(indexFile);
 
         if (!getDataFile().exists() || (getDataFile().length() == 0)) {
             LOG.debug("Matching data file missing (or empty) for index file. Deleting index file " + indexFile);
@@ -1171,24 +1177,21 @@ public class DiskStorageFactory<K, V> {
     class IndexWriteTask implements Callable<Void> {
 
         private final File index;
-        private final boolean clearOnFlush;
 
         /**
          * Create a disk flush task that writes to the given file.
          *
          * @param index the file to write the index to
-         * @param clear clear on flush flag
          */
-        IndexWriteTask(File index, boolean clear) {
+        IndexWriteTask(File index) {
             this.index = index;
-            this.clearOnFlush = clear;
         }
 
         /**
          * {@inheritDoc}
          */
         public synchronized Void call() throws IOException, InterruptedException {
-            ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(index));
+            WritableByteChannel writableByteChannel = Channels.newChannel(new FileOutputStream(index));
             try {
                 Iterator<DiskSubstitute<K, V>> diskSubstituteIterator = store.diskSubstituteIterator();
                 while (diskSubstituteIterator.hasNext()) {
@@ -1203,14 +1206,24 @@ public class DiskStorageFactory<K, V> {
 
                     if (o instanceof DiskMarker) {
                         DiskMarker<K, V> marker = (DiskMarker) o;
-                        oos.writeObject(key);
-                        oos.writeObject(marker);
+
+                        writeMarker(writableByteChannel, marker);
                     }
                 }
             } finally {
-                oos.close();
+                writableByteChannel.close();
             }
             return null;
+        }
+
+        private void writeMarker(WritableByteChannel writableByteChannel, DiskMarker<K, V> marker) throws IOException {
+            ByteBuffer markerBuffer = indexSerializer.serialize(marker);
+            ByteBuffer sizeBuffer = ByteBuffer.allocate(4);
+            sizeBuffer.clear();
+            sizeBuffer.putInt(markerBuffer.limit());
+            sizeBuffer.rewind();
+            writableByteChannel.write(sizeBuffer);
+            writableByteChannel.write(markerBuffer);
         }
 
     }
@@ -1221,32 +1234,29 @@ public class DiskStorageFactory<K, V> {
         }
 
         try {
-            ObjectInputStream ois = new PreferredLoaderObjectInputStream(new FileInputStream(indexFile), classLoader);
+            ReadableByteChannel readableByteChannel = Channels.newChannel(new FileInputStream(indexFile));
             try {
-                K key = (K) ois.readObject();
-                Object value = ois.readObject();
+                DiskMarker<K, V> marker = readMarker(readableByteChannel);
 
-                DiskMarker<K, V> marker = (DiskMarker) value;
                 while (true) {
                     marker.bindFactory(this);
                     markUsed(marker);
-                    if (store.putRawIfAbsent(key, marker)) {
+                    if (store.putRawIfAbsent(marker.getKey(), marker)) {
                         onDisk.incrementAndGet();
                     } else {
                         // the disk pool is full
                         return;
                     }
-                    key = (K) ois.readObject();
-                    marker = (DiskMarker) ois.readObject();
+                    marker = readMarker(readableByteChannel);
                 }
             } finally {
-                ois.close();
+                readableByteChannel.close();
             }
         } catch (EOFException e) {
             // end of file reached, stop processing
         } catch (Exception e) {
             LOG.warn("Index file {} is corrupt, deleting and ignoring it : {}", indexFile, e);
-            LOG.debug("Corrupt index file {} error :", indexFile, e);
+            LOG.info("Corrupt index file {} error :", indexFile, e);
             try {
                 store.clear();
             } catch (CacheAccessException cae) {
@@ -1256,6 +1266,24 @@ public class DiskStorageFactory<K, V> {
         } finally {
             shrinkDataFile();
         }
+    }
+
+    private DiskMarker<K, V> readMarker(ReadableByteChannel readableByteChannel) throws IOException, ClassNotFoundException {
+        ByteBuffer sizeBuffer = ByteBuffer.allocate(4);
+
+        sizeBuffer.clear();
+        int read = readableByteChannel.read(sizeBuffer);
+        if (read == -1) {
+            throw new EOFException();
+        }
+        sizeBuffer.rewind();
+        ByteBuffer valueBuffer = ByteBuffer.allocate(sizeBuffer.getInt());
+        read = readableByteChannel.read(valueBuffer);
+        if (read == -1) {
+            throw new EOFException();
+        }
+        valueBuffer.rewind();
+        return (DiskMarker) indexSerializer.read(valueBuffer);
     }
 
     /**

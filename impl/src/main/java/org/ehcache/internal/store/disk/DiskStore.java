@@ -34,7 +34,6 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
-import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.ArrayList;
@@ -48,6 +47,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
@@ -63,6 +63,9 @@ public class DiskStore<K, V> implements Store<K, V> {
 
     private static final int ATTEMPT_RATIO = 4;
     private static final int EVICTION_RATIO = 2;
+    public static final int DEFAULT_SEGMENT_COUNT = 16;
+    public static final int DEFAULT_QUEUE_CAPACITY = 16;
+    public static final int DEFAULT_EXPIRY_THREAD_INTERVAL = 30000;
 
     private final Class<K> keyType;
     private final Class<V> valueType;
@@ -415,15 +418,16 @@ public class DiskStore<K, V> implements Store<K, V> {
 
     @Override
     public void init() {
-        Serializer<DiskStorageFactory.Element> serializer = serializationProvider.createSerializer(DiskStorageFactory.Element.class, classLoader);
-        diskStorageFactory = new DiskStorageFactory<K, V>(capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, timeSource, serializer, new DiskStorePathManager(), alias, true, 16, 16, 30000, false);
+        diskStorageFactory = new DiskStorageFactory<K, V>(capacityConstraint, evictionVeto, evictionPrioritizer, classLoader,
+            timeSource, serializationProvider, new DiskStorePathManager(), alias, true,
+            DEFAULT_SEGMENT_COUNT, DEFAULT_QUEUE_CAPACITY, DEFAULT_EXPIRY_THREAD_INTERVAL);
 
-        segments = new Segment[16];
+        segments = new Segment[DEFAULT_SEGMENT_COUNT];
         for (int i = 0; i < segments.length; i++) {
-            segments[i] = new Segment<K, V>(16, .75f, diskStorageFactory, timeSource);
+            segments[i] = new Segment<K, V>(diskStorageFactory, timeSource);
         }
 
-        this.segmentShift = Integer.numberOfLeadingZeros(segments.length - 1);
+        segmentShift = Integer.numberOfLeadingZeros(segments.length - 1);
 
         diskStorageFactory.bind(this);
     }
@@ -449,7 +453,6 @@ public class DiskStore<K, V> implements Store<K, V> {
     }
 
     class DiskStoreIterator implements Iterator<Cache.Entry<K, ValueHolder<V>>> {
-
         private final DiskSubstituteIterator diskSubstituteIterator = new DiskSubstituteIterator();
         private DiskStorageFactory.Element<K, V> next;
 
@@ -953,13 +956,15 @@ public class DiskStore<K, V> implements Store<K, V> {
     }
 
     public static class Provider implements Store.Provider {
+        static final AtomicInteger aliasCounter = new AtomicInteger();
+
         @Override
         public <K, V> DiskStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
             TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[])serviceConfigs);
             TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
 
-            // todo: configure alias
-            return new DiskStore<K, V>(storeConfig, "diskstore", timeSource);
+            // todo: figure out a way to get a file name
+            return new DiskStore<K, V>(storeConfig, "diskstore-" + aliasCounter.incrementAndGet(), timeSource);
         }
 
         @Override

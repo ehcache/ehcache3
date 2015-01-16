@@ -46,8 +46,8 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
     private static final Logger LOG = LoggerFactory.getLogger(Segment.class.getName());
 
     private static final float LOAD_FACTOR = 0.75f;
+    private static final int INITIAL_CAPACITY = 16;
     private static final int MAXIMUM_CAPACITY = Integer.highestOneBit(Integer.MAX_VALUE);
-    private final TimeSource timeSource;
 
     /**
      * Count of elements in the map.
@@ -84,6 +84,8 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
      */
     private int threshold;
 
+    private final TimeSource timeSource;
+
     /**
      * Create a Segment with the given initial capacity, load-factor, primary element substitute factory, and identity element substitute factory.
      * <p>
@@ -104,6 +106,10 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
         this.threshold = (int) (table.length * loadFactor);
         this.modCount = 0;
         this.disk = primary;
+    }
+
+    public Segment(DiskStorageFactory<K, V> primary, TimeSource timeSource) {
+        this(INITIAL_CAPACITY, LOAD_FACTOR, primary, timeSource);
     }
 
     private HashEntry<K, V> getFirst(int hash) {
