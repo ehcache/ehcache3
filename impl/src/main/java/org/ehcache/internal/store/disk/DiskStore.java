@@ -1,17 +1,17 @@
-/**
- *  Copyright Terracotta, Inc.
+/*
+ * Copyright Terracotta, Inc.
  *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.ehcache.internal.store.disk;
@@ -148,14 +148,10 @@ public class DiskStore<K, V> implements Store<K, V> {
       }
 
       private DiskValueHolder<V> getDiskValueHolder() {
-        try {
-          K key = value.getKey();
-          int hash = hash(key.hashCode());
-          DiskStorageFactory.Element<K, V> element = segmentFor(hash).get(key, hash, false);
-          return element == null ? null : element.getValueHolder();
-        } catch (CacheAccessException e) {
-          throw new RuntimeException(e);
-        }
+        K key = value.getKey();
+        int hash = hash(key.hashCode());
+        DiskStorageFactory.Element<K, V> element = segmentFor(hash).get(key, hash, false);
+        return element == null ? null : element.getValueHolder();
       }
     };
   }
@@ -205,10 +201,7 @@ public class DiskStore<K, V> implements Store<K, V> {
     return (spread ^ spread >>> 16);
   }
 
-  private Segment<K, V> segmentFor(int hash) throws CacheAccessException {
-    if (segments == null) {
-      throw new CacheAccessException("disk store is closed");
-    }
+  private Segment<K, V> segmentFor(int hash) {
     return segments[hash >>> segmentShift];
   }
 
@@ -390,6 +383,10 @@ public class DiskStore<K, V> implements Store<K, V> {
 
   @Override
   public void clear() throws CacheAccessException {
+    internalClear();
+  }
+
+  void internalClear() {
     if (segments != null) {
       for (Segment s : segments) {
         s.clear();
@@ -456,11 +453,11 @@ public class DiskStore<K, V> implements Store<K, V> {
     private final DiskSubstituteIterator diskSubstituteIterator = new DiskSubstituteIterator();
     private DiskStorageFactory.Element<K, V> next;
 
-    DiskStoreIterator() throws CacheAccessException {
+    DiskStoreIterator() {
       advance();
     }
 
-    private void advance() throws CacheAccessException {
+    private void advance() {
       next = null;
       while (diskSubstituteIterator.hasNext()) {
         DiskStorageFactory.DiskSubstitute<K, V> nextSubstitute = diskSubstituteIterator.next();
@@ -608,16 +605,16 @@ public class DiskStore<K, V> implements Store<K, V> {
     }
   }
 
-  DiskStorageFactory.Element<K, V> evict(K key, DiskStorageFactory.DiskSubstitute<K, V> diskSubstitute) throws CacheAccessException {
+  DiskStorageFactory.Element<K, V> evict(K key, DiskStorageFactory.DiskSubstitute<K, V> diskSubstitute) {
     return evictElement(key, diskSubstitute);
   }
 
-  DiskStorageFactory.Element<K, V> expire(K key, DiskStorageFactory.DiskSubstitute<K, V> diskSubstitute) throws CacheAccessException {
+  DiskStorageFactory.Element<K, V> expire(K key, DiskStorageFactory.DiskSubstitute<K, V> diskSubstitute) {
     return evictElement(key, diskSubstitute);
   }
 
 
-  private DiskStorageFactory.Element<K, V> evictElement(K key, DiskStorageFactory.DiskSubstitute<K, V> diskSubstitute) throws CacheAccessException {
+  private DiskStorageFactory.Element<K, V> evictElement(K key, DiskStorageFactory.DiskSubstitute<K, V> diskSubstitute) {
     int hash = hash(key.hashCode());
     return segmentFor(hash).evict(key, hash, diskSubstitute);
   }
@@ -802,12 +799,8 @@ public class DiskStore<K, V> implements Store<K, V> {
 
 
   boolean fault(K key, DiskStorageFactory.Placeholder<K, V> expect, DiskStorageFactory.DiskMarker<K, V> fault) {
-    try {
-      int hash = hash(key.hashCode());
-      return segmentFor(hash).fault(key, hash, expect, fault, false);
-    } catch (CacheAccessException e) {
-      throw new RuntimeException(e);
-    }
+    int hash = hash(key.hashCode());
+    return segmentFor(hash).fault(key, hash, expect, fault, false);
   }
 
   DiskStorageFactory.DiskSubstitute<K, V> unretrievedGet(K key) {
@@ -815,13 +808,9 @@ public class DiskStore<K, V> implements Store<K, V> {
       return null;
     }
 
-    try {
-      int hash = hash(key.hashCode());
-      DiskStorageFactory.DiskSubstitute<K, V> o = segmentFor(hash).unretrievedGet(key, hash);
-      return o;
-    } catch (CacheAccessException e) {
-      throw new RuntimeException(e);
-    }
+    int hash = hash(key.hashCode());
+    DiskStorageFactory.DiskSubstitute<K, V> o = segmentFor(hash).unretrievedGet(key, hash);
+    return o;
   }
 
   java.util.Iterator<DiskStorageFactory.DiskSubstitute<K, V>> diskSubstituteIterator() {
@@ -829,12 +818,8 @@ public class DiskStore<K, V> implements Store<K, V> {
   }
 
   boolean putRawIfAbsent(K key, DiskStorageFactory.DiskMarker<K, V> encoded) {
-    try {
-      int hash = hash(key.hashCode());
-      return segmentFor(hash).putRawIfAbsent(key, hash, encoded);
-    } catch (CacheAccessException e) {
-      throw new RuntimeException(e);
-    }
+    int hash = hash(key.hashCode());
+    return segmentFor(hash).putRawIfAbsent(key, hash, encoded);
   }
 
   /**
@@ -970,11 +955,7 @@ public class DiskStore<K, V> implements Store<K, V> {
 
     @Override
     public void releaseStore(final Store<?, ?> resource) {
-      try {
-        resource.clear();
-      } catch (CacheAccessException e) {
-        throw new RuntimeException(e);
-      }
+      resource.close();
     }
 
     @Override

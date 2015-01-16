@@ -1,22 +1,21 @@
-/**
- *  Copyright Terracotta, Inc.
+/*
+ * Copyright Terracotta, Inc.
  *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.ehcache.internal.store.disk;
 
-import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Predicate;
 import org.ehcache.function.Predicates;
 import org.ehcache.internal.TimeSource;
@@ -213,9 +212,7 @@ public class DiskStorageFactory<K, V> {
 
   private final TimeSource timeSource;
   private final DiskStorePathManager diskStorePathManager;
-  private final String alias;
 
-  private final ClassLoader classLoader;
   private final Serializer<Element> serializer;
   private final Serializer<Object> indexSerializer;
   private final Comparable<Long> capacityConstraint;
@@ -232,12 +229,10 @@ public class DiskStorageFactory<K, V> {
     this.capacityConstraint = capacityConstraint;
     this.evictionVeto = evictionVeto;
     this.evictionPrioritizer = evictionPrioritizer;
-    this.classLoader = classLoader;
     this.timeSource = timeSource;
     this.serializer = serializationProvider.createSerializer(Element.class, classLoader);
     this.indexSerializer = serializationProvider.createSerializer(Object.class, classLoader);
     this.diskStorePathManager = diskStorePathManager;
-    this.alias = alias;
     this.file = diskStorePathManager.getFile(alias, ".data");
 
     this.indexFile = diskStorePathManager.getFile(alias, ".index");
@@ -583,11 +578,7 @@ public class DiskStorageFactory<K, V> {
       } catch (Throwable e) {
         // TODO Need to clean this up once FrontEndCacheTier is going away completely
         LOG.error("Disk Write of " + placeholder.getKey() + " failed: ", e);
-        try {
-          storageFactory.store.evict(placeholder.getKey(), placeholder);
-        } catch (CacheAccessException cae) {
-          throw new RuntimeException(cae);
-        }
+        storageFactory.store.evict(placeholder.getKey(), placeholder);
         return null;
       }
     }
@@ -921,11 +912,7 @@ public class DiskStorageFactory<K, V> {
 
     private void checkExpiry(DiskMarker<K, V> marker, long now) {
       if (marker.getExpirationTime() < now) {
-        try {
-          store.expire(marker.getKey(), marker);
-        } catch (CacheAccessException e) {
-          throw new RuntimeException(e);
-        }
+        store.expire(marker.getKey(), marker);
       }
     }
   }
@@ -1066,13 +1053,9 @@ public class DiskStorageFactory<K, V> {
       }
 
       if (target != null) {
-        try {
-          Element<K, V> evictedElement = store.evict(target.getKey(), null);
-          if (evictedElement != null) {
-            evicted++;
-          }
-        } catch (CacheAccessException e) {
-          throw new RuntimeException(e);
+        Element<K, V> evictedElement = store.evict(target.getKey(), null);
+        if (evictedElement != null) {
+          evicted++;
         }
       }
     }
@@ -1117,13 +1100,9 @@ public class DiskStorageFactory<K, V> {
           target = this.getDiskEvictionTarget(keyHint, size, Predicates.<DiskSubstitute<K, V>>none());
         }
         if (target != null) {
-          try {
-            final Element<K, V> element = store.evict(target.getKey(), target);
-            if (element != null && onDisk.get() <= diskCapacity) {
-              break;
-            }
-          } catch (CacheAccessException e) {
-            throw new RuntimeException(e);
+          final Element<K, V> element = store.evict(target.getKey(), target);
+          if (element != null && onDisk.get() <= diskCapacity) {
+            break;
           }
         }
       }
@@ -1264,12 +1243,8 @@ public class DiskStorageFactory<K, V> {
       // end of file reached, stop processing
     } catch (Exception e) {
       LOG.warn("Index file {} is corrupt, deleting and ignoring it : {}", indexFile, e);
-      LOG.info("Corrupt index file {} error :", indexFile, e);
-      try {
-        store.clear();
-      } catch (CacheAccessException cae) {
-        LOG.warn("Error clearing disk store " + alias, cae);
-      }
+      LOG.debug("Corrupt index file {} error :", indexFile, e);
+      store.internalClear();
       deleteFile(indexFile);
     } finally {
       shrinkDataFile();
