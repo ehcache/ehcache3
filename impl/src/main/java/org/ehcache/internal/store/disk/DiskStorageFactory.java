@@ -172,9 +172,7 @@ public class DiskStorageFactory<K, V> {
   /**
    * Path stub used to create unique ehcache directories.
    */
-  private static final int SERIALIZATION_CONCURRENCY_DELAY = 250;
   private static final int SHUTDOWN_GRACE_PERIOD = 60;
-  private static final int MEGABYTE = 1024 * 1024;
   private static final int MAX_EVICT = 5;
   private static final int SAMPLE_SIZE = 30;
 
@@ -208,10 +206,7 @@ public class DiskStorageFactory<K, V> {
 
   private final IndexWriteTask flushTask;
 
-  private final boolean diskPersistent;
-
   private final TimeSource timeSource;
-  private final DiskStorePathManager diskStorePathManager;
 
   private final Serializer<Element> serializer;
   private final Serializer<Object> indexSerializer;
@@ -224,31 +219,19 @@ public class DiskStorageFactory<K, V> {
    */
   public DiskStorageFactory(Comparable<Long> capacityConstraint, Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto,
                             Comparator<DiskSubstitute<K, V>> evictionPrioritizer, ClassLoader classLoader, TimeSource timeSource,
-                            SerializationProvider serializationProvider, DiskStorePathManager diskStorePathManager, String alias,
-                            boolean persistent, int stripes, long queueCapacity, int expiryThreadInterval) {
+                            SerializationProvider serializationProvider, File dataFile, File indexFile,
+                            int stripes, long queueCapacity, int expiryThreadInterval) throws FileNotFoundException {
     this.capacityConstraint = capacityConstraint;
     this.evictionVeto = evictionVeto;
     this.evictionPrioritizer = evictionPrioritizer;
     this.timeSource = timeSource;
     this.serializer = serializationProvider.createSerializer(Element.class, classLoader);
     this.indexSerializer = serializationProvider.createSerializer(Object.class, classLoader);
-    this.diskStorePathManager = diskStorePathManager;
-    this.file = diskStorePathManager.getFile(alias, ".data");
+    this.file = dataFile;
+    this.indexFile = indexFile;
 
-    this.indexFile = diskStorePathManager.getFile(alias, ".index");
-    this.diskPersistent = persistent;
-
-    LOG.info(" data file : {}", file.getAbsolutePath());
-    LOG.info("index file : {}", indexFile.getAbsolutePath());
-
-    if (diskPersistent && diskStorePathManager.isAutoCreated()) {
-      LOG.warn("Data in persistent disk stores is ignored for stores from automatically created directories.\n"
-          + "Remove diskPersistent or resolve the conflicting disk paths in cache configuration.\n"
-          + "Deleting data file " + file.getAbsolutePath());
-      deleteFile(file);
-    } else if (!diskPersistent) {
-      deleteFile(file);
-      deleteFile(indexFile);
+    if (!dataFile.exists() || !indexFile.exists()) {
+      throw new FileNotFoundException("Data file " + dataFile + " or index file " + indexFile + " missing.");
     }
 
     try {
@@ -273,17 +256,6 @@ public class DiskStorageFactory<K, V> {
     diskWriter.scheduleWithFixedDelay(new DiskExpiryTask(), (long) expiryThreadInterval, (long) expiryThreadInterval, TimeUnit.SECONDS);
 
     flushTask = new IndexWriteTask(indexFile);
-
-    if (!getDataFile().exists() || (getDataFile().length() == 0)) {
-      LOG.debug("Matching data file missing (or empty) for index file. Deleting index file " + indexFile);
-      deleteFile(indexFile);
-    } else if (getDataFile().exists() && indexFile.exists()) {
-      if (getDataFile().lastModified() > (indexFile.lastModified() + TimeUnit.SECONDS.toMillis(1))) {
-        LOG.warn("The index for data file {} is out of date, probably due to an unclean shutdown. "
-            + "Deleting index file {}", getDataFile(), indexFile);
-        deleteFile(indexFile);
-      }
-    }
   }
 
   private static RandomAccessFile[] allocateRandomAccessFiles(File f, int stripes) throws FileNotFoundException {
@@ -415,19 +387,6 @@ public class DiskStorageFactory<K, V> {
         raf.close();
       }
     }
-
-    if (!diskPersistent) {
-      deleteFile(file);
-      deleteFile(indexFile);
-    }
-  }
-
-  /**
-   * Deletes the data file for this factory.
-   */
-  protected void delete() {
-    deleteFile(file);
-    allocator.clear();
   }
 
   /**
@@ -520,15 +479,6 @@ public class DiskStorageFactory<K, V> {
    */
   public boolean bufferFull() {
     return (diskQueue.size() * elementSize) > queueCapacity;
-  }
-
-  /**
-   * Return a reference to the data file backing this factory.
-   *
-   * @return a reference to the data file backing this factory.
-   */
-  public File getDataFile() {
-    return file;
   }
 
   /**
@@ -917,17 +867,6 @@ public class DiskStorageFactory<K, V> {
     }
   }
 
-  /**
-   * Attempt to delete the corresponding file and log an error on failure.
-   *
-   * @param f the file to delete
-   */
-  protected static void deleteFile(File f) {
-    if (!f.delete()) {
-      LOG.debug("Failed to delete file {}", f.getName());
-    }
-  }
-
 
   /**
    * Create a disk substitute for an element
@@ -1005,7 +944,7 @@ public class DiskStorageFactory<K, V> {
   /**
    * Unbinds a store instance from this factory
    */
-  public void unbind(boolean destroy) {
+  public void unbind() {
     try {
       flush().get();
     } catch (Throwable t) {
@@ -1014,10 +953,6 @@ public class DiskStorageFactory<K, V> {
 
     try {
       shutdown();
-      if (destroy || diskStorePathManager.isAutoCreated()) {
-        deleteFile(indexFile);
-        delete();
-      }
     } catch (IOException e) {
       LOG.error("Could not shut down disk cache. Initial cause was " + e.getMessage(), e);
     }
@@ -1245,7 +1180,6 @@ public class DiskStorageFactory<K, V> {
       LOG.warn("Index file {} is corrupt, deleting and ignoring it : {}", indexFile, e);
       LOG.debug("Corrupt index file {} error :", indexFile, e);
       store.internalClear();
-      deleteFile(indexFile);
     } finally {
       shrinkDataFile();
     }
@@ -1269,12 +1203,4 @@ public class DiskStorageFactory<K, V> {
     return (DiskMarker) indexSerializer.read(valueBuffer);
   }
 
-  /**
-   * Return the index file for this store.
-   *
-   * @return the index file
-   */
-  public File getIndexFile() {
-    return indexFile;
-  }
 }

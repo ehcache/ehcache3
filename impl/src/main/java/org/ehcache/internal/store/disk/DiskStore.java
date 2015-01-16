@@ -36,6 +36,9 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -66,6 +69,7 @@ public class DiskStore<K, V> implements Store<K, V> {
   private static final int DEFAULT_SEGMENT_COUNT = 16;
   private static final int DEFAULT_QUEUE_CAPACITY = 16;
   private static final int DEFAULT_EXPIRY_THREAD_INTERVAL = 30000;
+  private static final DiskStorePathManager DISK_STORE_PATH_MANAGER = new DiskStorePathManager();
 
   private final Class<K> keyType;
   private final Class<V> valueType;
@@ -396,28 +400,58 @@ public class DiskStore<K, V> implements Store<K, V> {
 
   @Override
   public void destroy() throws CacheAccessException {
-    diskStorageFactory.unbind(true);
-    diskStorageFactory = null;
-    segments = null;
+    File dataFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".data");
+    File indexFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".index");
+
+    dataFile.delete();
+    indexFile.delete();
   }
 
   @Override
   public void create() throws CacheAccessException {
-    //todo: do something?
+    File dataFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".data");
+    try {
+      boolean success = dataFile.createNewFile();
+      if (!success) {
+        throw new CacheAccessException("Data file already exists: " + dataFile.getAbsolutePath());
+      }
+    } catch (IOException ioe) {
+      throw new CacheAccessException(ioe);
+    }
+
+    File indexFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".index");
+    try {
+      boolean success = indexFile.createNewFile();
+      if (!success) {
+        throw new CacheAccessException("Index file already exists: " + indexFile.getAbsolutePath());
+      }
+    } catch (IOException ioe) {
+      dataFile.delete();
+      throw new CacheAccessException(ioe);
+    }
+
+    System.out.println("created " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
   }
 
   @Override
   public void close() {
-    diskStorageFactory.unbind(false);
+    diskStorageFactory.unbind();
     diskStorageFactory = null;
     segments = null;
   }
 
   @Override
   public void init() {
-    diskStorageFactory = new DiskStorageFactory<K, V>(capacityConstraint, evictionVeto, evictionPrioritizer, classLoader,
-        timeSource, serializationProvider, new DiskStorePathManager(), alias, true,
-        DEFAULT_SEGMENT_COUNT, DEFAULT_QUEUE_CAPACITY, DEFAULT_EXPIRY_THREAD_INTERVAL);
+    File dataFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".data");
+    File indexFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".index");
+
+    try {
+      diskStorageFactory = new DiskStorageFactory<K, V>(capacityConstraint, evictionVeto, evictionPrioritizer, classLoader,
+          timeSource, serializationProvider, dataFile, indexFile,
+          DEFAULT_SEGMENT_COUNT, DEFAULT_QUEUE_CAPACITY, DEFAULT_EXPIRY_THREAD_INTERVAL);
+    } catch (FileNotFoundException fnfe) {
+      throw new IllegalStateException(fnfe);
+    }
 
     segments = new Segment[DEFAULT_SEGMENT_COUNT];
     for (int i = 0; i < segments.length; i++) {
@@ -431,7 +465,7 @@ public class DiskStore<K, V> implements Store<K, V> {
 
   @Override
   public void maintenance() {
-    //todo: do something?
+    //noop;
   }
 
   @Override
