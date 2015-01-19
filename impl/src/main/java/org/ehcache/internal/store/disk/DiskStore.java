@@ -692,7 +692,7 @@ public class DiskStore<K, V> implements Store<K, V> {
     };
 
     DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction, Segment.Compute.ALWAYS);
-    return computedElement == null ? null : computedElement.getValueHolder();
+    return enforceCapacityIfValueNotNull(computedElement);
   }
 
   @Override
