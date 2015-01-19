@@ -49,4 +49,29 @@
     <Method name="getThrowableException"/>
     <Bug pattern="REC_CATCH_EXCEPTION"/>
   </Match>
+
+  <Match>
+    <Class name="org.ehcache.internal.store.disk.ods.AATreeSet"/>
+  </Match>
+  <Match>
+    <Class name="org.ehcache.internal.store.disk.ods.AATreeSet$TerminalNode"/>
+  </Match>
+  <Match>
+    <Class name="org.ehcache.internal.store.disk.ods.AATreeSet$TreeNode"/>
+  </Match>
+  <Match>
+    <Class name="org.ehcache.internal.store.disk.ods.Region"/>
+  </Match>
+  <Match>
+    <Class name="org.ehcache.internal.store.disk.DiskStore"/>
+  </Match>
+  <Match>
+    <Class name="org.ehcache.internal.store.disk.DiskStorePathManager"/>
+  </Match>
+  <Match>
+    <Class name="org.ehcache.internal.store.disk.DiskStorePathManager$DiskStorePath"/>
+  </Match>
+  <Match>
+    <Class name="org.ehcache.internal.store.disk.Segment"/>
+  </Match>
 </FindBugsFilter>
