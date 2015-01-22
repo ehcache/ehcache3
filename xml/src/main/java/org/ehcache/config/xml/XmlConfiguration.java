@@ -271,12 +271,14 @@ public class XmlConfiguration implements Configuration {
     if (cacheTemplate == null) {
       return null;
     }
-
-    if(keyType != null && cacheTemplate.keyType() != null && !keyType.getName().equals(cacheTemplate.keyType())) {
+    final ClassLoader defaultClassLoader = ClassLoading.getDefaultClassLoader();
+    Class keyClass = getClassForName(cacheTemplate.keyType(), defaultClassLoader);
+    Class valueClass = getClassForName(cacheTemplate.valueType(), defaultClassLoader);
+    if(keyType != null && cacheTemplate.keyType() != null && !keyClass.isAssignableFrom(keyType)) {
       throw new IllegalArgumentException("CacheTemplate '" + name + "' declares key type of " + cacheTemplate.keyType());
     }
 
-    if(valueType != null && cacheTemplate.valueType() != null && !valueType.getName().equals(cacheTemplate.valueType())) {
+    if(valueType != null && cacheTemplate.valueType() != null && !valueClass.isAssignableFrom(valueType)) {
       throw new IllegalArgumentException("CacheTemplate '" + name + "' declares value type of " + cacheTemplate.valueType());
     }
 
@@ -286,7 +288,6 @@ public class XmlConfiguration implements Configuration {
           .maxEntriesInCache(cacheTemplate.capacityConstraint());
     }
     final ConfigurationParser.Expiry parsedExpiry = cacheTemplate.expiry();
-    final ClassLoader defaultClassLoader = ClassLoading.getDefaultClassLoader();
     builder = builder
         .usingEvictionPrioritizer(getInstanceOfName(cacheTemplate.evictionPrioritizer(), defaultClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class))
         .evitionVeto(getInstanceOfName(cacheTemplate.evictionVeto(), defaultClassLoader, EvictionVeto.class))

@@ -1,0 +1,15 @@
+<ehcache:config
+    xmlns:ehcache="http://www.ehcache.org/v3"
+    xmlns:jcache="http://www.ehcache.org/v3/jsr107">
+
+  <ehcache:service>
+    <jcache:defaults>
+      <jcache:cache name="defaultCache" template="defaultCacheTemplate"/>
+    </jcache:defaults>
+  </ehcache:service>
+
+  <ehcache:cache-template name="defaultCacheTemplate">
+    <ehcache:capacity>200</ehcache:capacity>
+  </ehcache:cache-template>
+
+</ehcache:config>

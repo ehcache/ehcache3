@@ -73,12 +73,9 @@ public class XmlConfigurationTest {
 
     assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("example"), notNullValue());
     assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Object.class, Object.class), notNullValue());
-    try {
-      assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Number.class, Object.class), notNullValue());
-      fail();
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), is("CacheTemplate 'example' declares key type of java.lang.Object"));
-    }
+
+    //Allow the key/value to be assignable for xml configuration in case of type definition in template class
+    assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Number.class, Object.class), notNullValue());
   }
 
   @SuppressWarnings("rawtypes")
