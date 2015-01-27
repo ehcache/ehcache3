@@ -23,6 +23,8 @@ import org.ehcache.event.CacheEventListenerFactory;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -48,6 +50,8 @@ import java.util.concurrent.Future;
  * @author vfunshte
  */
 public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotificationService<K, V> {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(CacheEventNotificationServiceImpl.class);
 
   public CacheEventNotificationServiceImpl(ExecutorService orderedDelivery, ExecutorService unorderedDelivery) {
     this.orderedDelivery = orderedDelivery;
@@ -103,6 +107,7 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
   @Override
   public void onEvent(final CacheEvent<K, V> event) {
     final EventType type = event.getType();
+    LOGGER.debug("Cache Event notified for event type {}", type);
     Map<EventListenerWrapper, Future<?>> notificationResults = 
         new HashMap<CacheEventNotificationServiceImpl.EventListenerWrapper, Future<?>>(registeredListeners.size());
     
@@ -130,6 +135,7 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
         try {
           f.get();
         } catch (ExecutionException e) {
+            LOGGER.error("Cache Event Listener failed for event type {} due to ", type, e);
           // XXX delegate to resilience strategy (#52), and/or just log
         } catch (InterruptedException e) {
           interrupted = true;
