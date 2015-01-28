@@ -48,7 +48,7 @@ public class DisabledCacheEventNotificationService<K, V> implements CacheEventNo
   }
 
   @Override
-  public void releaseAllListeners(CacheEventListenerFactory factory) {
+  public void releaseAllListeners() {
   }
 
 }

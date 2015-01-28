@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -113,19 +114,17 @@ public class EhcacheManager implements PersistentCacheManager {
           listener.cacheRemoved(alias, ehcache);
         }
       }
-      closeEhcache(alias, ehcache);
+      closeEhcache(alias, ehcache, cacheHolder.toBeReleased);
       LOGGER.info("Cache '{}' is removed from EhcacheManager.", alias);
     }
   }
 
-  void closeEhcache(final String alias, final Ehcache<?, ?> ehcache) {
+  void closeEhcache(final String alias, final Ehcache<?, ?> ehcache, final Deque<Releasable> releasables) {
     ehcache.close();
-    final CacheLoaderWriter<?, ?> cacheLoaderWriter = ehcache.getCacheLoaderWriter();
-    if (cacheLoaderWriter != null) {
-      serviceLocator.findService(CacheLoaderWriterFactory.class).releaseCacheLoaderWriter(cacheLoaderWriter);
+    ehcache.getRuntimeConfiguration().releaseAllEventListeners();
+    while(!releasables.isEmpty()) {
+      releasables.pop().release();
     }
-    
-    ehcache.getRuntimeConfiguration().releaseAllEventListeners(serviceLocator.findService(CacheEventListenerFactory.class));
     LOGGER.info("Cache '{}' is closed from EhcacheManager.", alias);
   }
 
@@ -157,7 +156,7 @@ public class EhcacheManager implements PersistentCacheManager {
 
     RuntimeException failure = null;
     try {
-      cache = createNewEhcache(alias, config, keyType, valueType);
+      cache = createNewEhcache(alias, config, keyType, valueType, value.toBeReleased);
       cache.init();
     } catch (RuntimeException e) {
       failure = e;
@@ -183,12 +182,22 @@ public class EhcacheManager implements PersistentCacheManager {
   }
 
   <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
-                                        final Class<K> keyType, final Class<V> valueType) {
+                                        final Class<K> keyType, final Class<V> valueType, Deque<Releasable> releasables) {
     final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
     final CacheLoaderWriterFactory cacheLoaderWriterFactory = serviceLocator.findService(CacheLoaderWriterFactory.class);
-    CacheLoaderWriter<? super K, V> loaderWriter = null;
+    final CacheLoaderWriter<? super K, V> loaderWriter;
     if(cacheLoaderWriterFactory != null) {
       loaderWriter = cacheLoaderWriterFactory.createCacheLoaderWriter(alias, config);
+      if (loaderWriter != null) {
+        releasables.add(new Releasable() {
+          @Override
+          public void release() {
+            cacheLoaderWriterFactory.releaseCacheLoaderWriter(loaderWriter);
+          }
+        });
+      }
+    } else {
+      loaderWriter = null;
     }
 
     SerializationProvider serializationProvider = config.getSerializationProvider();
@@ -199,7 +208,7 @@ public class EhcacheManager implements PersistentCacheManager {
     Collection<ServiceConfiguration<?>> adjustedServiceConfigs = new ArrayList<ServiceConfiguration<?>>(config.getServiceConfigurations());
 
     // XXX this may need to become an actual "service" with its own service configuration etc
-    CacheEventNotificationService<K, V> evtService;
+    final CacheEventNotificationService<K, V> evtService;
 
     final ScheduledExecutorService statisticsExecutor;
     final ThreadPoolsService threadPoolsService = serviceLocator.findService(ThreadPoolsService.class);
@@ -219,9 +228,17 @@ public class EhcacheManager implements PersistentCacheManager {
       ServiceLocator.findAmongst(CacheEventListenerConfiguration.class, config.getServiceConfigurations().toArray());
       for (CacheEventListenerConfiguration lsnrConfig: evtLsnrConfigs) {
         // XXX this assumes a new instance returned for each call - yet args are always the same. Is this okay?
-        CacheEventListener<K, V> lsnr = evntLsnrFactory.createEventListener(alias, config);
-        evtService.registerCacheEventListener(lsnr, lsnrConfig.orderingMode(), lsnrConfig.firingMode(), 
-            lsnrConfig.fireOn());  
+        final CacheEventListener<K, V> lsnr = evntLsnrFactory.createEventListener(alias, config);
+        evtService.registerCacheEventListener(lsnr, lsnrConfig.orderingMode(), lsnrConfig.firingMode(),
+            lsnrConfig.fireOn());
+        if (lsnr != null) {
+          releasables.add(new Releasable() {
+            @Override
+            public void release() {
+              evntLsnrFactory.releaseEventListener(lsnr);
+            }
+          });
+        }
       }
     }
 
@@ -233,7 +250,13 @@ public class EhcacheManager implements PersistentCacheManager {
         config.isPersistent(), serviceConfigs
     );
 
-    Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(adjustedConfig), serviceConfigs);
+    final Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(adjustedConfig), serviceConfigs);
+    releasables.add(new Releasable() {
+      @Override
+      public void release() {
+        storeProvider.releaseStore(store);
+      }
+    });
     return new Ehcache<K, V>(adjustedConfig, store, loaderWriter, evtService, statisticsExecutor, useLoaderInAtomics);
   }
 
@@ -398,6 +421,7 @@ public class EhcacheManager implements PersistentCacheManager {
   private static final class CacheHolder {
     private final Class<?> keyType;
     private final Class<?> valueType;
+    private final Deque<Releasable> toBeReleased = new LinkedList<Releasable>();
     private volatile Ehcache<?, ?> cache;
     private volatile boolean isValueSet = false;
 
@@ -443,5 +467,9 @@ public class EhcacheManager implements PersistentCacheManager {
       this.isValueSet = true;
       notifyAll();
     }
+  }
+
+  interface Releasable {
+    void release();
   }
 }
