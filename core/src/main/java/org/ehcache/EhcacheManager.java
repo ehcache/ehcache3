@@ -131,22 +131,13 @@ public class EhcacheManager implements PersistentCacheManager {
   @Override
   public <K, V> Cache<K, V> createCache(final String alias, CacheConfiguration<K, V> config) throws IllegalArgumentException {
     statusTransitioner.checkAvailable();
+
+    LOGGER.info("Cache '{}' is getting created in EhcacheManager.", alias);
+
+    config = adjustConfigurationWithCacheManagerDefaults(config);
     Class<K> keyType = config.getKeyType();
     Class<V> valueType = config.getValueType();
-    
-    LOGGER.info("Cache '{}' is getting created in EhcacheManager.", alias);
-    
-    ClassLoader cacheClassLoader = config.getClassLoader();
-    if (cacheClassLoader == null) {
-      cacheClassLoader = cacheManagerClassLoader;
 
-      // adjust the config to reflect new classloader
-      config = new BaseCacheConfiguration<K, V>(keyType, valueType, config.getCapacityConstraint(),
-          config.getEvictionVeto(), config.getEvictionPrioritizer(), cacheClassLoader, config.getExpiry(),
-          config.getSerializationProvider(), config.isPersistent(), config.getServiceConfigurations().toArray(
-              new ServiceConfiguration<?>[config.getServiceConfigurations().size()]));
-    }
-    
     final CacheHolder value = new CacheHolder(keyType, valueType, null);
     if (caches.putIfAbsent(alias, value) != null) {
       throw new IllegalArgumentException("Cache '" + alias +"' already exists");
@@ -181,9 +172,42 @@ public class EhcacheManager implements PersistentCacheManager {
     return cache;
   }
 
+  /**
+   *  adjusts the config to reflect new classloader & serialization provider
+   */
+  private <K, V> CacheConfiguration<K, V> adjustConfigurationWithCacheManagerDefaults(CacheConfiguration<K, V> config) {
+    SerializationProvider serializationProvider = config.getSerializationProvider();
+    if (serializationProvider == null) {
+      serializationProvider = serviceLocator.findService(SerializationProvider.class);
+    }
+    ClassLoader cacheClassLoader = config.getClassLoader();
+    if (cacheClassLoader == null) {
+      cacheClassLoader = cacheManagerClassLoader;
+    }
+    if (cacheClassLoader != config.getClassLoader() || serializationProvider != config.getSerializationProvider()) {
+      config = new BaseCacheConfiguration<K, V>(config.getKeyType(), config.getValueType(), config.getCapacityConstraint(),
+          config.getEvictionVeto(), config.getEvictionPrioritizer(), cacheClassLoader, config.getExpiry(),
+          serializationProvider, config.isPersistent(), config.getServiceConfigurations().toArray(
+          new ServiceConfiguration<?>[config.getServiceConfigurations().size()]));
+    }
+    return config;
+  }
+
   <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
                                         final Class<K> keyType, final Class<V> valueType, Deque<Releasable> releasables) {
+    Collection<ServiceConfiguration<?>> adjustedServiceConfigs = new ArrayList<ServiceConfiguration<?>>(config.getServiceConfigurations());
+    ServiceConfiguration[] serviceConfigs = adjustedServiceConfigs.toArray(new ServiceConfiguration[adjustedServiceConfigs.size()]);
+
+
     final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
+    final Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(config), serviceConfigs);
+    releasables.add(new Releasable() {
+      @Override
+      public void release() {
+        storeProvider.releaseStore(store);
+      }
+    });
+
     final CacheLoaderWriterFactory cacheLoaderWriterFactory = serviceLocator.findService(CacheLoaderWriterFactory.class);
     final CacheLoaderWriter<? super K, V> loaderWriter;
     if(cacheLoaderWriterFactory != null) {
@@ -199,13 +223,6 @@ public class EhcacheManager implements PersistentCacheManager {
     } else {
       loaderWriter = null;
     }
-
-    SerializationProvider serializationProvider = config.getSerializationProvider();
-    if (serializationProvider == null) {
-      serializationProvider = serviceLocator.findService(SerializationProvider.class);
-    }
-
-    Collection<ServiceConfiguration<?>> adjustedServiceConfigs = new ArrayList<ServiceConfiguration<?>>(config.getServiceConfigurations());
 
     // XXX this may need to become an actual "service" with its own service configuration etc
     final CacheEventNotificationService<K, V> evtService;
@@ -242,22 +259,7 @@ public class EhcacheManager implements PersistentCacheManager {
       }
     }
 
-    ServiceConfiguration[] serviceConfigs = adjustedServiceConfigs.toArray(new ServiceConfiguration[adjustedServiceConfigs.size()]);
-
-    CacheConfiguration<K, V> adjustedConfig = new BaseCacheConfiguration<K, V>(
-        keyType, valueType, config.getCapacityConstraint(),
-        config.getEvictionVeto(), config.getEvictionPrioritizer(), config.getClassLoader(), config.getExpiry(), serializationProvider,
-        config.isPersistent(), serviceConfigs
-    );
-
-    final Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(adjustedConfig), serviceConfigs);
-    releasables.add(new Releasable() {
-      @Override
-      public void release() {
-        storeProvider.releaseStore(store);
-      }
-    });
-    return new Ehcache<K, V>(adjustedConfig, store, loaderWriter, evtService, statisticsExecutor, useLoaderInAtomics);
+    return new Ehcache<K, V>(config, store, loaderWriter, evtService, statisticsExecutor, useLoaderInAtomics);
   }
 
   public void registerListener(CacheManagerListener listener) {
