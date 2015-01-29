@@ -35,6 +35,7 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -769,7 +770,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public void start(ServiceConfiguration<?> cfg) {
+    public void start(ServiceConfiguration<?> cfg, final ServiceProvider serviceProvider) {
       // nothing to do
     }
 

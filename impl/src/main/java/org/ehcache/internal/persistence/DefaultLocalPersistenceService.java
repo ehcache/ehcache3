@@ -18,6 +18,7 @@ package org.ehcache.internal.persistence;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -40,7 +41,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   }
 
   @Override
-  public synchronized void start(final ServiceConfiguration<?> config) {
+  public synchronized void start(final ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
     createLocationIfRequiredAndVerify(rootDirectory);
     try {
       lockFile = new File(rootDirectory + File.separator + ".lock");

@@ -17,6 +17,7 @@
 package org.ehcache.internal.classes;
 
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.HashMap;
@@ -63,7 +64,7 @@ public class ClassInstanceProvider<T> {
 
 
 
-  public void start(final ServiceConfiguration<?> config) {
+  public void start(final ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
     if(config != null && factoryConfig.isAssignableFrom(config.getClass())) {
       final ClassInstanceProviderFactoryConfig<T> instanceProviderFactoryConfig = factoryConfig.cast(config);
       preconfiguredLoaders.putAll(instanceProviderFactoryConfig.getDefaults());

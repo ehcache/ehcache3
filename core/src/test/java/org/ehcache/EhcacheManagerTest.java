@@ -23,6 +23,7 @@ import org.ehcache.events.CacheManagerListener;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.config.ConfigurationBuilder;
 import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
@@ -400,7 +401,7 @@ public class EhcacheManagerTest {
   static class NoSuchService implements Service {
 
     @Override
-    public void start(ServiceConfiguration<?> config) {
+    public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
