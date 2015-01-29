@@ -38,10 +38,12 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   private final SerializationProvider serializationProvider;
   private final ClassLoader classLoader;
   private final Expiry<? super K, ? super V> expiry;
+  private final boolean persistent;
 
   public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
           EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
-          ClassLoader classLoader, Expiry<? super K, ? super V> expiry, SerializationProvider serializationProvider, ServiceConfiguration<?>... serviceConfigurations) {
+          ClassLoader classLoader, Expiry<? super K, ? super V> expiry, SerializationProvider serializationProvider,
+          boolean persistent, ServiceConfiguration<?>... serviceConfigurations) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.capacityConstraint = capacityConstraint;
@@ -50,6 +52,7 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
     this.serializationProvider = serializationProvider;
     this.classLoader = classLoader;
     this.expiry = expiry;
+    this.persistent = persistent;
     this.serviceConfigurations = Collections.unmodifiableCollection(Arrays.asList(serviceConfigurations));
   }
 
@@ -95,5 +98,10 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   @Override
   public Expiry<? super K, ? super V> getExpiry() {
     return expiry;
+  }
+
+  @Override
+  public boolean isPersistent() {
+    return persistent;
   }
 }

@@ -22,6 +22,7 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.DefaultConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,11 +36,13 @@ public class CacheManagerBuilder<T extends CacheManager> {
 
   private final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
   private final Set<Service> services = new HashSet<Service>();
+  private final Set<ServiceConfiguration<?>> serviceCfgs = new HashSet<ServiceConfiguration<?>>();
   private ClassLoader classLoader = null;
 
   public T build() {
     ServiceLocator serviceLocator = new ServiceLocator(services.toArray(new Service[services.size()]));
-    Configuration configuration = new DefaultConfiguration(caches, classLoader);
+    Configuration configuration = new DefaultConfiguration(caches, classLoader,
+        serviceCfgs.toArray(new ServiceConfiguration[serviceCfgs.size()]));
     return newCacheManager(serviceLocator, configuration);
   }
 
@@ -74,6 +77,11 @@ public class CacheManagerBuilder<T extends CacheManager> {
     return this;
   }
   
+  public CacheManagerBuilder<T> using(ServiceConfiguration<?> service) {
+    serviceCfgs.add(service);
+    return this;
+  }
+
   public CacheManagerBuilder<T> withClassLoader(ClassLoader classLoader) {
     this.classLoader = classLoader;
     return this;

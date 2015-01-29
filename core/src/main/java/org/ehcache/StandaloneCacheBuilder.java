@@ -49,6 +49,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   private SerializationProvider serializationProvider;
   private ScheduledExecutorService statisticsExecutor;
   private CacheEventNotificationService<K, V> cacheEventNotificationService;
+  private boolean persistent;
 
   public StandaloneCacheBuilder(final Class<K> keyType, final Class<V> valueType) {
     this.keyType = keyType;
@@ -66,8 +67,8 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     final Store<K, V> store = storeProvider.createStore(storeConfig);
 
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto,
-        evictionPrioritizer, classLoader, expiry, serializationProvider);
-    
+        evictionPrioritizer, classLoader, expiry, serializationProvider, persistent);
+
     final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, cacheEventNotificationService, statisticsExecutor);
 
     return cast(ehcache);
@@ -120,6 +121,11 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     }
     
     this.expiry = expiry;
+    return this;
+  }
+
+  public final StandaloneCacheBuilder<K, V, T> persistent(boolean persistent) {
+    this.persistent = persistent;
     return this;
   }
   

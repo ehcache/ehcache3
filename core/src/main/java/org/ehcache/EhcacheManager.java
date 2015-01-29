@@ -144,7 +144,7 @@ public class EhcacheManager implements PersistentCacheManager {
       // adjust the config to reflect new classloader
       config = new BaseCacheConfiguration<K, V>(keyType, valueType, config.getCapacityConstraint(),
           config.getEvictionVeto(), config.getEvictionPrioritizer(), cacheClassLoader, config.getExpiry(),
-          config.getSerializationProvider(), config.getServiceConfigurations().toArray(
+          config.getSerializationProvider(), config.isPersistent(), config.getServiceConfigurations().toArray(
               new ServiceConfiguration<?>[config.getServiceConfigurations().size()]));
     }
     
@@ -230,7 +230,7 @@ public class EhcacheManager implements PersistentCacheManager {
     CacheConfiguration<K, V> adjustedConfig = new BaseCacheConfiguration<K, V>(
         keyType, valueType, config.getCapacityConstraint(),
         config.getEvictionVeto(), config.getEvictionPrioritizer(), config.getClassLoader(), config.getExpiry(), serializationProvider,
-        serviceConfigs
+        config.isPersistent(), serviceConfigs
     );
 
     Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(adjustedConfig), serviceConfigs);
@@ -275,7 +275,7 @@ public class EhcacheManager implements PersistentCacheManager {
       } catch (Exception e) {
         st.failed();
         LOGGER.error("Initialization of EhcacheManager failed while starting Services.");
-        throw new StateTransitionException(e);
+        throw e;
       }
       Deque<String> initiatedCaches = new ArrayDeque<String>();
       try {
@@ -296,7 +296,7 @@ public class EhcacheManager implements PersistentCacheManager {
         }
         throw e;
       }
-    } catch (RuntimeException e) {
+    } catch (Exception e) {
       st.failed();
       LOGGER.error("Initialization of EhcacheManager failed while initiating Caches.");
       throw new StateTransitionException(e);
