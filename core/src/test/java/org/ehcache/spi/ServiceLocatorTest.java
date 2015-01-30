@@ -145,7 +145,7 @@ interface FooProvider extends Service {
 class ParentTestService implements FooProvider {
 
   @Override
-  public void start(ServiceConfiguration<?> config) {
+  public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
@@ -157,7 +157,7 @@ class ParentTestService implements FooProvider {
 class ChildTestService extends ParentTestService {
 
   @Override
-  public void start(ServiceConfiguration<?> config) {
+  public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
     throw new UnsupportedOperationException("Implement me!");
   }
 }
@@ -177,7 +177,7 @@ class FancyCacheProvider implements CacheProvider {
   }
 
   @Override
-  public void start(ServiceConfiguration<?> config) {
+  public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
     ++startStopCounter;
   }
 
@@ -199,7 +199,7 @@ class DullCacheProvider implements CacheProvider {
   }
 
   @Override
-  public void start(ServiceConfiguration<?> config) {
+  public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
     throw new UnsupportedOperationException("Implement me!");
   }
 

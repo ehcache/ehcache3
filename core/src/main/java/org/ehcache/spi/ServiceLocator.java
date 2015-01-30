@@ -43,7 +43,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * @author Alex Snaps
  */
-public final class ServiceLocator {
+public final class ServiceLocator implements ServiceProvider {
 
   
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceLocator.class);
@@ -118,7 +118,7 @@ public final class ServiceLocator {
           if (services.putIfAbsent(serviceClazz, service) != null) {
             throw new IllegalStateException("Racing registration for duplicate service " + serviceClazz.getName());
           } else if (running.get()) {
-            service.start(null);
+            service.start(null, this);
           }
         }
       } else {
@@ -140,6 +140,12 @@ public final class ServiceLocator {
     return interfaces;
   }
 
+  @Override
+  public <T extends Service> T findServiceFor(ServiceConfiguration<T> config) {
+    return findService(config.getServiceType(), config);
+  }
+
+  @Override
   public <T extends Service> T findService(Class<T> serviceType) {
     return findService(serviceType, null);
   }
@@ -183,7 +189,7 @@ public final class ServiceLocator {
         throw new IllegalStateException("Already started!");
       }
       for (Service service : services.values()) {
-        service.start(serviceConfigs.get(service));
+        service.start(serviceConfigs.get(service), this);
         started.push(service);        
       }
       LOGGER.info("All Services successfully started.");

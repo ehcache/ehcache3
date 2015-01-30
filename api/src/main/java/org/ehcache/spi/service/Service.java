@@ -16,12 +16,14 @@
 
 package org.ehcache.spi.service;
 
+import org.ehcache.spi.ServiceProvider;
+
 /**
  * @author Alex Snaps
  */
 public interface Service {
 
-  void start(ServiceConfiguration<?> config);
+  void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider);
 
   void stop();
 }

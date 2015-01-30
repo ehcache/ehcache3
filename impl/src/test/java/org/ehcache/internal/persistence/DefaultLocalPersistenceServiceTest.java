@@ -41,7 +41,7 @@ public class DefaultLocalPersistenceServiceTest {
     when(f.canWrite()).thenReturn(false);
     final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new PersistenceConfiguration(f));
     try {
-      service.start(null);
+      service.start(null, null);
     } catch(IllegalArgumentException e) {
       assertThat(e.getMessage(), equalTo("Location isn't writable: " + PATH));
     }
@@ -56,7 +56,7 @@ public class DefaultLocalPersistenceServiceTest {
     when(f.canWrite()).thenReturn(false);
     final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new PersistenceConfiguration(f));
     try {
-      service.start(null);
+      service.start(null, null);
     } catch(IllegalArgumentException e) {
       assertThat(e.getMessage(), equalTo("Location is not a directory: " + PATH));
     }
@@ -70,7 +70,7 @@ public class DefaultLocalPersistenceServiceTest {
     when(f.mkdirs()).thenReturn(false);
     final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new PersistenceConfiguration(f));
     try {
-      service.start(null);
+      service.start(null, null);
     } catch(IllegalArgumentException e) {
       assertThat(e.getMessage(), equalTo("Directory couldn't be created: " + PATH));
     }
@@ -90,7 +90,7 @@ public class DefaultLocalPersistenceServiceTest {
     f.deleteOnExit();
 
     final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new PersistenceConfiguration(f));
-    service.start(null);
+    service.start(null, null);
     assertThat(service.getLockFile().exists(), is(true));
     service.stop();
     assertThat(service.getLockFile().exists(), is(false));

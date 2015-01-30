@@ -18,6 +18,7 @@ package org.ehcache.jsr107;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.DefaultCacheLoaderWriterFactory;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -30,7 +31,7 @@ class Eh107CacheLoaderWriterFactory extends DefaultCacheLoaderWriterFactory {
   private final ConcurrentMap<String, CacheLoaderWriter<?, ?>> cacheLoaderWriters = new ConcurrentHashMap<String, CacheLoaderWriter<?, ?>>();
 
   @Override
-  public void start(ServiceConfiguration<?> config) {
+  public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
     //
   }
 

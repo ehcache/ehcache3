@@ -17,6 +17,7 @@
 package org.ehcache.internal;
 
 import org.ehcache.internal.cachingtier.ClockEvictingHeapCachingTier;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -39,7 +40,7 @@ public class HeapCachingTierResource implements CachingTier.Provider {
   }
 
   @Override
-  public void start(ServiceConfiguration<?> config) {
+  public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
     //no-op
   }
 

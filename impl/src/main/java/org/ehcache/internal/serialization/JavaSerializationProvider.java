@@ -15,6 +15,7 @@
  */
 package org.ehcache.internal.serialization;
 
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -31,7 +32,7 @@ public class JavaSerializationProvider implements SerializationProvider {
   }
 
   @Override
-  public void start(ServiceConfiguration<?> config) {
+  public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
     //no-op
   }
 

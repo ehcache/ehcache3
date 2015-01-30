@@ -16,6 +16,7 @@
 
 package org.ehcache.jsr107;
 
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -24,7 +25,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
  */
 public interface Jsr107Service extends Service {
   @Override
-  void start(ServiceConfiguration<?> serviceConfiguration);
+  void start(ServiceConfiguration<?> serviceConfiguration, final ServiceProvider serviceProvider);
 
   @Override
   void stop();

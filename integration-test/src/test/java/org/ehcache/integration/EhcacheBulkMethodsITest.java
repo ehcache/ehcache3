@@ -26,6 +26,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.store.OnHeapStore;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
@@ -525,7 +526,7 @@ public class EhcacheBulkMethodsITest {
     }
 
     @Override
-    public void start(ServiceConfiguration<?> config) {
+    public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
 
     }
 

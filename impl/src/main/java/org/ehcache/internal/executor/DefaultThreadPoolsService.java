@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.executor;
 
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ThreadPoolsService;
 import org.ehcache.util.ThreadPoolUtil;
@@ -57,7 +58,7 @@ public class DefaultThreadPoolsService implements ThreadPoolsService {
   }
 
   @Override
-  public void start(ServiceConfiguration<?> config) {
+  public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
     this.statisticsExecutor = ThreadPoolUtil.createStatisticsExecutor();
     this.eventsOrderedDeliveryExecutor = ThreadPoolUtil.createEventsOrderedDeliveryExecutor();
     this.eventsUnorderedDeliveryExecutor = ThreadPoolUtil.createEventsUnorderedDeliveryExecutor();
