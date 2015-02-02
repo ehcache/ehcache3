@@ -35,6 +35,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   private final File rootDirectory;
   private FileLock lock;
   private File lockFile;
+  private RandomAccessFile rw;
 
   public DefaultLocalPersistenceService(final PersistenceConfiguration persistenceConfiguration) {
     rootDirectory = persistenceConfiguration.getRootDirectory();
@@ -45,7 +46,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     createLocationIfRequiredAndVerify(rootDirectory);
     try {
       lockFile = new File(rootDirectory + File.separator + ".lock");
-      final RandomAccessFile rw = new RandomAccessFile(lockFile, "rw");
+      rw = new RandomAccessFile(lockFile, "rw");
       lock = rw.getChannel().lock();
     } catch (IOException e) {
       throw new RuntimeException("Couldn't lock rootDir: " + rootDirectory.getAbsolutePath(), e);
@@ -56,6 +57,10 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   public synchronized void stop() {
     try {
       lock.release();
+      // Closing RandomAccessFile so that files gets deleted on windows and
+      // org.ehcache.internal.persistence.DefaultLocalPersistenceServiceTest.testLocksDirectoryAndUnlocks()
+      // passes on windows
+      rw.close();
       if (!lockFile.delete()) {
         // todo log something?;
       }
