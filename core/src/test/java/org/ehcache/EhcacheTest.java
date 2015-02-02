@@ -30,6 +30,7 @@ import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -63,7 +64,7 @@ public class EhcacheTest {
   @Test
   public void testTransistionsState() {
     Store store = mock(Store.class);
-    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
+    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest"));
     assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
     ehcache.init();
     assertThat(ehcache.getStatus(), is(Status.AVAILABLE));
@@ -80,7 +81,7 @@ public class EhcacheTest {
     Store store = mock(Store.class);
     Store.Iterator mockIterator = mock(Store.Iterator.class);
     when(store.iterator()).thenReturn(mockIterator);
-    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
+    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest1"));
 
     try {
       ehcache.get("foo");
@@ -199,7 +200,7 @@ public class EhcacheTest {
   @Test
   public void testDelegatesLifecycleCallsToStore() {
     final Store store = mock(Store.class);
-    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
+    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest2"));
     ehcache.init();
     verify(store).init();
     ehcache.close();
@@ -211,7 +212,7 @@ public class EhcacheTest {
   @Test
   public void testFailingTransitionGoesToLowestStatus() {
     final Store store = mock(Store.class);
-    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
+    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest3"));
     doThrow(new RuntimeException()).when(store).init();
     try {
       ehcache.init();
@@ -289,7 +290,7 @@ public class EhcacheTest {
       }
     });
     Ehcache<Object, Object> ehcache = new Ehcache<Object, Object>(
-        newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
+        newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest4"));
     ehcache.init();
     assertThat(ehcache.putIfAbsent("foo", value), nullValue());
     assertThat(ehcache.putIfAbsent("foo", "foo"), CoreMatchers.<Object>is(value));
@@ -300,7 +301,7 @@ public class EhcacheTest {
   @Test
   public void testFiresListener() {
     Store store = mock(Store.class);
-    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store);
+    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest5"));
 
     final StateChangeListener listener = mock(StateChangeListener.class);
     ehcache.registerListener(listener);
@@ -316,7 +317,7 @@ public class EhcacheTest {
   public void testIgnoresKeysReturnedFromCacheLoaderLoadAll() {
     LoadAllVerifyStore store = new LoadAllVerifyStore();
     KeyFumblingCacheLoaderWriter loader = new KeyFumblingCacheLoaderWriter();
-    Ehcache<String, String> ehcache = new Ehcache<String, String>(newCacheConfigurationBuilder().buildConfig(String.class, String.class), store, loader);
+    Ehcache<String, String> ehcache = new Ehcache<String, String>(newCacheConfigurationBuilder().buildConfig(String.class, String.class), store, loader, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest6"));
     ehcache.init();
 
     HashSet<String> keys = new HashSet<String>();

@@ -32,6 +32,7 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.util.ClassLoading;
+import org.slf4j.Logger;
 
 /**
  * @author Alex Snaps
@@ -40,6 +41,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
 
   private final Class<K> keyType;
   private final Class<V> valueType;
+  private final Logger logger;
   private Expiry<? super K, ? super V> expiry = Expirations.noExpiration();
   private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
   private Comparable<Long> capacityConstraint;
@@ -51,9 +53,10 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   private CacheEventNotificationService<K, V> cacheEventNotificationService;
   private boolean persistent;
 
-  public StandaloneCacheBuilder(final Class<K> keyType, final Class<V> valueType) {
+  public StandaloneCacheBuilder(final Class<K> keyType, final Class<V> valueType, final Logger logger) {
     this.keyType = keyType;
     this.valueType = valueType;
+    this.logger = logger;
   }
 
   T build(ServiceLocator serviceLocator) {
@@ -69,7 +72,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto,
         evictionPrioritizer, classLoader, expiry, serializationProvider, persistent);
 
-    final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, cacheEventNotificationService, statisticsExecutor);
+    final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, cacheEventNotificationService, statisticsExecutor,logger);
 
     return cast(ehcache);
   }
@@ -144,8 +147,8 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     return this;
   }
 
-  public static <K, V, T extends StandaloneCache<K, V>> StandaloneCacheBuilder<K, V, T> newCacheBuilder(Class<K> keyType, Class<V> valueType) {
-    return new StandaloneCacheBuilder<K, V, T>(keyType, valueType);
+  public static <K, V, T extends StandaloneCache<K, V>> StandaloneCacheBuilder<K, V, T> newCacheBuilder(Class<K> keyType, Class<V> valueType, Logger logger) {
+    return new StandaloneCacheBuilder<K, V, T>(keyType, valueType, logger);
   }
 
 }

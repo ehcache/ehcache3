@@ -24,6 +24,7 @@ import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.statistics.CacheStatistics;
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -37,7 +38,7 @@ public class StandaloneCacheBuilderTest {
     final StandaloneCacheConfiguration<String, Object, TestStandaloneCache<String, Object>> cfg = new StandaloneCacheConfiguration<String, Object, TestStandaloneCache<String, Object>>() {
       @Override
       public StandaloneCacheBuilder<String, Object, TestStandaloneCache<String, Object>> builder(final StandaloneCacheBuilder<String, Object, ? extends StandaloneCache<String, Object>> builder) {
-        return new StandaloneCacheBuilder<String, Object, TestStandaloneCache<String, Object>>(String.class, Object.class) {
+        return new StandaloneCacheBuilder<String, Object, TestStandaloneCache<String, Object>>(String.class, Object.class,LoggerFactory.getLogger(Ehcache.class + "-" + "StandaloneCacheBuilderTest")) {
           @Override
           TestStandaloneCache<String, Object> build(final ServiceLocator serviceProvider) {
             return new TestStandaloneCache<String, Object>();

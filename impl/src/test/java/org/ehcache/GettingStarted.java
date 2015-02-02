@@ -18,6 +18,7 @@ package org.ehcache;
 
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
 import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.StandaloneCacheBuilder.newCacheBuilder;
@@ -54,7 +55,7 @@ public class GettingStarted {
 
     cacheManager.removeCache("preConfigured"); // <8>
 
-    final StandaloneCache<Long, String> standaloneCache = newCacheBuilder(Long.class, String.class)
+    final StandaloneCache<Long, String> standaloneCache = newCacheBuilder(Long.class, String.class, LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted"))
         .build(); // <9>
     standaloneCache.init(); // <10>
 

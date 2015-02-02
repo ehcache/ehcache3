@@ -18,6 +18,7 @@ package org.ehcache;
 
 import org.ehcache.events.StateChangeListener;
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -32,7 +33,7 @@ public class StatusTransitionerTest {
 
   @Test
   public void testTransitionsToLowestStateOnFailure() {
-    StatusTransitioner transitioner = new StatusTransitioner();
+    StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
     assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
     transitioner.init().failed();
     assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
@@ -44,7 +45,7 @@ public class StatusTransitionerTest {
 
   @Test
   public void testFiresListeners() {
-    StatusTransitioner transitioner = new StatusTransitioner();
+    StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
     final StateChangeListener listener = mock(StateChangeListener.class);
     transitioner.registerListener(listener);
     transitioner.init().succeeded();
@@ -57,7 +58,7 @@ public class StatusTransitionerTest {
 
   @Test
   public void testFinishesTransitionOnListenerThrowing() {
-    StatusTransitioner transitioner = new StatusTransitioner();
+    StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
     final StateChangeListener listener = mock(StateChangeListener.class);
     final RuntimeException runtimeException = new RuntimeException();
     doThrow(runtimeException).when(listener).stateTransition(Status.UNINITIALIZED, Status.AVAILABLE);
@@ -73,7 +74,7 @@ public class StatusTransitionerTest {
 
   @Test
   public void testMaintenanceOnlyLetsTheOwningThreadInteract() throws InterruptedException {
-    final StatusTransitioner transitioner = new StatusTransitioner();
+    final StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
     transitioner.maintenance().succeeded();
     transitioner.checkMaintenance();
     Thread thread = new Thread() {
@@ -94,7 +95,7 @@ public class StatusTransitionerTest {
 
   @Test
   public void testMaintenanceOnlyOwningThreadCanClose() throws InterruptedException {
-    final StatusTransitioner transitioner = new StatusTransitioner();
+    final StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
     transitioner.maintenance().succeeded();
     Thread thread = new Thread() {
       @Override
@@ -115,7 +116,7 @@ public class StatusTransitionerTest {
 
   @Test
   public void testCheckAvailableAccountsForThreadLease() throws InterruptedException {
-    final StatusTransitioner transitioner = new StatusTransitioner();
+    final StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
     transitioner.maintenance().succeeded();
     transitioner.checkAvailable();
     Thread thread = new Thread() {

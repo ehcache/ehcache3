@@ -22,7 +22,6 @@ import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.CacheEventListenerFactory;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
@@ -60,6 +59,7 @@ import org.ehcache.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.ehcache.statistics.CacheStatistics;
 import org.ehcache.statistics.DisabledStatistics;
 import org.ehcache.statistics.StatisticsGateway;
+import org.slf4j.Logger;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
 
@@ -88,7 +88,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.ehcache.Functions.memoize;
 import static org.ehcache.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.exceptions.ExceptionFactory.newCacheWritingException;
+
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+
 import static org.terracotta.statistics.StatisticsBuilder.operation;
 
 /**
@@ -96,7 +98,7 @@ import static org.terracotta.statistics.StatisticsBuilder.operation;
  */
 public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, PersistentStandaloneCache<K, V> {
 
-  private final StatusTransitioner statusTransitioner = new StatusTransitioner();
+  private final StatusTransitioner statusTransitioner;
 
   private final Store<K, V> store;
   private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
@@ -106,7 +108,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   private final StoreEventListener<K, V> storeListener;
   private final Jsr107CacheImpl jsr107Cache;
   private final boolean useLoaderInAtomics;
-
+  private final Logger logger;
+  
   private final OperationObserver<GetOutcome> getObserver = operation(GetOutcome.class).named("get").of(this).tag("cache").build();
   private final OperationObserver<PutOutcome> putObserver = operation(PutOutcome.class).named("put").of(this).tag("cache").build();
   private final OperationObserver<RemoveOutcome> removeObserver = operation(RemoveOutcome.class).named("remove").of(this).tag("cache").build();
@@ -125,28 +128,28 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
   };
 
-  public Ehcache(CacheConfiguration<K, V> config, final Store<K, V> store) {
-    this(config, store, null);
+  public Ehcache(CacheConfiguration<K, V> config, final Store<K, V> store, Logger logger) {
+    this(config, store, null,logger);
   }
 
-  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoaderWriter<? super K, V> cacheLoaderWriter) {
-    this(config, store, cacheLoaderWriter, null);
+  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoaderWriter<? super K, V> cacheLoaderWriter, Logger logger) {
+    this(config, store, cacheLoaderWriter, null,logger);
   }
 
-  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoaderWriter<? super K, V> cacheLoaderWriter, ScheduledExecutorService statisticsExecutor) {
-    this(config, store, cacheLoaderWriter, null, statisticsExecutor);
+  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoaderWriter<? super K, V> cacheLoaderWriter, ScheduledExecutorService statisticsExecutor, Logger logger) {
+    this(config, store, cacheLoaderWriter, null, statisticsExecutor,logger);
   }
 
   public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, 
       final CacheLoaderWriter<? super K, V> cacheLoaderWriter, 
       CacheEventNotificationService<K, V> eventNotifier,
-      ScheduledExecutorService statisticsExecutor) {
-    this(config, store, cacheLoaderWriter, eventNotifier, statisticsExecutor, true);
+      ScheduledExecutorService statisticsExecutor, Logger logger) {
+    this(config, store, cacheLoaderWriter, eventNotifier, statisticsExecutor, true, logger);
   }
 
   Ehcache(CacheConfiguration<K, V> config, Store<K, V> store,
           CacheLoaderWriter<? super K, V> cacheLoaderWriter,
-          CacheEventNotificationService<K, V> eventNotifier, ScheduledExecutorService statisticsExecutor, boolean useLoaderInAtomics) {
+          CacheEventNotificationService<K, V> eventNotifier, ScheduledExecutorService statisticsExecutor, boolean useLoaderInAtomics, Logger logger) {
     this.store = store;
     StatisticsManager.associate(store).withParent(this);
     this.cacheLoaderWriter = cacheLoaderWriter;
@@ -171,6 +174,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     this.jsr107Cache = new Jsr107CacheImpl();
 
     this.useLoaderInAtomics = useLoaderInAtomics;
+    this.logger=logger;
+    this.statusTransitioner = new StatusTransitioner(logger);
   }
 
   @SuppressWarnings("unchecked")
@@ -1064,21 +1069,25 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
   }
 
   void create() {
+    logger.info("Creating Cache storage.");
     statusTransitioner.checkMaintenance();
     try {
       store.create();
     } catch (CacheAccessException e) {
-      throw new RuntimeException("Couldn't create Cache", e);
+      throw new RuntimeException("Couldn't create Cache storage ", e);
     }
+    logger.info("Cache storage successfully created.");
   }
 
   void destroy() {
+    logger.info("Destroying Cache storage.");
     statusTransitioner.checkMaintenance();
     try {
       store.destroy();
     } catch (CacheAccessException e) {
-      throw new RuntimeException("Couldn't destroy Cache", e);
+      throw new RuntimeException("Couldn't destroy Cache storage ", e);
     }
+    logger.info("Cache storage successfully destroyed.");
   }
 
   @Override

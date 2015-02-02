@@ -19,10 +19,12 @@ package org.ehcache;
 import org.ehcache.exceptions.CacheAccessException;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import static org.hamcrest.Matchers.is;
@@ -178,7 +180,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
   private Ehcache<String, String> getEhcache()
       throws Exception {
     final Ehcache<String, String> ehcache =
-        new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, this.cacheLoaderWriter);
+        new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, this.cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicContainsKeyTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
