@@ -15,8 +15,24 @@
  */
 package org.ehcache.statistics;
 
+/**
+ * Enumeration listing the bulk operations available on a {@link org.ehcache.Cache}.
+ */
 public enum BulkOps {
-  
-  GET_ALL, PUT_ALL, REMOVE_ALL;
+
+  /**
+   * The "get all" bulk operation
+   */
+  GET_ALL,
+
+  /**
+   * The "put all" bulk operation
+   */
+  PUT_ALL,
+
+  /**
+   * The "remove all" bulk operation
+   */
+  REMOVE_ALL;
 
 }

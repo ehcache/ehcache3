@@ -21,14 +21,31 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import java.util.EnumSet;
 
 /**
+ * Configuration contract for setting up {@link org.ehcache.event.CacheEvent} system in a cache.
+ *
  * @author Alex Snaps
  */
 public interface CacheEventListenerConfiguration extends ServiceConfiguration<CacheEventListenerFactory> {
 
+  /**
+   * Indicates which {@link EventFiring firing mode} to use
+   *
+   * @return the firing mode to use
+   */
   EventFiring firingMode();
 
+  /**
+   * Indicates which {@link EventOrdering ordering mode} to use
+   *
+   * @return the ordering mode to use
+   */
   EventOrdering orderingMode();
 
+  /**
+   * Indicates on which {@link EventType} an event has to be fired
+   *
+   * @return the set of {@code EventType} to fire on
+   */
   EnumSet<EventType> fireOn();
 
 }

@@ -18,7 +18,9 @@ package org.ehcache.function;
 
 /**
  * A predicate function.
- * 
+ *
+ * @param <V> the predicate value type
+ *
  * @author Chris Dennis
  */
 public interface Predicate<V> {

@@ -17,6 +17,7 @@
 package org.ehcache.exceptions;
 
 /**
+ * Generic exception used when an internal operation fails on a {@link org.ehcache.Cache}.
  *
  * @author cdennis
  */
@@ -24,14 +25,30 @@ public class CacheAccessException extends Exception {
 
   private static final long serialVersionUID = 5249505200891654776L;
 
+  /**
+   * Creates a new exception wrapping the {@link Throwable cause} passed in.
+   *
+   * @param cause the cause of this exception
+   */
   public CacheAccessException(Throwable cause) {
     super(cause);
   }
 
+  /**
+   * Creates a new exception wrapping the {@link Throwable cause} passed in and with the provided message.
+   *
+   * @param message information about the exception
+   * @param cause the cause of this exception
+   */
   public CacheAccessException(String message, Throwable cause) {
     super(message, cause);
   }
 
+  /**
+   * Creates a new exception with the provided message.
+   *
+   * @param message information about the exception
+   */
   public CacheAccessException(String message) {
     super(message);
   }

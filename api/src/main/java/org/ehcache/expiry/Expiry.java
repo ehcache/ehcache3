@@ -20,6 +20,9 @@ package org.ehcache.expiry;
  * A policy object that governs expiration for a {@link org.ehcache.Cache}
  * <p>
  * See {@link Expirations} for common instances
+ *
+ * @param <K> the type of the keys used to access data within the cache
+ * @param <V> the type of the values held within the cache
  */
 public interface Expiry<K, V> {
 

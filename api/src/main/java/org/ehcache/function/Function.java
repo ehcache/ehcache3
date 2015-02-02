@@ -17,6 +17,20 @@
 package org.ehcache.function;
 
 /**
-* @author Alex Snaps
-*/
-public interface Function<A,T> { T apply(A a); }
+ * Generic function interface for transforming an argument into a value.
+ *
+ * @param <A> the function parameter type
+ * @param <T> the function result type
+ *
+ * @author Alex Snaps
+ */
+public interface Function<A,T> {
+
+  /**
+   * Applies the function to the provided value
+   *
+   * @param a the value to apply the function to
+   * @return the function result
+   */
+  T apply(A a);
+}

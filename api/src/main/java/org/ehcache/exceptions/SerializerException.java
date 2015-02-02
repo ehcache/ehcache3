@@ -18,24 +18,44 @@ package org.ehcache.exceptions;
 
 /**
  * Exception thrown by a {@link org.ehcache.Cache} when a store cannot serialize or deserialize a value.
+ *
  * @author Ludovic Orban
  */
 public class SerializerException extends RuntimeException {
 
   private static final long serialVersionUID = -4008956327217206643L;
 
+  /**
+   * No args constructor for this exception.
+   */
   public SerializerException() {
     super();
   }
 
+  /**
+   * Creates an exception with the provided message.
+   *
+   * @param message information about the exception
+   */
   public SerializerException(final String message) {
     super(message);
   }
 
+  /**
+   * Creates an exception with the provided message and cause.
+   *
+   * @param message information about the exception
+   * @param cause the cause of this exception
+   */
   public SerializerException(final String message, final Throwable cause) {
     super(message, cause);
   }
 
+  /**
+   * Creates an exception with the provided cause.
+   *
+   * @param cause the cause of this exception
+   */
   public SerializerException(final Throwable cause) {
     super(cause);
   }

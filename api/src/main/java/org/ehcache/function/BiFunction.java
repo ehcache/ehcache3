@@ -17,6 +17,22 @@
 package org.ehcache.function;
 
 /**
-* @author Alex Snaps
-*/
-public interface BiFunction<A,B,T> { T apply(A a, B b); }
+ * Generic function interface for operating on two parameters and returning a result.
+ *
+ * @param <A> the type of the first parameter
+ * @param <B> the type of the second parameter
+ * @param <T> the return type of the function
+ *
+ * @author Alex Snaps
+ */
+public interface BiFunction<A,B,T> {
+
+  /**
+   * Applies the function to the provided parameters.
+   *
+   * @param a the first parameter
+   * @param b the second parameter
+   * @return the function result
+   */
+  T apply(A a, B b);
+}

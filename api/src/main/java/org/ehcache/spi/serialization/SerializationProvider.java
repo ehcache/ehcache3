@@ -19,10 +19,20 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
+ * Interface that allows to provide a {@link Serializer} for a given type.
  *
  * @author cdennis
  */
 public interface SerializationProvider extends Service {
- 
+
+  /**
+   * Creates a {@link Serializer} with the given parameters.
+   *
+   * @param clazz the class of the type to serialize to/from
+   * @param classLoader the classloader to use
+   * @param config specific configuration
+   * @param <T> the type serialized to serialize to/from
+   * @return a {@code Serializer} instance
+   */
   <T> Serializer<T> createSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... config);
 }
