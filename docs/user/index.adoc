@@ -1,5 +1,4 @@
-ifdef::basebackend-html[:outfilesuffix: .html]
-:source-highlighter: prettify
+include::common.adoc[]
 
 = The new Ehcache 3.x line
 
