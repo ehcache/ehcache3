@@ -1,0 +1,11 @@
+ifdef::basebackend-html[:outfilesuffix: .html]
+:source-highlighter: prettify
+
+= Examples
+
+== XML with 107 extension
+
+[source,xml,indent=0]
+----
+include::../../107/src/test/resources/ehcache-example.xml[]
+----
