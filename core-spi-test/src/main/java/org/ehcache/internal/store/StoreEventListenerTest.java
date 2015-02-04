@@ -93,8 +93,8 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(k, v);
     timeSource.advanceTime(1);
     Store.ValueHolder<V> lastValue = kvStore.putIfAbsent(k, v);
-    assertThat(listener.expired, hasItem(k));
     assertThat(lastValue, is(nullValue()));
+    assertThat(listener.expired, hasItem(k));
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -155,8 +155,8 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
         return v2;
       }
     });
-    assertThat(listener.expired, hasItem(k));
     assertThat(kvStore.get(k).value(), is(v2));
+    assertThat(listener.expired, hasItem(k));
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -176,8 +176,8 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
         return v2;
       }
     });
-    assertThat(listener.expired, hasItem(k));
     assertThat(kvStore.get(k).value(), is(v2));
+    assertThat(listener.expired, hasItem(k));
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -198,8 +198,8 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
         throw new AssertionError();
       }
     });
-    assertThat(listener.evicted, hasItem(k));
     assertThat(kvStore.get(k), is(nullValue()));
+    assertThat(listener.evicted, hasItem(k));
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -211,9 +211,9 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
     kvStore.put(k2, v2);
-    assertThat(listener.evicted, anyOf(hasItem(k), hasItem(k2)));
     Map<K, V> map = convertToMap(kvStore.iterator());
     assertThat(map.size(), is(lessThan(2)));
+    assertThat(listener.evicted, anyOf(hasItem(k), hasItem(k2)));
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -227,9 +227,9 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(k, v);
     Store.ValueHolder<V> lastValue = kvStore.putIfAbsent(k2, v2);
     assertThat(lastValue, is(nullValue()));
-    assertThat(listener.evicted, anyOf(hasItem(k), hasItem(k2)));
     Map<K, V> map = convertToMap(kvStore.iterator());
     assertThat(map.size(), is(lessThan(2)));
+    assertThat(listener.evicted, anyOf(hasItem(k), hasItem(k2)));
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -241,10 +241,10 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
     kvStore.put(k2, v2);
-    assertThat(listener.evicted, anyOf(hasItem(k), hasItem(k2)));
-    kvStore.replace(getOnlyKey(kvStore.iterator()), v3);
     Map<K, V> map = convertToMap(kvStore.iterator());
     assertThat(map.size(), is(lessThan(2)));
+    assertThat(listener.evicted, anyOf(hasItem(k), hasItem(k2)));
+    kvStore.replace(getOnlyKey(kvStore.iterator()), v3);
     assertThat(kvStore.get(getOnlyKey(kvStore.iterator())).value(), is(v3));
   }
 
@@ -262,9 +262,9 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
         return v2;
       }
     });
-    assertThat(listener.evicted, anyOf(hasItem(k), hasItem(k2)));
     Map<K, V> map = convertToMap(kvStore.iterator());
     assertThat(map.size(), is(lessThan(2)));
+    assertThat(listener.evicted, anyOf(hasItem(k), hasItem(k2)));
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -281,9 +281,9 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
         return v2;
       }
     });
-    assertThat(listener.evicted, anyOf(hasItem(k), hasItem(k2)));
     Map<K, V> map = convertToMap(kvStore.iterator());
     assertThat(map.size(), is(lessThan(2)));
+    assertThat(listener.evicted, anyOf(hasItem(k), hasItem(k2)));
   }
 
   private K getOnlyKey(Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iter)

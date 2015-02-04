@@ -21,12 +21,16 @@ import org.ehcache.Cache;
 public interface StoreEventListener<K, V> {
 
   /**
-   * Called when the entry gets evicted from the store
+   * Called when an entry gets evicted during a {@code org.ehcache.spi.cache.Store} operation..
+   *
+   * @param entry the entry that is evicted
    */
   public void onEviction(Cache.Entry<K, V> entry);
 
   /**
-   * Called when the entry gets expired from the store
+   * Called when an entry gets expired during a {@code org.ehcache.spi.cache.Store} operation..
+   *
+   * @param entry the entry that is expired
    */
   public void onExpiration(Cache.Entry<K, V> entry);
 }
