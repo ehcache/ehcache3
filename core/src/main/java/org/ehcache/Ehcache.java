@@ -1498,8 +1498,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
 
     @Override
-    public void releaseAllEventListeners(CacheEventListenerFactory factory) {
-      eventNotificationService.releaseAllListeners(factory);
+    public void releaseAllEventListeners() {
+      eventNotificationService.releaseAllListeners();
     }
     
     private <T> Collection<T> copy(Collection<T> collection) {

@@ -38,5 +38,5 @@ public interface CacheEventNotificationService<K, V> {
 
   void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener);
 
-  void releaseAllListeners(CacheEventListenerFactory factory);
+  void releaseAllListeners();
 }

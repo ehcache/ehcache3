@@ -101,8 +101,8 @@ public class EhcacheEventTest {
     verify(eventNotifier).deregisterCacheEventListener(listener);
     verify(eventNotifier).hasListeners();
     
-    cache.getRuntimeConfiguration().releaseAllEventListeners(mock(CacheEventListenerFactory.class));
-    verify(eventNotifier).releaseAllListeners(any(CacheEventListenerFactory.class));
+    cache.getRuntimeConfiguration().releaseAllEventListeners();
+    verify(eventNotifier).releaseAllListeners();
   }
   
   @Test

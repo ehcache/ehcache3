@@ -35,6 +35,7 @@ import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
 
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -314,8 +315,8 @@ public class EhcacheManagerTest {
 
       @Override
       <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
-                                            final Class<K> keyType, final Class<V> valueType) {
-        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
+                                            final Class<K> keyType, final Class<V> valueType, final Deque<Releasable> releasables) {
+        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType, releasables);
         caches.add(ehcache);
         if(caches.size() == 1) {
           when(storeProvider.createStore(Matchers.<Store.Configuration<K,V>>anyObject(),
@@ -326,8 +327,8 @@ public class EhcacheManagerTest {
       }
 
       @Override
-      void closeEhcache(final String alias, final Ehcache ehcache) {
-        super.closeEhcache(alias, ehcache);
+      void closeEhcache(final String alias, final Ehcache<?, ?> ehcache, final Deque<Releasable> releasables) {
+        super.closeEhcache(alias, ehcache, releasables);
         caches.remove(ehcache);
       }
     };
@@ -359,15 +360,15 @@ public class EhcacheManagerTest {
 
       @Override
       <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
-                                            final Class<K> keyType, final Class<V> valueType) {
-        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
+                                            final Class<K> keyType, final Class<V> valueType, Deque<Releasable> releasables) {
+        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType, releasables);
         caches.add(alias);
         return ehcache;
       }
 
       @Override
-      void closeEhcache(final String alias, final Ehcache ehcache) {
-        super.closeEhcache(alias, ehcache);
+      void closeEhcache(final String alias, final Ehcache<?, ?> ehcache, final Deque<Releasable> releasables) {
+        super.closeEhcache(alias, ehcache, releasables);
         if(alias.equals("foobar")) {
           throw thrown;
         }

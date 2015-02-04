@@ -93,13 +93,8 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
 
   // TODO this should be really the shutdown method for the service
   @Override
-  public void releaseAllListeners(CacheEventListenerFactory factory) {
+  public void releaseAllListeners() {
     for (EventListenerWrapper wrapper: registeredListeners) {
-      
-      // XXX: should this null check be required (or is it an error state)? 
-      if (factory != null) {
-        factory.releaseEventListener(wrapper.listener);
-      }
       registeredListeners.remove(wrapper);
     }
   }

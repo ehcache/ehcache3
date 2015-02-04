@@ -205,10 +205,7 @@ public class CacheEventNotificationServiceImplTest {
     verify(listener).onEvent(create);
     verify(otherLsnr).onEvent(remove);
     
-    CacheEventListenerFactory lsnrFactory = mock(CacheEventListenerFactory.class);
-    eventService.releaseAllListeners(lsnrFactory);
-    verify(lsnrFactory).releaseEventListener(listener);
-    verify(lsnrFactory).releaseEventListener(otherLsnr);
+    eventService.releaseAllListeners();
 
     eventService.onEvent(create);
     eventService.onEvent(remove);
