@@ -2,6 +2,8 @@ include::common.adoc[]
 
 = The new Ehcache 3.x line
 
+include::menu.adoc[]
+
 == Getting started with the new API
 
 NOTE: If you are looking to use the JSR-107, aka `javax.cache` API, you may want to start reading

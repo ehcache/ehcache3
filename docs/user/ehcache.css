@@ -29,10 +29,6 @@ html {
     -webkit-text-size-adjust: 100%
 }
 
-body {
-    margin: 0
-}
-
 a {
     background: transparent
 }
@@ -195,7 +191,7 @@ html, body {
 body {
     background: #fff;
     color: #333;
-    padding: 0;
+    padding: 0 0 0 225px;
     margin: 0;
     font-family: "Noto Serif", "DejaVu Serif", serif;
     font-weight: 400;
@@ -271,6 +267,28 @@ textarea {
 select {
     width: 100%
 }
+
+#preamble {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  height: 100%;
+  background-color: #5d6e7e;
+  padding: 15px 10px;
+  border-left: 5px solid #f78b0e;
+  color: #eee;
+  z-index: 0;
+  width:225px;
+}
+
+#preamble a, #preamble a:active, #preamble a:visited {
+  color: #eee;
+}
+
+#preamble a:hover {
+  color: #f78b0e;
+}
+
 
 p.lead, .paragraph.lead > p, #preamble > .sectionbody > .paragraph:first-of-type p {
     font-size: 1.21875em;
@@ -633,6 +651,8 @@ p a > code:hover {
     position: relative;
     padding-left: .9375em;
     padding-right: .9375em
+    background-color: #fff;
+    z-index:10;
 }
 
 #header:before, #header:after, #content:before, #content:after, #footnotes:before, #footnotes:after, #footer:before, #footer:after {

@@ -2,10 +2,14 @@ include::common.adoc[]
 
 = XML Configuration
 
+include::menu.adoc[]
+
+== Intro
+
 Let's you configure a `CacheManager` at creation time, using a XML file, according to
 link:xsds{outfilesuffix}#_core[this schema definition], namely:
 
-== `<config>` root element
+=== `<config>` root element
 
 The root element of our XML configuration. One `<config>` element, and as such one XML file, corresponds to
 a `CacheManager`. From Ehcache's perspective though, nothing prohibits from creating multiple `CacheManager` instances

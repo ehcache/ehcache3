@@ -2,6 +2,8 @@ include::common.adoc[]
 
 = The Ehcache 3.x JSR-107 Provider
 
+include::menu.adoc[]
+
 == Getting started with Ehcache3 & JSR-107
 
 There isn't anything special for you to do to use Ehcache3 as the caching provider for your application: add the

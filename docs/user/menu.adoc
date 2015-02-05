@@ -1,0 +1,8 @@
+ link:/[Home]::
+ User documentation::
+ - link:./index{outfilesuffix}[Getting started]
+ - link:./xml{outfilesuffix}[XML Configuration]
+ - link:./107{outfilesuffix}[javax.cache aka jsr-107]
+ Resources::
+ - link:./examples{outfilesuffix}[Java examples]
+ - link:./xsds{outfilesuffix}[Configuration XSD]

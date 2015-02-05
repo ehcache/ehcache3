@@ -2,6 +2,8 @@ include::common.adoc[]
 
 = Examples
 
+include::menu.adoc[]
+
 == XML with 107 extension
 
 [source,xml,indent=0]

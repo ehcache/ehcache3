@@ -2,6 +2,8 @@ include::common.adoc[]
 
 = Ehcache XSDs
 
+include::menu.adoc[]
+
 == Core
 
 [source,xsd,indent=0]
