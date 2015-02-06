@@ -288,7 +288,6 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
 
   private K getOnlyKey(Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iter)
       throws CacheAccessException {
-    Map<K, V> map = new HashMap<K, V>();
     while (iter.hasNext()) {
       Cache.Entry<K, Store.ValueHolder<V>> entry = iter.next();
       return entry.getKey();
