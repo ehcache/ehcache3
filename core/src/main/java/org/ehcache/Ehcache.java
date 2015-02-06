@@ -556,7 +556,9 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       store.bulkCompute(entries.keySet(), computeFunction);
       addBulkMethodEntriesCount(BulkOps.PUT_ALL, actualPutCount.get());
       if (! failures.isEmpty()) {
-        throw new BulkCacheWritingException(failures, successes);
+        BulkCacheWritingException cacheWritingException = new BulkCacheWritingException(failures, successes);
+        tryRemoveFailedKeys(entries, failures, cacheWritingException);
+        throw cacheWritingException;
       }
     } catch (CacheAccessException e) {
       if (cacheLoaderWriter == null) {
@@ -572,6 +574,23 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
           resilienceStrategy.putAllFailure(entries, e, new BulkCacheWritingException(failures, successes));
         }
       }
+    }
+  }
+
+  private void tryRemoveFailedKeys(Map<? extends K, ? extends V> entries, Map<K, Exception> failures, BulkCacheWritingException cacheWritingException) {
+    try {
+      store.bulkCompute(failures.keySet(), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+        @Override
+        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+          HashMap<K, V> result = new HashMap<K, V>();
+          for (Map.Entry<? extends K, ? extends V> entry : entries) {
+            result.put(entry.getKey(), null);
+          }
+          return result.entrySet();
+        }
+      });
+    } catch (CacheAccessException e) {
+      resilienceStrategy.putAllFailure(entries, e, cacheWritingException);
     }
   }
 
