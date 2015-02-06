@@ -33,6 +33,7 @@ public class GettingStarted {
 
   /**
    * If you change this somehow, you probably want to fix the /README.adoc as well!
+   * The callouts are also used in docs/user/index.adoc
    */
 
   @Test

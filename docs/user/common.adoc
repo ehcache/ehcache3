@@ -1,0 +1,4 @@
+ifdef::basebackend-html[:outfilesuffix: .html]
+:source-highlighter: prettify
+:stylesheet: ehcache.css
+:linkcss:
