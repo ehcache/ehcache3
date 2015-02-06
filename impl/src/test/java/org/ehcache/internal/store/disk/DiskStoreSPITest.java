@@ -21,7 +21,9 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
+import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
@@ -52,7 +54,12 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store<String, String> newStore(final Store.Configuration<String, String> config) {
-        DiskStore<String, String> diskStore = new DiskStore<String, String>(config, "diskStore", SystemTimeSource.INSTANCE);
+        return newStore(config, SystemTimeSource.INSTANCE);
+      }
+
+      @Override
+      public Store<String, String> newStore(final Store.Configuration<String, String> config, final TimeSource timeSource) {
+        DiskStore<String, String> diskStore = new DiskStore<String, String>(config, "diskStore", timeSource);
         try {
           diskStore.destroy();
           diskStore.create();
@@ -77,8 +84,16 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
       public Store.Configuration<String, String> newConfiguration(
           final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
+        return newConfiguration(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer, Expirations.noExpiration());
+      }
+
+      @Override
+      public Store.Configuration<String, String> newConfiguration(
+          final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint, 
+          final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer, 
+          final Expiry<? super String, ? super String> expiry) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), new JavaSerializationProvider());
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, new JavaSerializationProvider());
       }
 
       @Override

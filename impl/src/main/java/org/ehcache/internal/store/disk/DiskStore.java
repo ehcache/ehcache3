@@ -32,6 +32,7 @@ import org.ehcache.function.Predicates;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -993,7 +994,7 @@ public class DiskStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public void start(ServiceConfiguration<?> cfg) {
+    public void start(final ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
       // nothing to do
     }
 
