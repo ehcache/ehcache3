@@ -206,6 +206,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     checkValue(value);
 
     final AtomicReference<OnHeapValueHolder<V>> returnValue = new AtomicReference<OnHeapValueHolder<V>>(null);
+    final AtomicBoolean entryActuallyAdded = new AtomicBoolean();
     final long now = timeSource.getTimeMillis();
     
     OnHeapValueHolder<V> inCache = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
@@ -215,6 +216,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
           if (mappedValue != null) {
             eventListener.onExpiration(wrap(mappedKey, mappedValue));
           }
+          entryActuallyAdded.set(true);
           return newCreateValueHolder(key, value, now);
         }
 
@@ -223,6 +225,10 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         return mappedValue;
       }
     });
+
+    if (entryActuallyAdded.get()) {
+      enforceCapacity(1);
+    }
     
     if (returnInCacheHolder) {
       return inCache;
