@@ -218,7 +218,6 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
-  @Ignore(reason = "bug filed, need to be fixed before enabling")
   public void testPutIfAbsentOnEviction() throws Exception {
     Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         1L, null, null));
