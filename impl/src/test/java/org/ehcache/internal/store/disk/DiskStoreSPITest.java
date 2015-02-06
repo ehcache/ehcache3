@@ -137,4 +137,9 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
   public void testProviderReleaseStore() throws Exception {
     throw new AssumptionViolatedException("disabled - SPITest bug or SPI is unclear");
   }
+
+  @Override
+  public void testStoreEventListener() {
+    throw new AssumptionViolatedException("disabled - EventListeners not implemented yet see #273");
+  }
 }
