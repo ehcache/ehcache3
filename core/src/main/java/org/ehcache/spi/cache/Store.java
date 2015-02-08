@@ -211,7 +211,7 @@ public interface Store<K, V> {
 
   /**
    * Closes the store instance, releasing all transient resources locally held by it.
-   * The instance can't be used any further upon the method returning.
+   * The instance should not be used any further upon the method returning.
    * Data held remotely or on some persistent storage remains untouched and can be accessed by creating a new Store
    */
   void close();
