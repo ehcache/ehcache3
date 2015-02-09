@@ -54,7 +54,7 @@ public interface CacheManager {
   <K, V> Cache<K, V> getCache(String alias, Class<K> keyType, Class<V> valueType);
 
   /**
-   * Removes the {@link Cache} associated with the alias provided.
+   * Removes the {@link Cache} associated with the alias provided, if oe is known.
    * <P/>
    * When the cache is removed, it will release all resources it used.
    *

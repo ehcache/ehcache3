@@ -26,7 +26,7 @@ public class SerializerException extends RuntimeException {
   private static final long serialVersionUID = -4008956327217206643L;
 
   /**
-   * No args constructor for this exception.
+   * Creates an exception.
    */
   public SerializerException() {
     super();
