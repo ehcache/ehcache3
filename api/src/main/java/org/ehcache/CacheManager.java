@@ -33,6 +33,9 @@ public interface CacheManager {
    * @param <K> the type of the keys used to access data within this cache
    * @param <V> the type of the values held within this cache
    * @return the created and initialized {@link Cache}
+   *
+   * @throws java.lang.IllegalArgumentException If there is already a cache registered with the given alias.
+   * @throws java.lang.IllegalStateException If the cache creation fails
    */
   <K, V> Cache<K, V> createCache(String alias, CacheConfiguration<K, V> config);
 

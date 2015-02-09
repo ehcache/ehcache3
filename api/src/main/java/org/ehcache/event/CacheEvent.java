@@ -19,7 +19,7 @@ package org.ehcache.event;
 import org.ehcache.Cache;
 
 /**
- * Class representing an event resulting from a mutative {@link Cache} operation.
+ * An event resulting from a mutative {@link Cache} operation.
  *
  * @param <K> the type of the keys used to access data within the cache
  * @param <V> the type of the values held within the cache

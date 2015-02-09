@@ -19,7 +19,7 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * Interface that allows to provide a {@link Serializer} for a given type.
+ * Contract to provide a {@link Serializer} for a given type.
  *
  * @author cdennis
  */
