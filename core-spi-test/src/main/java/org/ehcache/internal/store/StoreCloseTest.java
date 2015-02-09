@@ -20,6 +20,9 @@ import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
+import org.hamcrest.Matchers;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Test the {@link org.ehcache.spi.cache.Store#close()} contract of the
@@ -41,11 +44,18 @@ public class StoreCloseTest<K, V> extends SPIStoreTester<K, V> {
     final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
         .all(), null));
 
-    kvStore.close();
-
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
 
     kvStore.put(key, value);
+
+    kvStore.close();
+
+    try {
+      assertThat(kvStore.containsKey(key), Matchers.is(false));
+    } catch (Exception e) {
+      System.err.println("An exception is thrown, This might happen since the store is closed.");
+      e.printStackTrace();
+    }
   }
 }

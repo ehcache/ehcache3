@@ -56,6 +56,11 @@ public class StoreDestroyTest<K, V> extends SPIStoreTester<K, V> {
       e.printStackTrace();
     }
 
-    assertThat(kvStore.containsKey(key), is(false));
+    try {
+      assertThat(kvStore.containsKey(key), is(false));
+    } catch (Exception e) {
+      System.err.println("An exception is thrown, This might happen since the store is destroyed.");
+      e.printStackTrace();
+    }
   }
 }

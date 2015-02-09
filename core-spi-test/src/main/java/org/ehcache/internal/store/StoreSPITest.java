@@ -24,19 +24,19 @@ import org.junit.Test;
 public abstract class StoreSPITest<K, V> {
 
   protected abstract StoreFactory<K, V> getStoreFactory();
-  
+
   @Test
   public void testCompute() throws Exception {
     StoreComputeTest<K, V> testSuite = new StoreComputeTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
-  
+
   @Test
   public void testComputeIfAbsent() throws Exception {
     StoreComputeIfAbsentTest<K, V> testSuite = new StoreComputeIfAbsentTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
-  
+
   @Test
   public void testComputeIfPresent() throws Exception {
     StoreComputeIfPresentTest<K, V> testSuite = new StoreComputeIfPresentTest<K, V>(getStoreFactory());
@@ -147,13 +147,6 @@ public abstract class StoreSPITest<K, V> {
   public void testProviderCreateStore() throws Exception {
     StoreProviderCreateStoreTest<K, V> testSuite =
       new StoreProviderCreateStoreTest<K, V>(getStoreFactory());
-    testSuite.runTestSuite().reportAndThrow();
-  }
-
-  @Test
-  public void testProviderReleaseStore() throws Exception {
-    StoreProviderReleaseStoreTest<K, V> testSuite =
-      new StoreProviderReleaseStoreTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 

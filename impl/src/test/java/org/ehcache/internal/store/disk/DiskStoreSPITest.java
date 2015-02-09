@@ -30,6 +30,7 @@ import org.ehcache.internal.store.StoreSPITest;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
+import org.junit.Test;
 import org.junit.internal.AssumptionViolatedException;
 
 /**
@@ -124,18 +125,8 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
   }
 
   @Override
-  public void testClose() throws Exception {
-    throw new AssumptionViolatedException("disabled - SPITest bug or SPI is unclear");
-  }
-
-  @Override
   public void testDestroy() throws Exception {
-    throw new AssumptionViolatedException("disabled - SPITest bug or SPI is unclear");
-  }
-
-  @Override
-  public void testProviderReleaseStore() throws Exception {
-    throw new AssumptionViolatedException("disabled - SPITest bug or SPI is unclear");
+    throw new AssumptionViolatedException("disabled - SPITest bug");
   }
 
   @Override
