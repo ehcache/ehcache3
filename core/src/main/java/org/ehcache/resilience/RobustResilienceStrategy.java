@@ -16,6 +16,7 @@
 
 package org.ehcache.resilience;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.ehcache.exceptions.BulkCacheLoadingException;
@@ -167,7 +168,11 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   @Override
   public Map<K, V> getAllFailure(Iterable<? extends K> keys, CacheAccessException e) {
     cleanup(keys, e);
-    return emptyMap();
+    HashMap<K, V> result = new HashMap<K, V>();
+    for (K key : keys) {
+      result.put(key, null);
+    }
+    return result;
   }
 
   @Override

@@ -260,7 +260,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *    <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
-  @Ignore("Empty map returned from ResilienceStrategy after CacheAccessException  Issue #229")
   @Test
   public void testGetAllStoreNoMatchCacheAccessExceptionBeforeNoLoader() throws Exception {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_B));
@@ -271,12 +270,12 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     final Map<String, String> actual = ehcache.getAll(KEY_SET_A);
-    assertThat(actual, equalTo(getNullEntryMap(KEY_SET_A)));    // TODO: Confirm correctness
+    assertThat(actual, equalTo(getNullEntryMap(KEY_SET_A)));
 
     verify(this.store).bulkComputeIfAbsent(eq(KEY_SET_A), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
     verify(this.spiedResilienceStrategy)
-        .getAllFailure(eq(KEY_SET_A), Collections.<String, String>emptyMap(), any(CacheAccessException.class));
+        .getAllFailure(eq(KEY_SET_A), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -1018,7 +1017,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *    <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
-  @Ignore("Empty map returned from ResilienceStrategy after CacheAccessException  Issue #229")
   @Test
   public void testGetAllStoreSomeMatchCacheAccessExceptionBeforeNoLoader() throws Exception {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
@@ -1031,7 +1029,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
 
-    assertThat(actual, equalTo(getNullEntryMap(fetchKeys)));   // TODO: Confirm correctness
+    assertThat(actual, equalTo(getNullEntryMap(fetchKeys)));
 
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
@@ -1837,7 +1835,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *    <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
-  @Ignore("Empty map returned from ResilienceStrategy after CacheAccessException  Issue #229")
   @Test
   public void testGetAllStoreAllMatchCacheAccessExceptionBeforeNoLoader() throws Exception {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
