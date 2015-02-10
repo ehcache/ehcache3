@@ -19,6 +19,7 @@ package org.ehcache.internal.store.disk;
 import org.ehcache.Cache;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.events.CacheEvents;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
@@ -32,6 +33,7 @@ import org.ehcache.function.Predicates;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
+import org.ehcache.internal.store.tiering.AuthoritativeTier;
 import org.ehcache.internal.store.disk.DiskStorageFactory.Element;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
@@ -51,6 +53,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -65,7 +68,7 @@ import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
  *
  * @author Ludovic Orban
  */
-public class DiskStore<K, V> implements Store<K, V> {
+public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
   private static final int ATTEMPT_RATIO = 4;
   private static final int EVICTION_RATIO = 2;
@@ -90,6 +93,7 @@ public class DiskStore<K, V> implements Store<K, V> {
   private volatile DiskStorageFactory<K, V> diskStorageFactory;
   private volatile Segment<K, V>[] segments;
   private volatile int segmentShift;
+  protected volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener();
 
 
   public DiskStore(final Configuration<K, V> config, String alias, TimeSource timeSource, Serializer<Element> elementSerializer, Serializer<Object> indexSerializer) {
@@ -215,7 +219,11 @@ public class DiskStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> get(final K key) throws CacheAccessException {
+  public ValueHolder<V> get(K key) throws CacheAccessException {
+    return get(key, false);
+  }
+
+  ValueHolder<V> get(final K key, boolean markFaulted) throws CacheAccessException {
     checkKey(key);
     int hash = hash(key.hashCode());
 
@@ -232,7 +240,7 @@ public class DiskStore<K, V> implements Store<K, V> {
 
         return mappedValue;
       }
-    }, Segment.Compute.IF_PRESENT);
+    }, Segment.Compute.IF_PRESENT, markFaulted);
 
     return existingElement == null ? null : existingElement.getValueHolder();
   }
@@ -267,7 +275,7 @@ public class DiskStore<K, V> implements Store<K, V> {
           return newUpdateValueHolder(key, mappedValue, value, now);
         }
       }
-    }, Segment.Compute.ALWAYS);
+    }, Segment.Compute.ALWAYS, false);
 
     if (entryActuallyAdded.get()) {
       enforceCapacity(1);
@@ -294,7 +302,7 @@ public class DiskStore<K, V> implements Store<K, V> {
         setAccessTimeAndExpiry(key, mappedValue, now);
         return mappedValue;
       }
-    }, Segment.Compute.ALWAYS);
+    }, Segment.Compute.ALWAYS, false);
 
     return returnValue.get();
   }
@@ -329,7 +337,7 @@ public class DiskStore<K, V> implements Store<K, V> {
           return mappedValue;
         }
       }
-    }, Segment.Compute.IF_PRESENT);
+    }, Segment.Compute.IF_PRESENT, false);
 
     return removed.get();
   }
@@ -355,7 +363,7 @@ public class DiskStore<K, V> implements Store<K, V> {
           return newUpdateValueHolder(key, mappedValue, value, now);
         }
       }
-    }, Segment.Compute.IF_PRESENT);
+    }, Segment.Compute.IF_PRESENT, false);
 
     return returnValue.get();
   }
@@ -385,7 +393,7 @@ public class DiskStore<K, V> implements Store<K, V> {
           return mappedValue;
         }
       }
-    }, Segment.Compute.IF_PRESENT);
+    }, Segment.Compute.IF_PRESENT, false);
 
     return returnValue.get();
   }
@@ -460,7 +468,7 @@ public class DiskStore<K, V> implements Store<K, V> {
 
     segments = new Segment[DEFAULT_SEGMENT_COUNT];
     for (int i = 0; i < segments.length; i++) {
-      segments[i] = new Segment<K, V>(diskStorageFactory, timeSource);
+      segments[i] = new Segment<K, V>(diskStorageFactory, timeSource, this);
     }
 
     segmentShift = Integer.numberOfLeadingZeros(segments.length - 1);
@@ -475,17 +483,28 @@ public class DiskStore<K, V> implements Store<K, V> {
 
   @Override
   public void enableStoreEventNotifications(StoreEventListener<K, V> listener) {
-    //todo: events are missing
+    eventListener = listener;
   }
 
   @Override
   public void disableStoreEventNotifications() {
-    //todo: events are missing
+    eventListener = CacheEvents.nullStoreEventListener();
   }
 
   @Override
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() throws CacheAccessException {
     return new DiskStoreIterator();
+  }
+
+  @Override
+  public ValueHolder<V> fault(K key) throws CacheAccessException {
+    return get(key, true);
+  }
+
+  @Override
+  public boolean flush(Cache.Entry<K, V> entry) {
+    int hash = hash(entry.getKey().hashCode());
+    return segmentFor(hash).flush(entry.getKey(), hash, entry);
   }
 
   class DiskStoreIterator implements Iterator<Cache.Entry<K, ValueHolder<V>>> {
@@ -696,7 +715,7 @@ public class DiskStore<K, V> implements Store<K, V> {
       }
     };
 
-    DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction, Segment.Compute.ALWAYS);
+    DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction, Segment.Compute.ALWAYS, false);
     return enforceCapacityIfValueNotNull(computedElement);
   }
 
@@ -723,7 +742,7 @@ public class DiskStore<K, V> implements Store<K, V> {
         }
       }
     };
-    DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction, Segment.Compute.IF_ABSENT);
+    DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction, Segment.Compute.IF_ABSENT, false);
     return enforceCapacityIfValueNotNull(computedElement);
   }
 
@@ -763,7 +782,7 @@ public class DiskStore<K, V> implements Store<K, V> {
       }
     };
 
-    DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction, Segment.Compute.IF_PRESENT);
+    DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction, Segment.Compute.IF_PRESENT, false);
     return computedElement == null ? null : computedElement.getValueHolder();
   }
 
@@ -836,6 +855,9 @@ public class DiskStore<K, V> implements Store<K, V> {
     return result;
   }
 
+  public void flushToDisk() throws ExecutionException, InterruptedException {
+    diskStorageFactory.flush().get();
+  }
 
   boolean fault(K key, DiskStorageFactory.Placeholder<K, V> expect, DiskStorageFactory.DiskMarker<K, V> fault) {
     int hash = hash(key.hashCode());

@@ -80,6 +80,19 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
+      public Store<String, String> newStore(Store.Configuration<String, String> config, TimeSource timeSource) {
+        DiskStore<String, String> diskStore = new DiskStore<String, String>(config, "diskStore", timeSource);
+        try {
+          diskStore.destroy();
+          diskStore.create();
+        } catch (CacheAccessException e) {
+          throw new RuntimeException(e);
+        }
+        diskStore.init();
+        return diskStore;
+      }
+
+      @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
         return new DiskStorageFactory.DiskValueHolderImpl<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), -1);
       }
@@ -105,6 +118,12 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
           final Expiry<? super String, ? super String> expiry) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
             evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry);
+      }
+
+      @Override
+      public Store.Configuration<String, String> newConfiguration(Class<String> keyType, Class<String> valueType, Comparable<Long> capacityConstraint, EvictionVeto<? super String, ? super String> evictionVeto, EvictionPrioritizer<? super String, ? super String> evictionPrioritizer, Expiry<? super String, ? super String> expiry) {
+        return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, new JavaSerializationProvider());
       }
 
       @Override

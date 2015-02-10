@@ -35,6 +35,7 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
+import org.ehcache.internal.store.tiering.CachingTier;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
@@ -53,6 +54,7 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -63,7 +65,7 @@ import static org.terracotta.statistics.StatisticsBuilder.operation;
 /**
  * @author Alex Snaps
  */
-public class OnHeapStore<K, V> implements Store<K, V> {
+public class OnHeapStore<K, V> implements CachingTier<K, V> {
 
   private static final int ATTEMPT_RATIO = 4;
   private static final int EVICTION_RATIO = 2;
@@ -422,7 +424,149 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     };
   }
 
-  
+  @Override
+  public ValueHolder<V> cacheCompute(final K key, final NullaryFunction<ValueHolder<V>> source) throws CacheAccessException {
+    ConcurrentMap<K, OnHeapValueHolder<V>> backEnd = map.map;
+    final long now = timeSource.getTimeMillis();
+
+    OnHeapValueHolder<V> cachedValue = backEnd.get(key);
+    if (cachedValue == null) {
+      Fault<V> f = new Fault<V>(source);
+      cachedValue = backEnd.putIfAbsent(key, f);
+      if (cachedValue == null) {
+        try {
+          ValueHolder<V> value = f.get();
+          OnHeapValueHolder<V> newValue = value == null ? null : newCreateValueHolder(key, value.value(), now);
+
+          if (value == null) {
+            backEnd.remove(key, f);
+          } else if (backEnd.replace(key, f, newValue)) {
+            //putObserver.end(PutOutcome.ADDED);
+          } else {
+            ValueHolder<V> p =  getValue(backEnd.remove(key));
+            return p == null ? value : p;
+          }
+          return value;
+        } catch (Throwable e) {
+          backEnd.remove(key, f);
+          if (e instanceof RuntimeException) {
+            throw (RuntimeException)e;
+          } else {
+            throw new RuntimeException(e);
+          }
+        }
+      }
+    }
+
+    return getValue(cachedValue);
+  }
+
+  private ValueHolder<V> getValue(final Object cachedValue) {
+    if (cachedValue instanceof Fault) {
+      return ((Fault<V>)cachedValue).get();
+    } else {
+      return (ValueHolder<V>)cachedValue;
+    }
+  }
+
+  /**
+   * Document me
+   *
+   * @param <V>
+   */
+  private static class Fault<V> implements OnHeapValueHolder<V> {
+
+    private final NullaryFunction<ValueHolder<V>> source;
+    private ValueHolder<V> value;
+    private Throwable throwable;
+    private boolean complete;
+
+    public Fault(final NullaryFunction<ValueHolder<V>> source) {
+      this.source = source;
+    }
+
+    private void complete(ValueHolder<V> value) {
+      synchronized (this) {
+        this.value = value;
+        this.complete = true;
+        notifyAll();
+      }
+    }
+
+    private ValueHolder<V> get() {
+      synchronized (this) {
+        if (!complete) {
+          try {
+            complete(source.apply());
+          } catch (Throwable e) {
+            fail(e);
+          }
+        }
+      }
+
+      return throwOrReturn();
+    }
+
+    private ValueHolder<V> throwOrReturn() {
+      if (throwable != null) {
+        if (throwable instanceof RuntimeException) {
+          throw (RuntimeException) throwable;
+        }
+        throw new RuntimeException("Faulting from repository failed", throwable);
+      }
+      return value;
+    }
+
+    private void fail(final Throwable t) {
+      synchronized (this) {
+        this.throwable = t;
+        this.complete = true;
+        notifyAll();
+      }
+      throwOrReturn();
+    }
+
+    @Override
+    public void setAccessTimeMillis(long accessTime) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setExpireTimeMillis(long expireTime) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isExpired(long now) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public long getExpireTimeMillis() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public V value() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public long creationTime(TimeUnit unit) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public long lastAccessTime(TimeUnit unit) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public float hitRate(TimeUnit unit) {
+      throw new UnsupportedOperationException();
+    }
+  }
+
   @Override
   public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException {
     return compute(key, mappingFunction, REPLACE_EQUALS_TRUE);

@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.store.disk;
 
+import org.ehcache.Cache;
 import org.ehcache.function.Predicate;
 import org.ehcache.function.Predicates;
 import org.ehcache.internal.TimeSource;
@@ -60,7 +61,7 @@ import java.util.concurrent.locks.Lock;
  */
 public class DiskStorageFactory<K, V> {
 
-  interface Element<K, V> extends Serializable {
+  public interface Element<K, V> extends Serializable {
     boolean isExpired(long time);
     K getKey();
     DiskValueHolder<V> getValueHolder();
@@ -824,11 +825,12 @@ public class DiskStorageFactory<K, V> {
     /**
      * Updates the stats from memory
      *
-     * @param e
+     * @param entry
      */
-    void updateStats(Element<K, V> e) {
-      hitRate = e.getValueHolder().hitRate(TimeUnit.SECONDS);
-      expiry = e.getValueHolder().getExpireTimeMillis();
+    void updateStats(Cache.Entry<K, V> entry) {
+      hitRate = entry.getHitRate(TimeUnit.SECONDS);
+      //todo: expiry must be updated too
+//      expiry = e.getValueHolder().getExpireTimeMillis();
     }
   }
 
