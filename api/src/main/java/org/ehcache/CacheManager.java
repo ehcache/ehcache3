@@ -25,10 +25,41 @@ import org.ehcache.config.CacheConfiguration;
  */
 public interface CacheManager {
 
+  /**
+   * Creates a {@link Cache} in this {@code CacheManager} according to the specified {@link CacheConfiguration}.
+   *
+   * @param alias the alias under which the cache will be created
+   * @param config the configuration of the cache to create
+   * @param <K> the type of the keys used to access data within this cache
+   * @param <V> the type of the values held within this cache
+   * @return the created and initialized {@link Cache}
+   *
+   * @throws java.lang.IllegalArgumentException If there is already a cache registered with the given alias.
+   * @throws java.lang.IllegalStateException If the cache creation fails
+   */
   <K, V> Cache<K, V> createCache(String alias, CacheConfiguration<K, V> config);
 
+  /**
+   * Retrieves the {@link Cache} associated with the given alias, if one is known.
+   *
+   * @param alias the alias under which to look the {@link Cache} up
+   * @param keyType the {@link Cache} key class
+   * @param valueType the {@link Cache} value class
+   * @param <K> the type of the keys used to access data within this cache
+   * @param <V> the type of the values held within this cache
+   * @return the {@link Cache} associated with the given alias, {@code null} if no association exists
+   *
+   * @throws java.lang.IllegalArgumentException If the keyType or valueType do not match the ones with which the {@link Cache} was created
+   */
   <K, V> Cache<K, V> getCache(String alias, Class<K> keyType, Class<V> valueType);
 
+  /**
+   * Removes the {@link Cache} associated with the alias provided, if oe is known.
+   * <P/>
+   * When the cache is removed, it will release all resources it used.
+   *
+   * @param alias the alias for which to remove the {@link Cache}
+   */
   void removeCache(String alias);
 
   /**

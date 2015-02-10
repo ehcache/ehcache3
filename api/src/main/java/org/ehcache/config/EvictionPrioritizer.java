@@ -21,6 +21,11 @@ import org.ehcache.Cache;
 import java.util.Comparator;
 
 /**
+ * A specialized {@link Comparator} used to prioritize eviction between cache entries.
+ *
+ * @param <K> the type of the keys used to access data within the cache
+ * @param <V> the type of the values held within the cache
+ *
  * @author Alex Snaps
  */
 public interface EvictionPrioritizer<K, V> extends Comparator<Cache.Entry<K, V>> {

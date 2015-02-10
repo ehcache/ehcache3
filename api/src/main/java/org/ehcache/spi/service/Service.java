@@ -19,11 +19,24 @@ package org.ehcache.spi.service;
 import org.ehcache.spi.ServiceProvider;
 
 /**
+ * Contract for a {@link org.ehcache.CacheManager} managed service.
+ *
  * @author Alex Snaps
  */
 public interface Service {
 
+  /**
+   * Start this service using the provided configuration and {@link ServiceProvider}.
+   * <p>
+   * The goal of the service provider is to allow a service to use other services.
+   *
+   * @param config the service configuration
+   * @param serviceProvider the service provider.
+   */
   void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider);
 
+  /**
+   * Stops this service.
+   */
   void stop();
 }

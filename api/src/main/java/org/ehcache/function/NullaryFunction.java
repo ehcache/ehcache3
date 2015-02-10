@@ -17,6 +17,18 @@
 package org.ehcache.function;
 
 /**
-* @author teck
-*/
-public interface NullaryFunction<T> { T apply(); }
+ * Generic function that returns a value.
+ *
+ * @param <T> the function return type
+ *
+ * @author teck
+ */
+public interface NullaryFunction<T> {
+
+  /**
+   * Returns the function result
+   *
+   * @return the function result
+   */
+  T apply();
+}

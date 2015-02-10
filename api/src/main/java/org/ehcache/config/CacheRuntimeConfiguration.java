@@ -28,6 +28,9 @@ import java.util.Set;
  * Represents the configuration currently used by a {@link org.ehcache.Cache}. It only exposes mutative operations for
  * attributes that can be changed on a "RUNNING" {@link org.ehcache.Cache} instance.
  *
+ * @param <K> the type of the keys used to access data within the cache
+ * @param <V> the type of the values held within the cache
+ *
  * @author Alex Snaps
  */
 public interface CacheRuntimeConfiguration<K, V> extends CacheConfiguration<K, V> {

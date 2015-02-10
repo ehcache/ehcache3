@@ -20,6 +20,11 @@ import org.ehcache.Cache;
 import org.ehcache.function.Predicate;
 
 /**
+ * A specialized {@link Predicate} used to veto eviction of cache entries.
+ *
+ * @param <K> the type of the keys used to access data within the cache
+ * @param <V> the type of the values held within the cache
+ *
  * @author Alex Snaps
  */
 public interface EvictionVeto<K, V> extends Predicate<Cache.Entry<K, V>> {

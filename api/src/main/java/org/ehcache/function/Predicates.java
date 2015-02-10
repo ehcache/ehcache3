@@ -17,6 +17,7 @@
 package org.ehcache.function;
 
 /**
+ * Utility class for getting predefined {@link Predicate} instances.
  *
  * @author cdennis
  */
@@ -39,12 +40,24 @@ public final class Predicates {
   private Predicates() {
     //no instances
   }
-  
+
+  /**
+   * A predicate that matches all values.
+   *
+   * @param <T> the predicate value type
+   * @return the all predicate
+   */
   @SuppressWarnings("unchecked")
   public static <T> Predicate<T> all() {
     return (Predicate<T>) ALL;
   }
 
+  /**
+   * A predicate that matches no value.
+   *
+   * @param <T> the predicate value type
+   * @return the none predicate
+   */
   @SuppressWarnings("unchecked")
   public static <T> Predicate<T> none() {
     return (Predicate<T>) NONE;

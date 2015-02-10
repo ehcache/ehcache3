@@ -18,8 +18,30 @@
     <property name="headerFile" value="${projectDir}/../config/java.header"/>
     <property name="fileExtensions" value="java"/>
   </module>
-  
+
   <module name="SuppressionFilter">
     <property name="file" value="${projectDir}/config/checkstyle-suppressions.xml"/>
   </module>
+
+  <!-- Module custom checkers - all above this line should remain identical to file in $rootDir/config/checkstyle.xml -->
+
+  <!-- javadoc -->
+  <module name="JavadocPackage"/>
+  <module name="TreeWalker">
+    <module name="JavadocType">
+      <property name="scope" value="public"/>
+    </module>
+    <module name="JavadocMethod">
+      <property name="scope" value="public"/>
+      <property name="allowUndeclaredRTE" value="true"/>
+    </module>
+    <module name="JavadocVariable">
+      <property name="scope" value="public"/>
+    </module>
+    <module name="JavadocStyle">
+      <property name="scope" value="public"/>
+      <property name="checkFirstSentence" value="false"/>
+    </module>
+  </module>
+
 </module>

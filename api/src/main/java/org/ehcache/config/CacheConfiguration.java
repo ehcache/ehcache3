@@ -26,37 +26,43 @@ import java.util.Collection;
 /**
  * Represents the minimal read-only configuration for a Cache to be, or an already existing one
  *
+ * @param <K> the type of the keys used to access data within the cache
+ * @param <V> the type of the values held within the cache
+ *
  * @author Alex Snaps
  */
 public interface CacheConfiguration<K, V> {
 
   /**
-   * Not sure whether this should be exposed on this interface really
-   * @return unmodifiable collection of service configuration related to this cache
+   * Not sure whether this should be exposed on this interface really.
+   *
+   * @return unmodifiable collection of service configuration related to the cache
    */
   Collection<ServiceConfiguration<?>> getServiceConfigurations();
 
   /**
-   * The type of the key for this cache
-   * @return a non null value, where Object.class is the widest type
+   * The type of the key for the cache.
+   *
+   * @return a non null value, where {@code Object.class} is the widest type
    */
   Class<K> getKeyType();
 
   /**
-   * The type of the value held in this cache
-   * @return a non null value, where Object.class is the widest type
+   * The type of the value held in the cache.
+   *
+   * @return a non null value, where {@code Object.class} is the widest type
    */
   Class<V> getValueType();
   
   /**
-   * The capacity constraint in place on this cache
+   * The capacity constraint in place on the cache.
    * 
-   * @return the maximal capacity of this cache, or {@code null} if their is no constraint
+   * @return the maximal capacity of the cache, or {@code null} if there is no constraint
    */
   Comparable<Long> getCapacityConstraint();
 
   /**
-   * The eviction veto predicate function.
+   * The {@link EvictionVeto} predicate function.
    * <p>
    * Entries which pass this predicate must be ignored by the eviction process.
    * 
@@ -65,7 +71,7 @@ public interface CacheConfiguration<K, V> {
   EvictionVeto<? super K, ? super V> getEvictionVeto();
 
   /**
-   * The eviction prioritization comparator.
+   * The {@link EvictionPrioritizer} comparator.
    * <p>
    * This comparator function determines the order in which entries are considered
    * for eviction.
@@ -75,22 +81,31 @@ public interface CacheConfiguration<K, V> {
   EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer();
 
   /**
-   * Returns the serialization provider the cache is going to use to serialize mappings
+   * Returns the {@link SerializationProvider} the cache is going to use to serialize mappings
    *
    * @return the serialization provider
    */
   SerializationProvider getSerializationProvider();
 
   /**
-   * The Classloader for this cache. This classloader will be used to instantiate cache level services as well
-   * as deserializing cache entries when required
+   * The {@link ClassLoader} for this cache. This {@code ClassLoader} will be used to instantiate cache level services
+   * as well as deserializing cache entries when required.
+   *
+   * @return the cache {@code ClassLoader}
    */
   ClassLoader getClassLoader();
 
   /**
-   *  Get the expiration policy instance for this {@link Cache}
+   *  Get the {@link Expiry expiration policy} instance for the {@link Cache}.
+   *
+   *  @return the {@code Expiry} to configure
    */
   Expiry<? super K, ? super V> getExpiry();
 
+  /**
+   * Indicates if the {@link Cache} is to be persistent.
+   *
+   * @return {@code true} if the {@code Cache} needs to be persistent, {@code false} otherwise
+   */
   boolean isPersistent();
 }

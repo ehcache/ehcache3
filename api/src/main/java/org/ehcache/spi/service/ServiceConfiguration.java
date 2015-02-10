@@ -17,9 +17,19 @@
 package org.ehcache.spi.service;
 
 /**
+ * Interface defining the required methods on a ServiceConfiguration to allow service and configuration matching in the
+ * {@link org.ehcache.CacheManager}.
+ *
+ * @param <T> the service type this configuration works with
+ *
  * @author Alex Snaps
  */
 public interface ServiceConfiguration<T extends Service> {
 
+  /**
+   * Indicates which service this configuration works with.
+   *
+   * @return the service type
+   */
   Class<T> getServiceType();
 }

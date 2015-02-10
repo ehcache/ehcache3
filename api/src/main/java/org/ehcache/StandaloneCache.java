@@ -20,6 +20,9 @@ package org.ehcache;
  * Represents a Cache that is not managed by a {@link org.ehcache.CacheManager}, as such that needs to
  * have {@link #close()} invoked in order to release all its resources.
  *
+ * @param <K> the type of the keys used to access data within this cache
+ * @param <V> the type of the values held within this cache
+ *
  * @author Alex Snaps
  */
 public interface StandaloneCache<K, V> extends Cache<K, V> {

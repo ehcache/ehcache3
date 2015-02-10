@@ -30,6 +30,9 @@ import org.ehcache.exceptions.BulkCacheWritingException;
  * the user.  Any {@code java.lang.Exception} thrown by the writing methods will
  * be wrapped into a {@link org.ehcache.exceptions.CacheWritingException}.
  *
+ * @param <K> the type of the keys used to access data within the cache
+ * @param <V> the type of the values held within the cache
+ *
  * @see org.ehcache.exceptions.CacheLoadingException
  * @see org.ehcache.exceptions.CacheWritingException
  * 
@@ -43,6 +46,7 @@ public interface CacheLoaderWriter<K, V> {
    *
    * @param key the key that will map to the {@code value} returned
    * @return the value to be mapped
+   * @throws Exception if the value cannot be loaded
    */
   V load(K key) throws Exception;
 
@@ -56,6 +60,9 @@ public interface CacheLoaderWriter<K, V> {
    *
    * @param keys the keys that will be mapped to the values returned in the map
    * @return the {@link java.util.Map} of values for each key passed in, where no mapping means no value to map.
+   * @throws org.ehcache.exceptions.BulkCacheLoadingException This writer must throw this exception to indicate partial
+   * success. The exception declares which keys were actually loaded (if any)
+   * @throws Exception a generic failure. All values will be considered not loaded in this case
    */
   Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception;
 
@@ -64,6 +71,7 @@ public interface CacheLoaderWriter<K, V> {
    *
    * @param key the key of the mapping being installed or updated
    * @param value the actual value being updated
+   * @throws Exception if the write operation failed
    *
    * @see org.ehcache.Cache#put(Object, Object)
    */
@@ -87,6 +95,7 @@ public interface CacheLoaderWriter<K, V> {
    * Deletes a single entry from the underlying system of record.
    *
    * @param key the key to delete
+   * @throws Exception if the write operation failed
    *
    * @see org.ehcache.Cache#remove(Object)
    */

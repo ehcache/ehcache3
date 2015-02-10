@@ -16,6 +16,7 @@
 package org.ehcache.function;
 
 /**
+ * Utility class to get specific {@link Comparable} instances.
  *
  * @author cdennis
  */
@@ -38,12 +39,24 @@ public final class Comparables {
   private Comparables() {
     //no instances
   }
-  
+
+  /**
+   * A comparable that will always be greater than the value it is compared with.
+   *
+   * @param <T> the comparable value type
+   * @return the biggest comparable
+   */
   @SuppressWarnings("unchecked")
   public static <T> Comparable<T> biggest() {
     return (Comparable<T>) BIGGEST;
   }
 
+  /**
+   * A comparable that will always be lesser than the value it is compared with.
+   *
+   * @param <T> the comparable value type
+   * @return the smallest comparable
+   */
   @SuppressWarnings("unchecked")
   public static <T> Comparable<T> smallest() {
     return (Comparable<T>) SMALLEST;

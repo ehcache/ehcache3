@@ -15,10 +15,15 @@
  */
 package org.ehcache.expiry;
 
+/**
+ * Utility class for getting predefined {@link Expiry} instances.
+ */
 public final class Expirations {
 
   /**
    * Get an {@link Expiry} instance for a non expiring (ie. "eternal") cache
+   *
+   * @return no expiry instance
    */
   public static Expiry<Object, Object> noExpiration() {
     return NoExpiry.INSTANCE;
@@ -26,6 +31,12 @@ public final class Expirations {
 
   /**
    * Get a time-to-live (TTL) {@link Expiry} instance for the given duration
+   *
+   * @param timeToLive the duration of TTL
+   * @param <K> the type of the keys used to access data within the cache
+   * @param <V> the type of the values held within the cache
+   * @return a TTL expiry
+   *
    */
   public static <K, V> Expiry<K, V> timeToLiveExpiration(Duration timeToLive) {
     if (timeToLive == null) {
@@ -36,6 +47,11 @@ public final class Expirations {
 
   /**
    * Get a time-to-idle (TTI) {@link Expiry} instance for the given duration
+   *
+   * @param timeToIdle the duration of TTI
+   * @param <K> the type of the keys used to access data within the cache
+   * @param <V> the type of the values held within the cache
+   * @return a TTI expiry
    */
   public static <K, V> Expiry<K, V> timeToIdleExpiration(Duration timeToIdle) {
     if (timeToIdle == null) {

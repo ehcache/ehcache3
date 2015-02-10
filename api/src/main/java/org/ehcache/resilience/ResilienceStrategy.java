@@ -41,6 +41,9 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
  * reported to the strategy in the context of a coincident cache failure.
  * Isolated writer and loader exceptions will be thrown directly.
  * 
+ * @param <K> the type of the keys used to access data within the cache
+ * @param <V> the type of the values held within the cache
+ *
  * @author Chris Dennis
  */
 public interface ResilienceStrategy<K, V> {

@@ -17,6 +17,11 @@
 package org.ehcache.event;
 
 /**
+ * Contract for users that want to listen on {@link CacheEvent}s.
+ *
+ * @param <K> the type of the keys used to access data within the cache
+ * @param <V> the type of the values held within the cache
+ *
  * @author Alex Snaps
  */
 public interface CacheEventListener<K, V> {
