@@ -24,7 +24,6 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.test.Ignore;
 import org.ehcache.spi.test.SPITest;
 import org.ehcache.internal.TimeSource;
 
@@ -182,7 +181,6 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
-  @Ignore(reason = "bug filed, need to be fixed before enabling")
   public void testComputeIfPresentOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
@@ -199,7 +197,7 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
       }
     });
     assertThat(kvStore.get(k), is(nullValue()));
-    assertThat(listener.evicted, hasItem(k));
+    assertThat(listener.expired, hasItem(k));
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
