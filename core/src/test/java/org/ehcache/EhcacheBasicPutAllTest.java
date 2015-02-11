@@ -442,7 +442,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
    *    <li>no {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
@@ -452,7 +452,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
@@ -476,7 +476,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
    *    <li>no {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
@@ -488,7 +488,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
@@ -515,7 +515,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
    *    <li>no {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
@@ -525,7 +525,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
@@ -554,7 +554,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
    *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
@@ -564,7 +564,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
@@ -597,7 +597,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
    *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
@@ -609,7 +609,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
@@ -647,7 +647,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
    *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
@@ -657,7 +657,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
@@ -694,7 +694,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
    *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    *    <li>at least one {@link CacheLoaderWriter#writeAll(Iterable)} call aborts</li>
    * </ul>
@@ -705,7 +705,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
@@ -740,7 +740,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
    *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    *    <li>at least one {@link CacheLoaderWriter#writeAll(Iterable)} call aborts</li>
    * </ul>
@@ -753,7 +753,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
@@ -803,7 +803,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
    *    <li>some {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    *    <li>at least one {@link CacheLoaderWriter#writeAll(Iterable)} call aborts</li>
    * </ul>
@@ -814,7 +814,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
@@ -863,7 +863,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
-   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
    *    <li>all {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
@@ -873,7 +873,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
@@ -905,7 +905,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
    *    <li>all {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
@@ -917,7 +917,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
@@ -954,7 +954,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
    *    <li>{@link Store#bulkCompute} throws after accessing writer</li>
-   *    <li>populated {@code CacheLoaderWriter} - no keys overlap</li>
+   *    <li>populated {@code CacheLoaderWriter} - some keys overlap</li>
    *    <li>all {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
@@ -964,7 +964,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
@@ -1010,7 +1010,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
@@ -1047,7 +1047,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
@@ -1085,7 +1085,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
@@ -1122,7 +1122,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
@@ -1168,7 +1168,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
@@ -1216,7 +1216,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
@@ -1264,7 +1264,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
@@ -1312,7 +1312,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
@@ -1373,7 +1373,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
@@ -1432,7 +1432,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
@@ -1476,7 +1476,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
@@ -1523,7 +1523,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
@@ -1569,7 +1569,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
@@ -1606,7 +1606,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
@@ -1644,7 +1644,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyB3"));
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
@@ -1681,7 +1681,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
@@ -1727,7 +1727,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
@@ -1775,7 +1775,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyB3"));
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
@@ -1823,7 +1823,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
@@ -1872,7 +1872,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
@@ -1934,7 +1934,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyB3"));
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
@@ -1994,7 +1994,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
@@ -2039,7 +2039,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
@@ -2087,7 +2087,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyB3"));
     this.store = spy(fakeStore);
 
-    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
