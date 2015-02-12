@@ -29,6 +29,8 @@ import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -51,6 +53,7 @@ import java.util.Map;
 public class XmlConfiguration implements Configuration {
 
   private static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
+  private static final Logger LOGGER = LoggerFactory.getLogger(XmlConfiguration.class);
 
   private final URL xml;
   private final ClassLoader classLoader;
@@ -126,6 +129,7 @@ public class XmlConfiguration implements Configuration {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   private void parseConfiguration()
       throws ClassNotFoundException, IOException, SAXException, InstantiationException, IllegalAccessException {
+    LOGGER.info("Loading Ehcache XML xonfiguration from {}.", xml.getPath());
     ConfigurationParser configurationParser = new ConfigurationParser(xml.toExternalForm(), CORE_SCHEMA_URL);
 
     for (ServiceConfiguration<?> serviceConfiguration : configurationParser.getServiceConfigurations()) {

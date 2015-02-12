@@ -41,6 +41,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -56,7 +57,7 @@ public class EhcacheLoaderWriterTest {
     store = mock(Store.class);
     CacheLoaderWriter<Number, String> loaderWriter = mock(CacheLoaderWriter.class);
     cache = new Ehcache<Number, String>(
-        CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, String.class), store, loaderWriter);
+        CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, String.class), store, loaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheLoaderWriterTest"));
     cache.init();
   }
   

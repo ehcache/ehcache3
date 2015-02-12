@@ -17,12 +17,14 @@
 package org.ehcache.config;
 
 import org.ehcache.Cache;
+import org.ehcache.Ehcache;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.internal.HeapCache;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 
@@ -50,7 +52,7 @@ public class CachingTierConfigurationBuilderTest {
     
     
     @SuppressWarnings("unchecked")
-    final Cache<String, String> cache = new HeapCache<String, String>(mock(CacheConfiguration.class), store);
+    final Cache<String, String> cache = new HeapCache<String, String>(mock(CacheConfiguration.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "CachingTierConfigurationBuilderTest"));
 
     assertThat(cache, not(hasKey("key")));
     cache.put("key", "value");

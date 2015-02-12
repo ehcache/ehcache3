@@ -17,6 +17,7 @@
 package org.ehcache;
 
 import org.ehcache.events.StateChangeListener;
+import org.slf4j.Logger;
 
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
@@ -28,11 +29,13 @@ final class StatusTransitioner {
 
   private final AtomicReference<InternalStatus.Transition> currentState;
   private volatile Thread maintenanceLease;
+  private final Logger logger;
 
   private final CopyOnWriteArrayList<StateChangeListener> listeners = new CopyOnWriteArrayList<StateChangeListener>();
 
-  StatusTransitioner() {
+  StatusTransitioner(Logger logger) {
     this.currentState = new AtomicReference<InternalStatus.Transition>(InternalStatus.initial());
+    this.logger = logger;
   }
 
   Status currentStatus() {
@@ -62,24 +65,27 @@ final class StatusTransitioner {
   }
 
   Transition init() {
+    logger.trace("Initializing");
     InternalStatus.Transition st;
     for (InternalStatus.Transition cs; !currentState.compareAndSet(cs = currentState.get(), st = cs.get().init()););
-    return new Transition(st, null);
+    return new Transition(st, null, "Initialize");
   }
 
   Transition close() {
+    logger.trace("Closing");
     InternalStatus.Transition st;
     if(maintenanceLease != null && Thread.currentThread() != maintenanceLease) {
       throw new IllegalStateException("You don't own this MAINTENANCE lease");
     }
     for (InternalStatus.Transition cs; !currentState.compareAndSet(cs = currentState.get(), st = cs.get().close()););
-    return new Transition(st, null);
+    return new Transition(st, null, "Close");
   }
 
   Transition maintenance() {
+    logger.trace("Entering Maintenance");
     InternalStatus.Transition st;
     for (InternalStatus.Transition cs; !currentState.compareAndSet(cs = currentState.get(), st = cs.get().maintenance()););
-    return new Transition(st, Thread.currentThread());
+    return new Transition(st, Thread.currentThread(), "Enter Maintenance");
   }
 
   void registerListener(StateChangeListener listener) {
@@ -102,10 +108,12 @@ final class StatusTransitioner {
 
     private final InternalStatus.Transition st;
     private final Thread thread;
+    private final String action;
 
-    public Transition(final InternalStatus.Transition st, final Thread thread) {
+    public Transition(final InternalStatus.Transition st, final Thread thread, final String action) {
       this.st = st;
       this.thread = thread;
+      this.action = action;
     }
 
     public void succeeded() {
@@ -114,11 +122,13 @@ final class StatusTransitioner {
       } finally {
         maintenanceLease = thread;
         st.succeeded();
+        logger.info("{} successful.", action);
       }
     }
 
     public void failed() {
       st.failed();
+      logger.error("{} failed.", action);
     }
   }
 }

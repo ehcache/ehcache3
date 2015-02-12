@@ -19,11 +19,13 @@ package org.ehcache.statistics;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
+import org.ehcache.Ehcache;
 import org.ehcache.StandaloneCache;
 import org.ehcache.StandaloneCacheBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -41,7 +43,7 @@ public class StatisticsTest {
   public void setup() throws Exception {
     scheduledExecutorService = Executors.newScheduledThreadPool(0);
 
-    cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class)
+    cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory.getLogger(Ehcache.class + "-" + "StatisticsTest"))
         .withStatisticsExecutor(scheduledExecutorService)
         .withCapacity(capacity).build();
     cache.init();

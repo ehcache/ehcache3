@@ -29,6 +29,7 @@ import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.slf4j.Logger;
 
 import java.util.Collection;
 import java.util.Map;
@@ -43,7 +44,7 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
 
   private final Map<K, V> underlying = new ConcurrentHashMap<K, V>();
 
-  public HeapCache() {
+  public HeapCache(Logger logger) {
     this(new CacheConfiguration<K, V>() {
       @Override
       public Collection<ServiceConfiguration<?>> getServiceConfigurations() {
@@ -227,11 +228,11 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
       public void disableStoreEventNotifications() {
         throw new UnsupportedOperationException("Implement me!");
       }
-    });
+    }, logger);
   }
 
-  public HeapCache(CacheConfiguration<K, V> cacheConfig, final Store<K, V> store) {
-    super(cacheConfig, store);
+  public HeapCache(CacheConfiguration<K, V> cacheConfig, final Store<K, V> store, Logger logger) {
+    super(cacheConfig, store, logger);
   }
 
   @Override

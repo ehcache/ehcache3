@@ -56,6 +56,7 @@ import org.mockito.InOrder;
 import org.mockito.internal.verification.NoMoreInteractions;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -80,7 +81,7 @@ public class EhcacheEventTest {
     CacheLoaderWriter<Number, String> loaderWriter = mock(CacheLoaderWriter.class);
 
     cache = new Ehcache<Number, String>(
-        newCacheConfigurationBuilder().buildConfig(Number.class, String.class), store, loaderWriter, eventNotifier, null);
+        newCacheConfigurationBuilder().buildConfig(Number.class, String.class), store, loaderWriter, eventNotifier, null, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheEventTest"));
     cache.init();
   }
   

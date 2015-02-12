@@ -20,6 +20,7 @@ import org.ehcache.Ehcache;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.CacheProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -31,7 +32,7 @@ public class EhcacheProvider implements CacheProvider {
   @SuppressWarnings("deprecation")
   @Override
   public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
-    return new HeapCache<K, V>();
+    return new HeapCache<K, V>(LoggerFactory.getLogger(Ehcache.class + "-" + "HeapCache"));
   }
 
   @Override

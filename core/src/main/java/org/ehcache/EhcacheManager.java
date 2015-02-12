@@ -61,7 +61,7 @@ public class EhcacheManager implements PersistentCacheManager {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheManager.class);
   
-  private final StatusTransitioner statusTransitioner = new StatusTransitioner();
+  private final StatusTransitioner statusTransitioner = new StatusTransitioner(LOGGER);
 
   private final ServiceLocator serviceLocator;
   private final boolean useLoaderInAtomics;
@@ -259,7 +259,7 @@ public class EhcacheManager implements PersistentCacheManager {
       }
     }
 
-    return new Ehcache<K, V>(config, store, loaderWriter, evtService, statisticsExecutor, useLoaderInAtomics);
+    return new Ehcache<K, V>(config, store, loaderWriter, evtService, statisticsExecutor, useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
   }
 
   public void registerListener(CacheManagerListener listener) {
@@ -282,7 +282,6 @@ public class EhcacheManager implements PersistentCacheManager {
   public void init() {
     final StatusTransitioner.Transition st = statusTransitioner.init();
 
-    LOGGER.info("Initializing EhcacheManager.");
     try {
       Map<Service, ServiceConfiguration<?>> serviceConfigs = new HashMap<Service, ServiceConfiguration<?>>();
       for (ServiceConfiguration<?> serviceConfig : configuration.getServiceConfigurations()) {
@@ -299,7 +298,6 @@ public class EhcacheManager implements PersistentCacheManager {
         serviceLocator.startAllServices(serviceConfigs);
       } catch (Exception e) {
         st.failed();
-        LOGGER.error("Initialization of EhcacheManager failed while starting Services.");
         throw e;
       }
       Deque<String> initiatedCaches = new ArrayDeque<String>();
@@ -323,11 +321,9 @@ public class EhcacheManager implements PersistentCacheManager {
       }
     } catch (Exception e) {
       st.failed();
-      LOGGER.error("Initialization of EhcacheManager failed while initiating Caches.");
       throw new StateTransitionException(e);
     }
     st.succeeded();
-    LOGGER.info("Initialization of EhcacheManager succeeded.");
   }
 
   @Override
@@ -339,7 +335,6 @@ public class EhcacheManager implements PersistentCacheManager {
   public void close() {
     final StatusTransitioner.Transition st = statusTransitioner.close();
 
-    LOGGER.info("Closing EhcacheManager.");
     Exception firstException = null;
     try {
       for (String alias : caches.keySet()) {
@@ -355,7 +350,6 @@ public class EhcacheManager implements PersistentCacheManager {
       }
       serviceLocator.stopAllServices();
     } catch (Exception e) {
-       LOGGER.error("Closing EhcacheManager failed.");
       if(firstException == null) {
         firstException = e;
       }
@@ -368,7 +362,6 @@ public class EhcacheManager implements PersistentCacheManager {
       throw new StateTransitionException(firstException);
     }
     st.succeeded();
-    LOGGER.info("EhcacheManager Closed.");
   }
 
   @Override
@@ -404,6 +397,7 @@ public class EhcacheManager implements PersistentCacheManager {
 
   @Override
   public void destroyCache(final String alias) {
+    LOGGER.info("Destoying Cache '{}' in EhcacheManager.", alias);
     final CacheHolder cacheHolder = caches.remove(alias);
     if(cacheHolder == null) {
       throw new IllegalArgumentException("No Cache associated with alias " + alias);
@@ -413,6 +407,7 @@ public class EhcacheManager implements PersistentCacheManager {
       ehcache.close();
     }
     ehcache.toMaintenance().destroy();
+    LOGGER.info("Cache '{}' is successfully destroyed in EhcacheManager.", alias);
   }
   
   // for tests at the moment

@@ -15,10 +15,12 @@
  */
 package org.ehcache.integration;
 
+import org.ehcache.Ehcache;
 import org.ehcache.StandaloneCache;
 import org.ehcache.StandaloneCacheBuilder;
 import org.ehcache.config.Eviction;
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -32,7 +34,7 @@ public class StandaloneCacheEvictionTest {
 
   @Test
   public void test_eviction_with_specific_eviction_prioritizer() throws Exception {
-    StandaloneCache<Number, String> cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class)
+    StandaloneCache<Number, String> cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory.getLogger(Ehcache.class + "-" + "StandaloneCacheEvictionTest"))
         .withCapacity(1L)
         .prioritizeEviction(Eviction.Prioritizer.LRU)
         .build();
@@ -58,7 +60,7 @@ public class StandaloneCacheEvictionTest {
 
   @Test
   public void test_eviction_eviction_prioritizer_not_specified() throws Exception {
-    StandaloneCache<Number, String> cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class)
+    StandaloneCache<Number, String> cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory.getLogger(Ehcache.class + "-" + "StandaloneCacheEvictionTest1"))
         .withCapacity(1L)
         .build();
     cache.init();
