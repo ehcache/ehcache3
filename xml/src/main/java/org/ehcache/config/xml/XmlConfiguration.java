@@ -129,7 +129,7 @@ public class XmlConfiguration implements Configuration {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   private void parseConfiguration()
       throws ClassNotFoundException, IOException, SAXException, InstantiationException, IllegalAccessException {
-    LOGGER.info("Loading Ehcache XML xonfiguration from {}.", xml.getPath());
+    LOGGER.info("Loading Ehcache XML configuration from {}.", xml.getPath());
     ConfigurationParser configurationParser = new ConfigurationParser(xml.toExternalForm(), CORE_SCHEMA_URL);
 
     for (ServiceConfiguration<?> serviceConfiguration : configurationParser.getServiceConfigurations()) {
