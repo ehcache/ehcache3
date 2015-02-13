@@ -867,7 +867,6 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    <li>all {@link CacheLoaderWriter#writeAll(Iterable)} calls fail</li>
    * </ul>
    */
-  @Ignore("Issue #239")
   @Test
   public void testPutAllStoreSomeOverlapWriterNoOverlapAllFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
@@ -893,7 +892,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
-    assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates.keySet())));   // TODO: Confirm correctness (Issue #239)
+    assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates.keySet())));
     verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
@@ -1452,7 +1451,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
-    assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
+    assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_B)));
     verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
@@ -2015,7 +2014,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
-    assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
+    assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A)));
     verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
