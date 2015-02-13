@@ -1050,7 +1050,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *    <li>all {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
    * </ul>
    */
-  @Ignore("BulkCacheLoadingException.getSuccesses() does not include store hits  Issue #225")
   @Test
   public void testGetAllStoreSomeMatchLoaderAllFail() throws Exception {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
@@ -1307,7 +1306,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *    <li>some {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
    * </ul>
    */
-  @Ignore("BulkCacheLoadingException.getSuccesses() does not include store hits  Issue #225")
   @Test
   public void testGetAllStoreSomeMatchLoaderNoMatchSomeFail() throws Exception {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
@@ -1560,7 +1558,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *    <li>non-matching {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
    * </ul>
    */
-  @Ignore("BulkCacheLoadingException.getSuccesses() does not include store hits  Issue #225")
   @Test
   public void testGetAllStoreSomeMatchLoaderSomeMatchDisjointFail() throws Exception {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));

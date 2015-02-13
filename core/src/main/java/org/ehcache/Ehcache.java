@@ -449,7 +449,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         if (entry.getValue() != null) {
           result.put(entry.getKey(), entry.getValue().value());
           hits++;
-        } else if (includeNulls) {
+        } else if (includeNulls && failures.isEmpty()) {
           result.put(entry.getKey(), null);
         }
       }
@@ -458,6 +458,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       if (failures.isEmpty()) {
         return result;
       } else {
+        successes.putAll(result);
         throw new BulkCacheLoadingException(failures, successes);
       }
     } catch (CacheAccessException e) {
