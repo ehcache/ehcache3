@@ -58,6 +58,10 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -73,6 +77,10 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -91,6 +99,10 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -109,6 +121,10 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -131,6 +147,10 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 }

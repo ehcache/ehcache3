@@ -55,6 +55,10 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -80,6 +84,10 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -96,6 +104,10 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected NullPointerException because the key is null");
     } catch (NullPointerException e) {
       // expected
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -112,6 +124,10 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected NullPointerException because the value is null");
     } catch (NullPointerException e) {
       // expected
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -135,6 +151,10 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -158,6 +178,10 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 }

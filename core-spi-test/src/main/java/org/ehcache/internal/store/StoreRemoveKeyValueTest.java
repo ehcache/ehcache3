@@ -63,6 +63,9 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     assertThat(kvStore.containsKey(key), is(false));
+    if(kvStore != null) {
+      kvStore.close();
+    }
   }
 
   @SPITest
@@ -80,6 +83,11 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       assertThat(isRemoved, is(false));
     } catch (CacheAccessException e) {
       throw new AssertionError(e);
+    }
+    finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -102,6 +110,11 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       throw new AssertionError(e);
     }
+    finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
+    }
   }
 
   @SPITest
@@ -121,6 +134,10 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -139,6 +156,10 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -158,6 +179,10 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -177,6 +202,10 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -200,6 +229,10 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -223,6 +256,10 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 }

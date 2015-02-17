@@ -56,5 +56,8 @@ public class StoreClearTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     assertThat(kvStore.containsKey(key), is(false));
+    if(kvStore != null) {
+      kvStore.close();
+    }
   }
 }

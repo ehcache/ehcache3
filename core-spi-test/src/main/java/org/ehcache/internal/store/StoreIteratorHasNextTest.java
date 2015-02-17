@@ -60,6 +60,9 @@ public class StoreIteratorHasNextTest<K, V> extends SPIStoreTester<K, V> {
         e.printStackTrace();
       }
     }
+    if(kvStore != null) {
+      kvStore.close();
+    }
   }
 
   @SPITest
@@ -74,6 +77,10 @@ public class StoreIteratorHasNextTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 }

@@ -39,6 +39,9 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
 
     if (factory.getValueType() == Object.class) {
       System.err.println("Warning, store uses Object as value type, cannot verify in this configuration");
+      if(kvStore != null) {
+        kvStore.close();
+      }
       return;
     }
     
@@ -66,6 +69,10 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -76,6 +83,9 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
 
     if (factory.getKeyType() == Object.class) {
       System.err.println("Warning, store uses Object as key type, cannot verify in this configuration");
+      if(kvStore != null) {
+        kvStore.close();
+      }
       return;
     }
 
@@ -103,6 +113,10 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -127,6 +141,10 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -149,6 +167,10 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -168,6 +190,10 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    } finally {
+      if(kvStore != null) {
+        kvStore.close();
+      }
     }
   }
 
@@ -195,5 +221,8 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     assertThat(kvStore.get(key).value(), is(value));
+    if(kvStore != null) {
+      kvStore.close();
+    }
   }
 }

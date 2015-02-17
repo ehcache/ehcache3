@@ -69,5 +69,8 @@ public class StoreIteratorTest<K, V> extends SPIStoreTester<K, V> {
     }
     assertThat(keys, containsInAnyOrder(equalTo(key1), equalTo(key2), equalTo(key3)));
     assertThat(values, containsInAnyOrder(equalTo(value1), equalTo(value2), equalTo(value3)));
+    if(kvStore != null) {
+      kvStore.close();
+    }
   }
 }
