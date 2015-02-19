@@ -15,15 +15,44 @@
  */
 package org.ehcache.internal.store.tiering;
 
+import org.ehcache.Cache;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.NullaryFunction;
+import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 
 /**
  * @author Ludovic Orban
  */
-public interface CachingTier<K, V> extends Store<K, V> {
+public interface CachingTier<K, V> {
 
-  ValueHolder<V> cacheCompute(final K key, final NullaryFunction<ValueHolder<V>> source) throws CacheAccessException;
+  Store.ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, Store.ValueHolder<V>> source) throws CacheAccessException;
+
+  void remove(K key) throws CacheAccessException;
+
+  void clear() throws CacheAccessException;
+
+  void destroy() throws CacheAccessException;
+
+  void create() throws CacheAccessException;
+
+  void close();
+
+  void init();
+
+  void maintenance();
+
+  void addEvictionListener(EvictionListener<K, V> evictionListener);
+
+  boolean isExpired(Store.ValueHolder<V> valueHolder);
+
+  long getExpireTimeMillis(Store.ValueHolder<V> valueHolder);
+
+  interface EvictionListener<K, V> {
+
+    void onEviction(K key, Store.ValueHolder<V> valueHolder);
+
+  }
+
+  Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator() throws CacheAccessException;
 
 }

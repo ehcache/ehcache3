@@ -36,6 +36,7 @@ import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.internal.store.tiering.CachingTier;
+import org.ehcache.internal.store.tiering.CachingTierEvictionListenerSupport;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
@@ -54,7 +55,6 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -65,7 +65,7 @@ import static org.terracotta.statistics.StatisticsBuilder.operation;
 /**
  * @author Alex Snaps
  */
-public class OnHeapStore<K, V> implements CachingTier<K, V> {
+public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
 
   private static final int ATTEMPT_RATIO = 4;
   private static final int EVICTION_RATIO = 2;
@@ -81,8 +81,9 @@ public class OnHeapStore<K, V> implements CachingTier<K, V> {
   private final Comparator<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionPrioritizer;
   private final Expiry<? super K, ? super V> expiry;
   private final TimeSource timeSource;
-  private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener(); 
-  
+  private final CachingTierEvictionListenerSupport<K, V> cachingTierEvictionListenerSupport = new CachingTierEvictionListenerSupport<K, V>();
+  private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener();
+
   private final OperationObserver<EvictionOutcome> evictionObserver = operation(EvictionOutcome.class).named("eviction").of(this).tag("onheap-store").build();
 
   private static final NullaryFunction<Boolean> REPLACE_EQUALS_TRUE = new NullaryFunction<Boolean>() {
@@ -425,40 +426,63 @@ public class OnHeapStore<K, V> implements CachingTier<K, V> {
   }
 
   @Override
-  public ValueHolder<V> cacheCompute(final K key, final NullaryFunction<ValueHolder<V>> source) throws CacheAccessException {
-    ConcurrentMap<K, OnHeapValueHolder<V>> backEnd = map.map;
+  public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) throws CacheAccessException {
+    MapWrapper<K, V> backEnd = map;
     final long now = timeSource.getTimeMillis();
 
     OnHeapValueHolder<V> cachedValue = backEnd.get(key);
     if (cachedValue == null) {
-      Fault<V> f = new Fault<V>(source);
-      cachedValue = backEnd.putIfAbsent(key, f);
+      Fault<V> fault = new Fault<V>(new NullaryFunction<ValueHolder<V>>() {
+        @Override
+        public ValueHolder<V> apply() {
+          return source.apply(key);
+        }
+      });
+      cachedValue = backEnd.putIfAbsent(key, fault);
       if (cachedValue == null) {
+        enforceCapacity(1);
         try {
-          ValueHolder<V> value = f.get();
+          ValueHolder<V> value = fault.get();
           OnHeapValueHolder<V> newValue = value == null ? null : newCreateValueHolder(key, value.value(), now);
 
           if (value == null) {
-            backEnd.remove(key, f);
-          } else if (backEnd.replace(key, f, newValue)) {
-            //putObserver.end(PutOutcome.ADDED);
+            backEnd.remove(key, fault);
+            return null;
+          } else if (backEnd.replace(key, fault, newValue)) {
+            return getValue(newValue);
           } else {
-            ValueHolder<V> p =  getValue(backEnd.remove(key));
-            return p == null ? value : p;
+            ValueHolder<V> p = getValue(backEnd.remove(key));
+            if (p != null) {
+              cachingTierEvictionListenerSupport.fireEviction(key, p);
+            }
+            return p == null ? newValue : p;
           }
-          return value;
         } catch (Throwable e) {
-          backEnd.remove(key, f);
-          if (e instanceof RuntimeException) {
-            throw (RuntimeException)e;
-          } else {
-            throw new RuntimeException(e);
-          }
+          backEnd.remove(key, fault);
+          throw new CacheAccessException(e);
         }
       }
     }
 
     return getValue(cachedValue);
+  }
+
+  @Override
+  public void addEvictionListener(EvictionListener<K, V> evictionListener) {
+    cachingTierEvictionListenerSupport.addEvictionListener(evictionListener);
+  }
+
+  @Override
+  public boolean isExpired(ValueHolder<V> valueHolder) {
+    OnHeapValueHolder<V> onHeapValueHolder = (OnHeapValueHolder<V>) valueHolder;
+    final long now = timeSource.getTimeMillis();
+    return onHeapValueHolder.isExpired(now);
+  }
+
+  @Override
+  public long getExpireTimeMillis(ValueHolder<V> valueHolder) {
+    OnHeapValueHolder<V> onHeapValueHolder = (OnHeapValueHolder<V>) valueHolder;
+    return onHeapValueHolder.getExpireTimeMillis();
   }
 
   private ValueHolder<V> getValue(final Object cachedValue) {
@@ -558,7 +582,7 @@ public class OnHeapStore<K, V> implements CachingTier<K, V> {
 
     @Override
     public long lastAccessTime(TimeUnit unit) {
-      throw new UnsupportedOperationException();
+      return Long.MAX_VALUE;
     }
 
     @Override
@@ -868,6 +892,7 @@ public class OnHeapStore<K, V> implements CachingTier<K, V> {
       
       if (map.remove(evict.getKey(), evict.getValue())) {
         evictionObserver.end(EvictionOutcome.SUCCESS);
+        cachingTierEvictionListenerSupport.fireEviction(evict.getKey(), evict.getValue());
         eventListener.onEviction(wrap(evict));
         return true;
       } else {
@@ -1126,6 +1151,29 @@ public class OnHeapStore<K, V> implements CachingTier<K, V> {
     private OnHeapKey<K> lookupOnlyKey(K key) {
       return new LookupOnlyOnHeapKey<K>(key);
     }
-    
+
+    public OnHeapValueHolder<V> get(K key) {
+      if (keySerializer == null) {
+        return map.get(key);
+      } else {
+        return keyCopyMap.get(lookupOnlyKey(key));
+      }
+    }
+
+    public OnHeapValueHolder<V> putIfAbsent(K key, OnHeapValueHolder<V> valueHolder) {
+      if (keySerializer == null) {
+        return map.putIfAbsent(key, valueHolder);
+      } else {
+        return keyCopyMap.putIfAbsent(lookupOnlyKey(key), valueHolder);
+      }
+    }
+
+    public boolean replace(K key, OnHeapValueHolder<V> oldValue, OnHeapValueHolder<V> newValue) {
+      if (keySerializer == null) {
+        return map.replace(key, oldValue, newValue);
+      } else {
+        return keyCopyMap.replace(lookupOnlyKey(key), oldValue, newValue);
+      }
+    }
   }
 }

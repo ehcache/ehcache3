@@ -16,7 +16,6 @@
 
 package org.ehcache.internal.store.disk;
 
-import org.ehcache.Cache;
 import org.ehcache.function.Predicate;
 import org.ehcache.function.Predicates;
 import org.ehcache.internal.TimeSource;
@@ -824,13 +823,10 @@ public class DiskStorageFactory<K, V> {
 
     /**
      * Updates the stats from memory
-     *
-     * @param entry
      */
-    void updateStats(Cache.Entry<K, V> entry) {
-      hitRate = entry.getHitRate(TimeUnit.SECONDS);
-      //todo: expiry must be updated too
-//      expiry = e.getValueHolder().getExpireTimeMillis();
+    void updateStats(float hitRate, long expireTimeMillis) {
+      this.hitRate = hitRate;
+      this.expiry = expireTimeMillis;
     }
   }
 
@@ -1022,6 +1018,10 @@ public class DiskStorageFactory<K, V> {
    */
   public int getOnDiskSize() {
     return onDisk.get();
+  }
+
+  void evictToSize() {
+    onDiskEvict(onDisk.get(), null);
   }
 
   private void onDiskEvict(int size, K keyHint) {

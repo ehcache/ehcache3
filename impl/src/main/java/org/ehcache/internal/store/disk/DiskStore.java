@@ -34,6 +34,7 @@ import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.internal.store.tiering.AuthoritativeTier;
+import org.ehcache.internal.store.tiering.CachingTier;
 import org.ehcache.internal.store.disk.DiskStorageFactory.Element;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
@@ -502,9 +503,9 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public boolean flush(Cache.Entry<K, V> entry) {
-    int hash = hash(entry.getKey().hashCode());
-    return segmentFor(hash).flush(entry.getKey(), hash, entry);
+  public boolean flush(K key, ValueHolder<V> valueHolder, CachingTier<K, V> cachingTier) {
+    int hash = hash(key.hashCode());
+    return segmentFor(hash).flush(key, hash, valueHolder, cachingTier);
   }
 
   class DiskStoreIterator implements Iterator<Cache.Entry<K, ValueHolder<V>>> {
@@ -857,6 +858,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
   public void flushToDisk() throws ExecutionException, InterruptedException {
     diskStorageFactory.flush().get();
+    diskStorageFactory.evictToSize();
   }
 
   boolean fault(K key, DiskStorageFactory.Placeholder<K, V> expect, DiskStorageFactory.DiskMarker<K, V> fault) {

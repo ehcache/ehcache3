@@ -25,63 +25,66 @@ import org.ehcache.spi.cache.Store;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * @author Ludovic Orban
  */
 public class CacheStore<K, V> implements Store<K, V> {
 
-  private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
   private final CachingTier<K, V> cachingTier;
   private final AuthoritativeTier<K, V> authoritativeTier;
 
   public CacheStore(CachingTier<K, V> cachingTier, AuthoritativeTier<K, V> authoritativeTier) {
     this.cachingTier = cachingTier;
     this.authoritativeTier = authoritativeTier;
-    this.cachingTier.enableStoreEventNotifications(new StoreEventListener<K, V>() {
+
+    this.cachingTier.addEvictionListener(new CachingTier.EvictionListener<K, V>() {
       @Override
-      public void onEviction(Cache.Entry<K, V> entry) {
-        CacheStore.this.authoritativeTier.flush(entry);
-      }
-      @Override
-      public void onExpiration(Cache.Entry<K, V> entry) {
-        CacheStore.this.authoritativeTier.flush(entry);
+      public void onEviction(K key, ValueHolder<V> valueHolder) {
+        CacheStore.this.authoritativeTier.flush(key, valueHolder, CacheStore.this.cachingTier);
       }
     });
-  }
-
-  private Lock readLock() {
-    return rwLock.readLock();
-  }
-
-  private Lock writeLock() {
-    return rwLock.writeLock();
   }
 
   @Override
   public ValueHolder<V> get(final K key) throws CacheAccessException {
     try {
-      return cachingTier.cacheCompute(key, new NullaryFunction<ValueHolder<V>>() {
+      ValueHolder<V> valueHolder = cachingTier.getOrComputeIfAbsent(key, new Function<K, ValueHolder<V>>() {
         @Override
-        public ValueHolder<V> apply() {
-          readLock().lock();
+        public ValueHolder<V> apply(K key) {
           try {
             return authoritativeTier.fault(key);
           } catch (CacheAccessException cae) {
             throw new ComputationException(cae);
-          } finally {
-            readLock().unlock();
           }
         }
       });
+      // caching tier does not perform expiration, this is done here
+      if (valueHolder != null && cachingTier.isExpired(valueHolder)) {
+        authoritativeTier.flush(key, valueHolder, cachingTier);
+        return null;
+      }
+
+      return valueHolder;
     } catch (ComputationException ce) {
       throw ce.getCacheAccessException();
     }
   }
 
+  static class ComputationException extends RuntimeException {
+    public ComputationException(CacheAccessException cause) {
+      super(cause);
+    }
+
+    public CacheAccessException getCacheAccessException() {
+      return (CacheAccessException) getCause();
+    }
+
+    @Override
+    public synchronized Throwable fillInStackTrace() {
+      return this;
+    }
+  }
 
   @Override
   public boolean containsKey(K key) throws CacheAccessException {
@@ -122,8 +125,6 @@ public class CacheStore<K, V> implements Store<K, V> {
   @Override
   public boolean remove(K key, V value) throws CacheAccessException {
     boolean removed = true;
-    readLock().lock();
-    try {
       try {
         removed = authoritativeTier.remove(key, value);
         return removed;
@@ -132,9 +133,6 @@ public class CacheStore<K, V> implements Store<K, V> {
           cachingTier.remove(key);
         }
       }
-    } finally {
-      readLock().unlock();
-    }
   }
 
   @Override
@@ -167,24 +165,17 @@ public class CacheStore<K, V> implements Store<K, V> {
 
   @Override
   public void clear() throws CacheAccessException {
-    writeLock().lock();
     try {
       authoritativeTier.clear();
     } finally {
       cachingTier.clear();
-      writeLock().unlock();
     }
   }
 
   @Override
   public void destroy() throws CacheAccessException {
-    writeLock().lock();
-    try {
-      authoritativeTier.destroy();
-    } finally {
-      cachingTier.destroy();
-      writeLock().unlock();
-    }
+    authoritativeTier.destroy();
+    cachingTier.destroy();
   }
 
   @Override
@@ -195,13 +186,10 @@ public class CacheStore<K, V> implements Store<K, V> {
 
   @Override
   public void close() {
-    final Lock lock = writeLock();
-    lock.lock();
     try {
       authoritativeTier.close();
     } finally {
       cachingTier.close();
-      lock.unlock();
     }
   }
 
@@ -234,135 +222,41 @@ public class CacheStore<K, V> implements Store<K, V> {
 
   @Override
   public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException {
-    try {
-      return cachingTier.compute(key, new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K k, V v) {
-          readLock().lock();
-          try {
-            ValueHolder<V> computed = authoritativeTier.compute(key, mappingFunction);
-            return computed == null ? null : computed.value();
-          } catch (CacheAccessException cae) {
-            throw new ComputationException(cae);
-          } finally {
-            readLock().unlock();
-          }
-        }
-      });
-    } catch (ComputationException ce) {
-      throw ce.getCacheAccessException();
-    }
-  }
-
-  static class ComputationException extends RuntimeException {
-    public ComputationException(CacheAccessException cause) {
-      super(cause);
-    }
-    public CacheAccessException getCacheAccessException() {
-      return (CacheAccessException) getCause();
-    }
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
-    try {
-      return cachingTier.compute(key, new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K k, V v) {
-          readLock().lock();
-          try {
-            ValueHolder<V> computed = authoritativeTier.compute(key, mappingFunction, replaceEqual);
-            return computed == null ? null : computed.value();
-          } catch (CacheAccessException cae) {
-            throw new ComputationException(cae);
-          } finally {
-            readLock().unlock();
-          }
-        }
-      });
-    } catch (ComputationException ce) {
-      throw ce.getCacheAccessException();
-    }
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
-    try {
-      return cachingTier.compute(key, new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K k, V v) {
-          readLock().lock();
-          try {
-            ValueHolder<V> computed = authoritativeTier.computeIfAbsent(key, mappingFunction);
-            return computed == null ? null : computed.value();
-          } catch (CacheAccessException cae) {
-            throw new ComputationException(cae);
-          } finally {
-            readLock().unlock();
-          }
-        }
-      });
-    } catch (ComputationException ce) {
-      throw ce.getCacheAccessException();
-    }
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException {
-    try {
-      return cachingTier.compute(key, new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K k, V v) {
-          readLock().lock();
-          try {
-            ValueHolder<V> computed = authoritativeTier.computeIfPresent(key, remappingFunction);
-            return computed == null ? null : computed.value();
-          } catch (CacheAccessException cae) {
-            throw new ComputationException(cae);
-          } finally {
-            readLock().unlock();
-          }
-        }
-      });
-    } catch (ComputationException ce) {
-      throw ce.getCacheAccessException();
-    }
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction, final NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
-    try {
-      return cachingTier.compute(key, new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K k, V v) {
-          readLock().lock();
-          try {
-            ValueHolder<V> computed = authoritativeTier.computeIfPresent(key, remappingFunction, replaceEqual);
-            return computed == null ? null : computed.value();
-          } catch (CacheAccessException cae) {
-            throw new ComputationException(cae);
-          } finally {
-            readLock().unlock();
-          }
-        }
-      });
-    } catch (ComputationException ce) {
-      throw ce.getCacheAccessException();
-    }
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
-    return null;
+    throw new UnsupportedOperationException();
   }
 }

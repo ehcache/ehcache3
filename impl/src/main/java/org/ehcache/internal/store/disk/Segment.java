@@ -19,6 +19,8 @@ package org.ehcache.internal.store.disk;
 import org.ehcache.Cache;
 import org.ehcache.function.BiFunction;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.store.tiering.CachingTier;
+import org.ehcache.spi.cache.Store;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -855,10 +857,10 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
    *
    * @param key     the key
    * @param hash    they hash
-   * @param entry   the expected entry
+   * @param valueHolder   the expected value holder
    * @return true if succeeded
    */
-  boolean flush(final K key, final int hash, Cache.Entry<K, V> entry) {
+  boolean flush(final K key, final int hash, Store.ValueHolder<V> valueHolder, CachingTier<K, V> cachingTier) {
     DiskStorageFactory.DiskSubstitute<K, V> diskSubstitute = null;
     readLock().lock();
     try {
@@ -874,7 +876,8 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
           } else {
             if (diskSubstitute instanceof DiskStorageFactory.DiskMarker) {
               final DiskStorageFactory.DiskMarker<K, V> diskMarker = (DiskStorageFactory.DiskMarker) diskSubstitute;
-              diskMarker.updateStats(entry);
+              //TODO update the stats once hit rate has been implemented, see #122
+//              diskMarker.updateStats(valueHolder.hitRate(TimeUnit.MILLISECONDS), cachingTier.getExpireTimeMillis(valueHolder));
             }
           }
           return b;
@@ -883,10 +886,9 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
       }
     } finally {
       readLock().unlock();
-      //todo re-enable this expiry check
-//      if (diskSubstitute != null && entry.isExpired(timeSource.getTimeMillis())) {
-//        evict(key, hash, diskSubstitute);
-//      }
+      if (diskSubstitute != null && cachingTier.isExpired(valueHolder)) {
+        evict(key, hash, diskSubstitute);
+      }
     }
     return false;
   }

@@ -59,30 +59,50 @@ public class CacheStoreTest {
     for (int i = 0; i < 10; i++) {
       store.put(i, "#" + i);
     }
-    dumpStore(store);
+    dumpStore("raw store", store);
 
     authoritativeTier.flushToDisk();
+    dumpStore("store after flush to disk", store);
 
     for (int i = 0; i < 3; i++) {
-      store.get(i);
+      Store.ValueHolder<CharSequence> valueHolder = store.get(i);
+      System.out.print((valueHolder == null ? null : valueHolder.value()) + ", ");
     }
-    dumpStore(cachingTier);
+    System.out.println();
+    dumpCachingTier("caching tier after 3 gets", cachingTier);
 
     for (int i = 0; i < 3; i++) {
-      store.get(i);
+      Store.ValueHolder<CharSequence> valueHolder = store.get(i);
+      System.out.print((valueHolder == null ? null : valueHolder.value()) + ", ");
     }
-    dumpStore(cachingTier);
+    System.out.println();
+    dumpCachingTier("caching tier after same 3 gets", cachingTier);
+
+    for (int i = 3; i < 6; i++) {
+      Store.ValueHolder<CharSequence> valueHolder = store.get(i);
+      System.out.print((valueHolder == null ? null : valueHolder.value()) + ", ");
+    }
+    System.out.println();
+    dumpCachingTier("caching tier after 3 other gets", cachingTier);
 
     timeSource.setTime(1);
-    dumpStore(cachingTier);
-
-
+    dumpCachingTier("caching tier after expiration", cachingTier);
 
     store.close();
+    System.out.println("**** the end ****");
   }
 
-  private void dumpStore(Store<Number, CharSequence> store) throws org.ehcache.exceptions.CacheAccessException {
-    System.out.println("******");
+  private void dumpStore(String message, Store<Number, CharSequence> store) throws org.ehcache.exceptions.CacheAccessException {
+    System.out.println("****** " + message);
+    Store.Iterator<Cache.Entry<Number, Store.ValueHolder<CharSequence>>> it = store.iterator();
+    while (it.hasNext()) {
+      Cache.Entry<Number, Store.ValueHolder<CharSequence>> next = it.next();
+      System.out.println(next.getKey() + " / " + next.getValue().value());
+    }
+  }
+
+  private void dumpCachingTier(String message, CachingTier<Number, CharSequence> store) throws org.ehcache.exceptions.CacheAccessException {
+    System.out.println("****** " + message);
     Store.Iterator<Cache.Entry<Number, Store.ValueHolder<CharSequence>>> it = store.iterator();
     while (it.hasNext()) {
       Cache.Entry<Number, Store.ValueHolder<CharSequence>> next = it.next();

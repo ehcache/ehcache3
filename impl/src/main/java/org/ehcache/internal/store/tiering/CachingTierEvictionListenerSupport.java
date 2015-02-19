@@ -15,23 +15,26 @@
  */
 package org.ehcache.internal.store.tiering;
 
-import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Ludovic Orban
  */
-public interface AuthoritativeTier<K, V> extends Store<K, V> {
+public class CachingTierEvictionListenerSupport<K, V> {
 
-  /**
-   * Marks the entry as not evictable and returns it atomically
-   */
-  ValueHolder<V> fault(K key) throws CacheAccessException;
+  private final List<CachingTier.EvictionListener<K, V>> listeners = new ArrayList<CachingTier.EvictionListener<K, V>>();
 
-  /**
-   * This marks the entry as evictable again
-   * @return true if something was flushed, false otherwise.
-   */
-  boolean flush(K key, ValueHolder<V> valueHolder, CachingTier<K, V> cachingTier);
+  public void addEvictionListener(CachingTier.EvictionListener<K, V> evictionListener) {
+    listeners.add(evictionListener);
+  }
+
+  public void fireEviction(K key, Store.ValueHolder<V> valueHolder) {
+    for (CachingTier.EvictionListener<K, V> listener : listeners) {
+      listener.onEviction(key, valueHolder);
+    }
+  }
 
 }
