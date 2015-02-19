@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Ludovic Orban
  */
 
-public class CachingStoreSPITest extends StoreSPITest<String, String> {
+public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
   private StoreFactory<String, String> storeFactory;
 
@@ -164,13 +164,13 @@ public class CachingStoreSPITest extends StoreSPITest<String, String> {
   }
 
   @Override
-  public void testClose() throws Exception {
-    throw new AssumptionViolatedException("disabled - SPITest bug or SPI is unclear");
+  public void testDestroy() throws Exception {
+    throw new AssumptionViolatedException("disabled - SPITest bug");
   }
 
   @Override
-  public void testDestroy() throws Exception {
-    throw new AssumptionViolatedException("disabled - SPITest bug or SPI is unclear");
+  public void testStoreEventListener() {
+    throw new AssumptionViolatedException("disabled - EventListeners not implemented yet see #273");
   }
 
 }
