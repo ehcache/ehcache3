@@ -23,18 +23,21 @@ import java.util.List;
 /**
  * @author Ludovic Orban
  */
-public class CachingTierEvictionListenerSupport<K, V> {
+public class InvalidationListenerSupport<K, V> {
 
-  private final List<CachingTier.EvictionListener<K, V>> listeners = new ArrayList<CachingTier.EvictionListener<K, V>>();
+  private final List<CachingTier.InvalidationListener<K, V>> listeners = new ArrayList<CachingTier.InvalidationListener<K, V>>();
 
-  public void addEvictionListener(CachingTier.EvictionListener<K, V> evictionListener) {
-    listeners.add(evictionListener);
+  public void addInvalidationListener(CachingTier.InvalidationListener<K, V> invalidationListener) {
+    listeners.add(invalidationListener);
   }
 
-  public void fireEviction(K key, Store.ValueHolder<V> valueHolder) {
-    for (CachingTier.EvictionListener<K, V> listener : listeners) {
-      listener.onEviction(key, valueHolder);
+  public void fireInvalidation(K key, Store.ValueHolder<V> valueHolder) {
+    for (CachingTier.InvalidationListener<K, V> listener : listeners) {
+      listener.onInvalidation(key, valueHolder);
     }
   }
 
+  public void removeInvalidationListener(CachingTier.InvalidationListener<K, V> invalidationListener) {
+    listeners.remove(invalidationListener);
+  }
 }

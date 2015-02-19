@@ -16,20 +16,30 @@
 package org.ehcache.internal.store.tiering;
 
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 
 /**
+ * Authoritative tier, according to Montreal design.
+
  * @author Ludovic Orban
  */
 public interface AuthoritativeTier<K, V> extends Store<K, V> {
 
   /**
-   * Marks the entry as not evictable and returns it atomically
+   * Marks the mapping as not evictable and returns it atomically.
+   * @return the value holder.
    */
-  ValueHolder<V> fault(K key) throws CacheAccessException;
+  ValueHolder<V> getAndFault(K key) throws CacheAccessException;
 
   /**
-   * This marks the entry as evictable again
+   * Marks the mapping as not evictable and performs computeIfAbsent() atomically.
+   * @return the value holder.
+   */
+  ValueHolder<V> computeIfAbsentAndFault(K key, Function<? super K, ? extends V> mappingFunction) throws CacheAccessException;
+
+  /**
+   * This marks the entry as evictable again.
    * @return true if something was flushed, false otherwise.
    */
   boolean flush(K key, ValueHolder<V> valueHolder, CachingTier<K, V> cachingTier);

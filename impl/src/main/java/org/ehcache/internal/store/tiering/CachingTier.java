@@ -15,23 +15,87 @@
  */
 package org.ehcache.internal.store.tiering;
 
-import org.ehcache.Cache;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 
 /**
+ * Caching tier, according to Montreal design.
+ *
  * @author Ludovic Orban
  */
 public interface CachingTier<K, V> {
 
-  Store.ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, Store.ValueHolder<V>> source) throws CacheAccessException;
+  /**
+   * Either return the value holder currently in the caching tier, or compute and store it when it isn't present.
+   * Note that expired value holders will be returned to give the caller of the caching tier a chance to flush it.
+   * @param key the key.
+   * @param source the function that computes the value.
+   * @return the value holder, or null.
+   * @throws CacheAccessException
+   */
+  Store.ValueHolder<V> getOrComputeIfAbsent(K key, Function<K, Store.ValueHolder<V>> source) throws CacheAccessException;
 
-  Store.ValueHolder<V> get(K key) throws CacheAccessException;
-
+  /**
+   * Remove a mapping.
+   * @param key the key.
+   * @throws CacheAccessException
+   */
   void remove(K key) throws CacheAccessException;
 
+  /**
+   * Empty out the caching store.
+   * @throws CacheAccessException
+   */
   void clear() throws CacheAccessException;
+
+  /**
+   * Check if the value holder expired or not. Only value holders coming from the
+   * caching tier where this call is performed can be used, otherwise you may get
+   * a ClassCastException.
+   * @param valueHolder the value holder.
+   * @return true if it expired, false otherwise.
+   */
+  boolean isExpired(Store.ValueHolder<V> valueHolder);
+
+  /**
+   * Get the expiration time of the value holder. Only value holders coming from the
+   * caching tier where this call is performed can be used, otherwise you may get
+   * a ClassCastException.
+   * @param valueHolder the value holder.
+   * @return the expiration timestamp.
+   */
+  long getExpireTimeMillis(Store.ValueHolder<V> valueHolder);
+
+  /**
+   * Add a caching tier invalidation listener.
+   * @param invalidationListener the listener.
+   */
+  void addInvalidationListener(InvalidationListener<K, V> invalidationListener);
+
+  /**
+   * Remove a caching tier invalidation listener.
+   * @param invalidationListener the listener.
+   */
+  void removeInvalidationListener(InvalidationListener<K, V> invalidationListener);
+
+  /**
+   * Caching tier invalidation listener.
+   * @param <K>
+   * @param <V>
+   */
+  interface InvalidationListener<K, V> {
+
+    /**
+     * Notification that a mapping was evicted or has expired.
+     * @param key the mapping's key.
+     * @param valueHolder the invalidated mapping's value holder.
+     */
+    void onInvalidation(K key, Store.ValueHolder<V> valueHolder);
+
+  }
+
+  /* lifecycle methods */
 
   void destroy() throws CacheAccessException;
 
@@ -42,19 +106,5 @@ public interface CachingTier<K, V> {
   void init();
 
   void maintenance();
-
-  void addEvictionListener(EvictionListener<K, V> evictionListener);
-
-  boolean isExpired(Store.ValueHolder<V> valueHolder);
-
-  long getExpireTimeMillis(Store.ValueHolder<V> valueHolder);
-
-  interface EvictionListener<K, V> {
-
-    void onEviction(K key, Store.ValueHolder<V> valueHolder);
-
-  }
-
-  Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator() throws CacheAccessException;
 
 }

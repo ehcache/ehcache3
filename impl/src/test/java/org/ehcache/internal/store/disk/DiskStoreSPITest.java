@@ -106,7 +106,7 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
         return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
             evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry);
       }
-      
+
       @Override
       public Class<String> getKeyType() {
         return String.class;

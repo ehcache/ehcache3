@@ -36,7 +36,7 @@ import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.internal.store.tiering.CachingTier;
-import org.ehcache.internal.store.tiering.CachingTierEvictionListenerSupport;
+import org.ehcache.internal.store.tiering.InvalidationListenerSupport;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
@@ -81,7 +81,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   private final Comparator<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionPrioritizer;
   private final Expiry<? super K, ? super V> expiry;
   private final TimeSource timeSource;
-  private final CachingTierEvictionListenerSupport<K, V> cachingTierEvictionListenerSupport = new CachingTierEvictionListenerSupport<K, V>();
+  private final InvalidationListenerSupport<K, V> invalidationListenerSupport = new InvalidationListenerSupport<K, V>();
   private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener();
 
   private final OperationObserver<EvictionOutcome> evictionObserver = operation(EvictionOutcome.class).named("eviction").of(this).tag("onheap-store").build();
@@ -135,6 +135,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
 
         if (mappedValue.isExpired(now)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          invalidationListenerSupport.fireInvalidation(mappedKey, mappedValue);
           return null;
         }
 
@@ -219,6 +220,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
         if (mappedValue == null || mappedValue.isExpired(now)) {
           if (mappedValue != null) {
             eventListener.onExpiration(wrap(mappedKey, mappedValue));
+            invalidationListenerSupport.fireInvalidation(mappedKey, mappedValue);
           }
           entryActuallyAdded.set(true);
           return newCreateValueHolder(key, value, now);
@@ -255,9 +257,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
         
         if (mappedValue.isExpired(now)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          invalidationListenerSupport.fireInvalidation(mappedKey, mappedValue);
           return null;
         } else if (value.equals(mappedValue.value())) {
           removed.set(true);
+          invalidationListenerSupport.fireInvalidation(mappedKey, mappedValue);
           return null;
         } else {
           setAccessTimeAndExpiry(key, mappedValue, now);
@@ -283,6 +287,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
         
         if (mappedValue.isExpired(now)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          invalidationListenerSupport.fireInvalidation(mappedKey, mappedValue);
           return null;
         } else {
           returnValue.set(mappedValue);
@@ -309,6 +314,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
         
         if (mappedValue.isExpired(now)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          invalidationListenerSupport.fireInvalidation(mappedKey, mappedValue);
           return null;
         } else if (oldValue.equals(mappedValue.value())) {
           returnValue.set(true);
@@ -372,6 +378,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
           if (entry.getValue().isExpired(now)) {
             it.remove();
             eventListener.onExpiration(wrap(entry));
+            invalidationListenerSupport.fireInvalidation(entry.getKey(), entry.getValue());
             continue;
           }
           
@@ -440,6 +447,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       });
       cachedValue = backEnd.putIfAbsent(key, fault);
       if (cachedValue == null) {
+        // todo: not hinting enforceCapacity() about the mapping we just added makes it likely that it will be the eviction target
         enforceCapacity(1);
         try {
           ValueHolder<V> value = fault.get();
@@ -453,7 +461,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
           } else {
             ValueHolder<V> p = getValue(backEnd.remove(key));
             if (p != null) {
-              cachingTierEvictionListenerSupport.fireEviction(key, p);
+              invalidationListenerSupport.fireInvalidation(key, p);
             }
             return p == null ? newValue : p;
           }
@@ -468,8 +476,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   }
 
   @Override
-  public void addEvictionListener(EvictionListener<K, V> evictionListener) {
-    cachingTierEvictionListenerSupport.addEvictionListener(evictionListener);
+  public void addInvalidationListener(InvalidationListener<K, V> invalidationListener) {
+    invalidationListenerSupport.addInvalidationListener(invalidationListener);
+  }
+
+  @Override
+  public void removeInvalidationListener(InvalidationListener<K, V> invalidationListener) {
+    invalidationListenerSupport.removeInvalidationListener(invalidationListener);
   }
 
   @Override
@@ -606,6 +619,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
         if (mappedValue != null && mappedValue.isExpired(now)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          invalidationListenerSupport.fireInvalidation(mappedKey, mappedValue);
           mappedValue = null;
         }
         
@@ -643,6 +657,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
         if (mappedValue == null || mappedValue.isExpired(now)) {
           if (mappedValue != null) {
             eventListener.onExpiration(wrap(mappedKey, mappedValue));
+            invalidationListenerSupport.fireInvalidation(mappedKey, mappedValue);
           }
           V computedValue = mappingFunction.apply(mappedKey);
           if (computedValue == null) {
@@ -683,6 +698,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
         
         if (mappedValue.isExpired(now)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          invalidationListenerSupport.fireInvalidation(mappedKey, mappedValue);
           return null;
         }
         
@@ -892,8 +908,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       
       if (map.remove(evict.getKey(), evict.getValue())) {
         evictionObserver.end(EvictionOutcome.SUCCESS);
-        cachingTierEvictionListenerSupport.fireEviction(evict.getKey(), evict.getValue());
         eventListener.onEviction(wrap(evict));
+        invalidationListenerSupport.fireInvalidation(evict.getKey(), evict.getValue());
         return true;
       } else {
         evictionObserver.end(EvictionOutcome.FAILURE);

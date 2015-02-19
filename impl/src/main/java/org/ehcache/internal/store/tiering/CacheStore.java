@@ -42,9 +42,9 @@ public class CacheStore<K, V> implements Store<K, V> {
     this.cachingTier = cachingTier;
     this.authoritativeTier = authoritativeTier;
 
-    this.cachingTier.addEvictionListener(new CachingTier.EvictionListener<K, V>() {
+    this.cachingTier.addInvalidationListener(new CachingTier.InvalidationListener<K, V>() {
       @Override
-      public void onEviction(K key, ValueHolder<V> valueHolder) {
+      public void onInvalidation(K key, ValueHolder<V> valueHolder) {
         CacheStore.this.authoritativeTier.flush(key, valueHolder, CacheStore.this.cachingTier);
       }
     });
@@ -53,23 +53,16 @@ public class CacheStore<K, V> implements Store<K, V> {
   @Override
   public ValueHolder<V> get(final K key) throws CacheAccessException {
     try {
-      ValueHolder<V> valueHolder = cachingTier.getOrComputeIfAbsent(key, new Function<K, ValueHolder<V>>() {
+      return cachingTier.getOrComputeIfAbsent(key, new Function<K, ValueHolder<V>>() {
         @Override
         public ValueHolder<V> apply(K key) {
           try {
-            return authoritativeTier.fault(key);
+            return authoritativeTier.getAndFault(key);
           } catch (CacheAccessException cae) {
             throw new ComputationException(cae);
           }
         }
       });
-      // caching tier does not perform expiration, this is done here
-      if (valueHolder != null && cachingTier.isExpired(valueHolder)) {
-        authoritativeTier.flush(key, valueHolder, cachingTier);
-        return null;
-      }
-
-      return valueHolder;
     } catch (ComputationException ce) {
       throw ce.getCacheAccessException();
     }
@@ -242,43 +235,42 @@ public class CacheStore<K, V> implements Store<K, V> {
     }
   }
 
-  @Override
   public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
-    ValueHolder<V> valueHolder = cachingTier.get(key);
-    if (valueHolder != null) {
-      return valueHolder;
-    }
-
     try {
-      return authoritativeTier.computeIfAbsent(key, mappingFunction);
-    } finally {
-      cachingTier.remove(key);
+      return cachingTier.getOrComputeIfAbsent(key, new Function<K, ValueHolder<V>>() {
+        @Override
+        public ValueHolder<V> apply(K k) {
+          try {
+            return authoritativeTier.computeIfAbsentAndFault(k, mappingFunction);
+          } catch (CacheAccessException cae) {
+            throw new ComputationException(cae);
+          }
+        }
+      });
+    } catch (ComputationException ce) {
+      throw ce.getCacheAccessException();
     }
   }
 
   @Override
   public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException {
-    ValueHolder<V> valueHolder = null;
     try {
-      valueHolder = authoritativeTier.computeIfPresent(key, remappingFunction);
-      return valueHolder;
+      return authoritativeTier.computeIfPresent(key, remappingFunction);
     } finally {
-      if (valueHolder != null) {
-        cachingTier.remove(key);
-      }
+      // XXX: it's not possible to discriminate if computation has been performed or not by looking at the computeIfPresent return value
+      // Hence, we must always clear the caching tier even when that's not necessary (ie: when no computing happened)
+      cachingTier.remove(key);
     }
   }
 
   @Override
   public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction, final NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
-    ValueHolder<V> valueHolder = null;
     try {
-      valueHolder = authoritativeTier.computeIfPresent(key, remappingFunction, replaceEqual);
-      return valueHolder;
+      return authoritativeTier.computeIfPresent(key, remappingFunction, replaceEqual);
     } finally {
-      if (valueHolder != null) {
-        cachingTier.remove(key);
-      }
+      // XXX: it's not possible to discriminate if computation has been performed or not by looking at the computeIfPresent return value
+      // Hence, we must always clear the caching tier even when that's not necessary (ie: when no computing happened)
+      cachingTier.remove(key);
     }
   }
 
@@ -333,12 +325,12 @@ public class CacheStore<K, V> implements Store<K, V> {
 
     @Override
     public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
-
+      // nothing to do
     }
 
     @Override
     public void stop() {
-
+      // nothing to do
     }
   }
 

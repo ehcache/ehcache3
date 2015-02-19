@@ -496,14 +496,19 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public ValueHolder<V> fault(K key) throws CacheAccessException {
+  public ValueHolder<V> getAndFault(K key) throws CacheAccessException {
     return get(key, true);
+  }
+
+  @Override
+  public ValueHolder<V> computeIfAbsentAndFault(K key, Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
+    return internalComputeIfAbsent(key, mappingFunction, true);
   }
 
   @Override
   public boolean flush(K key, ValueHolder<V> valueHolder, CachingTier<K, V> cachingTier) {
     int hash = hash(key.hashCode());
-    return segmentFor(hash).flush(key, hash, valueHolder, cachingTier);
+    return segmentFor(hash).flush(key, hash, (DiskValueHolder<V>) valueHolder, cachingTier);
   }
 
   class DiskStoreIterator implements Iterator<Cache.Entry<K, ValueHolder<V>>> {
@@ -720,6 +725,10 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
+    return internalComputeIfAbsent(key, mappingFunction, false);
+  }
+
+  private ValueHolder<V> internalComputeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction, boolean fault) throws CacheAccessException {
     checkKey(key);
     int hash = hash(key.hashCode());
     final long now = timeSource.getTimeMillis();
@@ -741,7 +750,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
         }
       }
     };
-    DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction, Segment.Compute.IF_ABSENT, false);
+    DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction, Segment.Compute.IF_ABSENT, fault);
     return enforceCapacityIfValueNotNull(computedElement);
   }
 

@@ -19,7 +19,6 @@ package org.ehcache.internal.store.disk;
 import org.ehcache.function.BiFunction;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.store.tiering.CachingTier;
-import org.ehcache.spi.cache.Store;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -829,13 +828,21 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
    * @param valueHolder   the expected value holder
    * @return true if succeeded
    */
-  boolean flush(final K key, final int hash, Store.ValueHolder<V> valueHolder, CachingTier<K, V> cachingTier) {
+  boolean flush(final K key, final int hash, DiskValueHolder<V> valueHolder, CachingTier<K, V> cachingTier) {
     DiskStorageFactory.DiskSubstitute<K, V> diskSubstitute = null;
     readLock().lock();
     try {
       HashEntry<K, V> e = getFirst(hash);
       while (e != null) {
         if (e.hash == hash && key.equals(e.key)) {
+          V value = valueHolder.value();
+          DiskStorageFactory.Element<K, V> retrieved = disk.retrieve(e.element);
+          V retrievedValue = retrieved == null ? null : retrieved.getValueHolder() == null ? null : retrieved.getValueHolder().value();
+
+          if (!eq(value, retrievedValue)) {
+            return false;
+          }
+
           final boolean b = e.faulted.compareAndSet(true, false);
           diskSubstitute = e.element;
           if (diskSubstitute instanceof DiskStorageFactory.Placeholder) {
@@ -845,8 +852,8 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
           } else {
             if (diskSubstitute instanceof DiskStorageFactory.DiskMarker) {
               final DiskStorageFactory.DiskMarker<K, V> diskMarker = (DiskStorageFactory.DiskMarker) diskSubstitute;
-              //TODO update the stats once hit rate has been implemented, see #122
-//              diskMarker.updateStats(valueHolder.hitRate(TimeUnit.MILLISECONDS), cachingTier.getExpireTimeMillis(valueHolder));
+              //TODO update with the true hit rate once it has been implemented, see #122
+              diskMarker.updateStats(0.0f, cachingTier.getExpireTimeMillis(valueHolder));
             }
           }
           return b;
@@ -860,6 +867,10 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
       }
     }
     return false;
+  }
+
+  private static boolean eq(Object o1, Object o2) {
+    return (o1 == o2) || (o1 != null && o1.equals(o2));
   }
 
   /**
@@ -956,7 +967,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
             encoded = disk.create(newElement);
 
             ++modCount;
-            tab[index] = new HashEntry<K, V>(key, hash, first, encoded, new AtomicBoolean(false));
+            tab[index] = new HashEntry<K, V>(key, hash, first, encoded, new AtomicBoolean(markFaulted));
             installed = true;
             // write-volatile
             count = count + 1;
