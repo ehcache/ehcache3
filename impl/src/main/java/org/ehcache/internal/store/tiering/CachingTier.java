@@ -27,6 +27,8 @@ public interface CachingTier<K, V> {
 
   Store.ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, Store.ValueHolder<V>> source) throws CacheAccessException;
 
+  Store.ValueHolder<V> get(K key) throws CacheAccessException;
+
   void remove(K key) throws CacheAccessException;
 
   void clear() throws CacheAccessException;

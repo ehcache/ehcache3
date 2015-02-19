@@ -21,7 +21,11 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
+import org.ehcache.internal.store.OnHeapStore;
+import org.ehcache.internal.store.disk.DiskStore;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Map;
 import java.util.Set;
@@ -222,41 +226,120 @@ public class CacheStore<K, V> implements Store<K, V> {
 
   @Override
   public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException {
-    throw new UnsupportedOperationException();
+    try {
+      return authoritativeTier.compute(key, mappingFunction);
+    } finally {
+      cachingTier.remove(key);
+    }
   }
 
   @Override
   public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
-    throw new UnsupportedOperationException();
+    try {
+      return authoritativeTier.compute(key, mappingFunction, replaceEqual);
+    } finally {
+      cachingTier.remove(key);
+    }
   }
 
   @Override
   public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
-    throw new UnsupportedOperationException();
+    ValueHolder<V> valueHolder = cachingTier.get(key);
+    if (valueHolder != null) {
+      return valueHolder;
+    }
+
+    try {
+      return authoritativeTier.computeIfAbsent(key, mappingFunction);
+    } finally {
+      cachingTier.remove(key);
+    }
   }
 
   @Override
   public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException {
-    throw new UnsupportedOperationException();
+    ValueHolder<V> valueHolder = null;
+    try {
+      valueHolder = authoritativeTier.computeIfPresent(key, remappingFunction);
+      return valueHolder;
+    } finally {
+      if (valueHolder != null) {
+        cachingTier.remove(key);
+      }
+    }
   }
 
   @Override
   public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction, final NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
-    throw new UnsupportedOperationException();
+    ValueHolder<V> valueHolder = null;
+    try {
+      valueHolder = authoritativeTier.computeIfPresent(key, remappingFunction, replaceEqual);
+      return valueHolder;
+    } finally {
+      if (valueHolder != null) {
+        cachingTier.remove(key);
+      }
+    }
   }
 
   @Override
   public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
-    throw new UnsupportedOperationException();
+    try {
+      return authoritativeTier.bulkCompute(keys, remappingFunction);
+    } finally {
+      for (K key : keys) {
+        cachingTier.remove(key);
+      }
+    }
   }
 
   @Override
   public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
-    throw new UnsupportedOperationException();
+    try {
+      return authoritativeTier.bulkCompute(keys, remappingFunction, replaceEqual);
+    } finally {
+      for (K key : keys) {
+        cachingTier.remove(key);
+      }
+    }
   }
 
   @Override
   public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
-    throw new UnsupportedOperationException();
+    try {
+      return authoritativeTier.bulkComputeIfAbsent(keys, mappingFunction);
+    } finally {
+      for (K key : keys) {
+        cachingTier.remove(key);
+      }
+    }
   }
+
+  public static class Provider implements Store.Provider {
+
+    @Override
+    public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      //todo use the storeConfig to figure out what providers to use
+      OnHeapStore.Provider onHeapStoreProvider = new OnHeapStore.Provider();
+      DiskStore.Provider diskStoreProvider = new DiskStore.Provider();
+
+      return new CacheStore<K, V>(onHeapStoreProvider.createStore(storeConfig, serviceConfigs), diskStoreProvider.createStore(storeConfig, serviceConfigs));
+    }
+
+    @Override
+    public void releaseStore(Store<?, ?> resource) {
+      resource.close();
+    }
+
+    @Override
+    public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+
+    }
+
+    @Override
+    public void stop() {
+
+    }
+  }
+
 }
