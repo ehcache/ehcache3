@@ -27,4 +27,16 @@
       </ehcache:loaderwriter>
     </ehcache:integration>
   </ehcache:cache>
+
+  <ehcache:cache-template name="example">
+    <ehcache:key-type>java.lang.Number</ehcache:key-type>
+    <ehcache:value-type>java.lang.String</ehcache:value-type>
+    <ehcache:integration>
+      <ehcache:loaderwriter>
+        <ehcache:class>com.pany.ehcache.integration.TestCacheLoaderWriter</ehcache:class>
+      </ehcache:loaderwriter>
+    </ehcache:integration>
+  </ehcache:cache-template>
+
+  <ehcache:cache alias="template1" usesTemplate="example"/>
 </ehcache:config>
