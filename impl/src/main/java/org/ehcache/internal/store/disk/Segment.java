@@ -16,7 +16,6 @@
 
 package org.ehcache.internal.store.disk;
 
-import org.ehcache.Cache;
 import org.ehcache.function.BiFunction;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.store.tiering.CachingTier;
@@ -27,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -724,44 +722,15 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
         writeLock().unlock();
         if (notify && evictedElement != null) {
           if (evictedElement.isExpired(timeSource.getTimeMillis())) {
-            diskStore.eventListener.onExpiration(toCacheEntry(evictedElement));
+            // todo: stats
           } else {
-            diskStore.eventListener.onEviction(toCacheEntry(evictedElement));
+            // todo: stats
           }
         }
       }
     } else {
       return null;
     }
-  }
-
-  private Cache.Entry<K, V> toCacheEntry(final DiskStorageFactory.Element<K, V> evictedElement) {
-    return new Cache.Entry<K, V>() {
-      @Override
-      public K getKey() {
-        return evictedElement.getKey();
-      }
-
-      @Override
-      public V getValue() {
-        return evictedElement.getValueHolder().value();
-      }
-
-      @Override
-      public long getCreationTime(TimeUnit unit) {
-        return evictedElement.getValueHolder().creationTime(unit);
-      }
-
-      @Override
-      public long getLastAccessTime(TimeUnit unit) {
-        return evictedElement.getValueHolder().lastAccessTime(unit);
-      }
-
-      @Override
-      public float getHitRate(TimeUnit unit) {
-        return evictedElement.getValueHolder().hitRate(unit);
-      }
-    };
   }
 
   /**

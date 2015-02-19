@@ -19,7 +19,6 @@ package org.ehcache.internal.store.disk;
 import org.ehcache.Cache;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
-import org.ehcache.events.CacheEvents;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
@@ -94,7 +93,6 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   private volatile DiskStorageFactory<K, V> diskStorageFactory;
   private volatile Segment<K, V>[] segments;
   private volatile int segmentShift;
-  protected volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener();
 
 
   public DiskStore(final Configuration<K, V> config, String alias, TimeSource timeSource, Serializer<Element> elementSerializer, Serializer<Object> indexSerializer) {
@@ -484,12 +482,12 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public void enableStoreEventNotifications(StoreEventListener<K, V> listener) {
-    eventListener = listener;
+    //todo: events are missing
   }
 
   @Override
   public void disableStoreEventNotifications() {
-    eventListener = CacheEvents.nullStoreEventListener();
+    //todo: events are missing
   }
 
   @Override

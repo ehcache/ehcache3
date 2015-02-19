@@ -28,7 +28,6 @@ import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.OnHeapStore;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
-import org.ehcache.internal.store.disk.DiskStorageFactory;
 import org.ehcache.internal.store.disk.DiskStore;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -174,8 +173,4 @@ public class CachingStoreSPITest extends StoreSPITest<String, String> {
     throw new AssumptionViolatedException("disabled - SPITest bug or SPI is unclear");
   }
 
-  @Override
-  public void testProviderReleaseStore() throws Exception {
-    throw new AssumptionViolatedException("disabled - SPITest bug or SPI is unclear");
-  }
 }
