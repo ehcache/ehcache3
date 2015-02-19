@@ -48,5 +48,13 @@ public class IntegrationConfigTest {
     final Number key = new Long(42);
     cache.put(key, "Bye y'all!");
     assertThat(TestCacheLoaderWriter.lastWrittenKey, is(key));
+
+    assertThat(configuration.getCacheConfigurations().containsKey("template1"), is(true));
+    final Cache<Number, String> templateCache = cacheManager.getCache("template1", Number.class, String.class);
+    assertThat(templateCache, notNullValue());
+    assertThat(templateCache.get(1), notNullValue());
+    final Number key1 = new Long(100);
+    templateCache.put(key1, "Bye y'all!");
+    assertThat(TestCacheLoaderWriter.lastWrittenKey, is(key1));
   }
 }
