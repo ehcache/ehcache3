@@ -18,6 +18,7 @@ package org.ehcache.spi.test;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 
 /**
  * @author Hung Huynh
@@ -28,6 +29,25 @@ public abstract class SPITester {
     Result result = new Result();
     result.testRunStarted();
     Class<? extends SPITester> testClass = getClass();
+    ArrayList<Method> beforeMethodList = new ArrayList<Method>();
+    ArrayList<Method> afterMethodList = new ArrayList<Method>();
+    for(Method m : testClass.getDeclaredMethods()){
+      if (m.isAnnotationPresent(Before.class)) {
+        beforeMethodList.add(m);
+      }
+      if (m.isAnnotationPresent(After.class)) {
+        afterMethodList.add(m);
+      }
+    }
+    if(!beforeMethodList.isEmpty()) {
+      for (Method bm : beforeMethodList) {
+        try {
+          bm.invoke(this, (Object[]) null);
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
+    }
     for (Method m : testClass.getDeclaredMethods()) {
       if (m.isAnnotationPresent(SPITest.class)) {
         if (m.isAnnotationPresent(Ignore.class)) {
@@ -40,6 +60,16 @@ public abstract class SPITester {
           result.testFailed(new ResultState(testClass, m.getName(), wrappedExc.getCause()));
         } catch (Exception e) {
           throw new RuntimeException(e);
+        } finally {
+          if (!afterMethodList.isEmpty()) {
+            for (Method am : afterMethodList) {
+              try {
+                am.invoke(this, (Object[]) null);
+              } catch (Exception e) {
+                throw new RuntimeException(e);
+              }
+            }
+          }
         }
       }
     }

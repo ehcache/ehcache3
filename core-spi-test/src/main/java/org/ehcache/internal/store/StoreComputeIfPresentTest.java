@@ -19,7 +19,9 @@ import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.SPITest;
+
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -31,17 +33,29 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     super(factory);
   }
 
+  protected Store<K, V> kvStore;
+  protected Store kvStore2;
+
+  @After
+  public void tearDown() {
+    if (kvStore != null) {
+      kvStore.close();
+      kvStore = null;
+    }
+    if (kvStore2 != null) {
+      kvStore2.close();
+      kvStore2 = null;
+    }
+  }
+
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongReturnValueType() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
         .all(), null));
 
     if (factory.getValueType() == Object.class) {
       System.err.println("Warning, store uses Object as value type, cannot verify in this configuration");
-      if(kvStore != null) {
-        kvStore.close();
-      }
       return;
     }
     
@@ -69,29 +83,22 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
-    } finally {
-      if(kvStore != null) {
-        kvStore.close();
-      }
     }
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongKeyType() throws Exception {
-    final Store kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     if (factory.getKeyType() == Object.class) {
       System.err.println("Warning, store uses Object as key type, cannot verify in this configuration");
-      if(kvStore != null) {
-        kvStore.close();
-      }
       return;
     }
 
     final K key = factory.getKeyType().newInstance();
     final V value = factory.getValueType().newInstance();
-    kvStore.put(key, value);
+    kvStore2.put(key, value);
 
     final Object badKey;
     if (factory.getKeyType() == String.class) {
@@ -101,7 +108,7 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     }
     
     try {
-      kvStore.computeIfPresent(badKey, new BiFunction() { // wrong key type
+      kvStore2.computeIfPresent(badKey, new BiFunction() { // wrong key type
             @Override
             public Object apply(Object key, Object value) {
               throw new AssertionError();
@@ -113,16 +120,12 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
-    } finally {
-      if(kvStore != null) {
-        kvStore.close();
-      }
     }
   }
 
   @SPITest
   public void testNullReturnRemovesEntry() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     final K key = factory.getKeyType().newInstance();
     final V value = factory.getValueType().newInstance();
@@ -141,16 +144,12 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
-    } finally {
-      if(kvStore != null) {
-        kvStore.close();
-      }
     }
   }
 
   @SPITest
   public void testComputePutsValueInStoreWhenKeyIsPresent() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
     final K key = factory.getKeyType().newInstance();
     final V value = factory.getValueType().newInstance();
     final V value2 = factory.createValue(System.nanoTime());
@@ -167,16 +166,12 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
-    } finally {
-      if(kvStore != null) {
-        kvStore.close();
-      }
     }
   }
 
   @SPITest
   public void testFunctionNotCalledWhenAbsent() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
     final K key = factory.getKeyType().newInstance();
 
     try {
@@ -190,16 +185,12 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
-    } finally {
-      if(kvStore != null) {
-        kvStore.close();
-      }
     }
   }
 
   @SPITest
   public void testException() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     final K key = factory.getKeyType().newInstance();
     final V value = factory.getValueType().newInstance();
@@ -221,8 +212,5 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     assertThat(kvStore.get(key).value(), is(value));
-    if(kvStore != null) {
-      kvStore.close();
-    }
   }
 }

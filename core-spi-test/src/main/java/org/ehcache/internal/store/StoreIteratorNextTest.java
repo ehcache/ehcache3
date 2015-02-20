@@ -20,6 +20,7 @@ import org.ehcache.Cache;
 import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.SPITest;
 
 import java.util.NoSuchElementException;
@@ -42,10 +43,20 @@ public class StoreIteratorNextTest<K, V> extends SPIStoreTester<K, V> {
     super(factory);
   }
 
+  protected Store<K, V> kvStore;
+
+  @After
+  public void tearDown() {
+    if (kvStore != null) {
+      kvStore.close();
+      kvStore = null;
+    }
+  }
+
   @SPITest
   public void nextReturnsNextElement()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
         .all(), null));
 
     K key = factory.getKeyType().newInstance();
@@ -61,17 +72,13 @@ public class StoreIteratorNextTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
-    } finally {
-      if(kvStore != null) {
-        kvStore.close();
-      }
     }
   }
 
   @SPITest
   public void noMoreElementThrowsException()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     kvStore.put(factory.getKeyType().newInstance(), factory.getValueType().newInstance());
 
@@ -86,10 +93,6 @@ public class StoreIteratorNextTest<K, V> extends SPIStoreTester<K, V> {
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
-    } finally {
-      if(kvStore != null) {
-        kvStore.close();
-      }
     }
   }
 }

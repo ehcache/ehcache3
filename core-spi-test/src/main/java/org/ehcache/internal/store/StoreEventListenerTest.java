@@ -24,6 +24,7 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.SPITest;
 import org.ehcache.internal.TimeSource;
 
@@ -53,11 +54,21 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   final V v2 = factory.createValue(2l);
   final V v3 = factory.createValue(3l);
 
+  protected Store<K, V> kvStore;
+
+  @After
+  public void tearDown() {
+    if (kvStore != null) {
+      kvStore.close();
+      kvStore = null;
+    }
+  }
+
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testGetOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         null, null, null, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
@@ -71,7 +82,7 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testContainsKeyOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         null, null, null, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
@@ -85,7 +96,7 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testPutIfAbsentOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         null, null, null, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
@@ -100,7 +111,7 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testRemoveOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         null, null, null, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
@@ -114,7 +125,7 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testReplaceTwoArgsOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         null, null, null, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
@@ -128,7 +139,7 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testReplaceThreeArgsOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         null, null, null, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
@@ -142,7 +153,7 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testComputeOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         null, null, null, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
@@ -162,7 +173,7 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testComputeIfAbsentOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         null, null, null, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
@@ -183,7 +194,7 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testComputeIfPresentOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         null, null, null, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
@@ -203,7 +214,7 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testPutOnEviction() throws Exception {
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         1L, null, null));
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
@@ -217,7 +228,7 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testPutIfAbsentOnEviction() throws Exception {
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         1L, null, null));
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
@@ -232,7 +243,7 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testReplaceTwoArgsOnEviction() throws Exception {
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         1L, null, null));
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
@@ -248,7 +259,7 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testComputeOnEviction() throws Exception {
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         1L, null, null));
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
@@ -267,7 +278,7 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testComputeIfAbsentOnEviction() throws Exception {
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         1L, null, null));
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
