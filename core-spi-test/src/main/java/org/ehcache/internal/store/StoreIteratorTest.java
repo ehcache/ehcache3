@@ -20,6 +20,7 @@ import org.ehcache.Cache;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.After;
+import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.SPITest;
 
 
@@ -46,6 +47,11 @@ public class StoreIteratorTest<K, V> extends SPIStoreTester<K, V> {
 
   protected Store<K, V> kvStore;
 
+  @Before
+  public void setUp() {
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+  }
+
   @After
   public void tearDown() {
     if (kvStore != null) {
@@ -58,8 +64,6 @@ public class StoreIteratorTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings("unchecked")
   public void iterableContainsValuesInAnyOrder()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
-
     K key1 = factory.createKey(1L);
     K key2 = factory.createKey(2L);
     K key3 = factory.createKey(3L);

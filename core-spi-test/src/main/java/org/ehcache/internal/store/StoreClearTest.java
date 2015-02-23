@@ -20,6 +20,7 @@ import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.After;
+import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.SPITest;
 
 
@@ -42,6 +43,11 @@ public class StoreClearTest<K, V> extends SPIStoreTester<K, V> {
 
   protected Store<K, V> kvStore;
 
+  @Before
+  public void setUp() {
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+  }
+
   @After
   public void tearDown() {
     if (kvStore != null) {
@@ -53,8 +59,6 @@ public class StoreClearTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void removesAllOfTheMappings()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
-
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
 
