@@ -609,7 +609,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *    <li>some {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
    * </ul>
    */
-  // TODO: Basis for cache miss handling issue #226
   @Test
   public void testGetAllStoreNoMatchCacheAccessExceptionAfterLoaderNoMatchSomeFail() throws Exception {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_B), Collections.singleton("keyA3"));
