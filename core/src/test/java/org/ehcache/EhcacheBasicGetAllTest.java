@@ -448,8 +448,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *    <li>non-empty request key set</li>
    *    <li>no {@link org.ehcache.spi.cache.Store} entries match</li>
    *    <li>{@link org.ehcache.spi.cache.Store#bulkComputeIfAbsent} throws before accessing loader</li>
-   *    <li>no {@link org.ehcache.spi.loader.CacheLoaderWriter} entries match</li>
-   *    <li>no {@link org.ehcache.spi.loader.CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
+   *    <li>no {@link org.ehcache.spi.loaderwriter.CacheLoaderWriter} entries match</li>
+   *    <li>no {@link org.ehcache.spi.loaderwriter.CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
    * </ul>
    */
   @Test
@@ -1136,7 +1136,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *    <li>all {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
    * </ul>
    */
-  @Ignore("BulkCacheLoadingException.getSuccesses() does not include store hits  Issue #226, Issue #227")
   @Test
   public void testGetAllStoreSomeMatchCacheAccessExceptionAfterLoaderAllFail() throws Exception {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B), Collections.singleton("keyA3"));
@@ -1156,7 +1155,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    // TODO: Determine proper result after Issue resolution
     final InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
@@ -1165,13 +1163,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(fetchKeys), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    final Set<String> successKeys = copyUntil(fetchKeys, "keyA3");
-    final Set<String> valueKeys = copyOnly(successKeys, KEY_SET_A);
-    final Set<String> nullKeys = copyWithout(successKeys, valueKeys);
-    final Set<String> failKeys = copyWithout(fetchKeys, successKeys);
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(),
-        Matchers.<Map<?, ?>>equalTo(union(getEntryMap(successKeys), getNullEntryMap(nullKeys))));
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(failKeys));
+    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses().isEmpty(), is(true));
+    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(fetchKeys));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -1261,13 +1254,12 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *    <li>no {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
    * </ul>
    */
-  @Ignore("ResilienceStrategy.getAllFailure(Iterable, Map, CacheAccessException) Map argument does not include store hits  Issue #227")
   @Test
   public void testGetAllStoreSomeMatchCacheAccessExceptionAfterLoaderNoMatchNoneFail() throws Exception {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B), Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_F));
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -1275,9 +1267,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
 
-    assertThat(actual, equalTo(getNullEntryMap(fetchKeys)));
+    assertThat(actual, equalTo(union(getNullEntryMap(KEY_SET_C), getEntryMap(KEY_SET_A))));
 
-    // TODO: Determine proper result after Issue resolution
     final InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
@@ -1285,13 +1276,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
     ordered.verify(this.spiedResilienceStrategy)
-        .getAllFailure(eq(fetchKeys), this.getAllFailureMapCaptor.capture(), any(CacheAccessException.class));
-    final Set<String> successKeys = copyUntil(fetchKeys, "keyA3");
-    final Set<String> valueKeys = copyOnly(successKeys, KEY_SET_A);
-    final Set<String> nullKeys = copyWithout(successKeys, valueKeys);
-    final Set<String> failKeys = copyWithout(fetchKeys, successKeys);
-    assertThat(this.getAllFailureMapCaptor.getValue(),
-        equalTo(union(getEntryMap(valueKeys), getNullEntryMap(nullKeys, failKeys))));
+        .getAllFailure(eq(fetchKeys), eq(actual), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -1391,13 +1376,12 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *    <li>some {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
    * </ul>
    */
-  @Ignore("BulkCacheLoadingException.getSuccesses holds cache-miss keys before CacheAccessException but not cache-hit keys  Issue #227")
   @Test
   public void testGetAllStoreSomeMatchCacheAccessExceptionAfterLoaderNoMatchSomeFail() throws Exception {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B), Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_F), KEY_SET_D);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B), KEY_SET_D);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -1410,7 +1394,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    // TODO: Determine proper result after Issue resolution
     final InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
@@ -1419,11 +1402,10 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(fetchKeys), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    final Set<String> successKeys = copyWithout(copyUntil(fetchKeys, "keyA3"), KEY_SET_D);
+    final Set<String> successKeys = copyWithout(copyUntil(fetchKeys, "keyA3"), fanIn(KEY_SET_A, KEY_SET_D));
     final Set<String> failKeys = copyWithout(fetchKeys, successKeys);
     assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(),
-        Matchers.<Map<?, ?>>equalTo(union(getEntryMap(copyOnly(successKeys, KEY_SET_A)),
-            getNullEntryMap(copyWithout(successKeys, KEY_SET_A)))));
+        Matchers.<Map<?, ?>>equalTo(getNullEntryMap(successKeys)));
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(failKeys));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
@@ -1514,13 +1496,12 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *    <li>no {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
    * </ul>
    */
-  @Ignore("ResilienceStrategy.getAllFailure(Iterable, Map, CacheAccessException) Map argument does not include store hits  Issue #227")
   @Test
   public void testGetAllStoreSomeMatchCacheAccessExceptionAfterLoaderSomeMatchNoneFail() throws Exception {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B), Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C, KEY_SET_F));
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C, KEY_SET_F));
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -1528,9 +1509,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
 
-    assertThat(actual, equalTo(union(getNullEntryMap(KEY_SET_A, KEY_SET_D), getEntryMap(KEY_SET_C))));
+    assertThat(actual, equalTo(union(getNullEntryMap(KEY_SET_D), getEntryMap(KEY_SET_A, KEY_SET_C))));
 
-    // TODO: Determine proper result after Issue resolution
     final InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
@@ -1538,12 +1518,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
     ordered.verify(this.spiedResilienceStrategy)
-        .getAllFailure(eq(fetchKeys), this.getAllFailureMapCaptor.capture(), any(CacheAccessException.class));
-    final Set<String> successKeys = copyUntil(fetchKeys, "keyA3");
-    final Set<String> setA_cacheHits = copyOnly(KEY_SET_A, successKeys);
-    final Set<String> setA_cacheMisses = copyWithout(KEY_SET_A, successKeys);
-    assertThat(this.getAllFailureMapCaptor.getValue(),
-        equalTo(union(getEntryMap(KEY_SET_C, setA_cacheHits), getNullEntryMap(KEY_SET_D, setA_cacheMisses))));
+        .getAllFailure(eq(fetchKeys), eq(actual), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -1644,13 +1619,12 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *    <li>non-matching {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
    * </ul>
    */
-  @Ignore("BulkCacheLoadingException.getSuccesses holds cache-miss keys before CacheAccessException but not cache-hit keys  Issue #226, Issue #227")
   @Test
   public void testGetAllStoreSomeMatchCacheAccessExceptionAfterLoaderSomeMatchDisjointFail() throws Exception {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B), Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C, KEY_SET_E), KEY_SET_F);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C, KEY_SET_E), KEY_SET_F);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -1663,7 +1637,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
       // Expected
     }
 
-    // TODO: Determine proper result after Issue resolution
     final InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
@@ -1672,12 +1645,10 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(fetchKeys), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    final Set<String> successKeys = copyWithout(copyUntil(fetchKeys, "keyA3"), KEY_SET_F);
-    final Set<String> setA_cacheHits = copyOnly(KEY_SET_A, successKeys);
+    final Set<String> successKeys = copyWithout(copyUntil(fetchKeys, "keyA3"), fanIn(KEY_SET_A, KEY_SET_F));
     final Set<String> failKeys = copyWithout(fetchKeys, successKeys);
     assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(),
-        Matchers.<Map<?,?>>equalTo(union(getEntryMap(setA_cacheHits),
-            getEntryMap(copyOnly(KEY_SET_C, successKeys)),
+        Matchers.<Map<?,?>>equalTo(union(getEntryMap(copyOnly(KEY_SET_C, successKeys)),
             getNullEntryMap(copyOnly(KEY_SET_D, successKeys)))));
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(failKeys));
 
@@ -2058,45 +2029,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    * <ul>
    *    <li>non-empty request key set</li> 
    *    <li>all {@link Store} entries match</li>
-   *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
-   *    <li>no {@link CacheLoaderWriter} entries match</li>
-   *    <li>no {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
-   * </ul>
-   */
-  // TODO: Reconcile against Issue #226 & Issue #227
-  @Test
-  public void testGetAllStoreAllMatchCacheAccessExceptionAfterLoaderNoMatchNoneFail() throws Exception {
-    final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B), Collections.singleton("keyA3"));
-    this.store = spy(fakeStore);
-
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C));
-    this.loaderWriter = spy(fakeLoader);
-
-    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
-
-    final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
-    final Map<String, String> actual = ehcache.getAll(fetchKeys);
-
-    final Map<String, String> expected = getNullEntryMap(fetchKeys);
-    assertThat(actual, equalTo(expected));
-
-    final InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
-    verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
-    // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
-    assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
-    ordered.verify(this.spiedResilienceStrategy)
-        .getAllFailure(eq(fetchKeys), eq(expected), any(CacheAccessException.class));
-
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
-  }
-
-  /**
-   * Tests {@link Ehcache#getAll(Set)} for
-   * <ul>
-   *    <li>non-empty request key set</li> 
-   *    <li>all {@link Store} entries match</li>
    *    <li>no {@link CacheLoaderWriter} entries match</li>
    *    <li>some {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
    * </ul>
@@ -2180,13 +2112,12 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *    <li>some {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
    * </ul>
    */
-  // TODO: Reconcile against Issue #226 & Issue #227
   @Test
   public void testGetAllStoreAllMatchCacheAccessExceptionAfterLoaderNoMatchSomeFail() throws Exception {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B), Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C, KEY_SET_F), KEY_SET_B);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_C, KEY_SET_F), KEY_SET_B);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -2296,13 +2227,12 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *    <li>no {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
    * </ul>
    */
-  // TODO: Reconcile against Issue #226 & Issue #227
   @Test
   public void testGetAllStoreAllMatchCacheAccessExceptionAfterLoaderSomeMatchNoneFail() throws Exception {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B), Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C));
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -2310,7 +2240,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
 
-    final Map<String, String> expected = union(getNullEntryMap(KEY_SET_A), getEntryMap(KEY_SET_B));
+    final Map<String, String> expected = getEntryMap(KEY_SET_A, KEY_SET_B);
     assertThat(actual, equalTo(expected));
 
     final InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
@@ -2413,7 +2343,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *    <li>non-matching {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
    * </ul>
    */
-  // TODO: Reconcile against Issue #226 & Issue #227
   @Test
   public void testGetAllStoreAllMatchCacheAccessExceptionAfterLoaderSomeMatchDisjointFail() throws Exception {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B), Collections.singleton("keyA3"));
@@ -2531,7 +2460,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *    <li>no {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
    * </ul>
    */
-  // TODO: Reconcile against Issue #227
   @Test
   public void testGetAllStoreAllMatchCacheAccessExceptionAfterLoaderAllMatchNoneFail() throws Exception {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B), Collections.singleton("keyA3"));
