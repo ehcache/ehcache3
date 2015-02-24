@@ -23,6 +23,7 @@ import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.CompleteConfiguration;
 import javax.cache.configuration.Configuration;
 import javax.cache.configuration.Factory;
+import javax.cache.expiry.Duration;
 import javax.cache.expiry.EternalExpiryPolicy;
 import javax.cache.expiry.ExpiryPolicy;
 import javax.cache.integration.CacheLoader;
@@ -52,7 +53,19 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
     this.valueType = config.getValueType();
     this.isStoreByValue = config.isStoreByValue();
 
-    if (config instanceof CompleteConfiguration) {
+    if (config instanceof Eh107MutableConfiguration) {
+      Eh107MutableConfiguration<K,V> mutableConfiguration = (Eh107MutableConfiguration) config;
+      this.isReadThrough = mutableConfiguration.isReadThrough();
+      this.isWriteThrough = mutableConfiguration.isWriteThrough();
+      this.isStatisticsEnabled = mutableConfiguration.isStatisticsEnabled();
+      this.isManagementEnabled = mutableConfiguration.isManagementEnabled();
+      this.cacheLoaderFactory = mutableConfiguration.getCacheLoaderFactory();
+      this.cacheWriterFactory = mutableConfiguration.getCacheWriterFactory();
+      for (CacheEntryListenerConfiguration<K, V> listenerConfig : mutableConfiguration.getCacheEntryListenerConfigurations()) {
+        cacheEntryListenerConfigs.add(listenerConfig);
+      }
+      this.expiryPolicyFactory = mutableConfiguration.isExpiryPolicyOverridden()? mutableConfiguration.getExpiryPolicyFactory(): null;
+    } else if (config instanceof CompleteConfiguration) {
       CompleteConfiguration<K, V> completeConfig = (CompleteConfiguration<K, V>) config;
       this.isReadThrough = completeConfig.isReadThrough();
       this.isWriteThrough = completeConfig.isWriteThrough();
