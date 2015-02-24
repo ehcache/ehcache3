@@ -24,9 +24,9 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.HeapResourceCacheConfiguration;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
@@ -49,16 +49,17 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
 
   @Before
   public void setUp() {
+    
     storeFactory = new StoreFactory<String, String>() {
 
       @Override
       public Store<String, String> newStore(final Store.Configuration<String, String> config) {
-        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, true);
+        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, true, new JavaSerializer<String>(getClass().getClassLoader()), new JavaSerializer<String>(getClass().getClassLoader()));
       }
 
       @Override
       public Store<String, String> newStore(final Store.Configuration<String, String> config, TimeSource timeSource) {
-        return new OnHeapStore<String, String>(config, timeSource, true);
+        return new OnHeapStore<String, String>(config, timeSource, true, new JavaSerializer<String>(getClass().getClassLoader()), new JavaSerializer<String>(getClass().getClassLoader()));
       }
 
       @Override
@@ -68,7 +69,9 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store.Provider newProvider() {
-        return new OnHeapStore.Provider();
+        Store.Provider service = new OnHeapStore.Provider();
+        service.start(null, new ServiceLocator());
+        return service;
       }
 
       @Override
@@ -76,7 +79,7 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
           final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), new JavaSerializationProvider());
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration());
       }
 
       @Override
@@ -85,7 +88,7 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer,
           final Expiry<? super String, ? super String> expiry) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, new JavaSerializationProvider());
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry);
       }
 
       @Override

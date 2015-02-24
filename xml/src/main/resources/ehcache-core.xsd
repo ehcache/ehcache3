@@ -54,11 +54,27 @@
   </xs:complexType>
 
   <xs:complexType name="service-type">
+    <xs:choice>
+      <xs:element name="serializer-default" type="ehcache:serializer-type" minOccurs="0" maxOccurs="1"/>
+      <xs:any namespace="##other" minOccurs="0" maxOccurs="1"/>
+    </xs:choice>
+  </xs:complexType>
+  
+   <xs:complexType name="serializer-type">
     <xs:sequence>
-      <xs:any namespace="##other" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="class" maxOccurs="unbounded" minOccurs="0">
+        <xs:complexType>
+          <xs:simpleContent>
+            <xs:extension base="xs:string">
+              <xs:attribute type="xs:string" name="cache" use="optional"/>
+              <xs:attribute type="xs:string" name="type" use="optional"/>
+            </xs:extension>
+          </xs:simpleContent>
+        </xs:complexType>
+     </xs:element>
     </xs:sequence>
   </xs:complexType>
-
+  
   <xs:complexType name="cache-type">
     <xs:complexContent>
       <xs:extension base="ehcache:baseCache-type">

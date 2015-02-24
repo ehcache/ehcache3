@@ -32,9 +32,11 @@ import org.ehcache.function.Predicates;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
+import org.ehcache.internal.store.disk.DiskStorageFactory.Element;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
+import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.io.File;
@@ -78,7 +80,8 @@ public class DiskStore<K, V> implements Store<K, V> {
   private final String alias;
   private final ClassLoader classLoader;
   private final Expiry<? super K, ? super V> expiry;
-  private final SerializationProvider serializationProvider;
+  private final Serializer<Element> elementSerializer;
+  private final Serializer<Object> indexSerializer;
   private final Comparable<Long> capacityConstraint;
   private final Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto;
   private final Comparator<DiskStorageFactory.DiskSubstitute<K, V>> evictionPrioritizer;
@@ -89,7 +92,7 @@ public class DiskStore<K, V> implements Store<K, V> {
   private volatile int segmentShift;
 
 
-  public DiskStore(final Configuration<K, V> config, String alias, TimeSource timeSource) {
+  public DiskStore(final Configuration<K, V> config, String alias, TimeSource timeSource, Serializer<Element> elementSerializer, Serializer<Object> indexSerializer) {
     Comparable<Long> capacity = config.getCapacityConstraint();
     if (capacity == null) {
       this.capacityConstraint = Comparables.biggest();
@@ -108,7 +111,8 @@ public class DiskStore<K, V> implements Store<K, V> {
     this.timeSource = timeSource;
     this.classLoader = config.getClassLoader();
     this.expiry = config.getExpiry();
-    this.serializationProvider = config.getSerializationProvider();
+    this.elementSerializer = elementSerializer;
+    this.indexSerializer = indexSerializer;
   }
 
   private Predicate<DiskStorageFactory.DiskSubstitute<K, V>> wrap(final Predicate<Cache.Entry<K, V>> predicate) {
@@ -448,7 +452,7 @@ public class DiskStore<K, V> implements Store<K, V> {
 
     try {
       diskStorageFactory = new DiskStorageFactory<K, V>(capacityConstraint, evictionVeto, evictionPrioritizer, classLoader,
-          timeSource, serializationProvider, dataFile, indexFile,
+          timeSource, elementSerializer, indexSerializer, dataFile, indexFile,
           DEFAULT_SEGMENT_COUNT, DEFAULT_QUEUE_CAPACITY, DEFAULT_EXPIRY_THREAD_INTERVAL);
     } catch (FileNotFoundException fnfe) {
       throw new IllegalStateException(fnfe);
@@ -979,13 +983,20 @@ public class DiskStore<K, V> implements Store<K, V> {
   public static class Provider implements Store.Provider {
     static final AtomicInteger aliasCounter = new AtomicInteger();
 
+    private ServiceProvider serviceProvider;
+    
     @Override
     public <K, V> DiskStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
       TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[]) serviceConfigs);
       TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
+      
+      SerializationProvider serializationProvider = serviceProvider.findService(SerializationProvider.class);
+      Serializer<Element> elementSerializer = serializationProvider.createSerializer(Element.class, storeConfig.getClassLoader());
+      Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, storeConfig.getClassLoader());
+      
 
       // todo: figure out a way to get a file name
-      return new DiskStore<K, V>(storeConfig, "diskstore-" + aliasCounter.incrementAndGet(), timeSource);
+      return new DiskStore<K, V>(storeConfig, "diskstore-" + aliasCounter.incrementAndGet(), timeSource, elementSerializer, objectSerializer);
     }
 
     @Override
@@ -995,12 +1006,12 @@ public class DiskStore<K, V> implements Store<K, V> {
 
     @Override
     public void start(final ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
-      // nothing to do
+      this.serviceProvider = serviceProvider;
     }
 
     @Override
     public void stop() {
-      // nothing to do
+      this.serviceProvider = null;
     }
   }
 }

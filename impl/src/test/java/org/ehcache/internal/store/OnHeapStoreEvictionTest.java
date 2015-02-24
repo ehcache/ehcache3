@@ -23,9 +23,7 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.serialization.SerializationProvider;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -102,11 +100,6 @@ public class OnHeapStoreEvictionTest {
       }
 
       @Override
-      public SerializationProvider getSerializationProvider() {
-        return new JavaSerializationProvider();
-      }
-
-      @Override
       public ClassLoader getClassLoader() {
         return getClass().getClassLoader();
       }
@@ -120,7 +113,7 @@ public class OnHeapStoreEvictionTest {
 
   static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
-      super(config, timeSource, false);
+      super(config, timeSource, false, null, null);
     }
 
     private boolean enforceCapacityWasCalled = false;

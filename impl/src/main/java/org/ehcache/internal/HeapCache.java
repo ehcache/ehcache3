@@ -27,7 +27,6 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 
@@ -73,11 +72,6 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
 
       @Override
       public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
-        throw new UnsupportedOperationException("Implement me!");
-      }
-
-      @Override
-      public SerializationProvider getSerializationProvider() {
         throw new UnsupportedOperationException("Implement me!");
       }
 

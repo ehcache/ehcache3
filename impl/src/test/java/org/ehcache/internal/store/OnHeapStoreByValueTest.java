@@ -23,10 +23,9 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.serialization.JavaSerializationProvider;
+import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
-import org.ehcache.spi.serialization.SerializationProvider;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -147,11 +146,6 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
       }
 
       @Override
-      public SerializationProvider getSerializationProvider() {
-        return new JavaSerializationProvider();
-      }
-
-      @Override
       public ClassLoader getClassLoader() {
         return getClass().getClassLoader();
       }
@@ -160,7 +154,7 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
       public Expiry<? super K, ? super V> getExpiry() {
         return expiry;
       }
-    }, timeSource, true);
+    }, timeSource, true, new JavaSerializer<K>(getClass().getClassLoader()), new JavaSerializer<V>(getClass().getClassLoader()));
   }
 
 }

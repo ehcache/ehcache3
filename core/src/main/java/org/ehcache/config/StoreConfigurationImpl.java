@@ -18,7 +18,6 @@ package org.ehcache.config;
 
 import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.serialization.SerializationProvider;
 
 /**
  *
@@ -31,25 +30,23 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   private final Comparable<Long> capacityConstraint;
   private final EvictionVeto<? super K, ? super V> evictionVeto;
   private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
-  private final SerializationProvider serializationProvider;
   private final ClassLoader classLoader;
   private final Expiry<? super K, ? super V> expiry;
 
   public StoreConfigurationImpl(CacheConfiguration<K, V> cacheConfig) {
     this(cacheConfig.getKeyType(), cacheConfig.getValueType(), cacheConfig.getCapacityConstraint(),
             cacheConfig.getEvictionVeto(), cacheConfig.getEvictionPrioritizer(), cacheConfig.getClassLoader(),
-        cacheConfig.getExpiry(), cacheConfig.getSerializationProvider());
+        cacheConfig.getExpiry());
   }
 
   public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
           EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
-          ClassLoader classLoader, Expiry<? super K, ? super V> expiry, SerializationProvider serializationProvider) {
+          ClassLoader classLoader, Expiry<? super K, ? super V> expiry) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.capacityConstraint = capacityConstraint;
     this.evictionVeto = evictionVeto;
     this.evictionPrioritizer = evictionPrioritizer;
-    this.serializationProvider = serializationProvider;
     this.classLoader = classLoader;
     this.expiry = expiry;
   }
@@ -77,11 +74,6 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   @Override
   public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
     return evictionPrioritizer;
-  }
-
-  @Override
-  public SerializationProvider getSerializationProvider() {
-    return serializationProvider;
   }
 
   @Override

@@ -21,7 +21,6 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.ehcache.expiry.Expiry;
-import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
@@ -35,21 +34,19 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   private final EvictionVeto<? super K, ? super V> evictionVeto;
   private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private final Collection<ServiceConfiguration<?>> serviceConfigurations;
-  private final SerializationProvider serializationProvider;
   private final ClassLoader classLoader;
   private final Expiry<? super K, ? super V> expiry;
   private final boolean persistent;
 
   public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
           EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
-          ClassLoader classLoader, Expiry<? super K, ? super V> expiry, SerializationProvider serializationProvider,
+          ClassLoader classLoader, Expiry<? super K, ? super V> expiry, 
           boolean persistent, ServiceConfiguration<?>... serviceConfigurations) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.capacityConstraint = capacityConstraint;
     this.evictionVeto = evictionVeto;
     this.evictionPrioritizer = evictionPrioritizer;
-    this.serializationProvider = serializationProvider;
     this.classLoader = classLoader;
     this.expiry = expiry;
     this.persistent = persistent;
@@ -84,11 +81,6 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   @Override
   public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
     return evictionPrioritizer;
-  }
-
-  @Override
-  public SerializationProvider getSerializationProvider() {
-    return serializationProvider;
   }
 
   public ClassLoader getClassLoader() {

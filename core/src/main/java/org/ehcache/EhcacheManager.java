@@ -30,7 +30,6 @@ import org.ehcache.events.DisabledCacheEventNotificationService;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ThreadPoolsService;
@@ -176,18 +175,14 @@ public class EhcacheManager implements PersistentCacheManager {
    *  adjusts the config to reflect new classloader & serialization provider
    */
   private <K, V> CacheConfiguration<K, V> adjustConfigurationWithCacheManagerDefaults(CacheConfiguration<K, V> config) {
-    SerializationProvider serializationProvider = config.getSerializationProvider();
-    if (serializationProvider == null) {
-      serializationProvider = serviceLocator.findService(SerializationProvider.class);
-    }
     ClassLoader cacheClassLoader = config.getClassLoader();
     if (cacheClassLoader == null) {
       cacheClassLoader = cacheManagerClassLoader;
     }
-    if (cacheClassLoader != config.getClassLoader() || serializationProvider != config.getSerializationProvider()) {
+    if (cacheClassLoader != config.getClassLoader() ) {
       config = new BaseCacheConfiguration<K, V>(config.getKeyType(), config.getValueType(), config.getCapacityConstraint(),
           config.getEvictionVeto(), config.getEvictionPrioritizer(), cacheClassLoader, config.getExpiry(),
-          serializationProvider, config.isPersistent(), config.getServiceConfigurations().toArray(
+          config.isPersistent(), config.getServiceConfigurations().toArray(
           new ServiceConfiguration<?>[config.getServiceConfigurations().size()]));
     }
     return config;
@@ -197,7 +192,6 @@ public class EhcacheManager implements PersistentCacheManager {
                                         final Class<K> keyType, final Class<V> valueType, Deque<Releasable> releasables) {
     Collection<ServiceConfiguration<?>> adjustedServiceConfigs = new ArrayList<ServiceConfiguration<?>>(config.getServiceConfigurations());
     ServiceConfiguration[] serviceConfigs = adjustedServiceConfigs.toArray(new ServiceConfiguration[adjustedServiceConfigs.size()]);
-
 
     final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
     final Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(config), serviceConfigs);

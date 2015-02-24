@@ -25,12 +25,16 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
+import org.ehcache.internal.store.OnHeapStore;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
+import org.ehcache.internal.store.disk.DiskStorageFactory.Element;
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.serialization.SerializationProvider;
+import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
-import org.junit.Test;
 import org.junit.internal.AssumptionViolatedException;
 
 /**
@@ -60,7 +64,11 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store<String, String> newStore(final Store.Configuration<String, String> config, final TimeSource timeSource) {
-        DiskStore<String, String> diskStore = new DiskStore<String, String>(config, "diskStore", timeSource);
+        SerializationProvider serializationProvider = new JavaSerializationProvider();
+        Serializer<Element> elementSerializer = serializationProvider.createSerializer(Element.class, config.getClassLoader());
+        Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, config.getClassLoader());
+        
+        DiskStore<String, String> diskStore = new DiskStore<String, String>(config, "diskStore", timeSource, elementSerializer, objectSerializer);
         try {
           diskStore.destroy();
           diskStore.create();
@@ -78,7 +86,9 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store.Provider newProvider() {
-        return new DiskStore.Provider();
+        Store.Provider service = new OnHeapStore.Provider();
+        service.start(null, new ServiceLocator());
+        return service;
       }
 
       @Override
@@ -94,7 +104,7 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer, 
           final Expiry<? super String, ? super String> expiry) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, new JavaSerializationProvider());
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry);
       }
 
       @Override

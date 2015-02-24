@@ -16,6 +16,7 @@
 
 package org.ehcache;
 
+import java.util.HashMap;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.ehcache.config.BaseCacheConfiguration;
@@ -30,7 +31,8 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.spi.serialization.SerializationProvider;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
 import org.slf4j.Logger;
 
@@ -48,7 +50,6 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   private EvictionVeto<? super K, ? super V> evictionVeto;
   private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private CacheLoaderWriter<? super K, V> cacheLoaderWriter;
-  private SerializationProvider serializationProvider;
   private ScheduledExecutorService statisticsExecutor;
   private CacheEventNotificationService<K, V> cacheEventNotificationService;
   private boolean persistent;
@@ -59,18 +60,20 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     this.logger = logger;
   }
 
-  T build(ServiceLocator serviceLocator) {
-    Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
-    if (serializationProvider == null) {
-      this.serializationProvider = serviceLocator.findService(SerializationProvider.class);
+  T build(ServiceLocator serviceLocator) throws IllegalStateException {
+    try {
+      serviceLocator.startAllServices(new HashMap<Service, ServiceConfiguration<?>>());
+    } catch (Exception e) {
+      throw new IllegalStateException("StandaloneCacheBuilder failed to build.", e);
     }
+    Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
 
     final StoreConfigurationImpl<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType,
-        capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, expiry, serializationProvider);
+        capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, expiry);
     final Store<K, V> store = storeProvider.createStore(storeConfig);
 
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto,
-        evictionPrioritizer, classLoader, expiry, serializationProvider, persistent);
+        evictionPrioritizer, classLoader, expiry, persistent);
 
     final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, cacheEventNotificationService, statisticsExecutor,logger);
 
@@ -82,7 +85,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     return (T)ehcache;
   }
 
-  public final T build() {
+  public final T build() throws IllegalStateException {
     return build(new ServiceLocator());
   }
 
@@ -132,11 +135,6 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     return this;
   }
   
-  public final StandaloneCacheBuilder<K, V, T> withSerializationProvider(SerializationProvider serializationProvider) {
-    this.serializationProvider = serializationProvider;
-    return this;
-  }
-
   public final StandaloneCacheBuilder<K, V, T> withStatisticsExecutor(ScheduledExecutorService statisticsExecutor) {
     this.statisticsExecutor = statisticsExecutor;
     return this;

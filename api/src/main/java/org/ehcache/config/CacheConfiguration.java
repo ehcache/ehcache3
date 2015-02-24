@@ -18,7 +18,6 @@ package org.ehcache.config;
 
 import org.ehcache.Cache;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
@@ -79,13 +78,6 @@ public interface CacheConfiguration<K, V> {
    * @return the eviction prioritizer
    */
   EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer();
-
-  /**
-   * Returns the {@link SerializationProvider} the cache is going to use to serialize mappings
-   *
-   * @return the serialization provider
-   */
-  SerializationProvider getSerializationProvider();
 
   /**
    * The {@link ClassLoader} for this cache. This {@code ClassLoader} will be used to instantiate cache level services

@@ -37,6 +37,7 @@ import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.statistics.CacheOperationOutcomes.EvictionOutcome;
@@ -70,7 +71,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   private final MapWrapper<K, V> map;
   private final Class<K> keyType;
   private final Class<V> valueType;
-  private final Serializer<V> serializer;
+  private final Serializer<V> valueSerializer;
   private final Serializer<K> keySerializer;
 
   private final Comparable<Long> capacityConstraint;
@@ -89,7 +90,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     }
   }; 
  
-  public OnHeapStore(final Configuration<K, V> config, TimeSource timeSource, boolean storeByValue) {
+  public OnHeapStore(final Configuration<K, V> config, TimeSource timeSource, boolean storeByValue, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
     Comparable<Long> capacity = config.getCapacityConstraint();
     EvictionPrioritizer<? super K, ? super V> prioritizer = config.getEvictionPrioritizer();
     if(prioritizer == null && capacity != null) {
@@ -107,14 +108,14 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     this.expiry = config.getExpiry();
     this.timeSource = timeSource;
     if (storeByValue) {
-      this.serializer = config.getSerializationProvider().createSerializer(valueType, config.getClassLoader());
-      this.keySerializer = config.getSerializationProvider().createSerializer(keyType, config.getClassLoader());
+      this.valueSerializer = valueSerializer;
+      this.keySerializer = keySerializer;
     } else {
-      this.serializer = null;
+      this.valueSerializer = null;
       this.keySerializer = null;
     }
     
-    this.map = new MapWrapper<K, V>(keySerializer);
+    this.map = new MapWrapper<K, V>(this.keySerializer);
   }
 
   @Override
@@ -634,8 +635,8 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     }
     
     OnHeapValueHolder<V> valueHolder;
-    if (serializer != null) {
-      valueHolder = new ByValueOnHeapValueHolder<V>(newValue, now, serializer);
+    if (valueSerializer != null) {
+      valueHolder = new ByValueOnHeapValueHolder<V>(newValue, now, valueSerializer);
     } else {
       valueHolder = new ByRefOnHeapValueHolder<V>(newValue, now);
     }
@@ -662,8 +663,8 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     }
     
     OnHeapValueHolder<V> valueHolder;
-    if (serializer != null) {
-      valueHolder = new ByValueOnHeapValueHolder<V>(value, now, serializer);
+    if (valueSerializer != null) {
+      valueHolder = new ByValueOnHeapValueHolder<V>(value, now, valueSerializer);
     } else {
       valueHolder = new ByRefOnHeapValueHolder<V>(value, now);
     }
@@ -755,6 +756,9 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   }
 
   public static class Provider implements Store.Provider {
+    
+    private ServiceProvider serviceProvider;
+    
     @Override
     public <K, V> OnHeapStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
       OnHeapStoreServiceConfig onHeapStoreServiceConfig = findSingletonAmongst(OnHeapStoreServiceConfig.class, (Object[])serviceConfigs);
@@ -762,8 +766,14 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
       TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[])serviceConfigs);
       TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
-      
-      return new OnHeapStore<K, V>(storeConfig, timeSource, storeByValue);
+      Serializer<K> keySerializer = null;
+      Serializer<V> valueSerializer = null;
+      if(storeByValue){
+        SerializationProvider serializationProvider = serviceProvider.findService(SerializationProvider.class);
+        keySerializer = serializationProvider.createSerializer(storeConfig.getKeyType(), storeConfig.getClassLoader());
+        valueSerializer = serializationProvider.createSerializer(storeConfig.getValueType(), storeConfig.getClassLoader());
+      }
+      return new OnHeapStore<K, V>(storeConfig, timeSource, storeByValue, keySerializer, valueSerializer);
     }
 
     @Override
@@ -777,12 +787,12 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
     @Override
     public void start(ServiceConfiguration<?> cfg, final ServiceProvider serviceProvider) {
-      // nothing to do
+      this.serviceProvider = serviceProvider;
     }
 
     @Override
     public void stop() {
-      // nothing to do
+      this.serviceProvider = null;
     }
   }
 

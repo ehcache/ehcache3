@@ -16,7 +16,6 @@
 
 package org.ehcache.config;
 
-import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
@@ -33,7 +32,6 @@ public class CacheConfigurationBuilder<K, V> {
   private final Collection<ServiceConfiguration<?>> serviceConfigurations = new HashSet<ServiceConfiguration<?>>();
   private Expiry<? super K, ? super V> expiry = Expirations.noExpiration();
   private ClassLoader classLoader = null;
-  private SerializationProvider serializationProvider = null;
   private Comparable<Long> capacityConstraint;
   private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private EvictionVeto<? super K, ? super V> evictionVeto;
@@ -99,14 +97,14 @@ public class CacheConfigurationBuilder<K, V> {
   public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType) {
     return new BaseCacheConfiguration<CK, CV>(keyType, valueType, capacityConstraint, evictionVeto,
         evictionPrioritizer, classLoader, expiry,
-        serializationProvider, persistent, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
+        persistent, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
   public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType,
                                                      EvictionVeto<? super CK, ? super CV> evictionVeto,
                                                      EvictionPrioritizer<? super CK, ? super CV> evictionPrioritizer) {
     return new BaseCacheConfiguration<CK, CV>(keyType, valueType, this.capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, expiry,
-        serializationProvider, persistent, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
+        persistent, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
   
   public CacheConfigurationBuilder<K, V> withClassLoader(ClassLoader classLoader) {
@@ -126,8 +124,4 @@ public class CacheConfigurationBuilder<K, V> {
     return this;
   }
 
-  public CacheConfigurationBuilder<K, V> withSerializationProvider(SerializationProvider serializationProvider) {
-    this.serializationProvider = serializationProvider;
-    return this;
-  }
 }

@@ -23,7 +23,6 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.serialization.SerializationProvider;
 
 public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
 
@@ -74,11 +73,6 @@ public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
       }
 
       @Override
-      public SerializationProvider getSerializationProvider() {
-        return null;
-      }
-
-      @Override
       public ClassLoader getClassLoader() {
         return getClass().getClassLoader();
       }
@@ -87,7 +81,7 @@ public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
       public Expiry<? super K, ? super V> getExpiry() {
         return expiry;
       }
-    }, timeSource, false);
+    }, timeSource, false, null, null);
   }
 
 }
