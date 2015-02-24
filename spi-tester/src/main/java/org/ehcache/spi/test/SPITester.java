@@ -41,20 +41,18 @@ public abstract class SPITester {
     }
 
     for (Method m : testClass.getDeclaredMethods()) {
-      if(m.isAnnotationPresent(SPITest.class) && !m.isAnnotationPresent(Ignore.class)) {
-        for (Method bm : beforeMethodList) {
-          try {
-            bm.invoke(this, (Object[]) null);
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-        }
-      }
       if (m.isAnnotationPresent(SPITest.class)) {
         if (m.isAnnotationPresent(Ignore.class)) {
           result.testSkipped(new ResultState(testClass, m.getName(), m.getAnnotation(Ignore.class).reason()));
         }
         else try {
+          for (Method bm : beforeMethodList) {
+            try {
+              bm.invoke(this, (Object[]) null);
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            }
+          }
           m.invoke(this, (Object[]) null);
           result.testFinished();
         } catch (InvocationTargetException wrappedExc) {
