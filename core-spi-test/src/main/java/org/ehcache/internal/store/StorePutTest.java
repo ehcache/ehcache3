@@ -19,6 +19,7 @@ package org.ehcache.internal.store;
 import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.SPITest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -40,10 +41,25 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
     super(factory);
   }
 
+  protected Store<K, V> kvStore;
+  protected Store kvStore2;
+
+  @After
+  public void tearDown() {
+    if (kvStore != null) {
+      kvStore.close();
+      kvStore = null;
+    }
+    if (kvStore2 != null) {
+      kvStore2.close();
+      kvStore2 = null;
+    }
+  }
+
   @SPITest
   public void nullKeyThrowsException()
       throws IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
 
     K key = null;
     V value = factory.getValueType().newInstance();
@@ -62,7 +78,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void nullValueThrowsException()
       throws IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
 
     K key = factory.getKeyType().newInstance();
     V value = null;
@@ -81,7 +97,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void valueHolderCanBeRetrievedWithEqualKey()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
         .all(), null));
 
     K key = factory.getKeyType().newInstance();
@@ -101,15 +117,15 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public void wrongKeyTypeThrowsException()
       throws IllegalAccessException, InstantiationException {
-    final Store kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
 
     V value = factory.getValueType().newInstance();
 
     try {
       if (this.factory.getKeyType() == String.class) {
-        kvStore.put(1.0f, value);
+        kvStore2.put(1.0f, value);
       } else {
-        kvStore.put("key", value);
+        kvStore2.put("key", value);
       }
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
@@ -124,15 +140,15 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public void wrongValueTypeThrowsException()
       throws IllegalAccessException, InstantiationException {
-    final Store kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
 
     K key = factory.getKeyType().newInstance();
 
     try {
       if (this.factory.getValueType() == String.class) {
-        kvStore.put(key, 1.0f);
+        kvStore2.put(key, 1.0f);
       } else {
-        kvStore.put(key, "value");
+        kvStore2.put(key, "value");
       }
       throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException e) {

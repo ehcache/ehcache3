@@ -19,7 +19,9 @@ package org.ehcache.internal.store;
 import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.SPITest;
+
 
 import static org.ehcache.spi.cache.Store.ValueHolder;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -42,10 +44,25 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
     super(factory);
   }
 
+  protected Store<K, V> kvStore;
+  protected Store kvStore2;
+
+  @After
+  public void tearDown() {
+    if (kvStore != null) {
+      kvStore.close();
+      kvStore = null;
+    }
+    if (kvStore2 != null) {
+      kvStore2.close();
+      kvStore2 = null;
+    }
+  }
+
   @SPITest
   public void existingKeyMappedInStoreReturnsValueHolder()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
         .all(), null));
 
     K key = factory.getKeyType().newInstance();
@@ -64,7 +81,7 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void keyNotMappedInStoreReturnsNull()
       throws IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
 
     K key = factory.getKeyType().newInstance();
 
@@ -79,7 +96,7 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void existingKeyMappedInStoreReturnsCorrectValueHolder()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     K key = factory.getKeyType().newInstance();
     V value = factory.getValueType().newInstance();
@@ -97,7 +114,7 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void nullKeyThrowsException()
       throws IllegalAccessException, InstantiationException {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
 
     K key = null;
 
@@ -117,13 +134,13 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public void wrongKeyTypeThrowsException()
       throws IllegalAccessException, InstantiationException {
-    final Store kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
 
     try {
       if (this.factory.getKeyType() == String.class) {
-        kvStore.get(1.0f);
+        kvStore2.get(1.0f);
       } else {
-        kvStore.get("key");
+        kvStore2.get("key");
       }
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {

@@ -19,7 +19,9 @@ import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.SPITest;
+
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -33,10 +35,25 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     super(factory);
   }
 
+  protected Store<K, V> kvStore;
+  protected Store kvStore2;
+
+  @After
+  public void tearDown() {
+    if (kvStore != null) {
+      kvStore.close();
+      kvStore = null;
+    }
+    if (kvStore2 != null) {
+      kvStore2.close();
+      kvStore2 = null;
+    }
+  }
+
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongReturnValueType() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
         .all(), null));
 
     if (factory.getValueType() == Object.class) {
@@ -72,7 +89,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongKeyType() throws Exception {
-    final Store kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     if (factory.getKeyType() == Object.class) {
       System.err.println("Warning, store uses Object as key type, cannot verify in this configuration");
@@ -87,7 +104,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
     
     try {
-      kvStore.computeIfAbsent(badKey, new Function() { // wrong key type
+      kvStore2.computeIfAbsent(badKey, new Function() { // wrong key type
             @Override
             public Object apply(Object key) {
               throw new AssertionError();
@@ -104,7 +121,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testComputePutsValueInStoreWhenKeyIsAbsent() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     final K key = factory.getKeyType().newInstance();
     final V value = factory.getValueType().newInstance();
@@ -126,7 +143,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testFunctionNotInvokedWhenPresent() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     final K key = factory.getKeyType().newInstance();
     final V value = factory.getValueType().newInstance();
@@ -150,7 +167,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testFunctionReturnsNull() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     final K key = factory.getKeyType().newInstance();
 
@@ -176,7 +193,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testException() throws Exception {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     final K key = factory.getKeyType().newInstance();
 

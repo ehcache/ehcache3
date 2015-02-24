@@ -20,7 +20,9 @@ import org.ehcache.Cache;
 import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.SPITest;
+
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -39,10 +41,20 @@ public class StoreIteratorHasNextTest<K, V> extends SPIStoreTester<K, V> {
     super(factory);
   }
 
+  protected Store<K, V> kvStore;
+
+  @After
+  public void tearDown() {
+    if (kvStore != null) {
+      kvStore.close();
+      kvStore = null;
+    }
+  }
+
   @SPITest
   public void hasNext()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
         .all(), null));
 
     int nbElements = 3;
@@ -65,7 +77,7 @@ public class StoreIteratorHasNextTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void hasNextReturnsFalseIfNoElement()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
-    final Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();
 

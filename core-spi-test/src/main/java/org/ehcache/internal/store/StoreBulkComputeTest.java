@@ -19,7 +19,10 @@ package org.ehcache.internal.store;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.test.After;
+import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.SPITest;
+
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -45,11 +48,24 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     super(factory);
   }
 
+  private Store<K, V> kvStore;
+
+  @Before
+  public void setUp() {
+    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+  }
+
+  @After
+  public void tearDown() {
+    if (kvStore != null) {
+      kvStore.close();
+      kvStore = null;
+    }
+  }
+
   @SuppressWarnings({ "unchecked" })
   @SPITest
   public void remappingFunctionReturnsIterableOfEntriesForEachInputEntry() throws Exception {
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
-
     Set<K> inputKeys = new HashSet<K>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
@@ -82,8 +98,6 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked" })
   @SPITest
   public void testWrongKeyType() throws Exception {
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
-
     Set<K> inputKeys = new HashSet<K>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
@@ -113,8 +127,6 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void mappingIsRemovedFromStoreForNullValueEntriesFromRemappingFunction() throws Exception {
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
-
     Set<K> inputKeys = new HashSet<K>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
@@ -147,8 +159,6 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void remappingFunctionGetsIterableWithMappedStoreEntryValueOrNull() throws Exception {
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
-
     Set<K> inputKeys = new HashSet<K>();
     final Map<K, V> mappedEntries = new HashMap<K, V>();
     int nbElements = 10;
@@ -189,8 +199,6 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void computeValuesForEveryKeyUsingARemappingFunction() throws Exception {
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
-
     Set<K> inputKeys = new HashSet<K>();
     final Map<K, V> computedEntries = new HashMap<K, V>();
     int nbElements = 10;
@@ -226,8 +234,6 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked" })
   @SPITest
   public void remappingFunctionProducesWrongKeyType() throws Exception {
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
-
     Set<K> inputKeys = new HashSet<K>();
     final Map<K, V> computedEntries = new HashMap<K, V>();
     int nbElements = 10;
@@ -266,8 +272,6 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked" })
   @SPITest
   public void remappingFunctionProducesWrongValueType() throws Exception {
-    Store<K, V> kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
-
     Set<K> inputKeys = new HashSet<K>();
     final Map<K, V> computedEntries = new HashMap<K, V>();
     int nbElements = 10;
