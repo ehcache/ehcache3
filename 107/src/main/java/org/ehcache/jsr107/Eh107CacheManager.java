@@ -39,15 +39,20 @@ import org.ehcache.Ehcache;
 import org.ehcache.EhcacheHackAccessor;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author teck
  */
 class Eh107CacheManager implements CacheManager {
+
+  private static final Logger LOG = LoggerFactory.getLogger(Eh107CacheManager.class);
 
   private static MBeanServer MBEAN_SERVER = ManagementFactory.getPlatformMBeanServer();
 
@@ -201,8 +206,11 @@ class Eh107CacheManager implements CacheManager {
     if (builder == null) {
       builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
     }
-
-    builder = builder.withExpiry(expiry);
+    if(expiry != null) {
+      builder = builder.withExpiry(expiry);
+    } else {
+      LOG.warn("JSR107 Expiry Policy not set for cache {} using expiry policy from template", cacheName);
+    }
 
     OnHeapStoreServiceConfig onHeapStoreServiceConfig = builder.getExistingServiceConfiguration(OnHeapStoreServiceConfig.class);
     if (onHeapStoreServiceConfig == null) {
@@ -215,8 +223,24 @@ class Eh107CacheManager implements CacheManager {
     // complain if you have config.isReadThrough() true and a null
     // loader -- see https://github.com/jsr107/jsr107tck/issues/59
     CacheLoaderWriter<? super K, V> cacheLoaderWriter = cacheResources.getCacheLoaderWriter();
-    if (cacheLoaderWriter != null && (jsr107Config.isReadThrough() || jsr107Config.isWriteThrough())) {
-      cacheLoaderWriterFactory.registerJsr107Loader(cacheName, cacheLoaderWriter);
+
+    if(jsr107Config.isReadThrough() || jsr107Config.isWriteThrough()) {
+      if(cacheLoaderWriter != null) {
+        LOG.warn("Ignoring templated loader/writer & using JSR107 configuration cacheloader/writer for {}", cacheName);
+        cacheLoaderWriterFactory.registerJsr107Loader(cacheName, cacheLoaderWriter);
+      } else  {
+        DefaultCacheLoaderWriterConfiguration conf = builder.getExistingServiceConfiguration(DefaultCacheLoaderWriterConfiguration.class);
+        if(conf == null) {
+          throw new InstantiationException("Unable to construct (read/write)through cache without either a templated loader/writer or configured loader/writer");
+        }
+        LOG.warn("Using the templated cache loader/writer {} for the cache {}", conf.getClazz().getName(), cacheName);
+      }
+    } else {
+      DefaultCacheLoaderWriterConfiguration conf = builder.getExistingServiceConfiguration(DefaultCacheLoaderWriterConfiguration.class);
+      if(conf != null) {
+        LOG.warn("Removing the loader/writer service configuration from the JSR107 cache {}", cacheName);
+        builder.removeServiceConfig(conf);
+      }
     }
 
     return builder.buildConfig(jsr107Config.getKeyType(), jsr107Config.getValueType());
