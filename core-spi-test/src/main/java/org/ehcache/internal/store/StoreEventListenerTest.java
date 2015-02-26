@@ -28,7 +28,10 @@ import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.SPITest;
 import org.ehcache.internal.TimeSource;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;

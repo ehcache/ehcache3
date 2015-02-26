@@ -32,6 +32,7 @@ import org.ehcache.spi.cache.Store.Iterator;
 import org.ehcache.spi.cache.Store.ValueHolder;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
+import org.mockito.Matchers;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -44,6 +45,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public abstract class BaseOnHeapStoreTest {
@@ -53,27 +56,33 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testEvictEmptyStoreDoesNothing() throws Exception {
     OnHeapStore<String, String> store = newStore();
+    StoreEventListener<String, String> listener = addListener(store);
     assertThat(store.evict(), is(false));
+    verify(listener, never()).onEviction(Matchers.<Cache.Entry<String, String>>any());
   }
 
   @Test
   public void testEvictWithNoVetoDoesEvict() throws Exception {
     OnHeapStore<String, String> store = newStore();
+    StoreEventListener<String, String> listener = addListener(store);
     for (int i = 0; i < 100; i++) {
       store.put(Integer.toString(i), Integer.toString(i));
     }
     assertThat(store.evict(), is(true));
     assertThat(storeSize(store), is(99));
+    verify(listener, times(1)).onEviction(Matchers.<Cache.Entry<String, String>>any());
   }
 
   @Test
   public void testEvictWithFullVetoDoesEvict() throws Exception {
     OnHeapStore<String, String> store = newStore(Eviction.all());
+    StoreEventListener<String, String> listener = addListener(store);
     for (int i = 0; i < 100; i++) {
       store.put(Integer.toString(i), Integer.toString(i));
     }
     assertThat(store.evict(), is(true));
     assertThat(storeSize(store), is(99));
+    verify(listener, times(1)).onEviction(Matchers.<Cache.Entry<String, String>>any());
   }
 
   @Test
@@ -88,12 +97,24 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
-    StoreEventListener<String, String> listener = addExpiryListener(store);
+    StoreEventListener<String, String> listener = addListener(store);
     store.put("key", "value");
     assertThat(store.get("key").value(), equalTo("value"));
     timeSource.advanceTime(1);
     assertThat(store.get("key"), nullValue());
     checkExpiryEvent(listener, "key", "value");
+  }
+
+  @Test
+  public void testGetNoExpired() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    OnHeapStore<String, String> store = newStore(timeSource,
+        Expirations.timeToLiveExpiration(new Duration(2, TimeUnit.MILLISECONDS)));
+    StoreEventListener<String, String> listener = addListener(store);
+    store.put("key", "value");
+    assertThat(store.get("key").value(), equalTo("value"));
+    timeSource.advanceTime(1);
+    verify(listener, never()).onExpiration(Matchers.<Cache.Entry<String, String>>any());
   }
 
   @Test
@@ -123,7 +144,7 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
-    StoreEventListener<String, String> listener = addExpiryListener(store);
+    StoreEventListener<String, String> listener = addListener(store);
 
     assertThat(store.containsKey("key"), is(false));
     store.put("key", "value");
@@ -192,7 +213,7 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
-    StoreEventListener<String, String> listener = addExpiryListener(store);
+    StoreEventListener<String, String> listener = addListener(store);
     store.put("key", "value");
     timeSource.advanceTime(1);
     ValueHolder<String> prev = store.putIfAbsent("key", "value2");
@@ -219,7 +240,7 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
-    StoreEventListener<String, String> listener = addExpiryListener(store);
+    StoreEventListener<String, String> listener = addListener(store);
     store.put("key", "value");
     assertThat(store.get("key").value(), equalTo("value"));
     timeSource.advanceTime(1);
@@ -248,7 +269,7 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
-    StoreEventListener<String, String> listener = addExpiryListener(store);
+    StoreEventListener<String, String> listener = addListener(store);
 
     store.put("key", "value");
     timeSource.advanceTime(1);
@@ -282,7 +303,7 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
-    StoreEventListener<String, String> listener = addExpiryListener(store);
+    StoreEventListener<String, String> listener = addListener(store);
 
     store.put("key", "value");
     timeSource.advanceTime(1);
@@ -323,7 +344,7 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
-    StoreEventListener<String, String> listener = addExpiryListener(store);
+    StoreEventListener<String, String> listener = addListener(store);
     store.put("key1", "value1");
     store.put("key2", "value2");
     timeSource.advanceTime(1);
@@ -500,7 +521,7 @@ public abstract class BaseOnHeapStoreTest {
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
     store.put("key", "value");
-    StoreEventListener<String, String> listener = addExpiryListener(store);
+    StoreEventListener<String, String> listener = addListener(store);
     timeSource.advanceTime(1);
     ValueHolder<String> newValue = store.compute("key", new BiFunction<String, String, String>() {
       @Override
@@ -589,7 +610,7 @@ public abstract class BaseOnHeapStoreTest {
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
     store.put("key", "value");
-    StoreEventListener<String, String> listener = addExpiryListener(store);
+    StoreEventListener<String, String> listener = addListener(store);
     
     timeSource.advanceTime(1);
 
@@ -607,7 +628,7 @@ public abstract class BaseOnHeapStoreTest {
 
       @Override
       public boolean matches(Object argument) {
-        Cache.Entry<String, String> entry = (Cache.Entry<String, String>)argument;
+        Cache.Entry<String, String> entry = (Cache.Entry<String, String>) argument;
         return entry.getKey().equals("key") && entry.getValue().equals("value");
       }
     }));
@@ -752,7 +773,7 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
-    StoreEventListener<String, String> listener = addExpiryListener(store);
+    StoreEventListener<String, String> listener = addListener(store);
 
     store.put("key", "value");
     timeSource.advanceTime(1);
@@ -788,7 +809,7 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   @SuppressWarnings("unchecked")
-  private static <K, V> StoreEventListener<K, V> addExpiryListener(OnHeapStore<K, V> store) {
+  private static <K, V> StoreEventListener<K, V> addListener(OnHeapStore<K, V> store) {
     StoreEventListener<K, V> listener = mock(StoreEventListener.class);
     store.enableStoreEventNotifications(listener);
     return listener;
