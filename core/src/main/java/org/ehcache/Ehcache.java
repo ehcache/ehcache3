@@ -46,7 +46,6 @@ import org.ehcache.resilience.RecoveryCache;
 import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
-import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.statistics.BulkOps;
 import org.ehcache.statistics.CacheOperationOutcomes.CacheLoadingOutcome;
@@ -1434,7 +1433,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     private final Comparable<Long> capacityConstraint;
     private final EvictionVeto<? super K, ? super V> evictionVeto;
     private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
-    private final SerializationProvider serializationProvider;
     private final ClassLoader classLoader;
     private final Expiry<? super K, ? super V> expiry;
     private final boolean persistent;
@@ -1446,7 +1444,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       this.capacityConstraint = config.getCapacityConstraint();
       this.evictionVeto = config.getEvictionVeto();
       this.evictionPrioritizer = config.getEvictionPrioritizer();
-      this.serializationProvider = config.getSerializationProvider();
       this.classLoader = config.getClassLoader();
       this.expiry = config.getExpiry();
       this.persistent = config.isPersistent();
@@ -1480,11 +1477,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     @Override
     public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
       return this.evictionPrioritizer;
-    }
-
-    @Override
-    public SerializationProvider getSerializationProvider() {
-      return this.serializationProvider;
     }
 
     @Override

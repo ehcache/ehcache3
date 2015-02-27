@@ -20,6 +20,7 @@ import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -294,6 +295,24 @@ public class XmlConfigurationTest {
 
     assertSame(cl, config.getClassLoader());
     assertSame(cl2, config.getCacheConfigurations().get("bar").getClassLoader());
+  }
+  
+  @Test
+  public void testSerializerConfiguration() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/ehcache-serializer.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    
+    assertThat(xmlConfig.getServiceConfigurations().size(), is(1));
+    
+    ServiceConfiguration configuration = xmlConfig.getServiceConfigurations().iterator().next();
+    
+    assertThat(configuration, instanceOf(DefaultSerializationProviderConfiguration.class));
+    
+    assertThat(((DefaultSerializationProviderConfiguration)configuration).getTypeSerializerConfig("java.lang.Number").getCacheTypeSerializerMapping().size(), is(2) );
+    assertThat(((DefaultSerializationProviderConfiguration)configuration).getTypeSerializerConfig("java.lang.String").getCacheTypeSerializerMapping().size(), is(0) );
+    
+    
+   
   }
 
 }

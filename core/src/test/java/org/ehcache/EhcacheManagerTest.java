@@ -82,9 +82,10 @@ public class EhcacheManagerTest {
     builder.addCache("foo", newCacheConfigurationBuilder().buildConfig(Object.class, Object.class));
     final Store.Provider storeProvider = mock(Store.Provider.class);
     final Store mock = mock(Store.class);
+    final ServiceLocator serviceLocator = new ServiceLocator(storeProvider);
     when(storeProvider
         .createStore(Matchers.<Store.Configuration>anyObject(), Matchers.<ServiceConfiguration[]>anyVararg())).thenReturn(mock);
-    EhcacheManager cacheManager = new EhcacheManager(builder.build(), new ServiceLocator(storeProvider));
+    EhcacheManager cacheManager = new EhcacheManager(builder.build(), serviceLocator);
     cacheManager.init();
     assertSame(ClassLoading.getDefaultClassLoader(), cacheManager.getClassLoader());
     assertSame(cacheManager.getClassLoader(), cacheManager.getCache("foo", Object.class, Object.class).getRuntimeConfiguration().getClassLoader());
@@ -123,9 +124,10 @@ public class EhcacheManagerTest {
 
     final Store.Provider storeProvider = mock(Store.Provider.class);
     final Store mock = mock(Store.class);
+    final ServiceLocator serviceLocator = new ServiceLocator(storeProvider);
     when(storeProvider
         .createStore(Matchers.<Store.Configuration>anyObject(), Matchers.<ServiceConfiguration[]>anyVararg())).thenReturn(mock);
-    EhcacheManager cacheManager = new EhcacheManager(builder.build(), new ServiceLocator(storeProvider));
+    EhcacheManager cacheManager = new EhcacheManager(builder.build(), serviceLocator);
     cacheManager.init();
     assertSame(cl1, cacheManager.getClassLoader());
     assertSame(cl1, cacheManager.getCache("foo1", Object.class, Object.class).getRuntimeConfiguration().getClassLoader());
@@ -146,12 +148,13 @@ public class EhcacheManagerTest {
     final CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder().buildConfig(Object.class, Object.class);
     final Store.Provider storeProvider = mock(Store.Provider.class);
     final Store mock = mock(Store.class);
+    final ServiceLocator serviceLocator = new ServiceLocator(storeProvider);
     when(storeProvider
         .createStore(Matchers.<Store.Configuration>anyObject(), Matchers.<ServiceConfiguration[]>anyVararg())).thenReturn(mock);
 
     EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder().addCache("bar",
         cacheConfiguration)
-        .build(), new ServiceLocator(storeProvider));
+        .build(), serviceLocator);
     cacheManager.init();
     final Cache<Object, Object> cache = cacheManager.getCache("bar", Object.class, Object.class);
     assertNotNull(cache);
@@ -167,13 +170,14 @@ public class EhcacheManagerTest {
   public void testThrowsWhenNotInitialized() {
     final Store.Provider storeProvider = mock(Store.Provider.class);
     final Store mock = mock(Store.class);
+    final ServiceLocator serviceLocator = new ServiceLocator(storeProvider);
     when(storeProvider
         .createStore(Matchers.<Store.Configuration>anyObject(), Matchers.<ServiceConfiguration[]>anyVararg())).thenReturn(mock);
 
     final CacheConfiguration<Integer, String> cacheConfiguration = newCacheConfigurationBuilder().buildConfig(Integer.class, String.class);
     EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder().addCache("bar",
         cacheConfiguration)
-        .build(), new ServiceLocator(storeProvider));
+        .build(), serviceLocator);
     try {
       cacheManager.removeCache("foo");
       fail();
@@ -197,13 +201,14 @@ public class EhcacheManagerTest {
   public void testThrowsWhenRetrievingCacheWithWrongTypes() {
     final Store.Provider storeProvider = mock(Store.Provider.class);
     final Store mock = mock(Store.class);
+    final ServiceLocator serviceLocator = new ServiceLocator(storeProvider);
     when(storeProvider
         .createStore(Matchers.<Store.Configuration>anyObject(), Matchers.<ServiceConfiguration[]>anyVararg())).thenReturn(mock);
 
     final CacheConfiguration<Integer, String> cacheConfiguration = newCacheConfigurationBuilder().buildConfig(Integer.class, String.class);
     EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder().addCache("bar",
         cacheConfiguration)
-        .build(), new ServiceLocator(storeProvider));
+        .build(), serviceLocator);
     cacheManager.init();
     cacheManager.getCache("bar", Integer.class, String.class);
     try {
@@ -249,10 +254,11 @@ public class EhcacheManagerTest {
 
     final Store.Provider storeProvider = mock(Store.Provider.class);
     final Store mock = mock(Store.class);
+    final ServiceLocator serviceLocator = new ServiceLocator(cacheLoaderWriterFactory, storeProvider);
     when(storeProvider
         .createStore(Matchers.<Store.Configuration>anyObject(), Matchers.<ServiceConfiguration[]>anyVararg())).thenReturn(mock);
 
-    final EhcacheManager manager = new EhcacheManager(cfg, new ServiceLocator(cacheLoaderWriterFactory, storeProvider));
+    final EhcacheManager manager = new EhcacheManager(cfg, serviceLocator);
     manager.init();
 
     verify(cacheLoaderWriterFactory).createCacheLoaderWriter("bar", barConfig);
@@ -268,9 +274,10 @@ public class EhcacheManagerTest {
   public void testDoesNotifyAboutCache() {
     final CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder().buildConfig(Object.class, Object.class);
     final Store.Provider mock = mock(Store.Provider.class);
+    final ServiceLocator serviceLocator = new ServiceLocator(mock);
     when(mock.createStore(Matchers.<Store.Configuration>anyObject())).thenReturn(mock(Store.class));
     EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder()
-        .build(), new ServiceLocator(mock));
+        .build(), serviceLocator);
     final CacheManagerListener listener = mock(CacheManagerListener.class);
     cacheManager.registerListener(listener);
     cacheManager.init();
@@ -286,11 +293,12 @@ public class EhcacheManagerTest {
   public void testDoesNotNotifyAboutCacheOnInitOrClose() {
     final CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder().buildConfig(Object.class, Object.class);
     final Store.Provider mock = mock(Store.Provider.class);
+    final ServiceLocator serviceLocator = new ServiceLocator(mock);
     when(mock.createStore(Matchers.<Store.Configuration>anyObject())).thenReturn(mock(Store.class));
     final String cacheAlias = "bar";
     EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder().addCache(cacheAlias,
         cacheConfiguration)
-        .build(), new ServiceLocator(mock));
+        .build(), serviceLocator);
     final CacheManagerListener listener = mock(CacheManagerListener.class);
     cacheManager.registerListener(listener);
     cacheManager.init();
@@ -305,13 +313,14 @@ public class EhcacheManagerTest {
     final Set<Cache<?,?>> caches = new HashSet<Cache<?, ?>>();
     final CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder().buildConfig(Object.class, Object.class);
     final Store.Provider storeProvider = mock(Store.Provider.class);
+    final ServiceLocator serviceLocator = new ServiceLocator(storeProvider);
     final RuntimeException thrown = new RuntimeException();
     when(storeProvider.createStore(Matchers.<Store.Configuration>anyObject())).thenReturn(mock(Store.class));
     EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder()
         .addCache("foo", cacheConfiguration)
         .addCache("bar", cacheConfiguration)
         .addCache("foobar", cacheConfiguration)
-        .build(), new ServiceLocator(storeProvider)) {
+        .build(), serviceLocator) {
 
       @Override
       <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
@@ -350,13 +359,14 @@ public class EhcacheManagerTest {
     final Set<String> caches = new HashSet<String>();
     final CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder().buildConfig(Object.class, Object.class);
     final Store.Provider storeProvider = mock(Store.Provider.class);
+    final ServiceLocator serviceLocator = new ServiceLocator(storeProvider);
     final RuntimeException thrown = new RuntimeException();
     when(storeProvider.createStore(Matchers.<Store.Configuration>anyObject())).thenReturn(mock(Store.class));
     EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder()
         .addCache("foo", cacheConfiguration)
         .addCache("bar", cacheConfiguration)
         .addCache("foobar", cacheConfiguration)
-        .build(), new ServiceLocator(storeProvider)) {
+        .build(), serviceLocator) {
 
       @Override
       <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,

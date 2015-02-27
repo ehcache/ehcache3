@@ -24,7 +24,6 @@ import org.ehcache.config.Jsr107Configuration;
 import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.jsr107.DefaultJsr107Service;
 import org.ehcache.spi.ServiceLocator;
 import org.hamcrest.CoreMatchers;
@@ -83,7 +82,6 @@ public class ParsesConfigExtensionTest {
       // Test the config
       {
         final CacheRuntimeConfiguration<Long, Product> runtimeConfiguration = productCache.getRuntimeConfiguration();
-        assertThat(runtimeConfiguration.getSerializationProvider(), instanceOf(JavaSerializationProvider.class));
         assertThat(runtimeConfiguration.getCapacityConstraint(), CoreMatchers.<Comparable<Long>>is(200L));
 
         final Expiry<? super Long, ? super Product> expiry = runtimeConfiguration.getExpiry();

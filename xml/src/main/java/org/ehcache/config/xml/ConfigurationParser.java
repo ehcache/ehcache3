@@ -16,14 +16,18 @@
 
 package org.ehcache.config.xml;
 
+import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration.TypeSerializerConfig;
 import org.ehcache.config.xml.model.BaseCacheType;
 import org.ehcache.config.xml.model.CacheIntegration;
 import org.ehcache.config.xml.model.CacheTemplateType;
 import org.ehcache.config.xml.model.CacheType;
 import org.ehcache.config.xml.model.ConfigType;
 import org.ehcache.config.xml.model.ExpiryType;
+import org.ehcache.config.xml.model.SerializerType;
 import org.ehcache.config.xml.model.ServiceType;
 import org.ehcache.config.xml.model.TimeType;
+import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
 import org.w3c.dom.Element;
@@ -102,13 +106,37 @@ class ConfigurationParser {
   public Iterable<ServiceConfiguration<?>> getServiceConfigurations() {
 
     final ArrayList<ServiceConfiguration<?>> serviceConfigurations = new ArrayList<ServiceConfiguration<?>>();
-
+    
     for (ServiceType serviceType : config.getService()) {
-      final ServiceConfiguration<?> serviceConfiguration = parseExtension((Element)serviceType.getAny());
-      serviceConfigurations.add(serviceConfiguration);
+      if(serviceType.getSerializerDefault() != null) serviceConfigurations.add(parseDefaultSerializerConfig(serviceType.getSerializerDefault())); 
+      else {
+        final ServiceConfiguration<?> serviceConfiguration = parseExtension((Element)serviceType.getAny());
+        serviceConfigurations.add(serviceConfiguration);
+      }
     }
 
     return Collections.unmodifiableList(serviceConfigurations);
+  }
+  
+  private ServiceConfiguration<JavaSerializationProvider> parseDefaultSerializerConfig(SerializerType serializerType){
+    DefaultSerializationProviderConfiguration configuration = new DefaultSerializationProviderConfiguration();
+        
+    for(SerializerType.Class clazz : serializerType.getClazz()){
+      String type = clazz.getType();
+      TypeSerializerConfig config = null;
+      if(configuration.contains(type)) config = configuration.getTypeSerializerConfig(type);
+      else config = new TypeSerializerConfig();
+
+      addTypeSerializerMapping(config, clazz);
+      configuration.addSerializer(type, config);
+    }
+    return configuration;
+  }
+  
+  private void addTypeSerializerMapping(TypeSerializerConfig config, SerializerType.Class clazz){
+    
+    if(clazz.getCache() == null) config.setSerializer(clazz.getValue());
+    else config.addTypeSerializerMapping(clazz.getCache(), clazz.getValue());
   }
 
   public Iterable<CacheDefinition> getCacheElements() {

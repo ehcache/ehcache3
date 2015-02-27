@@ -25,7 +25,6 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
-import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -478,13 +477,6 @@ public interface Store<K, V> {
      * @return the eviction prioritizer
      */
     EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer();
-
-    /**
-     * The serialization provider the store is going to use to serialize mappings.
-     *
-     * @return the serialization provider
-     */
-    SerializationProvider getSerializationProvider();
 
     /**
      * The Classloader for this store. This classloader will be used to deserialize cache entries when required

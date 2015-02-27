@@ -22,7 +22,6 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.store.disk.ods.FileAllocationTree;
 import org.ehcache.internal.store.disk.ods.Region;
 import org.ehcache.internal.store.disk.utils.ConcurrencyUtil;
-import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -208,7 +207,7 @@ public class DiskStorageFactory<K, V> {
 
   private final TimeSource timeSource;
 
-  private final Serializer<Element> serializer;
+  private final Serializer<Element> elementSerializer;
   private final Serializer<Object> indexSerializer;
   private final Comparable<Long> capacityConstraint;
   private final Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto;
@@ -219,14 +218,14 @@ public class DiskStorageFactory<K, V> {
    */
   public DiskStorageFactory(Comparable<Long> capacityConstraint, Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto,
                             Comparator<DiskSubstitute<K, V>> evictionPrioritizer, ClassLoader classLoader, TimeSource timeSource,
-                            SerializationProvider serializationProvider, File dataFile, File indexFile,
+                            Serializer<Element> elementSerializer, Serializer<Object> indexSerializer, File dataFile, File indexFile,
                             int stripes, long queueCapacity, int expiryThreadInterval) throws FileNotFoundException {
     this.capacityConstraint = capacityConstraint;
     this.evictionVeto = evictionVeto;
     this.evictionPrioritizer = evictionPrioritizer;
     this.timeSource = timeSource;
-    this.serializer = serializationProvider.createSerializer(Element.class, classLoader);
-    this.indexSerializer = serializationProvider.createSerializer(Object.class, classLoader);
+    this.elementSerializer = elementSerializer;
+    this.indexSerializer = indexSerializer;
     this.file = dataFile;
     this.indexFile = indexFile;
 
@@ -417,7 +416,7 @@ public class DiskStorageFactory<K, V> {
       data.readFully(buffer);
     }
 
-    return serializer.read(ByteBuffer.wrap(buffer));
+    return elementSerializer.read(ByteBuffer.wrap(buffer));
   }
 
 
@@ -449,7 +448,7 @@ public class DiskStorageFactory<K, V> {
     // mechanism is not threadsafe and POJOs are seldom implemented in a threadsafe way.
     // e.g. we are serializing an ArrayList field while another thread somewhere in the application is appending to it.
     try {
-      return serializer.serialize(element);
+      return elementSerializer.serialize(element);
     } catch (ConcurrentModificationException e) {
       throw new RuntimeException("Failed to serialize element due to ConcurrentModificationException. " +
           "This is frequently the result of inappropriately sharing thread unsafe object " +

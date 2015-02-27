@@ -18,15 +18,16 @@ package org.ehcache.config;
 
 import org.ehcache.Cache;
 import org.ehcache.Ehcache;
-import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.internal.HeapCache;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.HashMap;
 
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.internal.util.Matchers.hasKey;
@@ -41,9 +42,11 @@ import static org.mockito.Mockito.mock;
 public class CachingTierConfigurationBuilderTest {
 
   @Test
-  public void testNothing() throws CacheAccessException {
+  public void testNothing() throws Exception {
 
     final ServiceLocator serviceLocator = new ServiceLocator();
+    serviceLocator.startAllServices(new HashMap<Service, ServiceConfiguration<?>>());
+    
     final CacheConfiguration<String, String> config = newCacheConfigurationBuilder().buildConfig(String.class, String.class);
     final Store.Provider service = serviceLocator.findService(Store.Provider.class);
     Collection<ServiceConfiguration<?>> serviceConfigs = config.getServiceConfigurations();

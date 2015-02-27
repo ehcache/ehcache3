@@ -16,7 +16,9 @@
 
 package org.ehcache;
 
+import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
+import org.ehcache.spi.ServiceLocator;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
