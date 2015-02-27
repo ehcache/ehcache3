@@ -206,11 +206,7 @@ class Eh107CacheManager implements CacheManager {
     if (builder == null) {
       builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
     }
-    if(expiry != null) {
-      builder = builder.withExpiry(expiry);
-    } else {
-      LOG.warn("JSR107 Expiry Policy not set for cache {} using expiry policy from template", cacheName);
-    }
+    builder = builder.withExpiry(expiry);
 
     OnHeapStoreServiceConfig onHeapStoreServiceConfig = builder.getExistingServiceConfiguration(OnHeapStoreServiceConfig.class);
     if (onHeapStoreServiceConfig == null) {

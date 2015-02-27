@@ -74,9 +74,6 @@ class CacheResources<K, V> {
   }
 
   private Eh107Expiry<K, V> initExpiryPolicy(CompleteConfiguration<K, V> config, MultiCacheException mce) {
-    if(config.getExpiryPolicyFactory() == null) {
-      return null;
-    }
     return new ExpiryPolicyToEhcacheExpiry<K, V>(config.getExpiryPolicyFactory().create());
   }
 
