@@ -53,19 +53,7 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
     this.valueType = config.getValueType();
     this.isStoreByValue = config.isStoreByValue();
 
-    if (config instanceof Eh107MutableConfiguration) {
-      Eh107MutableConfiguration<K,V> mutableConfiguration = (Eh107MutableConfiguration) config;
-      this.isReadThrough = mutableConfiguration.isReadThrough();
-      this.isWriteThrough = mutableConfiguration.isWriteThrough();
-      this.isStatisticsEnabled = mutableConfiguration.isStatisticsEnabled();
-      this.isManagementEnabled = mutableConfiguration.isManagementEnabled();
-      this.cacheLoaderFactory = mutableConfiguration.getCacheLoaderFactory();
-      this.cacheWriterFactory = mutableConfiguration.getCacheWriterFactory();
-      for (CacheEntryListenerConfiguration<K, V> listenerConfig : mutableConfiguration.getCacheEntryListenerConfigurations()) {
-        cacheEntryListenerConfigs.add(listenerConfig);
-      }
-      this.expiryPolicyFactory = mutableConfiguration.isExpiryPolicyOverridden()? mutableConfiguration.getExpiryPolicyFactory(): null;
-    } else if (config instanceof CompleteConfiguration) {
+    if (config instanceof CompleteConfiguration) {
       CompleteConfiguration<K, V> completeConfig = (CompleteConfiguration<K, V>) config;
       this.isReadThrough = completeConfig.isReadThrough();
       this.isWriteThrough = completeConfig.isWriteThrough();
