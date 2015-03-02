@@ -13,34 +13,98 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.ehcache.spi.cache.tiering;
 
-import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.function.Function;
+import org.ehcache.spi.cache.Store;
 
 /**
- * @author Alex Snaps
+ * Caching tier, according to Montreal design.
+ *
+ * @author Ludovic Orban
  */
-public interface CachingTier<K> {
+public interface CachingTier<K, V> {
 
-  Object get(K key);
+  /**
+   * Either return the value holder currently in the caching tier, or compute and store it when it isn't present.
+   * Note that expired value holders will be returned to give the caller of the caching tier a chance to flush it.
+   * @param key the key.
+   * @param source the function that computes the value.
+   * @return the value holder, or null.
+   * @throws CacheAccessException
+   */
+  Store.ValueHolder<V> getOrComputeIfAbsent(K key, Function<K, Store.ValueHolder<V>> source) throws CacheAccessException;
 
-  Object putIfAbsent(K key, Object value);
+  /**
+   * Remove a mapping.
+   * @param key the key.
+   * @throws CacheAccessException
+   */
+  void remove(K key) throws CacheAccessException;
 
-  void remove(K key);
+  /**
+   * Empty out the caching store.
+   * @throws CacheAccessException
+   */
+  void clear() throws CacheAccessException;
 
-  void remove(K key, Object value);
+  /**
+   * Check if the value holder expired or not. Only value holders coming from the
+   * caching tier where this call is performed can be used, otherwise you may get
+   * a ClassCastException.
+   * @param valueHolder the value holder.
+   * @return true if it expired, false otherwise.
+   */
+  boolean isExpired(Store.ValueHolder<V> valueHolder);
 
-  boolean replace(K key, Object oldValue, Object newValue);
+  /**
+   * Get the expiration time of the value holder. Only value holders coming from the
+   * caching tier where this call is performed can be used, otherwise you may get
+   * a ClassCastException.
+   * @param valueHolder the value holder.
+   * @return the expiration timestamp.
+   */
+  long getExpireTimeMillis(Store.ValueHolder<V> valueHolder);
 
-  long getMaxCacheSize();
+  /**
+   * Add a caching tier invalidation listener.
+   * @param invalidationListener the listener.
+   */
+  void addInvalidationListener(InvalidationListener<K, V> invalidationListener);
 
-  public interface Provider extends Service {
+  /**
+   * Remove a caching tier invalidation listener.
+   * @param invalidationListener the listener.
+   */
+  void removeInvalidationListener(InvalidationListener<K, V> invalidationListener);
 
-    <K> CachingTier<K> createCachingTier(Class<K> keyClazz, ServiceConfiguration<?>... config);
+  /**
+   * Caching tier invalidation listener.
+   * @param <K>
+   * @param <V>
+   */
+  interface InvalidationListener<K, V> {
 
-    void releaseCachingTier(CachingTier<?> resource);
+    /**
+     * Notification that a mapping was evicted or has expired.
+     * @param key the mapping's key.
+     * @param valueHolder the invalidated mapping's value holder.
+     */
+    void onInvalidation(K key, Store.ValueHolder<V> valueHolder);
 
   }
+
+  /* lifecycle methods */
+
+  void destroy() throws CacheAccessException;
+
+  void create() throws CacheAccessException;
+
+  void close();
+
+  void init();
+
+  void maintenance();
+
 }

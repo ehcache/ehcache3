@@ -18,7 +18,7 @@ package org.ehcache.internal.store.disk;
 
 import org.ehcache.function.BiFunction;
 import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.store.tiering.CachingTier;
+import org.ehcache.spi.cache.tiering.CachingTier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

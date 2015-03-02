@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.internal.store.tiering;
+package org.ehcache.spi.cache.tiering;
 
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;

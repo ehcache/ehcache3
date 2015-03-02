@@ -16,6 +16,7 @@
 package org.ehcache.internal.store.tiering;
 
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.tiering.CachingTier;
 
 import java.util.ArrayList;
 import java.util.List;

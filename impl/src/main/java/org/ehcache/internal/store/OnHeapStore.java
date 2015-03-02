@@ -35,7 +35,7 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
-import org.ehcache.internal.store.tiering.CachingTier;
+import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.internal.store.tiering.InvalidationListenerSupport;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;

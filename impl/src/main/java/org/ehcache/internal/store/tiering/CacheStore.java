@@ -25,6 +25,8 @@ import org.ehcache.internal.store.OnHeapStore;
 import org.ehcache.internal.store.disk.DiskStore;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Map;
