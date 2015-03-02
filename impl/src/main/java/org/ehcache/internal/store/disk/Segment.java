@@ -18,6 +18,7 @@ package org.ehcache.internal.store.disk;
 
 import org.ehcache.function.BiFunction;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,11 +122,13 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
   /**
    * Decode the possible DiskSubstitute
    *
-   * @param substitute the DiskSubstitute to decode
+   * @param hashEntry the DiskSubstitute to decode
    * @return the decoded DiskSubstitute
    */
-  private DiskStorageFactory.Element<K, V> decode(DiskStorageFactory.DiskSubstitute<K, V> substitute) {
-    return substitute.getFactory().retrieve(substitute);
+  private DiskStorageFactory.Element<K, V> decode(HashEntry<K, V> hashEntry) {
+    DiskStorageFactory.Element<K, V> retrieve = hashEntry.element.getFactory().retrieve(hashEntry.element);
+    retrieve.setFaulted(hashEntry.faulted.get());
+    return retrieve;
   }
 
   /**
@@ -259,7 +262,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
       }
 
       boolean replaced = false;
-      if (e != null && eq(decode(e.element), oldElement)) {
+      if (e != null && eq(decode(e), oldElement)) {
         replaced = true;
                 /*
                  * make sure we re-get from the HashEntry - since the decode in the conditional
@@ -312,7 +315,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
         e.element = encoded;
         e.faulted.set(false);
         installed = true;
-        oldElement = decode(onDiskSubstitute);
+        oldElement = decode(e);
         free(onDiskSubstitute);
       } else {
         free(encoded);
@@ -366,12 +369,12 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
         if (!onlyIfAbsent) {
           e.element = encoded;
           installed = true;
-          oldElement = decode(onDiskSubstitute);
+          oldElement = decode(e);
 
           free(onDiskSubstitute);
           e.faulted.set(faulted);
         } else {
-          oldElement = decode(onDiskSubstitute);
+          oldElement = decode(e);
 
           free(encoded);
         }
@@ -523,7 +526,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
 
       DiskStorageFactory.Element<K, V> oldValue = null;
       if (e != null) {
-        oldValue = decode(e.element);
+        oldValue = decode(e);
         if (value == null || eq(value, oldValue)) {
           // All entries following removed node can stay
           // in list, but all preceding ones need to be
@@ -689,7 +692,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
         }
 
         if (e != null && !e.faulted.get()) {
-          evictedElement = decode(e.element);
+          evictedElement = decode(e);
         }
 
         // TODO this has to be removed!
@@ -828,7 +831,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
    * @param valueHolder   the expected value holder
    * @return true if succeeded
    */
-  boolean flush(final K key, final int hash, DiskValueHolder<V> valueHolder, CachingTier<K, V> cachingTier) {
+  boolean flush(final K key, final int hash, Store.ValueHolder<V> valueHolder, CachingTier<K, V> cachingTier) {
     DiskStorageFactory.DiskSubstitute<K, V> diskSubstitute = null;
     readLock().lock();
     try {
@@ -917,7 +920,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
     }
   }
 
-  public DiskStorageFactory.Element<K, V> compute(K key, int hash, BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>> mappingFunction, Compute compute, boolean markFaulted) {
+  public DiskStorageFactory.Element<K, V> compute(K key, int hash, BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>> mappingFunction, Compute compute, boolean preserveFault, boolean markFaulted) {
     boolean installed = false;
     DiskStorageFactory.DiskSubstitute<K, V> encoded = null;
 
@@ -938,11 +941,14 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
       DiskStorageFactory.Element<K, V> newElement;
       if (e != null) {
         if (compute == Compute.IF_ABSENT) {
+          if (markFaulted) {
+            e.faulted.set(true);
+          }
           newElement = null;
         } else {
           DiskStorageFactory.DiskSubstitute<K, V> onDiskSubstitute = e.element;
           installed = true;
-          DiskStorageFactory.Element<K, V> oldElement = decode(onDiskSubstitute);
+          DiskStorageFactory.Element<K, V> oldElement = decode(e);
 
           newElement = mappingFunction.apply(key, oldElement);
           if (newElement == null) {
@@ -953,7 +959,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
             e.element = encoded;
 
             free(onDiskSubstitute);
-            e.faulted.set(markFaulted);
+            e.faulted.set((preserveFault && newElement.isFaulted()) || markFaulted);
           }
         }
       } else {

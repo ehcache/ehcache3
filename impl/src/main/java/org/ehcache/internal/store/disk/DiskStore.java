@@ -239,7 +239,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
         return mappedValue;
       }
-    }, Segment.Compute.IF_PRESENT, markFaulted);
+    }, Segment.Compute.IF_PRESENT, true, markFaulted);
 
     return existingElement == null ? null : existingElement.getValueHolder();
   }
@@ -274,7 +274,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
           return newUpdateValueHolder(key, mappedValue, value, now);
         }
       }
-    }, Segment.Compute.ALWAYS, false);
+    }, Segment.Compute.ALWAYS, false, false);
 
     if (entryActuallyAdded.get()) {
       enforceCapacity(1);
@@ -301,7 +301,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
         setAccessTimeAndExpiry(key, mappedValue, now);
         return mappedValue;
       }
-    }, Segment.Compute.ALWAYS, false);
+    }, Segment.Compute.ALWAYS, false, false);
 
     return returnValue.get();
   }
@@ -336,7 +336,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
           return mappedValue;
         }
       }
-    }, Segment.Compute.IF_PRESENT, false);
+    }, Segment.Compute.IF_PRESENT, false, false);
 
     return removed.get();
   }
@@ -362,7 +362,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
           return newUpdateValueHolder(key, mappedValue, value, now);
         }
       }
-    }, Segment.Compute.IF_PRESENT, false);
+    }, Segment.Compute.IF_PRESENT, false, false);
 
     return returnValue.get();
   }
@@ -392,7 +392,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
           return mappedValue;
         }
       }
-    }, Segment.Compute.IF_PRESENT, false);
+    }, Segment.Compute.IF_PRESENT, false, false);
 
     return returnValue.get();
   }
@@ -508,7 +508,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   @Override
   public boolean flush(K key, ValueHolder<V> valueHolder, CachingTier<K, V> cachingTier) {
     int hash = hash(key.hashCode());
-    return segmentFor(hash).flush(key, hash, (DiskValueHolder<V>) valueHolder, cachingTier);
+    return segmentFor(hash).flush(key, hash, valueHolder, cachingTier);
   }
 
   class DiskStoreIterator implements Iterator<Cache.Entry<K, ValueHolder<V>>> {
@@ -660,7 +660,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     return computeResult == null ? null : computeResult.getValueHolder();
   }
 
-  private void enforceCapacity(int delta) {
+  void enforceCapacity(int delta) {
     for (int attempts = 0, evicted = 0; attempts < ATTEMPT_RATIO * delta && evicted < EVICTION_RATIO * delta
         && capacityConstraint.compareTo((long) size()) < 0; attempts++) {
       evicted += diskStorageFactory.evict(1);
@@ -719,7 +719,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
       }
     };
 
-    DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction, Segment.Compute.ALWAYS, false);
+    DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction, Segment.Compute.ALWAYS, false, false);
     return enforceCapacityIfValueNotNull(computedElement);
   }
 
@@ -750,7 +750,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
         }
       }
     };
-    DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction, Segment.Compute.IF_ABSENT, fault);
+    DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction, Segment.Compute.IF_ABSENT, false, fault);
     return enforceCapacityIfValueNotNull(computedElement);
   }
 
@@ -790,7 +790,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
       }
     };
 
-    DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction, Segment.Compute.IF_PRESENT, false);
+    DiskStorageFactory.Element<K, V> computedElement = segmentFor(hash).compute(key, hash, biFunction, Segment.Compute.IF_PRESENT, false, false);
     return computedElement == null ? null : computedElement.getValueHolder();
   }
 

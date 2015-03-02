@@ -64,11 +64,14 @@ public class DiskStorageFactory<K, V> {
     boolean isExpired(long time);
     K getKey();
     DiskValueHolder<V> getValueHolder();
+    void setFaulted(boolean faulted);
+    boolean isFaulted();
   }
 
   static class ElementImpl<K, V> implements Element<K, V> {
     private final DiskValueHolder<V> valueHolder;
     private final K key;
+    private transient boolean faulted;
 
     public ElementImpl(K key, V value, long createTime, long expireTime) {
       this.key = key;
@@ -77,7 +80,7 @@ public class DiskStorageFactory<K, V> {
 
     @Override
     public boolean isExpired(long time) {
-      return valueHolder.isExpired(time);
+      return !faulted && valueHolder.isExpired(time);
     }
 
     @Override
@@ -90,6 +93,15 @@ public class DiskStorageFactory<K, V> {
       return valueHolder;
     }
 
+    @Override
+    public void setFaulted(boolean faulted) {
+      this.faulted = faulted;
+    }
+
+    @Override
+    public boolean isFaulted() {
+      return faulted;
+    }
   }
 
   static class DiskValueHolderImpl<V> implements DiskValueHolder<V>, Serializable {
@@ -886,7 +898,10 @@ public class DiskStorageFactory<K, V> {
     if (object instanceof DiskMarker) {
       try {
         DiskMarker<K, V> marker = (DiskMarker) object;
-        return read(marker);
+        Element<K, V> read = read(marker);
+        //TODO update with the true hit rate once it has been implemented, see #122
+        read.getValueHolder().setExpireTimeMillis(((DiskMarker) object).expiry);
+        return read;
       } catch (IOException e) {
         throw new RuntimeException(e);
       } catch (ClassNotFoundException e) {
