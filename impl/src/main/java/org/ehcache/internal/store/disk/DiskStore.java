@@ -219,10 +219,10 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public ValueHolder<V> get(K key) throws CacheAccessException {
-    return get(key, false);
+    return internalGetAndFault(key, false);
   }
 
-  ValueHolder<V> get(final K key, boolean markFaulted) throws CacheAccessException {
+  ValueHolder<V> internalGetAndFault(final K key, boolean markFaulted) throws CacheAccessException {
     checkKey(key);
     int hash = hash(key.hashCode());
 
@@ -497,7 +497,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public ValueHolder<V> getAndFault(K key) throws CacheAccessException {
-    return get(key, true);
+    return internalGetAndFault(key, true);
   }
 
   @Override
