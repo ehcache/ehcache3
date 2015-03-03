@@ -107,6 +107,8 @@ public class DiskStorageFactory<K, V> {
   }
 
   static class DiskValueHolderImpl<V> implements DiskValueHolder<V>, Serializable {
+    private static final long serialVersionUID = -7234449795271393813L;
+
     static final long NO_EXPIRE = -1;
 
     private final V value;

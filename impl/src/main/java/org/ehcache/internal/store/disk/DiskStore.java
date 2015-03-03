@@ -507,6 +507,9 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public boolean flush(K key, ValueHolder<V> valueHolder, CachingTier<K, V> cachingTier) {
+    if (valueHolder instanceof DiskValueHolder) {
+      throw new IllegalArgumentException("Value holder must be of a class coming from the caching tier");
+    }
     int hash = hash(key.hashCode());
     return segmentFor(hash).flush(key, hash, valueHolder, cachingTier);
   }
