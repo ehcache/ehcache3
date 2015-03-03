@@ -69,6 +69,8 @@ public class DiskStorageFactory<K, V> {
   }
 
   static class ElementImpl<K, V> implements Element<K, V> {
+    private static final long serialVersionUID = -7234449795271393813L;
+
     private final DiskValueHolder<V> valueHolder;
     private final K key;
     private transient boolean faulted;
