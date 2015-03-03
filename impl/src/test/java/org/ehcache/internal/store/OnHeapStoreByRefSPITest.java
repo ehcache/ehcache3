@@ -24,6 +24,8 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.HeapResourceCacheConfiguration;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
@@ -106,6 +108,11 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
       @Override
       public String createValue(long seed) {
         return new String("" + seed);
+      }
+
+      @Override
+      public ServiceProvider getServiceProvider() {
+        return new ServiceLocator();
       }
     };
   }

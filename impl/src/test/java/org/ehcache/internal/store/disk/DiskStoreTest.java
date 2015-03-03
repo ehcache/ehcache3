@@ -23,6 +23,7 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.spi.serialization.Serializer;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -30,12 +31,10 @@ import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -54,10 +53,12 @@ public class DiskStoreTest {
     timeSource = new TestTimeSource();
     capacityConstraint = 5L;
     StoreConfigurationImpl<Number, CharSequence> config = new StoreConfigurationImpl<Number, CharSequence>(Number.class, CharSequence.class, capacityConstraint,
-        null, null, ClassLoader.getSystemClassLoader(), Expirations.timeToLiveExpiration(new Duration(10, TimeUnit.MILLISECONDS)),
-        new JavaSerializationProvider());
+        null, null, ClassLoader.getSystemClassLoader(), Expirations.timeToLiveExpiration(new Duration(10, TimeUnit.MILLISECONDS)));
+    JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
+    Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createSerializer(DiskStorageFactory.Element.class, config.getClassLoader());
+    Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, config.getClassLoader());
 
-    diskStore = new DiskStore<Number, CharSequence>(config, "DiskStoreTest", timeSource);
+    diskStore = new DiskStore<Number, CharSequence>(config, "DiskStoreTest", timeSource, elementSerializer, objectSerializer);
     diskStore.destroy();
     diskStore.create();
     diskStore.init();
@@ -221,6 +222,9 @@ public class DiskStoreTest {
 
     CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
     when(cachingTier.isExpired(isA(Store.ValueHolder.class))).thenReturn(true);
+    when(cachingTier.getExpireTimeMillis(isA(Store.ValueHolder.class))).thenReturn(5L);
+
+    timeSource.advanceTime(5L);
 
     assertThat(diskStore.flush(1, valueHolder, cachingTier), is(true));
     assertThat(diskStore.get(1), is(nullValue()));
@@ -263,7 +267,7 @@ public class DiskStoreTest {
 
   private static class TestTimeSource implements TimeSource {
 
-    private long time = 0;
+    private long time = 1;
 
     @Override
     public long getTimeMillis() {

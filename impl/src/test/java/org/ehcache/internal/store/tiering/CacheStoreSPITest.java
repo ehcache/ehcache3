@@ -28,8 +28,12 @@ import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.OnHeapStore;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
+import org.ehcache.internal.store.disk.DiskStorageFactory;
 import org.ehcache.internal.store.disk.DiskStore;
+import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 import org.junit.internal.AssumptionViolatedException;
@@ -60,8 +64,14 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store<String, String> newStore(final Store.Configuration<String, String> config) {
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false);
-        DiskStore<String, String> diskStore = new DiskStore<String, String>(config, "alias-" + aliasCounter.incrementAndGet(), SystemTimeSource.INSTANCE);
+        JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
+        Serializer<String> keySerializer = serializationProvider.createSerializer(String.class, config.getClassLoader());
+        Serializer<String> valueSerializer = serializationProvider.createSerializer(String.class, config.getClassLoader());
+        Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createSerializer(DiskStorageFactory.Element.class, config.getClassLoader());
+        Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, config.getClassLoader());
+
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false, keySerializer, valueSerializer);
+        DiskStore<String, String> diskStore = new DiskStore<String, String>(config, "alias-" + aliasCounter.incrementAndGet(), SystemTimeSource.INSTANCE, elementSerializer, objectSerializer);
 
         CacheStore<String, String> cacheStore = new CacheStore<String, String>(onHeapStore, diskStore);
         try {
@@ -76,8 +86,14 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store<String, String> newStore(Store.Configuration<String, String> config, TimeSource timeSource) {
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, false);
-        DiskStore<String, String> diskStore = new DiskStore<String, String>(config, "alias-" + aliasCounter.incrementAndGet(), timeSource);
+        JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
+        Serializer<String> keySerializer = serializationProvider.createSerializer(String.class, config.getClassLoader());
+        Serializer<String> valueSerializer = serializationProvider.createSerializer(String.class, config.getClassLoader());
+        Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createSerializer(DiskStorageFactory.Element.class, config.getClassLoader());
+        Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, config.getClassLoader());
+
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false, keySerializer, valueSerializer);
+        DiskStore<String, String> diskStore = new DiskStore<String, String>(config, "alias-" + aliasCounter.incrementAndGet(), SystemTimeSource.INSTANCE, elementSerializer, objectSerializer);
 
         CacheStore<String, String> cacheStore = new CacheStore<String, String>(onHeapStore, diskStore);
         try {
@@ -127,13 +143,13 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
           final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), new JavaSerializationProvider());
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration());
       }
 
       @Override
       public Store.Configuration<String, String> newConfiguration(Class<String> keyType, Class<String> valueType, Comparable<Long> capacityConstraint, EvictionVeto<? super String, ? super String> evictionVeto, EvictionPrioritizer<? super String, ? super String> evictionPrioritizer, Expiry<? super String, ? super String> expiry) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, new JavaSerializationProvider());
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry);
       }
 
       @Override
@@ -159,6 +175,11 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
       @Override
       public String createValue(long seed) {
         return new String("" + seed);
+      }
+
+      @Override
+      public ServiceProvider getServiceProvider() {
+        return new ServiceLocator();
       }
     };
   }

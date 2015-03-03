@@ -311,11 +311,19 @@ public class CacheStore<K, V> implements Store<K, V> {
 
   public static class Provider implements Store.Provider {
 
+    private ServiceProvider serviceProvider;
+    private ServiceConfiguration<?> serviceConfiguration;
+    private OnHeapStore.Provider onHeapStoreProvider;
+    private DiskStore.Provider diskStoreProvider;
+
     @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       //todo use the storeConfig to figure out what providers to use
-      OnHeapStore.Provider onHeapStoreProvider = new OnHeapStore.Provider();
-      DiskStore.Provider diskStoreProvider = new DiskStore.Provider();
+      onHeapStoreProvider = new OnHeapStore.Provider();
+      onHeapStoreProvider.start(serviceConfiguration, serviceProvider);
+
+      diskStoreProvider = new DiskStore.Provider();
+      diskStoreProvider.start(serviceConfiguration, serviceProvider);
 
       return new CacheStore<K, V>(onHeapStoreProvider.createStore(storeConfig, serviceConfigs), diskStoreProvider.createStore(storeConfig, serviceConfigs));
     }
@@ -327,12 +335,15 @@ public class CacheStore<K, V> implements Store<K, V> {
 
     @Override
     public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
-      // nothing to do
+      this.serviceConfiguration = config;
+      this.serviceProvider = serviceProvider;
     }
 
     @Override
     public void stop() {
-      // nothing to do
+      this.onHeapStoreProvider.stop();
+      this.diskStoreProvider.stop();
+      this.serviceProvider = null;
     }
   }
 
