@@ -259,8 +259,6 @@ public class CacheStore<K, V> implements Store<K, V> {
     try {
       return authoritativeTier.computeIfPresent(key, remappingFunction);
     } finally {
-      // XXX: it's not possible to discriminate if computation has been performed or not by looking at the computeIfPresent return value
-      // Hence, we must always clear the caching tier even when that's not necessary (ie: when no computing happened)
       cachingTier.remove(key);
     }
   }
@@ -270,8 +268,6 @@ public class CacheStore<K, V> implements Store<K, V> {
     try {
       return authoritativeTier.computeIfPresent(key, remappingFunction, replaceEqual);
     } finally {
-      // XXX: it's not possible to discriminate if computation has been performed or not by looking at the computeIfPresent return value
-      // Hence, we must always clear the caching tier even when that's not necessary (ie: when no computing happened)
       cachingTier.remove(key);
     }
   }
