@@ -20,6 +20,7 @@ import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -50,6 +51,8 @@ public interface StoreFactory<K, V> {
   Class<V> getValueType();
 
   ServiceConfiguration<?>[] getServiceConfigurations();
+
+  ServiceProvider getServiceProvider();
 
   K createKey(long seed);
 

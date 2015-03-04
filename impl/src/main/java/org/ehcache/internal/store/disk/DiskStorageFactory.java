@@ -60,15 +60,20 @@ import java.util.concurrent.locks.Lock;
  */
 public class DiskStorageFactory<K, V> {
 
-  interface Element<K, V> extends Serializable {
+  public interface Element<K, V> extends Serializable {
     boolean isExpired(long time);
     K getKey();
     DiskValueHolder<V> getValueHolder();
+    void setFaulted(boolean faulted);
+    boolean isFaulted();
   }
 
   static class ElementImpl<K, V> implements Element<K, V> {
+    private static final long serialVersionUID = -7234449795271393813L;
+
     private final DiskValueHolder<V> valueHolder;
     private final K key;
+    private transient boolean faulted;
 
     public ElementImpl(K key, V value, long createTime, long expireTime) {
       this.key = key;
@@ -77,7 +82,7 @@ public class DiskStorageFactory<K, V> {
 
     @Override
     public boolean isExpired(long time) {
-      return valueHolder.isExpired(time);
+      return !faulted && valueHolder.isExpired(time);
     }
 
     @Override
@@ -90,9 +95,20 @@ public class DiskStorageFactory<K, V> {
       return valueHolder;
     }
 
+    @Override
+    public void setFaulted(boolean faulted) {
+      this.faulted = faulted;
+    }
+
+    @Override
+    public boolean isFaulted() {
+      return faulted;
+    }
   }
 
   static class DiskValueHolderImpl<V> implements DiskValueHolder<V>, Serializable {
+    private static final long serialVersionUID = -7234449795271393813L;
+
     static final long NO_EXPIRE = -1;
 
     private final V value;
@@ -823,12 +839,10 @@ public class DiskStorageFactory<K, V> {
 
     /**
      * Updates the stats from memory
-     *
-     * @param e
      */
-    void updateStats(Element<K, V> e) {
-      hitRate = e.getValueHolder().hitRate(TimeUnit.SECONDS);
-      expiry = e.getValueHolder().getExpireTimeMillis();
+    void updateStats(float hitRate, long expireTimeMillis) {
+      this.hitRate = hitRate;
+      this.expiry = expireTimeMillis;
     }
   }
 
@@ -888,7 +902,10 @@ public class DiskStorageFactory<K, V> {
     if (object instanceof DiskMarker) {
       try {
         DiskMarker<K, V> marker = (DiskMarker) object;
-        return read(marker);
+        Element<K, V> read = read(marker);
+        //TODO update with the true hit rate once it has been implemented, see #122
+        read.getValueHolder().setExpireTimeMillis(((DiskMarker) object).expiry);
+        return read;
       } catch (IOException e) {
         throw new RuntimeException(e);
       } catch (ClassNotFoundException e) {
@@ -1020,6 +1037,10 @@ public class DiskStorageFactory<K, V> {
    */
   public int getOnDiskSize() {
     return onDisk.get();
+  }
+
+  void evictToSize() {
+    onDiskEvict(onDisk.get(), null);
   }
 
   private void onDiskEvict(int size, K keyHint) {

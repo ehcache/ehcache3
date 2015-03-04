@@ -30,6 +30,7 @@ import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
 import org.ehcache.internal.store.disk.DiskStorageFactory.Element;
 import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -130,6 +131,11 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
       @Override
       public String createValue(long seed) {
         return new String("" + seed);
+      }
+
+      @Override
+      public ServiceProvider getServiceProvider() {
+        return new ServiceLocator();
       }
     };
   }

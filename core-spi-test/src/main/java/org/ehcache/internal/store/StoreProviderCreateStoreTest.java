@@ -42,6 +42,7 @@ public class StoreProviderCreateStoreTest<K, V> extends SPIStoreTester<K, V> {
     Store.Provider provider = factory.newProvider();
 
     Store.Configuration<K, V> storeConfig = factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null);
+    provider.start(null, factory.getServiceProvider());
     Store<K, V> store = provider.createStore(storeConfig, factory.getServiceConfigurations());
 
     assertThat(store, is(notNullValue()));

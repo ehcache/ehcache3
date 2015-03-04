@@ -35,6 +35,8 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
+import org.ehcache.internal.store.tiering.NullInvalidationListener;
+import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
@@ -63,7 +65,7 @@ import static org.terracotta.statistics.StatisticsBuilder.operation;
 /**
  * @author Alex Snaps
  */
-public class OnHeapStore<K, V> implements Store<K, V> {
+public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
 
   private static final int ATTEMPT_RATIO = 4;
   private static final int EVICTION_RATIO = 2;
@@ -79,8 +81,9 @@ public class OnHeapStore<K, V> implements Store<K, V> {
   private final Comparator<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionPrioritizer;
   private final Expiry<? super K, ? super V> expiry;
   private final TimeSource timeSource;
-  private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener(); 
-  
+  private volatile InvalidationListener<K, V> invalidationListener = NullInvalidationListener.instance();
+  private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener();
+
   private final OperationObserver<EvictionOutcome> evictionObserver = operation(EvictionOutcome.class).named("eviction").of(this).tag("onheap-store").build();
 
   private static final NullaryFunction<Boolean> REPLACE_EQUALS_TRUE = new NullaryFunction<Boolean>() {
@@ -132,6 +135,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
 
         if (mappedValue.isExpired(now)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          invalidationListener.onInvalidation(mappedKey, mappedValue);
           return null;
         }
 
@@ -216,6 +220,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         if (mappedValue == null || mappedValue.isExpired(now)) {
           if (mappedValue != null) {
             eventListener.onExpiration(wrap(mappedKey, mappedValue));
+            invalidationListener.onInvalidation(mappedKey, mappedValue);
           }
           entryActuallyAdded.set(true);
           return newCreateValueHolder(key, value, now);
@@ -252,9 +257,11 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         
         if (mappedValue.isExpired(now)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          invalidationListener.onInvalidation(mappedKey, mappedValue);
           return null;
         } else if (value.equals(mappedValue.value())) {
           removed.set(true);
+          invalidationListener.onInvalidation(mappedKey, mappedValue);
           return null;
         } else {
           setAccessTimeAndExpiry(key, mappedValue, now);
@@ -280,6 +287,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         
         if (mappedValue.isExpired(now)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          invalidationListener.onInvalidation(mappedKey, mappedValue);
           return null;
         } else {
           returnValue.set(mappedValue);
@@ -306,6 +314,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         
         if (mappedValue.isExpired(now)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          invalidationListener.onInvalidation(mappedKey, mappedValue);
           return null;
         } else if (oldValue.equals(mappedValue.value())) {
           returnValue.set(true);
@@ -369,6 +378,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
           if (entry.getValue().isExpired(now)) {
             it.remove();
             eventListener.onExpiration(wrap(entry));
+            invalidationListener.onInvalidation(entry.getKey(), entry.getValue());
             continue;
           }
           
@@ -422,7 +432,176 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     };
   }
 
-  
+  @Override
+  public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) throws CacheAccessException {
+    MapWrapper<K, V> backEnd = map;
+    final long now = timeSource.getTimeMillis();
+
+    OnHeapValueHolder<V> cachedValue = backEnd.get(key);
+    if (cachedValue == null) {
+      Fault<V> fault = new Fault<V>(new NullaryFunction<ValueHolder<V>>() {
+        @Override
+        public ValueHolder<V> apply() {
+          return source.apply(key);
+        }
+      });
+      cachedValue = backEnd.putIfAbsent(key, fault);
+      if (cachedValue == null) {
+        // todo: not hinting enforceCapacity() about the mapping we just added makes it likely that it will be the eviction target
+        enforceCapacity(1);
+        try {
+          ValueHolder<V> value = fault.get();
+          OnHeapValueHolder<V> newValue = value == null ? null : newCreateValueHolder(key, value.value(), now);
+
+          if (value == null) {
+            backEnd.remove(key, fault);
+            return null;
+          } else if (backEnd.replace(key, fault, newValue)) {
+            return getValue(newValue);
+          } else {
+            ValueHolder<V> p = getValue(backEnd.remove(key));
+            if (p != null) {
+              invalidationListener.onInvalidation(key, p);
+            }
+            return p == null ? newValue : p;
+          }
+        } catch (Throwable e) {
+          backEnd.remove(key, fault);
+          throw new CacheAccessException(e);
+        }
+      }
+    }
+
+    return getValue(cachedValue);
+  }
+
+  @Override
+  public void setInvalidationListener(InvalidationListener<K, V> invalidationListener) {
+    if (this.invalidationListener != NullInvalidationListener.instance()) {
+      throw new IllegalStateException("Invalidation listener can only be set once");
+    }
+    this.invalidationListener = invalidationListener;
+  }
+
+  @Override
+  public boolean isExpired(ValueHolder<V> valueHolder) {
+    OnHeapValueHolder<V> onHeapValueHolder = (OnHeapValueHolder<V>) valueHolder;
+    final long now = timeSource.getTimeMillis();
+    return onHeapValueHolder.isExpired(now);
+  }
+
+  @Override
+  public long getExpireTimeMillis(ValueHolder<V> valueHolder) {
+    OnHeapValueHolder<V> onHeapValueHolder = (OnHeapValueHolder<V>) valueHolder;
+    return onHeapValueHolder.getExpireTimeMillis();
+  }
+
+  private ValueHolder<V> getValue(final Object cachedValue) {
+    if (cachedValue instanceof Fault) {
+      return ((Fault<V>)cachedValue).get();
+    } else {
+      return (ValueHolder<V>)cachedValue;
+    }
+  }
+
+  /**
+   * Document me
+   *
+   * @param <V>
+   */
+  private static class Fault<V> implements OnHeapValueHolder<V> {
+
+    private final NullaryFunction<ValueHolder<V>> source;
+    private ValueHolder<V> value;
+    private Throwable throwable;
+    private boolean complete;
+
+    public Fault(final NullaryFunction<ValueHolder<V>> source) {
+      this.source = source;
+    }
+
+    private void complete(ValueHolder<V> value) {
+      synchronized (this) {
+        this.value = value;
+        this.complete = true;
+        notifyAll();
+      }
+    }
+
+    private ValueHolder<V> get() {
+      synchronized (this) {
+        if (!complete) {
+          try {
+            complete(source.apply());
+          } catch (Throwable e) {
+            fail(e);
+          }
+        }
+      }
+
+      return throwOrReturn();
+    }
+
+    private ValueHolder<V> throwOrReturn() {
+      if (throwable != null) {
+        if (throwable instanceof RuntimeException) {
+          throw (RuntimeException) throwable;
+        }
+        throw new RuntimeException("Faulting from repository failed", throwable);
+      }
+      return value;
+    }
+
+    private void fail(final Throwable t) {
+      synchronized (this) {
+        this.throwable = t;
+        this.complete = true;
+        notifyAll();
+      }
+      throwOrReturn();
+    }
+
+    @Override
+    public void setAccessTimeMillis(long accessTime) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setExpireTimeMillis(long expireTime) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isExpired(long now) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public long getExpireTimeMillis() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public V value() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public long creationTime(TimeUnit unit) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public long lastAccessTime(TimeUnit unit) {
+      return Long.MAX_VALUE;
+    }
+
+    @Override
+    public float hitRate(TimeUnit unit) {
+      throw new UnsupportedOperationException();
+    }
+  }
+
   @Override
   public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException {
     return compute(key, mappingFunction, REPLACE_EQUALS_TRUE);
@@ -438,6 +617,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
         if (mappedValue != null && mappedValue.isExpired(now)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          invalidationListener.onInvalidation(mappedKey, mappedValue);
           mappedValue = null;
         }
         
@@ -475,6 +655,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         if (mappedValue == null || mappedValue.isExpired(now)) {
           if (mappedValue != null) {
             eventListener.onExpiration(wrap(mappedKey, mappedValue));
+            invalidationListener.onInvalidation(mappedKey, mappedValue);
           }
           V computedValue = mappingFunction.apply(mappedKey);
           if (computedValue == null) {
@@ -515,6 +696,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
         
         if (mappedValue.isExpired(now)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          invalidationListener.onInvalidation(mappedKey, mappedValue);
           return null;
         }
         
@@ -725,6 +907,7 @@ public class OnHeapStore<K, V> implements Store<K, V> {
       if (map.remove(evict.getKey(), evict.getValue())) {
         evictionObserver.end(EvictionOutcome.SUCCESS);
         eventListener.onEviction(wrap(evict));
+        invalidationListener.onInvalidation(evict.getKey(), evict.getValue());
         return true;
       } else {
         evictionObserver.end(EvictionOutcome.FAILURE);
@@ -982,6 +1165,29 @@ public class OnHeapStore<K, V> implements Store<K, V> {
     private OnHeapKey<K> lookupOnlyKey(K key) {
       return new LookupOnlyOnHeapKey<K>(key);
     }
-    
+
+    public OnHeapValueHolder<V> get(K key) {
+      if (keySerializer == null) {
+        return map.get(key);
+      } else {
+        return keyCopyMap.get(lookupOnlyKey(key));
+      }
+    }
+
+    public OnHeapValueHolder<V> putIfAbsent(K key, OnHeapValueHolder<V> valueHolder) {
+      if (keySerializer == null) {
+        return map.putIfAbsent(key, valueHolder);
+      } else {
+        return keyCopyMap.putIfAbsent(lookupOnlyKey(key), valueHolder);
+      }
+    }
+
+    public boolean replace(K key, OnHeapValueHolder<V> oldValue, OnHeapValueHolder<V> newValue) {
+      if (keySerializer == null) {
+        return map.replace(key, oldValue, newValue);
+      } else {
+        return keyCopyMap.replace(lookupOnlyKey(key), oldValue, newValue);
+      }
+    }
   }
 }
