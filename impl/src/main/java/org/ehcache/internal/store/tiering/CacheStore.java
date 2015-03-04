@@ -44,7 +44,7 @@ public class CacheStore<K, V> implements Store<K, V> {
     this.cachingTier = cachingTier;
     this.authoritativeTier = authoritativeTier;
 
-    this.cachingTier.addInvalidationListener(new CachingTier.InvalidationListener<K, V>() {
+    this.cachingTier.setInvalidationListener(new CachingTier.InvalidationListener<K, V>() {
       @Override
       public void onInvalidation(K key, ValueHolder<V> valueHolder) {
         CacheStore.this.authoritativeTier.flush(key, valueHolder, CacheStore.this.cachingTier);

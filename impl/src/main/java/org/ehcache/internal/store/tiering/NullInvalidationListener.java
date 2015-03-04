@@ -18,27 +18,21 @@ package org.ehcache.internal.store.tiering;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
+ * A {@link CachingTier.InvalidationListener} implementation that doesn't do anything.
+ *
  * @author Ludovic Orban
  */
-public class InvalidationListenerSupport<K, V> {
+public class NullInvalidationListener<K, V> implements CachingTier.InvalidationListener<K, V> {
 
-  private final List<CachingTier.InvalidationListener<K, V>> listeners = new ArrayList<CachingTier.InvalidationListener<K, V>>();
+  private static final CachingTier.InvalidationListener<?, ?> INSTANCE = new NullInvalidationListener<Object, Object>();
 
-  public void addInvalidationListener(CachingTier.InvalidationListener<K, V> invalidationListener) {
-    listeners.add(invalidationListener);
+  @SuppressWarnings("unchecked")
+  public static <K, V> CachingTier.InvalidationListener<K, V> instance() {
+    return (CachingTier.InvalidationListener<K, V>) INSTANCE;
   }
 
-  public void fireInvalidation(K key, Store.ValueHolder<V> valueHolder) {
-    for (CachingTier.InvalidationListener<K, V> listener : listeners) {
-      listener.onInvalidation(key, valueHolder);
-    }
-  }
-
-  public void removeInvalidationListener(CachingTier.InvalidationListener<K, V> invalidationListener) {
-    listeners.remove(invalidationListener);
+  @Override
+  public void onInvalidation(K key, Store.ValueHolder<V> valueHolder) {
   }
 }

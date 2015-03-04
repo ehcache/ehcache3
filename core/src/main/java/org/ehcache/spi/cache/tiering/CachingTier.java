@@ -68,16 +68,10 @@ public interface CachingTier<K, V> {
   long getExpireTimeMillis(Store.ValueHolder<V> valueHolder);
 
   /**
-   * Add a caching tier invalidation listener.
+   * Set the caching tier's invalidation listener. The invalidation listener can only be set once.
    * @param invalidationListener the listener.
    */
-  void addInvalidationListener(InvalidationListener<K, V> invalidationListener);
-
-  /**
-   * Remove a caching tier invalidation listener.
-   * @param invalidationListener the listener.
-   */
-  void removeInvalidationListener(InvalidationListener<K, V> invalidationListener);
+  void setInvalidationListener(InvalidationListener<K, V> invalidationListener);
 
   /**
    * Caching tier invalidation listener.
