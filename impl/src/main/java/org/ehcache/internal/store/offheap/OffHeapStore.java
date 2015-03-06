@@ -1,0 +1,858 @@
+/*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.ehcache.internal.store.offheap;
+
+import org.ehcache.Cache;
+import org.ehcache.Status;
+import org.ehcache.config.EvictionVeto;
+import org.ehcache.events.CacheEvents;
+import org.ehcache.events.StoreEventListener;
+import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
+import org.ehcache.function.BiFunction;
+import org.ehcache.function.Function;
+import org.ehcache.function.NullaryFunction;
+import org.ehcache.function.Predicate;
+import org.ehcache.function.Predicates;
+import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory;
+import org.ehcache.internal.store.offheap.portability.OffHeapValueHolderPortability;
+import org.ehcache.internal.store.offheap.portability.SerializerPortability;
+import org.ehcache.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.statistics.StoreOperationOutcomes;
+import org.terracotta.statistics.observer.OperationObserver;
+
+import org.terracotta.offheapstore.Segment;
+import org.terracotta.offheapstore.exceptions.OversizeMappingException;
+import org.terracotta.offheapstore.paging.PageSource;
+import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
+import org.terracotta.offheapstore.pinning.PinnableSegment;
+import org.terracotta.offheapstore.storage.OffHeapBufferStorageEngine;
+import org.terracotta.offheapstore.storage.PointerSize;
+import org.terracotta.offheapstore.storage.portability.Portability;
+import org.terracotta.offheapstore.util.Factory;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+
+import static org.ehcache.internal.store.offheap.OffHeapStoreUtils.getBufferSource;
+import static org.terracotta.statistics.StatisticsBuilder.operation;
+
+/**
+ * OffHeapStore
+ */
+public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
+
+  private final Class<K> keyType;
+  private final Class<V> valueType;
+  private final EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
+
+  private final TimeSource timeSource;
+  private final Expiry<? super K, ? super V> expiry;
+
+
+  private final AtomicReference<Status> status = new AtomicReference<Status>(Status.UNINITIALIZED);
+  private final Predicate<Map.Entry<K, OffHeapValueHolder<V>>> evictionVeto;
+
+  private OperationObserver<StoreOperationOutcomes.GetOutcome> getOperationObserver = operation(StoreOperationOutcomes.GetOutcome.class).of(this).named("get").tag("local-offheap").build();
+  private OperationObserver<StoreOperationOutcomes.PutOutcome> putOperationObserver = operation(StoreOperationOutcomes.PutOutcome.class).of(this).named("put").tag("local-offheap").build();
+  private OperationObserver<StoreOperationOutcomes.RemoveOutcome> removeOperationObserver = operation(StoreOperationOutcomes.RemoveOutcome.class).of(this).named("remove").tag("local-offheap").build();
+  private volatile Callable<Void> valve;
+  private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener();
+  private BackingMapEvictionListener<K, V> mapEvictionListener;
+
+  public OffHeapStore(final Configuration<K, V> config, Serializer<K> keySerializer, Serializer<V> valueSerializer, TimeSource timeSource, long size) {
+
+    if (!status.compareAndSet(Status.UNINITIALIZED, Status.AVAILABLE)) {
+      throw new AssertionError();
+    }
+    keyType = config.getKeyType();
+    valueType = config.getValueType();
+    expiry = config.getExpiry();
+    EvictionVeto<? super K, ? super V> veto = config.getEvictionVeto();
+    if (veto != null) {
+      evictionVeto = wrap(veto);
+    } else {
+      evictionVeto = Predicates.none();
+    }
+    this.timeSource = timeSource;
+    eventListener = CacheEvents.nullStoreEventListener();
+    mapEvictionListener = new BackingMapEvictionListener<K, V>();
+    this.map = createBackingMap(size, keySerializer, valueSerializer, evictionVeto);
+  }
+
+  @Override
+  public ValueHolder<V> get(K key) {
+    checkKey(key);
+    getOperationObserver.begin();
+
+    ValueHolder<V> result = internalGet(key, true);
+    if (result == null) {
+      getOperationObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
+    } else {
+      getOperationObserver.end(StoreOperationOutcomes.GetOutcome.HIT);
+    }
+    return result;
+  }
+
+  private ValueHolder<V> internalGet(K key, final boolean updateAccess) {
+    return map.compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+        @Override
+        public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
+          long now = timeSource.getTimeMillis();
+
+          if (mappedValue == null || mappedValue.isExpired(now)) {
+            if (mappedValue != null) {
+              eventListener.onExpiration(wrap(mappedKey, mappedValue));
+            }
+            return null;
+          }
+
+          if (updateAccess) {
+            setAccessTimeAndExpiry(mappedKey, mappedValue, now);
+          }
+          return mappedValue;
+        }
+      }, false);
+  }
+
+  @Override
+  public boolean containsKey(K key) {
+    checkKey(key);
+    return internalGet(key, false) != null;
+  }
+
+  @Override
+  public void put(final K key, final V value) throws CacheAccessException {
+    checkKey(key);
+    checkValue(value);
+
+    putOperationObserver.begin();
+    while (true) {
+      final long now = timeSource.getTimeMillis();
+      try {
+        map.compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+          @Override
+          public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
+            if (mappedValue != null && mappedValue.isExpired(now)) {
+              mappedValue = null;
+            }
+
+            if (mappedValue == null) {
+              return newCreateValueHolder(key, value, now);
+            } else {
+              return newUpdatedValueHolder(key, value, mappedValue, now);
+            }
+          }
+        }, false);
+        return;
+      } catch (OversizeMappingException ex) {
+        handleOversizeMappingException(key, ex);
+      }
+    }
+  }
+
+  @Override
+  public ValueHolder<V> putIfAbsent(final K key, final V value) throws NullPointerException, CacheAccessException {
+    checkKey(key);
+    checkValue(value);
+
+    final AtomicReference<ValueHolder<V>> returnValue = new AtomicReference<ValueHolder<V>>();
+
+    while (true) {
+      try {
+        map.compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+          @Override
+          public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
+            long now = timeSource.getTimeMillis();
+
+            if (mappedValue == null || mappedValue.isExpired(now)) {
+              if (mappedValue != null) {
+                eventListener.onExpiration(wrap(mappedKey, mappedValue));
+              }
+              return newCreateValueHolder(mappedKey, value, now);
+            }
+            returnValue.set(mappedValue);
+            setAccessTimeAndExpiry(mappedKey, mappedValue, now);
+            return mappedValue;
+          }
+        }, false);
+        return returnValue.get();
+      } catch (OversizeMappingException ex) {
+        handleOversizeMappingException(key, ex);
+      }
+    }
+  }
+
+  @Override
+  public void remove(K key) {
+    checkKey(key);
+    removeOperationObserver.begin();
+    try {
+      map.remove(key);
+    } finally {
+      removeOperationObserver.end(StoreOperationOutcomes.RemoveOutcome.SUCCESS);
+    }
+  }
+
+  @Override
+  public boolean remove(final K key, final V value) throws NullPointerException {
+    checkKey(key);
+    checkValue(value);
+
+    final AtomicBoolean removed = new AtomicBoolean(false);
+
+    map.computeIfPresent(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+      @Override
+      public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
+        long now = timeSource.getTimeMillis();
+
+        if (mappedValue.isExpired(now)) {
+          eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          return null;
+        } else if (mappedValue.value().equals(value)) {
+          removed.set(true);
+          return null;
+        } else {
+          setAccessTimeAndExpiry(mappedKey, mappedValue, now);
+          return mappedValue;
+        }
+      }
+    });
+
+    return removed.get();
+  }
+
+  @Override
+  public ValueHolder<V> replace(final K key, final V value) throws NullPointerException, CacheAccessException {
+    checkKey(key);
+    checkValue(value);
+
+    final AtomicReference<ValueHolder<V>> returnValue = new AtomicReference<ValueHolder<V>>(null);
+    BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> mappingFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+      @Override
+      public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
+        long now = timeSource.getTimeMillis();
+
+        if (mappedValue == null || mappedValue.isExpired(now)) {
+          if (mappedValue != null) {
+            eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          }
+          return null;
+        } else {
+          returnValue.set(mappedValue);
+          return newUpdatedValueHolder(mappedKey, value, mappedValue, now);
+        }
+      }
+    };
+    while (true) {
+      try {
+        map.compute(key, mappingFunction, false);
+        return returnValue.get();
+      } catch (OversizeMappingException ex) {
+        handleOversizeMappingException(key, ex);
+      }
+    }
+  }
+
+  @Override
+  public boolean replace(final K key, final V oldValue, final V newValue) throws NullPointerException, IllegalArgumentException, CacheAccessException {
+    checkKey(key);
+    checkValue(oldValue);
+    checkValue(newValue);
+
+    final AtomicBoolean replaced = new AtomicBoolean(false);
+    BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> mappingFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+      @Override
+      public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
+        long now = timeSource.getTimeMillis();
+
+        if (mappedValue == null || mappedValue.isExpired(now)) {
+          if (mappedValue != null) {
+            eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          }
+          return null;
+        } else if (oldValue.equals(mappedValue.value())) {
+          replaced.set(true);
+          return newUpdatedValueHolder(mappedKey, newValue, mappedValue, now);
+        } else {
+          setAccessTimeAndExpiry(key, mappedValue, now);
+          return mappedValue;
+        }
+      }
+    };
+
+    while (true) {
+      try {
+        map.compute(key, mappingFunction, false);
+        return replaced.get();
+      } catch (OversizeMappingException ex) {
+        handleOversizeMappingException(key, ex);
+      }
+    }
+  }
+
+  @Override
+  public void clear() throws CacheAccessException {
+    map.clear();
+  }
+
+  @Override
+  public void destroy() throws CacheAccessException {
+    map.destroy();
+  }
+
+  @Override
+  public void create() throws CacheAccessException {
+    // Nothing to do for now - unless we only create the offheap area here
+  }
+
+  @Override
+  public void close() {
+    map.clear();
+  }
+
+  @Override
+  public void init() {
+    // Nothing to do for now
+  }
+
+  @Override
+  public void maintenance() {
+    // Nothing to do for now
+  }
+
+  @Override
+  public void enableStoreEventNotifications(StoreEventListener<K, V> listener) {
+    eventListener = listener;
+    mapEvictionListener.setStoreEventListener(eventListener);
+  }
+
+  @Override
+  public void disableStoreEventNotifications() {
+    eventListener = CacheEvents.nullStoreEventListener();
+    mapEvictionListener.setStoreEventListener(eventListener);
+  }
+
+  @Override
+  public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() throws CacheAccessException {
+    return new OffHeapStoreIterator();
+  }
+
+  @Override
+  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException {
+    return compute(key, mappingFunction, REPLACE_EQUALS_TRUE);
+  }
+
+  @Override
+  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+    checkKey(key);
+
+    BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+      @Override
+      public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
+        long now = timeSource.getTimeMillis();
+        V existingValue = null;
+        if (mappedValue == null || mappedValue.isExpired(now)) {
+          if (mappedValue != null) {
+            eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          }
+          mappedValue = null;
+        } else {
+          existingValue = mappedValue.value();
+        }
+        V computedValue = mappingFunction.apply(mappedKey, existingValue);
+        if (computedValue == null) {
+          return null;
+        } else if (safeEquals(existingValue, computedValue) && !replaceEqual.apply()) {
+          if (mappedValue != null) {
+            setAccessTimeAndExpiry(key, mappedValue, now);
+          }
+          return mappedValue;
+        }
+
+        checkValue(computedValue);
+        if (mappedValue != null) {
+          return newUpdatedValueHolder(key, computedValue, mappedValue, now);
+        } else {
+          return newCreateValueHolder(key, computedValue, now);
+        }
+      }
+    };
+
+    while (true) {
+      try {
+        // TODO review as computeFunction can have side effects
+        return map.compute(key, computeFunction, false);
+      } catch (OversizeMappingException e) {
+        handleOversizeMappingException(key, e);
+      }
+    }
+  }
+
+  @Override
+  public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
+    return internalComputeIfAbsent(key, mappingFunction, false);
+  }
+
+  private ValueHolder<V> internalComputeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction, boolean fault) throws CacheAccessException {
+    checkKey(key);
+
+    BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+      @Override
+      public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
+        long now = timeSource.getTimeMillis();
+        if (mappedValue == null || mappedValue.isExpired(now)) {
+          if (mappedValue != null) {
+            eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          }
+          V computedValue = mappingFunction.apply(mappedKey);
+          if (computedValue == null) {
+            return null;
+          } else {
+            checkValue(computedValue);
+            return newCreateValueHolder(mappedKey, computedValue, now);
+          }
+        } else {
+          setAccessTimeAndExpiry(mappedKey, mappedValue, now);
+          return mappedValue;
+        }
+      }
+    };
+
+    while (true) {
+      try {
+        return map.compute(key, computeFunction, fault);
+      } catch (OversizeMappingException e) {
+        handleOversizeMappingException(key, e);
+      }
+    }
+  }
+
+  @Override
+  public ValueHolder<V> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException {
+    return computeIfPresent(key, remappingFunction, REPLACE_EQUALS_TRUE);
+  }
+
+  @Override
+  public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction, final NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+    checkKey(key);
+
+    BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+      @Override
+      public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
+        long now = timeSource.getTimeMillis();
+
+        if (mappedValue == null || mappedValue.isExpired(now)) {
+          if (mappedValue != null) {
+            eventListener.onExpiration(wrap(mappedKey, mappedValue));
+          }
+          return null;
+        }
+
+        V computedValue = remappingFunction.apply(mappedKey, mappedValue.value());
+        if (computedValue == null) {
+          return null;
+        }
+
+        if (safeEquals(mappedValue.value(), computedValue) && !replaceEqual.apply()) {
+          setAccessTimeAndExpiry(mappedKey, mappedValue, now);
+          return mappedValue;
+        }
+        checkValue(computedValue);
+        return newUpdatedValueHolder(mappedKey, computedValue, mappedValue, now);
+      }
+    };
+
+    while (true) {
+      try {
+        return map.compute(key, computeFunction, false);
+      } catch (OversizeMappingException e) {
+        handleOversizeMappingException(key, e);
+      }
+    }
+  }
+
+  @Override
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
+    return bulkCompute(keys, remappingFunction, REPLACE_EQUALS_TRUE);
+  }
+
+  @Override
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+    Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
+    for (K key : keys) {
+      checkKey(key);
+      BiFunction<K, V, V> biFunction = new BiFunction<K, V, V>() {
+        @Override
+        public V apply(final K k, final V v) {
+          Map.Entry<K, V> entry = new Map.Entry<K, V>() {
+            @Override
+            public K getKey() {
+              return k;
+            }
+
+            @Override
+            public V getValue() {
+              return v;
+            }
+
+            @Override
+            public V setValue(V value) {
+              throw new UnsupportedOperationException();
+            }
+          };
+          java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = remappingFunction.apply(Collections
+              .singleton(entry)).iterator();
+          Map.Entry<? extends K, ? extends V> result = iterator.next();
+          if (result != null) {
+            checkKey(result.getKey());
+            return result.getValue();
+          } else {
+            return null;
+          }
+        }
+      };
+      ValueHolder<V> computed = compute(key, biFunction, replaceEqual);
+      result.put(key, computed);
+    }
+    return result;
+  }
+
+  @Override
+  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
+    Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
+    for (K key : keys) {
+      checkKey(key);
+      Function<K, V> function = new Function<K, V>() {
+        @Override
+        public V apply(K k) {
+          java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = mappingFunction.apply(Collections.singleton(k)).iterator();
+          Map.Entry<? extends K, ? extends V> result = iterator.next();
+          if (result != null) {
+            checkKey(result.getKey());
+            return result.getValue();
+          } else {
+            return null;
+          }
+        }
+      };
+      ValueHolder<V> computed = computeIfAbsent(key, function);
+      result.put(key, computed);
+    }
+    return result;
+  }
+
+  @Override
+  public ValueHolder<V> getAndFault(K key) throws CacheAccessException {
+    getOperationObserver.begin();
+    checkKey(key);
+    OffHeapValueHolder<V> mappedValue = map.getAndPin(key);
+    if (mappedValue == null) {
+      getOperationObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
+    } else {
+      getOperationObserver.end(StoreOperationOutcomes.GetOutcome.HIT);
+    }
+    return mappedValue;
+  }
+
+  @Override
+  public ValueHolder<V> computeIfAbsentAndFault(K key, Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
+    return internalComputeIfAbsent(key, mappingFunction, true);
+  }
+
+  @Override
+  public boolean flush(K key, ValueHolder<V> valueHolder, CachingTier<K, V> cachingTier) {
+    if (valueHolder instanceof OffHeapValueHolder) {
+      throw new IllegalArgumentException("ValueHolder must come from the caching tier");
+    }
+    checkKey(key);
+    return map.unpin(key);
+  }
+
+  //TODO wire that in if/when needed
+  public void registerEmergencyValve(final Callable<Void> valve) {
+    this.valve = valve;
+  }
+
+  private boolean safeEquals(V existingValue, V computedValue) {
+    return existingValue == computedValue || (existingValue != null && existingValue.equals(computedValue));
+  }
+
+  private static final NullaryFunction<Boolean> REPLACE_EQUALS_TRUE = new NullaryFunction<Boolean>() {
+    @Override
+    public Boolean apply() {
+      return Boolean.TRUE;
+    }
+  };
+
+  private void setAccessTimeAndExpiry(K key, OffHeapValueHolder<V> valueHolder, long now) {
+    valueHolder.setLastAccessTimeMillis(now);
+
+    Duration duration = expiry.getExpiryForAccess(key, valueHolder.value());
+    if (duration != null) {
+      if (duration.isForever()) {
+        valueHolder.setExpireTimeMillis(OffHeapValueHolder.NO_EXPIRE);
+      } else {
+        valueHolder.setExpireTimeMillis(safeExpireTime(now, duration));
+      }
+    }
+    valueHolder.writeBack();
+  }
+
+  private OffHeapValueHolder<V> newUpdatedValueHolder(K key, V value, OffHeapValueHolder<V> existing, long now) {
+    Duration duration = expiry.getExpiryForUpdate(key, existing.value(), value);
+    if (Duration.ZERO.equals(duration)) {
+      return null;
+    }
+
+    if (duration == null) {
+      return new OffHeapValueHolder<V>(value, now, existing.expireTime(TimeUnit.MILLISECONDS));
+    } else if (duration.isForever()) {
+      return new OffHeapValueHolder<V>(value, now, OffHeapValueHolder.NO_EXPIRE);
+    } else {
+      return new OffHeapValueHolder<V>(value, now, safeExpireTime(now, duration));
+    }
+  }
+
+  private OffHeapValueHolder<V> newCreateValueHolder(K key, V value, long now) {
+    Duration duration = expiry.getExpiryForCreation(key, value);
+    if (Duration.ZERO.equals(duration)) {
+      return null;
+    }
+
+    if (duration.isForever()) {
+      return new OffHeapValueHolder<V>(value, now, OffHeapValueHolder.NO_EXPIRE);
+    } else {
+      return new OffHeapValueHolder<V>(value, now, safeExpireTime(now, duration));
+    }
+  }
+
+  private static long safeExpireTime(long now, Duration duration) {
+    long millis = TimeUnit.MILLISECONDS.convert(duration.getAmount(), duration.getTimeUnit());
+
+    if (millis == Long.MAX_VALUE) {
+      return Long.MAX_VALUE;
+    }
+
+    long result = now + millis;
+    if (result < 0) {
+      return Long.MAX_VALUE;
+    }
+    return result;
+  }
+
+  public void handleOversizeMappingException(K key, OversizeMappingException cause) throws CacheAccessException {
+    handleOversizeMappingException(key, cause, null);
+  }
+
+  public void handleOversizeMappingException(K key, OversizeMappingException cause, AtomicBoolean invokeValve) throws CacheAccessException {
+    if (!map.shrinkOthers(key.hashCode())) {
+      if(!invokeValve(invokeValve)) {
+        for (Segment<K, OffHeapValueHolder<V>> segment : map.getSegments()) {
+          Lock lock = segment.writeLock();
+          lock.lock();
+          try {
+            for (K keyToEvict : segment.keySet()) {
+              if (map.updateMetadata(keyToEvict, EhcacheSegmentFactory.EhcacheSegment.VETOED, 0)) {
+                return;
+              }
+            }
+          } finally {
+            lock.unlock();
+          }
+        }
+        throw new CacheAccessException("The element with key '" + key + "' is too large to be stored"
+                                 + " in this offheap store.", cause);
+      }
+    }
+  }
+
+  private boolean invokeValve(final AtomicBoolean invokeValve) throws CacheAccessException {
+    if(invokeValve == null || !invokeValve.get()) {
+      return false;
+    }
+    invokeValve.set(false);
+    Callable<Void> valve = this.valve;
+    if (valve != null) {
+      try {
+        valve.call();
+      } catch (Exception exception) {
+        throw new CacheAccessException("Failed invoking valve", exception);
+      }
+    }
+    return true;
+  }
+
+  private EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, Predicate<Map.Entry<K, OffHeapValueHolder<V>>> evictionVeto) {
+    HeuristicConfiguration config = new HeuristicConfiguration(size);
+    PageSource source = new UpfrontAllocatingPageSource(getBufferSource(), config.getMaximumSize(), config.getMaximumChunkSize(), config.getMinimumChunkSize());
+    Portability<K> keyPortability = new SerializerPortability<K>(keySerializer);
+    Portability<OffHeapValueHolder<V>> elementPortability = new OffHeapValueHolderPortability<V>(valueSerializer);
+    Factory<OffHeapBufferStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = OffHeapBufferStorageEngine.createFactory(PointerSize.INT, source, config
+        .getSegmentDataPageSize(), keyPortability, elementPortability, false, true);
+
+    Factory<? extends PinnableSegment<K, OffHeapValueHolder<V>>> segmentFactory = new EhcacheSegmentFactory<K, OffHeapValueHolder<V>>(
+                                                                                                         source,
+                                                                                                         storageEngineFactory,
+                                                                                                         config.getInitialSegmentTableSize(),
+                                                                                                         evictionVeto,
+                                                                                                         mapEvictionListener);
+    return new EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(segmentFactory, config.getConcurrency());
+
+  }
+
+  private static <K, V> Cache.Entry<K, V> wrap(final K key, final OffHeapValueHolder<V> mappedValue) {
+    return new Cache.Entry<K, V>() {
+
+      @Override
+      public K getKey() {
+        return key;
+      }
+
+      @Override
+      public V getValue() {
+        return mappedValue.value();
+      }
+
+      @Override
+      public long getCreationTime(TimeUnit unit) {
+        return mappedValue.creationTime(unit);
+      }
+
+      @Override
+      public long getLastAccessTime(TimeUnit unit) {
+        return mappedValue.lastAccessTime(unit);
+      }
+
+      @Override
+      public float getHitRate(TimeUnit unit) {
+        return mappedValue.hitRate(unit);
+      }
+    };
+  }
+
+  private static <K, V> Predicate<Map.Entry<K, OffHeapValueHolder<V>>> wrap(EvictionVeto<? super K, ? super V> delegate) {
+    return new OffHeapEvictionVetoWrapper<K, V>(delegate);
+  }
+
+  private static class OffHeapEvictionVetoWrapper<K, V> implements Predicate<Map.Entry<K, OffHeapValueHolder<V>>> {
+
+    private final EvictionVeto<K, V> delegate;
+
+    private OffHeapEvictionVetoWrapper(EvictionVeto<? super K, ? super V> delegate) {
+      // TODO fix this cast
+      this.delegate = (EvictionVeto<K, V>)delegate;
+    }
+
+    @Override
+    public boolean test(Map.Entry<K, OffHeapValueHolder<V>> argument) {
+      return delegate.test(wrap(argument.getKey(), argument.getValue()));
+    }
+  }
+
+  private void checkKey(K keyObject) {
+    if (keyObject == null) {
+      throw new NullPointerException();
+    }
+    if (!keyType.isAssignableFrom(keyObject.getClass())) {
+      throw new ClassCastException("Invalid key type, expected : " + keyType.getName() + " but was : " + keyObject.getClass().getName());
+    }
+  }
+
+  private void checkValue(V valueObject) {
+    if (valueObject == null) {
+      throw new NullPointerException();
+    }
+    if (!valueType.isAssignableFrom(valueObject.getClass())) {
+      throw new ClassCastException("Invalid value type, expected : " + valueType.getName() + " but was : " + valueObject.getClass().getName());
+    }
+  }
+
+  class OffHeapStoreIterator implements Iterator<Cache.Entry<K, ValueHolder<V>>> {
+    private final java.util.Iterator<Map.Entry<K, OffHeapValueHolder<V>>> mapIterator;
+
+    OffHeapStoreIterator() {
+      mapIterator = map.entrySet().iterator();
+    }
+
+    @Override
+    public boolean hasNext() throws CacheAccessException {
+      return mapIterator.hasNext();
+    }
+
+    @Override
+    public Cache.Entry<K, ValueHolder<V>> next() throws CacheAccessException {
+      final Map.Entry<K, OffHeapValueHolder<V>> next = mapIterator.next();
+      return new Cache.Entry<K, ValueHolder<V>>() {
+        @Override
+        public K getKey() {
+          return next.getKey();
+        }
+
+        @Override
+        public ValueHolder<V> getValue() {
+          return next.getValue();
+        }
+
+        @Override
+        public long getCreationTime(TimeUnit unit) {
+          return next.getValue().creationTime(unit);
+        }
+
+        @Override
+        public long getLastAccessTime(TimeUnit unit) {
+          return next.getValue().lastAccessTime(unit);
+        }
+
+        @Override
+        public float getHitRate(TimeUnit unit) {
+          return next.getValue().hitRate(unit);
+        }
+      };
+    }
+  }
+
+  private static class BackingMapEvictionListener<K, V> implements EhcacheSegmentFactory.EhcacheSegment.EvictionListener<K, OffHeapValueHolder<V>> {
+
+    private StoreEventListener<K, V> storeEventListener;
+
+    private BackingMapEvictionListener() {
+      this.storeEventListener = CacheEvents.nullStoreEventListener();
+    }
+
+    private void setStoreEventListener(StoreEventListener<K, V> storeEventListener) {
+      if (storeEventListener == null) throw new NullPointerException("store event listener cannot be null");
+      this.storeEventListener = storeEventListener;
+    }
+
+    @Override
+    public void onEviction(K key, OffHeapValueHolder<V> value) {
+      storeEventListener.onEviction(wrap(key, value));
+    }
+  }
+}
