@@ -14,12 +14,9 @@
  * limitations under the License.
  */
 
-subprojects {
-  apply plugin: 'java'
+apply plugin: 'war'
+apply plugin: 'jetty'
 
-  repositories {
-    mavenLocal()
-    mavenCentral()
-    maven { url "http://repo.terracotta.org/maven2" }
-  }
+dependencies {
+    compile 'org.slf4j:slf4j-api:1.7.7', 'javax.servlet:servlet-api:2.5', 'com.h2database:h2:1.4.186'
 }

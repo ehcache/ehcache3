@@ -14,12 +14,4 @@
  * limitations under the License.
  */
 
-subprojects {
-  apply plugin: 'java'
-
-  repositories {
-    mavenLocal()
-    mavenCentral()
-    maven { url "http://repo.terracotta.org/maven2" }
-  }
-}
+include "00_no-cache", "01_cacheAside"
