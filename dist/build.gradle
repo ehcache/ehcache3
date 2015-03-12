@@ -70,7 +70,8 @@ def artifactFiltering = {
   shadowPom.scopeMappings.mappings.remove(project.configurations.compile)
   shadowPom.scopeMappings.mappings.remove(project.configurations.runtime)
   shadowPom.scopeMappings.mappings.remove(project.configurations.testCompile)
-  shadowPom.scopeMappings.addMapping(MavenPlugin.RUNTIME_PRIORITY, project.configurations.shadow, Conf2ScopeMappingContainer.RUNTIME)
+  shadowPom.scopeMappings.mappings.remove(project.configurations.testRuntime)
+  shadowPom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadow, Conf2ScopeMappingContainer.COMPILE)
   pomFiller(shadowPom, 'Ehcache', 'Ehcache single jar, containing all modules')
 }
 
