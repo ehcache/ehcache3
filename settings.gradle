@@ -14,4 +14,4 @@
  * limitations under the License.
  */
 
-include "api", "spi-tester", "core", "jmx", "core-spi-test", "impl", "107", "xml", "integration-test", "dist", "demos"
+include "api", "spi-tester", "core", "jmx", "core-spi-test", "impl", "107", "xml", "integration-test", "dist", "demos/00_no-cache", "demos/01_cacheAside"
