@@ -6,46 +6,44 @@ include::menu.adoc[]
 
 == Getting started with the new API
 
-NOTE: If you are looking to use the JSR-107, aka `javax.cache` API, you may want to start reading
+NOTE: If you are looking to use the JSR-107, aka `javax.cache` API, you should start by reading
       link:107{outfilesuffix}[the Ehcache 3.x JSR-107 Provider page]
 
-WARNING: *This is still work in progress*. while this represents the API as it exists today, the plan is to only close it
-         down, when addressing the `OSS Beta` milestone. Today, the focus is on the `107 Alpha` milestone, which aims
-         at providing a TCK compliant on-heap implementation...
+WARNING: *This is still a work in progress*. While it represents the API as it exists today, the final version will be represented in the Ehcache 3.0 OSS Beta.
 
 === Configuring it all in Java
 
 [source,java,indent=0]
 ----
-include::../../impl/src/test/java/org/ehcache/GettingStarted.java[lines=41..63]
+include::../../impl/src/test/java/org/ehcache/GettingStarted.java[lines=43..68]
 ----
 
 <1> Static method `org.ehcache.CacheManagerBuilder.newCacheManagerBuilder` that returns a new `org.ehcache.CacheManagerBuilder`
     instance;
-<2> Using the builder to register a pre-configured `Cache` to be create when we `.build()` the actual `CacheManager`.
-    The first `String` argument is the alias to use to interact with the `Cache` through the `CacheManager`; the second
-    argument is the `org.ehcache.config.CacheConfiguration` to use to configure the `Cache`. We use the static
+<2> Use the builder to register a pre-configured `Cache` to be created when we `.build()` the actual `CacheManager`.
+    The first `String` argument is the alias used to interact with the `Cache` through the `CacheManager`; the second
+    argument is `org.ehcache.config.CacheConfiguration` to configure the `Cache`. We use the static
     `.newCacheConfigurationBuilder()` method on `org.ehcache.config.CacheConfigurationBuilder` to create a default config;
-<3> finally, invoking `.build()` returns a fully instantiated and initialized `CacheManager` we can use.
+<3> Finally, invoking `.build()` returns a fully instantiated and initialized `CacheManager` we can use.
 <4> We can retrieve the `preConfigured` aliased `Cache` we declared in step 2. For type-safety, we ask for both key and
     value types to be passed in. If these differ from the ones we expect, the `CacheManager` throws a `ClassCastException`
     early in the application's lifecycle. It also guards the `Cache` from being polluted by random types.
 <5> The `CacheManager` can also be used to create new `Cache` as needed. Just as in step 2, it requires passing in an
     alias as well as a `CacheConfiguration`. The instantiated and fully initialized `Cache` added will be returned and/or
-    can be accessed through the `CacheManager.getCache` API.
+    accessed through the `CacheManager.getCache` API.
 <6> We can now use the newly added `Cache` to store and ...
 <7> ... retrieve data.
 <8> We can also `CacheManager.remove()` a given `Cache`. The `CacheManager` will not only remove it's reference to the
     `Cache`, but will also close it. The `Cache` releases all locally held transient resources (such as memory).
-    References held to this `Cache` become unusable.
-<9> A new feature of Ehcache 3.0, is the ability to create `StandaloneCache` instances, i.e. ones not managed by a `CacheManager`;
+    References to this `Cache` become unusable.
+<9> A new feature of Ehcache 3.0 is the ability to create `StandaloneCache` instances, i.e. ones not managed by a `CacheManager`;
 <10> As there is nothing that manages them, it is up to you to `StandaloneCache.init()` them, prior to using them.
 <11> In order to release all transient resources (memory, threads, ...) a `CacheManager` provides to `Cache` instances
      it manages, you have to invoke `CacheManager.close()`, which in turns closes all `Cache` instances known at the time.
 <12> In the same vein, a `StandaloneCache` requires you to `StandaloneCache.close()` it explicitly. The `CacheManager.close()`
-     in step #11, didn't affect our `StandaloneCache` in any way.
+     in step #11, did not affect our `StandaloneCache` in any way.
 
-=== It wouldn't be Java, if it hadn't _some_ XML
+=== It wouldn't be Java without _some_ XML
 
 You can create a XML file to configure a `CacheManager`:
 
@@ -75,15 +73,15 @@ You can create a XML file to configure a `CacheManager`:
 ----
 
 <1> Declares a `Cache` aliased to `foo`
-<2> Its keys will be of type `String`, as not specified the values will be of any type `Object`
-<3> Its declared to hold up to 2,000 entries before it starts evicting
+<2> The keys of `foo` are declared as type `String`; since the value type is not specified, the values will be of type `Object`.
+<3> `foo` is declared to hold up to 2,000 entries before it starts evicting
 <4> `<cache-template>` elements let you create an abstract configuration that further `<cache>` configuration can then _extend_
-<5> `bar` is such a `Cache`, it uses the `<cache-template>` named `myDefaults` and overrides its `key-type` to a wider type.
-<6> `simpleCache` is such a `Cache` again, but simply uses `myDefaults` configuration for its sole `CacheConfiguration`
+<5> `bar` is such a `Cache`.   `bar` uses the `<cache-template>` named `myDefaults` and overrides its `key-type` to a wider type.
+<6> `simpleCache` is another such a `Cache`.  It uses `myDefaults` configuration for its sole `CacheConfiguration`.
 
-Refer to the link:xml{outfilesuffix}[XML documentation] for more details on the XML format
+Refer to the link:xml{outfilesuffix}[XML documentation] for more details on the XML format.
 
-In order to parse these XML configuration, you can use the `XmlConfiguration` type as so:
+In order to parse an XML configuration, you can use the `XmlConfiguration` type:
 
 [source,java]
 ----
@@ -93,24 +91,24 @@ CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(xmlConfig); //
 ----
 
 <1> Obtain a `URL` to your XML file's location
-<2> Instantiate a `XmlConfiguration` passing the XML file's URL to it
+<2> Instantiate an `XmlConfiguration` passing the XML file's URL to it
 <3> Using the static `org.ehcache.CacheManagerBuilder.newCacheManager(org.ehcache.config.Configuration)` lets you
     create your `CacheManager` instance using the `Configuration` from the `XmlConfiguration`
 
 == Current release
 
-We've released the first Alpha on December 12, 2014. It
+We released Ehcache 3.0 Alpha on December 12, 2014. It
 contains everything (and more) to use the JSR-107 API with Ehcache as the underlying provider.
 
 The https://github.com/ehcache/ehcache3/releases/tag/v3.0.0.Alpha[release notes] contain the links to the documentation
-to help you get started
+to help you get started.
 
 == Current development & next release
 
 We are now working on the next milestone, aka https://github.com/ehcache/ehcache3/milestones/OSS%20Beta[OSS Beta] :
-All the work to get all the features we want to port from the existing Ehcache 2.x line, exposed using the new API.
-This includes things not covered by the 107 spec, such as _WriteBehind_, _DiskPersistence_, _EvictionListener_ et al.
+All the features we want to port from the existing Ehcache 2.x line, exposed using the new API.
+This includes things not covered by the JSR-107 spec, such as _WriteBehind_, _DiskPersistence_, _EvictionListener_ et al.
 
-See the https://github.com/ehcache/ehcache3/milestones[milestones on github] for more details on the current status.
+See the https://github.com/ehcache/ehcache3/milestones[Milestones on GitHub] for more details on the current status.
 
-For developer information, you might want to go check the https://github.com/ehcache/ehcache3/wiki[project's wiki on github].
+For developer information, you might want to go check the https://github.com/ehcache/ehcache3/wiki[Ehcache 3.0 project wiki on GitHub].
