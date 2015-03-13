@@ -31,34 +31,41 @@ import java.util.List;
  */
 public class DataStore {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(DataStore.class);
+
   private Connection connection;
-  protected Logger logger = LoggerFactory.getLogger(getClass());
 
 
-    public void init() throws Exception {
-        Class.forName("org.h2.Driver");
-        connection = DriverManager.getConnection("jdbc:h2:~/ehcache-demo-peeper", "sa", "");
-
-        Statement statement = connection.createStatement();
-        statement.execute("CREATE TABLE IF NOT EXISTS PEEPS (" +
-            "id bigint auto_increment primary key," +
-            "PEEP_TEXT VARCHAR(142) NOT NULL" +
-            ")");
-        connection.commit();
-        statement.close();
+  public void init() throws Exception {
+    Class.forName("org.h2.Driver");
+    connection = DriverManager.getConnection("jdbc:h2:~/ehcache-demo-peeper", "sa", "");
+    Statement statement = connection.createStatement();
+    try {
+      statement.execute("CREATE TABLE IF NOT EXISTS PEEPS (" +
+          "id bigint auto_increment primary key," +
+          "PEEP_TEXT VARCHAR(142) NOT NULL" +
+          ")");
+      connection.commit();
+    } finally {
+      statement.close();
+    }
   }
-
 
 
   public synchronized void addPeep(String peepText) throws Exception {
+    LOGGER.info("Adding peep into DB");
     PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO PEEPS (PEEP_TEXT) VALUES (?)");
-    preparedStatement.setString(1, peepText);
-    preparedStatement.execute();
-    connection.commit();
-    preparedStatement.close();
+    try {
+      preparedStatement.setString(1, peepText);
+      preparedStatement.execute();
+      connection.commit();
+    } finally {
+      preparedStatement.close();
+    }
   }
 
   public synchronized List<String> findAllPeeps() throws Exception {
+    LOGGER.info("Loading peeps from DB");
     List<String> result = new ArrayList<String>();
 
     Statement statement = connection.createStatement();
@@ -72,12 +79,11 @@ public class DataStore {
     } finally {
       statement.close();
     }
-    logger.info("Adding into the cache");
     return result;
   }
 
   public void close() throws Exception {
-      connection.close();
+    connection.close();
   }
 
 }
