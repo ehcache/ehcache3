@@ -4,9 +4,9 @@ include::common.adoc[]
 
 include::menu.adoc[]
 
-== Getting started with Ehcache3 & JSR-107
+== Getting started with Ehcache 3.0 & JSR-107
 
-There isn't anything special for you to do to use Ehcache3 as the caching provider for your application: add the
+There is nothing special for you to do to use Ehcache 3.0 as the caching provider for your application: add the
 `ehcache-3.0.0.jar` to your application's classpath (possibly removing the previous provider's jar) and you are ready to
 go:
 
@@ -15,13 +15,13 @@ go:
 CachingProvider provider = Caching.getCachingProvider(); // <1>
 CacheManager cacheManager = provider.getCacheManager(); // <2>
 ----
-<1> Retrieves the default `CachingProvider`, this should be `org.ehcache.EhCachingProvider`,
-    which you can also force, by using the `Caching.getCachingProvider(String)` static method instead;
+<1> Retrieves the default `CachingProvider`, this should be `org.ehcache.EhCachingProvider`.
+    You can also force use of `org.ehcache.EhCachingProvider` by using the `Caching.getCachingProvider(String)` static method instead.
 <2> Retrieve the default `CacheManager` instance using the provider.
 
 === Using a specific configuration file
 
-You can also add a XML file that preconfigure `Cache` instances upfront. See
+You can also add an XML file that preconfigures `Cache` instances upfront. See
 link:xml{outfilesuffix}[the XML documentation] for more details on configuring `Cache` in XML.
 
 In order to pre-configure the `CacheManager` at creation time using the XML file, simply:
@@ -38,22 +38,22 @@ CacheManager cacheManager = provider.getCacheManager( // <1>
 <3> the second argument being the `ClassLoader` to use to load user-types if needed; i.e. `Class` instances that are
     stored in the `Cache` managed by our `CacheManager`.
 
-NOTE: You can also use the `CachingProvider.getCacheManager()` method that doesn't take any argument instead.
+NOTE: You can also use the `CachingProvider.getCacheManager()` method that takes no arguments instead.
       The `URI` and `ClassLoader` used to configure the `CacheManager` will then use the
       vendor specific values returned by `CachingProvider.getDefaultURI` and `.getDefaultClassLoader` respectively.
-      Be aware that these aren¹t entirely spec¹ed for Ehcache3 and may change in future releases!
+      Be aware that these are not entirely specified for Ehcache 3.0 and may change in future releases!
 
 === Supplement JSR-107's configurations
 
-You can also create `cache-templates` as of Ehcache3, see
-link:xml{outfilesuffix}#__code_cache_template_code_elements[Cache Templates] section of the XML Documentation for more details. The Ehcache3
-JSR-107 Caching Provider comes with an extension to the regular XML configuration, so you can:
+As of Ehcache 3.0, you can also create `cache-templates`.  See the
+link:xml{outfilesuffix}#__code_cache_template_code_elements[Cache Templates] section of the XML Documentation for more details. The Ehcache 3.0
+JSR-107 Caching Provider comes with an extension to the regular XML configuration so you can:
 
- . Configure a default template all programmatically created `Cache` instances will inherit from, and
+ . Configure a default template from which all programmatically created `Cache` instances inherit, and
  . Configure a given named `Cache` to inherit from a specific template.
 
-This feature is particularly useful to configure `Cache` beyond the JSR-107 specification, e.g. giving them a capacity
-constraint. All is needed is adding a jsr107 service in your XML configuration file:
+This feature is particularly useful to configure `Cache` beyond the JSR-107 specification, for example, giving `Cache` a capacity
+constraint. All that's needed is adding a `jsr107` service in your XML configuration file:
 
 [source,xml]
 ----

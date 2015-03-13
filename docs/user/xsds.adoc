@@ -8,7 +8,7 @@ include::menu.adoc[]
 
 [source,xsd,indent=0]
 ----
-include::../../xml/src/main/resources/ehcache-core.xsd[lines=18..245]
+include::../../xml/src/main/resources/ehcache-core.xsd[lines=18..260]
 ----
 
 == JSR-107 extension

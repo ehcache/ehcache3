@@ -16,9 +16,7 @@
 
 package org.ehcache;
 
-import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
-import org.ehcache.spi.ServiceLocator;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
@@ -44,10 +42,12 @@ public class GettingStarted {
 
     final CacheManager cacheManager
         = newCacheManagerBuilder() // <1>
-        .withCache("preConfigured", newCacheConfigurationBuilder().buildConfig(Long.class, String.class)) // <2>
+        .withCache("preConfigured",
+            newCacheConfigurationBuilder().buildConfig(Long.class, String.class)) // <2>
         .build(); // <3>
 
-    final Cache<Long, String> preConfigured = cacheManager.getCache("preConfigured", Long.class, String.class); // <4>
+    final Cache<Long, String> preConfigured =
+        cacheManager.getCache("preConfigured", Long.class, String.class); // <4>
 
     final Cache<Long, String> myCache = cacheManager.createCache("myCache", // <5>
         newCacheConfigurationBuilder().buildConfig(Long.class, String.class));
@@ -57,7 +57,9 @@ public class GettingStarted {
 
     cacheManager.removeCache("preConfigured"); // <8>
 
-    final StandaloneCache<Long, String> standaloneCache = newCacheBuilder(Long.class, String.class, LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted"))
+    final StandaloneCache<Long, String> standaloneCache =
+        newCacheBuilder(Long.class, String.class,
+            LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted"))
         .build(); // <9>
     standaloneCache.init(); // <10>
 
