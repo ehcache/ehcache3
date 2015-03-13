@@ -15,6 +15,9 @@
  */
 package org.ehcache.demos.peeper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
@@ -23,12 +26,13 @@ import javax.servlet.ServletContextListener;
  */
 public class PeeperServletContextListener implements ServletContextListener {
 
-  public static final DataStore dataStore = new DataStore();
+  public static final DataStore DATA_STORE = new DataStore();
+  public Logger logger = LoggerFactory.getLogger(getClass());
 
   @Override
   public void contextInitialized(ServletContextEvent servletContextEvent) {
     try {
-      dataStore.init();
+      DATA_STORE.init();
     } catch (Exception e) {
       throw new RuntimeException("Cannot initialize datastore", e);
     }
@@ -37,9 +41,9 @@ public class PeeperServletContextListener implements ServletContextListener {
   @Override
   public void contextDestroyed(ServletContextEvent servletContextEvent) {
     try {
-      dataStore.close();
+      DATA_STORE.close();
     } catch (Exception e) {
-      throw new RuntimeException("Cannot close datastore", e);
+        throw new RuntimeException("Cannot close datastore", e);
     }
   }
 }

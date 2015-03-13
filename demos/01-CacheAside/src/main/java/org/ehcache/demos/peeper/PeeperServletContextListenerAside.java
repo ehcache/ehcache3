@@ -21,14 +21,14 @@ import javax.servlet.ServletContextListener;
 /**
  * @author Ludovic Orban
  */
-public class PeeperServletContextListener implements ServletContextListener {
+public class PeeperServletContextListenerAside implements ServletContextListener {
 
-  public static final DataStore dataStore = new DataStore();
+  public static final DataStoreAside DATA_STORE_ASIDE = new DataStoreAside();
 
   @Override
   public void contextInitialized(ServletContextEvent servletContextEvent) {
     try {
-      dataStore.init();
+      DATA_STORE_ASIDE.init();
     } catch (Exception e) {
       throw new RuntimeException("Cannot initialize datastore", e);
     }
@@ -37,9 +37,9 @@ public class PeeperServletContextListener implements ServletContextListener {
   @Override
   public void contextDestroyed(ServletContextEvent servletContextEvent) {
     try {
-      dataStore.close();
+      DATA_STORE_ASIDE.close();
     } catch (Exception e) {
-      throw new RuntimeException("Cannot close datastore", e);
+        throw new RuntimeException("Cannot close datastore", e);
     }
   }
 }

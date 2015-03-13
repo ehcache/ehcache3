@@ -3,12 +3,12 @@
         "http://java.sun.com/dtd/web-app_2_3.dtd">
 <web-app>
     <listener>
-        <listener-class>org.ehcache.demos.peeper.PeeperServletContextListener</listener-class>
+        <listener-class>org.ehcache.demos.peeper.PeeperServletContextListenerAside</listener-class>
     </listener>
 
     <servlet>
         <servlet-name>PeeperServlet</servlet-name>
-        <servlet-class>org.ehcache.demos.peeper.PeeperServlet</servlet-class>
+        <servlet-class>org.ehcache.demos.peeper.PeeperServletAside</servlet-class>
         <load-on-startup>1</load-on-startup>
     </servlet>
 
