@@ -7,7 +7,7 @@ include::menu.adoc[]
 == Intro
 
 Using an XML file you can configure a `CacheManager` at creation time, according to
-link:xsds{outfilesuffix}#_core[this schema definition], namely:
+link:xsds{outfilesuffix}#_core[this schema definition].
 
 === `<config>` root element
 
