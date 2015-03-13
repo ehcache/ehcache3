@@ -178,6 +178,14 @@ subprojects {
     classifier = 'sources'
   }
 
+  if (JavaVersion.current().isJava8Compatible()) {
+    allprojects {
+      tasks.withType(Javadoc) {
+        options.addStringOption('Xdoclint:none', '-quiet')
+      }
+    }
+  }
+
   task javadocJar(type: Jar, dependsOn: javadoc) {
     from javadoc.destinationDir
     classifier = 'javadoc'
@@ -232,6 +240,8 @@ subprojects {
     excludeFilter = file("$projectDir/config/findbugs-excludes.xml")
     toolVersion = '2.0.3'
   }
+  findbugsMain.onlyIf { !JavaVersion.current().isJava8Compatible() }
+
 
   jacoco {
     toolVersion = '0.7.1.201405082137'
