@@ -4,6 +4,40 @@ include::common.adoc[]
 
 include::menu.adoc[]
 
+== Peeper - a simple message board
+
+The `demo` directory in the Ehcache 3.0 sources includes a sample application with several
+implementations demonstrating varying levels of Ehcache use.  Implemented as a simple
+browser-based web service, the sample application, Peeper, displays any messages (_peeps_)
+previously entered and accepts new peeps.  The peeps are stored in a database.
+
+While running the sample is possible, the application is _very_ simplistic -- the code
+implementing the sample is the interesting bit. Running the sample application requires the
+use of https://gradle.org/[Gradle].  This sample may be accessed from GitHub by _cloning_
+the Ehcache 3.0 git repository:
+
+[source,bash]
+----
+# Create and/or change to a directory to hold the Ehcache git repository clone
+git clone https://github.com/ehcache/ehcache3.git
+----
+
+=== Peeper without Caching
+
+The first sample is a base Peeper application that does *not* use caching.  To run this
+implementation:
+
+[source,bash]
+----
+cd ehcache3/demos
+../gradlew jettyRun
+----
+
+This builds the necessary components, starts a http://eclipse.org/jetty/[Jetty] web service,
+and displays the URL of the web server on the console.  The URL will be something like
++http://localhost:8080/ehcache-demos+.
+
+
 == XML with 107 extension
 
 [source,xml,indent=0]

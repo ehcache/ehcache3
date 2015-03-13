@@ -1,4 +1,6 @@
- link:/[Home]::
+ link:../../../index.html[Home]::
+// ../../../index.html refers to the 'native' index.html file in the root of the ehcache/ehcache.github.io project
+
  User documentation::
  - link:./index{outfilesuffix}[Getting started]
  - link:./xml{outfilesuffix}[XML Configuration]
