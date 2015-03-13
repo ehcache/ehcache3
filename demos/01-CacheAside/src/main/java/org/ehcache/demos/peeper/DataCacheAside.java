@@ -22,7 +22,7 @@ public class DataCacheAside {
         logger.info("Cache setup is done");
     }
 
-    public List getFromCache() {
+    public List<String> getFromCache() {
         return cache.get("all-peeps");
     }
 

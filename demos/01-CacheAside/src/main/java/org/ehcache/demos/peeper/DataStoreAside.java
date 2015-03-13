@@ -31,47 +31,58 @@ import java.util.List;
  */
 public class DataStoreAside {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(DataStoreAside.class);
+
+  public final DataCacheAside dataCacheAside = new DataCacheAside();
+
   private Connection connection;
-  public static final DataCacheAside DATA_CACHE_ASIDE = new DataCacheAside();
-  protected Logger logger = LoggerFactory.getLogger(getClass());
 
 
-    public void init() throws Exception {
-        DATA_CACHE_ASIDE.setupCache();
-        Class.forName("org.h2.Driver");
-        connection = DriverManager.getConnection("jdbc:h2:~/ehcache-demo-peeper", "sa", "");
+  public void init() throws Exception {
+    dataCacheAside.setupCache();
+    Class.forName("org.h2.Driver");
+    connection = DriverManager.getConnection("jdbc:h2:~/ehcache-demo-peeper", "sa", "");
 
-        Statement statement = connection.createStatement();
-        statement.execute("CREATE TABLE IF NOT EXISTS PEEPS (" +
-            "id bigint auto_increment primary key," +
-            "PEEP_TEXT VARCHAR(142) NOT NULL" +
-            ")");
-        connection.commit();
-        statement.close();
+    Statement statement = connection.createStatement();
+    try {
+      statement.execute("CREATE TABLE IF NOT EXISTS PEEPS (" +
+          "id bigint auto_increment primary key," +
+          "PEEP_TEXT VARCHAR(142) NOT NULL" +
+          ")");
+      connection.commit();
+    } finally {
+      statement.close();
+    }
   }
 
 
-
   public synchronized void addPeep(String peepText) throws Exception {
+    LOGGER.info("Adding peep into DB");
     PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO PEEPS (PEEP_TEXT) VALUES (?)");
-    preparedStatement.setString(1, peepText);
-    preparedStatement.execute();
-    connection.commit();
-    preparedStatement.close();
+    try {
+      preparedStatement.setString(1, peepText);
+      preparedStatement.execute();
+      connection.commit();
+
       //For any add in database; clear the cache
-    //logger.info(" Added new peep in DB, clearing cache...");
-      DATA_CACHE_ASIDE.clearCache();
+      //LOGGER.info(" Added new peep in DB, clearing cache...");
+      LOGGER.info("Clearing peeps cache");
+      dataCacheAside.clearCache();
+    } finally {
+      preparedStatement.close();
+    }
   }
 
   public synchronized List<String> findAllPeeps() throws Exception {
     List<String> result = new ArrayList<String>();
     //find from cache 1st
-      List fromCache = DATA_CACHE_ASIDE.getFromCache();
-      if (fromCache !=null){
-        logger.info("Getting data from cache");
-        return fromCache;
+    List<String> fromCache = dataCacheAside.getFromCache();
+    if (fromCache != null) {
+      LOGGER.info("Getting peeps from cache");
+      return fromCache;
     }
 
+    LOGGER.info("Loading peeps from DB");
     Statement statement = connection.createStatement();
     try {
       ResultSet resultSet = statement.executeQuery("SELECT * FROM PEEPS");
@@ -83,14 +94,15 @@ public class DataStoreAside {
     } finally {
       statement.close();
     }
-    logger.info("Adding into the cache");
-    DATA_CACHE_ASIDE.addToCache(result);
+
+    LOGGER.info("Filling cache with peeps");
+    dataCacheAside.addToCache(result);
     return result;
   }
 
   public void close() throws Exception {
-      DATA_CACHE_ASIDE.close();
-      connection.close();
+    dataCacheAside.close();
+    connection.close();
   }
 
 }
