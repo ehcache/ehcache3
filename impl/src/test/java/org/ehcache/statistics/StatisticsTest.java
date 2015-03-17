@@ -48,7 +48,7 @@ public class StatisticsTest {
     scheduledExecutorService = Executors.newScheduledThreadPool(0);
 
     cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory.getLogger(Ehcache.class + "-" + "StatisticsTest"))
-        .withStatisticsExecutor(scheduledExecutorService)
+        .withStatistics(scheduledExecutorService)
         .withCapacity(capacity).build();
     cache.init();
   }
