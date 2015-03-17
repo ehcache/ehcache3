@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 
 import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.ehcache.UserManagedCacheBuilder.newUserManagedCacheBuilder;
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -76,15 +77,15 @@ public class GettingStarted {
   @Test
   public void userManagedCacheExample() {
     // tag::userManagedCacheExample[]
-    UserManagedCache<Long, String> standaloneCache =
-        UserManagedCacheBuilder.newCacheBuilder(Long.class, String.class,
+    UserManagedCache<Long, String> userManagedCache =
+        newUserManagedCacheBuilder(Long.class, String.class,
             LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted"))
             .build(); // <1>
-    standaloneCache.init(); // <2>
+    userManagedCache.init(); // <2>
 
-    standaloneCache.put(1L, "da one!"); // <3>
+    userManagedCache.put(1L, "da one!"); // <3>
 
-    standaloneCache.close(); // <4>
+    userManagedCache.close(); // <4>
     // end::userManagedCacheExample[]
   }
 

@@ -149,7 +149,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     return this;
   }
 
-  public static <K, V, T extends UserManagedCache<K, V>> UserManagedCacheBuilder<K, V, T> newCacheBuilder(Class<K> keyType, Class<V> valueType, Logger logger) {
+  public static <K, V, T extends UserManagedCache<K, V>> UserManagedCacheBuilder<K, V, T> newUserManagedCacheBuilder(Class<K> keyType, Class<V> valueType, Logger logger) {
     return new UserManagedCacheBuilder<K, V, T>(keyType, valueType, logger);
   }
 

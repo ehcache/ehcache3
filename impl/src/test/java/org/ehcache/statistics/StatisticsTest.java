@@ -50,7 +50,7 @@ public class StatisticsTest {
   public void setup() throws Exception {
     scheduledExecutorService = Executors.newScheduledThreadPool(0);
 
-    cache = UserManagedCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory.getLogger(Ehcache.class + "-" + "StatisticsTest"))
+    cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Number.class, String.class, LoggerFactory.getLogger(Ehcache.class + "-" + "StatisticsTest"))
         .withStatistics(scheduledExecutorService)
         .withResourcePools(newResourcePoolsBuilder().heap(capacity, EntryUnit.ENTRIES).build()).build();
     cache.init();
@@ -115,8 +115,9 @@ public class StatisticsTest {
 
   @Test
   public void testThrowsWhenStatsAreNotEnabled() {
-    final UserManagedCache<Number, String> testCache = UserManagedCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory
-        .getLogger(Ehcache.class + "-" + "StatisticsTest"))
+    final UserManagedCache<Number, String> testCache = UserManagedCacheBuilder
+        .newUserManagedCacheBuilder(Number.class, String.class,
+            LoggerFactory.getLogger(Ehcache.class + "-" + "StatisticsTest"))
         .withResourcePools(newResourcePoolsBuilder().heap(capacity, EntryUnit.ENTRIES).build()).build();
     testCache.init();
     final CacheStatistics statistics = testCache.getStatistics();

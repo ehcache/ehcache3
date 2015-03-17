@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static org.ehcache.UserManagedCacheBuilder.newCacheBuilder;
+import static org.ehcache.UserManagedCacheBuilder.newUserManagedCacheBuilder;
 
 /**
  * Created by shdi on 3/12/15.
@@ -32,7 +32,7 @@ public class DataCache {
     private static final Logger logger = LoggerFactory.getLogger(DataCache.class);
 
     public void setupCache() {
-        cache = newCacheBuilder(String.class, List.class, LoggerFactory.getLogger(getClass())).build();
+        cache = newUserManagedCacheBuilder(String.class, List.class, LoggerFactory.getLogger(getClass())).build();
         cache.init();
         logger.info("Cache setup is done");
     }
