@@ -51,7 +51,7 @@ public abstract class ExpiryEhcacheTestBase {
   public void setUp() throws Exception {
     manualTimeSource.setTime(0L);
     CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder();
-    cacheManager = builder.build();
+    cacheManager = builder.build(true);
     CacheConfigurationBuilder<Object, Object> objectObjectCacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder()
         .addServiceConfig(new TimeSourceConfiguration(manualTimeSource))
         .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)));

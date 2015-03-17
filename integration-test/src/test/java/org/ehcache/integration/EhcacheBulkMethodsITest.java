@@ -70,8 +70,7 @@ public class EhcacheBulkMethodsITest {
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildConfig(String.class, String.class);
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
-    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
-
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 
@@ -102,8 +101,7 @@ public class EhcacheBulkMethodsITest {
     when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterFactory);
-    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
-
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 
@@ -143,8 +141,7 @@ public class EhcacheBulkMethodsITest {
     when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriterThatThrows);
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterFactory);
-    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
-
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 
@@ -178,8 +175,7 @@ public class EhcacheBulkMethodsITest {
     when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterFactory).using(new CustomStoreProvider());
-    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
-
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 
@@ -213,8 +209,7 @@ public class EhcacheBulkMethodsITest {
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildConfig(String.class, String.class);
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
-    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
-
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 
@@ -247,7 +242,7 @@ public class EhcacheBulkMethodsITest {
     when(cacheLoaderWriter.load(Matchers.anyObject())).thenThrow(new RuntimeException("We should not have called .load() but .loadAll()"));
     when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterFactory);
-    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
 
     when(cacheLoaderWriter.loadAll(argThat(hasItem("key0")))).thenReturn( new HashMap(){{put("key0","value0");}});
     when(cacheLoaderWriter.loadAll(argThat(hasItem("key2")))).thenReturn( new HashMap(){{put("key2","value2");}});
@@ -280,7 +275,7 @@ public class EhcacheBulkMethodsITest {
     when(cacheLoaderWriter.loadAll(Matchers.any(Iterable.class))).thenThrow(new Exception("Simulating an exception from the cache loader"));
     when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterFactory);
-    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 
@@ -314,7 +309,7 @@ public class EhcacheBulkMethodsITest {
     when(cacheLoaderWriter.load(Matchers.anyObject())).thenThrow(new RuntimeException("We should not have called .load() but .loadAll()"));
     when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterFactory).using(new CustomStoreProvider());
-    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
 
     when(cacheLoaderWriter.loadAll(argThat(hasItems("key0", "key2")))).thenReturn( new HashMap(){{put("key0","value0");  put("key2","value2");}});
 
@@ -342,8 +337,7 @@ public class EhcacheBulkMethodsITest {
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildConfig(String.class, String.class);
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
-    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
-
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 
@@ -382,8 +376,7 @@ public class EhcacheBulkMethodsITest {
     when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterFactory);
-    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
-
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 
@@ -428,8 +421,7 @@ public class EhcacheBulkMethodsITest {
     when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriterThatThrows);
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterFactory);
-    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
-
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 
@@ -470,8 +462,7 @@ public class EhcacheBulkMethodsITest {
     when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), Matchers.any(CacheConfiguration.class))).thenReturn(cacheLoaderWriter);
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterFactory).using(new CustomStoreProvider());
-    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build();
-
+    CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 

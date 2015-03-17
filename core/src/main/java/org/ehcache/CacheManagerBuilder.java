@@ -41,22 +41,24 @@ public class CacheManagerBuilder<T extends CacheManager> {
   private final Set<ServiceConfiguration<?>> serviceCfgs = new HashSet<ServiceConfiguration<?>>();
   private ClassLoader classLoader = null;
 
-  public T build() {
+  public T build(final boolean init) {
     ServiceLocator serviceLocator = new ServiceLocator(services.toArray(new Service[services.size()]));
     Configuration configuration = new DefaultConfiguration(caches, classLoader,
         serviceCfgs.toArray(new ServiceConfiguration[serviceCfgs.size()]));
-    return newCacheManager(serviceLocator, configuration);
+    final T cacheManager = newCacheManager(serviceLocator, configuration);
+    if(init) {
+      cacheManager.init();
+    }
+    return cacheManager;
   }
 
   public static CacheManager newCacheManager(final Configuration configuration) {
     final EhcacheManager ehcacheManager = new EhcacheManager(configuration);
-    ehcacheManager.init();
     return ehcacheManager;
   }
 
   T newCacheManager(final ServiceLocator serviceLocator, final Configuration configuration) {
     final EhcacheManager ehcacheManager = new EhcacheManager(configuration, serviceLocator);
-    ehcacheManager.init();
     return cast(ehcacheManager);
   }
   

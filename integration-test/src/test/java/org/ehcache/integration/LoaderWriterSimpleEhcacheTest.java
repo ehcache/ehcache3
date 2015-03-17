@@ -59,7 +59,7 @@ public class LoaderWriterSimpleEhcacheTest {
     cacheLoaderWriter = mock(CacheLoaderWriter.class);
     when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), (CacheConfiguration<Number, CharSequence>)anyObject())).thenReturn((CacheLoaderWriter) cacheLoaderWriter);
     builder.using(cacheLoaderWriterFactory);
-    cacheManager = builder.build();
+    cacheManager = builder.build(true);
     testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
   }
 

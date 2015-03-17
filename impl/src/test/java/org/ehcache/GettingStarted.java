@@ -55,7 +55,8 @@ public class GettingStarted {
         .withCache("preConfigured",
             CacheConfigurationBuilder.newCacheConfigurationBuilder()
                 .buildConfig(Long.class, String.class)) // <2>
-        .build(); // <3>
+        .build(false); // <3>
+    cacheManager.init(); // <4>
 
     Cache<Long, String> preConfigured =
         cacheManager.getCache("preConfigured", Long.class, String.class); // <4>
@@ -66,15 +67,15 @@ public class GettingStarted {
     myCache.put(1L, "da one!"); // <6>
     String value = myCache.get(1L); // <7>
 
-    cacheManager.removeCache("preConfigured"); // <8>
+    cacheManager.removeCache("preConfigured"); // <9>
 
     cacheManager.close(); // <9>
     // end::cachemanagerExample[]
   }
 
   @Test
-  public void standaloneCacheExample() {
-    // tag::standaloneCacheExample[]
+  public void userManagedCacheExample() {
+    // tag::userManagedCacheExample[]
     UserManagedCache<Long, String> standaloneCache =
         UserManagedCacheBuilder.newCacheBuilder(Long.class, String.class,
             LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted"))
@@ -84,7 +85,7 @@ public class GettingStarted {
     standaloneCache.put(1L, "da one!"); // <3>
 
     standaloneCache.close(); // <4>
-    // end::standaloneCacheExample[]
+    // end::userManagedCacheExample[]
   }
 
   @Test
@@ -99,7 +100,7 @@ public class GettingStarted {
                 .disk(100, EntryUnit.ENTRIES) // <2>
                 .build())
             .buildConfig(Long.class, String.class))
-        .build();
+        .build(true);
 
     persistentCacheManager.close();
     // end::persistentCacheManager[]
@@ -114,7 +115,7 @@ public class GettingStarted {
                 .heap(10, EntryUnit.ENTRIES)
                 .offheap(10, MemoryUnit.MB) // <1>
                 .build())
-            .buildConfig(Long.class, String.class)).build();
+            .buildConfig(Long.class, String.class)).build(true);
 
     cacheManager.close();
     // end::offheapCacheManager[]
@@ -127,7 +128,7 @@ public class GettingStarted {
         .withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES).build())
         .buildConfig(Long.class, String.class);
 
-    CacheManager cacheManager = newCacheManagerBuilder().withCache("tiered-cache", tieredCacheConfiguration).build();
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("tiered-cache", tieredCacheConfiguration).build(true);
 
     Cache<Long, String> tieredCache = cacheManager.getCache("tiered-cache", Long.class, String.class);
 
@@ -145,7 +146,7 @@ public class GettingStarted {
         .withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB).build())
         .buildConfig(Long.class, String.class);
 
-    CacheManager cacheManager = newCacheManagerBuilder().withCache("tieredCache", tieredCacheConfiguration).build();
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("tieredCache", tieredCacheConfiguration).build(true);
 
     Cache<Long, String> tieredCache = cacheManager.getCache("tieredCache", Long.class, String.class);
 
@@ -167,7 +168,7 @@ public class GettingStarted {
     PersistentCacheManager persistentCacheManager = newCacheManagerBuilder()
         .with(new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/persistent-cache-data")))
         .withCache("persistent-cache", cacheConfiguration)
-        .build();
+        .build(true);
 
     Cache<Long, String> cache = persistentCacheManager.getCache("persistent-cache", Long.class, String.class);
 
@@ -183,7 +184,8 @@ public class GettingStarted {
 
   @Test
   public void testStoreByValue() {
-    CacheManager cacheManager = newCacheManagerBuilder().build();
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(false);
+    cacheManager.init();
 
     final Cache<Long, String> cache1 = cacheManager.createCache("cache1",
         newCacheConfigurationBuilder().withResourcePools(newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).build())
