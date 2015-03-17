@@ -16,13 +16,13 @@
 
 package org.ehcache.config;
 
-import org.ehcache.StandaloneCacheBuilder;
-import org.ehcache.StandaloneCache;
+import org.ehcache.UserManagedCacheBuilder;
+import org.ehcache.UserManagedCache;
 
 /**
  * @author Alex Snaps
  */
-public interface StandaloneCacheConfiguration<K, V, T extends StandaloneCache<K, V>> {
+public interface UserManagedCacheConfiguration<K, V, T extends UserManagedCache<K, V>> {
 
-  StandaloneCacheBuilder<K, V, T> builder(StandaloneCacheBuilder<K, V, ? extends StandaloneCache<K, V>> builder);
+  UserManagedCacheBuilder<K, V, T> builder(UserManagedCacheBuilder<K, V, ? extends UserManagedCache<K, V>> builder);
 }

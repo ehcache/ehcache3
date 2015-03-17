@@ -17,8 +17,8 @@
 package org.ehcache.statistics;
 
 import org.ehcache.Ehcache;
-import org.ehcache.StandaloneCache;
-import org.ehcache.StandaloneCacheBuilder;
+import org.ehcache.UserManagedCache;
+import org.ehcache.UserManagedCacheBuilder;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.EntryUnit;
 import org.junit.After;
@@ -43,14 +43,14 @@ import static org.junit.Assert.fail;
  */
 public class StatisticsTest {
   private ScheduledExecutorService        scheduledExecutorService;
-  private StandaloneCache<Number, String> cache;
+  private UserManagedCache<Number, String> cache;
   private final long                            capacity = 10;
 
   @Before
   public void setup() throws Exception {
     scheduledExecutorService = Executors.newScheduledThreadPool(0);
 
-    cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory.getLogger(Ehcache.class + "-" + "StatisticsTest"))
+    cache = UserManagedCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory.getLogger(Ehcache.class + "-" + "StatisticsTest"))
         .withStatistics(scheduledExecutorService)
         .withResourcePools(newResourcePoolsBuilder().heap(capacity, EntryUnit.ENTRIES).build()).build();
     cache.init();
@@ -115,7 +115,7 @@ public class StatisticsTest {
 
   @Test
   public void testThrowsWhenStatsAreNotEnabled() {
-    final StandaloneCache<Number, String> testCache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory
+    final UserManagedCache<Number, String> testCache = UserManagedCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory
         .getLogger(Ehcache.class + "-" + "StatisticsTest"))
         .withResourcePools(newResourcePoolsBuilder().heap(capacity, EntryUnit.ENTRIES).build()).build();
     testCache.init();

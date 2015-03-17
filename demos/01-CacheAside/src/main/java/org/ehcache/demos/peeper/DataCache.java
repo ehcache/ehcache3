@@ -15,20 +15,20 @@
  */
 package org.ehcache.demos.peeper;
 
-import org.ehcache.StandaloneCache;
+import org.ehcache.UserManagedCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static org.ehcache.StandaloneCacheBuilder.newCacheBuilder;
+import static org.ehcache.UserManagedCacheBuilder.newCacheBuilder;
 
 /**
  * Created by shdi on 3/12/15.
  */
 public class DataCache {
 
-    private StandaloneCache<String, List> cache;
+    private UserManagedCache<String, List> cache;
     private static final Logger logger = LoggerFactory.getLogger(DataCache.class);
 
     public void setupCache() {

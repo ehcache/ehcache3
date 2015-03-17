@@ -75,8 +75,8 @@ public class GettingStarted {
   @Test
   public void standaloneCacheExample() {
     // tag::standaloneCacheExample[]
-    StandaloneCache<Long, String> standaloneCache =
-        StandaloneCacheBuilder.newCacheBuilder(Long.class, String.class,
+    UserManagedCache<Long, String> standaloneCache =
+        UserManagedCacheBuilder.newCacheBuilder(Long.class, String.class,
             LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted"))
             .build(); // <1>
     standaloneCache.init(); // <2>

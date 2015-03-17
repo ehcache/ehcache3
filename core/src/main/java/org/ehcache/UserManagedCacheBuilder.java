@@ -25,8 +25,8 @@ import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
-import org.ehcache.config.StandaloneCacheConfiguration;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.UserManagedCacheConfiguration;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -43,7 +43,7 @@ import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 /**
  * @author Alex Snaps
  */
-public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
+public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
 
   private final Class<K> keyType;
   private final Class<V> valueType;
@@ -58,7 +58,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   private CacheConfiguration.PersistenceMode persistenceMode;
   private ResourcePools resourcePools = newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
 
-  public StandaloneCacheBuilder(final Class<K> keyType, final Class<V> valueType, final Logger logger) {
+  public UserManagedCacheBuilder(final Class<K> keyType, final Class<V> valueType, final Logger logger) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.logger = logger;
@@ -68,7 +68,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     try {
       serviceLocator.startAllServices(new HashMap<Service, ServiceConfiguration<?>>());
     } catch (Exception e) {
-      throw new IllegalStateException("StandaloneCacheBuilder failed to build.", e);
+      throw new IllegalStateException("UserManagedCacheBuilder failed to build.", e);
     }
     Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
 
@@ -93,26 +93,26 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     return build(new ServiceLocator());
   }
 
-  public final <N extends T> StandaloneCacheBuilder<K, V, N> with(StandaloneCacheConfiguration<K, V, N> cfg) {
+  public final <N extends T> UserManagedCacheBuilder<K, V, N> with(UserManagedCacheConfiguration<K, V, N> cfg) {
     return cfg.builder(this);
   }
 
-  public final StandaloneCacheBuilder<K, V, T> vetoEviction(EvictionVeto<? super K, ? super V> predicate) {
+  public final UserManagedCacheBuilder<K, V, T> vetoEviction(EvictionVeto<? super K, ? super V> predicate) {
     this.evictionVeto = predicate;
     return this;
   }
   
-  public final StandaloneCacheBuilder<K, V, T> prioritizeEviction(EvictionPrioritizer<? super K, ? super V> criteria) {
+  public final UserManagedCacheBuilder<K, V, T> prioritizeEviction(EvictionPrioritizer<? super K, ? super V> criteria) {
     this.evictionPrioritizer = criteria;
     return this;
   }
 
-  public final StandaloneCacheBuilder<K, V, T> loadingAndWritingWith(CacheLoaderWriter<? super K, V> cacheLoaderWriter) {
+  public final UserManagedCacheBuilder<K, V, T> loadingAndWritingWith(CacheLoaderWriter<? super K, V> cacheLoaderWriter) {
     this.cacheLoaderWriter = cacheLoaderWriter;
     return this;
   }
   
-  public final StandaloneCacheBuilder<K, V, T> withClassLoader(ClassLoader classLoader) {
+  public final UserManagedCacheBuilder<K, V, T> withClassLoader(ClassLoader classLoader) {
     if (classLoader == null) {
       throw new NullPointerException("Null classloader");
     }
@@ -120,7 +120,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     return this;
   }
   
-  public final StandaloneCacheBuilder<K, V, T> withExpiry(Expiry<K, V> expiry) {
+  public final UserManagedCacheBuilder<K, V, T> withExpiry(Expiry<K, V> expiry) {
     if (expiry == null) {
       throw new NullPointerException("Null expiry");
     }
@@ -129,28 +129,28 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     return this;
   }
 
-  public final StandaloneCacheBuilder<K, V, T> persistenceMode(CacheConfiguration.PersistenceMode persistenceMode) {
+  public final UserManagedCacheBuilder<K, V, T> persistenceMode(CacheConfiguration.PersistenceMode persistenceMode) {
     this.persistenceMode = persistenceMode;
     return this;
   }
   
-  public final StandaloneCacheBuilder<K, V, T> withStatistics(ScheduledExecutorService statisticsExecutor) {
+  public final UserManagedCacheBuilder<K, V, T> withStatistics(ScheduledExecutorService statisticsExecutor) {
     this.statisticsExecutor = statisticsExecutor;
     return this;
   }
 
-  public final StandaloneCacheBuilder<K, V, T> withCacheEvents(CacheEventNotificationService<K, V> cacheEventNotificationService) {
+  public final UserManagedCacheBuilder<K, V, T> withCacheEvents(CacheEventNotificationService<K, V> cacheEventNotificationService) {
     this.cacheEventNotificationService = cacheEventNotificationService;
     return this;
   }
 
-  public final StandaloneCacheBuilder<K, V, T> withResourcePools(ResourcePools resourcePools) {
+  public final UserManagedCacheBuilder<K, V, T> withResourcePools(ResourcePools resourcePools) {
     this.resourcePools = resourcePools;
     return this;
   }
 
-  public static <K, V, T extends StandaloneCache<K, V>> StandaloneCacheBuilder<K, V, T> newCacheBuilder(Class<K> keyType, Class<V> valueType, Logger logger) {
-    return new StandaloneCacheBuilder<K, V, T>(keyType, valueType, logger);
+  public static <K, V, T extends UserManagedCache<K, V>> UserManagedCacheBuilder<K, V, T> newCacheBuilder(Class<K> keyType, Class<V> valueType, Logger logger) {
+    return new UserManagedCacheBuilder<K, V, T>(keyType, valueType, logger);
   }
 
 }
