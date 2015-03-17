@@ -16,9 +16,6 @@
 
 package org.ehcache.statistics;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
-
 import org.ehcache.Ehcache;
 import org.ehcache.StandaloneCache;
 import org.ehcache.StandaloneCacheBuilder;
@@ -27,8 +24,15 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * @author Hung Huynh
@@ -104,5 +108,29 @@ public class StatisticsTest {
     assertThat(stats.getCacheRemovals(), equalTo(expectedRemovals));
     assertThat(stats.getCacheHitPercentage(), equalTo(hitPercentage));
     assertThat(stats.getCacheMissPercentage(), equalTo(misssPercentage));
+  }
+
+  @Test
+  public void testThrowsWhenStatsAreNotEnabled() {
+    final StandaloneCache<Number, String> testCache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory
+        .getLogger(Ehcache.class + "-" + "StatisticsTest"))
+        .withCapacity(capacity).build();
+    testCache.init();
+    final CacheStatistics statistics = testCache.getStatistics();
+
+    try {
+      for (Method method : CacheStatistics.class.getDeclaredMethods()) {
+        try {
+          method.invoke(statistics);
+          fail(method.toString() + " did not throw as expected!");
+        } catch (IllegalAccessException e) {
+          fail();
+        } catch (InvocationTargetException e) {
+          assertThat(e.getCause(), instanceOf(IllegalStateException.class));
+        }
+      }
+    } finally {
+      testCache.close();
+    }
   }
 }

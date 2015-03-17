@@ -16,7 +16,6 @@
 
 package org.ehcache.statistics;
 
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -28,61 +27,61 @@ public class DisabledStatistics implements CacheStatistics {
 
   @Override
   public long getCacheHits() {
-    return 0;
+    throw new IllegalStateException("Statistics are disabled");
   }
 
   @Override
   public float getCacheHitPercentage() {
-    return 0.0F;
+    throw new IllegalStateException("Statistics are disabled");
   }
 
   @Override
   public long getCacheMisses() {
-    return 0;
+    throw new IllegalStateException("Statistics are disabled");
   }
 
   @Override
   public float getCacheMissPercentage() {
-    return 0.0F;
+    throw new IllegalStateException("Statistics are disabled");
   }
 
   @Override
   public long getCacheGets() {
-    return 0;
+    throw new IllegalStateException("Statistics are disabled");
   }
 
   @Override
   public long getCachePuts() {
-    return 0;
+    throw new IllegalStateException("Statistics are disabled");
   }
 
   @Override
   public long getCacheRemovals() {
-    return 0;
+    throw new IllegalStateException("Statistics are disabled");
   }
 
   @Override
   public long getCacheEvictions() {
-    return 0;
+    throw new IllegalStateException("Statistics are disabled");
   }
 
   @Override
   public float getAverageGetTime() {
-    return 0.0F;
+    throw new IllegalStateException("Statistics are disabled");
   }
 
   @Override
   public float getAveragePutTime() {
-    return 0.0F;
+    throw new IllegalStateException("Statistics are disabled");
   }
 
   @Override
   public float getAverageRemoveTime() {
-    return 0.0F;
+    throw new IllegalStateException("Statistics are disabled");
   }
 
   @Override
   public ConcurrentMap<BulkOps, AtomicLong> getBulkMethodEntries() {
-    return new ConcurrentHashMap<BulkOps, AtomicLong>();
+    throw new IllegalStateException("Statistics are disabled");
   }
 }
