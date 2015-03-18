@@ -86,7 +86,7 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
       }
 
       @Override
-      public boolean isPersistent() {
+      public PersistenceMode getPersistenceMode() {
         throw new UnsupportedOperationException("Implement me!");
       }
 

@@ -34,4 +34,6 @@ public interface Maintainable {
    * @throws java.lang.IllegalStateException if data structures don't exist
    */
   void destroy();
+
+  void exit();
 }

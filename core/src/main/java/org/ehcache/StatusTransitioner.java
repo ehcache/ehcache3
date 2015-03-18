@@ -88,6 +88,14 @@ final class StatusTransitioner {
     return new Transition(st, Thread.currentThread(), "Enter Maintenance");
   }
 
+  Transition exitMaintenance() {
+    checkMaintenance();
+    logger.trace("Exiting Maintenance");
+    InternalStatus.Transition st;
+    for (InternalStatus.Transition cs; !currentState.compareAndSet(cs = currentState.get(), st = cs.get().close()););
+    return new Transition(st, Thread.currentThread(), "Exit Maintenance");
+  }
+
   void registerListener(StateChangeListener listener) {
     if(!listeners.contains(listener)) {
       listeners.add(listener);

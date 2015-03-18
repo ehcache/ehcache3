@@ -59,7 +59,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
 public class EhcacheManager implements PersistentCacheManager {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheManager.class);
-  
+
   private final StatusTransitioner statusTransitioner = new StatusTransitioner(LOGGER);
 
   private final ServiceLocator serviceLocator;
@@ -114,6 +114,19 @@ public class EhcacheManager implements PersistentCacheManager {
         }
       }
       closeEhcache(alias, ehcache, cacheHolder.toBeReleased);
+      CacheConfiguration.PersistenceMode persistenceMode = ehcache.getRuntimeConfiguration().getPersistenceMode();
+      if (persistenceMode != null) {
+        Maintainable maintainable = ehcache.toMaintenance();
+        try {
+          switch (persistenceMode) {
+            case SWAP:
+              maintainable.destroy();
+              break;
+          }
+        } finally {
+          maintainable.exit();
+        }
+      }
       LOGGER.info("Cache '{}' is removed from EhcacheManager.", alias);
     }
   }
@@ -141,17 +154,37 @@ public class EhcacheManager implements PersistentCacheManager {
     if (caches.putIfAbsent(alias, value) != null) {
       throw new IllegalArgumentException("Cache '" + alias +"' already exists");
     }
-    
+
     Ehcache<K, V> cache = null;
 
     RuntimeException failure = null;
     try {
       cache = createNewEhcache(alias, config, keyType, valueType, value.toBeReleased);
+      CacheConfiguration.PersistenceMode persistenceMode = config.getPersistenceMode();
+      if (persistenceMode != null) {
+        Maintainable maintainable = cache.toMaintenance();
+        try {
+          switch (persistenceMode) {
+            case SWAP:
+              maintainable.destroy();
+              maintainable.create();
+            case CREATE_IF_ABSENT:
+              try {
+                maintainable.create();
+              } catch (Exception e) {
+                // ignore
+              }
+              break;
+          }
+        } finally {
+          maintainable.exit();
+        }
+      }
       cache.init();
     } catch (RuntimeException e) {
       failure = e;
     }
-    
+
     if(failure == null) {
       try {
         if(!statusTransitioner.isTransitioning()) {
@@ -182,7 +215,7 @@ public class EhcacheManager implements PersistentCacheManager {
     if (cacheClassLoader != config.getClassLoader() ) {
       config = new BaseCacheConfiguration<K, V>(config.getKeyType(), config.getValueType(), config.getCapacityConstraint(),
           config.getEvictionVeto(), config.getEvictionPrioritizer(), cacheClassLoader, config.getExpiry(),
-          config.isPersistent(), config.getServiceConfigurations().toArray(
+          config.getPersistenceMode(), config.getServiceConfigurations().toArray(
           new ServiceConfiguration<?>[config.getServiceConfigurations().size()]));
     }
     return config;
@@ -235,7 +268,7 @@ public class EhcacheManager implements PersistentCacheManager {
 
     final CacheEventListenerFactory evntLsnrFactory = serviceLocator.findService(CacheEventListenerFactory.class);
     if (evntLsnrFactory != null) {
-      Collection<CacheEventListenerConfiguration> evtLsnrConfigs = 
+      Collection<CacheEventListenerConfiguration> evtLsnrConfigs =
       ServiceLocator.findAmongst(CacheEventListenerConfiguration.class, config.getServiceConfigurations().toArray());
       for (CacheEventListenerConfiguration lsnrConfig: evtLsnrConfigs) {
         // XXX this assumes a new instance returned for each call - yet args are always the same. Is this okay?
@@ -372,6 +405,11 @@ public class EhcacheManager implements PersistentCacheManager {
         public void destroy() {
           EhcacheManager.this.destroy();
         }
+
+        @Override
+        public void exit() {
+          statusTransitioner.exitMaintenance();
+        }
       };
       st.succeeded();
       return maintainable;
@@ -403,7 +441,7 @@ public class EhcacheManager implements PersistentCacheManager {
     ehcache.toMaintenance().destroy();
     LOGGER.info("Cache '{}' is successfully destroyed in EhcacheManager.", alias);
   }
-  
+
   // for tests at the moment
   ClassLoader getClassLoader() {
     return cacheManagerClassLoader;

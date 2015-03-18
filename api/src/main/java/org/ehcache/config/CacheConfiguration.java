@@ -99,5 +99,12 @@ public interface CacheConfiguration<K, V> {
    *
    * @return {@code true} if the {@code Cache} needs to be persistent, {@code false} otherwise
    */
-  boolean isPersistent();
+  PersistenceMode getPersistenceMode();
+
+  enum PersistenceMode {
+    SWAP,
+    CREATE_IF_ABSENT,
+    EXPECT_EXISTS,
+  }
+
 }

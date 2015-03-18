@@ -36,12 +36,12 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   private final Collection<ServiceConfiguration<?>> serviceConfigurations;
   private final ClassLoader classLoader;
   private final Expiry<? super K, ? super V> expiry;
-  private final boolean persistent;
+  private final PersistenceMode persistenceMode;
 
   public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
           EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
-          ClassLoader classLoader, Expiry<? super K, ? super V> expiry, 
-          boolean persistent, ServiceConfiguration<?>... serviceConfigurations) {
+          ClassLoader classLoader, Expiry<? super K, ? super V> expiry,
+          PersistenceMode persistenceMode, ServiceConfiguration<?>... serviceConfigurations) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.capacityConstraint = capacityConstraint;
@@ -49,7 +49,7 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
     this.evictionPrioritizer = evictionPrioritizer;
     this.classLoader = classLoader;
     this.expiry = expiry;
-    this.persistent = persistent;
+    this.persistenceMode = persistenceMode;
     this.serviceConfigurations = Collections.unmodifiableCollection(Arrays.asList(serviceConfigurations));
   }
 
@@ -93,7 +93,7 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   }
 
   @Override
-  public boolean isPersistent() {
-    return persistent;
+  public PersistenceMode getPersistenceMode() {
+    return persistenceMode;
   }
 }

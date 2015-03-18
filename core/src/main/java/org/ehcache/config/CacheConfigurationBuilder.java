@@ -35,7 +35,7 @@ public class CacheConfigurationBuilder<K, V> {
   private Comparable<Long> capacityConstraint;
   private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private EvictionVeto<? super K, ? super V> evictionVeto;
-  private boolean persistent;
+  private CacheConfiguration.PersistenceMode persistenceMode;
 
   private CacheConfigurationBuilder() {
   }
@@ -97,14 +97,14 @@ public class CacheConfigurationBuilder<K, V> {
   public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType) {
     return new BaseCacheConfiguration<CK, CV>(keyType, valueType, capacityConstraint, evictionVeto,
         evictionPrioritizer, classLoader, expiry,
-        persistent, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
+        persistenceMode, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
   public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType,
                                                      EvictionVeto<? super CK, ? super CV> evictionVeto,
                                                      EvictionPrioritizer<? super CK, ? super CV> evictionPrioritizer) {
     return new BaseCacheConfiguration<CK, CV>(keyType, valueType, this.capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, expiry,
-        persistent, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
+        persistenceMode, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
   
   public CacheConfigurationBuilder<K, V> withClassLoader(ClassLoader classLoader) {
@@ -119,8 +119,8 @@ public class CacheConfigurationBuilder<K, V> {
     return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, capacityConstraint, evictionPrioritizer, evictionVeto, serviceConfigurations);
   }
 
-  public CacheConfigurationBuilder<K, V> persistent(boolean persistent) {
-    this.persistent = persistent;
+  public CacheConfigurationBuilder<K, V> persistenceMode(CacheConfiguration.PersistenceMode persistenceMode) {
+    this.persistenceMode = persistenceMode;
     return this;
   }
 

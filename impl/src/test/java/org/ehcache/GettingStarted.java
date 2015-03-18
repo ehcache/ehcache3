@@ -77,6 +77,7 @@ public class GettingStarted {
   @Test
   public void testTieredStore() throws Exception {
     CacheConfiguration<Long, String> tieredCacheConfiguration = newCacheConfigurationBuilder()
+        .persistenceMode(CacheConfiguration.PersistenceMode.SWAP)
         .addServiceConfig(new CacheStoreServiceConfig().cachingTierProvider(OnHeapStore.Provider.class).authoritativeTierProvider(DiskStore.Provider.class))
         .addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true))
         .addServiceConfig(new DiskStoreServiceConfig())

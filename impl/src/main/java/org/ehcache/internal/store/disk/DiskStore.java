@@ -419,8 +419,9 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     File dataFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".data");
     File indexFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".index");
 
-    dataFile.delete();
-    indexFile.delete();
+    if (dataFile.delete() | indexFile.delete()) {
+      LOG.info("Destroyed " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
+    }
   }
 
   @Override
@@ -446,7 +447,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
       throw new CacheAccessException(ioe);
     }
 
-    System.out.println("created " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
+    LOG.info("Created " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
   }
 
   @Override

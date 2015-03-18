@@ -1072,6 +1072,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         public void destroy() {
           Ehcache.this.destroy();
         }
+
+        @Override
+        public void exit() {
+          statusTransitioner.exitMaintenance().succeeded();
+        }
       };
       store.maintenance();
       st.succeeded();
@@ -1435,7 +1440,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
     private final ClassLoader classLoader;
     private final Expiry<? super K, ? super V> expiry;
-    private final boolean persistent;
+    private final PersistenceMode persistenceMode;
 
     RuntimeConfiguration(CacheConfiguration<K, V> config) {
       this.serviceConfigurations = copy(config.getServiceConfigurations());
@@ -1446,7 +1451,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       this.evictionPrioritizer = config.getEvictionPrioritizer();
       this.classLoader = config.getClassLoader();
       this.expiry = config.getExpiry();
-      this.persistent = config.isPersistent();
+      this.persistenceMode = config.getPersistenceMode();
     }
     
     @Override
@@ -1490,8 +1495,8 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
 
     @Override
-    public boolean isPersistent() {
-      return this.persistent;
+    public PersistenceMode getPersistenceMode() {
+      return this.persistenceMode;
     }
 
     @Override

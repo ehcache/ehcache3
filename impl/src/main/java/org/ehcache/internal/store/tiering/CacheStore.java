@@ -336,16 +336,6 @@ public class CacheStore<K, V> implements Store<K, V> {
       CachingTier<K, V> cachingTier = cachingTierProvider.createCachingTier(storeConfig, serviceConfigs);
       AuthoritativeTier<K, V> authoritativeTier = authoritativeTierProvider.createAuthoritativeTier(storeConfig, serviceConfigs);
 
-      try {
-        cachingTier.destroy();
-        cachingTier.create();
-
-        authoritativeTier.destroy();
-        authoritativeTier.create();
-      } catch (CacheAccessException e) {
-        throw new RuntimeException(e);
-      }
-
       return new CacheStore<K, V>(cachingTier, authoritativeTier);
     }
 
