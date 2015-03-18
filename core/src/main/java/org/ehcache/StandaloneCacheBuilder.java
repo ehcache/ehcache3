@@ -135,7 +135,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     return this;
   }
   
-  public final StandaloneCacheBuilder<K, V, T> withStatisticsExecutor(ScheduledExecutorService statisticsExecutor) {
+  public final StandaloneCacheBuilder<K, V, T> withStatistics(ScheduledExecutorService statisticsExecutor) {
     this.statisticsExecutor = statisticsExecutor;
     return this;
   }
