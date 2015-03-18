@@ -22,8 +22,7 @@ import static org.ehcache.internal.store.offheap.OffHeapStoreUtils.getAdvancedBo
 import static org.ehcache.internal.store.offheap.OffHeapStoreUtils.getAdvancedMemorySizeConfigProperty;
 
 /**
- *
- * @author Chris Dennis
+ * Configuration class for sizing offheap.
  */
 public class HeuristicConfiguration {
 
@@ -40,7 +39,6 @@ public class HeuristicConfiguration {
 
   private static final int AGGRESSIVE_INITIAL_SEGMENT_SIZE_RATIO = 1;
 
-  private final String cacheName;
   private final long maximumSize;
 
   private final int idealMaxSegmentSize;
@@ -52,10 +50,9 @@ public class HeuristicConfiguration {
   private final int assumedKeyValueSize;
 
   public HeuristicConfiguration(long maximumSize) {
-    this.cacheName = "TODO";
     if (maximumSize < MINIMUM_MAX_MEMORY_IN_BYTES) {
         throw new IllegalArgumentException("The value of maxBytesLocalOffHeap is less than the minimum allowed value of " + MINIMUM_MAX_MEMORY +
-                " for the following cache: " + cacheName + ". Reconfigure maxBytesLocalOffHeap in ehcache.xml or programmatically.");
+                ". Reconfigure maxBytesLocalOffHeap in ehcache.xml or programmatically.");
     }
     this.maximumSize = maximumSize;
 
@@ -108,7 +105,7 @@ public class HeuristicConfiguration {
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("Heuristic Configuration: " + cacheName + "\n");
+    StringBuilder sb = new StringBuilder("Heuristic Configuration: \n");
     sb.append("Maximum Size (specified)   : ").append(DebuggingUtils.toBase2SuffixedString(getMaximumSize())).append("B\n");
     sb.append("Minimum Chunk Size         : ").append(DebuggingUtils.toBase2SuffixedString(getMinimumChunkSize())).append("B\n");
     sb.append("Maximum Chunk Size         : ").append(DebuggingUtils.toBase2SuffixedString(getMaximumChunkSize())).append("B\n");

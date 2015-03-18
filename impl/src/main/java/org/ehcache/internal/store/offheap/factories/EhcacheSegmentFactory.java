@@ -65,28 +65,11 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
 
     private final Predicate<Entry<K, V>> evictionVeto;
     private final EvictionListener<K, V> evictionListener;
-    private volatile Lock masterLock;
 
     EhcacheSegment(PageSource source, StorageEngine<? super K, ? super V> storageEngine, int tableSize, Predicate<Entry<K, V>> evictionVeto, EvictionListener<K, V> evictionListener) {
       super(source, true, storageEngine, tableSize);
       this.evictionVeto = evictionVeto;
       this.evictionListener = evictionListener;
-    }
-
-    public Lock getMasterLock() {
-      return masterLock;
-    }
-
-    public boolean tryShrink() {
-      final ReentrantReadWriteLock.WriteLock writeLock = getLock().writeLock();
-      if (writeLock.tryLock()) {
-        try {
-          return super.shrink();
-        } finally {
-          writeLock.unlock();
-        }
-      }
-      return false;
     }
 
     public boolean remove(K key, V value, ValueComparator<V> comparator) {
@@ -127,12 +110,16 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
       }
     }
 
-    public void registerMasterLock(Lock master) {
-      masterLock = master;
-    }
-
-    /*
-     * The mapping function is expected to not be a pure function and thus needs to be called once.
+    /**
+     * Computes a new mapping for the given key by calling the function passed in. It will pin the mapping
+     * if the flag is true, it will however not unpin an existing pinned mapping in case the function returns
+     * the existing value.
+     *
+     * @param key the key to compute the mapping for
+     * @param mappingFunction the function to compute the mapping
+     * @param pin pins the mapping if {code true}
+     *
+     * @return the mapped value
      */
     public V compute(K key, BiFunction<K, V, V> mappingFunction, boolean pin) {
       Lock lock = writeLock();
@@ -142,11 +129,10 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
         V newValue = mappingFunction.apply(key, value);
         if (newValue != null) {
           if (newValue != value) {
-            if (pin) {
-              putPinned(key, newValue);
-            }else {
-              put(key, newValue);
-            }
+            put(key, newValue);
+          }
+          if (pin) {
+            setPinning(key, true);
           }
         } else {
           remove(key);
@@ -157,6 +143,14 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
       }
     }
 
+    /**
+     * Computes a new mapping for the given key only if a mapping existed already by calling the function passed in.
+     *
+     * @param key the key to compute the mapping for
+     * @param mappingFunction the function to compute the mapping
+     *
+     * @return the mapped value
+     */
     public V computeIfPresent(K key, BiFunction<K, V, V> mappingFunction) {
       Lock lock = writeLock();
       lock.lock();
@@ -192,7 +186,7 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
 
     @Override
     public V putPinned(K key, V value) {
-      int metadata = getVetoedStatus(key, value) ^ Metadata.PINNED;
+      int metadata = getVetoedStatus(key, value) | Metadata.PINNED;
       return put(key, value, metadata);
     }
 

@@ -116,9 +116,7 @@ public final class OffHeapValueHolder<V> implements Store.ValueHolder<V> {
   }
 
   void writeBack() {
-    if (writeContext != null) {
-      writeContext.setLong(OffHeapValueHolderPortability.ACCESS_TIME_OFFSET, lastAccessTime);
-      writeContext.setLong(OffHeapValueHolderPortability.EXPIRE_TIME_OFFSET, expireTime);
-    }
+    writeContext.setLong(OffHeapValueHolderPortability.ACCESS_TIME_OFFSET, lastAccessTime);
+    writeContext.setLong(OffHeapValueHolderPortability.EXPIRE_TIME_OFFSET, expireTime);
   }
 }

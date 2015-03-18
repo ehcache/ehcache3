@@ -34,6 +34,7 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
   public static final int ACCESS_TIME_OFFSET = 8;
   public static final int EXPIRE_TIME_OFFSET = 16;
 
+  // 3 longs: access, expire, creation time
   private static final int FIELDS_OVERHEAD = 24;
 
   private final Serializer<V> serializer;

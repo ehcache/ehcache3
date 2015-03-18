@@ -15,6 +15,7 @@
  */
 
 dependencies {
-  compile project(':api'), project(':core'), 'org.terracotta:offheap-store:2.0.0-SNAPSHOT'
+  compile project(':api'), project(':core')
+  compile group: 'org.terracotta', name: 'offheap-store', version: parent.offHeapVersion
   testCompile project(path: ':core-spi-test')
 }

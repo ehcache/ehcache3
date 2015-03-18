@@ -49,8 +49,11 @@ public class OffHeapStoreSPITest extends StoreSPITest<String, String> {
       public Store<String, String> newStore(Store.Configuration<String, String> config, TimeSource timeSource) {
         JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
 
-        return new OffHeapStore<String, String>(config, serializationProvider.createSerializer(String.class, config.getClassLoader()),
-            serializationProvider.createSerializer(String.class, config.getClassLoader()), timeSource, 1024*1024);
+        OffHeapStore<String, String> store = new OffHeapStore<String, String>(config, serializationProvider
+            .createSerializer(String.class, config.getClassLoader()),
+            serializationProvider.createSerializer(String.class, config.getClassLoader()), timeSource, 1024 * 1024);
+        store.init();
+        return store;
       }
 
       @Override
@@ -111,6 +114,6 @@ public class OffHeapStoreSPITest extends StoreSPITest<String, String> {
 
   @Override
   public void testStoreEventListener() throws Exception {
-    throw new AssumptionViolatedException(("Not yet implemented"));
+    throw new AssumptionViolatedException("Not yet implemented");
   }
 }

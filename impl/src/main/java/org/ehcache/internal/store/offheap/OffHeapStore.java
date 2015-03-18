@@ -69,14 +69,16 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
 
   private final Class<K> keyType;
   private final Class<V> valueType;
-  private final EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
-
   private final TimeSource timeSource;
+
   private final Expiry<? super K, ? super V> expiry;
-
-
   private final AtomicReference<Status> status = new AtomicReference<Status>(Status.UNINITIALIZED);
+
+
   private final Predicate<Map.Entry<K, OffHeapValueHolder<V>>> evictionVeto;
+  private final Serializer<K> keySerializer;
+  private final Serializer<V> valueSerializer;
+  private final long sizeInBytes;
 
   private OperationObserver<StoreOperationOutcomes.GetOutcome> getOperationObserver = operation(StoreOperationOutcomes.GetOutcome.class).of(this).named("get").tag("local-offheap").build();
   private OperationObserver<StoreOperationOutcomes.PutOutcome> putOperationObserver = operation(StoreOperationOutcomes.PutOutcome.class).of(this).named("put").tag("local-offheap").build();
@@ -84,8 +86,9 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   private volatile Callable<Void> valve;
   private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener();
   private BackingMapEvictionListener<K, V> mapEvictionListener;
+  private volatile EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
 
-  public OffHeapStore(final Configuration<K, V> config, Serializer<K> keySerializer, Serializer<V> valueSerializer, TimeSource timeSource, long size) {
+  public OffHeapStore(final Configuration<K, V> config, Serializer<K> keySerializer, Serializer<V> valueSerializer, TimeSource timeSource, long sizeInBytes) {
 
     if (!status.compareAndSet(Status.UNINITIALIZED, Status.AVAILABLE)) {
       throw new AssertionError();
@@ -102,7 +105,9 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     this.timeSource = timeSource;
     eventListener = CacheEvents.nullStoreEventListener();
     mapEvictionListener = new BackingMapEvictionListener<K, V>();
-    this.map = createBackingMap(size, keySerializer, valueSerializer, evictionVeto);
+    this.keySerializer = keySerializer;
+    this.valueSerializer = valueSerializer;
+    this.sizeInBytes = sizeInBytes;
   }
 
   @Override
@@ -300,7 +305,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
           replaced.set(true);
           return newUpdatedValueHolder(mappedKey, newValue, mappedValue, now);
         } else {
-          setAccessTimeAndExpiry(key, mappedValue, now);
+          setAccessTimeAndExpiry(mappedKey, mappedValue, now);
           return mappedValue;
         }
       }
@@ -323,27 +328,31 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public void destroy() throws CacheAccessException {
-    map.destroy();
+    close();
   }
 
   @Override
   public void create() throws CacheAccessException {
-    // Nothing to do for now - unless we only create the offheap area here
+    // Nothing to do - not persistent
   }
 
   @Override
   public void close() {
-    map.clear();
+    EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> localMap = map;
+    if (localMap != null) {
+      map = null;
+      localMap.destroy();
+    }
   }
 
   @Override
   public void init() {
-    // Nothing to do for now
+    this.map = createBackingMap(this.sizeInBytes, this.keySerializer, this.valueSerializer, evictionVeto);
   }
 
   @Override
   public void maintenance() {
-    // Nothing to do for now
+    // Nothing to do - not persistent
   }
 
   @Override
