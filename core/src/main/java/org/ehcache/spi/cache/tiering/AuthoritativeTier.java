@@ -18,6 +18,8 @@ package org.ehcache.spi.cache.tiering;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * Authoritative tier, according to Montreal design.
@@ -43,5 +45,11 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
    * @return true if something was flushed, false otherwise.
    */
   boolean flush(K key, ValueHolder<V> valueHolder, CachingTier<K, V> cachingTier);
+
+  interface Provider extends Service {
+    <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
+
+    void releaseAuthoritativeTier(AuthoritativeTier<?, ?> resource);
+  }
 
 }

@@ -16,7 +16,12 @@
 
 package org.ehcache;
 
+import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.internal.store.disk.DiskStore;
+import org.ehcache.internal.store.disk.DiskStoreServiceConfig;
+import org.ehcache.internal.store.tiering.CacheStoreServiceConfig;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
@@ -66,6 +71,19 @@ public class GettingStarted {
     cacheManager.close(); // <11>
 
     standaloneCache.close(); // <12>
+  }
+
+  @Test
+  public void testTieredStore() throws Exception {
+    CacheConfiguration<Long, String> tieredCacheConfiguration = newCacheConfigurationBuilder()
+        .addServiceConfig(new CacheStoreServiceConfig().cachingTierProvider(OnHeapStore.Provider.class).authoritativeTierProvider(DiskStore.Provider.class))
+        .addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true))
+        .addServiceConfig(new DiskStoreServiceConfig())
+        .buildConfig(Long.class, String.class);
+
+    CacheManager cacheManager = newCacheManagerBuilder().withCache("tieredCache", tieredCacheConfiguration).build();
+
+    cacheManager.close();
   }
 
   @Test

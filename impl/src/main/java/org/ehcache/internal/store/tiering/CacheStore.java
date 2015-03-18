@@ -21,8 +21,6 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
-import org.ehcache.internal.store.heap.OnHeapStore;
-import org.ehcache.internal.store.disk.DiskStore;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
@@ -31,6 +29,8 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Map;
 import java.util.Set;
+
+import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * @author Ludovic Orban
@@ -308,20 +308,45 @@ public class CacheStore<K, V> implements Store<K, V> {
   public static class Provider implements Store.Provider {
 
     private ServiceProvider serviceProvider;
-    private ServiceConfiguration<?> serviceConfiguration;
-    private OnHeapStore.Provider onHeapStoreProvider;
-    private DiskStore.Provider diskStoreProvider;
 
     @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      //todo use the storeConfig to figure out what providers to use
-      onHeapStoreProvider = new OnHeapStore.Provider();
-      onHeapStoreProvider.start(serviceConfiguration, serviceProvider);
+      CacheStoreServiceConfig cacheStoreServiceConfig = findSingletonAmongst(CacheStoreServiceConfig.class, (Object[])serviceConfigs);
+      if (cacheStoreServiceConfig == null) {
+        throw new IllegalArgumentException("Cache store cannot be configured without explicit config");
+      }
 
-      diskStoreProvider = new DiskStore.Provider();
-      diskStoreProvider.start(serviceConfiguration, serviceProvider);
+      Class<? extends CachingTier.Provider> cachingTierProviderClass = cacheStoreServiceConfig.cachingTierProvider();
+      if (cachingTierProviderClass == null) {
+        throw new IllegalArgumentException("Caching tier provider must be specified");
+      }
+      CachingTier.Provider cachingTierProvider = serviceProvider.findService(cachingTierProviderClass);
+      if (cachingTierProvider == null) {
+        throw new IllegalArgumentException("No registered service for caching tier provider " + cachingTierProviderClass.getName());
+      }
+      Class<? extends AuthoritativeTier.Provider> authoritativeTierProviderClass = cacheStoreServiceConfig.authoritativeTierProvider();
+      if (authoritativeTierProviderClass == null) {
+        throw new IllegalArgumentException("Authoritative tier provider must be specified");
+      }
+      AuthoritativeTier.Provider authoritativeTierProvider = serviceProvider.findService(authoritativeTierProviderClass);
+      if (authoritativeTierProvider == null) {
+        throw new IllegalArgumentException("No registered service for authoritative tier provider " + authoritativeTierProviderClass.getName());
+      }
 
-      return new CacheStore<K, V>(onHeapStoreProvider.createStore(storeConfig, serviceConfigs), diskStoreProvider.createStore(storeConfig, serviceConfigs));
+      CachingTier<K, V> cachingTier = cachingTierProvider.createCachingTier(storeConfig, serviceConfigs);
+      AuthoritativeTier<K, V> authoritativeTier = authoritativeTierProvider.createAuthoritativeTier(storeConfig, serviceConfigs);
+
+      try {
+        cachingTier.destroy();
+        cachingTier.create();
+
+        authoritativeTier.destroy();
+        authoritativeTier.create();
+      } catch (CacheAccessException e) {
+        throw new RuntimeException(e);
+      }
+
+      return new CacheStore<K, V>(cachingTier, authoritativeTier);
     }
 
     @Override
@@ -331,14 +356,11 @@ public class CacheStore<K, V> implements Store<K, V> {
 
     @Override
     public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
-      this.serviceConfiguration = config;
       this.serviceProvider = serviceProvider;
     }
 
     @Override
     public void stop() {
-      this.onHeapStoreProvider.stop();
-      this.diskStoreProvider.stop();
       this.serviceProvider = null;
     }
   }

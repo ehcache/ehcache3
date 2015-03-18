@@ -938,7 +938,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     return (o1 == o2) || (o1 != null && o1.equals(o2));
   }
 
-  public static class Provider implements Store.Provider {
+  public static class Provider implements Store.Provider, CachingTier.Provider {
     
     private ServiceProvider serviceProvider;
     
@@ -976,6 +976,16 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     @Override
     public void stop() {
       this.serviceProvider = null;
+    }
+
+    @Override
+    public <K, V> CachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      return createStore(storeConfig, serviceConfigs);
+    }
+
+    @Override
+    public void releaseCachingTier(CachingTier<?, ?> resource) {
+      releaseStore((Store<?, ?>) resource);
     }
   }
 

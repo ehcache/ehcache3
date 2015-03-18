@@ -40,6 +40,8 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -69,6 +71,8 @@ import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
  * @author Ludovic Orban
  */
 public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(DiskStore.class);
 
   private static final int ATTEMPT_RATIO = 4;
   private static final int EVICTION_RATIO = 2;
@@ -447,6 +451,10 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public void close() {
+    if (diskStorageFactory == null) {
+      LOG.warn("disk store already closed");
+      return;
+    }
     diskStorageFactory.unbind();
     diskStorageFactory = null;
     segments = null;
@@ -1014,7 +1022,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     }
   }
 
-  public static class Provider implements Store.Provider {
+  public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
     static final AtomicInteger aliasCounter = new AtomicInteger();
 
     private ServiceProvider serviceProvider;
@@ -1046,6 +1054,16 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     @Override
     public void stop() {
       this.serviceProvider = null;
+    }
+
+    @Override
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      return createStore(storeConfig, serviceConfigs);
+    }
+
+    @Override
+    public void releaseAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
+      releaseStore(resource);
     }
   }
 }
