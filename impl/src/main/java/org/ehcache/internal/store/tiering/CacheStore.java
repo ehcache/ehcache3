@@ -21,7 +21,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
-import org.ehcache.internal.store.OnHeapStore;
+import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.disk.DiskStore;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;

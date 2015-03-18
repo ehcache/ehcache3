@@ -1,4 +1,4 @@
-org.ehcache.internal.store.OnHeapStoreProviderFactory
+org.ehcache.internal.store.heap.OnHeapStoreProviderFactory
 org.ehcache.internal.serialization.JavaSerializationProviderFactory
 org.ehcache.spi.loaderwriter.DefaultCacheLoaderWriterFactoryProvider
 org.ehcache.internal.executor.DefaultThreadPoolsServiceFactory

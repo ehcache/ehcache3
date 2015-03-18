@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store.service;
+package org.ehcache.internal.store.heap.service;
 
-import org.ehcache.internal.store.OnHeapStore;
+import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**

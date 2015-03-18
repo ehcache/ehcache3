@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store;
+package org.ehcache.internal.store.heap;
 
 import java.util.concurrent.TimeUnit;
 

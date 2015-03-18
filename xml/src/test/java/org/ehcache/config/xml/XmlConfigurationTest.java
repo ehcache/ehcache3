@@ -24,7 +24,7 @@ import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
+import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.core.Is;

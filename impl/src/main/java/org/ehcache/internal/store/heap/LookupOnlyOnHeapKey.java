@@ -14,10 +14,20 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store;
+package org.ehcache.internal.store.heap;
 
-interface OnHeapKey<K> {
+class LookupOnlyOnHeapKey<K> extends BaseOnHeapKey<K> {
 
-  K getActualKeyObject();
+  private final K actualKeyObject;
+
+  LookupOnlyOnHeapKey(K actualKeyObject) {
+    super(actualKeyObject.hashCode());
+    this.actualKeyObject = actualKeyObject;
+  }
+
+  @Override
+  public K getActualKeyObject() {
+    return actualKeyObject;
+  }
 
 }

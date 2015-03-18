@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store;
+package org.ehcache.internal.store.heap;
 
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertSame;

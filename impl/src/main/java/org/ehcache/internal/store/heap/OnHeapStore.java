@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store;
+package org.ehcache.internal.store.heap;
 
 import org.ehcache.Cache;
 import org.ehcache.config.Eviction;
@@ -34,7 +34,7 @@ import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
+import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
 import org.ehcache.internal.store.tiering.NullInvalidationListener;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.ServiceProvider;

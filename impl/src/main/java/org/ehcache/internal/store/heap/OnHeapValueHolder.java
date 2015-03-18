@@ -13,30 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.internal.store.heap;
 
-package org.ehcache.internal.store;
+import org.ehcache.spi.cache.Store.ValueHolder;
 
-abstract class BaseOnHeapKey<K> implements OnHeapKey<K> {
+interface OnHeapValueHolder<V> extends ValueHolder<V> {
+  
+  void setAccessTimeMillis(long accessTime);
+  
+  void setExpireTimeMillis(long expireTime);
+  
+  boolean isExpired(long now);
 
-  private final int hashCode;
-
-  BaseOnHeapKey(int hashCode) {
-    this.hashCode = hashCode;
-  }
-
-  @Override
-  public int hashCode() {
-    return hashCode;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (obj instanceof OnHeapKey) {
-      OnHeapKey<?> other = (OnHeapKey<?>) obj;
-      return getActualKeyObject().equals(other.getActualKeyObject());
-    }
-
-    return false;
-  }
-
+  long getExpireTimeMillis();
 }

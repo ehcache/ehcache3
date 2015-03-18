@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store;
+package org.ehcache.internal.store.heap;
 
 import org.ehcache.expiry.Expirations;
 import org.ehcache.function.Function;

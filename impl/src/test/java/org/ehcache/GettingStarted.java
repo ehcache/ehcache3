@@ -16,7 +16,7 @@
 
 package org.ehcache;
 
-import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
+import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 

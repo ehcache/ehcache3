@@ -26,7 +26,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
-import org.ehcache.internal.store.OnHeapStore;
+import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
