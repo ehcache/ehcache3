@@ -16,11 +16,11 @@
 
 package org.ehcache;
 
-import org.ehcache.internal.store.heap.OnHeapStore;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.internal.store.disk.DiskStore;
 import org.ehcache.internal.store.disk.DiskStoreServiceConfig;
+import org.ehcache.internal.store.heap.OnHeapStore;
+import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
 import org.ehcache.internal.store.tiering.CacheStoreServiceConfig;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -29,6 +29,7 @@ import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.StandaloneCacheBuilder.newCacheBuilder;
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
 
 /**
@@ -82,6 +83,13 @@ public class GettingStarted {
         .buildConfig(Long.class, String.class);
 
     CacheManager cacheManager = newCacheManagerBuilder().withCache("tieredCache", tieredCacheConfiguration).build();
+
+    Cache<Long, String> tieredCache = cacheManager.getCache("tieredCache", Long.class, String.class);
+
+    tieredCache.put(1L, "one");
+
+    assertThat(tieredCache.get(1L), equalTo("one")); // probably coming from disk
+    assertThat(tieredCache.get(1L), equalTo("one")); // probably coming from heap
 
     cacheManager.close();
   }

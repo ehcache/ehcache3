@@ -82,7 +82,7 @@ public class DiskStoreTest {
       }
     });
 
-    assertThat(valueHolder, is(nullValue())); // not computed
+    assertThat(valueHolder.value(), Matchers.<CharSequence>equalTo("put-one")); // not computed
     assertThat(diskStore.get(1).value(), Matchers.<CharSequence>equalTo("put-one"));
 
     timeSource.advanceTime(10);
@@ -132,7 +132,7 @@ public class DiskStoreTest {
       }
     });
 
-    assertThat(valueHolder, is(nullValue())); // not computed
+    assertThat(valueHolder.value(), Matchers.<CharSequence>equalTo("put-one")); // not computed
     assertThat(diskStore.get(1).value(), Matchers.<CharSequence>equalTo("put-one"));
 
     // DiskStore does not evict elements pending flush, hence we flush before requesting an eviction
