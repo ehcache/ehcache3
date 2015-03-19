@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -213,7 +214,11 @@ public final class ServiceLocator implements ServiceProvider {
       if(!running.compareAndSet(true, false)) {
         throw new IllegalStateException("Already stopped!");
       }
+      Set<Service> stoppedServices = Collections.newSetFromMap(new IdentityHashMap<Service, Boolean>());
       for (Service service : services.values()) {
+        if (stoppedServices.contains(service)) {
+          continue;
+        }
         try {
           service.stop();
         } catch (Exception e) {
@@ -223,6 +228,7 @@ public final class ServiceLocator implements ServiceProvider {
             LOGGER.error("Stopping Service failed due to ", e);
           }
         }
+        stoppedServices.add(service);
       }
     } finally {
       lock.unlock();
