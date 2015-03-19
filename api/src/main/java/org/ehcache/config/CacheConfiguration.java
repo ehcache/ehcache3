@@ -101,6 +101,9 @@ public interface CacheConfiguration<K, V> {
    */
   PersistenceMode getPersistenceMode();
 
+  /**
+   * The persistence mode
+   */
   enum PersistenceMode {
     SWAP,
     CREATE_IF_ABSENT,

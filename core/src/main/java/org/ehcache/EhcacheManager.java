@@ -122,6 +122,7 @@ public class EhcacheManager implements PersistentCacheManager {
             case SWAP:
               maintainable.destroy();
               break;
+            default:
           }
         } finally {
           maintainable.exit();
@@ -168,6 +169,7 @@ public class EhcacheManager implements PersistentCacheManager {
             case SWAP:
               maintainable.destroy();
               maintainable.create();
+              break;
             case CREATE_IF_ABSENT:
               try {
                 maintainable.create();
@@ -175,6 +177,7 @@ public class EhcacheManager implements PersistentCacheManager {
                 // ignore
               }
               break;
+            default:
           }
         } finally {
           maintainable.exit();

@@ -35,5 +35,8 @@ public interface Maintainable {
    */
   void destroy();
 
+  /**
+   * Exit maintenance mode
+   */
   void exit();
 }
