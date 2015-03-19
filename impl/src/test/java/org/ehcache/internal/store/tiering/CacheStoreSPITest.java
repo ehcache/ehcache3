@@ -33,6 +33,8 @@ import org.ehcache.internal.store.disk.DiskStore;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
@@ -40,6 +42,8 @@ import org.junit.internal.AssumptionViolatedException;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.mockito.Mockito.mock;
 
 /**
  * Test the {@link org.ehcache.internal.store.tiering.CacheStore} compliance to the
@@ -164,7 +168,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration[]{new CacheStoreServiceConfig().cachingTierProvider(FakeCachingTierProvider.class).authoritativeTierProvider(FakeAuthoritativeTierProvider.class)};
       }
 
       @Override
@@ -179,9 +183,56 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceProvider getServiceProvider() {
-        return new ServiceLocator();
+        ServiceLocator serviceLocator = new ServiceLocator();
+        serviceLocator.addService(new FakeCachingTierProvider());
+        serviceLocator.addService(new FakeAuthoritativeTierProvider());
+        return serviceLocator;
       }
     };
+  }
+
+  public static class FakeCachingTierProvider implements CachingTier.Provider {
+    @Override
+    public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      return mock(CachingTier.class);
+    }
+
+    @Override
+    public void releaseCachingTier(CachingTier<?, ?> resource) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void stop() {
+      throw new UnsupportedOperationException();
+    }
+  }
+
+  public static class FakeAuthoritativeTierProvider implements AuthoritativeTier.Provider {
+    @Override
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      return mock(AuthoritativeTier.class);
+    }
+
+    @Override
+    public void releaseAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void stop() {
+      throw new UnsupportedOperationException();
+    }
   }
 
   @Override
