@@ -8,3 +8,4 @@ org.ehcache.internal.serialization.JavaSerializationProviderFactory
 org.ehcache.spi.loaderwriter.DefaultCacheLoaderWriterFactoryProvider
 org.ehcache.internal.executor.DefaultThreadPoolsServiceFactory
 org.ehcache.internal.persistence.DefaultLocalPersistenceServiceFactory
+org.ehcache.loaderwriter.writebehind.WriteBehindDecoratorLoaderWriterProviderFactory

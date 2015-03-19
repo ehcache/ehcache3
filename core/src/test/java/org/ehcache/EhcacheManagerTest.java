@@ -26,7 +26,9 @@ import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
+import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.CoreMatchers;
@@ -240,8 +242,12 @@ public class EhcacheManagerTest {
     when(fooConfig.getClassLoader()).thenReturn(getClass().getClassLoader());
 
     CacheLoaderWriter fooLoaderWriter = mock(CacheLoaderWriter.class);
+    
+    final CacheLoaderWriterConfiguration configuration = mock(CacheLoaderWriterConfiguration.class);
+    final WriteBehindDecoratorLoaderWriterProvider decoratorLoaderWriterProvider = mock(WriteBehindDecoratorLoaderWriterProvider.class);
 
     when(cacheLoaderWriterFactory.createCacheLoaderWriter("foo", fooConfig)).thenReturn(fooLoaderWriter);
+    
 
     @SuppressWarnings("serial")
     final Configuration cfg = new DefaultConfiguration(
@@ -254,7 +260,7 @@ public class EhcacheManagerTest {
 
     final Store.Provider storeProvider = mock(Store.Provider.class);
     final Store mock = mock(Store.class);
-    final ServiceLocator serviceLocator = new ServiceLocator(cacheLoaderWriterFactory, storeProvider);
+    final ServiceLocator serviceLocator = new ServiceLocator(cacheLoaderWriterFactory, storeProvider, decoratorLoaderWriterProvider);
     when(storeProvider
         .createStore(Matchers.<Store.Configuration>anyObject(), Matchers.<ServiceConfiguration[]>anyVararg())).thenReturn(mock);
 

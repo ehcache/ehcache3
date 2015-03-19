@@ -50,8 +50,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
+
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
+import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
 
 
 /**
@@ -242,8 +245,16 @@ public class EhcacheManager implements PersistentCacheManager {
 
     final CacheLoaderWriterFactory cacheLoaderWriterFactory = serviceLocator.findService(CacheLoaderWriterFactory.class);
     final CacheLoaderWriter<? super K, V> loaderWriter;
+    CacheLoaderWriter<? super K, V> decorator = null;
     if(cacheLoaderWriterFactory != null) {
       loaderWriter = cacheLoaderWriterFactory.createCacheLoaderWriter(alias, config);
+      CacheLoaderWriterConfiguration cacheLoaderWriterConfiguration = ServiceLocator.findSingletonAmongst(CacheLoaderWriterConfiguration.class, config.getServiceConfigurations().toArray());
+      if(cacheLoaderWriterConfiguration != null && cacheLoaderWriterConfiguration.isWriteBehind()) {
+        final WriteBehindDecoratorLoaderWriterProvider factory = serviceLocator.findService(WriteBehindDecoratorLoaderWriterProvider.class);
+        decorator = factory.createWriteBehindDecoratorLoaderWriter((CacheLoaderWriter<K, V>)loaderWriter, cacheLoaderWriterConfiguration); 
+      }
+      else decorator = loaderWriter;
+      
       if (loaderWriter != null) {
         releasables.add(new Releasable() {
           @Override
@@ -291,7 +302,7 @@ public class EhcacheManager implements PersistentCacheManager {
       }
     }
 
-    return new Ehcache<K, V>(config, store, loaderWriter, evtService, statisticsExecutor, useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
+    return new Ehcache<K, V>(config, store, decorator, evtService, statisticsExecutor, useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
   }
 
   public void registerListener(CacheManagerListener listener) {

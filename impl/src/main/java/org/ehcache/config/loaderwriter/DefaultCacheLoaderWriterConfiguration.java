@@ -17,21 +17,76 @@
 package org.ehcache.config.loaderwriter;
 
 import org.ehcache.internal.classes.ClassInstanceProviderConfig;
-import org.ehcache.spi.loaderwriter.DefaultCacheLoaderWriterFactory;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
 * @author Alex Snaps
 */
-public class DefaultCacheLoaderWriterConfiguration extends ClassInstanceProviderConfig<CacheLoaderWriter<?, ?>> implements ServiceConfiguration<DefaultCacheLoaderWriterFactory> {
+public class DefaultCacheLoaderWriterConfiguration extends ClassInstanceProviderConfig<CacheLoaderWriter<?, ?>> implements CacheLoaderWriterConfiguration {
 
   public DefaultCacheLoaderWriterConfiguration(final Class<? extends CacheLoaderWriter<?, ?>> clazz) {
     super(clazz);
   }
 
   @Override
-  public Class<DefaultCacheLoaderWriterFactory> getServiceType() {
-    return DefaultCacheLoaderWriterFactory.class;
+  public Class<CacheLoaderWriterFactory> getServiceType() {
+    return CacheLoaderWriterFactory.class;
+  }
+
+  @Override
+  public boolean isWriteBehind() {
+    return false;
+  };
+  
+  @Override
+  public int minWriteDelay() {
+    return 0;
+  }
+
+  @Override
+  public int maxWriteDelay() {
+    return 0;
+  }
+
+  @Override
+  public int rateLimitPerSecond() {
+    return 0;
+  }
+
+  @Override
+  public boolean writeCoalescing() {
+    return false;
+  }
+
+  @Override
+  public boolean writeBatching() {
+    return false;
+  }
+
+  @Override
+  public int writeBatchSize() {
+    return 0;
+  }
+
+  @Override
+  public int retryAttempts() {
+    return 0;
+  }
+
+  @Override
+  public int retryAttemptDelaySeconds() {
+    return 0;
+  }
+
+  @Override
+  public int writeBehindConcurrency() {
+    return 0;
+  }
+
+  @Override
+  public int writeBehindMaxQueueSize() {
+    return 0;
   }
 }
