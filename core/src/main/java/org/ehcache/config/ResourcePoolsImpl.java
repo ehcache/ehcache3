@@ -22,14 +22,14 @@ import java.util.Map;
  */
 class ResourcePoolsImpl implements ResourcePools {
 
-  private final Map<String, ResourcePool> pools;
+  private final Map<ResourceType, ResourcePool> pools;
 
-  ResourcePoolsImpl(Map<String, ResourcePool> pools) {
+  ResourcePoolsImpl(Map<ResourceType, ResourcePool> pools) {
     this.pools = pools;
   }
 
   @Override
-  public ResourcePool getPoolForResource(String resourceType) {
+  public ResourcePool getPoolForResource(ResourceType resourceType) {
     return pools.get(resourceType);
   }
 }

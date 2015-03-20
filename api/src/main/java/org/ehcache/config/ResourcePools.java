@@ -28,6 +28,6 @@ public interface ResourcePools {
    * @param resourceType the type of resource the pool is tracking.
    * @return the {@link ResourcePool}, or null if there is no pool tracking the requested type.
    */
-  ResourcePool getPoolForResource(String resourceType);
+  ResourcePool getPoolForResource(ResourceType resourceType);
 
 }

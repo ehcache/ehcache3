@@ -18,28 +18,10 @@ package org.ehcache.config;
 /**
  * @author Ludovic Orban
  */
-class ResourcePoolImpl implements ResourcePool {
+public interface ResourceType {
 
-  private final ResourceType type;
-  private final long size;
-  private final ResourceUnit unit;
-
-  public ResourcePoolImpl(ResourceType type, long size, ResourceUnit unit) {
-    this.type = type;
-    this.size = size;
-    this.unit = unit;
+  public enum Core implements ResourceType {
+    HEAP,
+    DISK,
   }
-
-  public ResourceType getType() {
-    return type;
-  }
-
-  public long getSize() {
-    return size;
-  }
-
-  public ResourceUnit getUnit() {
-    return unit;
-  }
-
 }

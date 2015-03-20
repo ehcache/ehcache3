@@ -13,33 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.config;
+package org.ehcache.config.units;
+
+import org.ehcache.config.ResourceUnit;
 
 /**
  * @author Ludovic Orban
  */
-class ResourcePoolImpl implements ResourcePool {
-
-  private final ResourceType type;
-  private final long size;
-  private final ResourceUnit unit;
-
-  public ResourcePoolImpl(ResourceType type, long size, ResourceUnit unit) {
-    this.type = type;
-    this.size = size;
-    this.unit = unit;
-  }
-
-  public ResourceType getType() {
-    return type;
-  }
-
-  public long getSize() {
-    return size;
-  }
-
-  public ResourceUnit getUnit() {
-    return unit;
-  }
-
+public enum MemoryUnit implements ResourceUnit {
+  B,
+  KB,
+  MB,
+  GB,
+  TB,
+  PB,
 }

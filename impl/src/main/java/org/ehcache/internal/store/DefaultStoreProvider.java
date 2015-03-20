@@ -17,6 +17,7 @@ package org.ehcache.internal.store;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.ResourceType;
 import org.ehcache.internal.store.disk.DiskStore;
 import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.tiering.CacheStore;
@@ -37,8 +38,8 @@ public class DefaultStoreProvider implements Store.Provider {
 
   @Override
   public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-    ResourcePool heapPool = storeConfig.getResourcePools().getPoolForResource("heap");
-    ResourcePool diskPool = storeConfig.getResourcePools().getPoolForResource("disk");
+    ResourcePool heapPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP);
+    ResourcePool diskPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
 
     List<ServiceConfiguration<?>> enhancedServiceConfigs = new ArrayList<ServiceConfiguration<?>>(Arrays.asList(serviceConfigs));
 

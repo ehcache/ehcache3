@@ -20,6 +20,8 @@ import org.ehcache.Cache;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourceType;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.CacheEvents;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
@@ -94,11 +96,14 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   }; 
  
   public OnHeapStore(final Configuration<K, V> config, TimeSource timeSource, boolean storeByValue, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
-    ResourcePool heapPool = config.getResourcePools().getPoolForResource("heap");
+    ResourcePool heapPool = config.getResourcePools().getPoolForResource(ResourceType.Core.HEAP);
     if (heapPool == null) {
-      throw new IllegalArgumentException("OnHeap store must be configured with a resource pool of type 'heap'");
+      throw new IllegalArgumentException("OnHeap store must be configured with a resource of type 'heap'");
     }
-    this.capacity = Long.parseLong(heapPool.getValue());
+    if (!heapPool.getUnit().equals(EntryUnit.ENTRIES)) {
+      throw new IllegalArgumentException("OnHeap store only handles resource unit 'entries'");
+    }
+    this.capacity = heapPool.getSize();
     EvictionPrioritizer<? super K, ? super V> prioritizer = config.getEvictionPrioritizer();
     if(prioritizer == null) {
       prioritizer = Eviction.Prioritizer.LRU;

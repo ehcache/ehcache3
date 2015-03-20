@@ -19,6 +19,8 @@ import org.ehcache.Ehcache;
 import org.ehcache.StandaloneCache;
 import org.ehcache.StandaloneCacheBuilder;
 import org.ehcache.config.Eviction;
+import org.ehcache.config.ResourceType;
+import org.ehcache.config.units.EntryUnit;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
@@ -36,12 +38,12 @@ public class StandaloneCacheEvictionTest {
   @Test
   public void test_eviction_with_specific_eviction_prioritizer() throws Exception {
     StandaloneCache<Number, String> cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory.getLogger(Ehcache.class + "-" + "StandaloneCacheEvictionTest"))
-        .withResourcePools(newResourcePoolsBuilder().with("heap", "count", "1").build())
+        .withResourcePools(newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).build())
         .prioritizeEviction(Eviction.Prioritizer.LRU)
         .build();
     cache.init();
-    assertThat(cache.getRuntimeConfiguration().getResourcePools().getPoolForResource("heap").getValue(),
-        equalTo("1"));
+    assertThat(cache.getRuntimeConfiguration().getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(),
+        equalTo(1L));
 
     // we put 3 elements, but there's only capacity for 1
     for (int i = 0; i < 3; i++) {
@@ -62,11 +64,11 @@ public class StandaloneCacheEvictionTest {
   @Test
   public void test_eviction_eviction_prioritizer_not_specified() throws Exception {
     StandaloneCache<Number, String> cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory.getLogger(Ehcache.class + "-" + "StandaloneCacheEvictionTest1"))
-        .withResourcePools(newResourcePoolsBuilder().with("heap", "count", "1").build())
+        .withResourcePools(newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).build())
         .build();
     cache.init();
-    assertThat(cache.getRuntimeConfiguration().getResourcePools().getPoolForResource("heap").getValue(),
-        equalTo("1"));
+    assertThat(cache.getRuntimeConfiguration().getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(),
+        equalTo(1L));
 
     // we put 3 elements, but there's only capacity for 1
     for (int i = 0; i < 3; i++) {

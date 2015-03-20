@@ -158,15 +158,16 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:choice>
-        <xs:element name="heap" type="ehcache:resource-type" minOccurs="0" maxOccurs="1">
+      <!-- TODO The following choice is mandatory in a cache but optional in a template. Find the magic XSD incantation that does exactly that. -->
+      <xs:choice minOccurs="0" maxOccurs="1">
+        <xs:element name="heap" type="ehcache:resource-type" minOccurs="1" maxOccurs="1">
           <xs:annotation>
             <xs:documentation xml:lang="en">
               Shortcut for configuring a heap-only Cache.
             </xs:documentation>
           </xs:annotation>
         </xs:element>
-        <xs:element name="resources" type="ehcache:resources-type" minOccurs="0" maxOccurs="1">
+        <xs:element name="resources" type="ehcache:resources-type" minOccurs="1" maxOccurs="1">
           <xs:annotation>
             <xs:documentation xml:lang="en">
               Configures the Cache resources.
@@ -256,14 +257,15 @@
   </xs:complexType>
 
   <xs:complexType name="resource-type">
-    <xs:attribute name="unit" default="count"/>
-    <xs:attribute name="value" use="required"/>
+    <xs:attribute name="unit" default="entries" use="optional"/>
+    <xs:attribute name="size" use="required" type="xs:positiveInteger"/>
   </xs:complexType>
 
   <xs:complexType name="resources-type">
     <xs:sequence>
       <xs:element name="heap" type="ehcache:resource-type" minOccurs="0" maxOccurs="1"/>
       <xs:element name="disk" type="ehcache:resource-type" minOccurs="0" maxOccurs="1"/>
+      <xs:any namespace="##other" minOccurs="0"/>
     </xs:sequence>
   </xs:complexType>
 

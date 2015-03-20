@@ -23,8 +23,8 @@
     <ehcache:key-type>java.lang.String</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:resources>
-      <ehcache:heap value="10"/>
-      <ehcache:disk value="100"/>
+      <ehcache:heap size="10" unit="entries"/>
+      <ehcache:disk size="100" unit="entries"/>
     </ehcache:resources>
   </ehcache:cache>
 
@@ -32,13 +32,14 @@
     <ehcache:key-type>java.lang.String</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:resources>
-      <ehcache:heap value="15"/>
+      <ehcache:heap size="15" unit="entries"/>
     </ehcache:resources>
   </ehcache:cache>
 
-  <ehcache:cache alias="implicitHeapOnly">
+  <ehcache:cache alias="directHeapOnly">
     <ehcache:key-type>java.lang.String</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
+    <ehcache:heap size="25" unit="entries"/>
   </ehcache:cache>
 
 </ehcache:config>

@@ -20,6 +20,7 @@ import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -112,9 +113,9 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
 
       private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
         if (capacityConstraint == null) {
-          return newResourcePoolsBuilder().with("disk", "count", "" + Long.MAX_VALUE).build();
+          return newResourcePoolsBuilder().disk(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
         } else {
-          return newResourcePoolsBuilder().with("disk", "count", "" + capacityConstraint).build();
+          return newResourcePoolsBuilder().disk((Long) capacityConstraint, EntryUnit.ENTRIES).build();
         }
       }
 

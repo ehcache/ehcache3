@@ -21,12 +21,12 @@ import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.Jsr107Configuration;
+import org.ehcache.config.ResourceType;
 import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.jsr107.DefaultJsr107Service;
 import org.ehcache.spi.ServiceLocator;
-import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -82,7 +82,7 @@ public class ParsesConfigExtensionTest {
       // Test the config
       {
         final CacheRuntimeConfiguration<Long, Product> runtimeConfiguration = productCache.getRuntimeConfiguration();
-        assertThat(runtimeConfiguration.getResourcePools().getPoolForResource("heap").getValue(), equalTo("200"));
+        assertThat(runtimeConfiguration.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(200L));
 
         final Expiry<? super Long, ? super Product> expiry = runtimeConfiguration.getExpiry();
         assertThat(expiry.getClass().getName(), equalTo("org.ehcache.expiry.Expirations$TimeToIdleExpiry"));
@@ -130,7 +130,7 @@ public class ParsesConfigExtensionTest {
       final Cache<Long, Customer> customerCache = cacheManager.getCache("customerCache", Long.class, Customer.class);
       final CacheRuntimeConfiguration<Long, Customer> runtimeConfiguration = customerCache.getRuntimeConfiguration();
       assertThat(runtimeConfiguration.getEvictionPrioritizer(), is((EvictionPrioritizer) Eviction.Prioritizer.LRU));
-      assertThat(runtimeConfiguration.getResourcePools().getPoolForResource("heap").getValue(), equalTo("200"));
+      assertThat(runtimeConfiguration.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(200L));
     }
   }
 }

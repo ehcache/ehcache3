@@ -25,20 +25,20 @@ public interface ResourcePool {
    *
    * @return the type.
    */
-  public String getType();
-
-  /**
-   * Get the unit in which the resource is measured.
-   *
-   * @return the unit.
-   */
-  public String getUnit();
+  public ResourceType getType();
 
   /**
    * Get the value measuring the pool size.
    *
    * @return the value.
    */
-  public String getValue();
+  public long getSize();
+
+  /**
+   * Get the unit in which the resource is measured.
+   *
+   * @return the unit.
+   */
+  public ResourceUnit getUnit();
 
 }

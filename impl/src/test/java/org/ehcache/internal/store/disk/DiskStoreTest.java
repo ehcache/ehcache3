@@ -16,6 +16,7 @@
 package org.ehcache.internal.store.disk;
 
 import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.function.Function;
@@ -54,7 +55,7 @@ public class DiskStoreTest {
     timeSource = new TestTimeSource();
     capacityConstraint = 5L;
     StoreConfigurationImpl<Number, CharSequence> config = new StoreConfigurationImpl<Number, CharSequence>(Number.class, CharSequence.class,
-        null, null, ClassLoader.getSystemClassLoader(), Expirations.timeToLiveExpiration(new Duration(10, TimeUnit.MILLISECONDS)), newResourcePoolsBuilder().with("disk", "count", "" + capacityConstraint).build());
+        null, null, ClassLoader.getSystemClassLoader(), Expirations.timeToLiveExpiration(new Duration(10, TimeUnit.MILLISECONDS)), newResourcePoolsBuilder().disk(capacityConstraint, EntryUnit.ENTRIES).build());
     JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
     Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createSerializer(DiskStorageFactory.Element.class, config.getClassLoader());
     Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, config.getClassLoader());

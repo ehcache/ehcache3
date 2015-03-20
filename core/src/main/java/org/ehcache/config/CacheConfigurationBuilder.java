@@ -16,6 +16,7 @@
 
 package org.ehcache.config;
 
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
@@ -37,7 +38,7 @@ public class CacheConfigurationBuilder<K, V> {
   private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private EvictionVeto<? super K, ? super V> evictionVeto;
   private CacheConfiguration.PersistenceMode persistenceMode;
-  private ResourcePools resourcePools = newResourcePoolsBuilder().with("heap", "count", "" + Integer.MAX_VALUE).build();
+  private ResourcePools resourcePools = newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
 
   private CacheConfigurationBuilder() {
   }

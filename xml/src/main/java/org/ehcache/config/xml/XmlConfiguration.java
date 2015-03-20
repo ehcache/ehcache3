@@ -165,7 +165,7 @@ public class XmlConfiguration implements Configuration {
       builder = builder.withExpiry(getExpiry(cacheClassLoader, parsedExpiry));
       ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
       for (ResourcePool resourcePool : cacheDefinition.resourcePools()) {
-        resourcePoolsBuilder.with(resourcePool.getType(), resourcePool.getUnit(), resourcePool.getValue());
+        resourcePoolsBuilder.with(resourcePool.getType(), resourcePool.getSize(), resourcePool.getUnit());
       }
       builder.withResourcePools(resourcePoolsBuilder.build());
       for (ServiceConfiguration<?> serviceConfig : cacheDefinition.serviceConfigs()) {
@@ -304,7 +304,7 @@ public class XmlConfiguration implements Configuration {
     }
     ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
     for (ResourcePool resourcePool : cacheTemplate.resourcePools()) {
-      resourcePoolsBuilder.with(resourcePool.getType(), resourcePool.getUnit(), resourcePool.getValue());
+      resourcePoolsBuilder.with(resourcePool.getType(), resourcePool.getSize(), resourcePool.getUnit());
     }
     builder.withResourcePools(resourcePoolsBuilder.build());
     for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {

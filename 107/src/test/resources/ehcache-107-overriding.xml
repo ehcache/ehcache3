@@ -14,7 +14,7 @@
       <ehcache:ttl unit="nanos">1</ehcache:ttl>
     </ehcache:expiry>
     <ehcache:eviction-prioritizer>LRU</ehcache:eviction-prioritizer>
-    <ehcache:heap value="2"/>
+    <ehcache:heap size="2" unit="entries"/>
   </ehcache:cache-template>
 
   <!-- product cache template overriding all properties from default -->
@@ -31,6 +31,6 @@
         <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>
       </ehcache:loaderwriter>
     </ehcache:integration>
-    <ehcache:heap value="200"/>
+    <ehcache:heap size="200" unit="entries"/>
   </ehcache:cache-template>
 </ehcache:config>

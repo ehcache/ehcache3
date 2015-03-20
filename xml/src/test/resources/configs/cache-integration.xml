@@ -27,7 +27,7 @@
       </ehcache:loaderwriter>
     </ehcache:integration>
     <ehcache:resources>
-      <ehcache:heap value="10"/>
+      <ehcache:heap size="10"/>
     </ehcache:resources>
   </ehcache:cache>
 
@@ -40,7 +40,7 @@
       </ehcache:loaderwriter>
     </ehcache:integration>
     <ehcache:resources>
-      <ehcache:heap value="20"/>
+      <ehcache:heap size="20"/>
     </ehcache:resources>
   </ehcache:cache-template>
 

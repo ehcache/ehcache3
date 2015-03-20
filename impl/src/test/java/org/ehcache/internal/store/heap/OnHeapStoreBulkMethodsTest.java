@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.store.heap;
 
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.function.Function;
 import org.ehcache.internal.SystemTimeSource;
@@ -51,7 +52,7 @@ public class OnHeapStoreBulkMethodsTest {
     when(config.getExpiry()).thenReturn(Expirations.noExpiration());
     when(config.getKeyType()).thenReturn(Number.class);
     when(config.getValueType()).thenReturn(CharSequence.class);
-    when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().with("heap", "count", "" + Integer.MAX_VALUE).build());
+    when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build());
     return config;
   }
 
@@ -63,7 +64,7 @@ public class OnHeapStoreBulkMethodsTest {
     when(config.getExpiry()).thenReturn(Expirations.noExpiration());
     when(config.getKeyType()).thenReturn(Number.class);
     when(config.getValueType()).thenReturn(Number.class);
-    when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().with("heap", "count", "" + Integer.MAX_VALUE).build());
+    when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build());
     Store.Configuration<Number, Number> configuration = config;
 
     OnHeapStore<Number, Number> store = new OnHeapStore<Number, Number>(configuration, SystemTimeSource.INSTANCE, false, null, null);

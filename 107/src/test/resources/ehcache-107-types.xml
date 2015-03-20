@@ -9,7 +9,7 @@
   </ehcache:service>
 
   <ehcache:cache-template name="defaultCacheTemplate">
-    <ehcache:heap value="200"/>
+    <ehcache:heap size="200" unit="entries"/>
   </ehcache:cache-template>
 
 </ehcache:config>

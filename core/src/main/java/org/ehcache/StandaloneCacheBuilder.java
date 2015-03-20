@@ -26,6 +26,7 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.StandaloneCacheConfiguration;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -55,7 +56,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   private ScheduledExecutorService statisticsExecutor;
   private CacheEventNotificationService<K, V> cacheEventNotificationService;
   private CacheConfiguration.PersistenceMode persistenceMode;
-  private ResourcePools resourcePools = newResourcePoolsBuilder().with("heap", "count", "" + Integer.MAX_VALUE).build();
+  private ResourcePools resourcePools = newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
 
   public StandaloneCacheBuilder(final Class<K> keyType, final Class<V> valueType, final Logger logger) {
     this.keyType = keyType;

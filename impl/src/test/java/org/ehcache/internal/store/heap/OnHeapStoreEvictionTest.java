@@ -18,6 +18,7 @@ package org.ehcache.internal.store.heap;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -108,7 +109,7 @@ public class OnHeapStoreEvictionTest {
 
       @Override
       public ResourcePools getResourcePools() {
-        return newResourcePoolsBuilder().with("heap", "count", "1").build();
+        return newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).build();
       }
     }, timeSource);
   }

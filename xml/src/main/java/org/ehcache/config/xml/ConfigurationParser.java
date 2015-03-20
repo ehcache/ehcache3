@@ -17,8 +17,10 @@
 package org.ehcache.config.xml;
 
 import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration.TypeSerializerConfig;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.xml.model.BaseCacheType;
 import org.ehcache.config.xml.model.CacheIntegration;
 import org.ehcache.config.xml.model.CacheTemplateType;
@@ -267,17 +269,17 @@ class ConfigurationParser {
             for (BaseCacheType source : sources) {
               ResourceType directHeapResource = source.getHeap();
               if (directHeapResource != null) {
-                resourcePools.add(new ResourcePoolImpl("heap", directHeapResource.getUnit(), directHeapResource.getValue()));
+                resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, directHeapResource.getSize().longValue(), parseUnit(directHeapResource)));
               } else {
                 ResourcesType resources = source.getResources();
                 if (resources != null) {
                   ResourceType heapResource = resources.getHeap();
                   if (heapResource != null) {
-                    resourcePools.add(new ResourcePoolImpl("heap", heapResource.getUnit(), heapResource.getValue()));
+                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, heapResource.getSize().longValue(), parseUnit(heapResource)));
                   }
                   ResourceType diskResource = resources.getDisk();
                   if (diskResource != null) {
-                    resourcePools.add(new ResourcePoolImpl("disk", diskResource.getUnit(), diskResource.getValue()));
+                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK, diskResource.getSize().longValue(), parseUnit(diskResource)));
                   }
                 }
               }
@@ -292,30 +294,26 @@ class ConfigurationParser {
   }
 
   private static final class ResourcePoolImpl implements ResourcePool {
+    private final org.ehcache.config.ResourceType type;
+    private final long size;
+    private final ResourceUnit unit;
 
-    private final String type;
-    private final String unit;
-    private final String value;
-
-    public ResourcePoolImpl(String type, String unit, String value) {
+    public ResourcePoolImpl(org.ehcache.config.ResourceType type, long size, ResourceUnit unit) {
       this.type = type;
+      this.size = size;
       this.unit = unit;
-      this.value = value;
     }
 
-    @Override
-    public String getType() {
+    public org.ehcache.config.ResourceType getType() {
       return type;
     }
 
-    @Override
-    public String getUnit() {
-      return unit;
+    public long getSize() {
+      return size;
     }
 
-    @Override
-    public String getValue() {
-      return value;
+    public ResourceUnit getUnit() {
+      return unit;
     }
   }
 
@@ -388,17 +386,17 @@ class ConfigurationParser {
 
             ResourceType directHeapResource = cacheTemplate.getHeap();
             if (directHeapResource != null) {
-              resourcePools.add(new ResourcePoolImpl("heap", directHeapResource.getUnit(), directHeapResource.getValue()));
+              resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, directHeapResource.getSize().longValue(), parseUnit(directHeapResource)));
             } else {
               ResourcesType resources = cacheTemplate.getResources();
               if (resources != null) {
                 ResourceType heapResource = resources.getHeap();
                 if (heapResource != null) {
-                  resourcePools.add(new ResourcePoolImpl("heap", heapResource.getUnit(), heapResource.getValue()));
+                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, heapResource.getSize().longValue(), parseUnit(heapResource)));
                 }
                 ResourceType diskResource = resources.getDisk();
                 if (diskResource != null) {
-                  resourcePools.add(new ResourcePoolImpl("disk", diskResource.getUnit(), diskResource.getValue()));
+                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK, diskResource.getSize().longValue(), parseUnit(diskResource)));
                 }
               }
             }
@@ -409,6 +407,11 @@ class ConfigurationParser {
       }
     }
     return Collections.unmodifiableMap(templates);
+  }
+
+  private ResourceUnit parseUnit(ResourceType resourceType) {
+    //TODO add support for other unit types
+    return EntryUnit.ENTRIES;
   }
 
   private ServiceConfiguration<?> parseExtension(final Element element) {

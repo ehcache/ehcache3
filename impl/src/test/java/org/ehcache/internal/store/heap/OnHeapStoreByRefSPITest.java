@@ -20,6 +20,7 @@ import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
@@ -91,9 +92,9 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
 
       private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
         if (capacityConstraint == null) {
-          return newResourcePoolsBuilder().with("heap", "count", "" + Integer.MAX_VALUE).build();
+          return newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
         } else {
-          return newResourcePoolsBuilder().with("heap", "count", "" + capacityConstraint).build();
+          return newResourcePoolsBuilder().heap((Long) capacityConstraint, EntryUnit.ENTRIES).build();
         }
       }
 

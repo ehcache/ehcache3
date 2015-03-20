@@ -29,7 +29,7 @@
       </ehcache:loaderwriter>
     </ehcache:integration>
 
-    <ehcache:heap value="200"/>
+    <ehcache:heap size="200" unit="entries"/>
   </ehcache:cache>
 
   <ehcache:cache-template name="productCacheTemplate">
@@ -43,7 +43,7 @@
       </ehcache:loaderwriter>
     </ehcache:integration>
 
-    <ehcache:heap value="200"/>
+    <ehcache:heap size="200" unit="entries"/>
   </ehcache:cache-template>
 
   <ehcache:cache-template storeByValueOnHeap="false" name="myDefaultTemplate">
@@ -52,14 +52,14 @@
     </ehcache:expiry>
     <ehcache:eviction-prioritizer>LRU</ehcache:eviction-prioritizer>
 
-    <ehcache:heap value="200"/>
+    <ehcache:heap size="200" unit="entries"/>
   </ehcache:cache-template>
 
   <ehcache:cache alias="customerCache" usesTemplate="myDefaultTemplate">
     <ehcache:key-type>java.lang.Long</ehcache:key-type>
     <ehcache:value-type>com.pany.domain.Customer</ehcache:value-type>
 
-    <ehcache:heap value="200"/>
+    <ehcache:heap size="200" unit="entries"/>
   </ehcache:cache>
 
 </ehcache:config>

@@ -17,7 +17,7 @@
 package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.internal.store.disk.DiskStoreServiceConfig;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -76,9 +76,7 @@ public class GettingStarted {
   public void testTieredStore() throws Exception {
     CacheConfiguration<Long, String> tieredCacheConfiguration = newCacheConfigurationBuilder()
         .persistenceMode(CacheConfiguration.PersistenceMode.SWAP)
-        .withResourcePools(newResourcePoolsBuilder().with("heap", "count", "10").with("disk", "count", "100").build())
-        .addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true))
-        .addServiceConfig(new DiskStoreServiceConfig())
+        .withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES).build())
         .buildConfig(Long.class, String.class);
 
     CacheManager cacheManager = newCacheManagerBuilder().withCache("tieredCache", tieredCacheConfiguration).build();
@@ -98,7 +96,7 @@ public class GettingStarted {
     CacheManager cacheManager = newCacheManagerBuilder().build();
 
     final Cache<Long, String> cache1 = cacheManager.createCache("cache1",
-        newCacheConfigurationBuilder().withResourcePools(newResourcePoolsBuilder().with("heap", "count", "1").build()).buildConfig(Long.class, String.class));
+        newCacheConfigurationBuilder().withResourcePools(newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).build()).buildConfig(Long.class, String.class));
     performAssertions(cache1, true);
 
     final Cache<Long, String> cache2 = cacheManager.createCache("cache2",

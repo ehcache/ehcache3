@@ -20,6 +20,8 @@ import org.ehcache.Cache;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourceType;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
@@ -100,12 +102,14 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
 
   public DiskStore(final Configuration<K, V> config, String alias, TimeSource timeSource, Serializer<Element> elementSerializer, Serializer<Object> indexSerializer) {
-    ResourcePool diskPool = config.getResourcePools().getPoolForResource("disk");
+    ResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
     if (diskPool == null) {
-      throw new IllegalArgumentException("Disk store must be configured with a resource pool of type 'disk'");
-    } else {
-      this.capacity = Long.parseLong(diskPool.getValue());
+      throw new IllegalArgumentException("Disk store must be configured with a resource of type 'disk'");
     }
+    if (!diskPool.getUnit().equals(EntryUnit.ENTRIES)) {
+      throw new IllegalArgumentException("Disk store only handles resource unit 'entries'");
+    }
+    this.capacity = diskPool.getSize();
     EvictionPrioritizer<? super K, ? super V> prioritizer = config.getEvictionPrioritizer();
     if (prioritizer == null) {
       prioritizer = Eviction.Prioritizer.LRU;

@@ -23,7 +23,7 @@ import java.util.Map;
  */
 public class ResourcePoolsBuilder {
 
-  private final Map<String, ResourcePool> resourcePools = new HashMap<String, ResourcePool>();
+  private final Map<ResourceType, ResourcePool> resourcePools = new HashMap<ResourceType, ResourcePool>();
 
   private ResourcePoolsBuilder() {
   }
@@ -32,13 +32,18 @@ public class ResourcePoolsBuilder {
     return new ResourcePoolsBuilder();
   }
 
-  public ResourcePoolsBuilder with(String type) {
-    resourcePools.put(type, new ResourcePoolImpl(type, null, null));
+  public ResourcePoolsBuilder with(ResourceType type, long size, ResourceUnit unit) {
+    resourcePools.put(type, new ResourcePoolImpl(type, size, unit));
     return this;
   }
 
-  public ResourcePoolsBuilder with(String type, String unit, String value) {
-    resourcePools.put(type, new ResourcePoolImpl(type, unit, value));
+  public ResourcePoolsBuilder heap(long size, ResourceUnit unit) {
+    resourcePools.put(ResourceType.Core.HEAP, new ResourcePoolImpl(ResourceType.Core.HEAP, size, unit));
+    return this;
+  }
+
+  public ResourcePoolsBuilder disk(long size, ResourceUnit unit) {
+    resourcePools.put(ResourceType.Core.DISK, new ResourcePoolImpl(ResourceType.Core.DISK, size, unit));
     return this;
   }
 
