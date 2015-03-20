@@ -105,7 +105,7 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer, 
           final Expiry<? super String, ? super String> expiry) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry);
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, null);
       }
 
       @Override

@@ -18,6 +18,7 @@ package org.ehcache.internal.store.heap;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
@@ -80,6 +81,11 @@ public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
       @Override
       public Expiry<? super K, ? super V> getExpiry() {
         return expiry;
+      }
+
+      @Override
+      public ResourcePools getResourcePools() {
+        return null;
       }
     }, timeSource, false, null, null);
   }

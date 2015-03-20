@@ -53,7 +53,7 @@ public class DiskStoreTest {
     timeSource = new TestTimeSource();
     capacityConstraint = 5L;
     StoreConfigurationImpl<Number, CharSequence> config = new StoreConfigurationImpl<Number, CharSequence>(Number.class, CharSequence.class, capacityConstraint,
-        null, null, ClassLoader.getSystemClassLoader(), Expirations.timeToLiveExpiration(new Duration(10, TimeUnit.MILLISECONDS)));
+        null, null, ClassLoader.getSystemClassLoader(), Expirations.timeToLiveExpiration(new Duration(10, TimeUnit.MILLISECONDS)), null);
     JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
     Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createSerializer(DiskStorageFactory.Element.class, config.getClassLoader());
     Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, config.getClassLoader());

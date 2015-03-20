@@ -17,17 +17,15 @@
 package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.internal.store.disk.DiskStore;
 import org.ehcache.internal.store.disk.DiskStoreServiceConfig;
-import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
-import org.ehcache.internal.store.tiering.CacheStoreServiceConfig;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.StandaloneCacheBuilder.newCacheBuilder;
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
@@ -78,7 +76,7 @@ public class GettingStarted {
   public void testTieredStore() throws Exception {
     CacheConfiguration<Long, String> tieredCacheConfiguration = newCacheConfigurationBuilder()
         .persistenceMode(CacheConfiguration.PersistenceMode.SWAP)
-        .addServiceConfig(new CacheStoreServiceConfig().cachingTierProvider(OnHeapStore.Provider.class).authoritativeTierProvider(DiskStore.Provider.class))
+        .withResourcePools(newResourcePoolsBuilder().with("heap").with("disk").build())
         .addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true))
         .addServiceConfig(new DiskStoreServiceConfig())
         .buildConfig(Long.class, String.class);

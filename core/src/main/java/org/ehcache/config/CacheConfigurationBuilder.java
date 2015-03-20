@@ -36,6 +36,7 @@ public class CacheConfigurationBuilder<K, V> {
   private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private EvictionVeto<? super K, ? super V> evictionVeto;
   private CacheConfiguration.PersistenceMode persistenceMode;
+  private ResourcePools resourcePools;
 
   private CacheConfigurationBuilder() {
   }
@@ -96,15 +97,16 @@ public class CacheConfigurationBuilder<K, V> {
 
   public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType) {
     return new BaseCacheConfiguration<CK, CV>(keyType, valueType, capacityConstraint, evictionVeto,
-        evictionPrioritizer, classLoader, expiry,
-        persistenceMode, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
+        evictionPrioritizer, classLoader, expiry, persistenceMode, resourcePools,
+        serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
   public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType,
                                                      EvictionVeto<? super CK, ? super CV> evictionVeto,
                                                      EvictionPrioritizer<? super CK, ? super CV> evictionPrioritizer) {
-    return new BaseCacheConfiguration<CK, CV>(keyType, valueType, this.capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, expiry,
-        persistenceMode, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
+    return new BaseCacheConfiguration<CK, CV>(keyType, valueType, this.capacityConstraint, evictionVeto, evictionPrioritizer,
+        classLoader, expiry, persistenceMode, resourcePools,
+        serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
   
   public CacheConfigurationBuilder<K, V> withClassLoader(ClassLoader classLoader) {
@@ -112,6 +114,11 @@ public class CacheConfigurationBuilder<K, V> {
     return this;
   }
   
+  public CacheConfigurationBuilder<K, V> withResourcePools(ResourcePools resourcePools) {
+    this.resourcePools = resourcePools;
+    return this;
+  }
+
   public <NK extends K, NV extends V> CacheConfigurationBuilder<NK, NV> withExpiry(Expiry<? super NK, ? super NV> expiry) {
     if (expiry == null) {
       throw new NullPointerException("Null expiry");

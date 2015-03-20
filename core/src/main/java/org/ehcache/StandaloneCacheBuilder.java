@@ -23,6 +23,7 @@ import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.StandaloneCacheConfiguration;
 import org.ehcache.events.CacheEventNotificationService;
@@ -53,6 +54,7 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   private ScheduledExecutorService statisticsExecutor;
   private CacheEventNotificationService<K, V> cacheEventNotificationService;
   private CacheConfiguration.PersistenceMode persistenceMode;
+  private ResourcePools resourcePools;
 
   public StandaloneCacheBuilder(final Class<K> keyType, final Class<V> valueType, final Logger logger) {
     this.keyType = keyType;
@@ -69,11 +71,11 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
 
     final StoreConfigurationImpl<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType,
-        capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, expiry);
+        capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, expiry, resourcePools);
     final Store<K, V> store = storeProvider.createStore(storeConfig);
 
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto,
-        evictionPrioritizer, classLoader, expiry, persistenceMode);
+        evictionPrioritizer, classLoader, expiry, persistenceMode, resourcePools);
 
     final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, cacheEventNotificationService, statisticsExecutor,logger);
 
@@ -142,6 +144,11 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
 
   public final StandaloneCacheBuilder<K, V, T> withCacheEvents(CacheEventNotificationService<K, V> cacheEventNotificationService) {
     this.cacheEventNotificationService = cacheEventNotificationService;
+    return this;
+  }
+
+  public final StandaloneCacheBuilder<K, V, T> withResourcePools(ResourcePools resourcePools) {
+    this.resourcePools = resourcePools;
     return this;
   }
 

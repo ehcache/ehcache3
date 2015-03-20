@@ -20,6 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
@@ -1441,6 +1442,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     private final ClassLoader classLoader;
     private final Expiry<? super K, ? super V> expiry;
     private final PersistenceMode persistenceMode;
+    private final ResourcePools resourcePools;
 
     RuntimeConfiguration(CacheConfiguration<K, V> config) {
       this.serviceConfigurations = copy(config.getServiceConfigurations());
@@ -1452,6 +1454,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       this.classLoader = config.getClassLoader();
       this.expiry = config.getExpiry();
       this.persistenceMode = config.getPersistenceMode();
+      this.resourcePools = config.getResourcePools();
     }
     
     @Override
@@ -1497,6 +1500,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     @Override
     public PersistenceMode getPersistenceMode() {
       return this.persistenceMode;
+    }
+
+    @Override
+    public ResourcePools getResourcePools() {
+      return this.resourcePools;
     }
 
     @Override

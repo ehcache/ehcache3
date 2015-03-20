@@ -147,13 +147,13 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
           final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration());
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), null);
       }
 
       @Override
       public Store.Configuration<String, String> newConfiguration(Class<String> keyType, Class<String> valueType, Comparable<Long> capacityConstraint, EvictionVeto<? super String, ? super String> evictionVeto, EvictionPrioritizer<? super String, ? super String> evictionPrioritizer, Expiry<? super String, ? super String> expiry) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry);
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, null);
       }
 
       @Override

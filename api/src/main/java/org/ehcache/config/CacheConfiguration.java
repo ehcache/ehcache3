@@ -102,6 +102,13 @@ public interface CacheConfiguration<K, V> {
   PersistenceMode getPersistenceMode();
 
   /**
+   * Get the {@link ResourcePools resource pools} the {@link Cache} can make use of.
+   *
+   * @return the {@link ResourcePools}
+   */
+  ResourcePools getResourcePools();
+
+  /**
    * The persistence mode
    */
   enum PersistenceMode {

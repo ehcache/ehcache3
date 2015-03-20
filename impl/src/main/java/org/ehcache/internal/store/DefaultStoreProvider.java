@@ -15,13 +15,19 @@
  */
 package org.ehcache.internal.store;
 
+import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourcePools;
+import org.ehcache.internal.store.disk.DiskStore;
 import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.tiering.CacheStore;
 import org.ehcache.internal.store.tiering.CacheStoreServiceConfig;
-import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author Ludovic Orban
@@ -31,21 +37,35 @@ public class DefaultStoreProvider implements Store.Provider {
 
   @Override
   public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    ResourcePools resourcePools = storeConfig.getResourcePools();
+    ResourcePool heapPool = null;
+    ResourcePool diskPool = null;
+    if (resourcePools != null) {
+      heapPool = resourcePools.getPoolForResource("heap");
+      diskPool = resourcePools.getPoolForResource("disk");
+    }
+
+    List<ServiceConfiguration<?>> enhancedServiceConfigs = new ArrayList<ServiceConfiguration<?>>(Arrays.asList(serviceConfigs));
+
     Store.Provider provider;
-    CacheStoreServiceConfig cacheStoreServiceConfig = ServiceLocator.findSingletonAmongst(CacheStoreServiceConfig.class, serviceConfigs);
-    if (cacheStoreServiceConfig != null) {
+
+    if (diskPool != null) {
+      if (heapPool == null) {
+        throw new IllegalArgumentException("Cannot store to disk without heap resource");
+      }
       provider = serviceProvider.findService(CacheStore.Provider.class);
+      enhancedServiceConfigs.add(new CacheStoreServiceConfig().cachingTierProvider(OnHeapStore.Provider.class).authoritativeTierProvider(DiskStore.Provider.class));
     } else {
       // default to on-heap cache
       provider = serviceProvider.findService(OnHeapStore.Provider.class);
     }
 
-    return provider.createStore(storeConfig, serviceConfigs);
+    return provider.createStore(storeConfig, enhancedServiceConfigs.toArray(new ServiceConfiguration<?>[0]));
   }
 
   @Override
   public void releaseStore(Store<?, ?> resource) {
-
+    resource.close();
   }
 
   @Override

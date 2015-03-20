@@ -20,6 +20,7 @@ import org.ehcache.Ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expiry;
@@ -88,6 +89,11 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
       @Override
       public PersistenceMode getPersistenceMode() {
         throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
+      public ResourcePools getResourcePools() {
+        throw new UnsupportedOperationException();
       }
 
       },
