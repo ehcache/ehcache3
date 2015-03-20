@@ -19,7 +19,7 @@ package org.ehcache;
 /**
  * @author Alex Snaps
  */
-public interface Maintainable {
+public interface Maintainable extends AutoCloseable {
 
   /**
    * Creates all persistent data structures required to function
@@ -35,8 +35,4 @@ public interface Maintainable {
    */
   void destroy();
 
-  /**
-   * Exit maintenance mode
-   */
-  void exit();
 }

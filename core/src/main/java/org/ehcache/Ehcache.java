@@ -1075,7 +1075,7 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         }
 
         @Override
-        public void exit() {
+        public void close() {
           statusTransitioner.exitMaintenance().succeeded();
         }
       };

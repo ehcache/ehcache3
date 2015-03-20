@@ -37,6 +37,7 @@ import org.ehcache.util.ClassLoading;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -125,7 +126,11 @@ public class EhcacheManager implements PersistentCacheManager {
             default:
           }
         } finally {
-          maintainable.exit();
+          try {
+            maintainable.close();
+          } catch (Exception e) {
+            LOGGER.error("Error while exiting Maintenance mode on cache '{}'.", alias);
+          }
         }
       }
       LOGGER.info("Cache '{}' is removed from EhcacheManager.", alias);
@@ -158,7 +163,7 @@ public class EhcacheManager implements PersistentCacheManager {
 
     Ehcache<K, V> cache = null;
 
-    RuntimeException failure = null;
+    Exception failure = null;
     try {
       cache = createNewEhcache(alias, config, keyType, valueType, value.toBeReleased);
       CacheConfiguration.PersistenceMode persistenceMode = config.getPersistenceMode();
@@ -180,11 +185,11 @@ public class EhcacheManager implements PersistentCacheManager {
             default:
           }
         } finally {
-          maintainable.exit();
+          maintainable.close();
         }
       }
       cache.init();
-    } catch (RuntimeException e) {
+    } catch (Exception e) {
       failure = e;
     }
 
@@ -410,7 +415,7 @@ public class EhcacheManager implements PersistentCacheManager {
         }
 
         @Override
-        public void exit() {
+        public void close() {
           statusTransitioner.exitMaintenance();
         }
       };
