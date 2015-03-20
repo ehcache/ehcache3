@@ -76,7 +76,7 @@ public class GettingStarted {
   public void testTieredStore() throws Exception {
     CacheConfiguration<Long, String> tieredCacheConfiguration = newCacheConfigurationBuilder()
         .persistenceMode(CacheConfiguration.PersistenceMode.SWAP)
-        .withResourcePools(newResourcePoolsBuilder().with("heap").with("disk").build())
+        .withResourcePools(newResourcePoolsBuilder().with("heap", "count", "10").with("disk", "count", "100").build())
         .addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true))
         .addServiceConfig(new DiskStoreServiceConfig())
         .buildConfig(Long.class, String.class);
@@ -98,7 +98,7 @@ public class GettingStarted {
     CacheManager cacheManager = newCacheManagerBuilder().build();
 
     final Cache<Long, String> cache1 = cacheManager.createCache("cache1",
-        newCacheConfigurationBuilder().buildConfig(Long.class, String.class));
+        newCacheConfigurationBuilder().withResourcePools(newResourcePoolsBuilder().with("heap", "count", "1").build()).buildConfig(Long.class, String.class));
     performAssertions(cache1, true);
 
     final Cache<Long, String> cache2 = cacheManager.createCache("cache2",

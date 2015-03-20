@@ -18,6 +18,7 @@ package org.ehcache.internal.store.disk;
 
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expirations;
@@ -25,7 +26,6 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
-import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
 import org.ehcache.internal.store.disk.DiskStorageFactory.Element;
@@ -37,6 +37,8 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 import org.junit.internal.AssumptionViolatedException;
+
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 /**
  * Test the {@link org.ehcache.internal.store.disk.DiskStore} compliance to the
@@ -87,7 +89,7 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store.Provider newProvider() {
-        Store.Provider service = new OnHeapStore.Provider();
+        Store.Provider service = new DiskStore.Provider();
         service.start(null, new ServiceLocator());
         return service;
       }
@@ -101,11 +103,19 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store.Configuration<String, String> newConfiguration(
-          final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint, 
+          final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer, 
           final Expiry<? super String, ? super String> expiry) {
-        return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, null);
+        return new StoreConfigurationImpl<String, String>(keyType, valueType,
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, buildResourcePools(capacityConstraint));
+      }
+
+      private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
+        if (capacityConstraint == null) {
+          return newResourcePoolsBuilder().with("disk", "count", "" + Long.MAX_VALUE).build();
+        } else {
+          return newResourcePoolsBuilder().with("disk", "count", "" + capacityConstraint).build();
+        }
       }
 
       @Override

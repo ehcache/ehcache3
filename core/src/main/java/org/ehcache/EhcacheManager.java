@@ -216,7 +216,7 @@ public class EhcacheManager implements PersistentCacheManager {
       cacheClassLoader = cacheManagerClassLoader;
     }
     if (cacheClassLoader != config.getClassLoader() ) {
-      config = new BaseCacheConfiguration<K, V>(config.getKeyType(), config.getValueType(), config.getCapacityConstraint(),
+      config = new BaseCacheConfiguration<K, V>(config.getKeyType(), config.getValueType(),
           config.getEvictionVeto(), config.getEvictionPrioritizer(), cacheClassLoader, config.getExpiry(),
           config.getPersistenceMode(), config.getResourcePools(), config.getServiceConfigurations().toArray(
           new ServiceConfiguration<?>[config.getServiceConfigurations().size()]));

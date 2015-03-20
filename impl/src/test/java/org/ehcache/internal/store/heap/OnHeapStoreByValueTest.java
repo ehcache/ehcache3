@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.junit.Assert.fail;
 
 @SuppressWarnings("serial")
@@ -132,11 +133,6 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
       }
 
       @Override
-      public Comparable<Long> getCapacityConstraint() {
-        return null;
-      }
-
-      @Override
       public EvictionVeto<? super K, ? super V> getEvictionVeto() {
         return veto;
       }
@@ -158,7 +154,7 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
 
       @Override
       public ResourcePools getResourcePools() {
-        return null;
+        return newResourcePoolsBuilder().with("heap", "count", "100").build();
       }
     }, timeSource, true, new JavaSerializer<K>(getClass().getClassLoader()), new JavaSerializer<V>(getClass().getClassLoader()));
   }

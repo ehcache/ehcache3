@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -50,6 +51,7 @@ public class OnHeapStoreBulkMethodsTest {
     when(config.getExpiry()).thenReturn(Expirations.noExpiration());
     when(config.getKeyType()).thenReturn(Number.class);
     when(config.getValueType()).thenReturn(CharSequence.class);
+    when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().with("heap", "count", "" + Integer.MAX_VALUE).build());
     return config;
   }
 
@@ -61,6 +63,7 @@ public class OnHeapStoreBulkMethodsTest {
     when(config.getExpiry()).thenReturn(Expirations.noExpiration());
     when(config.getKeyType()).thenReturn(Number.class);
     when(config.getValueType()).thenReturn(Number.class);
+    when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().with("heap", "count", "" + Integer.MAX_VALUE).build());
     Store.Configuration<Number, Number> configuration = config;
 
     OnHeapStore<Number, Number> store = new OnHeapStore<Number, Number>(configuration, SystemTimeSource.INSTANCE, false, null, null);

@@ -18,6 +18,7 @@ package org.ehcache.internal.store.tiering;
 
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expirations;
@@ -25,11 +26,11 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
-import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
 import org.ehcache.internal.store.disk.DiskStorageFactory;
 import org.ehcache.internal.store.disk.DiskStore;
+import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
@@ -43,6 +44,7 @@ import org.junit.internal.AssumptionViolatedException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -146,14 +148,14 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
       public Store.Configuration<String, String> newConfiguration(
           final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
-        return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), null);
+        return new StoreConfigurationImpl<String, String>(keyType, valueType,
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacityConstraint));
       }
 
       @Override
       public Store.Configuration<String, String> newConfiguration(Class<String> keyType, Class<String> valueType, Comparable<Long> capacityConstraint, EvictionVeto<? super String, ? super String> evictionVeto, EvictionPrioritizer<? super String, ? super String> evictionPrioritizer, Expiry<? super String, ? super String> expiry) {
-        return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, null);
+        return new StoreConfigurationImpl<String, String>(keyType, valueType,
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, buildResourcePools(capacityConstraint));
       }
 
       @Override
@@ -189,6 +191,14 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
         return serviceLocator;
       }
     };
+  }
+
+  private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
+    if (capacityConstraint == null) {
+      return newResourcePoolsBuilder().with("heap", "count", "" + Integer.MAX_VALUE).with("disk", "count", "" + Long.MAX_VALUE).build();
+    } else {
+      return newResourcePoolsBuilder().with("heap", "count", "" + capacityConstraint).with("disk", "count", "" + capacityConstraint).build();
+    }
   }
 
   public static class FakeCachingTierProvider implements CachingTier.Provider {

@@ -19,13 +19,13 @@ package org.ehcache.internal.store.heap;
 import org.ehcache.Cache;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.events.CacheEvents;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
-import org.ehcache.function.Comparables;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.function.Predicate;
@@ -76,7 +76,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   private final Serializer<V> valueSerializer;
   private final Serializer<K> keySerializer;
 
-  private final Comparable<Long> capacityConstraint;
+  private final long capacity;
   private final Predicate<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionVeto;
   private final Comparator<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionPrioritizer;
   private final Expiry<? super K, ? super V> expiry;
@@ -94,15 +94,14 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   }; 
  
   public OnHeapStore(final Configuration<K, V> config, TimeSource timeSource, boolean storeByValue, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
-    Comparable<Long> capacity = config.getCapacityConstraint();
-    EvictionPrioritizer<? super K, ? super V> prioritizer = config.getEvictionPrioritizer();
-    if(prioritizer == null && capacity != null) {
-      prioritizer = Eviction.Prioritizer.LRU;
+    ResourcePool heapPool = config.getResourcePools().getPoolForResource("heap");
+    if (heapPool == null) {
+      throw new IllegalArgumentException("OnHeap store must be configured with a resource pool of type 'heap'");
     }
-    if (capacity == null) {
-      this.capacityConstraint = Comparables.biggest();
-    } else {
-      this.capacityConstraint = config.getCapacityConstraint();
+    this.capacity = Long.parseLong(heapPool.getValue());
+    EvictionPrioritizer<? super K, ? super V> prioritizer = config.getEvictionPrioritizer();
+    if(prioritizer == null) {
+      prioritizer = Eviction.Prioritizer.LRU;
     }
     this.evictionVeto = wrap(config.getEvictionVeto());
     this.evictionPrioritizer = wrap(prioritizer);
@@ -874,7 +873,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   
   private void enforceCapacity(int delta) {
     for (int attempts = 0, evicted = 0; attempts < ATTEMPT_RATIO * delta && evicted < EVICTION_RATIO * delta
-            && capacityConstraint.compareTo((long) map.size()) < 0; attempts++) {
+            && capacity < map.size(); attempts++) {
       if (evict()) {
         evicted++;
       }

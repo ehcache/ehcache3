@@ -165,13 +165,6 @@ public abstract class StoreSPITest<K, V> {
   }
 
   @Test
-  public void testConfigurationGetCapacityConstraint() throws Exception {
-    StoreConfigurationGetCapacityConstraintTest<K, V> testSuite =
-      new StoreConfigurationGetCapacityConstraintTest<K, V>(getStoreFactory());
-    testSuite.runTestSuite().reportAndThrow();
-  }
-
-  @Test
   public void testConfigurationGetEvictionVeto() throws Exception {
     StoreConfigurationGetEvictionVetoTest<K, V> testSuite =
       new StoreConfigurationGetEvictionVetoTest<K, V>(getStoreFactory());

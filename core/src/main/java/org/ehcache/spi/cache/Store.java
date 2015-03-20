@@ -457,13 +457,6 @@ public interface Store<K, V> {
     Class<V> getValueType();
     
     /**
-     * The capacity constraint that must be enforced by a Store.
-     * 
-     * @return the capacity constraint
-     */
-    Comparable<Long> getCapacityConstraint();
-    
-    /**
      * A predicate function that, if it passes an entry, must prevent that entry
      * from being evicted by the store.
      * 

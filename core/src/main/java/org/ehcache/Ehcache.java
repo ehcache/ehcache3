@@ -1436,7 +1436,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     private final Collection<ServiceConfiguration<?>> serviceConfigurations;
     private final Class<K> keyType;
     private final Class<V> valueType;
-    private final Comparable<Long> capacityConstraint;
     private final EvictionVeto<? super K, ? super V> evictionVeto;
     private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
     private final ClassLoader classLoader;
@@ -1448,7 +1447,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
       this.serviceConfigurations = copy(config.getServiceConfigurations());
       this.keyType = config.getKeyType();
       this.valueType = config.getValueType();
-      this.capacityConstraint = config.getCapacityConstraint();
       this.evictionVeto = config.getEvictionVeto();
       this.evictionPrioritizer = config.getEvictionPrioritizer();
       this.classLoader = config.getClassLoader();
@@ -1470,11 +1468,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     @Override
     public Class<V> getValueType() {
       return this.valueType;
-    }
-
-    @Override
-    public Comparable<Long> getCapacityConstraint() {
-      return this.capacityConstraint;
     }
 
     @Override

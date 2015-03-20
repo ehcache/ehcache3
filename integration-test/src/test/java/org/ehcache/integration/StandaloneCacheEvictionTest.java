@@ -22,6 +22,7 @@ import org.ehcache.config.Eviction;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -35,12 +36,12 @@ public class StandaloneCacheEvictionTest {
   @Test
   public void test_eviction_with_specific_eviction_prioritizer() throws Exception {
     StandaloneCache<Number, String> cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory.getLogger(Ehcache.class + "-" + "StandaloneCacheEvictionTest"))
-        .withCapacity(1L)
+        .withResourcePools(newResourcePoolsBuilder().with("heap", "count", "1").build())
         .prioritizeEviction(Eviction.Prioritizer.LRU)
         .build();
     cache.init();
-    assertThat(cache.getRuntimeConfiguration().getCapacityConstraint(),
-        equalTo((Comparable<Long>)1L));
+    assertThat(cache.getRuntimeConfiguration().getResourcePools().getPoolForResource("heap").getValue(),
+        equalTo("1"));
 
     // we put 3 elements, but there's only capacity for 1
     for (int i = 0; i < 3; i++) {
@@ -61,11 +62,11 @@ public class StandaloneCacheEvictionTest {
   @Test
   public void test_eviction_eviction_prioritizer_not_specified() throws Exception {
     StandaloneCache<Number, String> cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory.getLogger(Ehcache.class + "-" + "StandaloneCacheEvictionTest1"))
-        .withCapacity(1L)
+        .withResourcePools(newResourcePoolsBuilder().with("heap", "count", "1").build())
         .build();
     cache.init();
-    assertThat(cache.getRuntimeConfiguration().getCapacityConstraint(),
-        equalTo((Comparable<Long>)1L));
+    assertThat(cache.getRuntimeConfiguration().getResourcePools().getPoolForResource("heap").getValue(),
+        equalTo("1"));
 
     // we put 3 elements, but there's only capacity for 1
     for (int i = 0; i < 3; i++) {

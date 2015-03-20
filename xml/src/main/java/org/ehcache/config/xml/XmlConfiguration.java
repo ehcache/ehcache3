@@ -159,7 +159,6 @@ public class XmlConfiguration implements Configuration {
       
       Class keyType = getClassForName(cacheDefinition.keyType(), cacheClassLoader);
       Class valueType = getClassForName(cacheDefinition.valueType(), cacheClassLoader);
-      Long capacityConstraint = cacheDefinition.capacityConstraint();
       EvictionVeto evictionVeto = getInstanceOfName(cacheDefinition.evictionVeto(), cacheClassLoader, EvictionVeto.class);
       EvictionPrioritizer evictionPrioritizer = getInstanceOfName(cacheDefinition.evictionPrioritizer(), cacheClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class);
       final ConfigurationParser.Expiry parsedExpiry = cacheDefinition.expiry();
@@ -171,9 +170,6 @@ public class XmlConfiguration implements Configuration {
       builder.withResourcePools(resourcePoolsBuilder.build());
       for (ServiceConfiguration<?> serviceConfig : cacheDefinition.serviceConfigs()) {
         builder = builder.addServiceConfig(serviceConfig);
-      }
-      if (capacityConstraint != null) {
-        builder = builder.maxEntriesInCache(capacityConstraint);
       }
       if(cacheDefinition.loaderWriter()!= null) {
         final Class<CacheLoaderWriter<?, ?>> cacheLoaderWriterClass = (Class<CacheLoaderWriter<?,?>>)getClassForName(cacheDefinition.loaderWriter(), cacheClassLoader);
@@ -296,10 +292,6 @@ public class XmlConfiguration implements Configuration {
     }
 
     CacheConfigurationBuilder<K, V> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-    if (cacheTemplate.capacityConstraint() != null) {
-      builder = builder
-          .maxEntriesInCache(cacheTemplate.capacityConstraint());
-    }
     final ConfigurationParser.Expiry parsedExpiry = cacheTemplate.expiry();
     builder = builder
         .usingEvictionPrioritizer(getInstanceOfName(cacheTemplate.evictionPrioritizer(), defaultClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class))

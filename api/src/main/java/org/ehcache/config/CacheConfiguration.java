@@ -54,13 +54,6 @@ public interface CacheConfiguration<K, V> {
   Class<V> getValueType();
   
   /**
-   * The capacity constraint in place on the cache.
-   * 
-   * @return the maximal capacity of the cache, or {@code null} if there is no constraint
-   */
-  Comparable<Long> getCapacityConstraint();
-
-  /**
    * The {@link EvictionVeto} predicate function.
    * <p>
    * Entries which pass this predicate must be ignored by the eviction process.

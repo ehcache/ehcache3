@@ -24,7 +24,6 @@
   <ehcache:cache-template name="example">
     <ehcache:key-type>java.lang.String</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
-    <ehcache:capacity>120</ehcache:capacity>
     <ehcache:expiry>
       <ehcache:ttl>30</ehcache:ttl>
     </ehcache:expiry>

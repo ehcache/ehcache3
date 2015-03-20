@@ -19,12 +19,12 @@ package org.ehcache.internal.store.disk;
 import org.ehcache.Cache;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
-import org.ehcache.function.Comparables;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.function.Predicate;
@@ -89,7 +89,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   private final Expiry<? super K, ? super V> expiry;
   private final Serializer<Element> elementSerializer;
   private final Serializer<Object> indexSerializer;
-  private final Comparable<Long> capacityConstraint;
+  private final long capacity;
   private final Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto;
   private final Comparator<DiskStorageFactory.DiskSubstitute<K, V>> evictionPrioritizer;
   private final Random random = new Random();
@@ -100,14 +100,14 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
 
   public DiskStore(final Configuration<K, V> config, String alias, TimeSource timeSource, Serializer<Element> elementSerializer, Serializer<Object> indexSerializer) {
-    Comparable<Long> capacity = config.getCapacityConstraint();
-    if (capacity == null) {
-      this.capacityConstraint = Comparables.biggest();
+    ResourcePool diskPool = config.getResourcePools().getPoolForResource("disk");
+    if (diskPool == null) {
+      throw new IllegalArgumentException("Disk store must be configured with a resource pool of type 'disk'");
     } else {
-      this.capacityConstraint = config.getCapacityConstraint();
+      this.capacity = Long.parseLong(diskPool.getValue());
     }
     EvictionPrioritizer<? super K, ? super V> prioritizer = config.getEvictionPrioritizer();
-    if (prioritizer == null && capacity != null) {
+    if (prioritizer == null) {
       prioritizer = Eviction.Prioritizer.LRU;
     }
     this.evictionVeto = wrap((Predicate) config.getEvictionVeto());
@@ -467,7 +467,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     File indexFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".index");
 
     try {
-      diskStorageFactory = new DiskStorageFactory<K, V>(capacityConstraint, evictionVeto, evictionPrioritizer, classLoader,
+      diskStorageFactory = new DiskStorageFactory<K, V>(capacity, evictionVeto, evictionPrioritizer, classLoader,
           timeSource, elementSerializer, indexSerializer, dataFile, indexFile,
           DEFAULT_SEGMENT_COUNT, DEFAULT_QUEUE_CAPACITY, DEFAULT_EXPIRY_THREAD_INTERVAL);
     } catch (FileNotFoundException fnfe) {
@@ -674,7 +674,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
   void enforceCapacity(int delta) {
     for (int attempts = 0, evicted = 0; attempts < ATTEMPT_RATIO * delta && evicted < EVICTION_RATIO * delta
-        && capacityConstraint.compareTo((long) size()) < 0; attempts++) {
+        && capacity < size(); attempts++) {
       evicted += diskStorageFactory.evict(1);
     }
   }

@@ -25,6 +25,8 @@ import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.spi.cache.Store;
 
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+
 public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
 
   @Override
@@ -59,11 +61,6 @@ public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
       }
 
       @Override
-      public Comparable<Long> getCapacityConstraint() {
-        return null;
-      }
-
-      @Override
       public EvictionVeto<? super K, ? super V> getEvictionVeto() {
         return veto;
       }
@@ -85,7 +82,7 @@ public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
 
       @Override
       public ResourcePools getResourcePools() {
-        return null;
+        return newResourcePoolsBuilder().with("heap", "count", "100").build();
       }
     }, timeSource, false, null, null);
   }

@@ -18,10 +18,10 @@ package org.ehcache.internal.store.heap;
 
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.internal.HeapResourceCacheConfiguration;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.store.StoreFactory;
@@ -31,6 +31,8 @@ import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
+
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 /**
  * Test the {@link org.ehcache.internal.store.heap.OnHeapStore} compliance to the
@@ -74,8 +76,8 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store.Configuration<String, String> newConfiguration(final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint, final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
-        return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), null);
+        return new StoreConfigurationImpl<String, String>(keyType, valueType,
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacityConstraint));
       }
 
       @Override
@@ -83,8 +85,16 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
           final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer,
           final Expiry<? super String, ? super String> expiry) {
-        return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, null);
+        return new StoreConfigurationImpl<String, String>(keyType, valueType,
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, buildResourcePools(capacityConstraint));
+      }
+
+      private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
+        if (capacityConstraint == null) {
+          return newResourcePoolsBuilder().with("heap", "count", "" + Integer.MAX_VALUE).build();
+        } else {
+          return newResourcePoolsBuilder().with("heap", "count", "" + capacityConstraint).build();
+        }
       }
 
       @Override
@@ -99,7 +109,7 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[] { new HeapResourceCacheConfiguration(100) };
+        return new ServiceConfiguration[0];
       }
 
       @Override

@@ -225,18 +225,18 @@ public class DiskStorageFactory<K, V> {
 
   private final Serializer<Element> elementSerializer;
   private final Serializer<Object> indexSerializer;
-  private final Comparable<Long> capacityConstraint;
+  private final long capacity;
   private final Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto;
   private final Comparator<DiskSubstitute<K, V>> evictionPrioritizer;
 
   /**
    * Constructs an disk persistent factory for the given cache and disk path.
    */
-  public DiskStorageFactory(Comparable<Long> capacityConstraint, Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto,
+  public DiskStorageFactory(long capacity, Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto,
                             Comparator<DiskSubstitute<K, V>> evictionPrioritizer, ClassLoader classLoader, TimeSource timeSource,
                             Serializer<Element> elementSerializer, Serializer<Object> indexSerializer, File dataFile, File indexFile,
                             int stripes, long queueCapacity, int expiryThreadInterval) throws FileNotFoundException {
-    this.capacityConstraint = capacityConstraint;
+    this.capacity = capacity;
     this.evictionVeto = evictionVeto;
     this.evictionPrioritizer = evictionPrioritizer;
     this.timeSource = timeSource;
@@ -1044,10 +1044,11 @@ public class DiskStorageFactory<K, V> {
   }
 
   private void onDiskEvict(int size, K keyHint) {
-    long diskCapacity = (Long) capacityConstraint;
+    long diskCapacity = capacity;
 
     if (diskCapacity > 0) {
-      int overflow = (int) (size - diskCapacity);
+      long delta = size - diskCapacity;
+      int overflow = delta <= 0 ? 0 : (int) delta;
       for (int i = 0; i < Math.min(MAX_EVICT, overflow); i++) {
         DiskSubstitute<K, V> target = getDiskEvictionTarget(keyHint, size, evictionVeto);
         if (target == null) {

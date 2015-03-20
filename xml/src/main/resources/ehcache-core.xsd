@@ -128,13 +128,6 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element name="capacity" type="xs:positiveInteger" minOccurs="0" maxOccurs="1">
-        <xs:annotation>
-          <xs:documentation xml:lang="en">
-            Defines capacity (maximal number of entries) for the Cache.
-          </xs:documentation>
-        </xs:annotation>
-      </xs:element>
       <xs:element name="expiry" type="ehcache:expiry-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
@@ -165,13 +158,22 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element name="resources" type="ehcache:resources-type" minOccurs="0" maxOccurs="1">
-        <xs:annotation>
-          <xs:documentation xml:lang="en">
-            Configures the Cache resources.
-          </xs:documentation>
-        </xs:annotation>
-      </xs:element>
+      <xs:choice>
+        <xs:element name="heap" type="ehcache:resource-type" minOccurs="0" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">
+              Shortcut for configuring a heap-only Cache.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+        <xs:element name="resources" type="ehcache:resources-type" minOccurs="0" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">
+              Configures the Cache resources.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+      </xs:choice>
       <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
     <xs:attribute name="storeByValueOnHeap" type="xs:boolean" use="optional">

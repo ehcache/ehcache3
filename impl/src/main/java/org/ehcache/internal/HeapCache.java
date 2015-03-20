@@ -62,11 +62,6 @@ public class HeapCache<K, V> extends Ehcache<K, V> {
       }
 
       @Override
-      public Comparable<Long> getCapacityConstraint() {
-        throw new UnsupportedOperationException("Implement me!");
-      }
-
-      @Override
       public EvictionVeto<? super K, ? super V> getEvictionVeto() {
         throw new UnsupportedOperationException("Implement me!");
       }

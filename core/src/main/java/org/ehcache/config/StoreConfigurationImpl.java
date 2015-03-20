@@ -27,7 +27,6 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   
   private final Class<K> keyType;
   private final Class<V> valueType;
-  private final Comparable<Long> capacityConstraint;
   private final EvictionVeto<? super K, ? super V> evictionVeto;
   private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private final ClassLoader classLoader;
@@ -35,17 +34,16 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   private final ResourcePools resourcePools;
 
   public StoreConfigurationImpl(CacheConfiguration<K, V> cacheConfig) {
-    this(cacheConfig.getKeyType(), cacheConfig.getValueType(), cacheConfig.getCapacityConstraint(),
+    this(cacheConfig.getKeyType(), cacheConfig.getValueType(),
             cacheConfig.getEvictionVeto(), cacheConfig.getEvictionPrioritizer(), cacheConfig.getClassLoader(),
         cacheConfig.getExpiry(), cacheConfig.getResourcePools());
   }
 
-  public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
+  public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType,
           EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
           ClassLoader classLoader, Expiry<? super K, ? super V> expiry, ResourcePools resourcePools) {
     this.keyType = keyType;
     this.valueType = valueType;
-    this.capacityConstraint = capacityConstraint;
     this.evictionVeto = evictionVeto;
     this.evictionPrioritizer = evictionPrioritizer;
     this.classLoader = classLoader;
@@ -61,11 +59,6 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   @Override
   public Class<V> getValueType() {
     return valueType;
-  }
-
-  @Override
-  public Comparable<Long> getCapacityConstraint() {
-    return capacityConstraint;
   }
 
   @Override

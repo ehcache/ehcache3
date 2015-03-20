@@ -29,6 +29,7 @@ import java.lang.reflect.Method;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertThat;
@@ -49,7 +50,7 @@ public class StatisticsTest {
 
     cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory.getLogger(Ehcache.class + "-" + "StatisticsTest"))
         .withStatistics(scheduledExecutorService)
-        .withCapacity(capacity).build();
+        .withResourcePools(newResourcePoolsBuilder().with("heap", "count", "" + capacity).build()).build();
     cache.init();
   }
 
@@ -60,8 +61,8 @@ public class StatisticsTest {
 
   @Test
   public void testEvict() throws Exception {
-    assertThat(cache.getRuntimeConfiguration().getCapacityConstraint(),
-        equalTo((Comparable<Long>) capacity));
+    assertThat(cache.getRuntimeConfiguration().getResourcePools().getPoolForResource("heap").getValue(),
+        equalTo("" + capacity));
 
     for (int i = 0; i < capacity + 1; i++) {
       cache.put(i, "" + i);
@@ -114,7 +115,7 @@ public class StatisticsTest {
   public void testThrowsWhenStatsAreNotEnabled() {
     final StandaloneCache<Number, String> testCache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory
         .getLogger(Ehcache.class + "-" + "StatisticsTest"))
-        .withCapacity(capacity).build();
+        .withResourcePools(newResourcePoolsBuilder().with("heap", "count", "" + capacity).build()).build();
     testCache.init();
     final CacheStatistics statistics = testCache.getStatistics();
 

@@ -39,7 +39,6 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -198,16 +197,6 @@ class ConfigurationParser {
           }
 
           @Override
-          public Long capacityConstraint() {
-            BigInteger value = null;
-            for (BaseCacheType source : sources) {
-              value = source.getCapacity();
-              if (value != null) break;
-            }
-            return value != null ? value.longValue() : null;
-          }
-
-          @Override
           public String evictionVeto() {
             String value = null;
             for (BaseCacheType source : sources) {
@@ -276,15 +265,20 @@ class ConfigurationParser {
           public Iterable<ResourcePool> resourcePools() {
             Collection<ResourcePool> resourcePools = new ArrayList<ResourcePool>();
             for (BaseCacheType source : sources) {
-              ResourcesType resources = source.getResources();
-              if (resources != null) {
-                ResourceType heapResource = resources.getHeap();
-                if (heapResource != null) {
-                  resourcePools.add(new ResourcePoolImpl("heap", heapResource.getUnit(), heapResource.getValue()));
-                }
-                ResourceType diskResource = resources.getDisk();
-                if (diskResource != null) {
-                  resourcePools.add(new ResourcePoolImpl("disk", diskResource.getUnit(), diskResource.getValue()));
+              ResourceType directHeapResource = source.getHeap();
+              if (directHeapResource != null) {
+                resourcePools.add(new ResourcePoolImpl("heap", directHeapResource.getUnit(), directHeapResource.getValue()));
+              } else {
+                ResourcesType resources = source.getResources();
+                if (resources != null) {
+                  ResourceType heapResource = resources.getHeap();
+                  if (heapResource != null) {
+                    resourcePools.add(new ResourcePoolImpl("heap", heapResource.getUnit(), heapResource.getValue()));
+                  }
+                  ResourceType diskResource = resources.getDisk();
+                  if (diskResource != null) {
+                    resourcePools.add(new ResourcePoolImpl("disk", diskResource.getUnit(), diskResource.getValue()));
+                  }
                 }
               }
             }
@@ -352,12 +346,6 @@ class ConfigurationParser {
           }
 
           @Override
-          public Long capacityConstraint() {
-            final BigInteger capacity = cacheTemplate.getCapacity();
-            return capacity == null ? null : capacity.longValue();
-          }
-
-          @Override
           public String evictionVeto() {
             return cacheTemplate.getEvictionVeto();
           }
@@ -398,15 +386,20 @@ class ConfigurationParser {
           public Iterable<ResourcePool> resourcePools() {
             Collection<ResourcePool> resourcePools = new ArrayList<ResourcePool>();
 
-            ResourcesType resources = cacheTemplate.getResources();
-            if (resources != null) {
-              ResourceType heapResource = resources.getHeap();
-              if (heapResource != null) {
-                resourcePools.add(new ResourcePoolImpl("heap", heapResource.getUnit(), heapResource.getValue()));
-              }
-              ResourceType diskResource = resources.getDisk();
-              if (diskResource != null) {
-                resourcePools.add(new ResourcePoolImpl("disk", diskResource.getUnit(), diskResource.getValue()));
+            ResourceType directHeapResource = cacheTemplate.getHeap();
+            if (directHeapResource != null) {
+              resourcePools.add(new ResourcePoolImpl("heap", directHeapResource.getUnit(), directHeapResource.getValue()));
+            } else {
+              ResourcesType resources = cacheTemplate.getResources();
+              if (resources != null) {
+                ResourceType heapResource = resources.getHeap();
+                if (heapResource != null) {
+                  resourcePools.add(new ResourcePoolImpl("heap", heapResource.getUnit(), heapResource.getValue()));
+                }
+                ResourceType diskResource = resources.getDisk();
+                if (diskResource != null) {
+                  resourcePools.add(new ResourcePoolImpl("disk", diskResource.getUnit(), diskResource.getValue()));
+                }
               }
             }
 
@@ -451,8 +444,6 @@ class ConfigurationParser {
     String keyType();
 
     String valueType();
-
-    Long capacityConstraint();
 
     String evictionVeto();
 

@@ -37,13 +37,8 @@ public class DefaultStoreProvider implements Store.Provider {
 
   @Override
   public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-    ResourcePools resourcePools = storeConfig.getResourcePools();
-    ResourcePool heapPool = null;
-    ResourcePool diskPool = null;
-    if (resourcePools != null) {
-      heapPool = resourcePools.getPoolForResource("heap");
-      diskPool = resourcePools.getPoolForResource("disk");
-    }
+    ResourcePool heapPool = storeConfig.getResourcePools().getPoolForResource("heap");
+    ResourcePool diskPool = storeConfig.getResourcePools().getPoolForResource("disk");
 
     List<ServiceConfiguration<?>> enhancedServiceConfigs = new ArrayList<ServiceConfiguration<?>>(Arrays.asList(serviceConfigs));
 

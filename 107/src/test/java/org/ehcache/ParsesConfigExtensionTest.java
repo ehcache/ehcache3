@@ -82,7 +82,7 @@ public class ParsesConfigExtensionTest {
       // Test the config
       {
         final CacheRuntimeConfiguration<Long, Product> runtimeConfiguration = productCache.getRuntimeConfiguration();
-        assertThat(runtimeConfiguration.getCapacityConstraint(), CoreMatchers.<Comparable<Long>>is(200L));
+        assertThat(runtimeConfiguration.getResourcePools().getPoolForResource("heap").getValue(), equalTo("200"));
 
         final Expiry<? super Long, ? super Product> expiry = runtimeConfiguration.getExpiry();
         assertThat(expiry.getClass().getName(), equalTo("org.ehcache.expiry.Expirations$TimeToIdleExpiry"));
@@ -130,7 +130,7 @@ public class ParsesConfigExtensionTest {
       final Cache<Long, Customer> customerCache = cacheManager.getCache("customerCache", Long.class, Customer.class);
       final CacheRuntimeConfiguration<Long, Customer> runtimeConfiguration = customerCache.getRuntimeConfiguration();
       assertThat(runtimeConfiguration.getEvictionPrioritizer(), is((EvictionPrioritizer) Eviction.Prioritizer.LRU));
-      assertThat(runtimeConfiguration.getCapacityConstraint(), CoreMatchers.<Comparable<Long>>is(200L));
+      assertThat(runtimeConfiguration.getResourcePools().getPoolForResource("heap").getValue(), equalTo("200"));
     }
   }
 }

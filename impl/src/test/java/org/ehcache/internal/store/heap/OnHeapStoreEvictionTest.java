@@ -29,6 +29,7 @@ import org.junit.Test;
 
 import java.io.Serializable;
 
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -86,11 +87,6 @@ public class OnHeapStoreEvictionTest {
       }
 
       @Override
-      public Comparable<Long> getCapacityConstraint() {
-        return null;
-      }
-
-      @Override
       public EvictionVeto<? super K, ? super V> getEvictionVeto() {
         return null;
       }
@@ -112,7 +108,7 @@ public class OnHeapStoreEvictionTest {
 
       @Override
       public ResourcePools getResourcePools() {
-        return null;
+        return newResourcePoolsBuilder().with("heap", "count", "1").build();
       }
     }, timeSource);
   }

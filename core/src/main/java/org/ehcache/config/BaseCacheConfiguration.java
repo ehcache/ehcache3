@@ -30,7 +30,6 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
 
   private final Class<K> keyType;
   private final Class<V> valueType;
-  private final Comparable<Long> capacityConstraint;
   private final EvictionVeto<? super K, ? super V> evictionVeto;
   private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private final Collection<ServiceConfiguration<?>> serviceConfigurations;
@@ -39,13 +38,12 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   private final PersistenceMode persistenceMode;
   private final ResourcePools resourcePools;
 
-  public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
+  public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType,
           EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
           ClassLoader classLoader, Expiry<? super K, ? super V> expiry,
           PersistenceMode persistenceMode, ResourcePools resourcePools, ServiceConfiguration<?>... serviceConfigurations) {
     this.keyType = keyType;
     this.valueType = valueType;
-    this.capacityConstraint = capacityConstraint;
     this.evictionVeto = evictionVeto;
     this.evictionPrioritizer = evictionPrioritizer;
     this.classLoader = classLoader;
@@ -68,11 +66,6 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   @Override
   public Class<V> getValueType() {
     return valueType;
-  }
-
-  @Override
-  public Comparable<Long> getCapacityConstraint() {
-    return capacityConstraint;
   }
 
   @Override

@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
@@ -52,8 +53,8 @@ public class DiskStoreTest {
   public void setUp() throws Exception {
     timeSource = new TestTimeSource();
     capacityConstraint = 5L;
-    StoreConfigurationImpl<Number, CharSequence> config = new StoreConfigurationImpl<Number, CharSequence>(Number.class, CharSequence.class, capacityConstraint,
-        null, null, ClassLoader.getSystemClassLoader(), Expirations.timeToLiveExpiration(new Duration(10, TimeUnit.MILLISECONDS)), null);
+    StoreConfigurationImpl<Number, CharSequence> config = new StoreConfigurationImpl<Number, CharSequence>(Number.class, CharSequence.class,
+        null, null, ClassLoader.getSystemClassLoader(), Expirations.timeToLiveExpiration(new Duration(10, TimeUnit.MILLISECONDS)), newResourcePoolsBuilder().with("disk", "count", "" + capacityConstraint).build());
     JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
     Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createSerializer(DiskStorageFactory.Element.class, config.getClassLoader());
     Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, config.getClassLoader());
