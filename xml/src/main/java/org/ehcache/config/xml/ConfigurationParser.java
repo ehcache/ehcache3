@@ -16,6 +16,7 @@
 
 package org.ehcache.config.xml;
 
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration.TypeSerializerConfig;
 import org.ehcache.config.xml.model.BaseCacheType;
@@ -24,6 +25,8 @@ import org.ehcache.config.xml.model.CacheTemplateType;
 import org.ehcache.config.xml.model.CacheType;
 import org.ehcache.config.xml.model.ConfigType;
 import org.ehcache.config.xml.model.ExpiryType;
+import org.ehcache.config.xml.model.ResourceType;
+import org.ehcache.config.xml.model.ResourcesType;
 import org.ehcache.config.xml.model.SerializerType;
 import org.ehcache.config.xml.model.ServiceType;
 import org.ehcache.config.xml.model.TimeType;
@@ -268,11 +271,58 @@ class ConfigurationParser {
             }
             return configs;
           }
+
+          @Override
+          public Iterable<ResourcePool> resourcePools() {
+            Collection<ResourcePool> resourcePools = new ArrayList<ResourcePool>();
+            for (BaseCacheType source : sources) {
+              ResourcesType resources = source.getResources();
+              if (resources != null) {
+                ResourceType heapResource = resources.getHeap();
+                if (heapResource != null) {
+                  resourcePools.add(new ResourcePoolImpl("heap", heapResource.getUnit(), heapResource.getValue()));
+                }
+                ResourceType diskResource = resources.getDisk();
+                if (diskResource != null) {
+                  resourcePools.add(new ResourcePoolImpl("disk", diskResource.getUnit(), diskResource.getValue()));
+                }
+              }
+            }
+            return resourcePools;
+          }
         });
       }
     }
 
     return Collections.unmodifiableList(cacheCfgs);
+  }
+
+  private static final class ResourcePoolImpl implements ResourcePool {
+
+    private final String type;
+    private final String unit;
+    private final String value;
+
+    public ResourcePoolImpl(String type, String unit, String value) {
+      this.type = type;
+      this.unit = unit;
+      this.value = value;
+    }
+
+    @Override
+    public String getType() {
+      return type;
+    }
+
+    @Override
+    public String getUnit() {
+      return unit;
+    }
+
+    @Override
+    public String getValue() {
+      return value;
+    }
   }
 
   public Map<String, CacheTemplate> getTemplates() {
@@ -343,6 +393,25 @@ class ConfigurationParser {
             }
             return configs;
           }
+
+          @Override
+          public Iterable<ResourcePool> resourcePools() {
+            Collection<ResourcePool> resourcePools = new ArrayList<ResourcePool>();
+
+            ResourcesType resources = cacheTemplate.getResources();
+            if (resources != null) {
+              ResourceType heapResource = resources.getHeap();
+              if (heapResource != null) {
+                resourcePools.add(new ResourcePoolImpl("heap", heapResource.getUnit(), heapResource.getValue()));
+              }
+              ResourceType diskResource = resources.getDisk();
+              if (diskResource != null) {
+                resourcePools.add(new ResourcePoolImpl("disk", diskResource.getUnit(), diskResource.getValue()));
+              }
+            }
+
+            return resourcePools;
+          }
         });
       }
     }
@@ -396,6 +465,8 @@ class ConfigurationParser {
     String loaderWriter();
 
     Iterable<ServiceConfiguration<?>> serviceConfigs();
+
+    Iterable<ResourcePool> resourcePools();
 
   }
 

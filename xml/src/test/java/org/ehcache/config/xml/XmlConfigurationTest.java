@@ -16,6 +16,7 @@
 
 package org.ehcache.config.xml;
 
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.Eviction;
@@ -255,6 +256,54 @@ public class XmlConfigurationTest {
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
 
     assertThat(xmlConfig.getURL(), equalTo(resource));
+  }
+
+  @Test
+  public void testResourcesCaches() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/resources-caches.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+
+    CacheConfiguration<?, ?> tieredCacheConfig = xmlConfig.getCacheConfigurations().get("tiered");
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource("heap").getValue(), equalTo("10"));
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource("disk").getValue(), equalTo("100"));
+
+    CacheConfiguration<?, ?> explicitHeapOnlyCacheConfig = xmlConfig.getCacheConfigurations().get("explicitHeapOnly");
+    assertThat(explicitHeapOnlyCacheConfig.getResourcePools().getPoolForResource("heap").getValue(), equalTo("15"));
+    assertThat(explicitHeapOnlyCacheConfig.getResourcePools().getPoolForResource("disk"), is(nullValue()));
+
+    CacheConfiguration<?, ?> implicitHeapOnlyCacheConfig = xmlConfig.getCacheConfigurations().get("implicitHeapOnly");
+    assertThat(implicitHeapOnlyCacheConfig.getResourcePools().getPoolForResource("heap"), is(nullValue()));
+    assertThat(implicitHeapOnlyCacheConfig.getResourcePools().getPoolForResource("disk"), is(nullValue()));
+  }
+
+  @Test
+  public void testResourcesTemplates() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/resources-templates.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+
+    CacheConfigurationBuilder<Object, Object> tieredResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("tieredResourceTemplate");
+    assertThat(tieredResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource("heap").getValue(), equalTo("5"));
+    assertThat(tieredResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource("disk").getValue(), equalTo("50"));
+
+    CacheConfigurationBuilder<Object, Object> explicitHeapResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("explicitHeapResourceTemplate");
+    assertThat(explicitHeapResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource("heap").getValue(), equalTo("15"));
+    assertThat(explicitHeapResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource("disk"), is(nullValue()));
+
+    CacheConfigurationBuilder<Object, Object> implicitHeapResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("implicitHeapResourceTemplate");
+    assertThat(implicitHeapResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource("heap"), is(nullValue()));
+    assertThat(implicitHeapResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource("disk"), is(nullValue()));
+
+    CacheConfiguration<?, ?> tieredCacheConfig = xmlConfig.getCacheConfigurations().get("templatedTieredResource");
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource("heap").getValue(), equalTo("5"));
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource("disk").getValue(), equalTo("50"));
+
+    CacheConfiguration<?, ?> explicitHeapOnlyCacheConfig = xmlConfig.getCacheConfigurations().get("templatedExplicitHeapResource");
+    assertThat(explicitHeapOnlyCacheConfig.getResourcePools().getPoolForResource("heap").getValue(), equalTo("15"));
+    assertThat(explicitHeapOnlyCacheConfig.getResourcePools().getPoolForResource("disk"), is(nullValue()));
+
+    CacheConfiguration<?, ?> implicitHeapOnlyCacheConfig = xmlConfig.getCacheConfigurations().get("templatedImplicitHeapResource");
+    assertThat(implicitHeapOnlyCacheConfig.getResourcePools().getPoolForResource("heap"), is(nullValue()));
+    assertThat(implicitHeapOnlyCacheConfig.getResourcePools().getPoolForResource("disk"), is(nullValue()));
   }
 
   @Test

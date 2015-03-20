@@ -21,6 +21,8 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
@@ -40,6 +42,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 /**
  * Exposes {@link org.ehcache.config.Configuration} and {@link org.ehcache.config.CacheConfigurationBuilder} expressed
@@ -160,6 +164,11 @@ public class XmlConfiguration implements Configuration {
       EvictionPrioritizer evictionPrioritizer = getInstanceOfName(cacheDefinition.evictionPrioritizer(), cacheClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class);
       final ConfigurationParser.Expiry parsedExpiry = cacheDefinition.expiry();
       builder = builder.withExpiry(getExpiry(cacheClassLoader, parsedExpiry));
+      ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
+      for (ResourcePool resourcePool : cacheDefinition.resourcePools()) {
+        resourcePoolsBuilder.with(resourcePool.getType(), resourcePool.getUnit(), resourcePool.getValue());
+      }
+      builder.withResourcePools(resourcePoolsBuilder.build());
       for (ServiceConfiguration<?> serviceConfig : cacheDefinition.serviceConfigs()) {
         builder = builder.addServiceConfig(serviceConfig);
       }
@@ -301,6 +310,11 @@ public class XmlConfiguration implements Configuration {
       final Class<CacheLoaderWriter<?, ?>> cacheLoaderWriterClass = (Class<CacheLoaderWriter<?,?>>)getClassForName(loaderWriter, defaultClassLoader);
       builder = builder.addServiceConfig(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriterClass));
     }
+    ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
+    for (ResourcePool resourcePool : cacheTemplate.resourcePools()) {
+      resourcePoolsBuilder.with(resourcePool.getType(), resourcePool.getUnit(), resourcePool.getValue());
+    }
+    builder.withResourcePools(resourcePoolsBuilder.build());
     for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {
       builder = builder.addServiceConfig(serviceConfiguration);
     }
