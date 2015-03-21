@@ -19,6 +19,7 @@ package org.ehcache.internal.store.offheap;
 import org.ehcache.Cache;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
@@ -45,8 +46,8 @@ public class OffHeapStoreTest {
     Serializer<String> serializer = serializationProvider.createSerializer(String.class, classLoader);
     TestTimeSource timeSource = new TestTimeSource();
     Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS));
-    StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, 10L, null, null, classLoader, expiry);
-    OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(storeConfiguration, serializer, serializer, timeSource, 1024 * 1024);
+    StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, null, classLoader, expiry, null);
+    OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(storeConfiguration, serializer, serializer, timeSource, MemoryUnit.MB.toBytes(1));
     offHeapStore.init();
 
     offHeapStore.put("key1", "value1");
@@ -75,8 +76,8 @@ public class OffHeapStoreTest {
         return true;
       }
     };
-    StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class, 10L, evictionVeto, null, classLoader, expiry);
-    OffHeapStore<String, byte[]> offHeapStore = new OffHeapStore<String, byte[]>(storeConfiguration, serializer, byteArraySerializer, timeSource, 1024 * 1024);
+    StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class, evictionVeto, null, classLoader, expiry, null);
+    OffHeapStore<String, byte[]> offHeapStore = new OffHeapStore<String, byte[]>(storeConfiguration, serializer, byteArraySerializer, timeSource, MemoryUnit.MB.toBytes(1));
     offHeapStore.init();
     offHeapStore.enableStoreEventNotifications(new TestStoreEventListener<String, byte[]>());
 

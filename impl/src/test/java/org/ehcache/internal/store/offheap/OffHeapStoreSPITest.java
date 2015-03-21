@@ -18,13 +18,14 @@ package org.ehcache.internal.store.offheap;
 
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
-import org.ehcache.internal.store.OnHeapStore;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
 import org.ehcache.spi.ServiceLocator;
@@ -51,7 +52,7 @@ public class OffHeapStoreSPITest extends StoreSPITest<String, String> {
 
         OffHeapStore<String, String> store = new OffHeapStore<String, String>(config, serializationProvider
             .createSerializer(String.class, config.getClassLoader()),
-            serializationProvider.createSerializer(String.class, config.getClassLoader()), timeSource, 1024 * 1024);
+            serializationProvider.createSerializer(String.class, config.getClassLoader()), timeSource, MemoryUnit.MB.toBytes(1));
         store.init();
         return store;
       }
@@ -63,10 +64,7 @@ public class OffHeapStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store.Provider newProvider() {
-        // TODO fix this
-        Store.Provider service = new OnHeapStore.Provider();
-        service.start(null, new ServiceLocator());
-        return service;
+        return new OffHeapStore.Provider();
       }
 
       @Override
@@ -76,8 +74,9 @@ public class OffHeapStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store.Configuration<String, String> newConfiguration(Class<String> keyType, Class<String> valueType, Comparable<Long> capacityConstraint, EvictionVeto<? super String, ? super String> evictionVeto, EvictionPrioritizer<? super String, ? super String> evictionPrioritizer, Expiry<? super String, ? super String> expiry) {
-        return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry);
+        // TODO Wire capacity constraint
+        return new StoreConfigurationImpl<String, String>(keyType, valueType,
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(1, MemoryUnit.MB).build());
       }
 
       @Override

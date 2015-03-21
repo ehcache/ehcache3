@@ -19,6 +19,9 @@ package org.ehcache.internal.store.offheap;
 import org.ehcache.Cache;
 import org.ehcache.Status;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourceType;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.events.CacheEvents;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
@@ -29,13 +32,20 @@ import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.function.Predicate;
 import org.ehcache.function.Predicates;
+import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.TimeSourceConfiguration;
+import org.ehcache.internal.store.disk.DiskStorageFactory;
 import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.ehcache.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.internal.store.offheap.portability.SerializerPortability;
+import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.statistics.StoreOperationOutcomes;
 import org.terracotta.statistics.observer.OperationObserver;
 
@@ -60,6 +70,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 
 import static org.ehcache.internal.store.offheap.OffHeapStoreUtils.getBufferSource;
+import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 import static org.terracotta.statistics.StatisticsBuilder.operation;
 
 /**
@@ -799,6 +810,55 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     }
     if (!valueType.isAssignableFrom(valueObject.getClass())) {
       throw new ClassCastException("Invalid value type, expected : " + valueType.getName() + " but was : " + valueObject.getClass().getName());
+    }
+  }
+
+  public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
+
+    private ServiceProvider serviceProvider;
+
+    @Override
+    public <K, V> OffHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[]) serviceConfigs);
+      TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
+
+      SerializationProvider serializationProvider = serviceProvider.findService(SerializationProvider.class);
+      Serializer<K> keySerializer = serializationProvider.createSerializer(storeConfig.getKeyType(), storeConfig.getClassLoader());
+      Serializer<V> valueSerializer = serializationProvider.createSerializer(storeConfig.getValueType(), storeConfig.getClassLoader());
+
+      ResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
+      if (!(offHeapPool.getUnit() instanceof MemoryUnit)) {
+        throw new IllegalArgumentException("OffHeapStore only supports resources with memory unit");
+      }
+      MemoryUnit unit = (MemoryUnit)offHeapPool.getUnit();
+
+
+      return new OffHeapStore<K, V>(storeConfig, keySerializer, valueSerializer, timeSource, unit.toBytes(offHeapPool.getSize()));
+    }
+
+    @Override
+    public void releaseStore(Store<?, ?> resource) {
+      resource.close();
+    }
+
+    @Override
+    public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+      this.serviceProvider = serviceProvider;
+    }
+
+    @Override
+    public void stop() {
+      this.serviceProvider = null;
+    }
+
+    @Override
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      return createStore(storeConfig, serviceConfigs);
+    }
+
+    @Override
+    public void releaseAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
+      releaseStore(resource);
     }
   }
 

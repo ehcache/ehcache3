@@ -20,6 +20,7 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.internal.store.disk.DiskStore;
 import org.ehcache.internal.store.heap.OnHeapStore;
+import org.ehcache.internal.store.offheap.OffHeapStore;
 import org.ehcache.internal.store.tiering.CacheStore;
 import org.ehcache.internal.store.tiering.CacheStoreServiceConfig;
 import org.ehcache.spi.ServiceProvider;
@@ -39,6 +40,7 @@ public class DefaultStoreProvider implements Store.Provider {
   @Override
   public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
     ResourcePool heapPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP);
+    ResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
     ResourcePool diskPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
 
     List<ServiceConfiguration<?>> enhancedServiceConfigs = new ArrayList<ServiceConfiguration<?>>(Arrays.asList(serviceConfigs));
@@ -46,11 +48,22 @@ public class DefaultStoreProvider implements Store.Provider {
     Store.Provider provider;
 
     if (diskPool != null) {
+      if (offHeapPool != null) {
+        throw new IllegalArgumentException("Cannot combine offheap and disk stores");
+      }
       if (heapPool == null) {
         throw new IllegalArgumentException("Cannot store to disk without heap resource");
       }
       provider = serviceProvider.findService(CacheStore.Provider.class);
-      enhancedServiceConfigs.add(new CacheStoreServiceConfig().cachingTierProvider(OnHeapStore.Provider.class).authoritativeTierProvider(DiskStore.Provider.class));
+      enhancedServiceConfigs.add(new CacheStoreServiceConfig().cachingTierProvider(OnHeapStore.Provider.class)
+          .authoritativeTierProvider(DiskStore.Provider.class));
+    } else if (offHeapPool != null) {
+      if (heapPool == null) {
+        throw new IllegalArgumentException("Cannot store to offheap without heap resource");
+      }
+      provider = serviceProvider.findService(CacheStore.Provider.class);
+      enhancedServiceConfigs.add(new CacheStoreServiceConfig().cachingTierProvider(OnHeapStore.Provider.class)
+          .authoritativeTierProvider(OffHeapStore.Provider.class));
     } else {
       // default to on-heap cache
       provider = serviceProvider.findService(OnHeapStore.Provider.class);
