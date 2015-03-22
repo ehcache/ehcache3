@@ -233,7 +233,7 @@ public class DiskStorageFactory<K, V> {
    * Constructs an disk persistent factory for the given cache and disk path.
    */
   public DiskStorageFactory(long capacity, Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto,
-                            Comparator<DiskSubstitute<K, V>> evictionPrioritizer, ClassLoader classLoader, TimeSource timeSource,
+                            Comparator<DiskSubstitute<K, V>> evictionPrioritizer, TimeSource timeSource,
                             Serializer<Element> elementSerializer, Serializer<Object> indexSerializer, File dataFile, File indexFile,
                             int stripes, long queueCapacity, int expiryThreadInterval) throws FileNotFoundException {
     this.capacity = capacity;
