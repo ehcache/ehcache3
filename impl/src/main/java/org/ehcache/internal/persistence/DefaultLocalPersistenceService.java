@@ -18,6 +18,7 @@ package org.ehcache.internal.persistence;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.internal.store.disk.DiskStorePathManager;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -26,11 +27,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileLock;
+import java.util.UUID;
 
 /**
  * @author Alex Snaps
  */
 public class DefaultLocalPersistenceService implements LocalPersistenceService {
+
+  private static final DiskStorePathManager DISK_STORE_PATH_MANAGER = new DiskStorePathManager();
 
   private final File rootDirectory;
   private FileLock lock;
@@ -38,7 +42,12 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   private RandomAccessFile rw;
 
   public DefaultLocalPersistenceService(final PersistenceConfiguration persistenceConfiguration) {
-    rootDirectory = persistenceConfiguration.getRootDirectory();
+    if(persistenceConfiguration != null) {
+      rootDirectory = persistenceConfiguration.getRootDirectory();
+    } else {
+      // todo: this probably isn't smart... null shouldn't mean that!
+      rootDirectory = new File(System.getProperty("java.io.tmpdir") + UUID.randomUUID());
+    }
   }
 
   @Override
@@ -86,6 +95,16 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   @Override
   public Object persistenceContext(final String cacheAlias, final CacheConfiguration<?, ?> cacheConfiguration) {
     throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public File getDataFile(Object identifier) {
+    return DISK_STORE_PATH_MANAGER.getFile(identifier, ".data");
+  }
+
+  @Override
+  public File getIndexFile(Object identifier) {
+    return DISK_STORE_PATH_MANAGER.getFile(identifier, ".index");
   }
 
   File getLockFile() {

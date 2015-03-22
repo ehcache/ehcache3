@@ -16,20 +16,24 @@
 package org.ehcache.internal.store.disk;
 
 import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.function.Function;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.LocalPersistenceService;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -60,7 +64,12 @@ public class DiskStoreTest {
     Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createSerializer(DiskStorageFactory.Element.class, config.getClassLoader());
     Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, config.getClassLoader());
 
-    diskStore = new DiskStore<Number, CharSequence>(config, "DiskStoreTest", timeSource, elementSerializer, objectSerializer);
+
+    final LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(
+            new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir"))));
+
+    diskStore = new DiskStore<Number, CharSequence>(config, localPersistenceService.getDataFile("DiskStoreTest"),
+            localPersistenceService.getIndexFile("DiskStoreTest"), timeSource, elementSerializer, objectSerializer);
     diskStore.destroy();
     diskStore.create();
     diskStore.init();

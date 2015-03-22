@@ -488,6 +488,12 @@ public interface Store<K, V> {
     ResourcePools getResourcePools();
   }
 
+  public interface PersistentStoreConfiguration<K, V, T> extends Configuration<K, V> {
+
+    T getIdentifier();
+
+  }
+
   /**
    * An iterator over a Store.
    * @param <T> the type of the elements iterated over
