@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.store;
 
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.SPITest;
 
@@ -42,7 +43,8 @@ public class StoreProviderCreateStoreTest<K, V> extends SPIStoreTester<K, V> {
     Store.Provider provider = factory.newProvider();
 
     Store.Configuration<K, V> storeConfig = factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null);
-    provider.start(null, factory.getServiceProvider());
+    ServiceProvider serviceProvider = factory.getServiceProvider();
+    provider.start(null, serviceProvider);
     Store<K, V> store = provider.createStore(storeConfig, factory.getServiceConfigurations());
 
     assertThat(store, is(notNullValue()));

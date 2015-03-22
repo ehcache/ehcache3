@@ -41,6 +41,7 @@ import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +87,6 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final TimeSource timeSource;
-  private final String alias;
   private final Expiry<? super K, ? super V> expiry;
   private final Serializer<Element> elementSerializer;
   private final Serializer<Object> indexSerializer;
@@ -99,8 +99,12 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   private volatile Segment<K, V>[] segments;
   private volatile int segmentShift;
 
+  // TODO: These should not be handled directly by the DiskStore, but through the LocalPersistenceService instead;
+  //       Sadly, that's currently not feasible without major refactoring to all this...
+  private final File dataFile;
+  private final File indexFile;
 
-  public DiskStore(final Configuration<K, V> config, String alias, TimeSource timeSource, Serializer<Element> elementSerializer, Serializer<Object> indexSerializer) {
+  public DiskStore(final Configuration<K, V> config, File dataFile, File indexFile, TimeSource timeSource, Serializer<Element> elementSerializer, Serializer<Object> indexSerializer) {
     ResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
     if (diskPool == null) {
       throw new IllegalArgumentException("Disk store must be configured with a resource of type 'disk'");
@@ -115,13 +119,14 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     }
     this.evictionVeto = wrap((Predicate) config.getEvictionVeto());
     this.evictionPrioritizer = (Comparator) wrap((Comparator) prioritizer);
-    this.alias = alias;
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
     this.timeSource = timeSource;
     this.expiry = config.getExpiry();
     this.elementSerializer = elementSerializer;
     this.indexSerializer = indexSerializer;
+    this.dataFile = dataFile;
+    this.indexFile = indexFile;
   }
 
   private Predicate<DiskStorageFactory.DiskSubstitute<K, V>> wrap(final Predicate<Cache.Entry<K, V>> predicate) {
@@ -418,9 +423,6 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public void destroy() throws CacheAccessException {
-    File dataFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".data");
-    File indexFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".index");
-
     if (dataFile.delete() | indexFile.delete()) {
       LOG.info("Destroyed " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
     }
@@ -428,7 +430,6 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public void create() throws CacheAccessException {
-    File dataFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".data");
     try {
       boolean success = dataFile.createNewFile();
       if (!success) {
@@ -438,7 +439,6 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
       throw new CacheAccessException(ioe);
     }
 
-    File indexFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".index");
     try {
       boolean success = indexFile.createNewFile();
       if (!success) {
@@ -465,8 +465,6 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public void init() {
-    File dataFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".data");
-    File indexFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".index");
 
     try {
       diskStorageFactory = new DiskStorageFactory<K, V>(capacity, evictionVeto, evictionPrioritizer,
@@ -1039,9 +1037,18 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
       Serializer<Element> elementSerializer = serializationProvider.createSerializer(Element.class, storeConfig.getClassLoader());
       Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, storeConfig.getClassLoader());
       
+      // todo: This should be enforced at the type system
+      Object identifier;
+      if(storeConfig instanceof PersistentStoreConfiguration<?, ?, ?>) {
+        identifier = ((PersistentStoreConfiguration) storeConfig).getIdentifier();
+      } else {
+        throw new IllegalArgumentException("Store.Configuration for DiskStore should implement Store.PersistentStoreConfiguration");
+      }
 
-      // todo: figure out a way to get a file name
-      return new DiskStore<K, V>(storeConfig, "diskstore-" + aliasCounter.incrementAndGet(), timeSource, elementSerializer, objectSerializer);
+      LocalPersistenceService localPersistenceService = serviceProvider.findService(LocalPersistenceService.class);
+
+      return new DiskStore<K, V>(storeConfig, localPersistenceService.getDataFile(identifier),
+              localPersistenceService.getIndexFile(identifier), timeSource, elementSerializer, objectSerializer);
     }
 
     @Override
