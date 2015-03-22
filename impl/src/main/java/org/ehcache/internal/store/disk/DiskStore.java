@@ -87,7 +87,6 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   private final Class<V> valueType;
   private final TimeSource timeSource;
   private final String alias;
-  private final ClassLoader classLoader;
   private final Expiry<? super K, ? super V> expiry;
   private final Serializer<Element> elementSerializer;
   private final Serializer<Object> indexSerializer;
@@ -120,7 +119,6 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
     this.timeSource = timeSource;
-    this.classLoader = config.getClassLoader();
     this.expiry = config.getExpiry();
     this.elementSerializer = elementSerializer;
     this.indexSerializer = indexSerializer;
@@ -471,7 +469,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     File indexFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".index");
 
     try {
-      diskStorageFactory = new DiskStorageFactory<K, V>(capacity, evictionVeto, evictionPrioritizer, classLoader,
+      diskStorageFactory = new DiskStorageFactory<K, V>(capacity, evictionVeto, evictionPrioritizer,
           timeSource, elementSerializer, indexSerializer, dataFile, indexFile,
           DEFAULT_SEGMENT_COUNT, DEFAULT_QUEUE_CAPACITY, DEFAULT_EXPIRY_THREAD_INTERVAL);
     } catch (FileNotFoundException fnfe) {
