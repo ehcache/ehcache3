@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.ehcache.CacheManagerBuilder.persistence;
 import static org.ehcache.StandaloneCacheBuilder.newCacheBuilder;
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -70,6 +71,12 @@ public class GettingStarted {
     cacheManager.close(); // <11>
 
     standaloneCache.close(); // <12>
+
+    PersistentCacheManager persistentCacheManager = newCacheManagerBuilder()
+            .with(persistence(System.getProperty("javaio.tmp.dir"))) // <13>
+            .build();
+
+    persistentCacheManager.close();
   }
 
   @Test
