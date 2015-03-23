@@ -18,8 +18,13 @@ package org.ehcache.config.units;
 import org.ehcache.config.ResourceUnit;
 
 /**
+ * An enumeration implementing {@link ResourceUnit} to represent entries count.
+ *
  * @author Ludovic Orban
  */
 public enum EntryUnit implements ResourceUnit {
+  /**
+   * The only possible value of {@link EntryUnit}
+   */
   ENTRIES,
 }

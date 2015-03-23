@@ -13,38 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.config.units;
-
-import org.ehcache.config.ResourceUnit;
 
 /**
- * An enumeration implementing {@link ResourceUnit} to represent memory consumption.
- *
- * @author Ludovic Orban
+ * Package for {@link org.ehcache.config.ResourceUnit} implementations
  */
-public enum MemoryUnit implements ResourceUnit {
-  /**
-   * Bytes unit.
-   */
-  B,
-  /**
-   * Kilobytes unit.
-   */
-  KB,
-  /**
-   * Megabytes unit.
-   */
-  MB,
-  /**
-   * Gigabytes unit.
-   */
-  GB,
-  /**
-   * Terabytes unit.
-   */
-  TB,
-  /**
-   * Petabytes unit.
-   */
-  PB,
-}
+package org.ehcache.config.units;

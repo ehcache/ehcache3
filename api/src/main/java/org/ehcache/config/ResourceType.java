@@ -16,12 +16,24 @@
 package org.ehcache.config;
 
 /**
+ * The resource pools type interface.
+ *
  * @author Ludovic Orban
  */
 public interface ResourceType {
 
+  /**
+   * An enumeration of resource types handled by core ehcache.
+   */
   public enum Core implements ResourceType {
+    /**
+     * Heap resource.
+     */
     HEAP,
+    /**
+     * Disk resource.
+     */
     DISK,
   }
+
 }
