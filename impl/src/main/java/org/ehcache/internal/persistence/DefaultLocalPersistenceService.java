@@ -34,9 +34,8 @@ import java.util.UUID;
  */
 public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
-  private static final DiskStorePathManager DISK_STORE_PATH_MANAGER = new DiskStorePathManager();
-
   private final File rootDirectory;
+  private final DiskStorePathManager diskStorePathManager;
   private FileLock lock;
   private File lockFile;
   private RandomAccessFile rw;
@@ -48,8 +47,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       rootDirectory = persistenceConfiguration.getRootDirectory();
     } else {
       // todo: this probably isn't smart... null shouldn't mean that!
-      rootDirectory = new File(System.getProperty("java.io.tmpdir") + UUID.randomUUID());
+      rootDirectory = new File(System.getProperty("java.io.tmpdir"), UUID.randomUUID() + File.separator);
     }
+    diskStorePathManager = new DiskStorePathManager(rootDirectory.getAbsolutePath());
   }
 
   @Override
@@ -57,7 +57,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     if (!started) {
       createLocationIfRequiredAndVerify(rootDirectory);
       try {
-        lockFile = new File(rootDirectory + File.separator + ".lock");
+        lockFile = new File(rootDirectory, ".lock");
         rw = new RandomAccessFile(lockFile, "rw");
         lock = rw.getChannel().lock();
       } catch (IOException e) {
@@ -107,12 +107,12 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   @Override
   public File getDataFile(Object identifier) {
-    return DISK_STORE_PATH_MANAGER.getFile(identifier, ".data");
+    return diskStorePathManager.getFile(identifier, ".data");
   }
 
   @Override
   public File getIndexFile(Object identifier) {
-    return DISK_STORE_PATH_MANAGER.getFile(identifier, ".index");
+    return diskStorePathManager.getFile(identifier, ".index");
   }
 
   File getLockFile() {
