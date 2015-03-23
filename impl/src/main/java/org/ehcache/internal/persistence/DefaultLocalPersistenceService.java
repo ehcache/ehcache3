@@ -41,6 +41,8 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   private File lockFile;
   private RandomAccessFile rw;
 
+  private boolean started;
+
   public DefaultLocalPersistenceService(final PersistenceConfiguration persistenceConfiguration) {
     if(persistenceConfiguration != null) {
       rootDirectory = persistenceConfiguration.getRootDirectory();
@@ -52,29 +54,35 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   @Override
   public synchronized void start(final ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
-    createLocationIfRequiredAndVerify(rootDirectory);
-    try {
-      lockFile = new File(rootDirectory + File.separator + ".lock");
-      rw = new RandomAccessFile(lockFile, "rw");
-      lock = rw.getChannel().lock();
-    } catch (IOException e) {
-      throw new RuntimeException("Couldn't lock rootDir: " + rootDirectory.getAbsolutePath(), e);
+    if (!started) {
+      createLocationIfRequiredAndVerify(rootDirectory);
+      try {
+        lockFile = new File(rootDirectory + File.separator + ".lock");
+        rw = new RandomAccessFile(lockFile, "rw");
+        lock = rw.getChannel().lock();
+      } catch (IOException e) {
+        throw new RuntimeException("Couldn't lock rootDir: " + rootDirectory.getAbsolutePath(), e);
+      }
+      started = true;
     }
   }
 
   @Override
   public synchronized void stop() {
-    try {
-      lock.release();
-      // Closing RandomAccessFile so that files gets deleted on windows and
-      // org.ehcache.internal.persistence.DefaultLocalPersistenceServiceTest.testLocksDirectoryAndUnlocks()
-      // passes on windows
-      rw.close();
-      if (!lockFile.delete()) {
-        // todo log something?;
+    if (started) {
+      try {
+        lock.release();
+        // Closing RandomAccessFile so that files gets deleted on windows and
+        // org.ehcache.internal.persistence.DefaultLocalPersistenceServiceTest.testLocksDirectoryAndUnlocks()
+        // passes on windows
+        rw.close();
+        if (!lockFile.delete()) {
+          // todo log something?;
+        }
+      } catch (IOException e) {
+        throw new RuntimeException("Couldn't unlock rootDir: " + rootDirectory.getAbsolutePath(), e);
       }
-    } catch (IOException e) {
-      throw new RuntimeException("Couldn't unlock rootDir: " + rootDirectory.getAbsolutePath(), e);
+      started = false;
     }
   }
 
