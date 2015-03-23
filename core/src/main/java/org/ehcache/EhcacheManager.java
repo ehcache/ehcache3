@@ -20,6 +20,7 @@ import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerFactory;
@@ -230,7 +231,8 @@ public class EhcacheManager implements PersistentCacheManager {
     ServiceConfiguration[] serviceConfigs = adjustedServiceConfigs.toArray(new ServiceConfiguration[adjustedServiceConfigs.size()]);
 
     final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
-    final Store<K, V> store = storeProvider.createStore(new StoreConfigurationImpl<K, V>(config), serviceConfigs);
+    final Store<K, V> store = storeProvider.createStore(
+            new PersistentStoreConfigurationImpl<K, V>(new StoreConfigurationImpl<K, V>(config), alias), serviceConfigs);
     releasables.add(new Releasable() {
       @Override
       public void release() {

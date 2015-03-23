@@ -17,12 +17,16 @@
 package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+
 import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.ehcache.CacheManagerBuilder.persistence;
 import static org.ehcache.StandaloneCacheBuilder.newCacheBuilder;
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -70,6 +74,12 @@ public class GettingStarted {
     cacheManager.close(); // <11>
 
     standaloneCache.close(); // <12>
+
+    PersistentCacheManager persistentCacheManager = newCacheManagerBuilder()
+        .with(persistence(System.getProperty("java.io.tmpdir") + "/myData")) // <13>
+        .build();
+
+    persistentCacheManager.close();
   }
 
   @Test
@@ -79,9 +89,9 @@ public class GettingStarted {
         .withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES).build())
         .buildConfig(Long.class, String.class);
 
-    CacheManager cacheManager = newCacheManagerBuilder().withCache("tieredCache", tieredCacheConfiguration).build();
+    CacheManager cacheManager = newCacheManagerBuilder().withCache("tiered-cache", tieredCacheConfiguration).build();
 
-    Cache<Long, String> tieredCache = cacheManager.getCache("tieredCache", Long.class, String.class);
+    Cache<Long, String> tieredCache = cacheManager.getCache("tiered-cache", Long.class, String.class);
 
     tieredCache.put(1L, "one");
 
@@ -89,6 +99,30 @@ public class GettingStarted {
     assertThat(tieredCache.get(1L), equalTo("one")); // probably coming from heap
 
     cacheManager.close();
+  }
+
+  @Test
+  public void testPersistentDiskCache() {
+    CacheConfiguration<Long, String> cacheConfiguration = newCacheConfigurationBuilder()
+        .persistenceMode(CacheConfiguration.PersistenceMode.CREATE_IF_ABSENT)
+        .withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES).build())
+        .buildConfig(Long.class, String.class);
+
+    PersistentCacheManager persistentCacheManager = newCacheManagerBuilder()
+        .with(new PersistenceConfiguration(new File("build/persistent-cache-data")))
+        .withCache("persistent-cache", cacheConfiguration)
+        .build();
+
+    Cache<Long, String> cache = persistentCacheManager.getCache("persistent-cache", Long.class, String.class);
+
+    // Comment the following line on subsequent run and see the test pass
+    cache.put(42L, "That's the answer!");
+    assertThat(cache.get(42L), is("That's the answer!"));
+
+    // Uncomment the following line to nuke the disk store
+//    persistentCacheManager.destroyCache("persistent-cache");
+
+    persistentCacheManager.close();
   }
 
   @Test

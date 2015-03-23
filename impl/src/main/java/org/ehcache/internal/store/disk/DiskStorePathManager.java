@@ -244,12 +244,15 @@ public final class DiskStorePathManager {
   /**
    * Get a file object for the given cache-name and suffix
    *
-   * @param cacheName the cache name
+   * @param identifier Some stable identifier
    * @param suffix    a file suffix
    * @return a file object
    */
-  public File getFile(String cacheName, String suffix) {
-    return getFile(safeName(cacheName) + suffix);
+  public File getFile(Object identifier, String suffix) {
+    if(identifier instanceof String) {
+      return getFile(safeName(((String) identifier)) + suffix);
+    }
+    throw new IllegalArgumentException("Currently only String identifiers are supported");
   }
 
   /**

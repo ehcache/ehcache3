@@ -20,12 +20,15 @@ import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
@@ -38,10 +41,12 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 import org.junit.internal.AssumptionViolatedException;
 
+import java.io.File;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -68,6 +73,8 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
   public void setUp() {
     storeFactory = new StoreFactory<String, String>() {
       final AtomicInteger aliasCounter = new AtomicInteger();
+      final LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(
+              new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir"))));
 
       @Override
       public Store<String, String> newStore(final Store.Configuration<String, String> config) {
@@ -78,7 +85,10 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
         Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, config.getClassLoader());
 
         OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false, keySerializer, valueSerializer);
-        DiskStore<String, String> diskStore = new DiskStore<String, String>(config, "alias-" + aliasCounter.incrementAndGet(), SystemTimeSource.INSTANCE, elementSerializer, objectSerializer);
+        String id = "alias-" + aliasCounter.incrementAndGet();
+        DiskStore<String, String> diskStore = new DiskStore<String, String>(config,
+                localPersistenceService.getDataFile(id), localPersistenceService.getIndexFile(id),
+                SystemTimeSource.INSTANCE, elementSerializer, objectSerializer);
 
         CacheStore<String, String> cacheStore = new CacheStore<String, String>(onHeapStore, diskStore);
         try {
@@ -100,7 +110,10 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
         Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, config.getClassLoader());
 
         OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false, keySerializer, valueSerializer);
-        DiskStore<String, String> diskStore = new DiskStore<String, String>(config, "alias-" + aliasCounter.incrementAndGet(), SystemTimeSource.INSTANCE, elementSerializer, objectSerializer);
+        String id = "alias-" + aliasCounter.incrementAndGet();
+        DiskStore<String, String> diskStore = new DiskStore<String, String>(config,
+                localPersistenceService.getDataFile(id), localPersistenceService.getIndexFile(id),
+                SystemTimeSource.INSTANCE, elementSerializer, objectSerializer);
 
         CacheStore<String, String> cacheStore = new CacheStore<String, String>(onHeapStore, diskStore);
         try {
@@ -149,8 +162,9 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
       public Store.Configuration<String, String> newConfiguration(
           final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
-        return new StoreConfigurationImpl<String, String>(keyType, valueType,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacityConstraint));
+        StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(keyType, valueType,
+                evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacityConstraint));
+        return new PersistentStoreConfigurationImpl<String, String>(storeConfiguration, "alias-" + aliasCounter.getAndIncrement());
       }
 
       @Override

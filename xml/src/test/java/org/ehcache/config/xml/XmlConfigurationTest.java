@@ -22,6 +22,7 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
@@ -34,6 +35,7 @@ import org.junit.Test;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
@@ -357,9 +359,18 @@ public class XmlConfigurationTest {
     
     assertThat(((DefaultSerializationProviderConfiguration)configuration).getTypeSerializerConfig("java.lang.Number").getCacheTypeSerializerMapping().size(), is(2) );
     assertThat(((DefaultSerializationProviderConfiguration)configuration).getTypeSerializerConfig("java.lang.String").getCacheTypeSerializerMapping().size(), is(0) );
-    
-    
-   
+  }
+
+  @Test
+  public void testPersistenceConfig() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/persistence-config.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+
+    ServiceConfiguration<?> serviceConfig = xmlConfig.getServiceConfigurations().iterator().next();
+    assertThat(serviceConfig, instanceOf(PersistenceConfiguration.class));
+
+    PersistenceConfiguration persistenceConfiguration = (PersistenceConfiguration)serviceConfig;
+    assertThat(persistenceConfiguration.getRootDirectory(), is(new File("/some/dir")));
   }
 
 }

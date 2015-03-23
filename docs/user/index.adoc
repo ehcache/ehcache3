@@ -42,6 +42,9 @@ include::../../impl/src/test/java/org/ehcache/GettingStarted.java[lines=43..68]
      it manages, you have to invoke `CacheManager.close()`, which in turns closes all `Cache` instances known at the time.
 <12> In the same vein, a `StandaloneCache` requires you to `StandaloneCache.close()` it explicitly. The `CacheManager.close()`
      in step #11, did not affect our `StandaloneCache` in any way.
+<13> If you wish to use disk storage (like for persistent `Cache` instances), you'll have to register a
+     `LocalPersistenceService` with your `CacheManager`, which you can do by providing the location where
+     data should be stored on disk to the `CacheManagerBuilder.persistence(String)` static method.
 
 === It wouldn't be Java without _some_ XML
 
