@@ -20,6 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
@@ -1072,6 +1073,11 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
         public void destroy() {
           Ehcache.this.destroy();
         }
+
+        @Override
+        public void close() {
+          statusTransitioner.exitMaintenance().succeeded();
+        }
       };
       store.maintenance();
       st.succeeded();
@@ -1430,23 +1436,23 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     private final Collection<ServiceConfiguration<?>> serviceConfigurations;
     private final Class<K> keyType;
     private final Class<V> valueType;
-    private final Comparable<Long> capacityConstraint;
     private final EvictionVeto<? super K, ? super V> evictionVeto;
     private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
     private final ClassLoader classLoader;
     private final Expiry<? super K, ? super V> expiry;
-    private final boolean persistent;
+    private final PersistenceMode persistenceMode;
+    private final ResourcePools resourcePools;
 
     RuntimeConfiguration(CacheConfiguration<K, V> config) {
       this.serviceConfigurations = copy(config.getServiceConfigurations());
       this.keyType = config.getKeyType();
       this.valueType = config.getValueType();
-      this.capacityConstraint = config.getCapacityConstraint();
       this.evictionVeto = config.getEvictionVeto();
       this.evictionPrioritizer = config.getEvictionPrioritizer();
       this.classLoader = config.getClassLoader();
       this.expiry = config.getExpiry();
-      this.persistent = config.isPersistent();
+      this.persistenceMode = config.getPersistenceMode();
+      this.resourcePools = config.getResourcePools();
     }
     
     @Override
@@ -1462,11 +1468,6 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     @Override
     public Class<V> getValueType() {
       return this.valueType;
-    }
-
-    @Override
-    public Comparable<Long> getCapacityConstraint() {
-      return this.capacityConstraint;
     }
 
     @Override
@@ -1490,8 +1491,13 @@ public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, Persis
     }
 
     @Override
-    public boolean isPersistent() {
-      return this.persistent;
+    public PersistenceMode getPersistenceMode() {
+      return this.persistenceMode;
+    }
+
+    @Override
+    public ResourcePools getResourcePools() {
+      return this.resourcePools;
     }
 
     @Override

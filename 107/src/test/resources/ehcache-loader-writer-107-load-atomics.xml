@@ -12,7 +12,7 @@
     <cache-template name="simpleCacheTemplate">
         <key-type>java.lang.Number</key-type>
         <value-type>java.lang.CharSequence</value-type>
-        <capacity>100</capacity>
+        <heap size="100" unit="entries"/>
     </cache-template>
 
 

@@ -15,8 +15,6 @@
 
     <ehcache:value-type>com.pany.domain.Product</ehcache:value-type>
 
-    <ehcache:capacity>200</ehcache:capacity>
-
     <ehcache:expiry>
       <ehcache:tti unit="minutes">2</ehcache:tti>
     </ehcache:expiry>
@@ -30,6 +28,8 @@
         <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>
       </ehcache:loaderwriter>
     </ehcache:integration>
+
+    <ehcache:heap size="200" unit="entries"/>
   </ehcache:cache>
 
   <ehcache:cache-template name="productCacheTemplate">
@@ -37,28 +37,29 @@
 
     <ehcache:value-type>com.pany.domain.Product</ehcache:value-type>
 
-    <ehcache:capacity>200</ehcache:capacity>
-
     <ehcache:integration>
         <ehcache:loaderwriter>
           <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>
       </ehcache:loaderwriter>
     </ehcache:integration>
+
+    <ehcache:heap size="200" unit="entries"/>
   </ehcache:cache-template>
 
   <ehcache:cache-template storeByValueOnHeap="false" name="myDefaultTemplate">
-    <ehcache:capacity>2000</ehcache:capacity>
     <ehcache:expiry>
       <ehcache:none/>
     </ehcache:expiry>
     <ehcache:eviction-prioritizer>LRU</ehcache:eviction-prioritizer>
+
+    <ehcache:heap size="200" unit="entries"/>
   </ehcache:cache-template>
 
   <ehcache:cache alias="customerCache" usesTemplate="myDefaultTemplate">
     <ehcache:key-type>java.lang.Long</ehcache:key-type>
     <ehcache:value-type>com.pany.domain.Customer</ehcache:value-type>
 
-    <ehcache:capacity>200</ehcache:capacity>
+    <ehcache:heap size="200" unit="entries"/>
   </ehcache:cache>
 
 </ehcache:config>

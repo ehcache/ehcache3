@@ -19,6 +19,7 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.units.EntryUnit;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -27,6 +28,7 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -52,7 +54,7 @@ public class EvictionEhcacheTest {
 
   @Test
   public void testSimplePutWithEviction() throws Exception {
-    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().maxEntriesInCache(2).buildConfig(Number.class, CharSequence.class));
+    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().withResourcePools(newResourcePoolsBuilder().heap(2, EntryUnit.ENTRIES).build()).buildConfig(Number.class, CharSequence.class));
 
     testCache.put(1, "one");
     testCache.put(2, "two");
@@ -71,7 +73,7 @@ public class EvictionEhcacheTest {
 
   @Test
   public void testSimplePutIfAbsentWithEviction() throws Exception {
-    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().maxEntriesInCache(2).buildConfig(Number.class, CharSequence.class));
+    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().withResourcePools(newResourcePoolsBuilder().heap(2, EntryUnit.ENTRIES).build()).buildConfig(Number.class, CharSequence.class));
 
     testCache.putIfAbsent(1, "one");
     testCache.putIfAbsent(2, "two");
@@ -90,7 +92,7 @@ public class EvictionEhcacheTest {
 
   @Test
   public void testSimplePutAllWithEviction() throws Exception {
-    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().maxEntriesInCache(2).buildConfig(Number.class, CharSequence.class));
+    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().withResourcePools(newResourcePoolsBuilder().heap(2, EntryUnit.ENTRIES).build()).buildConfig(Number.class, CharSequence.class));
 
     Map<Integer, String> values = new HashMap<Integer, String>();
     values.put(1, "one");

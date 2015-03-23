@@ -37,7 +37,9 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.withSettings;
 
 /**
  * @author Alex Snaps
@@ -56,26 +58,18 @@ public class ServiceLocatorTest {
   }
 
   @Test
-  public void testThrowsWhenMultipleIdenticalServicesAdded() {
-    ServiceLocator provider = new ServiceLocator();
-    final Service service = new FancyCacheProvider();
-    provider.addService(service);
+  public void testAcceptsMultipleIdenticalServices() {
+    ServiceLocator serviceLocator = new ServiceLocator();
 
-    try {
-      provider.addService(new FancyCacheProvider());
-      fail();
-    } catch (IllegalStateException e) {
-      // expected
-    }
+    Service fancyCacheProvider = new FancyCacheProvider();
+    DullCacheProvider dullCacheProvider = new DullCacheProvider();
 
-    try {
-      provider.addService(new DullCacheProvider());
-      fail();
-    } catch (IllegalStateException e) {
-      // expected
-    }
-    assertThat(provider.findService(FooProvider.class), nullValue());
-    assertThat(provider.findService(CacheProvider.class), sameInstance(service));
+    serviceLocator.addService(fancyCacheProvider);
+    serviceLocator.addService(dullCacheProvider);
+
+    assertThat(serviceLocator.findService(FooProvider.class), nullValue());
+    assertThat(serviceLocator.findService(CacheProvider.class), sameInstance(fancyCacheProvider));
+    assertThat(serviceLocator.findService(DullCacheProvider.class), sameInstance(dullCacheProvider));
   }
   
   
@@ -133,6 +127,21 @@ public class ServiceLocatorTest {
     verify(s1).stop();
     verify(s2).stop();
     verify(s3).stop();
+  }
+
+  @Test
+  public void testStopAllServicesOnlyStopsEachServiceOnce() throws Exception {
+    Service s1 = mock(CacheProvider.class, withSettings().extraInterfaces(CacheLoaderWriterFactory.class));
+
+    ServiceLocator locator = new ServiceLocator(s1);
+    try {
+      locator.startAllServices(Collections.<Service, ServiceConfiguration<?>>emptyMap());
+    } catch (Exception e) {
+      fail();
+    }
+
+    locator.stopAllServices();
+    verify(s1, times(1)).stop();
   }
 }
 

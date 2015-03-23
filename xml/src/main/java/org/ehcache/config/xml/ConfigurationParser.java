@@ -16,14 +16,19 @@
 
 package org.ehcache.config.xml;
 
+import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration.TypeSerializerConfig;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.xml.model.BaseCacheType;
 import org.ehcache.config.xml.model.CacheIntegration;
 import org.ehcache.config.xml.model.CacheTemplateType;
 import org.ehcache.config.xml.model.CacheType;
 import org.ehcache.config.xml.model.ConfigType;
 import org.ehcache.config.xml.model.ExpiryType;
+import org.ehcache.config.xml.model.ResourceType;
+import org.ehcache.config.xml.model.ResourcesType;
 import org.ehcache.config.xml.model.SerializerType;
 import org.ehcache.config.xml.model.ServiceType;
 import org.ehcache.config.xml.model.TimeType;
@@ -36,7 +41,6 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -195,16 +199,6 @@ class ConfigurationParser {
           }
 
           @Override
-          public Long capacityConstraint() {
-            BigInteger value = null;
-            for (BaseCacheType source : sources) {
-              value = source.getCapacity();
-              if (value != null) break;
-            }
-            return value != null ? value.longValue() : null;
-          }
-
-          @Override
           public String evictionVeto() {
             String value = null;
             for (BaseCacheType source : sources) {
@@ -268,11 +262,59 @@ class ConfigurationParser {
             }
             return configs;
           }
+
+          @Override
+          public Iterable<ResourcePool> resourcePools() {
+            Collection<ResourcePool> resourcePools = new ArrayList<ResourcePool>();
+            for (BaseCacheType source : sources) {
+              ResourceType directHeapResource = source.getHeap();
+              if (directHeapResource != null) {
+                resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, directHeapResource.getSize().longValue(), parseUnit(directHeapResource)));
+              } else {
+                ResourcesType resources = source.getResources();
+                if (resources != null) {
+                  ResourceType heapResource = resources.getHeap();
+                  if (heapResource != null) {
+                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, heapResource.getSize().longValue(), parseUnit(heapResource)));
+                  }
+                  ResourceType diskResource = resources.getDisk();
+                  if (diskResource != null) {
+                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK, diskResource.getSize().longValue(), parseUnit(diskResource)));
+                  }
+                }
+              }
+            }
+            return resourcePools;
+          }
         });
       }
     }
 
     return Collections.unmodifiableList(cacheCfgs);
+  }
+
+  private static final class ResourcePoolImpl implements ResourcePool {
+    private final org.ehcache.config.ResourceType type;
+    private final long size;
+    private final ResourceUnit unit;
+
+    public ResourcePoolImpl(org.ehcache.config.ResourceType type, long size, ResourceUnit unit) {
+      this.type = type;
+      this.size = size;
+      this.unit = unit;
+    }
+
+    public org.ehcache.config.ResourceType getType() {
+      return type;
+    }
+
+    public long getSize() {
+      return size;
+    }
+
+    public ResourceUnit getUnit() {
+      return unit;
+    }
   }
 
   public Map<String, CacheTemplate> getTemplates() {
@@ -299,12 +341,6 @@ class ConfigurationParser {
               valueType = JaxbHelper.findDefaultValue(cacheTemplate, "valueType");
             }
             return valueType;
-          }
-
-          @Override
-          public Long capacityConstraint() {
-            final BigInteger capacity = cacheTemplate.getCapacity();
-            return capacity == null ? null : capacity.longValue();
           }
 
           @Override
@@ -343,10 +379,39 @@ class ConfigurationParser {
             }
             return configs;
           }
+
+          @Override
+          public Iterable<ResourcePool> resourcePools() {
+            Collection<ResourcePool> resourcePools = new ArrayList<ResourcePool>();
+
+            ResourceType directHeapResource = cacheTemplate.getHeap();
+            if (directHeapResource != null) {
+              resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, directHeapResource.getSize().longValue(), parseUnit(directHeapResource)));
+            } else {
+              ResourcesType resources = cacheTemplate.getResources();
+              if (resources != null) {
+                ResourceType heapResource = resources.getHeap();
+                if (heapResource != null) {
+                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, heapResource.getSize().longValue(), parseUnit(heapResource)));
+                }
+                ResourceType diskResource = resources.getDisk();
+                if (diskResource != null) {
+                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK, diskResource.getSize().longValue(), parseUnit(diskResource)));
+                }
+              }
+            }
+
+            return resourcePools;
+          }
         });
       }
     }
     return Collections.unmodifiableMap(templates);
+  }
+
+  private ResourceUnit parseUnit(ResourceType resourceType) {
+    //TODO add support for other unit types
+    return EntryUnit.ENTRIES;
   }
 
   private ServiceConfiguration<?> parseExtension(final Element element) {
@@ -383,8 +448,6 @@ class ConfigurationParser {
 
     String valueType();
 
-    Long capacityConstraint();
-
     String evictionVeto();
 
     String evictionPrioritizer();
@@ -396,6 +459,8 @@ class ConfigurationParser {
     String loaderWriter();
 
     Iterable<ServiceConfiguration<?>> serviceConfigs();
+
+    Iterable<ResourcePool> resourcePools();
 
   }
 

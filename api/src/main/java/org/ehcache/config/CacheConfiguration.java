@@ -54,13 +54,6 @@ public interface CacheConfiguration<K, V> {
   Class<V> getValueType();
   
   /**
-   * The capacity constraint in place on the cache.
-   * 
-   * @return the maximal capacity of the cache, or {@code null} if there is no constraint
-   */
-  Comparable<Long> getCapacityConstraint();
-
-  /**
    * The {@link EvictionVeto} predicate function.
    * <p>
    * Entries which pass this predicate must be ignored by the eviction process.
@@ -99,5 +92,22 @@ public interface CacheConfiguration<K, V> {
    *
    * @return {@code true} if the {@code Cache} needs to be persistent, {@code false} otherwise
    */
-  boolean isPersistent();
+  PersistenceMode getPersistenceMode();
+
+  /**
+   * Get the {@link ResourcePools resource pools} the {@link Cache} can make use of.
+   *
+   * @return the {@link ResourcePools}
+   */
+  ResourcePools getResourcePools();
+
+  /**
+   * The persistence mode
+   */
+  enum PersistenceMode {
+    SWAP,
+    CREATE_IF_ABSENT,
+    EXPECT_EXISTS,
+  }
+
 }

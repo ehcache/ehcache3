@@ -944,7 +944,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
           if (markFaulted) {
             e.faulted.set(true);
           }
-          newElement = null;
+          newElement = decode(e);
         } else {
           DiskStorageFactory.DiskSubstitute<K, V> onDiskSubstitute = e.element;
           installed = true;

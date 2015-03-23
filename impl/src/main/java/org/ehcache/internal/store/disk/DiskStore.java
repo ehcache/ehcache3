@@ -19,12 +19,14 @@ package org.ehcache.internal.store.disk;
 import org.ehcache.Cache;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourceType;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
-import org.ehcache.function.Comparables;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.function.Predicate;
@@ -40,6 +42,8 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -70,6 +74,8 @@ import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
  */
 public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
+  private static final Logger LOG = LoggerFactory.getLogger(DiskStore.class);
+
   private static final int ATTEMPT_RATIO = 4;
   private static final int EVICTION_RATIO = 2;
   private static final int DEFAULT_SEGMENT_COUNT = 16;
@@ -85,7 +91,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   private final Expiry<? super K, ? super V> expiry;
   private final Serializer<Element> elementSerializer;
   private final Serializer<Object> indexSerializer;
-  private final Comparable<Long> capacityConstraint;
+  private final long capacity;
   private final Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto;
   private final Comparator<DiskStorageFactory.DiskSubstitute<K, V>> evictionPrioritizer;
   private final Random random = new Random();
@@ -96,14 +102,16 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
 
   public DiskStore(final Configuration<K, V> config, String alias, TimeSource timeSource, Serializer<Element> elementSerializer, Serializer<Object> indexSerializer) {
-    Comparable<Long> capacity = config.getCapacityConstraint();
-    if (capacity == null) {
-      this.capacityConstraint = Comparables.biggest();
-    } else {
-      this.capacityConstraint = config.getCapacityConstraint();
+    ResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
+    if (diskPool == null) {
+      throw new IllegalArgumentException("Disk store must be configured with a resource of type 'disk'");
     }
+    if (!diskPool.getUnit().equals(EntryUnit.ENTRIES)) {
+      throw new IllegalArgumentException("Disk store only handles resource unit 'entries'");
+    }
+    this.capacity = diskPool.getSize();
     EvictionPrioritizer<? super K, ? super V> prioritizer = config.getEvictionPrioritizer();
-    if (prioritizer == null && capacity != null) {
+    if (prioritizer == null) {
       prioritizer = Eviction.Prioritizer.LRU;
     }
     this.evictionVeto = wrap((Predicate) config.getEvictionVeto());
@@ -415,8 +423,9 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     File dataFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".data");
     File indexFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".index");
 
-    dataFile.delete();
-    indexFile.delete();
+    if (dataFile.delete() | indexFile.delete()) {
+      LOG.info("Destroyed " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
+    }
   }
 
   @Override
@@ -442,11 +451,15 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
       throw new CacheAccessException(ioe);
     }
 
-    System.out.println("created " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
+    LOG.info("Created " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
   }
 
   @Override
   public void close() {
+    if (diskStorageFactory == null) {
+      LOG.warn("disk store already closed");
+      return;
+    }
     diskStorageFactory.unbind();
     diskStorageFactory = null;
     segments = null;
@@ -458,7 +471,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     File indexFile = DISK_STORE_PATH_MANAGER.getFile(alias, ".index");
 
     try {
-      diskStorageFactory = new DiskStorageFactory<K, V>(capacityConstraint, evictionVeto, evictionPrioritizer, classLoader,
+      diskStorageFactory = new DiskStorageFactory<K, V>(capacity, evictionVeto, evictionPrioritizer, classLoader,
           timeSource, elementSerializer, indexSerializer, dataFile, indexFile,
           DEFAULT_SEGMENT_COUNT, DEFAULT_QUEUE_CAPACITY, DEFAULT_EXPIRY_THREAD_INTERVAL);
     } catch (FileNotFoundException fnfe) {
@@ -665,7 +678,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
   void enforceCapacity(int delta) {
     for (int attempts = 0, evicted = 0; attempts < ATTEMPT_RATIO * delta && evicted < EVICTION_RATIO * delta
-        && capacityConstraint.compareTo((long) size()) < 0; attempts++) {
+        && capacity < size(); attempts++) {
       evicted += diskStorageFactory.evict(1);
     }
   }
@@ -1014,7 +1027,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     }
   }
 
-  public static class Provider implements Store.Provider {
+  public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
     static final AtomicInteger aliasCounter = new AtomicInteger();
 
     private ServiceProvider serviceProvider;
@@ -1046,6 +1059,16 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     @Override
     public void stop() {
       this.serviceProvider = null;
+    }
+
+    @Override
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      return createStore(storeConfig, serviceConfigs);
+    }
+
+    @Override
+    public void releaseAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
+      releaseStore(resource);
     }
   }
 }

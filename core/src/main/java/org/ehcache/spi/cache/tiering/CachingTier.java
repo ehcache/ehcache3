@@ -18,6 +18,8 @@ package org.ehcache.spi.cache.tiering;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * Caching tier, according to Montreal design.
@@ -100,5 +102,11 @@ public interface CachingTier<K, V> {
   void init();
 
   void maintenance();
+
+  interface Provider extends Service {
+    <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
+
+    void releaseCachingTier(CachingTier<?, ?> resource);
+  }
 
 }

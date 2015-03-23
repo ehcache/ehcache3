@@ -21,11 +21,13 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
+import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
@@ -40,6 +42,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 /**
  * Exposes {@link org.ehcache.config.Configuration} and {@link org.ehcache.config.CacheConfigurationBuilder} expressed
@@ -155,16 +159,17 @@ public class XmlConfiguration implements Configuration {
       
       Class keyType = getClassForName(cacheDefinition.keyType(), cacheClassLoader);
       Class valueType = getClassForName(cacheDefinition.valueType(), cacheClassLoader);
-      Long capacityConstraint = cacheDefinition.capacityConstraint();
       EvictionVeto evictionVeto = getInstanceOfName(cacheDefinition.evictionVeto(), cacheClassLoader, EvictionVeto.class);
       EvictionPrioritizer evictionPrioritizer = getInstanceOfName(cacheDefinition.evictionPrioritizer(), cacheClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class);
       final ConfigurationParser.Expiry parsedExpiry = cacheDefinition.expiry();
       builder = builder.withExpiry(getExpiry(cacheClassLoader, parsedExpiry));
+      ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
+      for (ResourcePool resourcePool : cacheDefinition.resourcePools()) {
+        resourcePoolsBuilder.with(resourcePool.getType(), resourcePool.getSize(), resourcePool.getUnit());
+      }
+      builder.withResourcePools(resourcePoolsBuilder.build());
       for (ServiceConfiguration<?> serviceConfig : cacheDefinition.serviceConfigs()) {
         builder = builder.addServiceConfig(serviceConfig);
-      }
-      if (capacityConstraint != null) {
-        builder = builder.maxEntriesInCache(capacityConstraint);
       }
       if(cacheDefinition.loaderWriter()!= null) {
         final Class<CacheLoaderWriter<?, ?>> cacheLoaderWriterClass = (Class<CacheLoaderWriter<?,?>>)getClassForName(cacheDefinition.loaderWriter(), cacheClassLoader);
@@ -287,10 +292,6 @@ public class XmlConfiguration implements Configuration {
     }
 
     CacheConfigurationBuilder<K, V> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-    if (cacheTemplate.capacityConstraint() != null) {
-      builder = builder
-          .maxEntriesInCache(cacheTemplate.capacityConstraint());
-    }
     final ConfigurationParser.Expiry parsedExpiry = cacheTemplate.expiry();
     builder = builder
         .usingEvictionPrioritizer(getInstanceOfName(cacheTemplate.evictionPrioritizer(), defaultClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class))
@@ -301,6 +302,11 @@ public class XmlConfiguration implements Configuration {
       final Class<CacheLoaderWriter<?, ?>> cacheLoaderWriterClass = (Class<CacheLoaderWriter<?,?>>)getClassForName(loaderWriter, defaultClassLoader);
       builder = builder.addServiceConfig(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriterClass));
     }
+    ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
+    for (ResourcePool resourcePool : cacheTemplate.resourcePools()) {
+      resourcePoolsBuilder.with(resourcePool.getType(), resourcePool.getSize(), resourcePool.getUnit());
+    }
+    builder.withResourcePools(resourcePoolsBuilder.build());
     for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {
       builder = builder.addServiceConfig(serviceConfiguration);
     }

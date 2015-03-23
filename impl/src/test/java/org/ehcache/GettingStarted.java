@@ -16,14 +16,18 @@
 
 package org.ehcache;
 
-import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.units.EntryUnit;
+import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.StandaloneCacheBuilder.newCacheBuilder;
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
 
 /**
@@ -69,11 +73,30 @@ public class GettingStarted {
   }
 
   @Test
+  public void testTieredStore() throws Exception {
+    CacheConfiguration<Long, String> tieredCacheConfiguration = newCacheConfigurationBuilder()
+        .persistenceMode(CacheConfiguration.PersistenceMode.SWAP)
+        .withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES).build())
+        .buildConfig(Long.class, String.class);
+
+    CacheManager cacheManager = newCacheManagerBuilder().withCache("tieredCache", tieredCacheConfiguration).build();
+
+    Cache<Long, String> tieredCache = cacheManager.getCache("tieredCache", Long.class, String.class);
+
+    tieredCache.put(1L, "one");
+
+    assertThat(tieredCache.get(1L), equalTo("one")); // probably coming from disk
+    assertThat(tieredCache.get(1L), equalTo("one")); // probably coming from heap
+
+    cacheManager.close();
+  }
+
+  @Test
   public void testStoreByValue() {
     CacheManager cacheManager = newCacheManagerBuilder().build();
 
     final Cache<Long, String> cache1 = cacheManager.createCache("cache1",
-        newCacheConfigurationBuilder().buildConfig(Long.class, String.class));
+        newCacheConfigurationBuilder().withResourcePools(newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).build()).buildConfig(Long.class, String.class));
     performAssertions(cache1, true);
 
     final Cache<Long, String> cache2 = cacheManager.createCache("cache2",

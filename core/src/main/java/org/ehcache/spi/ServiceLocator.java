@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -107,22 +108,19 @@ public final class ServiceLocator implements ServiceProvider {
         }
       }
 
-      if (serviceClazzes.isEmpty()) {
-        throw new IllegalArgumentException("Service implements no service interfaces.");
+      if (services.putIfAbsent(service.getClass(), service) != null) {
+        throw new IllegalStateException("Registration of duplicate service " + service.getClass());
       }
 
-      HashSet<Class<?>> existingServices = new HashSet<Class<?>>(serviceClazzes);
-      existingServices.retainAll(services.keySet());
-      if (existingServices.isEmpty()) {
-        for (Class<? extends Service> serviceClazz : serviceClazzes) {
-          if (services.putIfAbsent(serviceClazz, service) != null) {
-            throw new IllegalStateException("Racing registration for duplicate service " + serviceClazz.getName());
-          } else if (running.get()) {
-            service.start(null, this);
-          }
+      for (Class<? extends Service> serviceClazz : serviceClazzes) {
+        if (services.putIfAbsent(serviceClazz, service) != null) {
+          LOGGER.warn("Duplicate service implementation found for " + serviceClazz + " by " + service.getClass() +
+              " - first registered " + services.get(serviceClazz).getClass());
         }
-      } else {
-        throw new IllegalStateException("Already have services registered for " + existingServices);
+      }
+
+      if (running.get()) {
+        service.start(null, this);
       }
     } finally {
       lock.unlock();
@@ -216,7 +214,11 @@ public final class ServiceLocator implements ServiceProvider {
       if(!running.compareAndSet(true, false)) {
         throw new IllegalStateException("Already stopped!");
       }
+      Set<Service> stoppedServices = Collections.newSetFromMap(new IdentityHashMap<Service, Boolean>());
       for (Service service : services.values()) {
+        if (stoppedServices.contains(service)) {
+          continue;
+        }
         try {
           service.stop();
         } catch (Exception e) {
@@ -226,6 +228,7 @@ public final class ServiceLocator implements ServiceProvider {
             LOGGER.error("Stopping Service failed due to ", e);
           }
         }
+        stoppedServices.add(service);
       }
     } finally {
       lock.unlock();

@@ -18,21 +18,25 @@ package org.ehcache.internal.store.tiering;
 
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
-import org.ehcache.internal.store.OnHeapStore;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
 import org.ehcache.internal.store.disk.DiskStorageFactory;
 import org.ehcache.internal.store.disk.DiskStore;
+import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
@@ -40,6 +44,9 @@ import org.junit.internal.AssumptionViolatedException;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.mockito.Mockito.mock;
 
 /**
  * Test the {@link org.ehcache.internal.store.tiering.CacheStore} compliance to the
@@ -142,14 +149,14 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
       public Store.Configuration<String, String> newConfiguration(
           final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
-        return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration());
+        return new StoreConfigurationImpl<String, String>(keyType, valueType,
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacityConstraint));
       }
 
       @Override
       public Store.Configuration<String, String> newConfiguration(Class<String> keyType, Class<String> valueType, Comparable<Long> capacityConstraint, EvictionVeto<? super String, ? super String> evictionVeto, EvictionPrioritizer<? super String, ? super String> evictionPrioritizer, Expiry<? super String, ? super String> expiry) {
-        return new StoreConfigurationImpl<String, String>(keyType, valueType, capacityConstraint,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry);
+        return new StoreConfigurationImpl<String, String>(keyType, valueType,
+            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, buildResourcePools(capacityConstraint));
       }
 
       @Override
@@ -164,7 +171,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration[]{new CacheStoreServiceConfig().cachingTierProvider(FakeCachingTierProvider.class).authoritativeTierProvider(FakeAuthoritativeTierProvider.class)};
       }
 
       @Override
@@ -179,9 +186,64 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceProvider getServiceProvider() {
-        return new ServiceLocator();
+        ServiceLocator serviceLocator = new ServiceLocator();
+        serviceLocator.addService(new FakeCachingTierProvider());
+        serviceLocator.addService(new FakeAuthoritativeTierProvider());
+        return serviceLocator;
       }
     };
+  }
+
+  private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
+    if (capacityConstraint == null) {
+      return newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).disk(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
+    } else {
+      return newResourcePoolsBuilder().heap((Long) capacityConstraint, EntryUnit.ENTRIES).disk((Long) capacityConstraint, EntryUnit.ENTRIES).build();
+    }
+  }
+
+  public static class FakeCachingTierProvider implements CachingTier.Provider {
+    @Override
+    public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      return mock(CachingTier.class);
+    }
+
+    @Override
+    public void releaseCachingTier(CachingTier<?, ?> resource) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void stop() {
+      throw new UnsupportedOperationException();
+    }
+  }
+
+  public static class FakeAuthoritativeTierProvider implements AuthoritativeTier.Provider {
+    @Override
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      return mock(AuthoritativeTier.class);
+    }
+
+    @Override
+    public void releaseAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void stop() {
+      throw new UnsupportedOperationException();
+    }
   }
 
   @Override

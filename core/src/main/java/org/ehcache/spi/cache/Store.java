@@ -19,6 +19,7 @@ package org.ehcache.spi.cache;
 import org.ehcache.Cache;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expiry;
@@ -456,13 +457,6 @@ public interface Store<K, V> {
     Class<V> getValueType();
     
     /**
-     * The capacity constraint that must be enforced by a Store.
-     * 
-     * @return the capacity constraint
-     */
-    Comparable<Long> getCapacityConstraint();
-    
-    /**
      * A predicate function that, if it passes an entry, must prevent that entry
      * from being evicted by the store.
      * 
@@ -487,6 +481,11 @@ public interface Store<K, V> {
      * The expiration policy instance for this store
      */
     Expiry<? super K, ? super V> getExpiry();
+
+    /**
+     * The resource pools this store can make use of
+     */
+    ResourcePools getResourcePools();
   }
 
   /**

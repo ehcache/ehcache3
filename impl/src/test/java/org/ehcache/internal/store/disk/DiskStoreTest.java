@@ -16,6 +16,7 @@
 package org.ehcache.internal.store.disk;
 
 import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.function.Function;
@@ -31,6 +32,7 @@ import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
@@ -52,8 +54,8 @@ public class DiskStoreTest {
   public void setUp() throws Exception {
     timeSource = new TestTimeSource();
     capacityConstraint = 5L;
-    StoreConfigurationImpl<Number, CharSequence> config = new StoreConfigurationImpl<Number, CharSequence>(Number.class, CharSequence.class, capacityConstraint,
-        null, null, ClassLoader.getSystemClassLoader(), Expirations.timeToLiveExpiration(new Duration(10, TimeUnit.MILLISECONDS)));
+    StoreConfigurationImpl<Number, CharSequence> config = new StoreConfigurationImpl<Number, CharSequence>(Number.class, CharSequence.class,
+        null, null, ClassLoader.getSystemClassLoader(), Expirations.timeToLiveExpiration(new Duration(10, TimeUnit.MILLISECONDS)), newResourcePoolsBuilder().disk(capacityConstraint, EntryUnit.ENTRIES).build());
     JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
     Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createSerializer(DiskStorageFactory.Element.class, config.getClassLoader());
     Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, config.getClassLoader());
@@ -82,7 +84,7 @@ public class DiskStoreTest {
       }
     });
 
-    assertThat(valueHolder, is(nullValue())); // not computed
+    assertThat(valueHolder.value(), Matchers.<CharSequence>equalTo("put-one")); // not computed
     assertThat(diskStore.get(1).value(), Matchers.<CharSequence>equalTo("put-one"));
 
     timeSource.advanceTime(10);
@@ -132,7 +134,7 @@ public class DiskStoreTest {
       }
     });
 
-    assertThat(valueHolder, is(nullValue())); // not computed
+    assertThat(valueHolder.value(), Matchers.<CharSequence>equalTo("put-one")); // not computed
     assertThat(diskStore.get(1).value(), Matchers.<CharSequence>equalTo("put-one"));
 
     // DiskStore does not evict elements pending flush, hence we flush before requesting an eviction

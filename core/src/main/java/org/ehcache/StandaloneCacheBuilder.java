@@ -23,8 +23,10 @@ import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.StandaloneCacheConfiguration;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -36,6 +38,8 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
 import org.slf4j.Logger;
 
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+
 /**
  * @author Alex Snaps
  */
@@ -46,13 +50,13 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
   private final Logger logger;
   private Expiry<? super K, ? super V> expiry = Expirations.noExpiration();
   private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
-  private Comparable<Long> capacityConstraint;
   private EvictionVeto<? super K, ? super V> evictionVeto;
   private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private CacheLoaderWriter<? super K, V> cacheLoaderWriter;
   private ScheduledExecutorService statisticsExecutor;
   private CacheEventNotificationService<K, V> cacheEventNotificationService;
-  private boolean persistent;
+  private CacheConfiguration.PersistenceMode persistenceMode;
+  private ResourcePools resourcePools = newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
 
   public StandaloneCacheBuilder(final Class<K> keyType, final Class<V> valueType, final Logger logger) {
     this.keyType = keyType;
@@ -69,11 +73,11 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
 
     final StoreConfigurationImpl<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType,
-        capacityConstraint, evictionVeto, evictionPrioritizer, classLoader, expiry);
+        evictionVeto, evictionPrioritizer, classLoader, expiry, resourcePools);
     final Store<K, V> store = storeProvider.createStore(storeConfig);
 
-    CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, capacityConstraint, evictionVeto,
-        evictionPrioritizer, classLoader, expiry, persistent);
+    CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionVeto,
+        evictionPrioritizer, classLoader, expiry, persistenceMode, resourcePools);
 
     final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, cacheEventNotificationService, statisticsExecutor,logger);
 
@@ -93,11 +97,6 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     return cfg.builder(this);
   }
 
-  public final StandaloneCacheBuilder<K, V, T> withCapacity(Comparable<Long> constraint) {
-    capacityConstraint = constraint;
-    return this;
-  }
-  
   public final StandaloneCacheBuilder<K, V, T> vetoEviction(EvictionVeto<? super K, ? super V> predicate) {
     this.evictionVeto = predicate;
     return this;
@@ -130,8 +129,8 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
     return this;
   }
 
-  public final StandaloneCacheBuilder<K, V, T> persistent(boolean persistent) {
-    this.persistent = persistent;
+  public final StandaloneCacheBuilder<K, V, T> persistenceMode(CacheConfiguration.PersistenceMode persistenceMode) {
+    this.persistenceMode = persistenceMode;
     return this;
   }
   
@@ -142,6 +141,11 @@ public class StandaloneCacheBuilder<K, V, T extends StandaloneCache<K, V>> {
 
   public final StandaloneCacheBuilder<K, V, T> withCacheEvents(CacheEventNotificationService<K, V> cacheEventNotificationService) {
     this.cacheEventNotificationService = cacheEventNotificationService;
+    return this;
+  }
+
+  public final StandaloneCacheBuilder<K, V, T> withResourcePools(ResourcePools resourcePools) {
+    this.resourcePools = resourcePools;
     return this;
   }
 
