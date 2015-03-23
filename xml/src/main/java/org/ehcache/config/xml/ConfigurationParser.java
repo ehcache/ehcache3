@@ -18,21 +18,13 @@ package org.ehcache.config.xml;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceUnit;
+import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration.TypeSerializerConfig;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.config.xml.model.BaseCacheType;
-import org.ehcache.config.xml.model.CacheIntegration;
-import org.ehcache.config.xml.model.CacheTemplateType;
-import org.ehcache.config.xml.model.CacheType;
-import org.ehcache.config.xml.model.ConfigType;
-import org.ehcache.config.xml.model.ExpiryType;
-import org.ehcache.config.xml.model.ResourceType;
-import org.ehcache.config.xml.model.ResourcesType;
-import org.ehcache.config.xml.model.SerializerType;
-import org.ehcache.config.xml.model.ServiceType;
-import org.ehcache.config.xml.model.TimeType;
+import org.ehcache.config.xml.model.*;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
+import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
 import org.w3c.dom.Element;
@@ -40,6 +32,7 @@ import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
@@ -112,8 +105,11 @@ class ConfigurationParser {
     final ArrayList<ServiceConfiguration<?>> serviceConfigurations = new ArrayList<ServiceConfiguration<?>>();
     
     for (ServiceType serviceType : config.getService()) {
-      if(serviceType.getSerializerDefault() != null) serviceConfigurations.add(parseDefaultSerializerConfig(serviceType.getSerializerDefault())); 
-      else {
+      if(serviceType.getSerializerDefault() != null) {
+        serviceConfigurations.add(parseDefaultSerializerConfig(serviceType.getSerializerDefault()));
+      } else if(serviceType.getPersistence() != null) {
+          serviceConfigurations.add(parsePersistenceConfig(serviceType.getPersistence()));
+      } else {
         final ServiceConfiguration<?> serviceConfiguration = parseExtension((Element)serviceType.getAny());
         serviceConfigurations.add(serviceConfiguration);
       }
@@ -121,7 +117,11 @@ class ConfigurationParser {
 
     return Collections.unmodifiableList(serviceConfigurations);
   }
-  
+
+  private ServiceConfiguration<LocalPersistenceService> parsePersistenceConfig(PersistenceType persistence) {
+    return new PersistenceConfiguration(new File(persistence.getDirectory()));
+  }
+
   private ServiceConfiguration<JavaSerializationProvider> parseDefaultSerializerConfig(SerializerType serializerType){
     DefaultSerializationProviderConfiguration configuration = new DefaultSerializationProviderConfiguration();
         
