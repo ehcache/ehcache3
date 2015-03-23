@@ -15,11 +15,11 @@
  */
 package org.ehcache.loaderwriter.writebehind;
 
+import org.ehcache.config.writebehind.WriteBehindConfiguration;
+import org.ehcache.config.writebehind.WriteBehindDecoratorLoaderWriterProvider;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
-import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
@@ -28,6 +28,8 @@ import org.ehcache.spi.service.ServiceFactory;
  *
  */
 public class WriteBehindDecoratorLoaderWriterProviderFactory implements ServiceFactory<WriteBehindDecoratorLoaderWriterProvider> {
+  
+  private WriteBehindDecoratorLoaderWriter<?, ?> loaderWriter = null;
 
   @Override
   public WriteBehindDecoratorLoaderWriterProvider create(ServiceConfiguration<WriteBehindDecoratorLoaderWriterProvider> serviceConfiguration, ServiceLocator serviceLocator) {
@@ -46,8 +48,14 @@ public class WriteBehindDecoratorLoaderWriterProviderFactory implements ServiceF
       }
       
       @Override
-      public <K, V> WriteBehindDecoratorLoaderWriter<K, V> createWriteBehindDecoratorLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, CacheLoaderWriterConfiguration configuration) {
-        return new WriteBehindDecoratorLoaderWriter<K, V>(cacheLoaderWriter, new WriteBehindConfig().getWriteBehindConfig(configuration));
+      public <K, V> WriteBehindDecoratorLoaderWriter<K, V> createWriteBehindDecoratorLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration configuration) {
+        loaderWriter = new WriteBehindDecoratorLoaderWriter<K, V>(cacheLoaderWriter, configuration);
+        return (WriteBehindDecoratorLoaderWriter<K, V>)loaderWriter;
+      }
+
+      @Override
+      public void releaseWriteBehindDecoratorCacheLoaderWriter(CacheLoaderWriter<?, ?> cacheLoaderWriter) {
+        if(loaderWriter != null) loaderWriter.getWriteBehindQueue().stop();
       }
     };
   }

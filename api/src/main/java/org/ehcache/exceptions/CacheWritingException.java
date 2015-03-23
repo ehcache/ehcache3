@@ -29,6 +29,7 @@ public class CacheWritingException extends RuntimeException {
   private static final long serialVersionUID = -3547750364991417531L;
   
   /**
+   * Constructs a CacheWritingException 
    * 
    */
   public CacheWritingException() {
@@ -36,6 +37,7 @@ public class CacheWritingException extends RuntimeException {
   }
   
   /**
+   * Constructs a CacheWritingException with the provided message.
    * 
    * @param message the detail message.
    */
@@ -44,6 +46,8 @@ public class CacheWritingException extends RuntimeException {
   }
   
   /**
+   * Constructs a CacheWritingException wrapping the {@link Throwable cause} passed in 
+   * and with the provided message.
    * 
    * @param message the detail message.
    * @param cause   the detail message.
@@ -53,6 +57,7 @@ public class CacheWritingException extends RuntimeException {
   }
 
   /**
+   * Constructs a CacheWritingException wrapping the {@link Throwable cause} passed in.
    * 
    * @param cause the detail message.
    */

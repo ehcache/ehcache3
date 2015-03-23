@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.ehcache.config.writebehind.WriteBehindConfiguration;
 import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.loaderwriter.writebehind.operations.OperationsFilter;
 import org.ehcache.loaderwriter.writebehind.operations.SingleOperation;
@@ -36,14 +37,14 @@ public class AggregateWriteBehindQueue<K, V> implements WriteBehind<K, V> {
 
   private final List<WriteBehind<K, V>> queues = new ArrayList<WriteBehind<K, V>>();
 
-  protected AggregateWriteBehindQueue(WriteBehindConfig config, WriteBehindQueueFactory<K, V> queueFactory, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+  protected AggregateWriteBehindQueue(WriteBehindConfiguration config, WriteBehindQueueFactory<K, V> queueFactory, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     int writeBehindConcurrency = config.getWriteBehindConcurrency();
     for (int i = 0; i < writeBehindConcurrency; i++) {
       this.queues.add(queueFactory.createQueue(i, config, cacheLoaderWriter));
     }
   }
 
-  public AggregateWriteBehindQueue(WriteBehindConfig config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+  public AggregateWriteBehindQueue(WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     this(config, new WriteBehindQueueFactory<K, V>(), cacheLoaderWriter);
   }
 
@@ -64,7 +65,7 @@ public class AggregateWriteBehindQueue<K, V> implements WriteBehind<K, V> {
   }
   
   @Override
-  public V load(K key) {
+  public V load(K key) throws Exception {
     V v = null;
     readLock.lock();
     try {
@@ -143,7 +144,7 @@ public class AggregateWriteBehindQueue<K, V> implements WriteBehind<K, V> {
      * Create a write behind queue stripe.
      *
      */
-    protected WriteBehind<K, V> createQueue(int index, WriteBehindConfig config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+    protected WriteBehind<K, V> createQueue(int index, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
       return new LocalHeapWriteBehindQueue<K, V>(config, cacheLoaderWriter);
     }
   }

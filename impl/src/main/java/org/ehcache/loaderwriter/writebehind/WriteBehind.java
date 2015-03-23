@@ -40,7 +40,7 @@ public interface WriteBehind<K, V> {
    * @param key the key that will map to the {@code value} returned
    * @return the value to be mapped
    */
-  V load(K key);
+  V load(K key) throws Exception;
 
   /**
    * Writes a single entry to the underlying system of record, maybe a brand new value or an update to an existing value

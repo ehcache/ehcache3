@@ -206,6 +206,36 @@
           </xs:sequence>
         </xs:complexType>
       </xs:element>
+      <xs:element name="writebehind" minOccurs="0" maxOccurs="1">
+        <xs:complexType>
+          <xs:sequence>
+           <xs:element name="writedelay" minOccurs="0" maxOccurs="1">
+            <xs:complexType>
+              <xs:simpleContent>
+                <xs:extension base="xs:string">
+                  <xs:attribute type="xs:integer" name="min" default="1" use="optional"/>
+                  <xs:attribute type="xs:integer" name="max" default="1" use="optional"/>
+                </xs:extension>
+              </xs:simpleContent>
+            </xs:complexType>
+          </xs:element>
+          <xs:element type="xs:integer" name="ratelimitpersecond" default="0" minOccurs="0" maxOccurs="1"/>
+          <xs:element type="xs:integer" name="batchsize" default="1" minOccurs="0" maxOccurs="1"/>
+          <xs:element name="retryAttempts" default="0" minOccurs="0" maxOccurs="1">
+            <xs:complexType>
+              <xs:simpleContent>
+                <xs:extension base="xs:integer">
+                  <xs:attribute type="xs:integer" name="delay" default="1" use="optional"/>
+                </xs:extension>
+              </xs:simpleContent>
+            </xs:complexType>
+          </xs:element>
+        </xs:sequence>
+        <xs:attribute type="xs:integer" name="concurrency" default="1" use="optional"/>
+        <xs:attribute type="xs:integer" name="size" default="0" use="optional"/>
+        <xs:attribute type="xs:boolean" name="coalesce" use="optional"/>
+      </xs:complexType>
+    </xs:element>
     </xs:sequence>
   </xs:complexType>
 

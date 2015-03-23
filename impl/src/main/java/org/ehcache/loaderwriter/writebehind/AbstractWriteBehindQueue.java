@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.ehcache.config.writebehind.WriteBehindConfiguration;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.loaderwriter.writebehind.operations.DeleteOperation;
@@ -41,11 +42,9 @@ import org.slf4j.LoggerFactory;
  * @author Abhilash
  *
  */
-public abstract class AbstractWriteBehindQueue<K, V> implements
-    WriteBehind<K, V> {
+public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V> {
 
-  private static final Logger LOGGER = LoggerFactory
-      .getLogger(WriteBehind.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(WriteBehind.class);
 
   private static final int MS_IN_SEC = 1000;
 
@@ -58,13 +57,10 @@ public abstract class AbstractWriteBehindQueue<K, V> implements
   private final int retryAttempts;
   private final int retryAttemptDelaySeconds;
   private final Thread processingThread;
-  private final String alias;
 
   private final ReentrantReadWriteLock queueLock = new ReentrantReadWriteLock();
-  private final ReentrantReadWriteLock.ReadLock queueReadLock = queueLock
-      .readLock();
-  private final ReentrantReadWriteLock.WriteLock queueWriteLock = queueLock
-      .writeLock();
+  private final ReentrantReadWriteLock.ReadLock queueReadLock = queueLock.readLock();
+  private final ReentrantReadWriteLock.WriteLock queueWriteLock = queueLock.writeLock();
   private final Condition queueIsFull = queueWriteLock.newCondition();
   private final Condition queueIsEmpty = queueWriteLock.newCondition();
   private final Condition queueIsStopped = queueWriteLock.newCondition();
@@ -72,6 +68,9 @@ public abstract class AbstractWriteBehindQueue<K, V> implements
   private final CacheLoaderWriter<K, V> cacheLoaderWriter;
   private boolean stopping;
   private boolean stopped;
+  
+  private final ReentrantReadWriteLock quarrantineLock = new ReentrantReadWriteLock();
+  private List<SingleOperation<K, V>> quarantinedItems ;
 
   private volatile OperationsFilter<SingleOperation<K, V>> filter = null;
 
@@ -79,7 +78,7 @@ public abstract class AbstractWriteBehindQueue<K, V> implements
   private final AtomicLong lastWorkDone = new AtomicLong(System.currentTimeMillis());
   private final AtomicBoolean busyProcessing = new AtomicBoolean(false);
 
-  public AbstractWriteBehindQueue(WriteBehindConfig config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+  public AbstractWriteBehindQueue(WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     this.stopping = false;
     this.stopped = true;
     
@@ -87,14 +86,13 @@ public abstract class AbstractWriteBehindQueue<K, V> implements
     this.maxWriteDelayMs = config.getMaxWriteDelay() * MS_IN_SEC;
     this.rateLimitPerSecond = config.getRateLimitPerSecond();
     this.maxQueueSize = config.getWriteBehindMaxQueueSize();
-    this.writeBatching = config.getWriteBatching();
+    this.writeBatching = config.isWriteBatching();
     this.writeBatchSize = config.getWriteBatchSize();
     this.retryAttempts = config.getRetryAttempts();
     this.retryAttemptDelaySeconds = config.getRetryAttemptDelaySeconds();
-    this.alias = config.getAlias();
     this.cacheLoaderWriter = cacheLoaderWriter;
 
-    this.processingThread = new Thread(new ProcessingThread(), alias + " write-behind");
+    this.processingThread = new Thread(new ProcessingThread(), cacheLoaderWriter.getClass().getName() + " write-behind");
     this.processingThread.setDaemon(true);
   }
 
@@ -126,7 +124,7 @@ public abstract class AbstractWriteBehindQueue<K, V> implements
     queueWriteLock.lock();
     try {
       if (!stopped) {
-        throw new RuntimeException("The write-behind queue for cache '" + alias + "' can't be started more than once");
+        throw new RuntimeException("The write-behind queue for cache '" + cacheLoaderWriter.getClass().getName() + "' can't be started more than once");
       }
 
       if (processingThread.isAlive()) {
@@ -144,18 +142,25 @@ public abstract class AbstractWriteBehindQueue<K, V> implements
   }
 
   @Override
-  public V load(K key) {
+  public V load(K key) throws Exception {
     queueReadLock.lock();
+    quarrantineLock.readLock().lock();
     try {
       for (SingleOperation<K, V> opr : getWaitingItems()) {
         if (opr.getKey() == key) {
           return opr.getClass() == WriteOperation.class ? ((WriteOperation<K, V>) opr).getValue() : null;
         }
       }
+      for (SingleOperation<K, V> opr : quarantinedItems) {
+        if (opr.getKey() == key) {
+          return opr.getClass() == WriteOperation.class ? ((WriteOperation<K, V>) opr).getValue() : null;
+        }
+      }
+      return cacheLoaderWriter.load(key);
     } finally {
       queueReadLock.unlock();
+      quarrantineLock.readLock().unlock();
     }
-    return null;
   }
 
   @Override
@@ -166,7 +171,7 @@ public abstract class AbstractWriteBehindQueue<K, V> implements
       waitForQueueSizeToDrop();
       if (stopping || stopped) {
         throw new CacheWritingException("The element '" + value + "' couldn't be added through the write-behind queue for cache '"
-            + alias + "' since it's not started.");
+            + cacheLoaderWriter.getClass().getName() + "' since it's not started.");
       }
       addItem(new WriteOperation<K, V>(key, value));
       if (getQueueSize() + 1 < maxQueueSize) {
@@ -201,7 +206,7 @@ public abstract class AbstractWriteBehindQueue<K, V> implements
       if (stopping || stopped) {
         throw new CacheWritingException("The entry for key '" + key
             + "' couldn't be deleted through the write-behind "
-            + "queue for cache '" + alias + "' since it's not started.");
+            + "queue for cache '" + cacheLoaderWriter.getClass().getName() + "' since it's not started.");
       }
       addItem(new DeleteOperation<K, V>(key));
       if (getQueueSize() + 1 < maxQueueSize) {
@@ -320,7 +325,7 @@ public abstract class AbstractWriteBehindQueue<K, V> implements
   private void processItems() throws RuntimeException {
     // ensure that the items aren't already being processed
     if (busyProcessing.get()) {
-      throw new RuntimeException("The write behind queue for cache '" + alias
+      throw new RuntimeException("The write behind queue for cache '" + cacheLoaderWriter.getClass().getName()
           + "' is already busy processing.");
     }
 
@@ -330,25 +335,27 @@ public abstract class AbstractWriteBehindQueue<K, V> implements
 
     try {
       final int workSize;
-      final List<SingleOperation<K, V>> quarantined;
+//      final List<SingleOperation<K, V>> quarantined;
 
       queueWriteLock.lock();
+      quarrantineLock.writeLock().lock();
       try {
         // quarantine local work
         if (getQueueSize() > 0) {
-          quarantined = quarantineItems();
+          quarantinedItems = quarantineItems();
         } else {
-          quarantined = null;
+          quarantinedItems = null;
         }
 
         // check if work was quarantined
-        if (quarantined != null) {
-          workSize = quarantined.size();
+        if (quarantinedItems != null) {
+          workSize = quarantinedItems.size();
         } else {
           workSize = 0;
         }
       } finally {
         queueWriteLock.unlock();
+        quarrantineLock.writeLock().unlock();
       }
 
       // if there's no work that needs to be done, stop the processing
@@ -359,7 +366,7 @@ public abstract class AbstractWriteBehindQueue<K, V> implements
       }
 
       try {
-        filterQuarantined(quarantined);
+        filterQuarantined();
 
         // if the batching is enabled and work size is smaller than batch size,
         // don't process anything as long as the
@@ -370,7 +377,7 @@ public abstract class AbstractWriteBehindQueue<K, V> implements
           // hasn't expired yet
           if (workSize < writeBatchSize
               && maxWriteDelayMs > lastProcessing.get() - lastWorkDone.get()) {
-            waitUntilEnoughWorkItemsAvailable(quarantined, workSize);
+            waitUntilEnoughWorkItemsAvailable(workSize);
             return;
           }
           // enforce the rate limit and wait for another round if too much would
@@ -381,9 +388,9 @@ public abstract class AbstractWriteBehindQueue<K, V> implements
                 .get()) / MS_IN_SEC;
             final long maxBatchSizeSinceLastWorkDone = rateLimitPerSecond
                 * secondsSinceLastWorkDone;
-            final int batchSize = determineBatchSize(quarantined);
+            final int batchSize = determineBatchSize();
             if (batchSize > maxBatchSizeSinceLastWorkDone) {
-              waitUntilEnoughTimeHasPassed(quarantined, batchSize,
+              waitUntilEnoughTimeHasPassed(batchSize,
                   secondsSinceLastWorkDone);
               return;
             }
@@ -392,17 +399,15 @@ public abstract class AbstractWriteBehindQueue<K, V> implements
 
         // set some state related to this processing run
         lastWorkDone.set(System.currentTimeMillis());
-        LOGGER
-            .debug(getThreadName() + " : processItems() : processing started");
+        LOGGER.debug(getThreadName() + " : processItems() : processing started");
 
         // process the quarantined items and remove them as they're processed
-        // TODO
-         processQuarantinedItems(quarantined);
+         processQuarantinedItems();
       } catch (final RuntimeException e) {
-        reassemble(quarantined);
+        reassemble();
         throw e;
       } catch (Exception e) {
-        reassemble(quarantined);
+        reassemble();
         throw new CacheWritingException(e);
       }
     } finally {
@@ -411,39 +416,44 @@ public abstract class AbstractWriteBehindQueue<K, V> implements
     }
   }
 
-  private void processQuarantinedItems(List<SingleOperation<K, V>> quarantined) throws Exception {
+  private void processQuarantinedItems() throws Exception {
     LOGGER.debug(getThreadName() + " : processItems() : processing "
-        + quarantined.size() + " quarantined items");
+        + " quarantined items");
 
     if (writeBatching && writeBatchSize > 0) {
-      processBatchedOperations(quarantined);
+      processBatchedOperations();
     } else {
-      processSingleOperation(quarantined);
+      processSingleOperation();
 
     }
   }
 
-  private void processBatchedOperations(List<SingleOperation<K, V>> quarantined)
-      throws Exception {
-    final int batchSize = determineBatchSize(quarantined);
+  private void processBatchedOperations() throws Exception {
+    final int batchSize = determineBatchSize();
 
     // create batches that are separated by operation type
     final Map<SingleOperationType, List<SingleOperation<K, V>>> separatedItemsPerType = new TreeMap<SingleOperationType, List<SingleOperation<K, V>>>();
-    for (int i = 0; i < batchSize; i++) {
-      final SingleOperation<K, V> item = quarantined.get(i);
+    quarrantineLock.readLock().lock();
+    try {
+      for (int i = 0; i < batchSize; i++) {
+        final SingleOperation<K, V> item = quarantinedItems.get(i);
 
-      LOGGER.debug(getThreadName() + " : processItems() : adding " + item
-          + " to next batch");
+        LOGGER.debug(getThreadName() + " : processItems() : adding " + item
+            + " to next batch");
 
-      List<SingleOperation<K, V>> itemsPerType = separatedItemsPerType.get(item
-          .getType());
-      if (null == itemsPerType) {
-        itemsPerType = new ArrayList<SingleOperation<K, V>>();
-        separatedItemsPerType.put(item.getType(), itemsPerType);
+        List<SingleOperation<K, V>> itemsPerType = separatedItemsPerType.get(item
+            .getType());
+        if (null == itemsPerType) {
+          itemsPerType = new ArrayList<SingleOperation<K, V>>();
+          separatedItemsPerType.put(item.getType(), itemsPerType);
+        }
+
+        itemsPerType.add(item);
       }
-
-      itemsPerType.add(item);
+    } finally {
+      quarrantineLock.readLock().unlock();
     }
+
 
     Map<?, Exception> failures = null;
     Set<?> successes = null;
@@ -507,20 +517,38 @@ public abstract class AbstractWriteBehindQueue<K, V> implements
     }
 
     // remove the batched items
-    for (int i = 0; i < batchSize; i++) {
-      quarantined.remove(0);
+    boolean reassenbleRequired = false;
+    quarrantineLock.writeLock().lock();
+    try {
+      for (int i = 0; i < batchSize; i++) {
+        quarantinedItems.remove(0);
+      }
+      reassenbleRequired = !quarantinedItems.isEmpty();
+    } finally {
+      quarrantineLock.writeLock().unlock();
     }
 
-    if (!quarantined.isEmpty()) {
-      reassemble(quarantined);
-    }
+    
+      if (reassenbleRequired) {
+        reassemble();
+      }
+    
   }
 
-  private void processSingleOperation(List<SingleOperation<K, V>> quarantined)
-      throws Exception {
-    while (!quarantined.isEmpty()) {
+  private void processSingleOperation() throws Exception {
+    
+    while (true) {
       // process the next item
-      final SingleOperation<K, V> item = quarantined.get(0);
+      int size = 0;
+      SingleOperation<K, V> item = null;
+      quarrantineLock.readLock().lock();
+      try {
+        size = quarantinedItems.size();
+        if(size == 0) break;
+        item = quarantinedItems.get(0);
+      } finally {
+        quarrantineLock.readLock().unlock();
+      }
       LOGGER.debug(getThreadName() + " : processItems() : processing " + item);
 
       int executionsLeft = retryAttempts + 1;
@@ -550,48 +578,58 @@ public abstract class AbstractWriteBehindQueue<K, V> implements
         }
       }
 
-      quarantined.remove(0);
+      quarrantineLock.writeLock().lock();
+      try {
+        quarantinedItems.remove(0);
+      } finally {
+        quarrantineLock.writeLock().unlock();
+      }
     }
   }
 
-  private int determineBatchSize(List<SingleOperation<K, V>> quarantined) {
+  private int determineBatchSize() {
     int batchSize = writeBatchSize;
-    if (quarantined.size() < batchSize) {
-      batchSize = quarantined.size();
+    quarrantineLock.readLock().lock();
+    try {
+      if (quarantinedItems.size() < batchSize) {
+        batchSize = quarantinedItems.size();
+      }
+    } finally {
+      quarrantineLock.readLock().unlock();
     }
     return batchSize;
   }
 
-  private void waitUntilEnoughWorkItemsAvailable(
-      List<SingleOperation<K, V>> quarantined, int workSize) {
+  private void waitUntilEnoughWorkItemsAvailable(int workSize) {
     LOGGER.debug(getThreadName() + " : processItems() : only " + workSize
         + " work items available, waiting for " + writeBatchSize
         + " items to fill up a batch");
-    reassemble(quarantined);
+    reassemble();
   }
 
-  private void waitUntilEnoughTimeHasPassed(
-      List<SingleOperation<K, V>> quarantined, int batchSize,
+  private void waitUntilEnoughTimeHasPassed(int batchSize,
       long secondsSinceLastWorkDone) {
     LOGGER.debug(getThreadName() + " : processItems() : last work was done "
         + secondsSinceLastWorkDone + " seconds ago, processing " + batchSize
         + " batch items would exceed the rate limit of " + rateLimitPerSecond
         + ", waiting for a while.");
-    reassemble(quarantined);
+    reassemble();
   }
 
-  private void reassemble(List<SingleOperation<K, V>> quarantined) {
+  private void reassemble() {
     queueWriteLock.lock();
+    quarrantineLock.writeLock().lock();
     try {
-      if (null == quarantined) {
+      if (null == quarantinedItems) {
         return;
       }
 
-      reinsertUnprocessedItems(quarantined);
+      reinsertUnprocessedItems(quarantinedItems);
 
       queueIsEmpty.signal();
     } finally {
       queueWriteLock.unlock();
+      quarrantineLock.writeLock().unlock();
     }
   }
 
@@ -620,10 +658,15 @@ public abstract class AbstractWriteBehindQueue<K, V> implements
     return lastProcessing.get();
   }
 
-  private void filterQuarantined(List<SingleOperation<K, V>> quarantined) {
+  private void filterQuarantined() {
     OperationsFilter<SingleOperation<K, V>> operationsFilter = this.filter;
     if (operationsFilter != null) {
-      operationsFilter.filter(quarantined);
+      quarrantineLock.writeLock().lock();
+      try {
+        operationsFilter.filter(quarantinedItems); 
+      } finally {
+        quarrantineLock.writeLock().unlock();
+      }
     }
   }
 

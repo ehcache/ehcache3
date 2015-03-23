@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.spi.loaderwriter;
+package org.ehcache.config.writebehind;
 
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -21,83 +21,128 @@ import org.ehcache.spi.service.ServiceConfiguration;
  * @author Abhilash
  *
  */
-public interface CacheLoaderWriterConfiguration extends ServiceConfiguration<CacheLoaderWriterFactory> {
+public class WriteBehindConfiguration implements ServiceConfiguration<WriteBehindDecoratorLoaderWriterProvider> {
 
-  /**
-   * the write mode in terms of the mode enum
-   * 
-   * @return Retrieves the write mode in terms of the mode enum
-   */
-  boolean isWriteBehind();
+  private int minWriteDelay;
+  private int maxWriteDelay;
+  private int rateLimitPerSecond;
+  private boolean writeCoalescing;
+  private boolean writeBatching;
+  private int writeBatchSize;
+  private int retryAttempts;
+  private int retryAttemptDelaySeconds;
+  private int writeBehindConcurrency;
+  private int writeBehindMaxQueueSize;
+  
+  public WriteBehindConfiguration(int minWriteDelay, int maxWriteDelay, int rateLimitPerSecond, boolean writeCoalescing, 
+      boolean writeBatching, int writeBatchSize, int retryAttempts,int retryAttemptDelaySeconds,
+      int writeBehindConcurrency, int writeBehindMaxQueueSize) {
+    
+    this.minWriteDelay = minWriteDelay;
+    this.maxWriteDelay = maxWriteDelay;
+    this.rateLimitPerSecond = rateLimitPerSecond;
+    this.writeCoalescing = writeCoalescing;
+    this.writeBatching = writeBatching;
+    this.writeBatchSize = writeBatchSize;
+    this.retryAttempts = retryAttempts;
+    this.retryAttemptDelaySeconds = retryAttemptDelaySeconds;
+    this.writeBehindConcurrency = writeBehindConcurrency;
+    this.writeBehindMaxQueueSize = writeBehindMaxQueueSize;
+  }
   
   /**
    * the minimum number of seconds to wait before writing behind
    * 
    * @return Retrieves the minimum number of seconds to wait before writing behind
    */
-  int minWriteDelay();
+  public int getMinWriteDelay() {
+    return minWriteDelay;
+  }
   
   /**
    * the maximum number of seconds to wait before writing behind
    * 
    * @return Retrieves the maximum number of seconds to wait before writing behind
    */
-  int maxWriteDelay();
+  public int getMaxWriteDelay() {
+    return maxWriteDelay;
+  }
   
   /**
    * the maximum number of write operations to allow per second.
    * 
    * @return Retrieves the maximum number of write operations to allow per second.
    */
-  int rateLimitPerSecond();
+  public int getRateLimitPerSecond() {
+    return rateLimitPerSecond;
+  }
   
   /**
    * write coalescing behavior
    * 
    * @return Retrieves the write coalescing behavior is enabled or not 
    */
-  boolean writeCoalescing();
+  public boolean isWriteCoalescing() {
+    return writeCoalescing;
+  }
   
   /**
    * whether write operations should be batched
    * 
    * @return Retrieves whether write operations should be batched
    */
-  boolean writeBatching();
+  public boolean isWriteBatching() {
+    return writeBatching;
+  }
   
   /**
    * the size of the batch operation.
    * 
    * @return Retrieves the size of the batch operation.
    */
-  int writeBatchSize();
+  public int getWriteBatchSize() {
+    return writeBatchSize;
+  }
   
   /**
    * the number of times the write of element is retried.
    * 
    * @return Retrieves the number of times the write of element is retried.
    */
-  int retryAttempts();
+  public int getRetryAttempts() {
+    return retryAttempts;
+  }
   
   /**
    * the number of seconds to wait before retrying an failed operation. 
    * 
    * @return Retrieves the number of seconds to wait before retrying an failed operation. 
    */
-  int retryAttemptDelaySeconds();
+  public int getRetryAttemptDelaySeconds() {
+    return retryAttemptDelaySeconds;
+  }
   
   /**
    * the amount of bucket/thread pairs configured for this cache's write behind
    * 
    * @return Retrieves the amount of bucket/thread pairs configured for this cache's write behind
    */
-  int writeBehindConcurrency();
+  public int getWriteBehindConcurrency() {
+    return writeBehindConcurrency;
+  }
   
   /**
    * the maximum amount of operations allowed on the write behind queue
    * 
    * @return Retrieves the maximum amount of operations allowed on the write behind queue
    */
-  int writeBehindMaxQueueSize();
+  public int getWriteBehindMaxQueueSize() {
+    return writeBehindMaxQueueSize;
+  }
+
+  @Override
+  public Class<WriteBehindDecoratorLoaderWriterProvider> getServiceType() {
+    return WriteBehindDecoratorLoaderWriterProvider.class;
+  }
   
 }

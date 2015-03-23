@@ -22,13 +22,13 @@ import org.ehcache.config.DefaultConfiguration;
 import org.ehcache.events.CacheManagerListener;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.config.ConfigurationBuilder;
+import org.ehcache.config.writebehind.WriteBehindConfiguration;
+import org.ehcache.config.writebehind.WriteBehindDecoratorLoaderWriterProvider;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
-import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.CoreMatchers;
@@ -243,7 +243,7 @@ public class EhcacheManagerTest {
 
     CacheLoaderWriter fooLoaderWriter = mock(CacheLoaderWriter.class);
     
-    final CacheLoaderWriterConfiguration configuration = mock(CacheLoaderWriterConfiguration.class);
+    final WriteBehindConfiguration configuration = mock(WriteBehindConfiguration.class);
     final WriteBehindDecoratorLoaderWriterProvider decoratorLoaderWriterProvider = mock(WriteBehindDecoratorLoaderWriterProvider.class);
 
     when(cacheLoaderWriterFactory.createCacheLoaderWriter("foo", fooConfig)).thenReturn(fooLoaderWriter);

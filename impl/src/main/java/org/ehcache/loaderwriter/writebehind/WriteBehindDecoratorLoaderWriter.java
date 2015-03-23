@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.ehcache.config.writebehind.WriteBehindConfiguration;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.loaderwriter.writebehind.operations.CoalesceKeysFilter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -34,19 +35,22 @@ public class WriteBehindDecoratorLoaderWriter<K, V> implements CacheLoaderWriter
   private final CacheLoaderWriter<K, V> delegate;
   private final AggregateWriteBehindQueue<K, V> writeBehindQueue ;
   
-  public WriteBehindDecoratorLoaderWriter(CacheLoaderWriter<K, V> loaderWriter, WriteBehindConfig config) {
+  public AggregateWriteBehindQueue<K, V> getWriteBehindQueue() {
+    return writeBehindQueue;
+  }
+
+
+  public WriteBehindDecoratorLoaderWriter(CacheLoaderWriter<K, V> loaderWriter, WriteBehindConfiguration config) {
     this.delegate = loaderWriter;
     writeBehindQueue = new AggregateWriteBehindQueue<K, V>(config, loaderWriter);
     writeBehindQueue.start();
-    if(config.getWriteCoalescing()) writeBehindQueue.setOperationsFilter(new CoalesceKeysFilter<K, V>());
+    if(config.isWriteCoalescing()) writeBehindQueue.setOperationsFilter(new CoalesceKeysFilter<K, V>());
   }
   
 
   @Override
   public V load(K key) throws Exception {
-    V v = null;
-    v = writeBehindQueue.load(key);
-    return v == null ? delegate.load(key) : v ;
+    return writeBehindQueue.load(key); 
   }
 
   @Override
@@ -58,6 +62,8 @@ public class WriteBehindDecoratorLoaderWriter<K, V> implements CacheLoaderWriter
       if (v != null) entries.put(k, v) ; 
       else missingKeys.add(k) ;
     }
+    // This can lead to a condition where after the key in missing list gets a write operation
+    // added to the waiting queue
     Map<K, V> missingEntries = delegate.loadAll(missingKeys);
     entries.putAll(missingEntries);
     return entries;

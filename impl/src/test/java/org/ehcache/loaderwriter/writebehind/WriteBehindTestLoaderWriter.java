@@ -18,6 +18,7 @@ package org.ehcache.loaderwriter.writebehind;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.ehcache.exceptions.BulkCacheWritingException;
@@ -31,13 +32,23 @@ public class WriteBehindTestLoaderWriter<K, V> implements CacheLoaderWriter<K, V
 
   private final Map<K, Pair<K, V>> data = new HashMap<K, Pair<K,V>>(); 
   private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+  private CountDownLatch latch;
   
+  public CountDownLatch getLatch() {
+    return latch;
+  }
+
+  public void setLatch(CountDownLatch latch) {
+    this.latch = latch;
+  }
+
   @Override
   public V load(K key) throws Exception {
     V v = null;
     lock.readLock().lock();
     try {
-      v = data.get(key).getValue();
+      Pair<K, V> kVPair = data.get(key); 
+      v = kVPair == null ? null : kVPair.getValue();
     } finally {
       lock.readLock().unlock();
     }
@@ -64,6 +75,7 @@ public class WriteBehindTestLoaderWriter<K, V> implements CacheLoaderWriter<K, V
     lock.writeLock().lock();
     try {
       data.put(key, new Pair<K, V>(key, value));
+      if(latch != null) latch.countDown();
     } finally {
       lock.writeLock().unlock();
     }
@@ -75,7 +87,8 @@ public class WriteBehindTestLoaderWriter<K, V> implements CacheLoaderWriter<K, V
     lock.writeLock().lock();
     try {
       for (Entry<? extends K, ? extends V> entry : entries) {
-       data.put(entry.getKey(), new Pair<K, V>(entry.getKey(), entry.getValue())); 
+       data.put(entry.getKey(), new Pair<K, V>(entry.getKey(), entry.getValue()));
+       if(latch != null) latch.countDown();
       }
     } finally {
       lock.writeLock().unlock();
@@ -87,6 +100,7 @@ public class WriteBehindTestLoaderWriter<K, V> implements CacheLoaderWriter<K, V
     lock.writeLock().lock();
     try {
       data.remove(key);
+      if(latch != null) latch.countDown();
     } finally {
       lock.writeLock().unlock();
     }
@@ -98,6 +112,7 @@ public class WriteBehindTestLoaderWriter<K, V> implements CacheLoaderWriter<K, V
     try {
       for (K k : keys) {
         data.remove(k);
+        if(latch != null) latch.countDown();
       }
     } finally {
       lock.writeLock().unlock();

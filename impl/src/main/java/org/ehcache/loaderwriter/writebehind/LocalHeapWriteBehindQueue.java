@@ -18,6 +18,7 @@ package org.ehcache.loaderwriter.writebehind;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.ehcache.config.writebehind.WriteBehindConfiguration;
 import org.ehcache.loaderwriter.writebehind.operations.SingleOperation;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
@@ -29,7 +30,7 @@ public class LocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehindQueue<K,
   
   private List<SingleOperation<K, V>> waiting = new ArrayList<SingleOperation<K, V>>();
 
-  LocalHeapWriteBehindQueue(WriteBehindConfig config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+  LocalHeapWriteBehindQueue(WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     super(config, cacheLoaderWriter);
   }
   
