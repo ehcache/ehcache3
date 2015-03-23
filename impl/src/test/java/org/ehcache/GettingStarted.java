@@ -73,8 +73,8 @@ public class GettingStarted {
     standaloneCache.close(); // <12>
 
     PersistentCacheManager persistentCacheManager = newCacheManagerBuilder()
-            .with(persistence(System.getProperty("javaio.tmp.dir"))) // <13>
-            .build();
+        .with(persistence(System.getProperty("java.io.tmpdir") + "/myData")) // <13>
+        .build();
 
     persistentCacheManager.close();
   }
