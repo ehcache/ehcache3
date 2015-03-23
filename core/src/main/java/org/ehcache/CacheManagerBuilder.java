@@ -20,10 +20,12 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheManagerConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.DefaultConfiguration;
+import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -89,5 +91,9 @@ public class CacheManagerBuilder<T extends CacheManager> {
 
   public static CacheManagerBuilder<CacheManager> newCacheManagerBuilder() {
     return new CacheManagerBuilder<CacheManager>();
+  }
+
+  public static PersistenceConfiguration persistence(String location) {
+    return new PersistenceConfiguration(new File(location));
   }
 }
