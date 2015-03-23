@@ -56,11 +56,18 @@
   <xs:complexType name="service-type">
     <xs:choice>
       <xs:element name="serializer-default" type="ehcache:serializer-type" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="persistence" type="ehcache:persistence-type" minOccurs="0" maxOccurs="1"/>
       <xs:any namespace="##other" minOccurs="0" maxOccurs="1"/>
     </xs:choice>
   </xs:complexType>
-  
-   <xs:complexType name="serializer-type">
+
+  <xs:complexType name="persistence-type">
+    <xs:sequence>
+      <xs:element name="directory" type="xs:string" minOccurs="1" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="serializer-type">
     <xs:sequence>
       <xs:element name="class" maxOccurs="unbounded" minOccurs="0">
         <xs:complexType>

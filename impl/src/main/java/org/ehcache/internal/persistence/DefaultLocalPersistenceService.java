@@ -18,6 +18,7 @@ package org.ehcache.internal.persistence;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.internal.store.disk.DiskStorePathManager;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -26,46 +27,62 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileLock;
+import java.util.UUID;
 
 /**
  * @author Alex Snaps
  */
 public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
+  private static final DiskStorePathManager DISK_STORE_PATH_MANAGER = new DiskStorePathManager();
+
   private final File rootDirectory;
   private FileLock lock;
   private File lockFile;
   private RandomAccessFile rw;
 
+  private boolean started;
+
   public DefaultLocalPersistenceService(final PersistenceConfiguration persistenceConfiguration) {
-    rootDirectory = persistenceConfiguration.getRootDirectory();
+    if(persistenceConfiguration != null) {
+      rootDirectory = persistenceConfiguration.getRootDirectory();
+    } else {
+      // todo: this probably isn't smart... null shouldn't mean that!
+      rootDirectory = new File(System.getProperty("java.io.tmpdir") + UUID.randomUUID());
+    }
   }
 
   @Override
   public synchronized void start(final ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
-    createLocationIfRequiredAndVerify(rootDirectory);
-    try {
-      lockFile = new File(rootDirectory + File.separator + ".lock");
-      rw = new RandomAccessFile(lockFile, "rw");
-      lock = rw.getChannel().lock();
-    } catch (IOException e) {
-      throw new RuntimeException("Couldn't lock rootDir: " + rootDirectory.getAbsolutePath(), e);
+    if (!started) {
+      createLocationIfRequiredAndVerify(rootDirectory);
+      try {
+        lockFile = new File(rootDirectory + File.separator + ".lock");
+        rw = new RandomAccessFile(lockFile, "rw");
+        lock = rw.getChannel().lock();
+      } catch (IOException e) {
+        throw new RuntimeException("Couldn't lock rootDir: " + rootDirectory.getAbsolutePath(), e);
+      }
+      started = true;
     }
   }
 
   @Override
   public synchronized void stop() {
-    try {
-      lock.release();
-      // Closing RandomAccessFile so that files gets deleted on windows and
-      // org.ehcache.internal.persistence.DefaultLocalPersistenceServiceTest.testLocksDirectoryAndUnlocks()
-      // passes on windows
-      rw.close();
-      if (!lockFile.delete()) {
-        // todo log something?;
+    if (started) {
+      try {
+        lock.release();
+        // Closing RandomAccessFile so that files gets deleted on windows and
+        // org.ehcache.internal.persistence.DefaultLocalPersistenceServiceTest.testLocksDirectoryAndUnlocks()
+        // passes on windows
+        rw.close();
+        if (!lockFile.delete()) {
+          // todo log something?;
+        }
+      } catch (IOException e) {
+        throw new RuntimeException("Couldn't unlock rootDir: " + rootDirectory.getAbsolutePath(), e);
       }
-    } catch (IOException e) {
-      throw new RuntimeException("Couldn't unlock rootDir: " + rootDirectory.getAbsolutePath(), e);
+      started = false;
     }
   }
 
@@ -86,6 +103,16 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   @Override
   public Object persistenceContext(final String cacheAlias, final CacheConfiguration<?, ?> cacheConfiguration) {
     throw new UnsupportedOperationException("Implement me!");
+  }
+
+  @Override
+  public File getDataFile(Object identifier) {
+    return DISK_STORE_PATH_MANAGER.getFile(identifier, ".data");
+  }
+
+  @Override
+  public File getIndexFile(Object identifier) {
+    return DISK_STORE_PATH_MANAGER.getFile(identifier, ".index");
   }
 
   File getLockFile() {

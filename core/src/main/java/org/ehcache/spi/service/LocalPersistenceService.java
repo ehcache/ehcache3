@@ -18,10 +18,18 @@ package org.ehcache.spi.service;
 
 import org.ehcache.config.CacheConfiguration;
 
+import java.io.File;
+
 /**
  * @author Alex Snaps
  */
 public interface LocalPersistenceService extends Service {
 
   Object persistenceContext(String cacheAlias, CacheConfiguration<?, ?> cacheConfiguration);
+
+  @Deprecated
+  File getDataFile(Object identifier);
+
+  @Deprecated
+  File getIndexFile(Object identifier);
 }
