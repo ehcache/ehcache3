@@ -13,6 +13,8 @@ WARNING: *This is still a work in progress*. While it represents the API as it e
 
 === Configuring it all in Java
 
+==== Managed cache
+
 [source,java,indent=0]
 ----
 include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=cachemanagerExample]
@@ -39,6 +41,8 @@ include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=cachemanag
 <9> In order to release all transient resources (memory, threads, ...) a `CacheManager` provides to `Cache` instances
      it manages, you have to invoke `CacheManager.close()`, which in turns closes all `Cache` instances known at the time.
 
+==== Standalone cache
+
 [source,java,indent=0]
 ----
 include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=standaloneCacheExample]
@@ -48,8 +52,20 @@ include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=standalone
 <2> As there is nothing that manages them, it is up to you to `StandaloneCache.init()` them, prior to using them.
 <3> You can use the Standalone cache exactly as a managed cache
 <4> In the same vein, a `StandaloneCache` requires you to `StandaloneCache.close()` it explicitly. If you would also use
-    managed caches simultaneously, the `CacheManager.close()` operation would not impact the Standalone cache
-     in step #11, did not affect our `StandaloneCache` in any way.
+    managed caches simultaneously, the `CacheManager.close()` operation would not impact the Standalone cache.
+
+==== Off-heap
+
+[source,java,indent=0]
+----
+include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=offheapCacheManager]
+----
+
+<1> If you wish to use off-heap, you'll have to define resource pool, giving the memory size you want to allocate.
+
+Do not forget to define in the java options the -XX:MaxDirectMemorySize option, according to the off-heap size you intend to use.
+
+==== Disk persistence
 
 [source,java,indent=0]
 ----
@@ -60,13 +76,6 @@ include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=persistent
     `LocalPersistenceService` with your `CacheManager`, which you can do by providing the location where
     data should be stored on disk to the `CacheManagerBuilder.persistence(String)` static method.
 <2> You define a resource pool for the disk.
-
-[source,java,indent=0]
-----
-include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=offheapCacheManager]
-----
-
-<1> If you wish to use off-heap, you'll have to define resource pool, giving the memory size you want to allocate.
 
 === It wouldn't be Java without _some_ XML
 
