@@ -29,17 +29,17 @@ import java.util.List;
 /**
  * @author Ludovic Orban
  */
-public class DataStoreAside {
+public class DataStore {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(DataStoreAside.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(DataStore.class);
 
-  public final DataCacheAside dataCacheAside = new DataCacheAside();
+  public final DataCache dataCache = new DataCache();
 
   private Connection connection;
 
 
   public void init() throws Exception {
-    dataCacheAside.setupCache();
+    dataCache.setupCache();
     Class.forName("org.h2.Driver");
     connection = DriverManager.getConnection("jdbc:h2:~/ehcache-demo-peeper", "sa", "");
 
@@ -67,7 +67,7 @@ public class DataStoreAside {
       //For any add in database; clear the cache
       //LOGGER.info(" Added new peep in DB, clearing cache...");
       LOGGER.info("Clearing peeps cache");
-      dataCacheAside.clearCache();
+      dataCache.clearCache();
     } finally {
       preparedStatement.close();
     }
@@ -76,7 +76,7 @@ public class DataStoreAside {
   public synchronized List<String> findAllPeeps() throws Exception {
     List<String> result = new ArrayList<String>();
     //find from cache 1st
-    List<String> fromCache = dataCacheAside.getFromCache();
+    List<String> fromCache = dataCache.getFromCache();
     if (fromCache != null) {
       LOGGER.info("Getting peeps from cache");
       return fromCache;
@@ -96,12 +96,12 @@ public class DataStoreAside {
     }
 
     LOGGER.info("Filling cache with peeps");
-    dataCacheAside.addToCache(result);
+    dataCache.addToCache(result);
     return result;
   }
 
   public void close() throws Exception {
-    dataCacheAside.close();
+    dataCache.close();
     connection.close();
   }
 
