@@ -91,8 +91,9 @@ public class GettingStarted {
   public void persistentCacheManager() {
     // tag::persistentCacheManager[]
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new PersistenceConfiguration(new File("build/persistent-cache-data"))) // <1>
+        .with(new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/myData"))) // <1>
         .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder()
+            .persistenceMode(CacheConfiguration.PersistenceMode.CREATE_IF_ABSENT)
             .withResourcePools(newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
                 .disk(100, EntryUnit.ENTRIES) // <2>
@@ -164,7 +165,7 @@ public class GettingStarted {
         .buildConfig(Long.class, String.class);
 
     PersistentCacheManager persistentCacheManager = newCacheManagerBuilder()
-        .with(new PersistenceConfiguration(new File("build/persistent-cache-data")))
+        .with(new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/persistent-cache-data")))
         .withCache("persistent-cache", cacheConfiguration)
         .build();
 
