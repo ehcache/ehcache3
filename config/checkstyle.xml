@@ -15,7 +15,7 @@
 
   <!-- Copyright header -->
   <module name="Header">
-    <property name="headerFile" value="${projectDir}/../config/java.header"/>
+    <property name="headerFile" value="${rootDir}/config/java.header"/>
     <property name="fileExtensions" value="java"/>
   </module>
   
