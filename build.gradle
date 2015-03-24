@@ -135,7 +135,7 @@ subprojects {
   apply plugin: 'jacoco'
 
   group = 'org.ehcache.modules'
-  version = '3.0.0-SNAPSHOT'
+  version = '3.0.0.m1'
 
   ext.isReleaseVersion = !version.endsWith('SNAPSHOT')
 
