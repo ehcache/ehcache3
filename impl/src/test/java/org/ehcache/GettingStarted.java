@@ -19,6 +19,7 @@ package org.ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -96,6 +97,24 @@ public class GettingStarted {
     tieredCache.put(1L, "one");
 
     assertThat(tieredCache.get(1L), equalTo("one")); // probably coming from disk
+    assertThat(tieredCache.get(1L), equalTo("one")); // probably coming from heap
+
+    cacheManager.close();
+  }
+
+  @Test
+  public void testTieredOffHeapStore() throws Exception {
+    CacheConfiguration<Long, String> tieredCacheConfiguration = newCacheConfigurationBuilder()
+        .withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB).build())
+        .buildConfig(Long.class, String.class);
+
+    CacheManager cacheManager = newCacheManagerBuilder().withCache("tieredCache", tieredCacheConfiguration).build();
+
+    Cache<Long, String> tieredCache = cacheManager.getCache("tieredCache", Long.class, String.class);
+
+    tieredCache.put(1L, "one");
+
+    assertThat(tieredCache.get(1L), equalTo("one")); // probably coming from offheap
     assertThat(tieredCache.get(1L), equalTo("one")); // probably coming from heap
 
     cacheManager.close();

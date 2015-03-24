@@ -15,6 +15,8 @@
  */
 package org.ehcache.config;
 
+import org.ehcache.config.units.MemoryUnit;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,6 +41,11 @@ public class ResourcePoolsBuilder {
 
   public ResourcePoolsBuilder heap(long size, ResourceUnit unit) {
     resourcePools.put(ResourceType.Core.HEAP, new ResourcePoolImpl(ResourceType.Core.HEAP, size, unit));
+    return this;
+  }
+
+  public ResourcePoolsBuilder offheap(long size, MemoryUnit unit) {
+    resourcePools.put(ResourceType.Core.OFFHEAP, new ResourcePoolImpl(ResourceType.Core.OFFHEAP, size, unit));
     return this;
   }
 

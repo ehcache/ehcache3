@@ -67,7 +67,6 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testGetOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
@@ -81,7 +80,6 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(listener.expired, hasItem(k));
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testContainsKeyOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
@@ -95,7 +93,6 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(listener.expired, hasItem(k));
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testPutIfAbsentOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
@@ -110,7 +107,6 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(listener.expired, hasItem(k));
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testRemoveOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
@@ -124,7 +120,6 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(listener.expired, hasItem(k));
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testReplaceTwoArgsOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
@@ -138,7 +133,6 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(listener.expired, hasItem(k));
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testReplaceThreeArgsOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
@@ -152,7 +146,6 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(listener.expired, hasItem(k));
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testComputeOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
@@ -172,7 +165,6 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(listener.expired, hasItem(k));
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testComputeIfAbsentOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
@@ -193,7 +185,6 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(listener.expired, hasItem(k));
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testComputeIfPresentOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
@@ -214,7 +205,6 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(listener.expired, hasItem(k));
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testPutOnEviction() throws Exception {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
@@ -228,7 +218,6 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(listener.evicted, anyOf(hasItem(k), hasItem(k2)));
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testPutIfAbsentOnEviction() throws Exception {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
@@ -243,7 +232,6 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(listener.evicted, anyOf(hasItem(k), hasItem(k2)));
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testReplaceTwoArgsOnEviction() throws Exception {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
@@ -259,7 +247,6 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(kvStore.get(getOnlyKey(kvStore.iterator())).value(), is(v3));
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testComputeOnEviction() throws Exception {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
@@ -278,7 +265,6 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(listener.evicted, anyOf(hasItem(k), hasItem(k2)));
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testComputeIfAbsentOnEviction() throws Exception {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),

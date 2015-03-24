@@ -121,6 +121,10 @@ def fillManifest(manifest, title) {
   )
 }
 
+ext {
+  offHeapVersion = '2.0.0'
+}
+
 subprojects {
   apply plugin: 'java'
   apply plugin: 'maven'

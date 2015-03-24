@@ -23,28 +23,100 @@ import org.ehcache.config.ResourceUnit;
  * @author Ludovic Orban
  */
 public enum MemoryUnit implements ResourceUnit {
+
   /**
    * Bytes unit.
    */
-  B,
+  B {
+    /**
+     * {@inheritDoc}
+     */
+    public long toBytes(long size) {
+      return size;
+    }
+  },
   /**
    * Kilobytes unit.
    */
-  KB,
+  KB {
+    /**
+     * {@inheritDoc}
+     */
+    public long toBytes(long size) {
+      return x(size, KILOBYTE / BYTE, MAX / (KILOBYTE / BYTE));
+    }
+  },
   /**
    * Megabytes unit.
    */
-  MB,
+  MB {
+    /**
+     * {@inheritDoc}
+     */
+    public long toBytes(long size) {
+      return x(size, MEGABYTE / BYTE, MAX / (MEGABYTE / BYTE));
+    }
+  },
   /**
    * Gigabytes unit.
    */
-  GB,
+  GB {
+    /**
+     * {@inheritDoc}
+     */
+    public long toBytes(long size) {
+      return x(size, GIGABYTE / BYTE, MAX / (GIGABYTE / BYTE));
+    }
+  },
   /**
    * Terabytes unit.
    */
-  TB,
+  TB {
+    /**
+     * {@inheritDoc}
+     */
+    public long toBytes(long size) {
+      return x(size, TERABYTE / BYTE, MAX / (TERABYTE / BYTE));
+    }
+  },
   /**
    * Petabytes unit.
    */
-  PB,
+  PB {
+    /**
+     * {@inheritDoc}
+     */
+    public long toBytes(long size) {
+      return x(size, PETABYTE / BYTE, MAX / (PETABYTE / BYTE));
+    }
+  };
+
+  static final long BYTE = 1L;
+  static final long KILOBYTE = 1024L;
+  static final long MEGABYTE = KILOBYTE * 1024L;
+  static final long GIGABYTE = MEGABYTE * 1024L;
+  static final long TERABYTE = GIGABYTE * 1024L;
+  static final long PETABYTE = TERABYTE * 1024L;
+
+  static final long MAX = Long.MAX_VALUE;
+
+  /**
+   * Scale d by m, checking for overflow.
+   * This has a short name to make above code more readable.
+   */
+  static long x(long d, long m, long over) {
+      if (d >  over) return Long.MAX_VALUE;
+      if (d < -over) return Long.MIN_VALUE;
+      return d * m;
+  }
+
+  /**
+   * Returns the size in bytes according to the unit this is invoked on.
+   *
+   * @param size the size, relative to the unit
+   * @return the size in bytes
+   */
+  public long toBytes(long size) {
+    throw new AbstractMethodError();
+  }
 }

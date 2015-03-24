@@ -22,7 +22,19 @@ import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration.TypeSerializerConfig;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.config.xml.model.*;
+import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.config.xml.model.BaseCacheType;
+import org.ehcache.config.xml.model.CacheIntegration;
+import org.ehcache.config.xml.model.CacheTemplateType;
+import org.ehcache.config.xml.model.CacheType;
+import org.ehcache.config.xml.model.ConfigType;
+import org.ehcache.config.xml.model.ExpiryType;
+import org.ehcache.config.xml.model.PersistenceType;
+import org.ehcache.config.xml.model.ResourceType;
+import org.ehcache.config.xml.model.ResourcesType;
+import org.ehcache.config.xml.model.SerializerType;
+import org.ehcache.config.xml.model.ServiceType;
+import org.ehcache.config.xml.model.TimeType;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -277,6 +289,10 @@ class ConfigurationParser {
                   if (heapResource != null) {
                     resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, heapResource.getSize().longValue(), parseUnit(heapResource)));
                   }
+                  ResourceType offheapResource = resources.getOffheap();
+                  if (offheapResource != null) {
+                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.OFFHEAP, offheapResource.getSize().longValue(), parseUnit(offheapResource)));
+                  }
                   ResourceType diskResource = resources.getDisk();
                   if (diskResource != null) {
                     resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK, diskResource.getSize().longValue(), parseUnit(diskResource)));
@@ -394,6 +410,10 @@ class ConfigurationParser {
                 if (heapResource != null) {
                   resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, heapResource.getSize().longValue(), parseUnit(heapResource)));
                 }
+                ResourceType offheapResource = resources.getOffheap();
+                if (offheapResource != null) {
+                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.OFFHEAP, offheapResource.getSize().longValue(), parseUnit(offheapResource)));
+                }
                 ResourceType diskResource = resources.getDisk();
                 if (diskResource != null) {
                   resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK, diskResource.getSize().longValue(), parseUnit(diskResource)));
@@ -410,8 +430,11 @@ class ConfigurationParser {
   }
 
   private ResourceUnit parseUnit(ResourceType resourceType) {
-    //TODO add support for other unit types
-    return EntryUnit.ENTRIES;
+    if (resourceType.getUnit().value().equalsIgnoreCase("entries")) {
+      return EntryUnit.ENTRIES;
+    } else {
+      return MemoryUnit.valueOf(resourceType.getUnit().value().toUpperCase());
+    }
   }
 
   private ServiceConfiguration<?> parseExtension(final Element element) {

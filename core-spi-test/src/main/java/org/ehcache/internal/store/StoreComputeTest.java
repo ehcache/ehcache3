@@ -67,7 +67,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
       value = "value";
     }
 
-    final K key = factory.getKeyType().newInstance();
+    final K key = factory.createKey(13);
     try {
       kvStore.compute(key, new BiFunction() {
         @Override
@@ -121,8 +121,8 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   public void testComputePutsValueInStore() throws Exception {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
-    final K key = factory.getKeyType().newInstance();
-    final V value = factory.getValueType().newInstance();
+    final K key = factory.createKey(14);
+    final V value = factory.createValue(153);
 
     try {
       kvStore.compute(key, new BiFunction<K, V, V>() {
@@ -142,8 +142,8 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   public void testOverwriteExitingValue() throws Exception {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
-    final K key = factory.getKeyType().newInstance();
-    final V value = factory.getValueType().newInstance();
+    final K key = factory.createKey(151);
+    final V value = factory.createValue(1525);
     final V value2 = factory.createValue(System.nanoTime());
 
     assertThat(value2, not(equalTo(value)));
@@ -167,8 +167,8 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   public void testNullReturnRemovesEntry() throws Exception {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
-    final K key = factory.getKeyType().newInstance();
-    final V value = factory.getValueType().newInstance();
+    final K key = factory.createKey(1535603985);
+    final V value = factory.createValue(15920835);
 
     try {
       kvStore.put(key, value);
@@ -189,8 +189,8 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   public void testException() throws Exception {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
-    final K key = factory.getKeyType().newInstance();
-    final V value = factory.getValueType().newInstance();
+    final K key = factory.createKey(520928098);
+    final V value = factory.createValue(15098209865L);
 
     final RuntimeException re = new RuntimeException();
 

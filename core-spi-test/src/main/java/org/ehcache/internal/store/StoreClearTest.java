@@ -59,8 +59,8 @@ public class StoreClearTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void removesAllOfTheMappings()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
-    K key = factory.getKeyType().newInstance();
-    V value = factory.getValueType().newInstance();
+    K key = factory.createKey(42);
+    V value = factory.createValue(42);
 
     kvStore.put(key, value);
 

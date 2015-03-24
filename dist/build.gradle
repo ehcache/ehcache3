@@ -25,6 +25,8 @@ def projectsToInclude = [':api', ':core', ':impl', ':jmx', ':107', ':xml']
 dependencies {
   projectsToInclude.each {compile project(it)}
   shadow 'org.slf4j:slf4j-api:1.7.7'
+  shadow group: 'org.terracotta', name: 'offheap-store', version: parent.offHeapVersion
+
 }
 
 shadowJar {

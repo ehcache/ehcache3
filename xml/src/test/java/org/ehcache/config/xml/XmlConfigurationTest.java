@@ -23,7 +23,9 @@ import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -267,6 +269,11 @@ public class XmlConfigurationTest {
     assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(10L));
     assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK).getSize(), equalTo(100L));
 
+    CacheConfiguration<?, ?> tieredOffHeapCacheConfig = xmlConfig.getCacheConfigurations().get("tieredOffHeap");
+    assertThat(tieredOffHeapCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(10L));
+    assertThat(tieredOffHeapCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getSize(), equalTo(10L));
+    assertThat(tieredOffHeapCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getUnit(), equalTo((ResourceUnit) MemoryUnit.MB));
+
     CacheConfiguration<?, ?> explicitHeapOnlyCacheConfig = xmlConfig.getCacheConfigurations().get("explicitHeapOnly");
     assertThat(explicitHeapOnlyCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(15L));
     assertThat(explicitHeapOnlyCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK), is(nullValue()));
@@ -284,6 +291,11 @@ public class XmlConfigurationTest {
     CacheConfigurationBuilder<Object, Object> tieredResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("tieredResourceTemplate");
     assertThat(tieredResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(5L));
     assertThat(tieredResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource(ResourceType.Core.DISK).getSize(), equalTo(50L));
+
+    CacheConfigurationBuilder<Object, Object> tieredOffHeapResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("tieredOffHeapResourceTemplate");
+    assertThat(tieredOffHeapResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(5L));
+    assertThat(tieredOffHeapResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getSize(), equalTo(50L));
+    assertThat(tieredOffHeapResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getUnit(), equalTo((ResourceUnit)MemoryUnit.MB));
 
     CacheConfigurationBuilder<Object, Object> explicitHeapResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("explicitHeapResourceTemplate");
     assertThat(explicitHeapResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(15L));

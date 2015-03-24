@@ -31,6 +31,10 @@ public interface ResourceType {
      */
     HEAP,
     /**
+     * OffHeap resource.
+     */
+    OFFHEAP,
+    /**
      * Disk resource.
      */
     DISK,
