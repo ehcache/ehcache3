@@ -17,6 +17,8 @@
 package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
@@ -27,8 +29,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 
 import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
-import static org.ehcache.CacheManagerBuilder.persistence;
-import static org.ehcache.StandaloneCacheBuilder.newCacheBuilder;
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -42,45 +42,81 @@ import static org.hamcrest.core.Is.is;
 public class GettingStarted {
 
   /**
-   * If you change this somehow, you probably want to fix the /README.adoc as well!
+   * If you add new examples, you should use tags to have them included in the README.adoc
+   * You need to edit the README.adoc too to add  your new content.
    * The callouts are also used in docs/user/index.adoc
    */
 
   @Test
-  public void testWikiExample() {
-
-    final CacheManager cacheManager
-        = newCacheManagerBuilder() // <1>
+  public void cachemanagerExample() {
+    // tag::cachemanagerExample[]
+    CacheManager cacheManager
+        = CacheManagerBuilder.newCacheManagerBuilder() // <1>
         .withCache("preConfigured",
-            newCacheConfigurationBuilder().buildConfig(Long.class, String.class)) // <2>
+            CacheConfigurationBuilder.newCacheConfigurationBuilder()
+                .buildConfig(Long.class, String.class)) // <2>
         .build(); // <3>
 
-    final Cache<Long, String> preConfigured =
+    Cache<Long, String> preConfigured =
         cacheManager.getCache("preConfigured", Long.class, String.class); // <4>
 
-    final Cache<Long, String> myCache = cacheManager.createCache("myCache", // <5>
-        newCacheConfigurationBuilder().buildConfig(Long.class, String.class));
+    Cache<Long, String> myCache = cacheManager.createCache("myCache", // <5>
+        CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Long.class, String.class));
 
     myCache.put(1L, "da one!"); // <6>
-    final String value = myCache.get(1L); // <7>
+    String value = myCache.get(1L); // <7>
 
     cacheManager.removeCache("preConfigured"); // <8>
 
-    final StandaloneCache<Long, String> standaloneCache =
-        newCacheBuilder(Long.class, String.class,
+    cacheManager.close(); // <9>
+    // end::cachemanagerExample[]
+  }
+
+  @Test
+  public void standaloneCacheExample() {
+    // tag::standaloneCacheExample[]
+    StandaloneCache<Long, String> standaloneCache =
+        StandaloneCacheBuilder.newCacheBuilder(Long.class, String.class,
             LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted"))
-        .build(); // <9>
-    standaloneCache.init(); // <10>
+            .build(); // <1>
+    standaloneCache.init(); // <2>
 
-    cacheManager.close(); // <11>
+    standaloneCache.put(1L, "da one!"); // <3>
 
-    standaloneCache.close(); // <12>
+    standaloneCache.close(); // <4>
+    // end::standaloneCacheExample[]
+  }
 
-    PersistentCacheManager persistentCacheManager = newCacheManagerBuilder()
-        .with(persistence(System.getProperty("java.io.tmpdir") + "/myData")) // <13>
+  @Test
+  public void persistentCacheManager() {
+    // tag::persistentCacheManager[]
+    PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .with(new PersistenceConfiguration(new File("build/persistent-cache-data"))) // <1>
+        .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder()
+            .withResourcePools(newResourcePoolsBuilder()
+                .heap(10, EntryUnit.ENTRIES)
+                .disk(100, EntryUnit.ENTRIES) // <2>
+                .build())
+            .buildConfig(Long.class, String.class))
         .build();
 
     persistentCacheManager.close();
+    // end::persistentCacheManager[]
+  }
+
+  @Test
+  public void offheapCacheManager() {
+    // tag::offheapCacheManager[]
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("tieredCache",
+        CacheConfigurationBuilder.newCacheConfigurationBuilder()
+            .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+                .heap(10, EntryUnit.ENTRIES)
+                .offheap(10, MemoryUnit.MB) // <1>
+                .build())
+            .buildConfig(Long.class, String.class)).build();
+
+    cacheManager.close();
+    // end::offheapCacheManager[]
   }
 
   @Test
@@ -149,15 +185,18 @@ public class GettingStarted {
     CacheManager cacheManager = newCacheManagerBuilder().build();
 
     final Cache<Long, String> cache1 = cacheManager.createCache("cache1",
-        newCacheConfigurationBuilder().withResourcePools(newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).build()).buildConfig(Long.class, String.class));
+        newCacheConfigurationBuilder().withResourcePools(newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).build())
+            .buildConfig(Long.class, String.class));
     performAssertions(cache1, true);
 
     final Cache<Long, String> cache2 = cacheManager.createCache("cache2",
-        newCacheConfigurationBuilder().addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true)).buildConfig(Long.class, String.class));
+        newCacheConfigurationBuilder().addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true))
+            .buildConfig(Long.class, String.class));
     performAssertions(cache2, false);
 
     final Cache<Long, String> cache3 = cacheManager.createCache("cache3",
-        newCacheConfigurationBuilder().addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(false)).buildConfig(Long.class, String.class));
+        newCacheConfigurationBuilder().addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(false))
+            .buildConfig(Long.class, String.class));
     performAssertions(cache3, true);
 
     cacheManager.close();

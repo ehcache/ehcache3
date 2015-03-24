@@ -15,7 +15,7 @@ WARNING: *This is still a work in progress*. While it represents the API as it e
 
 [source,java,indent=0]
 ----
-include::../../impl/src/test/java/org/ehcache/GettingStarted.java[lines=52..83]
+include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=cachemanagerExample]
 ----
 
 <1> Static method `org.ehcache.CacheManagerBuilder.newCacheManagerBuilder` that returns a new `org.ehcache.CacheManagerBuilder`
@@ -36,15 +36,37 @@ include::../../impl/src/test/java/org/ehcache/GettingStarted.java[lines=52..83]
 <8> We can also `CacheManager.remove()` a given `Cache`. The `CacheManager` will not only remove it's reference to the
     `Cache`, but will also close it. The `Cache` releases all locally held transient resources (such as memory).
     References to this `Cache` become unusable.
-<9> A new feature of Ehcache 3.0 is the ability to create `StandaloneCache` instances, i.e. ones not managed by a `CacheManager`;
-<10> As there is nothing that manages them, it is up to you to `StandaloneCache.init()` them, prior to using them.
-<11> In order to release all transient resources (memory, threads, ...) a `CacheManager` provides to `Cache` instances
+<9> In order to release all transient resources (memory, threads, ...) a `CacheManager` provides to `Cache` instances
      it manages, you have to invoke `CacheManager.close()`, which in turns closes all `Cache` instances known at the time.
-<12> In the same vein, a `StandaloneCache` requires you to `StandaloneCache.close()` it explicitly. The `CacheManager.close()`
+
+[source,java,indent=0]
+----
+include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=standaloneCacheExample]
+----
+
+<1> A new feature of Ehcache 3.0 is the ability to create `StandaloneCache` instances, i.e. ones not managed by a `CacheManager`;
+<2> As there is nothing that manages them, it is up to you to `StandaloneCache.init()` them, prior to using them.
+<3> You can use the Standalone cache exactly as a managed cache
+<4> In the same vein, a `StandaloneCache` requires you to `StandaloneCache.close()` it explicitly. If you would also use
+    managed caches simultaneously, the `CacheManager.close()` operation would not impact the Standalone cache
      in step #11, did not affect our `StandaloneCache` in any way.
-<13> If you wish to use disk storage (like for persistent `Cache` instances), you'll have to register a
-     `LocalPersistenceService` with your `CacheManager`, which you can do by providing the location where
-     data should be stored on disk to the `CacheManagerBuilder.persistence(String)` static method.
+
+[source,java,indent=0]
+----
+include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=persistentCacheManager]
+----
+
+<1> If you wish to use disk storage (like for persistent `Cache` instances), you'll have to register a
+    `LocalPersistenceService` with your `CacheManager`, which you can do by providing the location where
+    data should be stored on disk to the `CacheManagerBuilder.persistence(String)` static method.
+<2> You define a resource pool for the disk.
+
+[source,java,indent=0]
+----
+include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=offheapCacheManager]
+----
+
+<1> If you wish to use off-heap, you'll have to define resource pool, giving the memory size you want to allocate.
 
 === It wouldn't be Java without _some_ XML
 
@@ -52,35 +74,16 @@ You can create a XML file to configure a `CacheManager`:
 
 [source,xml]
 ----
-<config
-    xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
-    xmlns='http://www.ehcache.org/v3'>
-
-  <cache alias="foo"> <!--1-->
-    <key-type>java.lang.String</key-type> <!--2-->
-    <capacity>2000</capacity> <!--3-->
-  </cache>
-
-  <cache-template name="myDefaults"> <!--4-->
-    <key-type>java.lang.Long</key-type>
-    <value-type>java.lang.String</value-type>
-    <capacity>200</capacity>
-  </cache-template>
-
-  <cache alias="bar" usesTemplate="myDefaults"> <!--5-->
-    <key-type>java.lang.Number</key-type>
-  </cache>
-
-  <cache alias="simpleCache" usesTemplate="myDefaults" /> <!--6-->
-</config>
+include::../../xml/src/test/resources/configs/getting-started.xml[tags=gettingStarted]
 ----
 
 <1> Declares a `Cache` aliased to `foo`
 <2> The keys of `foo` are declared as type `String`; since the value type is not specified, the values will be of type `Object`.
-<3> `foo` is declared to hold up to 2,000 entries before it starts evicting
-<4> `<cache-template>` elements let you create an abstract configuration that further `<cache>` configuration can then _extend_
-<5> `bar` is such a `Cache`.   `bar` uses the `<cache-template>` named `myDefaults` and overrides its `key-type` to a wider type.
-<6> `simpleCache` is another such a `Cache`.  It uses `myDefaults` configuration for its sole `CacheConfiguration`.
+<3> `foo` is declared to hold up to 2,000 entries on heap...
+<4> ...as well as up to 500 MB of off-heap memory before it starts evicting
+<5> `<cache-template>` elements let you create an abstract configuration that further `<cache>` configuration can then _extend_
+<6> `bar` is such a `Cache`.   `bar` uses the `<cache-template>` named `myDefaults` and overrides its `key-type` to a wider type.
+<7> `simpleCache` is another such a `Cache`.  It uses `myDefaults` configuration for its sole `CacheConfiguration`.
 
 Refer to the link:xml{outfilesuffix}[XML documentation] for more details on the XML format.
 
@@ -100,11 +103,11 @@ CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(xmlConfig); //
 
 == Current release
 
-We released Ehcache 3.0 Alpha on December 12, 2014. It
-contains everything (and more) to use the JSR-107 API with Ehcache as the underlying provider.
+We released the Milestone 1 on March 24, 2015. In addition to the JSR-107 compatibility,
+it introduces tiering and offers an offheap option based on the recently https://github.com/Terracotta-OSS/offheap-store[open sourced library] from Terracotta.
 
-The https://github.com/ehcache/ehcache3/releases/tag/v3.0.0.Alpha[release notes] contain the links to the documentation
-to help you get started.
+The https://github.com/ehcache/ehcache3/releases/tag/v3.0.0.m1[release notes] contain the links to the documentation
+to help you get started
 
 == Current development & next release
 

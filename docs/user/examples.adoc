@@ -80,17 +80,17 @@ and displays the URL of the web server on the console.  The URL will be somethin
 While running, lines like the following are displayed to the console:
 [source]
 ----
-11:26:20.557 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStoreAside - Loading peeps from DB
-11:26:20.572 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStoreAside - Filling cache with peeps
-11:26:33.422 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStoreAside - Adding peep into DB
-11:26:33.428 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStoreAside - Clearing peeps cache
-11:26:33.431 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStoreAside - Loading peeps from DB
-11:26:33.432 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStoreAside - Filling cache with peeps
-11:26:50.025 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStoreAside - Adding peep into DB
-11:26:50.027 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStoreAside - Clearing peeps cache
-11:26:50.030 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStoreAside - Loading peeps from DB
-11:26:50.031 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStoreAside - Filling cache with peeps
-11:27:10.742 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStoreAside - Getting peeps from cache
+11:26:20.557 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStore - Loading peeps from DB
+11:26:20.572 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStore - Filling cache with peeps
+11:26:33.422 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStore - Adding peep into DB
+11:26:33.428 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStore - Clearing peeps cache
+11:26:33.431 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStore - Loading peeps from DB
+11:26:33.432 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStore - Filling cache with peeps
+11:26:50.025 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStore - Adding peep into DB
+11:26:50.027 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStore - Clearing peeps cache
+11:26:50.030 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStore - Loading peeps from DB
+11:26:50.031 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStore - Filling cache with peeps
+11:27:10.742 [139688380@qtp-965028604-0] INFO  o.e.d.p.DataStore - Getting peeps from cache
 ----
 Note the presence of the +Filling cache with peeps+, +Clearing peeps cache+, and +Getting peeps from cache+ lines indicating cache interactions.
 
