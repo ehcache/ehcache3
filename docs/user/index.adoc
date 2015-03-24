@@ -15,7 +15,7 @@ WARNING: *This is still a work in progress*. While it represents the API as it e
 
 [source,java,indent=0]
 ----
-include::../../impl/src/test/java/org/ehcache/GettingStarted.java[lines=43..68]
+include::../../impl/src/test/java/org/ehcache/GettingStarted.java[lines=52..83]
 ----
 
 <1> Static method `org.ehcache.CacheManagerBuilder.newCacheManagerBuilder` that returns a new `org.ehcache.CacheManagerBuilder`
