@@ -63,8 +63,8 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
         .all(), null));
 
-    K key = factory.getKeyType().newInstance();
-    V value = factory.getValueType().newInstance();
+    K key = factory.createKey(1);
+    V value = factory.createValue(1);
 
     try {
       assertThat(kvStore.putIfAbsent(key, value), is(nullValue()));
@@ -79,8 +79,8 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       throws IllegalAccessException, InstantiationException {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
-    K key = factory.getKeyType().newInstance();
-    V value = factory.getValueType().newInstance();
+    K key = factory.createKey(1);
+    V value = factory.createValue(1);
 
     try {
       kvStore.put(key, value);
@@ -89,7 +89,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       e.printStackTrace();
     }
 
-    V updatedValue = factory.getValueType().newInstance();
+    V updatedValue = factory.createValue(2);
 
     try {
       assertThat(kvStore.putIfAbsent(key, updatedValue).value(), is(equalTo(value)));
@@ -105,7 +105,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
 
     K key = null;
-    V value = factory.getValueType().newInstance();
+    V value = factory.createValue(1);
 
     try {
       kvStore.putIfAbsent(key, value);
@@ -120,7 +120,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       throws CacheAccessException, IllegalAccessException, InstantiationException {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
 
-    K key = factory.getKeyType().newInstance();
+    K key = factory.createKey(1);
     V value = null;
 
     try {
@@ -137,7 +137,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       throws IllegalAccessException, InstantiationException {
     kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
 
-    V value = factory.getValueType().newInstance();
+    V value = factory.createValue(1);
 
     try {
       if (this.factory.getKeyType() == String.class) {
@@ -160,7 +160,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       throws IllegalAccessException, InstantiationException {
     kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
 
-    K key = factory.getKeyType().newInstance();
+    K key = factory.createKey(1);
 
     try {
       if (this.factory.getValueType() == String.class) {

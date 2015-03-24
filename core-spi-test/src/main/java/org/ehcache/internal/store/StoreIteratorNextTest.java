@@ -59,8 +59,8 @@ public class StoreIteratorNextTest<K, V> extends SPIStoreTester<K, V> {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
         .all(), null));
 
-    K key = factory.getKeyType().newInstance();
-    V value = factory.getValueType().newInstance();
+    K key = factory.createKey(1);
+    V value = factory.createValue(1);
     kvStore.put(key, value);
 
     Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();
@@ -80,7 +80,7 @@ public class StoreIteratorNextTest<K, V> extends SPIStoreTester<K, V> {
       throws IllegalAccessException, InstantiationException, CacheAccessException {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
-    kvStore.put(factory.getKeyType().newInstance(), factory.getValueType().newInstance());
+    kvStore.put(factory.createKey(1), factory.createValue(1));
 
     Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();
 

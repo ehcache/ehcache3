@@ -40,7 +40,7 @@ public class StoreValueHolderValueTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void valueIsHeldByValueHolder()
       throws IllegalAccessException, InstantiationException {
-    V value = factory.getValueType().newInstance();
+    V value = factory.createValue(1);
     Store.ValueHolder<V> valueHolder = factory.newValueHolder(value);
 
     try {
