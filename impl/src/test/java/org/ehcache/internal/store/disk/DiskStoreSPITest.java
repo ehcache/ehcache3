@@ -165,11 +165,6 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
   }
 
   @Override
-  public void testDestroy() throws Exception {
-    throw new AssumptionViolatedException("disabled - SPITest bug");
-  }
-
-  @Override
   public void testStoreEventListener() {
     throw new AssumptionViolatedException("disabled - EventListeners not implemented yet see #273");
   }
