@@ -59,7 +59,7 @@ public class StoreIteratorHasNextTest<K, V> extends SPIStoreTester<K, V> {
 
     int nbElements = 3;
     for (int i = 0; i < nbElements; i++) {
-      kvStore.put(factory.getKeyType().newInstance(), factory.getValueType().newInstance());
+      kvStore.put(factory.createKey(1), factory.createValue(1));
     }
 
     Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();

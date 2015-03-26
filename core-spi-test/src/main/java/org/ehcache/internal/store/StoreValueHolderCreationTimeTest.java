@@ -42,7 +42,7 @@ public class StoreValueHolderCreationTimeTest<K, V> extends SPIStoreTester<K, V>
   @SPITest
   public void creationTimeCanBeReturned()
       throws IllegalAccessException, InstantiationException {
-    Store.ValueHolder<V> valueHolder = factory.newValueHolder(factory.getValueType().newInstance());
+    Store.ValueHolder<V> valueHolder = factory.newValueHolder(factory.createValue(1));
 
     assertThat(valueHolder.creationTime(TimeUnit.MILLISECONDS), is(notNullValue()));
   }

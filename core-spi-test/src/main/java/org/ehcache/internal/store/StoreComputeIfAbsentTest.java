@@ -61,7 +61,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       return;
     }
 
-    K key = factory.getKeyType().newInstance();
+    K key = factory.createKey(1L);
     
     final Object badValue;
     if (factory.getValueType() == String.class) {
@@ -123,8 +123,8 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   public void testComputePutsValueInStoreWhenKeyIsAbsent() throws Exception {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
-    final K key = factory.getKeyType().newInstance();
-    final V value = factory.getValueType().newInstance();
+    final K key = factory.createKey(1);
+    final V value = factory.createValue(1);
 
     assertThat(kvStore.get(key), nullValue());
     try {
@@ -145,8 +145,8 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   public void testFunctionNotInvokedWhenPresent() throws Exception {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
-    final K key = factory.getKeyType().newInstance();
-    final V value = factory.getValueType().newInstance();
+    final K key = factory.createKey(1);
+    final V value = factory.createValue(1);
 
     kvStore.put(key, value);
 
@@ -169,7 +169,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   public void testFunctionReturnsNull() throws Exception {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
-    final K key = factory.getKeyType().newInstance();
+    final K key = factory.createKey(1L);;
 
     // return null, no effect
     assertThat(kvStore.get(key), nullValue());
@@ -195,7 +195,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   public void testException() throws Exception {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
-    final K key = factory.getKeyType().newInstance();
+    final K key = factory.createKey(1L);;
 
     assertThat(kvStore.get(key), nullValue());
 

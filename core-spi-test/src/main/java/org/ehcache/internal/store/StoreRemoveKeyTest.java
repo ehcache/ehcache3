@@ -60,8 +60,8 @@ public class StoreRemoveKeyTest<K, V> extends SPIStoreTester<K, V> {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
         .all(), null));
 
-    K key = factory.getKeyType().newInstance();
-    V value = factory.getValueType().newInstance();
+    K key = factory.createKey(1);
+    V value = factory.createValue(1);
 
     kvStore.put(key, value);
 
@@ -82,7 +82,7 @@ public class StoreRemoveKeyTest<K, V> extends SPIStoreTester<K, V> {
       throws IllegalAccessException, InstantiationException {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
-    K key = factory.getKeyType().newInstance();
+    K key = factory.createKey(1);
 
     try {
       kvStore.remove(key);

@@ -66,8 +66,8 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
       badValue = "badValue";
     }
 
-    final K key = factory.getKeyType().newInstance();
-    final V value = factory.getValueType().newInstance();
+    final K key = factory.createKey(1);
+    final V value = factory.createValue(1);
     kvStore.put(key, value);
 
     try {
@@ -96,8 +96,8 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
       return;
     }
 
-    final K key = factory.getKeyType().newInstance();
-    final V value = factory.getValueType().newInstance();
+    final K key = factory.createKey(1);
+    final V value = factory.createValue(1);
     kvStore2.put(key, value);
 
     final Object badKey;
@@ -127,8 +127,8 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
   public void testNullReturnRemovesEntry() throws Exception {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
-    final K key = factory.getKeyType().newInstance();
-    final V value = factory.getValueType().newInstance();
+    final K key = factory.createKey(1);
+    final V value = factory.createValue(1);
     kvStore.put(key, value);
 
     try {
@@ -150,9 +150,9 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testComputePutsValueInStoreWhenKeyIsPresent() throws Exception {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
-    final K key = factory.getKeyType().newInstance();
-    final V value = factory.getValueType().newInstance();
-    final V value2 = factory.createValue(System.nanoTime());
+    final K key = factory.createKey(1);
+    final V value = factory.createValue(1);
+    final V value2 = factory.createValue(2);
     kvStore.put(key, value);
 
     try {
@@ -172,7 +172,7 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testFunctionNotCalledWhenAbsent() throws Exception {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
-    final K key = factory.getKeyType().newInstance();
+    final K key = factory.createKey(1L);
 
     try {
       // call with empty store, no effect
@@ -192,8 +192,8 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
   public void testException() throws Exception {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
-    final K key = factory.getKeyType().newInstance();
-    final V value = factory.getValueType().newInstance();
+    final K key = factory.createKey(1);
+    final V value = factory.createValue(1);
     kvStore.put(key, value);
 
     final RuntimeException re = new RuntimeException();

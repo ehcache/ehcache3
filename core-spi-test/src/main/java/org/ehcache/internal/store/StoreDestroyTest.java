@@ -58,8 +58,8 @@ public class StoreDestroyTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void noDataCanBeRecoveredFromDestroyedStore()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
-    K key = factory.getKeyType().newInstance();
-    V value = factory.getValueType().newInstance();
+    K key = factory.createKey(1);
+    V value = factory.createValue(1);
 
     kvStore.put(key, value);
 

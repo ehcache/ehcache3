@@ -62,7 +62,7 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
         .all(), null));
 
-    K key = factory.getKeyType().newInstance();
+    K key = factory.createKey(1);
     V originalValue = factory.createValue(1L);
 
     kvStore.put(key, originalValue);
@@ -84,12 +84,12 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       throws IllegalAccessException, InstantiationException, CacheAccessException {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
-    K key = factory.getKeyType().newInstance();
-    V originalValue = factory.getValueType().newInstance();
+    K key = factory.createKey(1);
+    V originalValue = factory.createValue(1);
 
     kvStore.put(key, originalValue);
 
-    V newValue = factory.getValueType().newInstance();
+    V newValue = factory.createValue(2);
 
     try {
       assertThat(kvStore.replace(key, newValue).value(), is(equalTo(originalValue)));
@@ -104,9 +104,9 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       throws IllegalAccessException, InstantiationException, CacheAccessException {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
-    K key = factory.getKeyType().newInstance();
+    K key = factory.createKey(1);
 
-    V newValue = factory.getValueType().newInstance();
+    V newValue = factory.createValue(1);
 
     assertThat(kvStore.containsKey(key), is(false));
 
@@ -124,7 +124,7 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
 
     K key = null;
-    V value = factory.getValueType().newInstance();
+    V value = factory.createValue(1);
 
     try {
       kvStore.replace(key, value);
@@ -142,7 +142,7 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       throws IllegalAccessException, InstantiationException {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
 
-    K key = factory.getKeyType().newInstance();
+    K key = factory.createKey(1);
     V value = null;
 
     try {
@@ -162,7 +162,7 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       throws IllegalAccessException, InstantiationException {
     kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
 
-    V value = factory.getValueType().newInstance();
+    V value = factory.createValue(1);
 
     try {
       if (this.factory.getKeyType() == String.class) {
@@ -185,7 +185,7 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       throws IllegalAccessException, InstantiationException {
     kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
 
-    K key = factory.getKeyType().newInstance();
+    K key = factory.createKey(1);
 
     try {
       if (this.factory.getValueType() == String.class) {
