@@ -423,6 +423,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public void destroy() throws CacheAccessException {
+    close();
     if (dataFile.delete() | indexFile.delete()) {
       LOG.info("Destroyed " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
     }
