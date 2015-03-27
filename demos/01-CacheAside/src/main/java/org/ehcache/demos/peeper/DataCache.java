@@ -32,8 +32,7 @@ public class DataCache {
     private static final Logger logger = LoggerFactory.getLogger(DataCache.class);
 
     public void setupCache() {
-        cache = newUserManagedCacheBuilder(String.class, List.class, LoggerFactory.getLogger(getClass())).build();
-        cache.init();
+        cache = newUserManagedCacheBuilder(String.class, List.class, LoggerFactory.getLogger(getClass())).build(true);
         logger.info("Cache setup is done");
     }
 

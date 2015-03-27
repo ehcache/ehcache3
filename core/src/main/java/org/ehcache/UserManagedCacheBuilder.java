@@ -89,8 +89,12 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     return (T)ehcache;
   }
 
-  public final T build() throws IllegalStateException {
-    return build(new ServiceLocator());
+  public final T build(final boolean init) throws IllegalStateException {
+    final T build = build(new ServiceLocator());
+    if (init) {
+      build.init();
+    }
+    return build;
   }
 
   public final <N extends T> UserManagedCacheBuilder<K, V, N> with(UserManagedCacheConfiguration<K, V, N> cfg) {

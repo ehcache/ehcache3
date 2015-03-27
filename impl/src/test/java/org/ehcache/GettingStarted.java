@@ -76,7 +76,7 @@ public class GettingStarted {
     UserManagedCache<Long, String> userManagedCache =
         UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class,
             LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted"))
-            .build(); // <1>
+            .build(false); // <1>
     userManagedCache.init(); // <2>
 
     userManagedCache.put(1L, "da one!"); // <3>

@@ -49,8 +49,8 @@ include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=cachemanag
 include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=userManagedCacheExample]
 ----
 
-<1> A new feature of Ehcache 3.0 is the ability to create `UserManagedCache` instances, i.e. ones not managed by a `CacheManager`;
-<2> As there is nothing that manages them, it is up to you to `UserManaged.init()` them, prior to using them.
+<1> A new feature of Ehcache 3.0 is the ability to create `UserManagedCache` instances, i.e. ones not managed by a `CacheManager`, again you can either have the builder `init()` it for you, passing true or
+<2> pass false and it is up to you to `UserManagedCache.init()` them, prior to using them.
 <3> You can use the Standalone cache exactly as a managed cache
 <4> In the same vein, a `StandaloneCache` requires you to `UserManagedCache.close()` it explicitly. If you would also use
     managed caches simultaneously, the `CacheManager.close()` operation would not impact the Standalone cache.
