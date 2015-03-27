@@ -206,6 +206,43 @@
           </xs:sequence>
         </xs:complexType>
       </xs:element>
+        <xs:element name="listener" minOccurs="0" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="class" type="xs:string" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    A fully qualified class name to a concrete type that implements
+                    org.ehcache.spi.event.CacheEventListener and has a public
+                    default no argument constructor.
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="eventFiringMode" type="ehcache:eventFiring-type" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    Indicates which EventFiring firing mode to use
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="eventOrderingMode" type="ehcache:eventOrdering-type" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    Indicates which EventOrdering ordering mode to use
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="eventsToFireOn" type="ehcache:event-type" minOccurs="1" maxOccurs="5">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    Indicates on which EventType an event has to be fired
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
     </xs:sequence>
   </xs:complexType>
 
@@ -292,6 +329,27 @@
       <xs:enumeration value="gb"/>
       <xs:enumeration value="tb"/>
       <xs:enumeration value="pb"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="eventFiring-type">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="ASYNCHRONOUS" />
+      <xs:enumeration value="SYNCHRONOUS" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="eventOrdering-type">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="UNORDERED" />
+      <xs:enumeration value="ORDERED" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="event-type">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="EVICTED" />
+      <xs:enumeration value="EXPIRED" />
+      <xs:enumeration value="REMOVED" />
+      <xs:enumeration value="CREATED" />
+      <xs:enumeration value="UPDATED" />
     </xs:restriction>
   </xs:simpleType>
 </xs:schema>
