@@ -42,6 +42,7 @@ public class IntegrationConfigTest {
     Configuration configuration = new XmlConfiguration(this.getClass().getResource("/configs/cache-integration.xml"));
     assertThat(configuration.getCacheConfigurations().containsKey("bar"), is(true));
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
+    cacheManager.init();
     final Cache<Number, String> cache = cacheManager.getCache("bar", Number.class, String.class);
     assertThat(cache, notNullValue());
     assertThat(cache.get(1), notNullValue());

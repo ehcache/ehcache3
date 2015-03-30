@@ -39,7 +39,7 @@ public class DefaultCacheLoaderWriterFactoryTest {
         .withCache("foo",
             CacheConfigurationBuilder.newCacheConfigurationBuilder()
                 .addServiceConfig(new DefaultCacheLoaderWriterConfiguration(MyLoader.class))
-                .buildConfig(Object.class, Object.class)).build();
+                .buildConfig(Object.class, Object.class)).build(true);
     final Object foo = manager.getCache("foo", Object.class, Object.class).get(new Object());
     assertThat(foo, is(MyLoader.object));
   }
@@ -55,6 +55,7 @@ public class DefaultCacheLoaderWriterFactoryTest {
     final DefaultConfiguration configuration = new DefaultConfiguration(caches, null, new DefaultCacheLoaderWriterFactoryConfiguration()
         .addLoaderFor("foo", MyLoader.class));
     final CacheManager manager = CacheManagerBuilder.newCacheManager(configuration);
+    manager.init();
     final Object foo = manager.getCache("foo", Object.class, Object.class).get(new Object());
     assertThat(foo, is(MyLoader.object));
   }
@@ -70,6 +71,7 @@ public class DefaultCacheLoaderWriterFactoryTest {
     final DefaultConfiguration configuration = new DefaultConfiguration(caches, null, new DefaultCacheLoaderWriterFactoryConfiguration()
         .addLoaderFor("foo", MyLoader.class));
     final CacheManager manager = CacheManagerBuilder.newCacheManager(configuration);
+    manager.init();
     final Object foo = manager.getCache("foo", Object.class, Object.class).get(new Object());
     assertThat(foo, is(MyOtherLoader.object));
   }

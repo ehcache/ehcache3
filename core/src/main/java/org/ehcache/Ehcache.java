@@ -96,7 +96,7 @@ import static org.terracotta.statistics.StatisticsBuilder.operation;
 /**
  * @author Alex Snaps
  */
-public class Ehcache<K, V> implements Cache<K, V>, StandaloneCache<K, V>, PersistentStandaloneCache<K, V> {
+public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, PersistentUserManagedCache<K, V> {
 
   private final StatusTransitioner statusTransitioner;
 

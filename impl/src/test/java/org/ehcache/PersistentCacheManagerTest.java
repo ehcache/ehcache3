@@ -40,7 +40,7 @@ public class PersistentCacheManagerTest {
     when(rootDirectory.exists()).thenReturn(true);
     when(rootDirectory.getAbsolutePath()).thenReturn("CRAP!");
     try {
-      newCacheManagerBuilder().with(new PersistenceConfiguration(rootDirectory)).build();
+      newCacheManagerBuilder().with(new PersistenceConfiguration(rootDirectory)).build(true);
     } catch (Exception e) {
       assertThat(e, instanceOf(StateTransitionException.class));
       assertThat(e.getCause(), instanceOf(IllegalArgumentException.class));

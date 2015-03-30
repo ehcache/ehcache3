@@ -25,27 +25,27 @@ package org.ehcache;
  *
  * @author Alex Snaps
  */
-public interface StandaloneCache<K, V> extends Cache<K, V> {
+public interface UserManagedCache<K, V> extends Cache<K, V> {
 
   /**
-   * Attempts at having this StandaloneCache go to {@link org.ehcache.Status#AVAILABLE}.
+   * Attempts at having this UserManagedCache go to {@link org.ehcache.Status#AVAILABLE}.
    * <p>
-   * Should this throw, while the StandaloneCache isn't yet {@link org.ehcache.Status#AVAILABLE}, it will try to go back
+   * Should this throw, while the UserManagedCache isn't yet {@link org.ehcache.Status#AVAILABLE}, it will try to go back
    * to {@link org.ehcache.Status#UNINITIALIZED} properly.
    *
-   * @throws java.lang.IllegalStateException if the StandaloneCache isn't in {@link org.ehcache.Status#UNINITIALIZED} state
-   * @throws org.ehcache.exceptions.StateTransitionException if the StandaloneCache couldn't be made {@link org.ehcache.Status#AVAILABLE}
-   * @throws java.lang.RuntimeException if any exception is thrown, but still results in the StandaloneCache transitioning to {@link org.ehcache.Status#AVAILABLE}
+   * @throws java.lang.IllegalStateException if the UserManagedCache isn't in {@link org.ehcache.Status#UNINITIALIZED} state
+   * @throws org.ehcache.exceptions.StateTransitionException if the UserManagedCache couldn't be made {@link org.ehcache.Status#AVAILABLE}
+   * @throws java.lang.RuntimeException if any exception is thrown, but still results in the UserManagedCache transitioning to {@link org.ehcache.Status#AVAILABLE}
    */
   void init();
 
   /**
-   * Releases all data held in this StandaloneCache.
+   * Releases all data held in this UserManagedCache.
    * <p>
-   * Should this throw, while the StandaloneCache isn't yet {@link org.ehcache.Status#UNINITIALIZED}, it will keep on
+   * Should this throw, while the UserManagedCache isn't yet {@link org.ehcache.Status#UNINITIALIZED}, it will keep on
    * trying to go to {@link org.ehcache.Status#UNINITIALIZED} properly.
    *
-   * @throws org.ehcache.exceptions.StateTransitionException if the StandaloneCache couldn't be cleanly made
+   * @throws org.ehcache.exceptions.StateTransitionException if the UserManagedCache couldn't be cleanly made
    *                                                         {@link org.ehcache.Status#UNINITIALIZED},
    *                                                         wrapping the first exception encountered
    * @throws java.lang.RuntimeException if any exception is thrown, like from Listeners

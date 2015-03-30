@@ -28,9 +28,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
-import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
-import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
-import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
@@ -55,7 +52,8 @@ public class GettingStarted {
         .withCache("preConfigured",
             CacheConfigurationBuilder.newCacheConfigurationBuilder()
                 .buildConfig(Long.class, String.class)) // <2>
-        .build(); // <3>
+        .build(false); // <3>
+    cacheManager.init(); // <4>
 
     Cache<Long, String> preConfigured =
         cacheManager.getCache("preConfigured", Long.class, String.class); // <4>
@@ -66,25 +64,25 @@ public class GettingStarted {
     myCache.put(1L, "da one!"); // <6>
     String value = myCache.get(1L); // <7>
 
-    cacheManager.removeCache("preConfigured"); // <8>
+    cacheManager.removeCache("preConfigured"); // <9>
 
     cacheManager.close(); // <9>
     // end::cachemanagerExample[]
   }
 
   @Test
-  public void standaloneCacheExample() {
-    // tag::standaloneCacheExample[]
-    StandaloneCache<Long, String> standaloneCache =
-        StandaloneCacheBuilder.newCacheBuilder(Long.class, String.class,
+  public void userManagedCacheExample() {
+    // tag::userManagedCacheExample[]
+    UserManagedCache<Long, String> userManagedCache =
+        UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class,
             LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted"))
-            .build(); // <1>
-    standaloneCache.init(); // <2>
+            .build(false); // <1>
+    userManagedCache.init(); // <2>
 
-    standaloneCache.put(1L, "da one!"); // <3>
+    userManagedCache.put(1L, "da one!"); // <3>
 
-    standaloneCache.close(); // <4>
-    // end::standaloneCacheExample[]
+    userManagedCache.close(); // <4>
+    // end::userManagedCacheExample[]
   }
 
   @Test
@@ -94,12 +92,12 @@ public class GettingStarted {
         .with(new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/myData"))) // <1>
         .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder()
             .persistenceMode(CacheConfiguration.PersistenceMode.CREATE_IF_ABSENT)
-            .withResourcePools(newResourcePoolsBuilder()
+            .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
                 .disk(100, EntryUnit.ENTRIES) // <2>
                 .build())
             .buildConfig(Long.class, String.class))
-        .build();
+        .build(true);
 
     persistentCacheManager.close();
     // end::persistentCacheManager[]
@@ -114,7 +112,7 @@ public class GettingStarted {
                 .heap(10, EntryUnit.ENTRIES)
                 .offheap(10, MemoryUnit.MB) // <1>
                 .build())
-            .buildConfig(Long.class, String.class)).build();
+            .buildConfig(Long.class, String.class)).build(true);
 
     cacheManager.close();
     // end::offheapCacheManager[]
@@ -122,12 +120,12 @@ public class GettingStarted {
 
   @Test
   public void testTieredStore() throws Exception {
-    CacheConfiguration<Long, String> tieredCacheConfiguration = newCacheConfigurationBuilder()
+    CacheConfiguration<Long, String> tieredCacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
         .persistenceMode(CacheConfiguration.PersistenceMode.SWAP)
-        .withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES).build())
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES).build())
         .buildConfig(Long.class, String.class);
 
-    CacheManager cacheManager = newCacheManagerBuilder().withCache("tiered-cache", tieredCacheConfiguration).build();
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("tiered-cache", tieredCacheConfiguration).build(true);
 
     Cache<Long, String> tieredCache = cacheManager.getCache("tiered-cache", Long.class, String.class);
 
@@ -141,11 +139,11 @@ public class GettingStarted {
 
   @Test
   public void testTieredOffHeapStore() throws Exception {
-    CacheConfiguration<Long, String> tieredCacheConfiguration = newCacheConfigurationBuilder()
-        .withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB).build())
+    CacheConfiguration<Long, String> tieredCacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB).build())
         .buildConfig(Long.class, String.class);
 
-    CacheManager cacheManager = newCacheManagerBuilder().withCache("tieredCache", tieredCacheConfiguration).build();
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("tieredCache", tieredCacheConfiguration).build(true);
 
     Cache<Long, String> tieredCache = cacheManager.getCache("tieredCache", Long.class, String.class);
 
@@ -159,15 +157,15 @@ public class GettingStarted {
 
   @Test
   public void testPersistentDiskCache() {
-    CacheConfiguration<Long, String> cacheConfiguration = newCacheConfigurationBuilder()
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
         .persistenceMode(CacheConfiguration.PersistenceMode.CREATE_IF_ABSENT)
-        .withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES).build())
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES).build())
         .buildConfig(Long.class, String.class);
 
-    PersistentCacheManager persistentCacheManager = newCacheManagerBuilder()
+    PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/persistent-cache-data")))
         .withCache("persistent-cache", cacheConfiguration)
-        .build();
+        .build(true);
 
     Cache<Long, String> cache = persistentCacheManager.getCache("persistent-cache", Long.class, String.class);
 
@@ -183,20 +181,21 @@ public class GettingStarted {
 
   @Test
   public void testStoreByValue() {
-    CacheManager cacheManager = newCacheManagerBuilder().build();
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(false);
+    cacheManager.init();
 
     final Cache<Long, String> cache1 = cacheManager.createCache("cache1",
-        newCacheConfigurationBuilder().withResourcePools(newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).build())
+        CacheConfigurationBuilder.newCacheConfigurationBuilder().withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).build())
             .buildConfig(Long.class, String.class));
     performAssertions(cache1, true);
 
     final Cache<Long, String> cache2 = cacheManager.createCache("cache2",
-        newCacheConfigurationBuilder().addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true))
+        CacheConfigurationBuilder.newCacheConfigurationBuilder().addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true))
             .buildConfig(Long.class, String.class));
     performAssertions(cache2, false);
 
     final Cache<Long, String> cache3 = cacheManager.createCache("cache3",
-        newCacheConfigurationBuilder().addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(false))
+        CacheConfigurationBuilder.newCacheConfigurationBuilder().addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(false))
             .buildConfig(Long.class, String.class));
     performAssertions(cache3, true);
 

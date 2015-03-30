@@ -16,8 +16,8 @@
 package org.ehcache.integration;
 
 import org.ehcache.Ehcache;
-import org.ehcache.StandaloneCache;
-import org.ehcache.StandaloneCacheBuilder;
+import org.ehcache.UserManagedCache;
+import org.ehcache.UserManagedCacheBuilder;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.EntryUnit;
@@ -33,15 +33,15 @@ import static org.junit.Assert.assertThat;
  * @author Anthony Dahanne
  * Simple test to make sure eviction is happening when we specify a capacity
  */
-public class StandaloneCacheEvictionTest {
+public class UserManagedCacheEvictionTest {
 
   @Test
   public void test_eviction_with_specific_eviction_prioritizer() throws Exception {
-    StandaloneCache<Number, String> cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory.getLogger(Ehcache.class + "-" + "StandaloneCacheEvictionTest"))
+    UserManagedCache<Number, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Number.class, String.class, LoggerFactory
+        .getLogger(Ehcache.class + "-" + "UserManagedCacheEvictionTest"))
         .withResourcePools(newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).build())
         .prioritizeEviction(Eviction.Prioritizer.LRU)
-        .build();
-    cache.init();
+        .build(true);
     assertThat(cache.getRuntimeConfiguration().getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(),
         equalTo(1L));
 
@@ -63,10 +63,10 @@ public class StandaloneCacheEvictionTest {
 
   @Test
   public void test_eviction_eviction_prioritizer_not_specified() throws Exception {
-    StandaloneCache<Number, String> cache = StandaloneCacheBuilder.newCacheBuilder(Number.class, String.class, LoggerFactory.getLogger(Ehcache.class + "-" + "StandaloneCacheEvictionTest1"))
+    UserManagedCache<Number, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Number.class, String.class, LoggerFactory
+        .getLogger(Ehcache.class + "-" + "UserManagedCacheEvictionTest1"))
         .withResourcePools(newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).build())
-        .build();
-    cache.init();
+        .build(true);
     assertThat(cache.getRuntimeConfiguration().getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(),
         equalTo(1L));
 

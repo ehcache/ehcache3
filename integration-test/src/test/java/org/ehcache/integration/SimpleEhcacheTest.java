@@ -45,7 +45,7 @@ public class SimpleEhcacheTest {
   @Before
   public void setUp() throws Exception {
     CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder();
-    cacheManager = builder.build();
+    cacheManager = builder.build(true);
   }
 
   @After

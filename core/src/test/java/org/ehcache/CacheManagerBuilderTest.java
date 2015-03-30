@@ -41,7 +41,7 @@ public class CacheManagerBuilderTest {
         counter.getAndIncrement();
         return mock(CacheManagerBuilder.class);
       }
-    }).build();
+    }).build(true);
 
     assertThat(cacheManager, nullValue());
     assertThat(counter.get(), is(1));

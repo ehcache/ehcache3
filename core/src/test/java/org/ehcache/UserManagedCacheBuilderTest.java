@@ -19,7 +19,7 @@ package org.ehcache;
 import static org.junit.Assert.assertNotNull;
 
 import org.ehcache.config.CacheRuntimeConfiguration;
-import org.ehcache.config.StandaloneCacheConfiguration;
+import org.ehcache.config.UserManagedCacheConfiguration;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.statistics.CacheStatistics;
@@ -30,18 +30,18 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-public class StandaloneCacheBuilderTest {
+public class UserManagedCacheBuilderTest {
 
   @Test
   public void testIsExtensible() {
 
-    final StandaloneCacheConfiguration<String, Object, TestStandaloneCache<String, Object>> cfg = new StandaloneCacheConfiguration<String, Object, TestStandaloneCache<String, Object>>() {
+    final UserManagedCacheConfiguration<String, Object, TestUserManagedCache<String, Object>> cfg = new UserManagedCacheConfiguration<String, Object, TestUserManagedCache<String, Object>>() {
       @Override
-      public StandaloneCacheBuilder<String, Object, TestStandaloneCache<String, Object>> builder(final StandaloneCacheBuilder<String, Object, ? extends StandaloneCache<String, Object>> builder) {
-        return new StandaloneCacheBuilder<String, Object, TestStandaloneCache<String, Object>>(String.class, Object.class,LoggerFactory.getLogger(Ehcache.class + "-" + "StandaloneCacheBuilderTest")) {
+      public UserManagedCacheBuilder<String, Object, TestUserManagedCache<String, Object>> builder(final UserManagedCacheBuilder<String, Object, ? extends UserManagedCache<String, Object>> builder) {
+        return new UserManagedCacheBuilder<String, Object, TestUserManagedCache<String, Object>>(String.class, Object.class,LoggerFactory.getLogger(Ehcache.class + "-" + "UserManagedCacheBuilderTest")) {
           @Override
-          TestStandaloneCache<String, Object> build(final ServiceLocator serviceProvider) {
-            return new TestStandaloneCache<String, Object>();
+          TestUserManagedCache<String, Object> build(final ServiceLocator serviceProvider) {
+            return new TestUserManagedCache<String, Object>();
           }
         };
       }
@@ -55,13 +55,13 @@ public class StandaloneCacheBuilderTest {
     // OpenJDK 64-Bit Server VM (build 23.25-b01, mixed mode)
     // javac 1.6.0_32
 
-//    final TestStandaloneCache<String, Object> cache = newCacheBuilder(String.class, Object.class)
+//    final TestUserManagedCache<String, Object> cache = newCacheBuilder(String.class, Object.class)
 //        .with(cfg).build();
 //    assertThat(cache, notNullValue());
-//    assertThat(cache, is(instanceOf(TestStandaloneCache.class)));
+//    assertThat(cache, is(instanceOf(TestUserManagedCache.class)));
   }
 
-  private class TestStandaloneCache<K, V> implements PersistentStandaloneCache<K, V> {
+  private class TestUserManagedCache<K, V> implements PersistentUserManagedCache<K, V> {
     @Override
     public Maintainable toMaintenance() {
       throw new UnsupportedOperationException("Implement me!");
