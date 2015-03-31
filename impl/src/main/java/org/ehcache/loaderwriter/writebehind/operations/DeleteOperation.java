@@ -24,7 +24,8 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 /**
  * Implements the delete operation for write behind
  * 
- * @author Abhilash
+ * @author Geert Bevin
+ * @author Tim wu
  *
  */
 public class DeleteOperation<K, V> implements SingleOperation<K, V> {
@@ -37,7 +38,7 @@ public class DeleteOperation<K, V> implements SingleOperation<K, V> {
    *
    */
   public DeleteOperation(K key) {
-      this(key, System.currentTimeMillis());
+    this(key, System.currentTimeMillis());
   }
 
   /**
@@ -45,35 +46,35 @@ public class DeleteOperation<K, V> implements SingleOperation<K, V> {
    *
    */
   public DeleteOperation(K key, long creationTime) {
-      this.key = key;
-      this.creationTime = creationTime;
+    this.key = key;
+    this.creationTime = creationTime;
   }
 
   public void performSingleOperation(CacheLoaderWriter<K, V> cacheLoaderWriter) throws Exception {
-      cacheLoaderWriter.delete(key);
+    cacheLoaderWriter.delete(key);
   }
 
- public BatchOperation<K, V> createBatchOperation(List<SingleOperation<K, V>> operations) {
-      final List<K> keys = new ArrayList<K>();
-      for (KeyBasedOperation<K, V> operation : operations) {
-          keys.add(operation.getKey());
+  public BatchOperation<K, V> createBatchOperation(List<SingleOperation<K, V>> operations) {
+    final List<K> keys = new ArrayList<K>();
+      for (KeyBasedOperation<K> operation : operations) {
+        keys.add(operation.getKey());
       }
-      return new DeleteAllOperation<K, V>(keys);
+    return new DeleteAllOperation<K, V>(keys);
   }
 
   @Override
   public K getKey() {
-      return this.key;
+    return this.key;
   }
 
   @Override
   public long getCreationTime() {
-      return creationTime;
+    return creationTime;
   }
 
   @Override
   public SingleOperationType getType() {
-      return SingleOperationType.DELETE;
+    return SingleOperationType.DELETE;
   }
 
   @Override
@@ -84,18 +85,15 @@ public class DeleteOperation<K, V> implements SingleOperation<K, V> {
   @Override
   public boolean equals(Object other) {
     if (other instanceof DeleteOperation<?, ?>) {
-      return getCreationTime() == ((DeleteOperation<K, V>) other).getCreationTime() &&
-              getKey().equals(((DeleteOperation<K, V>) other).getKey());
+      return getCreationTime() == ((DeleteOperation<K, V>) other).getCreationTime() && getKey().equals(((DeleteOperation<K, V>) other).getKey());
     } else {
       return false;
     }
   }
 
   @Override
-  public void throwAway(CacheLoaderWriter<K, V> cacheLoaderWriter,
-      RuntimeException e) {
+  public void throwAway(CacheLoaderWriter<K, V> cacheLoaderWriter, RuntimeException e) {
     // TODO Do we need this ?
-    
   }
 
 }

@@ -26,7 +26,7 @@ import org.ehcache.loaderwriter.writebehind.operations.SingleOperation;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
- * @author Abhilash
+ * @author Alex Snaps
  *
  */
 public class AggregateWriteBehindQueue<K, V> implements WriteBehind<K, V> {
@@ -109,8 +109,7 @@ public class AggregateWriteBehindQueue<K, V> implements WriteBehind<K, V> {
   }
 
   @Override
-  public void setOperationsFilter(
-      OperationsFilter<SingleOperation<K, V>> filter) {
+  public void setOperationsFilter(OperationsFilter<SingleOperation<K, V>> filter) {
     readLock.lock();
     try {
       for (WriteBehind<K, V> queue : queues) {

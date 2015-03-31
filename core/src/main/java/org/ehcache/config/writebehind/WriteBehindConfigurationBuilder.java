@@ -36,7 +36,7 @@ public class WriteBehindConfigurationBuilder {
   private WriteBehindConfigurationBuilder() {
   }
 
-  public static WriteBehindConfigurationBuilder newWriteBehindConfigurationBuilder() {
+  public static WriteBehindConfigurationBuilder newWriteBehindConfiguration() {
     return new WriteBehindConfigurationBuilder();
   }
   
@@ -46,35 +46,45 @@ public class WriteBehindConfigurationBuilder {
         retryAttemptDelaySeconds, writeBehindConcurrency, writeBehindMaxQueueSize);
   }
   
-  public WriteBehindConfigurationBuilder with(boolean coalesce, int concurrency, int size) {
-    this.writeCoalescing = coalesce;
-    this.writeBehindConcurrency = concurrency;
+  public WriteBehindConfigurationBuilder queueSize(int size) {
     this.writeBehindMaxQueueSize = size;
     
     return this;
   }
   
-  public WriteBehindConfigurationBuilder withBatching(int batchSize) {
+  public WriteBehindConfigurationBuilder segment(int concurrency) {
+    this.writeBehindConcurrency = concurrency;
+    
+    return this;
+  }
+  
+  public WriteBehindConfigurationBuilder coalesce() {
+    this.writeCoalescing = true;
+    
+    return this;
+  }
+  
+  public WriteBehindConfigurationBuilder batch(int batchSize) {
     this.writeBatching = true;
     this.writeBatchSize = batchSize;
     
     return this;
   }
   
-  public WriteBehindConfigurationBuilder withRetryAttemps(int retryAttempts, int retryAttemptDelaySeconds) {
+  public WriteBehindConfigurationBuilder retry(int retryAttempts, int retryAttemptDelaySeconds) {
     this.retryAttempts = retryAttempts;
     this.retryAttemptDelaySeconds = retryAttemptDelaySeconds;
     
     return this;
   }
   
-  public WriteBehindConfigurationBuilder withRateLimitPerSecond(int rateLimitPerSecond) {
+  public WriteBehindConfigurationBuilder rateLimit(int rateLimitPerSecond) {
     this.rateLimitPerSecond = rateLimitPerSecond;
     
     return this;
   }
   
-  public WriteBehindConfigurationBuilder withWriteDelay(int minWriteDelay, int maxWriteDelay) {
+  public WriteBehindConfigurationBuilder delay(int minWriteDelay, int maxWriteDelay) {
     this.maxWriteDelay = maxWriteDelay;
     this.minWriteDelay = minWriteDelay;
     

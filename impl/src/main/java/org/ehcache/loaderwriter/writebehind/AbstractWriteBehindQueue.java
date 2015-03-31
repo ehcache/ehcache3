@@ -39,7 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * @author Abhilash
+ * @author tim
  *
  */
 public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V> {
@@ -70,7 +70,7 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
   private boolean stopped;
   
   private final ReentrantReadWriteLock quarrantineLock = new ReentrantReadWriteLock();
-  private List<SingleOperation<K, V>> quarantinedItems ;
+  private List<SingleOperation<K, V>> quarantinedItems;
 
   private volatile OperationsFilter<SingleOperation<K, V>> filter = null;
 
@@ -146,13 +146,19 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
     queueReadLock.lock();
     quarrantineLock.readLock().lock();
     try {
-      for (SingleOperation<K, V> opr : getWaitingItems()) {
-        if (opr.getKey() == key) {
+      List<SingleOperation<K, V>> waiting = getWaitingItems();
+      for (int i = waiting.size() - 1 ; i>= 0 ; i--) {
+        SingleOperation<K, V> opr = waiting.get(i);
+        if (opr.getKey().equals(key)) {
           return opr.getClass() == WriteOperation.class ? ((WriteOperation<K, V>) opr).getValue() : null;
         }
       }
-      for (SingleOperation<K, V> opr : quarantinedItems) {
-        if (opr.getKey() == key) {
+      if(quarantinedItems == null) {
+        return cacheLoaderWriter.load(key);
+      }
+      for (int i = quarantinedItems.size() - 1 ; i>= 0 ; i--) {
+        SingleOperation<K, V> opr = quarantinedItems.get(i);
+        if (opr.getKey().equals(key)) {
           return opr.getClass() == WriteOperation.class ? ((WriteOperation<K, V>) opr).getValue() : null;
         }
       }
@@ -204,8 +210,7 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
     try {
       waitForQueueSizeToDrop();
       if (stopping || stopped) {
-        throw new CacheWritingException("The entry for key '" + key
-            + "' couldn't be deleted through the write-behind "
+        throw new CacheWritingException("The entry for key '" + key + "' couldn't be deleted through the write-behind "
             + "queue for cache '" + cacheLoaderWriter.getClass().getName() + "' since it's not started.");
       }
       addItem(new DeleteOperation<K, V>(key));
@@ -271,10 +276,8 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
               if (minWriteDelayMs != 0) {
                 long delay = minWriteDelayMs;
                 do {
-                  boolean cond = queueIsEmpty.await(delay,
-                      TimeUnit.MILLISECONDS);
-                  long actualDelay = System.currentTimeMillis()
-                      - getLastProcessing();
+                  boolean cond = queueIsEmpty.await(delay, TimeUnit.MILLISECONDS);
+                  long actualDelay = System.currentTimeMillis() - getLastProcessing();
                   if (actualDelay < minWriteDelayMs) {
                     delay = minWriteDelayMs - actualDelay;
                   } else {
@@ -325,8 +328,7 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
   private void processItems() throws RuntimeException {
     // ensure that the items aren't already being processed
     if (busyProcessing.get()) {
-      throw new RuntimeException("The write behind queue for cache '" + cacheLoaderWriter.getClass().getName()
-          + "' is already busy processing.");
+      throw new RuntimeException("The write behind queue for cache '" + cacheLoaderWriter.getClass().getName() + "' is already busy processing.");
     }
 
     // set some state related to this processing run
@@ -335,7 +337,6 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
 
     try {
       final int workSize;
-//      final List<SingleOperation<K, V>> quarantined;
 
       queueWriteLock.lock();
       quarrantineLock.writeLock().lock();
@@ -360,8 +361,7 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
 
       // if there's no work that needs to be done, stop the processing
       if (0 == workSize) {
-        LOGGER
-            .debug(getThreadName() + " : processItems() : nothing to process");
+        LOGGER.debug("{} : processItems() : nothing to process", getThreadName());
         return;
       }
 
@@ -369,29 +369,22 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
         filterQuarantined();
 
         // if the batching is enabled and work size is smaller than batch size,
-        // don't process anything as long as the
-        // max allowed delay hasn't expired
+        // don't process anything as long as the max allowed delay hasn't expired
         if (writeBatching && writeBatchSize > 0) {
           // wait for another round if the batch size hasn't been filled up yet
-          // and the max write delay
-          // hasn't expired yet
-          if (workSize < writeBatchSize
-              && maxWriteDelayMs > lastProcessing.get() - lastWorkDone.get()) {
+          // and the max write delay hasn't expired yet
+          if (workSize < writeBatchSize && maxWriteDelayMs > lastProcessing.get() - lastWorkDone.get()) {
             waitUntilEnoughWorkItemsAvailable(workSize);
             return;
           }
           // enforce the rate limit and wait for another round if too much would
-          // be processed compared to
-          // the last time when a batch was executed
+          // be processed compared to the last time when a batch was executed
           if (rateLimitPerSecond > 0) {
-            final long secondsSinceLastWorkDone = (System.currentTimeMillis() - lastWorkDone
-                .get()) / MS_IN_SEC;
-            final long maxBatchSizeSinceLastWorkDone = rateLimitPerSecond
-                * secondsSinceLastWorkDone;
+            final long secondsSinceLastWorkDone = (System.currentTimeMillis() - lastWorkDone.get()) / MS_IN_SEC;
+            final long maxBatchSizeSinceLastWorkDone = rateLimitPerSecond * secondsSinceLastWorkDone;
             final int batchSize = determineBatchSize();
             if (batchSize > maxBatchSizeSinceLastWorkDone) {
-              waitUntilEnoughTimeHasPassed(batchSize,
-                  secondsSinceLastWorkDone);
+              waitUntilEnoughTimeHasPassed(batchSize, secondsSinceLastWorkDone);
               return;
             }
           }
@@ -399,7 +392,7 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
 
         // set some state related to this processing run
         lastWorkDone.set(System.currentTimeMillis());
-        LOGGER.debug(getThreadName() + " : processItems() : processing started");
+        LOGGER.debug("{} : processItems() : processing started", getThreadName());
 
         // process the quarantined items and remove them as they're processed
          processQuarantinedItems();
@@ -412,19 +405,17 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
       }
     } finally {
       busyProcessing.set(false);
-      LOGGER.debug(getThreadName() + " : processItems() : processing finished");
+      LOGGER.debug("{} : processItems() : processing finished", getThreadName());
     }
   }
 
   private void processQuarantinedItems() throws Exception {
-    LOGGER.debug(getThreadName() + " : processItems() : processing "
-        + " quarantined items");
+    LOGGER.debug("{} : processItems() : processing " + " quarantined items", getThreadName());
 
     if (writeBatching && writeBatchSize > 0) {
       processBatchedOperations();
     } else {
       processSingleOperation();
-
     }
   }
 
@@ -438,11 +429,9 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
       for (int i = 0; i < batchSize; i++) {
         final SingleOperation<K, V> item = quarantinedItems.get(i);
 
-        LOGGER.debug(getThreadName() + " : processItems() : adding " + item
-            + " to next batch");
+        LOGGER.debug("{} : processItems() : adding {} to next batch", getThreadName(), item);
 
-        List<SingleOperation<K, V>> itemsPerType = separatedItemsPerType.get(item
-            .getType());
+        List<SingleOperation<K, V>> itemsPerType = separatedItemsPerType.get(item.getType());
         if (null == itemsPerType) {
           itemsPerType = new ArrayList<SingleOperation<K, V>>();
           separatedItemsPerType.put(item.getType(), itemsPerType);
@@ -458,13 +447,11 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
     Map<?, Exception> failures = null;
     Set<?> successes = null;
     // execute the batch operations
-    for (List<SingleOperation<K, V>> itemsPerType : separatedItemsPerType
-        .values()) {
+    for (List<SingleOperation<K, V>> itemsPerType : separatedItemsPerType.values()) {
       int executionsLeft = retryAttempts + 1;
       while (executionsLeft-- > 0) {
         try {
-          itemsPerType.get(0).createBatchOperation(itemsPerType)
-              .performBatchOperation(cacheLoaderWriter);
+          itemsPerType.get(0).createBatchOperation(itemsPerType).performBatchOperation(cacheLoaderWriter);
           break;
         } catch (BulkCacheWritingException bulkCacheWritingException) {
           failures = bulkCacheWritingException.getFailures();
@@ -477,16 +464,10 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
           if (executionsLeft <= 0) {
             if (failures != null) {
               for (Map.Entry<?, Exception> entry : failures.entrySet())
-                LOGGER.warn("Exception while processing key '" + entry.getKey()
-                    + "' write behind queue", entry.getValue());
+                LOGGER.warn("Exception while processing key '{}' write behind queue", entry.getKey());
             }
           } else {
-            LOGGER
-                .warn("Exception while processing write behind queue, retrying in "
-                    + retryAttemptDelaySeconds
-                    + " seconds, "
-                    + executionsLeft
-                    + " retries left : " + bulkCacheWritingException);
+              LOGGER.warn("Exception while processing write behind queue, retrying in {} seconds, {} retries left : {} ", retryAttemptDelaySeconds, executionsLeft, bulkCacheWritingException);
             try {
               Thread.sleep(retryAttemptDelaySeconds * MS_IN_SEC);
             } catch (InterruptedException e1) {
@@ -496,15 +477,9 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
           }
         } catch (Exception e) {
           if (executionsLeft <= 0) {
-            LOGGER.warn(
-                "Exception while bulk processing in write behind queue", e);
+            LOGGER.warn("Exception while bulk processing in write behind queue", e);
           } else {
-            LOGGER
-                .warn("Exception while processing write behind queue, retrying in "
-                    + retryAttemptDelaySeconds
-                    + " seconds, "
-                    + executionsLeft
-                    + " retries left : " + e.getMessage());
+            LOGGER.warn("Exception while processing write behind queue, retrying in {} seconds, {} retries left : {} ", retryAttemptDelaySeconds, executionsLeft, e);
             try {
               Thread.sleep(retryAttemptDelaySeconds * MS_IN_SEC);
             } catch (InterruptedException e1) {
@@ -527,7 +502,6 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
     } finally {
       quarrantineLock.writeLock().unlock();
     }
-
     
       if (reassenbleRequired) {
         reassemble();
@@ -549,7 +523,7 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
       } finally {
         quarrantineLock.readLock().unlock();
       }
-      LOGGER.debug(getThreadName() + " : processItems() : processing " + item);
+      LOGGER.debug("{} : processItems() : processing {} ", getThreadName(), item);
 
       int executionsLeft = retryAttempts + 1;
       while (executionsLeft-- > 0) {
@@ -558,21 +532,14 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
           break;
         } catch (Exception e) {
           if (executionsLeft <= 0) {
-            LOGGER.warn("Exception while processing key '" + item.getKey()
-                + "' write behind queue", e);
+            LOGGER.warn("Exception while processing key '{}' write behind queue : {}", item.getKey(), e);
           } else {
-            LOGGER
-                .warn("Exception while processing write behind queue, retrying in "
-                    + retryAttemptDelaySeconds
-                    + " seconds, "
-                    + executionsLeft
-                    + " retries left : " + e);
+            LOGGER.warn("Exception while processing write behind queue, retrying in {} seconds, {} retries left : {}", retryAttemptDelaySeconds, executionsLeft, e);
             try {
               Thread.sleep(retryAttemptDelaySeconds * MS_IN_SEC);
             } catch (InterruptedException e1) {
               Thread.currentThread().interrupt();
-              throw new Exception("Exception while processing key '"
-                  + item.getKey() + "' write behind queue", e);
+              throw new Exception("Exception while processing key '" + item.getKey() + "' write behind queue", e);
             }
           }
         }
@@ -601,18 +568,13 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
   }
 
   private void waitUntilEnoughWorkItemsAvailable(int workSize) {
-    LOGGER.debug(getThreadName() + " : processItems() : only " + workSize
-        + " work items available, waiting for " + writeBatchSize
-        + " items to fill up a batch");
+    LOGGER.debug("{} : processItems() : only {} work items available, waiting for {} items to fill up a batch", getThreadName(), workSize, writeBatchSize);
     reassemble();
   }
 
-  private void waitUntilEnoughTimeHasPassed(int batchSize,
-      long secondsSinceLastWorkDone) {
-    LOGGER.debug(getThreadName() + " : processItems() : last work was done "
-        + secondsSinceLastWorkDone + " seconds ago, processing " + batchSize
-        + " batch items would exceed the rate limit of " + rateLimitPerSecond
-        + ", waiting for a while.");
+  private void waitUntilEnoughTimeHasPassed(int batchSize, long secondsSinceLastWorkDone) {
+    LOGGER.debug("{} : processItems() : last work was done {} seconds ago, processing {} batch items would exceed the rate limit of {} ,"
+        + " waiting for a while.", getThreadName(), secondsSinceLastWorkDone, batchSize, rateLimitPerSecond);
     reassemble();
   }
 

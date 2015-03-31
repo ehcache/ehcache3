@@ -21,31 +21,31 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @author Abhilash
+ * @author Geert Bevin
+ * @author Chris Dennis
  *
  */
-public class CoalesceKeysFilter<K, V> implements
-    OperationsFilter<SingleOperation<K, V>> {
+public class CoalesceKeysFilter<K, V> implements OperationsFilter<SingleOperation<K, V>> {
 
   @Override
   public void filter(List<SingleOperation<K, V>> operations) {
 
-    final Map<K, KeyBasedOperation<K, V>> mostRecent = new HashMap<K, KeyBasedOperation<K, V>>();
-    final List<KeyBasedOperation<K, V>> operationsToRemove = new ArrayList<KeyBasedOperation<K,V>>();
+    final Map<K, KeyBasedOperation<K>> mostRecent = new HashMap<K, KeyBasedOperation<K>>();
+    final List<KeyBasedOperation<K>> operationsToRemove = new ArrayList<KeyBasedOperation<K>>();
     
-    for (KeyBasedOperation<K, V> keyBasedOperation : operations) {
-      if(!mostRecent.containsKey(keyBasedOperation.getKey())){
+    for (KeyBasedOperation<K> keyBasedOperation : operations) {
+      if(!mostRecent.containsKey(keyBasedOperation.getKey())) {
         mostRecent.put(keyBasedOperation.getKey(), keyBasedOperation);
       }
       else {
-        KeyBasedOperation<K, V> previousOperation = mostRecent.get(keyBasedOperation.getKey());
-        if(previousOperation.getCreationTime() > keyBasedOperation.getCreationTime())
+        KeyBasedOperation<K> previousOperation = mostRecent.get(keyBasedOperation.getKey());
+        if(previousOperation.getCreationTime() > keyBasedOperation.getCreationTime()) {
           operationsToRemove.add(keyBasedOperation);
+        }
         else {
           operationsToRemove.add(previousOperation);
           mostRecent.put(keyBasedOperation.getKey(), keyBasedOperation);
         }
-          
       }
     }
 

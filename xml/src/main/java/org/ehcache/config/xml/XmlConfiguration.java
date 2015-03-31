@@ -24,6 +24,8 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
+import org.ehcache.config.xml.ConfigurationParser.WriteBehind;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -174,6 +176,20 @@ public class XmlConfiguration implements Configuration {
       if(cacheDefinition.loaderWriter()!= null) {
         final Class<CacheLoaderWriter<?, ?>> cacheLoaderWriterClass = (Class<CacheLoaderWriter<?,?>>)getClassForName(cacheDefinition.loaderWriter(), cacheClassLoader);
         builder = builder.addServiceConfig(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriterClass));
+        if(cacheDefinition.writeBehind() != null) {
+          WriteBehind writeBehind = cacheDefinition.writeBehind();
+          WriteBehindConfigurationBuilder writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
+              .segment(writeBehind.concurrency()).queueSize(writeBehind.maxQueueSize()).rateLimit(writeBehind.rateLimitPerSecond())
+              .retry(writeBehind.retryAttempts(), writeBehind.retryAttemptsDelay())
+              .delay(writeBehind.minWriteDelay(), writeBehind.maxWriteDelay());
+          if(writeBehind.isBatched()){
+            writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.batch(writeBehind.batchSize());
+          }
+          if(writeBehind.isCoalesced()) {
+            writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.coalesce();
+          }
+          builder = builder.addServiceConfig(writeBehindConfigurationBuilder.build());
+        }
       }
       final OnHeapStoreServiceConfig onHeapStoreServiceConfig = new OnHeapStoreServiceConfig();
       onHeapStoreServiceConfig.storeByValue(cacheDefinition.storeByValueOnHeap());
@@ -301,6 +317,20 @@ public class XmlConfiguration implements Configuration {
     if(loaderWriter!= null) {
       final Class<CacheLoaderWriter<?, ?>> cacheLoaderWriterClass = (Class<CacheLoaderWriter<?,?>>)getClassForName(loaderWriter, defaultClassLoader);
       builder = builder.addServiceConfig(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriterClass));
+      if(cacheTemplate.writeBehind() != null) {
+        WriteBehind writeBehind = cacheTemplate.writeBehind();
+        WriteBehindConfigurationBuilder writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
+            .segment(writeBehind.concurrency()).queueSize(writeBehind.maxQueueSize()).rateLimit(writeBehind.rateLimitPerSecond())
+            .retry(writeBehind.retryAttempts(), writeBehind.retryAttemptsDelay())
+            .delay(writeBehind.minWriteDelay(), writeBehind.maxWriteDelay());
+        if(writeBehind.isBatched()){
+          writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.batch(writeBehind.batchSize());
+        }
+        if(writeBehind.isCoalesced()) {
+          writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.coalesce();
+        }
+        builder = builder.addServiceConfig(writeBehindConfigurationBuilder.build());
+      }
     }
     ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
     for (ResourcePool resourcePool : cacheTemplate.resourcePools()) {

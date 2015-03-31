@@ -20,16 +20,17 @@ import java.util.List;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
- * @author Abhilash
+ * @author Geert Bevin
+ * @author Chris Dennis
  *
  */
-public interface SingleOperation<K, V> extends KeyBasedOperation<K, V> {
+public interface SingleOperation<K, V> extends KeyBasedOperation<K> {
   
   /**
    * Perform this operation as a single execution with the provided cache writer
    *
    */
-  public void performSingleOperation(CacheLoaderWriter<K, V> cacheLoaderWriter) throws Exception;
+  void performSingleOperation(CacheLoaderWriter<K, V> cacheLoaderWriter) throws Exception;
 
   /**
    * Creates a batch operation that corresponds to the operation type of this single operation.
@@ -39,13 +40,13 @@ public interface SingleOperation<K, V> extends KeyBasedOperation<K, V> {
    * {@code CacheWriter} that will be used to execute the batch operation.
    *
    */
-  public BatchOperation<K, V> createBatchOperation(List<SingleOperation<K, V>> operations);
+  BatchOperation<K, V> createBatchOperation(List<SingleOperation<K, V>> operations);
 
   /**
    * Returns a stable identifier for the type this operation can be classified in. This is used to group and order
    * batched operations.
    */
-  public SingleOperationType getType();
+  SingleOperationType getType();
 
   /**
    * Called when all retries have failed

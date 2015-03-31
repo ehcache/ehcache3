@@ -18,7 +18,8 @@ package org.ehcache.config.writebehind;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * @author Abhilash
+ * @author Geert Bevin
+ * @author Chris Dennis
  *
  */
 public class WriteBehindConfiguration implements ServiceConfiguration<WriteBehindDecoratorLoaderWriterProvider> {

@@ -18,6 +18,9 @@ package com.pany.ehcache.integration;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.CountDownLatch;
+
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
@@ -26,6 +29,8 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 public class TestCacheLoaderWriter implements CacheLoaderWriter<Number, String> {
 
   public static Number lastWrittenKey;
+  
+  public static CountDownLatch latch;
 
   @Override
   public String load(final Number key) throws Exception {
@@ -44,11 +49,19 @@ public class TestCacheLoaderWriter implements CacheLoaderWriter<Number, String> 
   @Override
   public void write(final Number key, final String value) throws Exception {
     lastWrittenKey = key;
+    if(latch != null) {
+      latch.countDown();
+    }
   }
 
   @Override
   public void writeAll(final Iterable<? extends Map.Entry<? extends Number, ? extends String>> entries) throws Exception {
-    throw new UnsupportedOperationException("Implement me!");
+    for (Entry<? extends Number, ? extends String> entry : entries) {
+      lastWrittenKey = entry.getKey();
+      if(latch != null) {
+        latch.countDown();
+      }
+    }
   }
 
   @Override

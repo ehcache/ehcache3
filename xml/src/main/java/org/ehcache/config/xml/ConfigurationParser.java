@@ -25,6 +25,7 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.config.xml.model.BaseCacheType;
 import org.ehcache.config.xml.model.CacheIntegration;
+import org.ehcache.config.xml.model.CacheIntegration.Writebehind;
 import org.ehcache.config.xml.model.CacheTemplateType;
 import org.ehcache.config.xml.model.CacheType;
 import org.ehcache.config.xml.model.ConfigType;
@@ -302,6 +303,18 @@ class ConfigurationParser {
             }
             return resourcePools;
           }
+
+          @Override
+          public WriteBehind writeBehind() {
+            for (BaseCacheType source : sources) {
+              final CacheIntegration integration = source.getIntegration();
+              final CacheIntegration.Writebehind writebehind = integration != null ? integration.getWritebehind(): null;
+              if(writebehind != null) {
+                return new XmlWriteBehind(writebehind);
+              }
+            }
+            return null;
+          }
         });
       }
     }
@@ -423,6 +436,13 @@ class ConfigurationParser {
 
             return resourcePools;
           }
+
+          @Override
+          public WriteBehind writeBehind() {
+            final CacheIntegration integration = cacheTemplate.getIntegration();
+            final CacheIntegration.Writebehind writebehind = integration != null ? integration.getWritebehind(): null;
+            return writebehind != null ? new XmlWriteBehind(writebehind) : null;
+          }
         });
       }
     }
@@ -484,6 +504,8 @@ class ConfigurationParser {
     Iterable<ServiceConfiguration<?>> serviceConfigs();
 
     Iterable<ResourcePool> resourcePools();
+    
+    WriteBehind writeBehind();
 
   }
 
@@ -507,6 +529,30 @@ class ConfigurationParser {
 
     TimeUnit unit();
 
+  }
+  
+  static interface WriteBehind {
+    
+    boolean isCoalesced();
+    
+    boolean isBatched();
+    
+    int batchSize();
+    
+    int maxQueueSize();
+    
+    int concurrency();
+    
+    int retryAttempts();
+    
+    int retryAttemptsDelay();
+    
+    int minWriteDelay();
+    
+    int maxWriteDelay();
+    
+    int rateLimitPerSecond();
+    
   }
 
   private static class XmlExpiry implements Expiry {
@@ -576,5 +622,66 @@ class ConfigurationParser {
       }
       return null;
     }
+  }
+  
+  private static class XmlWriteBehind implements WriteBehind {
+    
+    private final Writebehind writebehind; 
+
+    private XmlWriteBehind(Writebehind writebehind) {
+      this.writebehind = writebehind;
+    }
+    
+    @Override
+    public boolean isCoalesced() {
+      return this.writebehind.isCoalesce();
+    }
+
+    @Override
+    public boolean isBatched() {
+      return this.writebehind.getBatchsize() != null;
+    }
+
+    @Override
+    public int batchSize() {
+      if(this.writebehind.getBatchsize() != null) return this.writebehind.getBatchsize().intValue();
+      return 0;
+    }
+
+    @Override
+    public int maxQueueSize() {
+      return this.writebehind.getSize();
+    }
+
+    @Override
+    public int concurrency() {
+      return this.writebehind.getConcurrency();
+    }
+
+    @Override
+    public int retryAttempts() {
+      return this.writebehind.getRetryAttempts() != null ? this.writebehind.getRetryAttempts().getValue() : 0 ;
+    }
+
+    @Override
+    public int retryAttemptsDelay() {
+      return this.writebehind.getRetryAttempts() != null ? this.writebehind.getRetryAttempts().getDelay() : 1;
+    }
+
+    @Override
+    public int minWriteDelay() {
+      return this.writebehind.getWritedelay() != null ? this.writebehind.getWritedelay().getMin() : 1 ;
+    }
+
+    @Override
+    public int maxWriteDelay() {
+      return this.writebehind.getWritedelay() != null ? this.writebehind.getWritedelay().getMax() : 1 ;
+    }
+
+    @Override
+    public int rateLimitPerSecond() {
+      return this.writebehind.getRatelimitpersecond() != null ? this.writebehind.getRatelimitpersecond().intValue() : 0;
+    }
+    
   }
 }

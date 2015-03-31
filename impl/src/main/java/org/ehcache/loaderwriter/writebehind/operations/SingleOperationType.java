@@ -21,7 +21,8 @@ package org.ehcache.loaderwriter.writebehind.operations;
  * The order of the entries in the enum is important since it is used to determine the order of execution of
  * batched operations.
  * 
- * @author Abhilash
+ * @author Geert Bevin
+ * @author Chris Dennis
  *
  */
 public enum SingleOperationType {

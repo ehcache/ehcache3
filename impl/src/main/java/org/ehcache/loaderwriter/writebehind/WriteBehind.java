@@ -22,7 +22,8 @@ import org.ehcache.loaderwriter.writebehind.operations.SingleOperation;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
- * @author Abhilash
+ * @author Geert Bevin
+ * @author Chris Dennis
  *
  */
 public interface WriteBehind<K, V> {

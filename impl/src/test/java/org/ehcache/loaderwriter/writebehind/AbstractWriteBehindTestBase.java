@@ -96,12 +96,15 @@ public abstract class AbstractWriteBehindTestBase {
     
     for(int i=10; i<30; i++){
       String val = "test"+i; 
-      testCache.put(val, val );
+      testCache.put(val, val);
     }
-    assertThat(testCache.get("test29"), is("test29"));
+    
+    assertThat(testCache.get("test29"), is("test29"));    
     
     testCache.remove("test19");
     testCache.remove("test1");
+    
+
     
     assertThat(testCache.get("test19"), nullValue());
     assertThat(testCache.get("test1"), nullValue());

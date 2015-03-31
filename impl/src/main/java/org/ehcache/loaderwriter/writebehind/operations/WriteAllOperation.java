@@ -23,7 +23,8 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 /**
  * Implements the write all operation for write behind
  * 
- * @author Abhilash
+ * @author Geert Bevin
+ * @author Chris Dennis
  *
  */
 public class WriteAllOperation<K, V> implements BatchOperation<K, V> {
@@ -35,11 +36,11 @@ public class WriteAllOperation<K, V> implements BatchOperation<K, V> {
    *
    */
   public WriteAllOperation(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-      this.entries = entries;
+    this.entries = entries;
   }
 
   public void performBatchOperation(CacheLoaderWriter<K, V> cacheLoaderWriter) throws BulkCacheWritingException, Exception {
-      cacheLoaderWriter.writeAll(entries);
+    cacheLoaderWriter.writeAll(entries);
   }
   
 }

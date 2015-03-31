@@ -21,7 +21,8 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 /**
  * Implements the delete all operation for write behind
  * 
- * @author Abhilash
+ * @author Geert Bevin
+ * @author Chris Dennis
  *
  */
 public class DeleteAllOperation<K, V> implements BatchOperation<K, V> {
@@ -41,7 +42,7 @@ public class DeleteAllOperation<K, V> implements BatchOperation<K, V> {
    * {@inheritDoc}
    */
   public void performBatchOperation(CacheLoaderWriter<K, V> cacheLoaderWriter) throws BulkCacheWritingException, Exception {
-      cacheLoaderWriter.deleteAll(entries);
+    cacheLoaderWriter.deleteAll(entries);
   }
 
 }

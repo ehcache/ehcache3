@@ -21,7 +21,8 @@ import java.util.List;
  * An interface for implementing a filter for operations before they are processed. By filtering the outstanding
  * operations it's for example possible to remove scheduled work before it's actually executed.
  * 
- * @author Abhilash
+ * @author Geert Bevin
+ * @author Chris Dennis
  *
  */
 public interface OperationsFilter<T> {
@@ -31,6 +32,6 @@ public interface OperationsFilter<T> {
    *
    * @param operations the operations to filter
    */
-  public void filter(List<T> operations);
+  void filter(List<T> operations);
   
 }

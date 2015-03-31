@@ -27,7 +27,6 @@ public interface WriteBehindDecoratorLoaderWriterProvider extends Service {
   /**
    * Provider Interface for decorator loaderwriter
    * 
-   * @param 
    * @param cacheLoaderWriter loaderwriter
    * @param configuration     configuration
    * @param <K> the key type for the associated {@link org.ehcache.Cache}

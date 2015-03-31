@@ -24,7 +24,8 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 /**
  * Implements the write operation for write behind
  * 
- * @author Abhilash
+ * @author Geert Bevin
+ * @author Tim wu
  *
  */
 
@@ -39,7 +40,7 @@ public class WriteOperation<K, V> implements SingleOperation<K, V> {
    *
    */
   public WriteOperation(K k, V v) {
-      this(k, v, System.currentTimeMillis());
+    this(k, v, System.currentTimeMillis());
   }
 
   /**
@@ -47,44 +48,44 @@ public class WriteOperation<K, V> implements SingleOperation<K, V> {
    *
    */
   public WriteOperation(K k, V v, long creationTime) {
-      this.key = k;
-      this.value = v;
-      this.creationTime = creationTime;
+    this.key = k;
+    this.value = v;
+    this.creationTime = creationTime;
   }
 
   @Override
   public void performSingleOperation(CacheLoaderWriter<K, V> cacheWriter) throws Exception {
-        cacheWriter.write(key, value);
+    cacheWriter.write(key, value);
   }
 
   @Override
   public BatchOperation<K, V> createBatchOperation(List<SingleOperation<K, V>> operations) {
-      final List<Map.Entry<K, V>> entries = new ArrayList<Map.Entry<K, V>>();
-      for (final KeyBasedOperation<K, V> operation : operations) {
-        entries.add(new Map.Entry<K, V>() {
+    final List<Map.Entry<K, V>> entries = new ArrayList<Map.Entry<K, V>>();
+    for (final KeyBasedOperation<K> operation : operations) {
+      entries.add(new Map.Entry<K, V>() {
 
-            @Override
-            public K getKey() {
-              return ((WriteOperation<K, V>)operation).key;
-            }
+        @Override
+        public K getKey() {
+          return ((WriteOperation<K, V>)operation).key;
+        }
 
-            @Override
-            public V getValue() {
-              return ((WriteOperation<K, V>)operation).value;
-            }
+        @Override
+        public V getValue() {
+          return ((WriteOperation<K, V>)operation).value;
+        }
 
-            @Override
-            public V setValue(V value) {
-              throw new UnsupportedOperationException("Not Supported.");
-            }
-          });
-      }
-      return new WriteAllOperation<K, V>(entries);
+        @Override
+        public V setValue(V value) {
+          throw new UnsupportedOperationException("Not Supported.");
+        }
+      });
+    }
+    return new WriteAllOperation<K, V>(entries);
   }
 
   @Override
   public K getKey() {
-      return this.key;
+    return this.key;
   }
   
   public V getValue(){
@@ -93,12 +94,12 @@ public class WriteOperation<K, V> implements SingleOperation<K, V> {
 
   @Override
   public long getCreationTime() {
-      return creationTime;
+    return creationTime;
   }
 
   @Override
   public SingleOperationType getType() {
-      return SingleOperationType.WRITE;
+    return SingleOperationType.WRITE;
   }
 
   @Override
@@ -111,19 +112,14 @@ public class WriteOperation<K, V> implements SingleOperation<K, V> {
   @Override
   public boolean equals(Object other) {
     if (other instanceof WriteOperation) {
-      return getCreationTime() == ((WriteOperation) other).getCreationTime() && getKey().equals(
-          ((WriteOperation) other).getKey());
+      return getCreationTime() == ((WriteOperation) other).getCreationTime() && getKey().equals(((WriteOperation) other).getKey());
     } else {
       return false;
     }
   }
   
   @Override
-  public void throwAway(CacheLoaderWriter<K, V> cacheLoaderWriter,
-      RuntimeException e) {
+  public void throwAway(CacheLoaderWriter<K, V> cacheLoaderWriter, RuntimeException e) {
     // TODO Do we need this ?
-    
   }
-
- 
 }
