@@ -36,10 +36,6 @@
               A cache definition the CacheManager will manage
             </xs:documentation>
           </xs:annotation>
-          <xs:key name="template">
-            <xs:selector xpath="cache-template"/>
-            <xs:field xpath="@name"/>
-          </xs:key>
         </xs:element>
         <xs:element name="cache-template" type="ehcache:cacheTemplate-type">
           <xs:annotation>
@@ -104,7 +100,7 @@
     </xs:complexContent>
   </xs:complexType>
 
-  <xs:complexType name="cacheTemplate-type" xml:base="ehcache:baseCache-type">
+  <xs:complexType name="cacheTemplate-type">
     <xs:complexContent>
       <xs:extension base="ehcache:baseCache-type">
         <xs:attribute name="name" type="xs:ID" use="required">
@@ -165,7 +161,6 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
-      <!-- TODO The following choice is mandatory in a cache but optional in a template. Find the magic XSD incantation that does exactly that. -->
       <xs:choice minOccurs="0" maxOccurs="1">
         <xs:element name="heap" type="ehcache:resource-type" minOccurs="1" maxOccurs="1">
           <xs:annotation>
