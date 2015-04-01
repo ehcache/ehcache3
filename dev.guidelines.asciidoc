@@ -16,15 +16,15 @@ If you need to change the public API (this includes additions), you probably wan
 
 Whether API is modified or not, you'll want to consider how you plan to go about implementing it all. There are a couple of specificities of the Ehcache internals that would need to be accounted for:
 
- . *`Service` additions or modifications*: effectively this is mainly about http://en.wikipedia.org/wiki/Inversion_of_control[IoC] and http://en.wikipedia.org/wiki/Liskov_substitution_principle[LSP], we want subsystems of your feature to be injected and abstracted away behind an interface, that would let the actual implementation easily be replaced with another. We also try to reuse existing `Service` definitions as much as possible. So don't hesitate to slightly tweak an existing one, rather than introducing a new one.
- . *Lifecycle*: You'll want to make sure, if at all, how Ehcache's life cycling may affect your change. If anything requires any special life cycling (e.g. `PersistentCacheManager` services), you will have to account for these.
- . *Failure*: Most things eventually do go wrong. Whether it's IO, some user provided implementation throwing, the actual `Store` being unaccessible... Things just go wrong. Ehcache tries to never do any harm to the user's application. As such your change should account for failure scenarios and possibly delegate to the `ResilienceStrategy` to enable users to deal with such scenarios sensibly.
+ . *`Service` additions or modifications*: this is mainly about http://en.wikipedia.org/wiki/Inversion_of_control[IoC] and http://en.wikipedia.org/wiki/Liskov_substitution_principle[LSP], we want subsystems of your feature to be both injected and abstracted away behind an interface. This allows the actual implementation to be easily replaced with another. We also try to reuse existing `Service` definitions as much as possible. So don't hesitate to slightly tweak an existing one, rather than introducing a new one.
+ . *Lifecycle*: You'll want to assess how Ehcache's life cycling may affect your change (if at all). If anything requires any special life cycling (e.g. `PersistentCacheManager` services), you will have to account for this.
+ . *Failure*: Most things eventually do go wrong. Whether it's IO, some user provided implementation throwing, the actual `Store` being unaccessible... things just go wrong. Ehcache tries to never do any harm to the user's application. As such your change should account for failure scenarios and possibly delegate to the `ResilienceStrategy` to enable users to deal with such scenarios sensibly.
 
 === Last touches
 
-Once your change actually implemented (see coding guidelines below), you finally will want to make sure that:
+Once your change is implemented (see coding guidelines below), you will want to make sure that:
 
- . You added adequate logging;
+ . You added adequate (but not excessive) logging;
  . Configuration is complete: 
  .. XML configuration was added, but that should never drive the actual configuration concerns;
  .. XML Templating is correctly supported.
