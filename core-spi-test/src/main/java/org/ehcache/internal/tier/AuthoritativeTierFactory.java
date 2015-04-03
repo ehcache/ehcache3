@@ -20,16 +20,17 @@ import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 
 /**
  * @author Aurelien Broszniowski
  */
-public interface AuthoritativeTierFactory<K, V> {
+public interface AuthoritativeTierFactory<K, V> extends StoreFactory<K,V> {
 
-  AuthoritativeTier<K, V> newTier(AuthoritativeTier.Configuration<K, V> config);
+  AuthoritativeTier<K, V> newStore(AuthoritativeTier.Configuration<K, V> config);
 
-  AuthoritativeTier<K, V> newTier(AuthoritativeTier.Configuration<K, V> config, TimeSource timeSource);
+  AuthoritativeTier<K, V> newStore(AuthoritativeTier.Configuration<K, V> config, TimeSource timeSource);
 
   AuthoritativeTier.Configuration<K, V> newConfiguration(
       Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,

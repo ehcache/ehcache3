@@ -16,16 +16,19 @@
 
 package org.ehcache.internal.tier;
 
+import org.ehcache.internal.store.StoreSPITest;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * @author Aurelien Broszniowski
  */
-public abstract class AuthoritativeTierSPITest<K, V> {
+public abstract class AuthoritativeTierSPITest<K, V> extends StoreSPITest<K, V> {
 
-  protected abstract AuthoritativeTierFactory getAuthoritativeTierFactory();
+  protected abstract AuthoritativeTierFactory<K,V> getAuthoritativeTierFactory();
 
   @Test
+  @Ignore
   public void testGetAndFault() throws Exception {
     AuthoritativeTierGetAndFault<K, V> testSuite = new AuthoritativeTierGetAndFault<K, V>(getAuthoritativeTierFactory());
     testSuite.runTestSuite().reportAndThrow();

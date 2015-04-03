@@ -50,7 +50,6 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
 
   @Before
   public void setUp() {
-//    tier = factory.newTier(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.none(), null));
   }
 
   @After
@@ -64,7 +63,7 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
   @SPITest
   public void marksTheMappingAsNotEvictable() {
     TestTimeSource timeSource = new TestTimeSource();
-    tier = factory.newTier(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         null, null, null, Expirations.timeToIdleExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
 
     K key = factory.createKey(1);
