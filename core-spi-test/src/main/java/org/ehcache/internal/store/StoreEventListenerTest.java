@@ -23,6 +23,7 @@ import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
+import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.SPITest;
@@ -316,18 +317,6 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  private static class TestTimeSource implements TimeSource {
 
-    private long time = 0;
-
-    @Override
-    public long getTimeMillis() {
-      return time;
-    }
-
-    private void advanceTime(long delta) {
-      this.time += delta;
-    }
-  }
 }
 

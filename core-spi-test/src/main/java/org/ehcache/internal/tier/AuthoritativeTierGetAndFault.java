@@ -1,0 +1,85 @@
+/*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.ehcache.internal.tier;
+
+import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.internal.TestTimeSource;
+import org.ehcache.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.spi.test.After;
+import org.ehcache.spi.test.Before;
+import org.ehcache.spi.test.SPITest;
+
+import java.util.concurrent.TimeUnit;
+
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+
+/**
+ * Test the {@link org.ehcache.spi.cache.tiering.AuthoritativeTier#getAndFault(K key)} contract of the
+ * {@link org.ehcache.spi.cache.tiering.AuthoritativeTier AuthoritativeTier} interface.
+ * <p/>
+ *
+ * @author Aurelien Broszniowski
+ */
+
+public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTester<K, V> {
+
+  protected AuthoritativeTier<K, V> tier;
+
+  public AuthoritativeTierGetAndFault(final AuthoritativeTierFactory<K, V> factory) {
+    super(factory);
+  }
+
+  @Before
+  public void setUp() {
+//    tier = factory.newTier(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.none(), null));
+  }
+
+  @After
+  public void tearDown() {
+    if (tier != null) {
+      tier.close();
+      tier = null;
+    }
+  }
+
+  @SPITest
+  public void marksTheMappingAsNotEvictable() {
+    TestTimeSource timeSource = new TestTimeSource();
+    tier = factory.newTier(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+        null, null, null, Expirations.timeToIdleExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
+
+    K key = factory.createKey(1);
+    V value = factory.createValue(1);
+
+    try {
+      tier.put(key, value);
+      tier.getAndFault(key);
+
+      timeSource.advanceTime(1);
+      assertThat(tier.get(key), is(not(nullValue())));
+
+    } catch (CacheAccessException e) {
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
+    }
+  }
+}
