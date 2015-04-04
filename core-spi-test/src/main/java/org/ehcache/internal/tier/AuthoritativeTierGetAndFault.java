@@ -62,6 +62,10 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
     }
   }
 
+  /**
+   * The goal of this test is to make sure that an entry that was stored by the put method
+   * will be evicted with the default behaviour of the tier.
+   */
   @SPITest
   public void nonMarkedMappingIsEvictable() {
     K key = factory.createKey(1);
@@ -84,8 +88,12 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
     }
   }
 
+  /**
+   * This test depends on the previous test, while the previous tests verifies that the eviction will occur,
+   * this one will verify that the eviction doesn't occur under the same condition after a call to getAndFault()
+   */
   @SPITest
-  public void marksTheMappingAsNotEvictable() {
+  public void marksTheMappingAsNotEvictableAndReturnsValue() {
     K key = factory.createKey(1);
     V value = factory.createValue(1);
 
@@ -94,7 +102,7 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
 
     try {
       tier.put(key, value);
-      tier.getAndFault(key);
+      assertThat(tier.getAndFault(key).value(), is(equalTo(value)));
 
       for (long seed = 2L; seed < 15000; seed++) {
         tier.put(factory.createKey(seed), factory.createValue(seed));
