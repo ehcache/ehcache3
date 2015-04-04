@@ -23,10 +23,12 @@ import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
+import org.ehcache.spi.test.Ignore;
 import org.ehcache.spi.test.SPITest;
 
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -61,7 +63,53 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
   }
 
   @SPITest
+  public void nonMarkedMappingIsEvictable() {
+    K key = factory.createKey(1);
+    V value = factory.createValue(1);
+
+    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+        1L, null, null, Expirations.noExpiration()));
+
+    try {
+      tier.put(key, value);
+
+      for (long seed = 2L; seed < 15000; seed++) {
+        tier.put(factory.createKey(seed), factory.createValue(seed));
+      }
+      assertThat(tier.get(key), is(nullValue()));
+
+    } catch (CacheAccessException e) {
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
+    }
+  }
+
+  @SPITest
   public void marksTheMappingAsNotEvictable() {
+    K key = factory.createKey(1);
+    V value = factory.createValue(1);
+
+    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+        1L, null, null, Expirations.noExpiration()));
+
+    try {
+      tier.put(key, value);
+      tier.getAndFault(key);
+
+      for (long seed = 2L; seed < 15000; seed++) {
+        tier.put(factory.createKey(seed), factory.createValue(seed));
+      }
+      assertThat(tier.get(key).value(), is(equalTo(value)));
+
+    } catch (CacheAccessException e) {
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
+    }
+  }
+
+  @SPITest
+  @Ignore
+  public void marksTheMappingAsNotExpirable() {
     TestTimeSource timeSource = new TestTimeSource();
     tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         null, null, null, Expirations.timeToIdleExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);

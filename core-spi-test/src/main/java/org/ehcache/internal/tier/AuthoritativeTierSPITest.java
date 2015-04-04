@@ -28,7 +28,6 @@ public abstract class AuthoritativeTierSPITest<K, V> extends StoreSPITest<K, V> 
   protected abstract AuthoritativeTierFactory<K,V> getAuthoritativeTierFactory();
 
   @Test
-  @Ignore
   public void testGetAndFault() throws Exception {
     AuthoritativeTierGetAndFault<K, V> testSuite = new AuthoritativeTierGetAndFault<K, V>(getAuthoritativeTierFactory());
     testSuite.runTestSuite().reportAndThrow();

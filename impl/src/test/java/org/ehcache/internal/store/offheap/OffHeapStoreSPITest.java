@@ -81,9 +81,9 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
 
       private ResourcePools getOffHeapResourcePool(Comparable<Long> capacityConstraint) {
         if (capacityConstraint == null) {
-          capacityConstraint = 1000L;
+          capacityConstraint = 1L;
         }
-        return ResourcePoolsBuilder.newResourcePoolsBuilder().offheap((Long)capacityConstraint, MemoryUnit.KB).build();
+        return ResourcePoolsBuilder.newResourcePoolsBuilder().offheap((Long)capacityConstraint, MemoryUnit.MB).build();
       }
 
       @Override
