@@ -50,11 +50,13 @@ public class CacheConfigurationBuilder<K, V> {
   private CacheConfigurationBuilder(final Expiry<? super K, ? super V> expiry, final ClassLoader classLoader,
                                    final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
                                    final EvictionVeto<? super K, ? super V> evictionVeto,
+                                   final ResourcePools resourcePools,
                                    final Collection<ServiceConfiguration<?>> serviceConfigurations) {
     this.expiry = expiry;
     this.classLoader = classLoader;
     this.evictionPrioritizer = evictionPrioritizer;
     this.evictionVeto = evictionVeto;
+    this.resourcePools = resourcePools;
     this.serviceConfigurations.addAll(serviceConfigurations);
   }
 
@@ -64,11 +66,11 @@ public class CacheConfigurationBuilder<K, V> {
   }
 
   public <NK extends K, NV extends V> CacheConfigurationBuilder<NK, NV> usingEvictionPrioritizer(final EvictionPrioritizer<? super NK, ? super NV> evictionPrioritizer) {
-    return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, evictionPrioritizer, evictionVeto, serviceConfigurations);
+    return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, evictionPrioritizer, evictionVeto, resourcePools, serviceConfigurations);
   }
 
-  public <NK extends K, NV extends V> CacheConfigurationBuilder<NK, NV> evitionVeto(final EvictionVeto<? super NK, ? super NV> veto) {
-    return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, evictionPrioritizer, veto, serviceConfigurations);
+  public <NK extends K, NV extends V> CacheConfigurationBuilder<NK, NV> evictionVeto(final EvictionVeto<? super NK, ? super NV> veto) {
+    return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, evictionPrioritizer, veto, resourcePools, serviceConfigurations);
   }
 
   public CacheConfigurationBuilder<K, V> removeServiceConfig(ServiceConfiguration<?> configuration) {
@@ -118,7 +120,7 @@ public class CacheConfigurationBuilder<K, V> {
     if (expiry == null) {
       throw new NullPointerException("Null expiry");
     }
-    return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, evictionPrioritizer, evictionVeto, serviceConfigurations);
+    return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, evictionPrioritizer, evictionVeto, resourcePools, serviceConfigurations);
   }
 
   public CacheConfigurationBuilder<K, V> persistenceMode(CacheConfiguration.PersistenceMode persistenceMode) {

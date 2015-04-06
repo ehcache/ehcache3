@@ -17,10 +17,15 @@
 package org.ehcache.config;
 
 import org.ehcache.Cache;
+import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
+import org.hamcrest.Matchers;
 import org.junit.Test;
+
+import static org.junit.Assert.assertThat;
 
 public class CacheConfigurationBuilderTest {
 
@@ -41,7 +46,7 @@ public class CacheConfigurationBuilderTest {
     final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
 
     builder
-        .evitionVeto(new EvictionVeto<Long, String>() {
+        .evictionVeto(new EvictionVeto<Long, String>() {
           @Override
           public boolean test(final Cache.Entry<Long, String> argument) {
             return argument.getValue().startsWith("A");
@@ -54,5 +59,34 @@ public class CacheConfigurationBuilderTest {
         .buildConfig(Long.class, String.class, null, prioritizer);
     builder
         .buildConfig(Long.class, String.class, null, Eviction.Prioritizer.FIFO);
+  }
+
+  @Test
+  public void testOffheapGetsAddedToCacheConfiguration() {
+    final CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+
+    final EvictionPrioritizer<Long, CharSequence> prioritizer = new EvictionPrioritizer<Long, CharSequence>() {
+      @Override
+      public int compare(final Cache.Entry<Long, CharSequence> o1, final Cache.Entry<Long, CharSequence> o2) {
+        return Integer.signum(o2.getValue().length() - o1.getValue().length());
+      }
+    };
+
+    final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
+
+    builder.withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES)
+        .offheap(10, MemoryUnit.MB).build());
+    CacheConfiguration config = builder
+        .evictionVeto(new EvictionVeto<Long, String>() {
+          @Override
+          public boolean test(final Cache.Entry<Long, String> argument) {
+            return argument.getValue().startsWith("A");
+          }
+        })
+        .usingEvictionPrioritizer(prioritizer)
+        .withExpiry(expiry)
+        .buildConfig(Long.class, String.class);
+    assertThat(config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getType(), Matchers.<ResourceType>is(ResourceType.Core.OFFHEAP));
+    assertThat(config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getUnit(), Matchers.<ResourceUnit>is(MemoryUnit.MB));
   }
 }

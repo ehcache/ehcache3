@@ -295,7 +295,7 @@ public class XmlConfiguration implements Configuration {
     final ConfigurationParser.Expiry parsedExpiry = cacheTemplate.expiry();
     builder = builder
         .usingEvictionPrioritizer(getInstanceOfName(cacheTemplate.evictionPrioritizer(), defaultClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class))
-        .evitionVeto(getInstanceOfName(cacheTemplate.evictionVeto(), defaultClassLoader, EvictionVeto.class))
+        .evictionVeto(getInstanceOfName(cacheTemplate.evictionVeto(), defaultClassLoader, EvictionVeto.class))
         .withExpiry(getExpiry(defaultClassLoader, parsedExpiry));
     final String loaderWriter = cacheTemplate.loaderWriter();
     if(loaderWriter!= null) {
