@@ -19,14 +19,26 @@ package org.ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
+import org.ehcache.config.event.DefaultCacheEventListenerBuilder;
+import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.event.CacheEvent;
+import org.ehcache.event.CacheEventListener;
+import org.ehcache.event.EventFiring;
+import org.ehcache.event.EventOrdering;
+import org.ehcache.event.EventType;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
+import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -202,6 +214,25 @@ public class GettingStarted {
     cacheManager.close();
   }
 
+  @Test
+  public void testCacheEventListener() {
+    Set<EventType> eventTypeSet = new HashSet<EventType>();
+    eventTypeSet.add(EventType.CREATED);
+    eventTypeSet.add(EventType.UPDATED);
+
+    DefaultCacheEventListenerBuilder listenerBuilder = DefaultCacheEventListenerBuilder.newCacheEventListenerBuilder();
+    listenerBuilder.withEventsToFireOn(EnumSet.copyOf(eventTypeSet));
+    listenerBuilder.withEventOrdering(EventOrdering.UNORDERED);
+    listenerBuilder.withEventFiringMode(EventFiring.ASYNCHRONOUS);
+    DefaultCacheEventListenerConfiguration cacheEventListenerConfiguration = listenerBuilder.build(ListenerObject.class);
+    final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("foo",
+            CacheConfigurationBuilder.newCacheConfigurationBuilder()
+                .addServiceConfig(cacheEventListenerConfiguration)
+                .buildConfig(Object.class, Object.class)).build(true);
+    manager.close();
+  }
+
   private void performAssertions(Cache<Long, String> cache, boolean same) {
     cache.put(1L, "one");
     String s1 = cache.get(1L);
@@ -210,6 +241,20 @@ public class GettingStarted {
 
     assertThat(s1 == s2, is(same));
     assertThat(s2 == s3, is(same));
+  }
+
+  public static class ListenerObject implements CacheEventListener<Object, Object> {
+    private static final Object object = new Object() {
+      @Override
+      public String toString() {
+        return "class "+ org.ehcache.config.event.DefaultCacheEventListenerConfiguration.class.getName();
+      }
+    };
+
+    @Override
+    public void onEvent(CacheEvent<Object, Object> event) {
+      //noop
+    }
   }
 
 }

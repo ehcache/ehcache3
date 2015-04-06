@@ -21,6 +21,7 @@ import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.ResourceUnit;
@@ -40,6 +41,7 @@ import org.xml.sax.SAXParseException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -364,7 +366,7 @@ public class XmlConfigurationTest {
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
     
     assertThat(xmlConfig.getServiceConfigurations().size(), is(1));
-    
+
     ServiceConfiguration configuration = xmlConfig.getServiceConfigurations().iterator().next();
     
     assertThat(configuration, instanceOf(DefaultSerializationProviderConfiguration.class));
@@ -383,6 +385,23 @@ public class XmlConfigurationTest {
 
     PersistenceConfiguration persistenceConfiguration = (PersistenceConfiguration)serviceConfig;
     assertThat(persistenceConfiguration.getRootDirectory(), is(new File("/some/dir")));
+  }
+
+  @Test
+  public void testCacheEventListener() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/ehcache-cacheEventListener.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+
+    assertThat(xmlConfig.getCacheConfigurations().size(), is(2));
+
+    Collection<?> configuration = xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations();
+    int count = 0;
+    for (Object o : configuration) {
+      if(o instanceof DefaultCacheEventListenerConfiguration) {
+        count++;
+      }
+    }
+    assertThat(count, is(1));
   }
 
 }

@@ -16,8 +16,8 @@
 
 package org.ehcache.event;
 
-import org.ehcache.config.CacheConfiguration;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author Alex Snaps
@@ -28,13 +28,13 @@ public interface CacheEventListenerFactory extends Service {
    * Creates a new {@link org.ehcache.event.CacheEventListener}
    *
    * @param alias the {@link org.ehcache.Cache} instance's alias in the {@link org.ehcache.CacheManager}
-   * @param cacheConfiguration the configuration instance that will be used to create the {@link org.ehcache.Cache}
+   * @param serviceConfiguration the configuration instance that will be used to create the {@link org.ehcache.event.CacheEventListener}
    * @param <K> the key type for the associated {@link org.ehcache.Cache}
    * @param <V> the value type for the associated {@link org.ehcache.Cache}
    *
    * @return the CacheEventListener to be registered with the given {@link org.ehcache.Cache}
    */
-  <K, V> CacheEventListener<K, V> createEventListener(String alias, CacheConfiguration<K, V> cacheConfiguration);
+  <K, V> CacheEventListener<K, V> createEventListener(String alias, ServiceConfiguration<CacheEventListenerFactory> serviceConfiguration);
 
   /**
    * Releases a given {@link org.ehcache.event.CacheEventListener}
