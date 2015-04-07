@@ -18,6 +18,7 @@ package org.ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.events.StoreEventListener;
+import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
@@ -718,6 +719,13 @@ public abstract class EhcacheBasicCrudBase {
      * Keys for which access results in a thrown {@code Exception}.  This set may be empty.
      */
     private final Set<String> failingKeys;
+    
+    /**
+     * Keys for which success should be reported in {@link BulkCacheLoadingException}
+     */
+    private Set<String> successKeys;
+    
+    private boolean isBulkCacheLoadingExceptionEnabled = false;
 
     /**
      * The entry key causing the {@link #writeAll(Iterable)} and {@link #deleteAll(Iterable)}
@@ -740,6 +748,16 @@ public abstract class EhcacheBasicCrudBase {
       this.failingKeys = (failingKeys.isEmpty()
           ? Collections.<String>emptySet()
           : Collections.unmodifiableSet(new HashSet<String>(failingKeys)));
+    }
+    
+    public FakeCacheLoaderWriter(final Map<String, String> entries, boolean isBulkCacheLoadingExceptionEnabled) {
+      this(entries, Collections.<String>emptySet(), isBulkCacheLoadingExceptionEnabled);
+    }
+    
+    public FakeCacheLoaderWriter(final Map<String, String> entries, final Set<String> successKeys, boolean isBulkCacheLoadingExceptionEnabled) {
+      this(entries, Collections.<String>emptySet());
+      this.successKeys = successKeys;
+      this.isBulkCacheLoadingExceptionEnabled = isBulkCacheLoadingExceptionEnabled;
     }
 
     Map<String, String> getEntryMap() {
@@ -858,6 +876,24 @@ public abstract class EhcacheBasicCrudBase {
 
     @Override
     public Map<String, String> loadAll(final Iterable<? extends String> keys) throws Exception {
+      if(isBulkCacheLoadingExceptionEnabled) {
+        Map<String, Exception> failures = new HashMap<String, Exception>();
+        Map<String, String> loadedKeys = new HashMap<String, String>();
+
+        Exception loadingException = new RuntimeException("Exception loading keys");
+        
+        for (String key : keys) {
+          if (!successKeys.contains(key)) {
+            failures.put(key, loadingException);
+          }else {
+            loadedKeys.put(key, null);
+          }
+          
+        }
+        
+        throw new BulkCacheLoadingException(failures, loadedKeys);
+      }
+      
       final Map<String, String> resultMap = new HashMap<String, String>();
       for (final String key : keys) {
         if (this.failingKeys.contains(key)) {
