@@ -27,6 +27,7 @@ import com.pany.ehcache.integration.TestCacheLoaderWriter;
 
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -73,7 +74,7 @@ public class IntegrationConfigTest {
     final Number key = new Long(42);
     TestCacheLoaderWriter.latch = new CountDownLatch(1);
     cache.put(key, "Bye y'all!");
-    TestCacheLoaderWriter.latch.await();
+    TestCacheLoaderWriter.latch.await(2, TimeUnit.SECONDS);
     assertThat(TestCacheLoaderWriter.lastWrittenKey, is(key));
 
     assertThat(configuration.getCacheConfigurations().containsKey("template1"), is(true));
@@ -83,7 +84,7 @@ public class IntegrationConfigTest {
     final Number key1 = new Long(100);
     TestCacheLoaderWriter.latch = new CountDownLatch(1);
     templateCache.put(key1, "Bye y'all!");
-    TestCacheLoaderWriter.latch.await();
+    TestCacheLoaderWriter.latch.await(2, TimeUnit.SECONDS);
     assertThat(TestCacheLoaderWriter.lastWrittenKey, is(key1));
     
   }

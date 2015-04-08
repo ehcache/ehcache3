@@ -213,26 +213,26 @@
             <xs:complexType>
               <xs:simpleContent>
                 <xs:extension base="xs:string">
-                  <xs:attribute type="xs:int" name="min" default="1" use="optional"/>
-                  <xs:attribute type="xs:int" name="max" default="1" use="optional"/>
+                  <xs:attribute type="xs:positiveInteger" name="min" default="1" use="optional"/>
+                  <xs:attribute type="xs:positiveInteger" name="max" default="1" use="optional"/>
                 </xs:extension>
               </xs:simpleContent>
             </xs:complexType>
           </xs:element>
-          <xs:element type="xs:int" name="ratelimitpersecond" default="0" minOccurs="0" maxOccurs="1"/>
-          <xs:element type="xs:int" name="batchsize" default="1" minOccurs="0" maxOccurs="1"/>
+          <xs:element type="xs:nonNegativeInteger" name="ratelimitpersecond" default="0" minOccurs="0" maxOccurs="1"/>
+          <xs:element type="xs:positiveInteger" name="batchsize" default="1" minOccurs="0" maxOccurs="1"/>
           <xs:element name="retryAttempts" default="0" minOccurs="0" maxOccurs="1">
             <xs:complexType>
               <xs:simpleContent>
-                <xs:extension base="xs:int">
-                  <xs:attribute type="xs:int" name="delay" default="1" use="optional"/>
+                <xs:extension base="xs:nonNegativeInteger">
+                  <xs:attribute type="xs:positiveInteger" name="delay" default="1" use="optional"/>
                 </xs:extension>
               </xs:simpleContent>
             </xs:complexType>
           </xs:element>
         </xs:sequence>
-        <xs:attribute type="xs:int" name="concurrency" default="1" use="optional"/>
-        <xs:attribute type="xs:int" name="size" default="0" use="optional"/>
+        <xs:attribute type="xs:positiveInteger" name="concurrency" default="1" use="optional"/>
+        <xs:attribute type="xs:nonNegativeInteger" name="size" default="0" use="optional"/>
         <xs:attribute type="xs:boolean" name="coalesce" use="optional"/>
       </xs:complexType>
     </xs:element>

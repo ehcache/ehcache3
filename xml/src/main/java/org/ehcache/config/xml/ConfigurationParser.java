@@ -650,32 +650,32 @@ class ConfigurationParser {
 
     @Override
     public int maxQueueSize() {
-      return this.writebehind.getSize();
+      return this.writebehind.getSize().intValue();
     }
 
     @Override
     public int concurrency() {
-      return this.writebehind.getConcurrency();
+      return this.writebehind.getConcurrency().intValue() ;
     }
 
     @Override
     public int retryAttempts() {
-      return this.writebehind.getRetryAttempts() != null ? this.writebehind.getRetryAttempts().getValue() : 0 ;
+      return this.writebehind.getRetryAttempts() != null ? this.writebehind.getRetryAttempts().getValue().intValue() : 0 ;
     }
 
     @Override
     public int retryAttemptsDelay() {
-      return this.writebehind.getRetryAttempts() != null ? this.writebehind.getRetryAttempts().getDelay() : 1;
+      return this.writebehind.getRetryAttempts() != null ? this.writebehind.getRetryAttempts().getDelay().intValue() : 1;
     }
 
     @Override
     public int minWriteDelay() {
-      return this.writebehind.getWritedelay() != null ? this.writebehind.getWritedelay().getMin() : 1 ;
+      return this.writebehind.getWritedelay() != null ? this.writebehind.getWritedelay().getMin().intValue() : 1 ;
     }
 
     @Override
     public int maxWriteDelay() {
-      return this.writebehind.getWritedelay() != null ? this.writebehind.getWritedelay().getMax() : 1 ;
+      return this.writebehind.getWritedelay() != null ? this.writebehind.getWritedelay().getMax().intValue() : 1 ;
     }
 
     @Override

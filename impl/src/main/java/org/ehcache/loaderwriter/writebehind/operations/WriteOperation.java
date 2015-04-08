@@ -34,13 +34,13 @@ public class WriteOperation<K, V> implements SingleOperation<K, V> {
   private final K key;
   private final V value;
   private final long creationTime;
-
+  
   /**
    * Create a new write operation for a particular element
    *
    */
   public WriteOperation(K k, V v) {
-    this(k, v, System.currentTimeMillis());
+    this(k, v, System.nanoTime());
   }
 
   /**

@@ -22,8 +22,10 @@ import static org.junit.Assert.assertThat;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
@@ -49,8 +51,7 @@ public abstract class AbstractWriteBehindTestBase {
     testCache.put("test3", "test3");
     testCache.remove("test2");
     
-//    Thread.sleep(500);
-    countDownLatch.await();
+    countDownLatch.await(2, TimeUnit.SECONDS);
     
     assertThat(loaderWriter.getData().get("test1").getValue(), is("test1"));
     assertThat(loaderWriter.getData().get("test2"), nullValue());
@@ -71,14 +72,14 @@ public abstract class AbstractWriteBehindTestBase {
     }
     
     testCache.putAll(entries);
-    countDownLatch.await();
+    countDownLatch.await(5, TimeUnit.SECONDS);
     assertThat(loaderWriter.getData().size(), is(20));
 
     CountDownLatch countDownLatch1 = new CountDownLatch(10);
     loaderWriter.setLatch(countDownLatch1);
     testCache.removeAll(keys);
     
-    countDownLatch1.await();
+    countDownLatch1.await(5, TimeUnit.SECONDS);
     
     assertThat(loaderWriter.getData().size(), is(10));
   }
@@ -117,6 +118,24 @@ public abstract class AbstractWriteBehindTestBase {
     
     
     assertThat(testCache.get("test7"), is("test7New"));
+  }
+  
+  @Test
+  public void testAllGetsReturnLatestDataWithKeyCollision() {
+    Random random = new Random();
+    Set<String> keys = new HashSet<String>();
+    for(int i = 0; i< 40; i++){
+      int index = random.nextInt(15);
+      String key = "key"+ index;
+      testCache.put(key, key);
+      keys.add(key);
+    }
+    for (String key : keys) {
+      testCache.put(key, key + "new");
+    }
+    for (String key : keys) {
+      assertThat(testCache.get(key), is(key + "new"));
+    }
   }
 
 }

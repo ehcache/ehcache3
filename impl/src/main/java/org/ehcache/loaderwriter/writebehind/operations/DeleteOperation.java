@@ -32,13 +32,13 @@ public class DeleteOperation<K, V> implements SingleOperation<K, V> {
   
   private final K key;
   private final long creationTime;
-
+  
   /**
    * Create a new delete operation for a particular entry
    *
    */
   public DeleteOperation(K key) {
-    this(key, System.currentTimeMillis());
+    this(key, System.nanoTime());
   }
 
   /**

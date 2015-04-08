@@ -20,12 +20,15 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.concurrent.TimeUnit;
+
 import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.writebehind.WriteBehindConfiguration;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
+import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
@@ -53,7 +56,7 @@ public class WriteBehindTest extends AbstractWriteBehindTestBase {
     
     cacheManager = builder.build(true);
     testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .withExpiry(Expirations.noExpiration())
+        .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)))
         .addServiceConfig(writeBehindConfiguration)
         .buildConfig(String.class, String.class));
 
