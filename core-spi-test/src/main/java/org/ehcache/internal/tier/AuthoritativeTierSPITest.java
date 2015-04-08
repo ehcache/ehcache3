@@ -33,4 +33,17 @@ public abstract class AuthoritativeTierSPITest<K, V> extends StoreSPITest<K, V> 
     testSuite.runTestSuite().reportAndThrow();
   }
 
+  @Test
+  public void testComputeIfAbsentAndFault() throws Exception {
+    AuthoritativeTierComputeIfAbsentAndFault<K, V> testSuite = new AuthoritativeTierComputeIfAbsentAndFault<K, V>(getAuthoritativeTierFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
+  public void testFlush() throws Exception {
+    AuthoritativeTierFlush<K, V> testSuite = new AuthoritativeTierFlush<K, V>(getAuthoritativeTierFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+
 }
