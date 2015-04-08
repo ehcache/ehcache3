@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.ehcache.config.writebehind.ResilientCacheWriter;
 import org.ehcache.config.writebehind.WriteBehindConfiguration;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheWritingException;
@@ -463,8 +464,13 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
           }
           if (executionsLeft <= 0) {
             if (failures != null) {
-              for (Map.Entry<?, Exception> entry : failures.entrySet())
+              for (Map.Entry<?, Exception> entry : failures.entrySet()) {
                 LOGGER.warn("Exception while processing key '{}' write behind queue", entry.getKey());
+                //TODO : How to handle this properly 
+                if(cacheLoaderWriter instanceof ResilientCacheWriter ) {
+                  ((ResilientCacheWriter<K, V>) cacheLoaderWriter).throwAway((K)entry.getKey(), null, entry.getValue());
+                }
+              }
             }
           } else {
               LOGGER.warn("Exception while processing write behind queue, retrying in {} seconds, {} retries left : {} ", retryAttemptDelaySeconds, executionsLeft, bulkCacheWritingException);
@@ -478,6 +484,11 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
         } catch (Exception e) {
           if (executionsLeft <= 0) {
             LOGGER.warn("Exception while bulk processing in write behind queue", e);
+            if(cacheLoaderWriter instanceof ResilientCacheWriter ) {
+              for (SingleOperation<K, V> opr : itemsPerType) {
+                ((ResilientCacheWriter<K, V>) cacheLoaderWriter).throwAway(opr.getKey(), opr.getType() == SingleOperationType.WRITE ? ((WriteOperation<K, V>)opr).getValue() : null, e);
+              }
+            }
           } else {
             LOGGER.warn("Exception while processing write behind queue, retrying in {} seconds, {} retries left : {} ", retryAttemptDelaySeconds, executionsLeft, e);
             try {
@@ -533,6 +544,10 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
         } catch (Exception e) {
           if (executionsLeft <= 0) {
             LOGGER.warn("Exception while processing key '{}' write behind queue : {}", item.getKey(), e);
+            //TODO : How to handle this properly 
+            if(cacheLoaderWriter instanceof ResilientCacheWriter ) {
+              ((ResilientCacheWriter<K, V>) cacheLoaderWriter).throwAway(item.getKey(), item.getType() == SingleOperationType.WRITE ? ((WriteOperation<K, V>)item).getValue() : null,  e);
+            }
           } else {
             LOGGER.warn("Exception while processing write behind queue, retrying in {} seconds, {} retries left : {}", retryAttemptDelaySeconds, executionsLeft, e);
             try {

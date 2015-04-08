@@ -91,9 +91,4 @@ public class DeleteOperation<K, V> implements SingleOperation<K, V> {
     }
   }
 
-  @Override
-  public void throwAway(CacheLoaderWriter<K, V> cacheLoaderWriter, RuntimeException e) {
-    // TODO Do we need this ?
-  }
-
 }

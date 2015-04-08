@@ -48,9 +48,4 @@ public interface SingleOperation<K, V> extends KeyBasedOperation<K> {
    */
   SingleOperationType getType();
 
-  /**
-   * Called when all retries have failed
-   */
-  void throwAway(final CacheLoaderWriter<K, V> cacheLoaderWriter, RuntimeException e);
-
 }
