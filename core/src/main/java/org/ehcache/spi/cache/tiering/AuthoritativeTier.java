@@ -30,19 +30,26 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
 
   /**
    * Marks the mapping as not evictable and returns it atomically.
+   * @throws CacheAccessException if the mapping can't be retrieved or updated.
    * @return the value holder.
    */
   ValueHolder<V> getAndFault(K key) throws CacheAccessException;
 
   /**
    * Marks the mapping as not evictable and performs computeIfAbsent() atomically.
+   * @throws CacheAccessException if the mapping can't be retrieved or updated.
    * @return the value holder.
    */
   ValueHolder<V> computeIfAbsentAndFault(K key, Function<? super K, ? extends V> mappingFunction) throws CacheAccessException;
 
   /**
    * This marks the entry as evictable again.
-   * @return true if something was flushed, false otherwise.
+   * The ValueHolder must be an instance returned by the CachingTier.
+   *
+   * The AuthoritativeTier updates the expiration timestamp of the mapping by calling {@link CachingTier#getExpireTimeMillis(ValueHolder)} }
+   *
+   * @return true if a mapping exists for that key, the mapping was faulted, and the value of the ValueHolder is equal to the value of the mapping in the AuthoritativeTier.
+   * @throws IllegalArgumentException if the ValueHolder is not an instance from the CachingTier
    */
   boolean flush(K key, ValueHolder<V> valueHolder, CachingTier<K, V> cachingTier);
 
