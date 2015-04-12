@@ -28,25 +28,21 @@ import org.ehcache.spi.cache.tiering.AuthoritativeTier;
  */
 public interface AuthoritativeTierFactory<K, V> extends StoreFactory<K,V> {
 
+  @Override
   AuthoritativeTier<K, V> newStore(AuthoritativeTier.Configuration<K, V> config);
 
+  @Override
   AuthoritativeTier<K, V> newStore(AuthoritativeTier.Configuration<K, V> config, TimeSource timeSource);
 
+  @Override
   AuthoritativeTier.Configuration<K, V> newConfiguration(
       Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
       EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer);
 
+  @Override
   AuthoritativeTier.Configuration<K, V> newConfiguration(
       Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
       EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
       Expiry<? super K, ? super V> expiry);
-
-  Class<K> getKeyType();
-
-  Class<V> getValueType();
-
-  K createKey(long seed);
-
-  V createValue(long seed);
 
 }
