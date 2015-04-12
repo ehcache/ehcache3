@@ -17,7 +17,6 @@
 package org.ehcache.internal.tier;
 
 import org.ehcache.internal.store.StoreSPITest;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -44,6 +43,5 @@ public abstract class AuthoritativeTierSPITest<K, V> extends StoreSPITest<K, V> 
     AuthoritativeTierFlush<K, V> testSuite = new AuthoritativeTierFlush<K, V>(getAuthoritativeTierFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
-
 
 }

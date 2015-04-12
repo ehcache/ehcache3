@@ -104,7 +104,7 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
       tier.put(key, value);
       assertThat(tier.getAndFault(key).value(), is(equalTo(value)));
 
-      for (long seed = 2L; seed < 15000; seed++) {
+      for (long seed = 2; seed < 15000; seed++) {
         tier.put(factory.createKey(seed), factory.createValue(seed));
       }
       assertThat(tier.get(key).value(), is(equalTo(value)));
