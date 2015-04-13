@@ -16,19 +16,17 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.spi.cache.tiering.CachingTier;
-import org.ehcache.spi.test.SPITester;
-
 /**
  * Parent class for all CachingTier tester classes.
  * It contains all common utility methods
  * <p/>
+ *
  * @author Aurelien Broszniowski
  */
 
-public class SPICachingTierTester<K, V> extends SPITester {
+public class SPICachingTierTester<K, V> {
 
-  protected final CachingTierFactory<K,V> factory;
+  protected final CachingTierFactory<K, V> factory;
 
   public SPICachingTierTester(final CachingTierFactory<K, V> factory) {
     this.factory = factory;

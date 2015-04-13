@@ -35,6 +35,7 @@ import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.junit.Before;
 import org.junit.internal.AssumptionViolatedException;
 
 /**
@@ -42,9 +43,11 @@ import org.junit.internal.AssumptionViolatedException;
  */
 public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String> {
 
-  @Override
-  protected AuthoritativeTierFactory<String, String> getAuthoritativeTierFactory() {
-    return new AuthoritativeTierFactory<String, String>() {
+  private AuthoritativeTierFactory<String, String> authoritativeTierFactory;
+
+  @Before
+  public void setUp() {
+    authoritativeTierFactory = new AuthoritativeTierFactory<String, String>() {
       @Override
       public AuthoritativeTier<String, String> newStore(final AuthoritativeTier.Configuration<String, String> config) {
         return newStore(config, SystemTimeSource.INSTANCE);
@@ -126,6 +129,11 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
         return Long.toString(seed);
       }
     };
+  }
+
+  @Override
+  protected AuthoritativeTierFactory<String, String> getAuthoritativeTierFactory() {
+    return authoritativeTierFactory;
   }
 
   @Override

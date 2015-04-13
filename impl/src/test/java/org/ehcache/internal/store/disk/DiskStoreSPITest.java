@@ -42,6 +42,7 @@ import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.junit.Before;
 import org.junit.internal.AssumptionViolatedException;
 
 import java.io.File;
@@ -58,9 +59,11 @@ import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
 
-  @Override
-  protected AuthoritativeTierFactory<String, String> getAuthoritativeTierFactory() {
-    return new AuthoritativeTierFactory<String, String>() {
+  private AuthoritativeTierFactory<String, String> authoritativeTierFactory;
+
+  @Before
+  public void setUp() {
+    authoritativeTierFactory = new AuthoritativeTierFactory<String, String>() {
 
       final AtomicInteger index = new AtomicInteger();
 
@@ -157,6 +160,11 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
         return new ServiceLocator();
       }
     };
+  }
+
+  @Override
+  protected AuthoritativeTierFactory<String, String> getAuthoritativeTierFactory() {
+    return authoritativeTierFactory;
   }
 
   @Override
