@@ -27,20 +27,41 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 public class CacheWritingException extends RuntimeException {
 
   private static final long serialVersionUID = -3547750364991417531L;
-
-  CacheWritingException() {
+  
+  /**
+   * Constructs a CacheWritingException 
+   * 
+   */
+  public CacheWritingException() {
     super();
   }
-
-  CacheWritingException(final String message) {
+  
+  /**
+   * Constructs a CacheWritingException with the provided message.
+   * 
+   * @param message the detail message.
+   */
+  public CacheWritingException(final String message) {
     super(message);
   }
-
-  CacheWritingException(final String message, final Throwable cause) {
+  
+  /**
+   * Constructs a CacheWritingException wrapping the {@link Throwable cause} passed in 
+   * and with the provided message.
+   * 
+   * @param message the detail message.
+   * @param cause   the detail message.
+   */
+  public CacheWritingException(final String message, final Throwable cause) {
     super(message, cause);
   }
 
-  CacheWritingException(final Throwable cause) {
+  /**
+   * Constructs a CacheWritingException wrapping the {@link Throwable cause} passed in.
+   * 
+   * @param cause the detail message.
+   */
+  public CacheWritingException(final Throwable cause) {
     super(cause);
   }
 }

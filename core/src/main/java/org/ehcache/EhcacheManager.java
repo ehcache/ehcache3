@@ -21,6 +21,8 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
+import org.ehcache.config.writebehind.WriteBehindConfiguration;
+import org.ehcache.config.writebehind.WriteBehindDecoratorLoaderWriterProvider;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerFactory;
@@ -50,6 +52,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
+
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
 
@@ -242,8 +245,27 @@ public class EhcacheManager implements PersistentCacheManager {
 
     final CacheLoaderWriterFactory cacheLoaderWriterFactory = serviceLocator.findService(CacheLoaderWriterFactory.class);
     final CacheLoaderWriter<? super K, V> loaderWriter;
+    final CacheLoaderWriter<? super K, V> decorator ;
     if(cacheLoaderWriterFactory != null) {
       loaderWriter = cacheLoaderWriterFactory.createCacheLoaderWriter(alias, config);
+      WriteBehindConfiguration writeBehindConfiguration = ServiceLocator.findSingletonAmongst(WriteBehindConfiguration.class, config.getServiceConfigurations().toArray());
+      if(writeBehindConfiguration != null) {
+        final WriteBehindDecoratorLoaderWriterProvider factory = serviceLocator.findService(WriteBehindDecoratorLoaderWriterProvider.class);
+        decorator = factory.createWriteBehindDecoratorLoaderWriter((CacheLoaderWriter<K, V>)loaderWriter, writeBehindConfiguration);
+        if(decorator != null) {
+          releasables.add(new Releasable() {
+            
+            @Override
+            public void release() {
+              factory.releaseWriteBehindDecoratorCacheLoaderWriter(decorator);
+            }
+          });
+        }
+      }
+      else {
+        decorator = loaderWriter;
+      }
+      
       if (loaderWriter != null) {
         releasables.add(new Releasable() {
           @Override
@@ -254,6 +276,7 @@ public class EhcacheManager implements PersistentCacheManager {
       }
     } else {
       loaderWriter = null;
+      decorator = null;
     }
 
     // XXX this may need to become an actual "service" with its own service configuration etc
@@ -291,7 +314,7 @@ public class EhcacheManager implements PersistentCacheManager {
       }
     }
 
-    return new Ehcache<K, V>(config, store, loaderWriter, evtService, statisticsExecutor, useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
+    return new Ehcache<K, V>(config, store, decorator, evtService, statisticsExecutor, useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
   }
 
   public void registerListener(CacheManagerListener listener) {

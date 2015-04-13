@@ -26,6 +26,7 @@ import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.config.writebehind.WriteBehindConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -40,6 +41,7 @@ import org.xml.sax.SAXParseException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -383,6 +385,38 @@ public class XmlConfigurationTest {
 
     PersistenceConfiguration persistenceConfiguration = (PersistenceConfiguration)serviceConfig;
     assertThat(persistenceConfiguration.getRootDirectory(), is(new File("/some/dir")));
+  }
+  
+  @Test
+  public void testWriteBehind() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/writebehind-cache.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    
+    Collection<ServiceConfiguration<?>> serviceConfiguration = xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations();
+    
+    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
+    
+    serviceConfiguration = xmlConfig.newCacheConfigurationBuilderFromTemplate("example").buildConfig(Number.class, String.class).getServiceConfigurations();
+    
+    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
+    
+    for (ServiceConfiguration<?> configuration : serviceConfiguration) {
+      if(configuration instanceof WriteBehindConfiguration) {
+        assertThat(((WriteBehindConfiguration) configuration).getMaxWriteDelay(), is(1));
+        assertThat(((WriteBehindConfiguration) configuration).getMinWriteDelay(), is(1));
+        assertThat(((WriteBehindConfiguration) configuration).isWriteCoalescing(), is(false));
+        assertThat(((WriteBehindConfiguration) configuration).isWriteBatching(), is(true));
+        assertThat(((WriteBehindConfiguration) configuration).getWriteBatchSize(), is(5));
+        assertThat(((WriteBehindConfiguration) configuration).getWriteBehindConcurrency(), is(3));
+        assertThat(((WriteBehindConfiguration) configuration).getWriteBehindMaxQueueSize(), is(10));
+        assertThat(((WriteBehindConfiguration) configuration).getRateLimitPerSecond(), is(0));
+        assertThat(((WriteBehindConfiguration) configuration).getRetryAttempts(), is(0));
+        assertThat(((WriteBehindConfiguration) configuration).getRetryAttemptDelaySeconds(), is(1));
+        break;
+      }
+      
+    }
+    
   }
 
 }
