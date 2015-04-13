@@ -3,8 +3,6 @@ package org.ehcache.internal.tier;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.function.Function;
-import org.ehcache.internal.store.SPIStoreTester;
-import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.test.After;
@@ -26,11 +24,11 @@ import static org.mockito.Mockito.when;
  * @author Aurelien Broszniowski
  */
 
-public class CachingTierGetOrComputeIfAbsent<K, V> extends SPIStoreTester<K, V> {
+public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, V> {
 
-  private Store tier;
+  private CachingTier tier;
 
-  public CachingTierGetOrComputeIfAbsent(final StoreFactory<K, V> factory) {
+  public CachingTierGetOrComputeIfAbsent(final CachingTierFactory<K, V> factory) {
     super(factory);
   }
 
@@ -51,14 +49,21 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends SPIStoreTester<K, V> 
   public void returnTheValueHolderCurrentlyInTheCachingTier() {
     K key = factory.createKey(1);
     V value = factory.createValue(1);
+    final Store.ValueHolder<V> computedValueHolder = mock(Store.ValueHolder.class);
+    when(computedValueHolder.value()).thenReturn(value);
 
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+    tier = factory.newCachingTier(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         1L, null, null, Expirations.noExpiration()));
 
     try {
-      tier.put(key, value);
+      tier.getOrComputeIfAbsent(key, new Function() {   // actually put mapping in tier
+        @Override
+        public Object apply(final Object o) {
+          return computedValueHolder;
+        }
+      });
 
-      Store.ValueHolder<V> valueHolder = ((CachingTier)tier).getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
+      Store.ValueHolder<V> valueHolder = tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
         @Override
         public Store.ValueHolder<V> apply(final K k) {
           return null;
@@ -81,13 +86,11 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends SPIStoreTester<K, V> 
     final Store.ValueHolder<V> computedValueHolder = mock(Store.ValueHolder.class);
     when(computedValueHolder.value()).thenReturn(value);
 
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+    tier = factory.newCachingTier(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         1L, null, null, Expirations.noExpiration()));
 
     try {
-      assertThat(tier.get(key), is(nullValue()));
-
-      Store.ValueHolder<V> valueHolder = ((CachingTier)tier).getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
+      Store.ValueHolder<V> valueHolder = tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
         @Override
         public Store.ValueHolder<V> apply(final K k) {
           return computedValueHolder;

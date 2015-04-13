@@ -9,18 +9,20 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.store.tiering.CacheStore;
 import org.ehcache.internal.tier.CachingTierFactory;
 import org.ehcache.internal.tier.CachingTierSPITest;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 /**
- * This factory actually instantiates a Store, because we need a Store for the SPI tests
+ * This factory instantiates a CachingTier
  *
  * @author Aurelien Broszniowski
  */
@@ -38,12 +40,12 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
     cachingTierFactory = new CachingTierFactory<String, String>() {
 
       @Override
-      public Store<String, String> newStore(final Store.Configuration<String, String> config) {
+      public CachingTier<String, String> newCachingTier(final Store.Configuration<String, String> config) {
         return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false, null, null);
       }
 
       @Override
-      public Store<String, String> newStore(final Store.Configuration<String, String> config, TimeSource timeSource) {
+      public CachingTier<String, String> newCachingTier(final Store.Configuration<String, String> config, TimeSource timeSource) {
         return new OnHeapStore<String, String>(config, timeSource, false, null, null);
       }
 
