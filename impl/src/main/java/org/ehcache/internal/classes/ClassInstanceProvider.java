@@ -46,10 +46,21 @@ public class ClassInstanceProvider<T> {
     Class<? extends T> clazz = null;
     for (ServiceConfiguration<?> serviceConfiguration : cacheConfiguration.getServiceConfigurations()) {
       if(cacheLevelConfig.isAssignableFrom(serviceConfiguration.getClass())) {
-        // TODO: What if we have multiple of the same type?
         clazz = cacheLevelConfig.cast(serviceConfiguration).getClazz();
       }
     }
+    return newInstance(alias, clazz);
+  }
+
+  protected T newInstance(final String alias, final ServiceConfiguration<?> serviceConfiguration) {
+    Class<? extends T> clazz = null;
+    if(cacheLevelConfig.isAssignableFrom(serviceConfiguration.getClass())) {
+      clazz = cacheLevelConfig.cast(serviceConfiguration).getClazz();
+    }
+    return newInstance(alias, clazz);
+  }
+
+  private T newInstance(final String alias, Class<? extends T> clazz) {
     if(clazz == null) {
       clazz = getPreconfigured(alias);
     }
@@ -61,8 +72,6 @@ public class ClassInstanceProvider<T> {
       throw new RuntimeException(e);
     }
   }
-
-
 
   public void start(final ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
     if(config != null && factoryConfig.isAssignableFrom(config.getClass())) {

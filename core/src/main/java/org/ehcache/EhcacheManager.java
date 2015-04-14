@@ -293,6 +293,8 @@ public class EhcacheManager implements PersistentCacheManager {
       evtService = new DisabledCacheEventNotificationService<K, V>();
     }
 
+    Ehcache<K, V> ehCache = new Ehcache<K, V>(config, store, decorator, evtService, statisticsExecutor,
+        useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
 
     final CacheEventListenerFactory evntLsnrFactory = serviceLocator.findService(CacheEventListenerFactory.class);
     if (evntLsnrFactory != null) {
@@ -300,9 +302,9 @@ public class EhcacheManager implements PersistentCacheManager {
       ServiceLocator.findAmongst(CacheEventListenerConfiguration.class, config.getServiceConfigurations().toArray());
       for (CacheEventListenerConfiguration lsnrConfig: evtLsnrConfigs) {
         // XXX this assumes a new instance returned for each call - yet args are always the same. Is this okay?
-        final CacheEventListener<K, V> lsnr = evntLsnrFactory.createEventListener(alias, config);
-        evtService.registerCacheEventListener(lsnr, lsnrConfig.orderingMode(), lsnrConfig.firingMode(),
-            lsnrConfig.fireOn());
+        final CacheEventListener<K, V> lsnr = evntLsnrFactory.createEventListener(alias, lsnrConfig);
+          ehCache.getRuntimeConfiguration().registerCacheEventListener(lsnr, lsnrConfig.orderingMode(), lsnrConfig.firingMode(),
+          lsnrConfig.fireOn());
         if (lsnr != null) {
           releasables.add(new Releasable() {
             @Override
@@ -314,7 +316,7 @@ public class EhcacheManager implements PersistentCacheManager {
       }
     }
 
-    return new Ehcache<K, V>(config, store, decorator, evtService, statisticsExecutor, useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
+    return ehCache;
   }
 
   public void registerListener(CacheManagerListener listener) {
