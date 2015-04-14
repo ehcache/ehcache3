@@ -604,7 +604,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public boolean flush(K key, ValueHolder<V> valueHolder, CachingTier<K, V> cachingTier) {
+  public boolean flush(K key, ValueHolder<V> valueHolder) {
     if (valueHolder instanceof OffHeapValueHolder) {
       throw new IllegalArgumentException("ValueHolder must come from the caching tier");
     }

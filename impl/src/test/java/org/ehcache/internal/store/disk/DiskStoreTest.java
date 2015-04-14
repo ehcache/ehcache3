@@ -41,7 +41,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.same;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -209,10 +210,9 @@ public class DiskStoreTest {
 
     Store.ValueHolder<CharSequence> heapValueHolder = mock(Store.ValueHolder.class);
     when(heapValueHolder.value()).thenReturn("computed-one");
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    when(cachingTier.getExpireTimeMillis(same(heapValueHolder))).thenReturn(5L);
+    when(heapValueHolder.expirationTime(any(TimeUnit.class))).thenReturn(5L);
 
-    assertThat(diskStore.flush(1, heapValueHolder, cachingTier), is(true));
+    assertThat(diskStore.flush(1, heapValueHolder), is(true));
 
     assertThat(diskStore.get(1), is(notNullValue()));
 
@@ -238,13 +238,12 @@ public class DiskStoreTest {
 
     Store.ValueHolder<CharSequence> heapValueHolder = mock(Store.ValueHolder.class);
     when(heapValueHolder.value()).thenReturn("computed-one");
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    when(cachingTier.isExpired(same(heapValueHolder))).thenReturn(true);
-    when(cachingTier.getExpireTimeMillis(same(heapValueHolder))).thenReturn(5L);
+    when(heapValueHolder.isExpired(anyLong(), any(TimeUnit.class))).thenReturn(true);
+    when(heapValueHolder.expirationTime(any(TimeUnit.class))).thenReturn(5L);
 
     timeSource.advanceTime(5L);
 
-    assertThat(diskStore.flush(1, heapValueHolder, cachingTier), is(true));
+    assertThat(diskStore.flush(1, heapValueHolder), is(true));
     assertThat(diskStore.get(1), is(nullValue()));
   }
 
@@ -258,13 +257,12 @@ public class DiskStoreTest {
     });
     assertThat(valueHolder.value(), Matchers.<CharSequence>equalTo("computed-one"));
 
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
     Store.ValueHolder<CharSequence> heapValueHolder = mock(Store.ValueHolder.class);
-    when(cachingTier.getExpireTimeMillis(same(heapValueHolder))).thenReturn(5L);
+    when(heapValueHolder.expirationTime(any(TimeUnit.class))).thenReturn(5L);
 
     diskStore.put(1, "put-one");
 
-    assertThat(diskStore.flush(1, heapValueHolder, cachingTier), is(false));
+    assertThat(diskStore.flush(1, heapValueHolder), is(false));
     assertThat(diskStore.get(1).value(), Matchers.<CharSequence>equalTo("put-one"));
   }
 
@@ -278,16 +276,15 @@ public class DiskStoreTest {
     });
     assertThat(valueHolder.value(), Matchers.<CharSequence>equalTo("computed-one"));
 
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
     Store.ValueHolder<CharSequence> heapValueHolder = mock(Store.ValueHolder.class);
     when(heapValueHolder.value()).thenReturn("computed-one");
-    when(cachingTier.getExpireTimeMillis(same(heapValueHolder))).thenReturn(15L);
+    when(heapValueHolder.expirationTime(any(TimeUnit.class))).thenReturn(15L);
 
     timeSource.advanceTime(10);
 
     diskStore.flushToDisk();
 
-    assertThat(diskStore.flush(1, heapValueHolder, cachingTier), is(true));
+    assertThat(diskStore.flush(1, heapValueHolder), is(true));
     assertThat(diskStore.get(1).value(), Matchers.<CharSequence>equalTo("computed-one"));
   }
 

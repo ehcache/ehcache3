@@ -34,11 +34,10 @@ import org.ehcache.function.Predicates;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
-import org.ehcache.spi.cache.tiering.AuthoritativeTier;
-import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.internal.store.disk.DiskStorageFactory.Element;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.LocalPersistenceService;
@@ -516,7 +515,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public boolean flush(K key, ValueHolder<V> valueHolder, CachingTier<K, V> cachingTier) {
+  public boolean flush(K key, ValueHolder<V> valueHolder) {
     if (valueHolder instanceof DiskStorageFactory.DiskValueHolder) {
       throw new IllegalArgumentException("Value holder must be of a class coming from the caching tier");
     }

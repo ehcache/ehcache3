@@ -52,24 +52,6 @@ public interface CachingTier<K, V> {
   void clear() throws CacheAccessException;
 
   /**
-   * Check if the value holder expired or not.
-   * </p>
-   * @param valueHolder the value holder.
-   * @return true if it expired, false otherwise.
-   * @throws ClassCastException if the {@link org.ehcache.spi.cache.Store.ValueHolder} is not coming from the caching tier
-   */
-  boolean isExpired(Store.ValueHolder<V> valueHolder);
-
-  /**
-   * Get the expiration time of the value holder. Only value holders coming from the
-   * caching tier where this call is performed can be used, otherwise you may get
-   * a ClassCastException.
-   * @param valueHolder the value holder.
-   * @return the expiration timestamp.
-   */
-  long getExpireTimeMillis(Store.ValueHolder<V> valueHolder);
-
-  /**
    * Set the caching tier's invalidation listener. The invalidation listener can only be set once.
    * @param invalidationListener the listener.
    * @throws IllegalStateException if the invalidation listener is already set.

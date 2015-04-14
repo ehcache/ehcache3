@@ -487,17 +487,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     this.invalidationListener = invalidationListener;
   }
 
-  @Override
-  public boolean isExpired(ValueHolder<V> valueHolder) {
-    final long now = timeSource.getTimeMillis();
-    return valueHolder.isExpired(now, TimeUnit.MILLISECONDS);
-  }
-
-  @Override
-  public long getExpireTimeMillis(ValueHolder<V> valueHolder) {
-    return valueHolder.expirationTime(TimeUnit.MILLISECONDS);
-  }
-
   private ValueHolder<V> getValue(final Object cachedValue) {
     if (cachedValue instanceof Fault) {
       return ((Fault<V>)cachedValue).get();

@@ -51,7 +51,7 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
    * @return true if a mapping exists for that key, the mapping was faulted, and the value of the ValueHolder is equal to the value of the mapping in the AuthoritativeTier.
    * @throws IllegalArgumentException if the ValueHolder is not an instance from the CachingTier
    */
-  boolean flush(K key, ValueHolder<V> valueHolder, CachingTier<K, V> cachingTier);
+  boolean flush(K key, ValueHolder<V> valueHolder);
 
   interface Provider extends Service {
     <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
