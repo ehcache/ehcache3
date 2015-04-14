@@ -376,6 +376,7 @@ public interface Store<K, V> {
    * @param <V>
    */
   public interface ValueHolder<V> {
+    long NO_EXPIRE = -1;
 
     /**
      * Accessor to the value held by this mapping.
@@ -394,12 +395,45 @@ public interface Store<K, V> {
     long creationTime(TimeUnit unit);
 
     /**
-     * Accessor to the last access time of the Value held in this ValueHolder?
+     * Set the expiration time of the ValueHolder
+     *
+     * @param expirationTime the expiration time in the given unit
+     * @param unit the time unit of the new expiration time
+     */
+    void setExpirationTime(long expirationTime, TimeUnit unit);
+
+    /**
+     * Accessor to the expiration time of this ValueHolder
+     *
+     * @param unit the timeUnit to return the creation time in
+     * @return the expiration time in the given unit. A value of {@link ValueHolder#NO_EXPIRE} means that the ValueHolder will never expire.
+     */
+    long expirationTime(TimeUnit unit);
+
+    /**
+     * Check if the ValueHolder is expired relative to the specified time
+     *
+     * @param expirationTime the expiration time relative to which the expiry check must be made
+     * @param unit the unit of the expiration time
+     * @return true if the ValueHolder expired relative to the given expiration time
+     */
+    boolean isExpired(long expirationTime, TimeUnit unit);
+
+    /**
+     * Accessor to the last access time of the Value held in this ValueHolder
      *
      * @param unit the timeUnit to return the last access time in
      * @return the last access time in the given unit
      */
     long lastAccessTime(TimeUnit unit);
+
+    /**
+     * Set the last access time of the ValueHolder
+     *
+     * @param lastAccessTime the last access time in the given unit
+     * @param unit the time unit of the new last access time
+     */
+    void setLastAccessTime(long lastAccessTime, TimeUnit unit);
 
     /**
      * Accessor to the hit rate of the Value held in this ValueHolder?

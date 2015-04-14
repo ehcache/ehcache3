@@ -122,7 +122,7 @@ public class OnHeapStoreEvictionTest {
     private boolean enforceCapacityWasCalled = false;
 
     @Override
-    ValueHolder<V> enforceCapacityIfValueNotNull(final OnHeapValueHolder<V> computeResult) {
+    ValueHolder<V> enforceCapacityIfValueNotNull(final ValueHolder<V> computeResult) {
       enforceCapacityWasCalled = true;
       return super.enforceCapacityIfValueNotNull(computeResult);
     }

@@ -278,7 +278,27 @@ public class EhcacheTest {
           }
 
           @Override
+          public void setExpirationTime(long expirationTime, TimeUnit unit) {
+            throw new UnsupportedOperationException("Implement me!");
+          }
+
+          @Override
+          public long expirationTime(TimeUnit unit) {
+            throw new UnsupportedOperationException("Implement me!");
+          }
+
+          @Override
+          public boolean isExpired(long expirationTime, TimeUnit unit) {
+            throw new UnsupportedOperationException("Implement me!");
+          }
+
+          @Override
           public long lastAccessTime(final TimeUnit unit) {
+            throw new UnsupportedOperationException("Implement me!");
+          }
+
+          @Override
+          public void setLastAccessTime(long lastAccessTime, TimeUnit unit) {
             throw new UnsupportedOperationException("Implement me!");
           }
 

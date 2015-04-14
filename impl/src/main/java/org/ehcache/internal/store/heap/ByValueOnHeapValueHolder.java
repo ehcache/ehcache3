@@ -16,19 +16,24 @@
 package org.ehcache.internal.store.heap;
 
 import org.ehcache.exceptions.SerializerException;
-import org.ehcache.spi.cache.Store.ValueHolder;
+import org.ehcache.spi.cache.AbstractValueHolder;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
 
-class ByValueOnHeapValueHolder<V> extends BaseOnHeapValueHolder<V> {
+class ByValueOnHeapValueHolder<V> extends AbstractValueHolder<V> {
   private final ByteBuffer buffer;
   private final int hash;
   private final Serializer<V> serializer;
 
-  protected ByValueOnHeapValueHolder(V value, long createTime, Serializer<V> serializer) {
-    super(createTime);
+  protected ByValueOnHeapValueHolder(V value, long creationTime, Serializer<V> serializer) {
+    this(value, creationTime, NO_EXPIRE, serializer);
+  }
+
+  protected ByValueOnHeapValueHolder(V value, long creationTime, long expirationTime, Serializer<V> serializer) {
+    super(creationTime, expirationTime);
     if (value == null) {
       throw new NullPointerException("null value");
     }
@@ -56,26 +61,36 @@ class ByValueOnHeapValueHolder<V> extends BaseOnHeapValueHolder<V> {
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (o == this) return true;
-    if (!(o instanceof ValueHolder)) return false;
+  public float hitRate(TimeUnit unit) {
+    // XXX
+    return 0;
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (this == other) return true;
+    if (other == null || getClass() != other.getClass()) return false;
+
+    ByValueOnHeapValueHolder<V> that = (ByValueOnHeapValueHolder)other;
+
+    if (!super.equals(that)) return false;
     try {
-      return serializerEquals(o, buffer);
+      if (!serializer.equals(that.value(), buffer)) return false;
     } catch (IOException ioe) {
       throw new SerializerException(ioe);
     } catch (ClassNotFoundException cnfe) {
       throw new SerializerException(cnfe);
     }
+
+    return true;
   }
 
-  @SuppressWarnings("unchecked")
-  boolean serializerEquals(Object o, ByteBuffer buffer2) throws ClassNotFoundException, IOException {
-    return serializer.equals(((ValueHolder<V>)o).value(), buffer);
-  }
-  
   @Override
   public int hashCode() {
-    return hash;
+    int result = 1;
+    result = 31 * result + hash;
+    result = 31 * result + super.hashCode();
+    return result;
   }
-  
+
 }

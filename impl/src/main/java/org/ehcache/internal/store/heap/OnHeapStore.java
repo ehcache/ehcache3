@@ -38,9 +38,9 @@ import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
 import org.ehcache.internal.store.tiering.NullInvalidationListener;
-import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -79,8 +79,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   private final Serializer<K> keySerializer;
 
   private final long capacity;
-  private final Predicate<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionVeto;
-  private final Comparator<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionPrioritizer;
+  private final Predicate<? extends Map.Entry<? super K, ? extends ValueHolder<? super V>>> evictionVeto;
+  private final Comparator<? extends Map.Entry<? super K, ? extends ValueHolder<? super V>>> evictionPrioritizer;
   private final Expiry<? super K, ? super V> expiry;
   private final TimeSource timeSource;
   private volatile InvalidationListener<K, V> invalidationListener = NullInvalidationListener.instance();
@@ -131,13 +131,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     return internalGet(key, true);
   }
   
-  private OnHeapValueHolder<V> internalGet(final K key, final boolean updateAccess) throws CacheAccessException {
-    return map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+  private ValueHolder<V> internalGet(final K key, final boolean updateAccess) throws CacheAccessException {
+    return map.computeIfPresent(key, new BiFunction<K, ValueHolder<V>, ValueHolder<V>>() {
       @Override
-      public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+      public ValueHolder<V> apply(K mappedKey, ValueHolder<V> mappedValue) {
         final long now = timeSource.getTimeMillis();
 
-        if (mappedValue.isExpired(now)) {
+        if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
           invalidationListener.onInvalidation(mappedKey, mappedValue);
           return null;
@@ -163,19 +163,19 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     putReturnHolder(key, value);
   }
 
-  private OnHeapValueHolder<V> putReturnHolder(final K key, final V value) throws CacheAccessException {
+  private ValueHolder<V> putReturnHolder(final K key, final V value) throws CacheAccessException {
     checkKey(key);
     checkValue(value);
 
     final AtomicBoolean entryActuallyAdded = new AtomicBoolean();
     final long now = timeSource.getTimeMillis();
     
-    OnHeapValueHolder<V> valuePut = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+    ValueHolder<V> valuePut = map.compute(key, new BiFunction<K, ValueHolder<V>, ValueHolder<V>>() {
       @Override
-      public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+      public ValueHolder<V> apply(K mappedKey, ValueHolder<V> mappedValue) {
         entryActuallyAdded.set(mappedValue == null);
         
-        if (mappedValue != null && mappedValue.isExpired(now)) {
+        if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           mappedValue = null;
         }
         
@@ -201,7 +201,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   }
 
 
-  OnHeapValueHolder<V> putIfAbsentReturnHolder(final K key, final V value) throws CacheAccessException {
+  ValueHolder<V> putIfAbsentReturnHolder(final K key, final V value) throws CacheAccessException {
     return putIfAbsent(key, value, true);
   }
 
@@ -210,18 +210,18 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     return putIfAbsent(key, value, false);
   }
   
-  private OnHeapValueHolder<V> putIfAbsent(final K key, final V value, boolean returnInCacheHolder) throws CacheAccessException {
+  private ValueHolder<V> putIfAbsent(final K key, final V value, boolean returnInCacheHolder) throws CacheAccessException {
     checkKey(key);
     checkValue(value);
 
-    final AtomicReference<OnHeapValueHolder<V>> returnValue = new AtomicReference<OnHeapValueHolder<V>>(null);
+    final AtomicReference<ValueHolder<V>> returnValue = new AtomicReference<ValueHolder<V>>(null);
     final AtomicBoolean entryActuallyAdded = new AtomicBoolean();
     final long now = timeSource.getTimeMillis();
     
-    OnHeapValueHolder<V> inCache = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+    ValueHolder<V> inCache = map.compute(key, new BiFunction<K, ValueHolder<V>, ValueHolder<V>>() {
       @Override
-      public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
-        if (mappedValue == null || mappedValue.isExpired(now)) {
+      public ValueHolder<V> apply(K mappedKey, ValueHolder<V> mappedValue) {
+        if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           if (mappedValue != null) {
             eventListener.onExpiration(wrap(mappedKey, mappedValue));
             invalidationListener.onInvalidation(mappedKey, mappedValue);
@@ -254,12 +254,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
 
     final AtomicBoolean removed = new AtomicBoolean(false);
     
-    map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+    map.computeIfPresent(key, new BiFunction<K, ValueHolder<V>, ValueHolder<V>>() {
       @Override
-      public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+      public ValueHolder<V> apply(K mappedKey, ValueHolder<V> mappedValue) {
         final long now = timeSource.getTimeMillis();
         
-        if (mappedValue.isExpired(now)) {
+        if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
           invalidationListener.onInvalidation(mappedKey, mappedValue);
           return null;
@@ -282,14 +282,14 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     checkKey(key);
     checkValue(value);
    
-    final AtomicReference<OnHeapValueHolder<V>> returnValue = new AtomicReference<OnHeapValueHolder<V>>(null);
+    final AtomicReference<ValueHolder<V>> returnValue = new AtomicReference<ValueHolder<V>>(null);
     
-    map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+    map.computeIfPresent(key, new BiFunction<K, ValueHolder<V>, ValueHolder<V>>() {
       @Override
-      public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+      public ValueHolder<V> apply(K mappedKey, ValueHolder<V> mappedValue) {
         final long now = timeSource.getTimeMillis();
         
-        if (mappedValue.isExpired(now)) {
+        if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
           invalidationListener.onInvalidation(mappedKey, mappedValue);
           return null;
@@ -311,12 +311,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
 
     final AtomicBoolean returnValue = new AtomicBoolean(false);
     
-    map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+    map.computeIfPresent(key, new BiFunction<K, ValueHolder<V>, ValueHolder<V>>() {
       @Override
-      public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+      public ValueHolder<V> apply(K mappedKey, ValueHolder<V> mappedValue) {
         final long now = timeSource.getTimeMillis();
         
-        if (mappedValue.isExpired(now)) {
+        if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
           invalidationListener.onInvalidation(mappedKey, mappedValue);
           return null;
@@ -366,9 +366,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
 
   @Override
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() throws CacheAccessException {
-    final java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>> it = map.entrySetIterator();
+    final java.util.Iterator<Map.Entry<K, ValueHolder<V>>> it = map.entrySetIterator();
     return new Iterator<Cache.Entry<K, ValueHolder<V>>>() {
-      private Map.Entry<K, OnHeapValueHolder<V>> next = null;
+      private Map.Entry<K, ValueHolder<V>> next = null;
       
       {
         advance();
@@ -377,9 +377,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       private void advance() {
         next = null;
         while (next == null && it.hasNext()) {
-          Map.Entry<K, OnHeapValueHolder<V>> entry = it.next();
+          Map.Entry<K, ValueHolder<V>> entry = it.next();
           final long now = timeSource.getTimeMillis();
-          if (entry.getValue().isExpired(now)) {
+          if (entry.getValue().isExpired(now, TimeUnit.MILLISECONDS)) {
             it.remove();
             eventListener.onExpiration(wrap(entry));
             invalidationListener.onInvalidation(entry.getKey(), entry.getValue());
@@ -401,7 +401,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
           throw new NoSuchElementException();
         }
         
-        final Map.Entry<K, OnHeapValueHolder<V>> thisEntry = next;    
+        final Map.Entry<K, ValueHolder<V>> thisEntry = next;
         advance();
     
         setAccessTimeAndExpiry(thisEntry.getKey(), thisEntry.getValue(), timeSource.getTimeMillis());
@@ -441,7 +441,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     MapWrapper<K, V> backEnd = map;
     final long now = timeSource.getTimeMillis();
 
-    OnHeapValueHolder<V> cachedValue = backEnd.get(key);
+    ValueHolder<V> cachedValue = backEnd.get(key);
     if (cachedValue == null) {
       Fault<V> fault = new Fault<V>(new NullaryFunction<ValueHolder<V>>() {
         @Override
@@ -455,7 +455,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
         enforceCapacity(1);
         try {
           ValueHolder<V> value = fault.get();
-          OnHeapValueHolder<V> newValue = value == null ? null : newCreateValueHolder(key, value.value(), now);
+          ValueHolder<V> newValue = value == null ? null : newCreateValueHolder(key, value.value(), now);
 
           if (value == null) {
             backEnd.remove(key, fault);
@@ -489,15 +489,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
 
   @Override
   public boolean isExpired(ValueHolder<V> valueHolder) {
-    OnHeapValueHolder<V> onHeapValueHolder = (OnHeapValueHolder<V>) valueHolder;
     final long now = timeSource.getTimeMillis();
-    return onHeapValueHolder.isExpired(now);
+    return valueHolder.isExpired(now, TimeUnit.MILLISECONDS);
   }
 
   @Override
   public long getExpireTimeMillis(ValueHolder<V> valueHolder) {
-    OnHeapValueHolder<V> onHeapValueHolder = (OnHeapValueHolder<V>) valueHolder;
-    return onHeapValueHolder.getExpireTimeMillis();
+    return valueHolder.expirationTime(TimeUnit.MILLISECONDS);
   }
 
   private ValueHolder<V> getValue(final Object cachedValue) {
@@ -513,7 +511,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
    *
    * @param <V>
    */
-  private static class Fault<V> implements OnHeapValueHolder<V> {
+  private static class Fault<V> implements ValueHolder<V> {
 
     private final NullaryFunction<ValueHolder<V>> source;
     private ValueHolder<V> value;
@@ -566,26 +564,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
 
     @Override
-    public void setAccessTimeMillis(long accessTime) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void setExpireTimeMillis(long expireTime) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean isExpired(long now) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public long getExpireTimeMillis() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
     public V value() {
       throw new UnsupportedOperationException();
     }
@@ -596,8 +574,28 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
 
     @Override
+    public void setExpirationTime(long expirationTime, TimeUnit unit) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public long expirationTime(TimeUnit unit) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isExpired(long expirationTime, TimeUnit unit) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
     public long lastAccessTime(TimeUnit unit) {
       return Long.MAX_VALUE;
+    }
+
+    @Override
+    public void setLastAccessTime(long lastAccessTime, TimeUnit unit) {
+      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -616,10 +614,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     checkKey(key);
 
     final long now = timeSource.getTimeMillis();
-    OnHeapValueHolder<V> computeResult = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+    ValueHolder<V> computeResult = map.compute(key, new BiFunction<K, ValueHolder<V>, ValueHolder<V>>() {
       @Override
-      public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
-        if (mappedValue != null && mappedValue.isExpired(now)) {
+      public ValueHolder<V> apply(K mappedKey, ValueHolder<V> mappedValue) {
+        if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
           invalidationListener.onInvalidation(mappedKey, mappedValue);
           mappedValue = null;
@@ -653,10 +651,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     
     final long now = timeSource.getTimeMillis();
 
-    OnHeapValueHolder<V> computeResult = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+    ValueHolder<V> computeResult = map.compute(key, new BiFunction<K, ValueHolder<V>, ValueHolder<V>>() {
       @Override
-      public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
-        if (mappedValue == null || mappedValue.isExpired(now)) {
+      public ValueHolder<V> apply(K mappedKey, ValueHolder<V> mappedValue) {
+        if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           if (mappedValue != null) {
             eventListener.onExpiration(wrap(mappedKey, mappedValue));
             invalidationListener.onInvalidation(mappedKey, mappedValue);
@@ -677,7 +675,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     return enforceCapacityIfValueNotNull(computeResult);
   }
 
-  ValueHolder<V> enforceCapacityIfValueNotNull(final OnHeapValueHolder<V> computeResult) {
+  ValueHolder<V> enforceCapacityIfValueNotNull(final ValueHolder<V> computeResult) {
     if (computeResult != null) {
       enforceCapacity(1);
     }
@@ -693,12 +691,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction, final NullaryFunction<Boolean> replaceEqual) {
     checkKey(key);
 
-    return map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+    return map.computeIfPresent(key, new BiFunction<K, ValueHolder<V>, ValueHolder<V>>() {
       @Override
-      public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+      public ValueHolder<V> apply(K mappedKey, ValueHolder<V> mappedValue) {
         final long now = timeSource.getTimeMillis();
         
-        if (mappedValue.isExpired(now)) {
+        if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
           invalidationListener.onInvalidation(mappedKey, mappedValue);
           return null;
@@ -797,20 +795,20 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     this.eventListener = CacheEvents.nullStoreEventListener();
   }
   
-  private void setAccessTimeAndExpiry(K key, OnHeapValueHolder<V> valueHolder, long now) {
-    valueHolder.setAccessTimeMillis(now);
+  private void setAccessTimeAndExpiry(K key, ValueHolder<V> valueHolder, long now) {
+    valueHolder.setLastAccessTime(now, TimeUnit.MILLISECONDS);
 
     Duration duration = expiry.getExpiryForAccess(key, valueHolder.value());
     if (duration != null) {
       if (duration.isForever()) {
-        valueHolder.setExpireTimeMillis(TimeStampedOnHeapValueHolder.NO_EXPIRE);
+        valueHolder.setExpirationTime(ValueHolder.NO_EXPIRE, null);
       } else {
-        valueHolder.setExpireTimeMillis(safeExpireTime(now, duration));
+        valueHolder.setExpirationTime(safeExpireTime(now, duration), TimeUnit.MILLISECONDS);
       }
     }
   }
 
-  private OnHeapValueHolder<V> newUpdateValueHolder(K key, OnHeapValueHolder<V> oldValue, V newValue, long now) {
+  private ValueHolder<V> newUpdateValueHolder(K key, ValueHolder<V> oldValue, V newValue, long now) {
     if (oldValue == null || newValue == null) {
       throw new NullPointerException();
     }
@@ -819,26 +817,26 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     if (Duration.ZERO.equals(duration)) {
       return null;
     }
-    
-    OnHeapValueHolder<V> valueHolder;
-    if (valueSerializer != null) {
-      valueHolder = new ByValueOnHeapValueHolder<V>(newValue, now, valueSerializer);
-    } else {
-      valueHolder = new ByRefOnHeapValueHolder<V>(newValue, now);
-    }
-    
+
+    long expirationTime;
     if (duration == null) {
-      return new TimeStampedOnHeapValueHolder<V>(valueHolder, oldValue.getExpireTimeMillis());      
+      expirationTime = oldValue.expirationTime(TimeUnit.MILLISECONDS);
     } else {
       if (duration.isForever()) {
-        return new TimeStampedOnHeapValueHolder<V>(valueHolder, TimeStampedOnHeapValueHolder.NO_EXPIRE);
+        expirationTime = ValueHolder.NO_EXPIRE;
       } else {
-        return new TimeStampedOnHeapValueHolder<V>(valueHolder, safeExpireTime(now, duration));
+        expirationTime = safeExpireTime(now, duration);
       }
+    }
+
+    if (valueSerializer != null) {
+      return new ByValueOnHeapValueHolder<V>(newValue, now, expirationTime, valueSerializer);
+    } else {
+      return new ByRefOnHeapValueHolder<V>(newValue, now, expirationTime);
     }
   }
   
-  private OnHeapValueHolder<V> newCreateValueHolder(K key, V value, long now) { 
+  private ValueHolder<V> newCreateValueHolder(K key, V value, long now) {
     if (value == null) {
       throw new NullPointerException();
     }
@@ -847,18 +845,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     if (Duration.ZERO.equals(duration)) {
       return null;
     }
-    
-    OnHeapValueHolder<V> valueHolder;
-    if (valueSerializer != null) {
-      valueHolder = new ByValueOnHeapValueHolder<V>(value, now, valueSerializer);
-    } else {
-      valueHolder = new ByRefOnHeapValueHolder<V>(value, now);
-    }
 
-    if (duration.isForever()) {
-      return new TimeStampedOnHeapValueHolder<V>(valueHolder, TimeStampedOnHeapValueHolder.NO_EXPIRE);
+    long expirationTime = duration.isForever() ? ValueHolder.NO_EXPIRE : safeExpireTime(now, duration);
+
+    if (valueSerializer != null) {
+      return new ByValueOnHeapValueHolder<V>(value, now, expirationTime, valueSerializer);
     } else {
-      return new TimeStampedOnHeapValueHolder<V>(valueHolder, safeExpireTime(now, duration));
+      return new ByRefOnHeapValueHolder<V>(value, now, expirationTime);
     }
   }
   
@@ -895,18 +888,18 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     final int sampleSize = 8;
 
     @SuppressWarnings("unchecked")
-    Set<Map.Entry<K, OnHeapValueHolder<V>>> values = map.getRandomValues(random, sampleSize, (Predicate<Map.Entry<K, OnHeapValueHolder<V>>>)evictionVeto);
+    Set<Map.Entry<K, ValueHolder<V>>> values = map.getRandomValues(random, sampleSize, (Predicate<Map.Entry<K, ValueHolder<V>>>)evictionVeto);
    
     if (values.isEmpty()) {
       // 2nd attempt without any veto
-      values = map.getRandomValues(random, sampleSize, Predicates.<Map.Entry<K, OnHeapValueHolder<V>>>none());
+      values = map.getRandomValues(random, sampleSize, Predicates.<Map.Entry<K, ValueHolder<V>>>none());
     }
 
     if (values.isEmpty()) {
       return false;
     } else {
       @SuppressWarnings("unchecked")
-      Map.Entry<K, OnHeapValueHolder<V>> evict = Collections.max(values, (Comparator<? super Map.Entry<K, OnHeapValueHolder<V>>>)evictionPrioritizer);
+      Map.Entry<K, ValueHolder<V>> evict = Collections.max(values, (Comparator<? super Map.Entry<K, ValueHolder<V>>>)evictionPrioritizer);
       
       if (map.remove(evict.getKey(), evict.getValue())) {
         evictionObserver.end(EvictionOutcome.SUCCESS);
@@ -993,33 +986,33 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
   }
 
-  private static <K, V> Predicate<Map.Entry<K, OnHeapValueHolder<V>>> wrap(final Predicate<Cache.Entry<K, V>> predicate) {
+  private static <K, V> Predicate<Map.Entry<K, ValueHolder<V>>> wrap(final Predicate<Cache.Entry<K, V>> predicate) {
     if (predicate == null) {
       return Predicates.none();
     } else {
-      return new Predicate<Map.Entry<K, OnHeapValueHolder<V>>>() {
+      return new Predicate<Map.Entry<K, ValueHolder<V>>>() {
         @Override
-        public boolean test(final Map.Entry<K, OnHeapValueHolder<V>> argument) {
+        public boolean test(final Map.Entry<K, ValueHolder<V>> argument) {
           return predicate.test(wrap(argument));
         }
       };
     }
   }
 
-  private static <K, V> Comparator<Map.Entry<K, OnHeapValueHolder<V>>> wrap(final Comparator<Cache.Entry<K, V>> comparator) {
-    return new Comparator<Map.Entry<K, OnHeapValueHolder<V>>>() {
+  private static <K, V> Comparator<Map.Entry<K, ValueHolder<V>>> wrap(final Comparator<Cache.Entry<K, V>> comparator) {
+    return new Comparator<Map.Entry<K, ValueHolder<V>>>() {
       @Override
-      public int compare(Map.Entry<K, OnHeapValueHolder<V>> t, Map.Entry<K, OnHeapValueHolder<V>> u) {
+      public int compare(Map.Entry<K, ValueHolder<V>> t, Map.Entry<K, ValueHolder<V>> u) {
         return comparator.compare(wrap(t), wrap(u));
       }
     };
   }
 
-  private static <K, V> Cache.Entry<K, V> wrap(final Map.Entry<K, OnHeapValueHolder<V>> value) {
+  private static <K, V> Cache.Entry<K, V> wrap(final Map.Entry<K, ValueHolder<V>> value) {
     return wrap(value.getKey(), value.getValue());
   }
   
-  private static <K, V> Cache.Entry<K, V> wrap(final K key, final OnHeapValueHolder<V> mappedValue) {
+  private static <K, V> Cache.Entry<K, V> wrap(final K key, final ValueHolder<V> mappedValue) {
     return new Cache.Entry<K, V>() {
 
       @Override
@@ -1052,23 +1045,23 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   // The idea of this wrapper is to let all the other code deal in terms of <K> and hide
   // the potentially different key type of the underlying CHM 
   private static class MapWrapper<K, V> {
-    private final ConcurrentHashMap<K, OnHeapValueHolder<V>> map;
-    private final ConcurrentHashMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap;
+    private final ConcurrentHashMap<K, ValueHolder<V>> map;
+    private final ConcurrentHashMap<OnHeapKey<K>, ValueHolder<V>> keyCopyMap;
     private final Serializer<K> keySerializer;
   
     MapWrapper(Serializer<K> keySerializer) {
       this.keySerializer = keySerializer;
       
       if (keySerializer == null) {
-        map = new ConcurrentHashMap<K, OnHeapValueHolder<V>>();
+        map = new ConcurrentHashMap<K, ValueHolder<V>>();
         keyCopyMap = null;
       } else {
-        keyCopyMap = new ConcurrentHashMap<OnHeapKey<K>, OnHeapValueHolder<V>>();
+        keyCopyMap = new ConcurrentHashMap<OnHeapKey<K>, ValueHolder<V>>();
         map = null;
       }
     }
     
-    boolean remove(K key, OnHeapValueHolder<V> value) {
+    boolean remove(K key, ValueHolder<V> value) {
       if (keySerializer == null) {
         return map.remove(key, value);
       }
@@ -1076,23 +1069,23 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       return keyCopyMap.remove(lookupOnlyKey(key), value);
     }
 
-    Set<Map.Entry<K, OnHeapValueHolder<V>>> getRandomValues(Random random, int size,
-         final Predicate<Map.Entry<K, OnHeapValueHolder<V>>> veto) {
+    Set<Map.Entry<K, ValueHolder<V>>> getRandomValues(Random random, int size,
+         final Predicate<Map.Entry<K, ValueHolder<V>>> veto) {
        if (keySerializer == null) {
          return map.getRandomValues(random, size, veto);
        }
        
 
-       Set<Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>>> values = keyCopyMap.getRandomValues(random, size, new Predicate<Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>>>() {
+       Set<Map.Entry<OnHeapKey<K>, ValueHolder<V>>> values = keyCopyMap.getRandomValues(random, size, new Predicate<Map.Entry<OnHeapKey<K>, ValueHolder<V>>>() {
          @Override
-         public boolean test(Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry) {
-           return veto.test(new SimpleEntry<K, OnHeapValueHolder<V>>(entry.getKey().getActualKeyObject(), entry.getValue()));
+         public boolean test(Map.Entry<OnHeapKey<K>, ValueHolder<V>> entry) {
+           return veto.test(new SimpleEntry<K, ValueHolder<V>>(entry.getKey().getActualKeyObject(), entry.getValue()));
          }
        });
 
-       Set<Map.Entry<K, OnHeapValueHolder<V>>> rv = new LinkedHashSet<Map.Entry<K,OnHeapValueHolder<V>>>(values.size());
-       for (Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry : values) {
-         rv.add(new SimpleEntry<K, OnHeapValueHolder<V>>(entry.getKey().getActualKeyObject(), entry.getValue()));
+       Set<Map.Entry<K, ValueHolder<V>>> rv = new LinkedHashSet<Map.Entry<K, ValueHolder<V>>>(values.size());
+       for (Entry<OnHeapKey<K>, ValueHolder<V>> entry : values) {
+         rv.add(new SimpleEntry<K, ValueHolder<V>>(entry.getKey().getActualKeyObject(), entry.getValue()));
        }
        return rv;
     }
@@ -1105,22 +1098,22 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       }
     }
 
-    java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>> entrySetIterator() {
+    java.util.Iterator<Map.Entry<K, ValueHolder<V>>> entrySetIterator() {
       if (keySerializer == null) {
         return map.entrySet().iterator();
       }
       
-      final java.util.Iterator<Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>>> iter = keyCopyMap.entrySet().iterator();
-      return new java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>>() {
+      final java.util.Iterator<Map.Entry<OnHeapKey<K>, ValueHolder<V>>> iter = keyCopyMap.entrySet().iterator();
+      return new java.util.Iterator<Map.Entry<K, ValueHolder<V>>>() {
         @Override
         public boolean hasNext() {
           return iter.hasNext();
         }
 
         @Override
-        public Map.Entry<K, OnHeapValueHolder<V>> next() {
-          Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry = iter.next();
-          return new SimpleEntry<K, OnHeapValueHolder<V>>(entry.getKey().getActualKeyObject(), entry.getValue());
+        public Map.Entry<K, ValueHolder<V>> next() {
+          Map.Entry<OnHeapKey<K>, ValueHolder<V>> entry = iter.next();
+          return new SimpleEntry<K, ValueHolder<V>>(entry.getKey().getActualKeyObject(), entry.getValue());
         }
 
         @Override
@@ -1130,14 +1123,14 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       };
     }
 
-    OnHeapValueHolder<V> compute(final K key, final BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> computeFunction) {
+    ValueHolder<V> compute(final K key, final BiFunction<K, ValueHolder<V>, ValueHolder<V>> computeFunction) {
       if (keySerializer == null) {
         return map.compute(key, computeFunction);
       }
       
-      return keyCopyMap.compute(makeKey(key), new BiFunction<OnHeapKey<K>, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      return keyCopyMap.compute(makeKey(key), new BiFunction<OnHeapKey<K>, ValueHolder<V>, ValueHolder<V>>() {
         @Override
-        public OnHeapValueHolder<V> apply(OnHeapKey<K> mappedKey, OnHeapValueHolder<V> mappedValue) {
+        public ValueHolder<V> apply(OnHeapKey<K> mappedKey, ValueHolder<V> mappedValue) {
           return computeFunction.apply(key, mappedValue);
         }
       });
@@ -1151,7 +1144,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       }
     }
 
-    OnHeapValueHolder<V> remove(K key) {
+    ValueHolder<V> remove(K key) {
       if (keySerializer == null) {
         return map.remove(key);
       } else {
@@ -1159,14 +1152,14 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       }
     }
 
-    OnHeapValueHolder<V> computeIfPresent(final K key, final BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> computeFunction) {
+    ValueHolder<V> computeIfPresent(final K key, final BiFunction<K, ValueHolder<V>, ValueHolder<V>> computeFunction) {
       if (keySerializer == null) {
         return map.computeIfPresent(key, computeFunction);
       }
       
-      return keyCopyMap.computeIfPresent(lookupOnlyKey(key), new BiFunction<OnHeapKey<K>, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      return keyCopyMap.computeIfPresent(lookupOnlyKey(key), new BiFunction<OnHeapKey<K>, ValueHolder<V>, ValueHolder<V>>() {
         @Override
-        public OnHeapValueHolder<V> apply(OnHeapKey<K> mappedKey, OnHeapValueHolder<V> mappedValue) {
+        public ValueHolder<V> apply(OnHeapKey<K> mappedKey, ValueHolder<V> mappedValue) {
           return computeFunction.apply(key, mappedValue);
         }
       });
@@ -1180,7 +1173,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       return new LookupOnlyOnHeapKey<K>(key);
     }
 
-    public OnHeapValueHolder<V> get(K key) {
+    public ValueHolder<V> get(K key) {
       if (keySerializer == null) {
         return map.get(key);
       } else {
@@ -1188,7 +1181,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       }
     }
 
-    public OnHeapValueHolder<V> putIfAbsent(K key, OnHeapValueHolder<V> valueHolder) {
+    public ValueHolder<V> putIfAbsent(K key, ValueHolder<V> valueHolder) {
       if (keySerializer == null) {
         return map.putIfAbsent(key, valueHolder);
       } else {
@@ -1196,7 +1189,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       }
     }
 
-    public boolean replace(K key, OnHeapValueHolder<V> oldValue, OnHeapValueHolder<V> newValue) {
+    public boolean replace(K key, ValueHolder<V> oldValue, ValueHolder<V> newValue) {
       if (keySerializer == null) {
         return map.replace(key, oldValue, newValue);
       } else {

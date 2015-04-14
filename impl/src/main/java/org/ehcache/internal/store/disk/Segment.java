@@ -19,13 +19,13 @@ package org.ehcache.internal.store.disk;
 import org.ehcache.function.BiFunction;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.cache.tiering.CachingTier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -831,7 +831,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
    * @param valueHolder   the expected value holder
    * @return true if succeeded
    */
-  boolean flush(final K key, final int hash, Store.ValueHolder<V> valueHolder, CachingTier<K, V> cachingTier) {
+  boolean flush(final K key, final int hash, Store.ValueHolder<V> valueHolder) {
     DiskStorageFactory.DiskSubstitute<K, V> diskSubstitute = null;
     readLock().lock();
     try {
@@ -856,7 +856,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
             if (diskSubstitute instanceof DiskStorageFactory.DiskMarker) {
               final DiskStorageFactory.DiskMarker<K, V> diskMarker = (DiskStorageFactory.DiskMarker) diskSubstitute;
               //TODO update with the true hit rate once it has been implemented, see #122
-              diskMarker.updateStats(0.0f, cachingTier.getExpireTimeMillis(valueHolder));
+              diskMarker.updateStats(0.0f, valueHolder.expirationTime(TimeUnit.MILLISECONDS));
             }
           }
           return b;
@@ -865,7 +865,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
       }
     } finally {
       readLock().unlock();
-      if (diskSubstitute != null && cachingTier.isExpired(valueHolder)) {
+      if (diskSubstitute != null && valueHolder.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
         evict(key, hash, diskSubstitute);
       }
     }

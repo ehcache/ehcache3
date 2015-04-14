@@ -16,7 +16,7 @@
 
 package org.ehcache.internal.store.heap;
 
-import org.ehcache.internal.SystemTimeSource;
+import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.spi.cache.Store.ValueHolder;
 import org.junit.Test;
@@ -74,7 +74,23 @@ public class ByValueOnHeapValueHolderTest {
     newValueHolder(null);
   }
 
-  private static <V extends Serializable> OnHeapValueHolder<V> newValueHolder(V value) {
-    return new ByValueOnHeapValueHolder<V>(value, SystemTimeSource.INSTANCE.getTimeMillis(), new JavaSerializer<V>(ByValueOnHeapValueHolderTest.class.getClassLoader()));
+  private static <V extends Serializable> ValueHolder<V> newValueHolder(V value) {
+    return new ByValueOnHeapValueHolder<V>(value, TestTimeSource.INSTANCE.getTimeMillis(), new JavaSerializer<V>(ByValueOnHeapValueHolderTest.class.getClassLoader()));
+  }
+
+  private static class TestTimeSource implements TimeSource {
+
+    static final TestTimeSource INSTANCE = new TestTimeSource();
+
+    private long time = 1;
+
+    @Override
+    public long getTimeMillis() {
+      return time;
+    }
+
+    private void advanceTime(long delta) {
+      this.time += delta;
+    }
   }
 }

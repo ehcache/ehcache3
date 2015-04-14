@@ -40,14 +40,14 @@ public class CacheStore<K, V> implements Store<K, V> {
   private final CachingTier<K, V> cachingTier;
   private final AuthoritativeTier<K, V> authoritativeTier;
 
-  public CacheStore(CachingTier<K, V> cachingTier, AuthoritativeTier<K, V> authoritativeTier) {
+  public CacheStore(final CachingTier<K, V> cachingTier, AuthoritativeTier<K, V> authoritativeTier) {
     this.cachingTier = cachingTier;
     this.authoritativeTier = authoritativeTier;
 
     this.cachingTier.setInvalidationListener(new CachingTier.InvalidationListener<K, V>() {
       @Override
       public void onInvalidation(K key, ValueHolder<V> valueHolder) {
-        CacheStore.this.authoritativeTier.flush(key, valueHolder, CacheStore.this.cachingTier);
+        CacheStore.this.authoritativeTier.flush(key, valueHolder, cachingTier);
       }
     });
   }
