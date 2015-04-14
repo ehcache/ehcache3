@@ -15,4 +15,10 @@ public abstract class CachingTierSPITest<K, V> {
     testSuite.runTestSuite().reportAndThrow();
   }
 
+  @Test
+  public void testCachingTierIsExpired() throws Exception {
+    CachingTierIsExpired<K, V> testSuite = new CachingTierIsExpired<K, V>(getCachingTierFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
 }
