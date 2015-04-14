@@ -20,6 +20,7 @@ import org.ehcache.spi.ServiceProvider;
 
 /**
  * Contract for a {@link org.ehcache.CacheManager} managed service.
+ * Implementation of this interface have be thread-safe
  *
  * @author Alex Snaps
  */
