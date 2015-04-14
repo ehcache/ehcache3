@@ -30,6 +30,7 @@ import org.ehcache.config.xml.model.CacheTemplateType;
 import org.ehcache.config.xml.model.CacheType;
 import org.ehcache.config.xml.model.ConfigType;
 import org.ehcache.config.xml.model.ExpiryType;
+import org.ehcache.config.xml.model.PersistenceModeType;
 import org.ehcache.config.xml.model.PersistenceType;
 import org.ehcache.config.xml.model.ResourceType;
 import org.ehcache.config.xml.model.ResourcesType;
@@ -315,6 +316,18 @@ class ConfigurationParser {
             }
             return null;
           }
+
+          @Override
+          public PersistenceModeType persistenceMode() {
+            PersistenceModeType type = null;
+            for (BaseCacheType source : sources) {
+              type = source.getPersistenceMode();
+              if (type != null) {
+                break;
+              }
+            }
+            return type;
+          }
         });
       }
     }
@@ -443,6 +456,11 @@ class ConfigurationParser {
             final CacheIntegration.Writebehind writebehind = integration != null ? integration.getWritebehind(): null;
             return writebehind != null ? new XmlWriteBehind(writebehind) : null;
           }
+
+          @Override
+          public PersistenceModeType persistenceMode() {
+            return cacheTemplate.getPersistenceMode() == null ? null : cacheTemplate.getPersistenceMode() ;
+          }
         });
       }
     }
@@ -500,6 +518,8 @@ class ConfigurationParser {
     boolean storeByValueOnHeap();
 
     String loaderWriter();
+    
+    PersistenceModeType persistenceMode();
 
     Iterable<ServiceConfiguration<?>> serviceConfigs();
 

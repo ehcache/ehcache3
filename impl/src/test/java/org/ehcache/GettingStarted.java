@@ -171,7 +171,30 @@ public class GettingStarted {
 
     // Comment the following line on subsequent run and see the test pass
     cache.put(42L, "That's the answer!");
-    assertThat(cache.get(42L), is("That's the answer!"));
+    assertThat(cache.get(42L), equalTo("That's the answer!"));
+
+    // Uncomment the following line to nuke the disk store
+//    persistentCacheManager.destroyCache("persistent-cache");
+
+    persistentCacheManager.close();
+  }
+  
+  @Test
+  public void testPersistentDiskCacheWithDefaultPersistentMode() {
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES).build())
+        .buildConfig(Long.class, String.class);
+
+    PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .with(new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/persistent-cache-data")))
+        .withCache("persistent-cache", cacheConfiguration)
+        .build(true);
+
+    Cache<Long, String> cache = persistentCacheManager.getCache("persistent-cache", Long.class, String.class);
+
+    // Comment the following line on subsequent run and see the test pass
+    cache.put(42L, "That's the answer!");
+    assertThat(cache.get(42L), equalTo("That's the answer!"));
 
     // Uncomment the following line to nuke the disk store
 //    persistentCacheManager.destroyCache("persistent-cache");

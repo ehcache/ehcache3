@@ -374,6 +374,16 @@ public class XmlConfigurationTest {
     assertThat(((DefaultSerializationProviderConfiguration)configuration).getTypeSerializerConfig("java.lang.Number").getCacheTypeSerializerMapping().size(), is(2) );
     assertThat(((DefaultSerializationProviderConfiguration)configuration).getTypeSerializerConfig("java.lang.String").getCacheTypeSerializerMapping().size(), is(0) );
   }
+  
+  @Test
+  public void testPersistenceMode() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/persistence-mode-cache.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    
+    assertThat(xmlConfig.getCacheConfigurations().get("tiered").getPersistenceMode(), is(CacheConfiguration.PersistenceMode.CREATE_IF_ABSENT));
+    
+    assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("tieredTemplate").buildConfig(Object.class, Object.class).getPersistenceMode(), is(CacheConfiguration.PersistenceMode.CREATE_IF_ABSENT));
+  }
 
   @Test
   public void testPersistenceConfig() throws Exception {

@@ -158,7 +158,21 @@ public class XmlConfiguration implements Configuration {
           cacheClassLoader = ClassLoading.getDefaultClassLoader();
         }
       }
-      
+      if(cacheDefinition.persistenceMode() != null) {
+        CacheConfiguration.PersistenceMode mode = null;
+        switch (cacheDefinition.persistenceMode()) {
+        case CREATE_IF_ABSENT: 
+          mode = CacheConfiguration.PersistenceMode.CREATE_IF_ABSENT ;
+          break;
+        case EXPECT_EXISTS:
+          mode = CacheConfiguration.PersistenceMode.EXPECT_EXISTS;
+          break;
+        default:
+          mode = CacheConfiguration.PersistenceMode.SWAP;
+          break;
+        }
+        builder.persistenceMode(mode);
+      }
       Class keyType = getClassForName(cacheDefinition.keyType(), cacheClassLoader);
       Class valueType = getClassForName(cacheDefinition.valueType(), cacheClassLoader);
       EvictionVeto evictionVeto = getInstanceOfName(cacheDefinition.evictionVeto(), cacheClassLoader, EvictionVeto.class);
@@ -308,6 +322,21 @@ public class XmlConfiguration implements Configuration {
     }
 
     CacheConfigurationBuilder<K, V> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    if(cacheTemplate.persistenceMode() != null) {
+      CacheConfiguration.PersistenceMode mode = null;
+      switch (cacheTemplate.persistenceMode()) {
+      case CREATE_IF_ABSENT: 
+        mode = CacheConfiguration.PersistenceMode.CREATE_IF_ABSENT ;
+        break;
+      case EXPECT_EXISTS:
+        mode = CacheConfiguration.PersistenceMode.EXPECT_EXISTS;
+        break;
+      default:
+        mode = CacheConfiguration.PersistenceMode.SWAP;
+        break;
+      }
+      builder.persistenceMode(mode);
+    }
     final ConfigurationParser.Expiry parsedExpiry = cacheTemplate.expiry();
     builder = builder
         .usingEvictionPrioritizer(getInstanceOfName(cacheTemplate.evictionPrioritizer(), defaultClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class))
