@@ -16,6 +16,7 @@
 
 package org.ehcache.config;
 
+import org.ehcache.config.CacheConfiguration.PersistenceMode;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -37,7 +38,7 @@ public class CacheConfigurationBuilder<K, V> {
   private ClassLoader classLoader = null;
   private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private EvictionVeto<? super K, ? super V> evictionVeto;
-  private CacheConfiguration.PersistenceMode persistenceMode;
+  private CacheConfiguration.PersistenceMode persistenceMode = PersistenceMode.SWAP;
   private ResourcePools resourcePools = newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
 
   private CacheConfigurationBuilder() {
@@ -50,13 +51,14 @@ public class CacheConfigurationBuilder<K, V> {
   private CacheConfigurationBuilder(final Expiry<? super K, ? super V> expiry, final ClassLoader classLoader,
                                    final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
                                    final EvictionVeto<? super K, ? super V> evictionVeto,
-                                   final ResourcePools resourcePools,
+                                   final ResourcePools resourcePools, final CacheConfiguration.PersistenceMode  mode,
                                    final Collection<ServiceConfiguration<?>> serviceConfigurations) {
     this.expiry = expiry;
     this.classLoader = classLoader;
     this.evictionPrioritizer = evictionPrioritizer;
     this.evictionVeto = evictionVeto;
     this.resourcePools = resourcePools;
+    this.persistenceMode = mode;
     this.serviceConfigurations.addAll(serviceConfigurations);
   }
 
@@ -66,11 +68,11 @@ public class CacheConfigurationBuilder<K, V> {
   }
 
   public <NK extends K, NV extends V> CacheConfigurationBuilder<NK, NV> usingEvictionPrioritizer(final EvictionPrioritizer<? super NK, ? super NV> evictionPrioritizer) {
-    return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, evictionPrioritizer, evictionVeto, resourcePools, serviceConfigurations);
+    return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, evictionPrioritizer, evictionVeto, resourcePools, persistenceMode, serviceConfigurations);
   }
 
   public <NK extends K, NV extends V> CacheConfigurationBuilder<NK, NV> evictionVeto(final EvictionVeto<? super NK, ? super NV> veto) {
-    return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, evictionPrioritizer, veto, resourcePools, serviceConfigurations);
+    return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, evictionPrioritizer, veto, resourcePools, persistenceMode, serviceConfigurations);
   }
 
   public CacheConfigurationBuilder<K, V> removeServiceConfig(ServiceConfiguration<?> configuration) {
@@ -120,7 +122,7 @@ public class CacheConfigurationBuilder<K, V> {
     if (expiry == null) {
       throw new NullPointerException("Null expiry");
     }
-    return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, evictionPrioritizer, evictionVeto, resourcePools, serviceConfigurations);
+    return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, evictionPrioritizer, evictionVeto, resourcePools, persistenceMode, serviceConfigurations);
   }
 
   public CacheConfigurationBuilder<K, V> persistenceMode(CacheConfiguration.PersistenceMode persistenceMode) {

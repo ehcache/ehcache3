@@ -161,6 +161,13 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
+      <xs:element name="persistence-mode" type="ehcache:persistence-mode-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Configures the persistence mode for Cache.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
       <xs:choice minOccurs="0" maxOccurs="1">
         <xs:element name="heap" type="ehcache:resource-type" minOccurs="1" maxOccurs="1">
           <xs:annotation>
@@ -322,6 +329,13 @@
       <xs:enumeration value="gb"/>
       <xs:enumeration value="tb"/>
       <xs:enumeration value="pb"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="persistence-mode-type">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="swap"/>
+      <xs:enumeration value="create_if_absent"/>
+      <xs:enumeration value="expect_exists"/>
     </xs:restriction>
   </xs:simpleType>
 </xs:schema>
