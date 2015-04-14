@@ -46,6 +46,33 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
 
   @SPITest
   @SuppressWarnings("unchecked")
+  public void returnTheValueHolderNotInTheCachingTier() {
+    K key = factory.createKey(1);
+    V value = factory.createValue(1);
+
+    final Store.ValueHolder<V> computedValueHolder = mock(Store.ValueHolder.class);
+    when(computedValueHolder.value()).thenReturn(value);
+
+    tier = factory.newCachingTier(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
+        1L, null, null, Expirations.noExpiration()));
+
+    try {
+      Store.ValueHolder<V> valueHolder = tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
+        @Override
+        public Store.ValueHolder<V> apply(final K k) {
+          return computedValueHolder;
+        }
+      });
+
+      assertThat(valueHolder.value(), is(equalTo(value)));
+    } catch (CacheAccessException e) {
+      System.err.println("Warning, an exception is thrown due to the SPI test");
+      e.printStackTrace();
+    }
+  }
+
+  @SPITest
+  @SuppressWarnings("unchecked")
   public void returnTheValueHolderCurrentlyInTheCachingTier() {
     K key = factory.createKey(1);
     V value = factory.createValue(1);
@@ -67,33 +94,6 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
         @Override
         public Store.ValueHolder<V> apply(final K k) {
           return null;
-        }
-      });
-
-      assertThat(valueHolder.value(), is(equalTo(value)));
-    } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
-    }
-  }
-
-  @SPITest
-  @SuppressWarnings("unchecked")
-  public void returnTheValueHolderNotInTheCachingTier() {
-    K key = factory.createKey(1);
-    V value = factory.createValue(1);
-
-    final Store.ValueHolder<V> computedValueHolder = mock(Store.ValueHolder.class);
-    when(computedValueHolder.value()).thenReturn(value);
-
-    tier = factory.newCachingTier(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
-
-    try {
-      Store.ValueHolder<V> valueHolder = tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-        @Override
-        public Store.ValueHolder<V> apply(final K k) {
-          return computedValueHolder;
         }
       });
 
