@@ -94,16 +94,104 @@ builder exposes a user-friendly DSL to configure and build _runtime instances_ (
 configuration types are configured from configuration types and used at runtime by the actual configured instance,
 providing a way for the user to mutate the behavior of that instance at runtime in limited ways.
 
-=== Configurations
+=== Configuring stuff
+
+You don't necessarily ever get exposed to a _configuration_ for a given type being constructed. The builder can hide it
+all from you and will create the actual configuration at `.build()` invocation time. Configuration types are always
+immutable. Instances of these types are used to configure some part of the system (e.g. `CacheManager`, `Cache`,
+`Service`, ...). If a given configured type has a requirement to modify it's configuration, a additional _runtime
+configuration_ is introduced, e.g. `RuntimeCacheConfiguration`. That type will expose additional mutative methods for
+attributes that are mutable. Internally it will also let consumers of the type to register listener for these attributes.
 
 image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/design/basics/config.png[Configuration types]
 
-=== Builder guidelines
+==== `ServiceProvider` and `ServiceConfiguration`
+
+A special type of configuration is the `ServiceConfiguration<T extends Service>` type. That configuration type enables
+the `ServiceProvider` to lookup the `ServiceFactory<T extends Service>` to use to create the `Service` that's being
+configured, see `ServiceProvider.findServiceFor(ServiceConfiguration<T> config): T extends Service`. This is what
+happens underneath of that call when the `CacheManager` or a `ServiceFactory` looks up `Service` instances:
+
+ . The caller invokes `ServiceProvider.findServiceFor`
+ . The `ServiceProvider` looks up whether it already has that `Service`
+ .. If it does, that instance is being retuned
+ .. If it doesn't, it looks up all `ServiceFactory` it has for one that creates instances of that `Service` type.
+ ... If one is found in that `ServiceFactory` repository, it uses that to create the instance
+ ... If none is found, it uses the JDK's `java.util.ServiceLoader` service to load `ServiceFactory` and recheck
+ .. If nothing could be found, it an Exception is thrown
+
+=== Builder design guidelines
+
+ - Copy the instance returned, instead of returning `this`
+ - Accept other builders as input, instead of just the actual "other thing's" configuration
+ - ...
+
+== `javax.cache` API implications
+
+While we know we don't want to strictly go by the JSR-107 (aka JCache) API contract in the Ehcache3 APIs (e.g. `CacheLoader` &
+`CacheWriter` contracts when concurrent methods on the `Cache` are invoked), we still need a way to have our JCache
+implementation pass the TCK. It is important to at least read the specification with regards to any feature that's being
+implemented and list dissimilarities as well as how they'll be addressed in the 107 module.
 
 == The `PersistentCacheManager`
 
+The `PersistentCacheManager` interface adds lifecycle methods to the `CacheManager` type. Those lifecycle methods enable
+the user to completely destroy `Cache` instances a given `CacheManager` (e.g. destroy the clustered state of a `Cache` entirely,
+or remove all the data of a `Cache` from disk); as well as go into _maintenance mode_ (see <<state-transitions>> section).
+
 === `CacheManagerBuilder.with()` 's extension point
+
+A `CacheManagerBuilder` builds _at least_ a `CacheManager`, but its
+`.with(CacheManagerConfiguration<N>): CacheManagerBuilder<N>` let's you build any subtype of `CacheManager` (currently
+the supported types are a closed set of defined subtypes, but this could be extended to an open set later).
+
+[source,java]
+----
+
+PersistentCacheManager cm = newCacheManagerBuilder() // <1>
+    .with(new CacheManagerConfiguration<PersistentCacheManager>()) // <2>
+    .build(true); // <3>
+----
+
+<1> the `T` of `CacheManagerBuilder<T extends CacheManager>` is still of `CacheManager`
+<2> the `CacheManagerConfiguration` passed in to `.with` now narrows `T` down to `PersistentCacheManager`
+<3> returns the instance of `T` built
 
 === Locally persistent
 
+When building a `PersistentCacheManager` the `CacheManagerConfiguration<PersistentCacheManager>` passed to the builder
+would let one configure all persistent related aspects of `Cache` instances managed by the `CacheManager`, e.g. root
+location for writing cached data to.
+
 === Clustered topology
+
+In a Terracotta clustered scenario, all clustered `Cache` instances are concidered persistent (i.e. will survive the
+_client_ JVM restart). So the idea is to provide all clustered configuration passing such a
+`CacheManagerConfiguration<PersistentCacheManager>` instance, with all the Terracotta client configuration stuff, to the
+`CacheManagerBuilder` at construction time.
+
+==== Persistence configuration
+
+Any given persistent `Cache` uses the lifecycle as described above in <<state-transitions>>. Yet the data on disk, or
+datastructures on disk to store. We think of states of those structures in these terms:
+
+ . Inexistent, nothing there: nothing can be stored until these exist;
+ . Online: the datastructures are present (with or without any data), referenced by the `Store` and the `Cache` is usable;
+ . Offline: the datastructures are present (with or without data), not referenced by any `Store` and nothing accesses it.
+
+image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/design/basics/persistentStateTransitions.jpg[Persistence and statuses & their transitions]
+
+The user can fallback to the maintenance mode and the `Maintainable` instance returned when transitioning to the
+maintenance state. That `Maintainable` can be used to:
+
+ - `Maintainable.create()`, moving from nothing to online; _or_
+ - `Maintainable.destroy()`, moving from offline to nothing
+
+the associated data for a given `Cache` on disk or within the Terracotta Server stripe(s).
+
+We also want to provide with configuration based _modes_ to automatically:
+
+  - Create the persistent data structures if it doesn't already exit;
+  - Drop the persistent data structures if it exists, and create it anew;
+  - Verify the persistent data structures is there, otherwise fail fast;
+  - Create the persistent data structures expecting them to not be there, otherwise fail fast.
