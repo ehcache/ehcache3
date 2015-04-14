@@ -21,4 +21,10 @@ public abstract class CachingTierSPITest<K, V> {
     testSuite.runTestSuite().reportAndThrow();
   }
 
+  @Test
+  public void testCachingTierRemove() throws Exception {
+    CachingTierRemove<K, V> testSuite = new CachingTierRemove<K, V>(getCachingTierFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
 }
