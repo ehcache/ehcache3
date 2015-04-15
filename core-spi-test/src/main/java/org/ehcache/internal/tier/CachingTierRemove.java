@@ -13,6 +13,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Test the {@link CachingTier#remove(K key)} contract of the
@@ -46,7 +47,11 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
   public void removeMapping() {
     K key = factory.createKey(1);
 
+    V originalValue = factory.createValue(1);
+    V newValue = factory.createValue(2);
+
     final Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
+    when(valueHolder.value()).thenReturn(originalValue);
 
     tier = factory.newCachingTier(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         1L, null, null, Expirations.noExpiration()));
@@ -62,6 +67,7 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
       tier.remove(key);
 
       final Store.ValueHolder<V> newValueHolder = mock(Store.ValueHolder.class);
+      when(newValueHolder.value()).thenReturn(newValue);
       Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, new Function() {
         @Override
         public Object apply(final Object o) {
@@ -69,7 +75,7 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
         }
       });
 
-      assertThat(newReturnedValueHolder, is(equalTo(newValueHolder)));
+      assertThat(newReturnedValueHolder.value(), is(equalTo(newValueHolder.value())));
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();

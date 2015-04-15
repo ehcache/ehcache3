@@ -13,9 +13,12 @@ import org.hamcrest.Matchers;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Test the {@link CachingTier#clear()} contract of the
@@ -47,22 +50,26 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
   @SPITest
   @SuppressWarnings("unchecked")
   public void removeMapping() {
-
-    final Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
+    long nbMappings = 10;
 
     tier = factory.newCachingTier(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+        nbMappings, null, null, Expirations.noExpiration()));
 
-    int nbMappings = 10;
+    V originalValue= factory.createValue(1);
+    V newValue= factory.createValue(2);
+
+    final Store.ValueHolder<V> originalValueHolder = mock(Store.ValueHolder.class);
+    when(originalValueHolder.value()).thenReturn(originalValue);
 
     try {
       List<K> keys = new ArrayList<K>();
       for (int i = 0; i < nbMappings; i++) {
         K key = factory.createKey(i);
+
         tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
           @Override
           public Store.ValueHolder<V> apply(final K k) {
-            return valueHolder;
+            return originalValueHolder;
           }
         });
         keys.add(key);
@@ -70,8 +77,11 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
 
       tier.clear();
 
+      final Store.ValueHolder<V> newValueHolder = mock(Store.ValueHolder.class);
+      when(newValueHolder.value()).thenReturn(newValue);
+
       for (K key : keys) {
-        final Store.ValueHolder<V> newValueHolder = mock(Store.ValueHolder.class);
+        tier.remove(key);
         Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, new Function() {
           @Override
           public Object apply(final Object o) {
@@ -79,7 +89,7 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
           }
         });
 
-        assertThat(newReturnedValueHolder, is(Matchers.equalTo(newValueHolder)));
+        assertThat(newReturnedValueHolder.value(), is(equalTo(newValueHolder.value())));
       }
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");

@@ -20,6 +20,13 @@ public class TestTimeSource implements TimeSource {
 
   private long time = 0;
 
+  public TestTimeSource() {
+  }
+
+  public TestTimeSource(final long time) {
+    this.time = time;
+  }
+
   @Override
   public long getTimeMillis() {
     return time;
