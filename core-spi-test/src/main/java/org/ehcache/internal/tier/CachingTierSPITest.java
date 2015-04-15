@@ -39,4 +39,10 @@ public abstract class CachingTierSPITest<K, V> {
     testSuite.runTestSuite().reportAndThrow();
   }
 
+  @Test
+  public void testCachingTierSetInvalidationListener() throws Exception {
+    CachingTierSetInvalidationListener<K, V> testSuite = new CachingTierSetInvalidationListener<K, V>(getCachingTierFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
 }

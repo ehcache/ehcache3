@@ -72,6 +72,7 @@ public interface CachingTier<K, V> {
   /**
    * Set the caching tier's invalidation listener. The invalidation listener can only be set once.
    * @param invalidationListener the listener.
+   * @throws IllegalStateException if the invalidation listener is already set.
    */
   void setInvalidationListener(InvalidationListener<K, V> invalidationListener);
 
