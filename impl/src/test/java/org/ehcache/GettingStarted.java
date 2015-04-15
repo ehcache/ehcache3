@@ -21,18 +21,29 @@ import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.event.CacheEventListenerBuilder;
 import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
+import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
+import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
+import org.ehcache.loaderwriter.writebehind.WriteBehindTestLoaderWriter;
+import org.ehcache.loaderwriter.writebehind.WriteBehindTestLoaderWriter.Pair;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -224,6 +235,51 @@ public class GettingStarted {
 
     manager.close();
   }
+  
+
+  @Test
+  public void testLoaderWriter() throws ClassNotFoundException {
+    
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
+    
+    Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) Class.forName(SampleLoaderWriter.class.getName());
+    
+    final Cache<Long, String> cache1 = cacheManager.createCache("cache1", 
+        CacheConfigurationBuilder.newCacheConfigurationBuilder()
+          .addServiceConfig(new DefaultCacheLoaderWriterConfiguration(klazz))
+          .buildConfig(Long.class, String.class));
+    
+    performAssertions(cache1, true);
+    
+    cache1.put(42L, "one");
+    assertThat(cache1.get(42L), equalTo("one"));
+    
+    cacheManager.close();
+  }
+  
+  @Test
+  public void testWriteBehind() throws ClassNotFoundException {
+    
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
+    
+    Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) Class.forName(SampleLoaderWriter.class.getName());
+    
+    final Cache<Long, String> cache1 = cacheManager.createCache("cache1", 
+        CacheConfigurationBuilder.newCacheConfigurationBuilder()
+          .addServiceConfig(new DefaultCacheLoaderWriterConfiguration(klazz))
+          .addServiceConfig(WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
+            .queueSize(5)
+            .segment(4)
+            .build())
+          .buildConfig(Long.class, String.class));
+    
+    performAssertions(cache1, true);
+    
+    cache1.put(42L, "one");
+    assertThat(cache1.get(42L), equalTo("one"));
+    
+    cacheManager.close();
+  }
 
   private void performAssertions(Cache<Long, String> cache, boolean same) {
     cache.put(1L, "one");
@@ -241,6 +297,85 @@ public class GettingStarted {
       //noop
       Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted");
       logger.info(event.getType().toString());
+    }
+  }
+  
+  public static class SampleLoaderWriter<K, V> implements CacheLoaderWriter<K, V> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SampleLoaderWriter.class);
+    
+    private final Map<K, Pair<K, V>> data = new HashMap<K, Pair<K,V>>(); 
+    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+    
+    @Override
+    public V load(K key) throws Exception {
+      V v = null;
+      lock.readLock().lock();
+      try {
+        Pair<K, V> kVPair = data.get(key); 
+        v = kVPair == null ? null : kVPair.getValue();
+      } finally {
+        lock.readLock().unlock();
+      }
+      return v;
+    }
+
+    @Override
+    public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public void write(K key, V value) throws Exception {
+      lock.writeLock().lock();
+      try {
+        LOGGER.info("Key - '{}' ,Value - '{}' successfully wriiten", key, value);
+        data.put(key, new Pair<K, V>(key, value));
+      } finally {
+        lock.writeLock().unlock();
+      }
+    }
+
+    @Override
+    public void writeAll(Iterable<? extends Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception {
+      lock.writeLock().lock();
+      try {
+        for (Entry<? extends K, ? extends V> entry : entries) {
+         data.put(entry.getKey(), new Pair<K, V>(entry.getKey(), entry.getValue()));
+         
+        }
+      } finally {
+        lock.writeLock().unlock();
+      }
+    }
+
+    @Override
+    public void delete(K key) throws Exception {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException, Exception {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+    
+    public static class Pair<K, V> {
+      
+      private K key;
+      private V value;
+      
+      public Pair(K k, V v) {
+        this.key = k;
+        this.value = v;
+      }
+      
+      public K getKey() {
+        return key;
+      }
+
+      public V getValue() {
+        return value;
+      }
     }
   }
 }
