@@ -15,11 +15,7 @@
  */
 package org.ehcache.internal.store.heap;
 
-import org.ehcache.spi.cache.AbstractValueHolder;
-
-import java.util.concurrent.TimeUnit;
-
-class ByRefOnHeapValueHolder<V> extends AbstractValueHolder<V> {
+class ByRefOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   private final V value;
 
   protected ByRefOnHeapValueHolder(V value, long createTime) {
@@ -62,12 +58,6 @@ class ByRefOnHeapValueHolder<V> extends AbstractValueHolder<V> {
     result = 31 * result + value.hashCode();
     result = 31 * result + super.hashCode();
     return result;
-  }
-
-  @Override
-  public float hitRate(TimeUnit unit) {
-    // XXX:
-    return 0;
   }
 
 }

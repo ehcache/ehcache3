@@ -856,7 +856,7 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
             if (diskSubstitute instanceof DiskStorageFactory.DiskMarker) {
               final DiskStorageFactory.DiskMarker<K, V> diskMarker = (DiskStorageFactory.DiskMarker) diskSubstitute;
               //TODO update with the true hit rate once it has been implemented, see #122
-              diskMarker.updateStats(0.0f, valueHolder.expirationTime(TimeUnit.MILLISECONDS));
+              diskMarker.updateStats(valueHolder.hitRate(TimeUnit.SECONDS), valueHolder.expirationTime(DiskStorageFactory.DiskValueHolder.TIME_UNIT));
             }
           }
           return b;

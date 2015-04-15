@@ -600,21 +600,21 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   private void setAccessTimeAndExpiry(K key, DiskStorageFactory.Element<K, V> element, long now) {
-    element.getValueHolder().setLastAccessTime(now, TimeUnit.MILLISECONDS);
+    element.getValueHolder().setLastAccessTime(now, DiskStorageFactory.DiskValueHolder.TIME_UNIT);
 
-    ValueHolder<V> valueHolder = element.getValueHolder();
+    DiskStorageFactory.DiskValueHolder<V> valueHolder = element.getValueHolder();
     Duration duration = expiry.getExpiryForAccess(key, valueHolder.value());
     if (duration != null) {
       if (duration.isForever()) {
         valueHolder.setExpirationTime(DiskStorageFactory.DiskValueHolder.NO_EXPIRE, null);
       } else {
-        valueHolder.setExpirationTime(safeExpireTime(now, duration), TimeUnit.MILLISECONDS);
+        valueHolder.setExpirationTime(safeExpireTime(now, duration), DiskStorageFactory.DiskValueHolder.TIME_UNIT);
       }
     }
   }
 
   private static long safeExpireTime(long now, Duration duration) {
-    long millis = TimeUnit.MILLISECONDS.convert(duration.getAmount(), duration.getTimeUnit());
+    long millis = DiskStorageFactory.DiskValueHolder.TIME_UNIT.convert(duration.getAmount(), duration.getTimeUnit());
 
     if (millis == Long.MAX_VALUE) {
       return Long.MAX_VALUE;
@@ -638,7 +638,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     }
 
     if (duration == null) {
-      return new DiskStorageFactory.ElementImpl<K, V>(key, newValue, now, oldValue.getValueHolder().expirationTime(TimeUnit.MILLISECONDS));
+      return new DiskStorageFactory.ElementImpl<K, V>(key, newValue, now, oldValue.getValueHolder().expirationTime(DiskStorageFactory.DiskValueHolder.TIME_UNIT));
     } else {
       if (duration.isForever()) {
         return new DiskStorageFactory.ElementImpl<K, V>(key, newValue, now, DiskStorageFactory.DiskValueHolder.NO_EXPIRE);

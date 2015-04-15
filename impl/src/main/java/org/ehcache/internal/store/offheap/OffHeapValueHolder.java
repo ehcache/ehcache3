@@ -25,7 +25,9 @@ import java.util.concurrent.TimeUnit;
 /**
 * OffHeapValueHolder
 */
-public final class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
+final class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
+
+  static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
 
   private final V value;
   private final WriteContext writeContext;
@@ -46,11 +48,6 @@ public final class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
   }
 
   @Override
-  public float hitRate(TimeUnit unit) {
-    throw new UnsupportedOperationException("TODO Implement me!");
-  }
-
-  @Override
   public boolean equals(Object other) {
     if (this == other) return true;
     if (other == null || getClass() != other.getClass()) return false;
@@ -61,6 +58,11 @@ public final class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
     if (!value.equals(that.value)) return false;
 
     return true;
+  }
+
+  @Override
+  protected TimeUnit nativeTimeUnit() {
+    return TIME_UNIT;
   }
 
   @Override

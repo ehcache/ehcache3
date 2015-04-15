@@ -16,14 +16,12 @@
 package org.ehcache.internal.store.heap;
 
 import org.ehcache.exceptions.SerializerException;
-import org.ehcache.spi.cache.AbstractValueHolder;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.TimeUnit;
 
-class ByValueOnHeapValueHolder<V> extends AbstractValueHolder<V> {
+class ByValueOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   private final ByteBuffer buffer;
   private final int hash;
   private final Serializer<V> serializer;
@@ -58,12 +56,6 @@ class ByValueOnHeapValueHolder<V> extends AbstractValueHolder<V> {
     } catch (ClassNotFoundException cnfe) {
       throw new SerializerException(cnfe);
     }
-  }
-
-  @Override
-  public float hitRate(TimeUnit unit) {
-    // XXX
-    return 0;
   }
 
   @Override

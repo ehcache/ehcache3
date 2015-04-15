@@ -41,7 +41,6 @@ import org.ehcache.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
-import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -139,7 +138,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
         public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
           long now = timeSource.getTimeMillis();
 
-          if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+          if (mappedValue == null || mappedValue.isExpired(now, OffHeapValueHolder.TIME_UNIT)) {
             if (mappedValue != null) {
               eventListener.onExpiration(wrap(mappedKey, mappedValue));
             }
@@ -172,7 +171,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
         map.compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
           @Override
           public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
-            if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+            if (mappedValue != null && mappedValue.isExpired(now, OffHeapValueHolder.TIME_UNIT)) {
               mappedValue = null;
             }
 
@@ -204,7 +203,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
           public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
             long now = timeSource.getTimeMillis();
 
-            if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+            if (mappedValue == null || mappedValue.isExpired(now, OffHeapValueHolder.TIME_UNIT)) {
               if (mappedValue != null) {
                 eventListener.onExpiration(wrap(mappedKey, mappedValue));
               }
@@ -245,7 +244,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
         long now = timeSource.getTimeMillis();
 
-        if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue.isExpired(now, OffHeapValueHolder.TIME_UNIT)) {
           eventListener.onExpiration(wrap(mappedKey, mappedValue));
           return null;
         } else if (mappedValue.value().equals(value)) {
@@ -272,7 +271,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
         long now = timeSource.getTimeMillis();
 
-        if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue == null || mappedValue.isExpired(now, OffHeapValueHolder.TIME_UNIT)) {
           if (mappedValue != null) {
             eventListener.onExpiration(wrap(mappedKey, mappedValue));
           }
@@ -305,7 +304,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
         long now = timeSource.getTimeMillis();
 
-        if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue == null || mappedValue.isExpired(now, OffHeapValueHolder.TIME_UNIT)) {
           if (mappedValue != null) {
             eventListener.onExpiration(wrap(mappedKey, mappedValue));
           }
@@ -395,7 +394,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
         long now = timeSource.getTimeMillis();
         V existingValue = null;
-        if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue == null || mappedValue.isExpired(now, OffHeapValueHolder.TIME_UNIT)) {
           if (mappedValue != null) {
             eventListener.onExpiration(wrap(mappedKey, mappedValue));
           }
@@ -444,7 +443,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       @Override
       public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
         long now = timeSource.getTimeMillis();
-        if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue == null || mappedValue.isExpired(now, OffHeapValueHolder.TIME_UNIT)) {
           if (mappedValue != null) {
             eventListener.onExpiration(wrap(mappedKey, mappedValue));
           }
@@ -485,7 +484,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
         long now = timeSource.getTimeMillis();
 
-        if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue == null || mappedValue.isExpired(now, OffHeapValueHolder.TIME_UNIT)) {
           if (mappedValue != null) {
             eventListener.onExpiration(wrap(mappedKey, mappedValue));
           }
@@ -629,14 +628,14 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   };
 
   private void setAccessTimeAndExpiry(K key, OffHeapValueHolder<V> valueHolder, long now) {
-    valueHolder.setLastAccessTime(now, TimeUnit.MILLISECONDS);
+    valueHolder.setLastAccessTime(now, OffHeapValueHolder.TIME_UNIT);
 
     Duration duration = expiry.getExpiryForAccess(key, valueHolder.value());
     if (duration != null) {
       if (duration.isForever()) {
         valueHolder.setExpirationTime(ValueHolder.NO_EXPIRE, null);
       } else {
-        valueHolder.setExpirationTime(safeExpireTime(now, duration), TimeUnit.MILLISECONDS);
+        valueHolder.setExpirationTime(safeExpireTime(now, duration), OffHeapValueHolder.TIME_UNIT);
       }
     }
     valueHolder.writeBack();
@@ -649,7 +648,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     }
 
     if (duration == null) {
-      return new OffHeapValueHolder<V>(value, now, existing.expirationTime(TimeUnit.MILLISECONDS));
+      return new OffHeapValueHolder<V>(value, now, existing.expirationTime(OffHeapValueHolder.TIME_UNIT));
     } else if (duration.isForever()) {
       return new OffHeapValueHolder<V>(value, now, OffHeapValueHolder.NO_EXPIRE);
     } else {
@@ -671,7 +670,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   private static long safeExpireTime(long now, Duration duration) {
-    long millis = TimeUnit.MILLISECONDS.convert(duration.getAmount(), duration.getTimeUnit());
+    long millis = OffHeapValueHolder.TIME_UNIT.convert(duration.getAmount(), duration.getTimeUnit());
 
     if (millis == Long.MAX_VALUE) {
       return Long.MAX_VALUE;

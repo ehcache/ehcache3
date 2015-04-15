@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V>, Serializable {
 
   private final long creationTime;
-
   private volatile long lastAccessTime;
   private volatile long expirationTime;
 
@@ -42,25 +41,30 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V>, Se
     this.expirationTime = expirationTime;
   }
 
-  @Override
-  public long creationTime(TimeUnit unit) {
-    return TimeUnit.MILLISECONDS.convert(creationTime, unit);
-  }
+  protected abstract TimeUnit nativeTimeUnit();
 
   @Override
+  public long creationTime(TimeUnit unit) {
+    return unit.convert(creationTime, nativeTimeUnit());
+  }
+
   public void setExpirationTime(long expirationTime, TimeUnit unit) {
     if (expirationTime == NO_EXPIRE) {
       this.expirationTime = NO_EXPIRE;
     } else if (expirationTime <= 0) {
       throw new IllegalArgumentException("invalid expiration time: " + expirationTime);
     } else {
-      this.expirationTime = TimeUnit.MILLISECONDS.convert(expirationTime, unit);;
+      this.expirationTime = nativeTimeUnit().convert(expirationTime, unit);;
     }
   }
 
   @Override
   public long expirationTime(TimeUnit unit) {
-    return TimeUnit.MILLISECONDS.convert(expirationTime, unit);
+    final long expire = this.expirationTime;
+    if (expire == NO_EXPIRE) {
+      return NO_EXPIRE;
+    }
+    return unit.convert(expire, nativeTimeUnit());
   }
 
   @Override
@@ -69,22 +73,16 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V>, Se
     if (expire == NO_EXPIRE) {
       return false;
     }
-
-    if (expire <= unit.convert(expirationTime, TimeUnit.MILLISECONDS)) {
-      return true;
-    }
-
-    return false;
+    return expire <= nativeTimeUnit().convert(expirationTime, unit);
   }
 
   @Override
   public long lastAccessTime(TimeUnit unit) {
-    return TimeUnit.MILLISECONDS.convert(lastAccessTime, unit);
+    return unit.convert(lastAccessTime, nativeTimeUnit());
   }
 
-  @Override
   public void setLastAccessTime(long lastAccessTime, TimeUnit unit) {
-    this.lastAccessTime = unit.convert(lastAccessTime, TimeUnit.MILLISECONDS);
+    this.lastAccessTime = unit.convert(lastAccessTime, nativeTimeUnit());
   }
 
   @Override
@@ -100,12 +98,18 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V>, Se
   public boolean equals(Object obj) {
     if (obj instanceof AbstractValueHolder) {
       AbstractValueHolder<?> other = (AbstractValueHolder<?>) obj;
-      return other.hashCode() == hashCode() &&
-          other.creationTime == creationTime &&
-          other.expirationTime == expirationTime &&
-          other.lastAccessTime == lastAccessTime;
+      return
+          other.creationTime(nativeTimeUnit()) == creationTime && creationTime(other.nativeTimeUnit()) == other.creationTime &&
+          other.expirationTime(nativeTimeUnit()) == expirationTime && expirationTime(other.nativeTimeUnit()) == other.expirationTime &&
+          other.lastAccessTime(nativeTimeUnit()) == lastAccessTime && lastAccessTime(other.nativeTimeUnit()) == other.lastAccessTime;
     }
     return false;
+  }
+
+  @Override
+  public float hitRate(TimeUnit unit) {
+    //XXX
+    return 0.0f;
   }
 
   @Override

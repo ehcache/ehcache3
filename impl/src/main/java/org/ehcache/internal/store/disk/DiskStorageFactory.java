@@ -83,7 +83,7 @@ public class DiskStorageFactory<K, V> {
 
     @Override
     public boolean isExpired(long time) {
-      return !faulted && valueHolder.isExpired(time, TimeUnit.MILLISECONDS);
+      return !faulted && valueHolder.isExpired(time, DiskValueHolder.TIME_UNIT);
     }
 
     @Override
@@ -110,6 +110,8 @@ public class DiskStorageFactory<K, V> {
   static class DiskValueHolder<V> extends AbstractValueHolder<V> {
     private static final long serialVersionUID = -7234449795271393813L;
 
+    static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
+
     private final V value;
 
     public DiskValueHolder(V value, long createTime, long expireTime) {
@@ -123,12 +125,6 @@ public class DiskStorageFactory<K, V> {
     }
 
     @Override
-    public float hitRate(TimeUnit unit) {
-      // XXX:
-      return 0;
-    }
-
-    @Override
     public boolean equals(Object other) {
       if (this == other) return true;
       if (other == null || getClass() != other.getClass()) return false;
@@ -139,6 +135,11 @@ public class DiskStorageFactory<K, V> {
       if (!value.equals(that.value)) return false;
 
       return true;
+    }
+
+    @Override
+    protected TimeUnit nativeTimeUnit() {
+      return TIME_UNIT;
     }
 
     @Override
@@ -676,7 +677,7 @@ public class DiskStorageFactory<K, V> {
 
     @Override
     long getExpirationTime() {
-      return getElement().getValueHolder().expirationTime(TimeUnit.MILLISECONDS);
+      return getElement().getValueHolder().expirationTime(DiskValueHolder.TIME_UNIT);
     }
 
     /**
@@ -719,7 +720,7 @@ public class DiskStorageFactory<K, V> {
 
       this.key = element.getKey();
       this.hitRate = element.getValueHolder().hitRate(TimeUnit.SECONDS);
-      this.expiry = element.getValueHolder().expirationTime(TimeUnit.MILLISECONDS);
+      this.expiry = element.getValueHolder().expirationTime(DiskValueHolder.TIME_UNIT);
     }
 
     /**
@@ -801,7 +802,7 @@ public class DiskStorageFactory<K, V> {
      */
     void hit(Element<K, V> e) {
       hitRate++;
-      expiry = e.getValueHolder().expirationTime(TimeUnit.MILLISECONDS);
+      expiry = e.getValueHolder().expirationTime(DiskValueHolder.TIME_UNIT);
     }
 
     /**
@@ -871,7 +872,7 @@ public class DiskStorageFactory<K, V> {
         DiskMarker<K, V> marker = (DiskMarker) object;
         Element<K, V> read = read(marker);
         //TODO update with the true hit rate once it has been implemented, see #122
-        read.getValueHolder().setExpirationTime(((DiskMarker) object).expiry, TimeUnit.MILLISECONDS);
+        read.getValueHolder().setExpirationTime(((DiskMarker) object).expiry, DiskValueHolder.TIME_UNIT);
         return read;
       } catch (IOException e) {
         throw new RuntimeException(e);

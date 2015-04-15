@@ -375,7 +375,7 @@ public interface Store<K, V> {
    *
    * @param <V>
    */
-  public interface ValueHolder<V> {
+  interface ValueHolder<V> {
     long NO_EXPIRE = -1;
 
     /**
@@ -393,14 +393,6 @@ public interface Store<K, V> {
      * @return the creation time in the given unit
      */
     long creationTime(TimeUnit unit);
-
-    /**
-     * Set the expiration time of the ValueHolder
-     *
-     * @param expirationTime the expiration time in the given unit
-     * @param unit the time unit of the new expiration time
-     */
-    void setExpirationTime(long expirationTime, TimeUnit unit);
 
     /**
      * Accessor to the expiration time of this ValueHolder
@@ -426,14 +418,6 @@ public interface Store<K, V> {
      * @return the last access time in the given unit
      */
     long lastAccessTime(TimeUnit unit);
-
-    /**
-     * Set the last access time of the ValueHolder
-     *
-     * @param lastAccessTime the last access time in the given unit
-     * @param unit the time unit of the new last access time
-     */
-    void setLastAccessTime(long lastAccessTime, TimeUnit unit);
 
     /**
      * Accessor to the hit rate of the Value held in this ValueHolder?

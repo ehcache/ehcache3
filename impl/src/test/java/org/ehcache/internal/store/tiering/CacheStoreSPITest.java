@@ -142,11 +142,6 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
           }
 
           @Override
-          public void setExpirationTime(long expirationTime, TimeUnit unit) {
-
-          }
-
-          @Override
           public long expirationTime(TimeUnit unit) {
             return 0;
           }
@@ -159,11 +154,6 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
           @Override
           public long lastAccessTime(TimeUnit unit) {
             return 0;
-          }
-
-          @Override
-          public void setLastAccessTime(long lastAccessTime, TimeUnit unit) {
-
           }
 
           @Override
