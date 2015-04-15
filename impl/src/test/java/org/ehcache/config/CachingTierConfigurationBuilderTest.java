@@ -18,6 +18,7 @@ package org.ehcache.config;
 
 import org.ehcache.Cache;
 import org.ehcache.Ehcache;
+import org.ehcache.RuntimeConfiguration;
 import org.ehcache.internal.HeapCache;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
@@ -55,7 +56,7 @@ public class CachingTierConfigurationBuilderTest {
     
     
     @SuppressWarnings("unchecked")
-    final Cache<String, String> cache = new HeapCache<String, String>(mock(CacheConfiguration.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "CachingTierConfigurationBuilderTest"));
+    final Cache<String, String> cache = new HeapCache<String, String>(mock(RuntimeConfiguration.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "CachingTierConfigurationBuilderTest"));
 
     assertThat(cache, not(hasKey("key")));
     cache.put("key", "value");

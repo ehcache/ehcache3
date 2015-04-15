@@ -179,8 +179,11 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
    */
   private Ehcache<String, String> getEhcache()
       throws Exception {
+    InternalRuntimeConfigurationImpl<String, String> internalRuntimeConfiguration =
+        new InternalRuntimeConfigurationImpl<String, String>(CACHE_CONFIGURATION, this.store, null);
+    RuntimeConfiguration<String, String> runtimeConfiguration = new RuntimeConfiguration<String, String>(CACHE_CONFIGURATION, internalRuntimeConfiguration);
     final Ehcache<String, String> ehcache =
-        new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, this.cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicContainsKeyTest"));
+        new Ehcache<String, String>(runtimeConfiguration, this.store, this.cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicContainsKeyTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

@@ -22,7 +22,6 @@ import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.hamcrest.Matchers;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -2497,7 +2496,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicGetAllTest"));
+    InternalRuntimeConfigurationImpl<String, String> internalRuntimeConfiguration =
+        new InternalRuntimeConfigurationImpl<String, String>(CACHE_CONFIGURATION, this.store, null);
+    RuntimeConfiguration<String, String> runtimeConfiguration =
+        new RuntimeConfiguration<String, String>(CACHE_CONFIGURATION, internalRuntimeConfiguration);
+    final Ehcache<String, String> ehcache = new Ehcache<String, String>(runtimeConfiguration, this.store, cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicGetAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
