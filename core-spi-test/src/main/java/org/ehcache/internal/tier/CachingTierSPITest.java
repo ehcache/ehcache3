@@ -33,4 +33,10 @@ public abstract class CachingTierSPITest<K, V> {
     testSuite.runTestSuite().reportAndThrow();
   }
 
+  @Test
+  public void testCachingGetExpireTimeMillis() throws Exception {
+    CachingGetExpireTimeMillis<K, V> testSuite = new CachingGetExpireTimeMillis<K, V>(getCachingTierFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
 }
