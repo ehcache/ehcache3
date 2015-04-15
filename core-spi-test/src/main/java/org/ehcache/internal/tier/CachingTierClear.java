@@ -8,24 +8,27 @@ import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.SPITest;
+import org.hamcrest.Matchers;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 /**
- * Test the {@link CachingTier#remove(K key)} contract of the
+ * Test the {@link CachingTier#clear()} contract of the
  * {@link CachingTier CachingTier} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
  */
-public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
+public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
 
   private CachingTier tier;
 
-  public CachingTierRemove(final CachingTierFactory<K, V> factory) {
+  public CachingTierClear(final CachingTierFactory<K, V> factory) {
     super(factory);
   }
 
@@ -44,32 +47,40 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
   @SPITest
   @SuppressWarnings("unchecked")
   public void removeMapping() {
-    K key = factory.createKey(1);
 
     final Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
 
     tier = factory.newCachingTier(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         1L, null, null, Expirations.noExpiration()));
 
+    int nbMappings = 10;
+
     try {
-      tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-        @Override
-        public Store.ValueHolder<V> apply(final K k) {
-          return valueHolder;
-        }
-      });
+      List<K> keys = new ArrayList<K>();
+      for (int i = 0; i < nbMappings; i++) {
+        K key = factory.createKey(i);
+        tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
+          @Override
+          public Store.ValueHolder<V> apply(final K k) {
+            return valueHolder;
+          }
+        });
+        keys.add(key);
+      }
 
-      tier.remove(key);
+      tier.clear();
 
-      final Store.ValueHolder<V> newValueHolder = mock(Store.ValueHolder.class);
-      Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, new Function() {
-        @Override
-        public Object apply(final Object o) {
-          return newValueHolder;
-        }
-      });
+      for (K key : keys) {
+        final Store.ValueHolder<V> newValueHolder = mock(Store.ValueHolder.class);
+        Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, new Function() {
+          @Override
+          public Object apply(final Object o) {
+            return newValueHolder;
+          }
+        });
 
-      assertThat(newReturnedValueHolder, is(equalTo(newValueHolder)));
+        assertThat(newReturnedValueHolder, is(Matchers.equalTo(newValueHolder)));
+      }
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
