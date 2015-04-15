@@ -35,7 +35,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 /**
- * Test the {@link org.ehcache.spi.cache.tiering.AuthoritativeTier#getAndFault(K key)} contract of the
+ * Test the {@link org.ehcache.spi.cache.tiering.AuthoritativeTier#getAndFault(Object)} contract of the
  * {@link org.ehcache.spi.cache.tiering.AuthoritativeTier AuthoritativeTier} interface.
  * <p/>
  *

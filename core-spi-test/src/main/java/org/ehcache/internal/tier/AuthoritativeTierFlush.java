@@ -23,6 +23,7 @@ import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
+import org.ehcache.spi.test.Ignore;
 import org.ehcache.spi.test.SPITest;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -61,6 +62,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
   }
 
   @SPITest
+  @Ignore(reason = "until issue 362/363 is clarified if a boolean should be returned")
   @SuppressWarnings("unchecked")
   public void entryIsFlushed() {
     K key = factory.createKey(1);
@@ -84,6 +86,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
   }
 
   @SPITest
+  @Ignore(reason = "until issue 362/363 is clarified if a boolean should be returned")
   @SuppressWarnings("unchecked")
   public void entryIsNotFlushed() {
     K key = factory.createKey(1);
@@ -109,7 +112,6 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
   @SuppressWarnings("unchecked")
   public void entryDoesNotExist() {
     K key = factory.createKey(1);
-    final V value = factory.createValue(1);
     CachingTier<K, V> cachingtier = mock(CachingTier.class);
     when(cachingtier.getExpireTimeMillis(any(Store.ValueHolder.class))).thenReturn(1L);
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
