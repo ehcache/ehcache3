@@ -21,6 +21,8 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.event.CacheEventListenerBuilder;
+import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
@@ -29,6 +31,10 @@ import org.ehcache.config.xml.ConfigurationParser.WriteBehind;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.config.xml.model.EventType;
+import org.ehcache.event.CacheEventListener;
+import org.ehcache.event.EventFiring;
+import org.ehcache.event.EventOrdering;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -43,7 +49,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
@@ -191,6 +200,40 @@ public class XmlConfiguration implements Configuration {
           builder = builder.addServiceConfig(writeBehindConfigurationBuilder.build());
         }
       }
+      if(cacheDefinition.listener()!= null) {
+        for (ConfigurationParser.Listener listener : cacheDefinition.listener()) {
+          final Class<CacheEventListener<?, ?>> cacheEventListenerClass = (Class<CacheEventListener<?, ?>>) getClassForName(listener.className(), cacheClassLoader);
+          final List<EventType> eventListToFireOn = listener.fireOn();
+          Set<org.ehcache.event.EventType> eventSetToFireOn = new HashSet<org.ehcache.event.EventType>();
+          for (EventType events : eventListToFireOn) {
+            switch (events) {
+              case CREATED:
+                eventSetToFireOn.add(org.ehcache.event.EventType.CREATED);
+                break;
+              case EVICTED:
+                eventSetToFireOn.add(org.ehcache.event.EventType.EVICTED);
+                break;
+              case EXPIRED:
+                eventSetToFireOn.add(org.ehcache.event.EventType.EXPIRED);
+                break;
+              case UPDATED:
+                eventSetToFireOn.add(org.ehcache.event.EventType.UPDATED);
+                break;
+              case REMOVED:
+                eventSetToFireOn.add(org.ehcache.event.EventType.REMOVED);
+                break;
+              default:
+                throw new IllegalArgumentException("Invalid Event Type provided");
+            }
+          }
+          CacheEventListenerBuilder listenerBuilder = CacheEventListenerBuilder
+              .newEventListenerConfig(cacheEventListenerClass, eventSetToFireOn);
+          listenerBuilder.firingMode(EventFiring.valueOf(listener.eventFiring().value()));
+          listenerBuilder.eventOrdering(EventOrdering.valueOf(listener.eventOrdering().value()));
+          DefaultCacheEventListenerConfiguration defaultCacheEventListenerConfiguration = listenerBuilder.build();
+          builder = builder.addServiceConfig(defaultCacheEventListenerConfiguration);
+        }
+      }
       final OnHeapStoreServiceConfig onHeapStoreServiceConfig = new OnHeapStoreServiceConfig();
       onHeapStoreServiceConfig.storeByValue(cacheDefinition.storeByValueOnHeap());
       builder.addServiceConfig(onHeapStoreServiceConfig);
@@ -330,6 +373,41 @@ public class XmlConfiguration implements Configuration {
           writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.coalesce();
         }
         builder = builder.addServiceConfig(writeBehindConfigurationBuilder.build());
+      }
+    }
+    if(cacheTemplate.listener()!= null) {
+      for (ConfigurationParser.Listener listener : cacheTemplate.listener()) {
+        final Class<CacheEventListener<?, ?>> cacheEventListenerClass = (Class<CacheEventListener<?, ?>>)getClassForName(listener.toString(), defaultClassLoader);
+        final List<EventType> eventListToFireOn = listener.fireOn();
+        Set<org.ehcache.event.EventType> eventSetToFireOn = new HashSet<org.ehcache.event.EventType>();
+        for (EventType events : eventListToFireOn) {
+          switch (events) {
+            case CREATED:
+              eventSetToFireOn.add(org.ehcache.event.EventType.CREATED);
+              break;
+            case EVICTED:
+              eventSetToFireOn.add(org.ehcache.event.EventType.EVICTED);
+              break;
+            case EXPIRED:
+              eventSetToFireOn.add(org.ehcache.event.EventType.EXPIRED);
+              break;
+            case UPDATED:
+              eventSetToFireOn.add(org.ehcache.event.EventType.UPDATED);
+              break;
+            case REMOVED:
+              eventSetToFireOn.add(org.ehcache.event.EventType.REMOVED);
+              break;
+            default:
+              throw new IllegalArgumentException("Invalid Event Type provided");
+          }
+        }
+        CacheEventListenerBuilder listenerBuilder = CacheEventListenerBuilder
+            .newEventListenerConfig(cacheEventListenerClass, eventSetToFireOn);
+        listenerBuilder.firingMode(EventFiring.valueOf(listener.eventFiring().value()));
+        listenerBuilder.eventOrdering(EventOrdering.valueOf(listener.eventOrdering().value()));
+        DefaultCacheEventListenerConfiguration defaultCacheEventListenerConfiguration
+            = listenerBuilder.build();
+        builder = builder.addServiceConfig(defaultCacheEventListenerConfiguration);
       }
     }
     ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();

@@ -29,6 +29,9 @@ import org.ehcache.config.xml.model.CacheIntegration.Writebehind;
 import org.ehcache.config.xml.model.CacheTemplateType;
 import org.ehcache.config.xml.model.CacheType;
 import org.ehcache.config.xml.model.ConfigType;
+import org.ehcache.config.xml.model.EventFiringType;
+import org.ehcache.config.xml.model.EventOrderingType;
+import org.ehcache.config.xml.model.EventType;
 import org.ehcache.config.xml.model.ExpiryType;
 import org.ehcache.config.xml.model.PersistenceType;
 import org.ehcache.config.xml.model.ResourceType;
@@ -266,6 +269,43 @@ class ConfigurationParser {
           }
 
           @Override
+          public List<Listener> listener() {
+            List<Listener> cacheListenerList = new ArrayList<Listener>();
+            for (BaseCacheType source : sources) {
+              final CacheIntegration integration = source.getIntegration();
+              final List<CacheIntegration.Listener> listeners = integration != null ? integration.getListener(): null;
+              if(listeners != null) {
+                for(final CacheIntegration.Listener listener : listeners) {
+                  cacheListenerList.add(new Listener() {
+                    @Override
+                    public String className() {
+                      return listener.getClazz();
+                    }
+
+                    @Override
+                    public EventFiringType eventFiring() {
+                      return listener.getEventFiringMode();
+                    }
+
+                    @Override
+                    public EventOrderingType eventOrdering() {
+                      return listener.getEventOrderingMode();
+                    }
+
+                    @Override
+                    public List<EventType> fireOn() {
+                      return listener.getEventsToFireOn();
+                    }
+                  });
+                }
+                break;
+              }
+            }
+            return !cacheListenerList.isEmpty() ? cacheListenerList : null;
+          }
+
+
+          @Override
           public Iterable<ServiceConfiguration<?>> serviceConfigs() {
             Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
             for (BaseCacheType source : sources) {
@@ -394,6 +434,39 @@ class ConfigurationParser {
           }
 
           @Override
+          public List<Listener> listener() {
+            List<Listener> listenerList = new ArrayList<Listener>();
+            final CacheIntegration integration = cacheTemplate.getIntegration();
+            final List<CacheIntegration.Listener> listeners = integration != null ? integration.getListener(): null;
+            if(listeners != null) {
+              for(final CacheIntegration.Listener listener : listeners) {
+                listenerList.add(new Listener() {
+                  @Override
+                  public String className() {
+                    return listener.getClazz();
+                  }
+
+                  @Override
+                  public EventFiringType eventFiring() {
+                    return listener.getEventFiringMode();
+                  }
+
+                  @Override
+                  public EventOrderingType eventOrdering() {
+                    return listener.getEventOrderingMode();
+                  }
+
+                  @Override
+                  public List<EventType> fireOn() {
+                    return listener.getEventsToFireOn();
+                  }
+                });
+              }
+            }
+            return !listenerList.isEmpty() ? listenerList : null;
+          }
+
+          @Override
           public String loaderWriter() {
             final CacheIntegration integration = cacheTemplate.getIntegration();
             final CacheIntegration.Loaderwriter loaderWriter = integration != null ? integration.getLoaderwriter(): null;
@@ -501,6 +574,8 @@ class ConfigurationParser {
 
     String loaderWriter();
 
+    List<Listener> listener();
+
     Iterable<ServiceConfiguration<?>> serviceConfigs();
 
     Iterable<ResourcePool> resourcePools();
@@ -512,6 +587,18 @@ class ConfigurationParser {
   static interface CacheDefinition extends CacheTemplate {
 
     String id();
+
+  }
+
+  static interface Listener {
+
+    String className();
+
+    EventFiringType eventFiring();
+
+    EventOrderingType eventOrdering();
+
+    List<EventType> fireOn();
 
   }
 
