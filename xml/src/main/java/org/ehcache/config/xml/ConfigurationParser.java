@@ -56,8 +56,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.xml.XMLConstants;
@@ -269,14 +271,14 @@ class ConfigurationParser {
           }
 
           @Override
-          public List<Listener> listener() {
-            List<Listener> cacheListenerList = new ArrayList<Listener>();
+          public Iterable<Listener> listeners() {
+            Set<Listener> cacheListenerSet = new HashSet<Listener>();
             for (BaseCacheType source : sources) {
               final CacheIntegration integration = source.getIntegration();
               final List<CacheIntegration.Listener> listeners = integration != null ? integration.getListener(): null;
               if(listeners != null) {
                 for(final CacheIntegration.Listener listener : listeners) {
-                  cacheListenerList.add(new Listener() {
+                  cacheListenerSet.add(new Listener() {
                     @Override
                     public String className() {
                       return listener.getClazz();
@@ -301,7 +303,7 @@ class ConfigurationParser {
                 break;
               }
             }
-            return !cacheListenerList.isEmpty() ? cacheListenerList : null;
+            return !cacheListenerSet.isEmpty() ? cacheListenerSet : null;
           }
 
 
@@ -434,13 +436,13 @@ class ConfigurationParser {
           }
 
           @Override
-          public List<Listener> listener() {
-            List<Listener> listenerList = new ArrayList<Listener>();
+          public Iterable<Listener> listeners() {
+            Set<Listener> listenerSet = new HashSet<Listener>();
             final CacheIntegration integration = cacheTemplate.getIntegration();
             final List<CacheIntegration.Listener> listeners = integration != null ? integration.getListener(): null;
             if(listeners != null) {
               for(final CacheIntegration.Listener listener : listeners) {
-                listenerList.add(new Listener() {
+                listenerSet.add(new Listener() {
                   @Override
                   public String className() {
                     return listener.getClazz();
@@ -463,7 +465,7 @@ class ConfigurationParser {
                 });
               }
             }
-            return !listenerList.isEmpty() ? listenerList : null;
+            return !listenerSet.isEmpty() ? listenerSet : null;
           }
 
           @Override
@@ -574,7 +576,7 @@ class ConfigurationParser {
 
     String loaderWriter();
 
-    List<Listener> listener();
+    Iterable<Listener> listeners();
 
     Iterable<ServiceConfiguration<?>> serviceConfigs();
 

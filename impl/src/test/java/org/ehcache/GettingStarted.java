@@ -26,17 +26,13 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.EventFiring;
-import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import java.io.File;
-import java.util.HashSet;
-import java.util.Set;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
@@ -221,7 +217,12 @@ public class GettingStarted {
         .withCache("foo",
             CacheConfigurationBuilder.newCacheConfigurationBuilder()
                 .addServiceConfig(cacheEventListenerConfiguration)
-                .buildConfig(Object.class, Object.class)).build(true);
+                .buildConfig(String.class, String.class)).build(true);
+
+    final Cache<String, String> cache = manager.getCache("foo", String.class, String.class);
+    cache.put("Hello", "World");
+    cache.put("Hello", "Everyone");
+    cache.remove("Hello");
 
     manager.close();
   }
@@ -237,16 +238,11 @@ public class GettingStarted {
   }
 
   public static class ListenerObject implements CacheEventListener<Object, Object> {
-    private static final Object object = new Object() {
-      @Override
-      public String toString() {
-        return "class "+ org.ehcache.config.event.DefaultCacheEventListenerConfiguration.class.getName();
-      }
-    };
-
     @Override
     public void onEvent(CacheEvent<Object, Object> event) {
       //noop
+      Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted");
+      logger.info(event.getType().toString());
     }
   }
 }

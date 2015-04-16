@@ -200,8 +200,8 @@ public class XmlConfiguration implements Configuration {
           builder = builder.addServiceConfig(writeBehindConfigurationBuilder.build());
         }
       }
-      if(cacheDefinition.listener()!= null) {
-        for (ConfigurationParser.Listener listener : cacheDefinition.listener()) {
+      if(cacheDefinition.listeners()!= null) {
+        for (ConfigurationParser.Listener listener : cacheDefinition.listeners()) {
           final Class<CacheEventListener<?, ?>> cacheEventListenerClass = (Class<CacheEventListener<?, ?>>) getClassForName(listener.className(), cacheClassLoader);
           final List<EventType> eventListToFireOn = listener.fireOn();
           Set<org.ehcache.event.EventType> eventSetToFireOn = new HashSet<org.ehcache.event.EventType>();
@@ -375,8 +375,8 @@ public class XmlConfiguration implements Configuration {
         builder = builder.addServiceConfig(writeBehindConfigurationBuilder.build());
       }
     }
-    if(cacheTemplate.listener()!= null) {
-      for (ConfigurationParser.Listener listener : cacheTemplate.listener()) {
+    if(cacheTemplate.listeners()!= null) {
+      for (ConfigurationParser.Listener listener : cacheTemplate.listeners()) {
         final Class<CacheEventListener<?, ?>> cacheEventListenerClass = (Class<CacheEventListener<?, ?>>)getClassForName(listener.toString(), defaultClassLoader);
         final List<EventType> eventListToFireOn = listener.fireOn();
         Set<org.ehcache.event.EventType> eventSetToFireOn = new HashSet<org.ehcache.event.EventType>();
