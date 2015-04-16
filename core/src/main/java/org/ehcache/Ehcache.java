@@ -625,7 +625,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
   }
   
   @SuppressWarnings({ "unchecked" })
-  private static <K, V> void collectSuccessesAndFailures(BulkCacheLoadingException bcle, Map<K, V> successes, Map<K, Exception> failures) {
+  private void collectSuccessesAndFailures(BulkCacheLoadingException bcle, Map<K, V> successes, Map<K, Exception> failures) {
     successes.putAll((Map<K, V>)bcle.getSuccesses());
     failures.putAll((Map<K, Exception>)bcle.getFailures());
   }
