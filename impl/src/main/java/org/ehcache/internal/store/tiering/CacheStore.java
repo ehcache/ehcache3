@@ -40,7 +40,7 @@ public class CacheStore<K, V> implements Store<K, V> {
   private final CachingTier<K, V> cachingTier;
   private final AuthoritativeTier<K, V> authoritativeTier;
 
-  public CacheStore(final CachingTier<K, V> cachingTier, AuthoritativeTier<K, V> authoritativeTier) {
+  public CacheStore(CachingTier<K, V> cachingTier, AuthoritativeTier<K, V> authoritativeTier) {
     this.cachingTier = cachingTier;
     this.authoritativeTier = authoritativeTier;
 
