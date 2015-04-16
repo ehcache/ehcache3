@@ -57,6 +57,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -453,6 +455,70 @@ public class EhcacheManagerTest {
     verify(listener).stateTransition(Status.UNINITIALIZED, Status.AVAILABLE);
     cacheManager.close();
     verify(listener).stateTransition(Status.AVAILABLE, Status.UNINITIALIZED);
+  }
+  
+  @Test
+  public void testCloseNoLoaderWriterAndCacheEventListener() throws Exception {
+    final CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder().buildConfig(Object.class, Object.class);
+    final Store.Provider storeProvider = spy(new Store.Provider() {
+      @Override
+      public void stop() {
+      }
+
+      @Override
+      public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+      }
+
+      @Override
+      public void releaseStore(Store<?, ?> resource) {
+        resource.close();
+      }
+
+      @Override
+      public <K, V> Store<K, V> createStore(org.ehcache.spi.cache.Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+        return null;
+      }
+    });
+    
+    final CacheEventNotificationListenerServiceProvider cenlProvider = spy(new CacheEventNotificationListenerServiceProvider() {
+      @Override
+      public void start(ServiceConfiguration<?> config,
+          ServiceProvider serviceProvider) {
+      }
+
+      @Override
+      public void stop() {
+      }
+
+      @Override
+      public <K, V> CacheEventNotificationService<K, V> createCacheEventNotificationService() {
+        return null;
+      }
+
+      @Override
+      public <K, V> void releaseCacheEventNotificationService(CacheEventNotificationService<K, V> cenlService) {
+        cenlService.releaseAllListeners();
+      }
+    });
+    final CacheEventNotificationService<Object, Object> cenlServiceMock = mock(CacheEventNotificationServiceImpl.class);
+    when(cenlProvider.createCacheEventNotificationService()).thenReturn(cenlServiceMock);
+    final ServiceLocator serviceLocator = new ServiceLocator(storeProvider, cenlProvider);
+    Store mockStore = mock(Store.class);
+    when(storeProvider.createStore(Matchers.<Store.Configuration> anyObject())).thenReturn(mockStore);
+    
+    EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder().addCache("foo", cacheConfiguration).build(), serviceLocator) {
+      @Override
+      <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config, final Class<K> keyType, final Class<V> valueType, Deque<Releasable> releasables) {
+        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType, releasables);
+        return spy(ehcache);
+      }
+    };
+    cacheManager.init();
+    Ehcache<Object, Object> testCache = (Ehcache<Object, Object>) cacheManager.getCache("foo", Object.class, Object.class);
+    cacheManager.close();
+    verify(testCache).close();
+    // verify(mockStore, times(1)).close();
+    verify(cenlServiceMock, times(1)).releaseAllListeners();
   }
 
   static class NoSuchService implements Service {

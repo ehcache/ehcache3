@@ -137,7 +137,6 @@ public class EhcacheManager implements PersistentCacheManager {
 
   void closeEhcache(final String alias, final Ehcache<?, ?> ehcache, final Deque<Releasable> releasables) {
     ehcache.close();
-    ehcache.getRuntimeConfiguration().releaseAllEventListeners();
     while(!releasables.isEmpty()) {
       releasables.pop().release();
     }
