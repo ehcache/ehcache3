@@ -102,7 +102,7 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
   @Override
   public void onEvent(final CacheEvent<K, V> event) {
     final EventType type = event.getType();
-    LOGGER.debug("Cache Event notified for event type {}", type);
+    LOGGER.trace("Cache Event notified for event type {}", type);
     Map<EventListenerWrapper, Future<?>> notificationResults = 
         new HashMap<CacheEventNotificationServiceImpl.EventListenerWrapper, Future<?>>(registeredListeners.size());
     
