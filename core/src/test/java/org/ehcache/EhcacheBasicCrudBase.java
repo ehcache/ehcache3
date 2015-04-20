@@ -720,11 +720,6 @@ public abstract class EhcacheBasicCrudBase {
      */
     private final Set<String> failingKeys;
     
-    /**
-     * Keys for which success should be reported in {@link BulkCacheLoadingException}
-     */
-    private Set<String> successKeys;
-    
     private boolean isBulkCacheLoadingExceptionEnabled = false;
 
     /**
@@ -750,16 +745,11 @@ public abstract class EhcacheBasicCrudBase {
           : Collections.unmodifiableSet(new HashSet<String>(failingKeys)));
     }
     
-    public FakeCacheLoaderWriter(final Map<String, String> entries, boolean isBulkCacheLoadingExceptionEnabled) {
-      this(entries, Collections.<String>emptySet(), isBulkCacheLoadingExceptionEnabled);
-    }
-    
-    public FakeCacheLoaderWriter(final Map<String, String> entries, final Set<String> successKeys, boolean isBulkCacheLoadingExceptionEnabled) {
-      this(entries, Collections.<String>emptySet());
-      this.successKeys = successKeys;
+    public FakeCacheLoaderWriter(final Map<String, String> entries, final Set<String> failingKeys, boolean isBulkCacheLoadingExceptionEnabled) {
+      this(entries, failingKeys);
       this.isBulkCacheLoadingExceptionEnabled = isBulkCacheLoadingExceptionEnabled;
     }
-
+    
     Map<String, String> getEntryMap() {
       return Collections.unmodifiableMap(this.entries);
     }
@@ -876,21 +866,19 @@ public abstract class EhcacheBasicCrudBase {
 
     @Override
     public Map<String, String> loadAll(final Iterable<? extends String> keys) throws Exception {
-      if(isBulkCacheLoadingExceptionEnabled) {
+      if (isBulkCacheLoadingExceptionEnabled) {
         Map<String, Exception> failures = new HashMap<String, Exception>();
         Map<String, String> loadedKeys = new HashMap<String, String>();
 
         Exception loadingException = new RuntimeException("Exception loading keys");
-        
+
         for (String key : keys) {
-          if (!successKeys.contains(key)) {
+          if (failingKeys.contains(key)) {
             failures.put(key, loadingException);
-          }else {
+          } else {
             loadedKeys.put(key, null);
           }
-          
         }
-        
         throw new BulkCacheLoadingException(failures, loadedKeys);
       }
       

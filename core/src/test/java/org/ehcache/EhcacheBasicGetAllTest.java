@@ -336,7 +336,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_B));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -374,7 +374,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_B));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_C, true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -397,7 +397,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
   }
-  
   
   /**
    * Tests {@link Ehcache#getAll(Set)} for
@@ -461,7 +460,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -483,9 +482,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(KEY_SET_A), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses().keySet(), empty());
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_A));
 
+    verifyBulkLoadingException(this.bulkExceptionCaptor.getValue(), Collections.<String> emptySet(), KEY_SET_A);
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
   }
@@ -507,7 +505,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_C, true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -529,8 +527,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(fetchKeys), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_C));
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_A));
+    verifyBulkLoadingException(this.bulkExceptionCaptor.getValue(), KEY_SET_C, KEY_SET_A);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -595,7 +592,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_B), Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -617,8 +614,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(KEY_SET_A), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses().keySet(), empty());
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_A));
+    verifyBulkLoadingException(this.bulkExceptionCaptor.getValue(), Collections.<String> emptySet(), KEY_SET_A);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -639,7 +635,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_B), Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_C, true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -662,8 +658,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(fetchKeys), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_C));
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_A));
+    verifyBulkLoadingException(this.bulkExceptionCaptor.getValue(), KEY_SET_C, KEY_SET_A);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -1353,7 +1348,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_C, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -1391,7 +1386,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_D, true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_C, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -1478,7 +1473,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, union(KEY_SET_A, KEY_SET_C), true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -1501,8 +1496,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(fetchKeys), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses().keySet(), empty());
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(fetchKeys));
+    verifyBulkLoadingException(this.bulkExceptionCaptor.getValue(), Collections.<String> emptySet(), fetchKeys);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -1525,7 +1519,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_D, true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, union(KEY_SET_A, KEY_SET_C), true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -1548,8 +1542,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(fetchKeys), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_D));
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(union(KEY_SET_A, KEY_SET_C)));
+    verifyBulkLoadingException(this.bulkExceptionCaptor.getValue(), KEY_SET_D, union(KEY_SET_A, KEY_SET_C));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -1615,12 +1608,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B), Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, true);
+    final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, fetchKeys, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
-
-    final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     try {
       ehcache.getAll(fetchKeys);
       fail();
@@ -1638,8 +1630,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(fetchKeys), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses().isEmpty(), is(true));
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(fetchKeys));
+    verifyBulkLoadingException(this.bulkExceptionCaptor.getValue(), Collections.<String> emptySet(), fetchKeys);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -1660,7 +1651,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B), Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_C, true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -1683,8 +1674,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(fetchKeys), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_C));
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_A));
+    verifyBulkLoadingException(this.bulkExceptionCaptor.getValue(), KEY_SET_C, KEY_SET_A);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -1856,7 +1846,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_F), KEY_SET_C, true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_D, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -1943,12 +1933,12 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_F), true);
+    final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, fetchKeys, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
-    final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     try {
       ehcache.getAll(fetchKeys);
       fail();
@@ -1966,8 +1956,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(fetchKeys), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses().keySet(), empty());
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(fetchKeys));
+    verifyBulkLoadingException(this.bulkExceptionCaptor.getValue(), Collections.<String> emptySet(), fetchKeys);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -2185,7 +2174,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_E, KEY_SET_E), KEY_SET_C, true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, union(KEY_SET_D, KEY_SET_F), true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -2274,7 +2263,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_E), KEY_SET_E, true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, union(KEY_SET_A, KEY_SET_C), true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -2298,8 +2287,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(fetchKeys), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Map<?, ?>>equalTo(getNullEntryMap(KEY_SET_E)));
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(union(KEY_SET_A, KEY_SET_C)));
+    verifyBulkLoadingException(this.bulkExceptionCaptor.getValue(), KEY_SET_E, union(KEY_SET_A, KEY_SET_C));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -2368,8 +2356,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B), Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C, KEY_SET_E), 
-                                                                       union(union(KEY_SET_A, KEY_SET_B), union(KEY_SET_C, KEY_SET_E)), true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, union(KEY_SET_D, KEY_SET_F), true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -2380,8 +2367,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
       fail();
     } catch (BulkCacheLoadingException e) {
       // Expected
-      assertThat(e.getSuccesses(),
-          Matchers.<Map<?,?>>equalTo(union(getNullEntryMap(KEY_SET_A), getNullEntryMap(KEY_SET_C))));
+      assertThat(e.getSuccesses(), Matchers.<Map<?,?>>equalTo(union(getNullEntryMap(KEY_SET_A), getNullEntryMap(KEY_SET_C))));
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(union(KEY_SET_D, KEY_SET_F)));
     }
 
@@ -2663,12 +2649,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, true);
+    final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, fetchKeys, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
-
-    final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
       ehcache.getAll(fetchKeys);
       fail();
@@ -2687,8 +2672,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(fetchKeys), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses().keySet(), empty());
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(fetchKeys));
+    verifyBulkLoadingException(this.bulkExceptionCaptor.getValue(), Collections.<String> emptySet(), fetchKeys);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -2711,7 +2695,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_B, true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -2735,8 +2719,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(fetchKeys), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_B));
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_A));
+    verifyBulkLoadingException(this.bulkExceptionCaptor.getValue(), KEY_SET_B, KEY_SET_A);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -2801,12 +2784,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B), Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, true);
+    final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, fetchKeys, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
-
-    final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
       ehcache.getAll(fetchKeys);
       fail();
@@ -2824,8 +2806,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(fetchKeys), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses().keySet(), empty());
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(fetchKeys));
+    verifyBulkLoadingException(this.bulkExceptionCaptor.getValue(), Collections.<String> emptySet(), fetchKeys);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -2846,7 +2827,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B), Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_B, true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -2869,8 +2850,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(fetchKeys), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_B));
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_A));
+    verifyBulkLoadingException(this.bulkExceptionCaptor.getValue(), KEY_SET_B, KEY_SET_A);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -3044,12 +3024,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C, KEY_SET_F), KEY_SET_F, true);
+    final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, fetchKeys, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
-
-    final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
       ehcache.getAll(fetchKeys);
       fail();
@@ -3067,8 +3046,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(fetchKeys), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses().keySet(), empty());
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(fetchKeys));
+    verifyBulkLoadingException(this.bulkExceptionCaptor.getValue(), Collections.<String> emptySet(), fetchKeys);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -3312,7 +3290,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>some {@link CacheLoaderWriter} entries match</li>
-   *    <li>non-matching {@link CacheLoaderWriter#loadAll(Iterable)} calls fail witb {@link BulkCacheLoadingexception}</li>
+   *    <li>non-matching {@link CacheLoaderWriter#loadAll(Iterable)} calls fail with {@link BulkCacheLoadingException}</li>
    * </ul>
    */
   @Test
@@ -3322,7 +3300,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C), KEY_SET_B, true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -3346,8 +3324,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(fetchKeys), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Map<?,?>>equalTo(getNullEntryMap(KEY_SET_B)));
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_A));
+    verifyBulkLoadingException(this.bulkExceptionCaptor.getValue(), KEY_SET_B, KEY_SET_A);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -3412,7 +3389,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B), Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C), KEY_SET_B, true);
+    final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
@@ -3435,8 +3412,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     ordered.verify(this.spiedResilienceStrategy)
         .getAllFailure(eq(fetchKeys), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
-    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Map<?,?>>equalTo(getNullEntryMap(KEY_SET_B)));
-    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_A));
+    verifyBulkLoadingException(this.bulkExceptionCaptor.getValue(), KEY_SET_B, KEY_SET_A);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -3553,6 +3529,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+  }
+  
+  private void verifyBulkLoadingException(BulkCacheLoadingException e, Set<String> successKeys, Set<String> failureKeys) {
+    assertThat(this.bulkExceptionCaptor.getValue().getSuccesses().keySet(), Matchers.<Set<?>> equalTo(successKeys));
+    assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>> equalTo(failureKeys));
   }
 
   /**
