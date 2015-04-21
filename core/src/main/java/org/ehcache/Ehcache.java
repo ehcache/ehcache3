@@ -1049,14 +1049,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
 
   @Override
   public void close() {
-    final StatusTransitioner.Transition st = statusTransitioner.close();
-    try {
-      store.close();
-    } catch (RuntimeException e) {
-      st.failed();
-      throw new StateTransitionException(e);
-    }
-    st.succeeded();
+    statusTransitioner.close().succeeded();
   }
 
   @Override

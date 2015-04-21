@@ -28,6 +28,8 @@ import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.UserManagedCacheConfiguration;
 import org.ehcache.events.CacheEventNotificationService;
+import org.ehcache.events.StateChangeListener;
+import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.ServiceLocator;
@@ -70,7 +72,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     } catch (Exception e) {
       throw new IllegalStateException("UserManagedCacheBuilder failed to build.", e);
     }
-    Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
+    final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
 
     final StoreConfigurationImpl<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType,
         evictionVeto, evictionPrioritizer, classLoader, expiry, resourcePools);
@@ -80,6 +82,18 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
         evictionPrioritizer, classLoader, expiry, persistenceMode, resourcePools);
 
     final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, cacheEventNotificationService, statisticsExecutor,logger);
+    ehcache.registerListener(new StateChangeListener() {
+      @Override
+      public void stateTransition(Status from, Status to) {
+        if (to == Status.UNINITIALIZED) {
+          try {
+            storeProvider.releaseStore(store);
+          } catch (RuntimeException ex) {
+            throw new StateTransitionException(ex);
+          }
+        }
+      }
+    });
 
     return cast(ehcache);
   }

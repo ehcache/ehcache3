@@ -127,10 +127,10 @@ final class StatusTransitioner {
     public void succeeded() {
       try {
         fireTransitionEvent(st.from().toPublicStatus(), st.to().toPublicStatus());
+        logger.info("{} successful.", action);
       } finally {
         maintenanceLease = thread;
         st.succeeded();
-        logger.info("{} successful.", action);
       }
     }
 

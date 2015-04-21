@@ -204,7 +204,6 @@ public class EhcacheTest {
     ehcache.init();
     verify(store).init();
     ehcache.close();
-    verify(store).close();
     ehcache.toMaintenance();
     verify(store).maintenance();
   }
@@ -224,14 +223,7 @@ public class EhcacheTest {
     reset(store);
     ehcache.init();
     assertThat(ehcache.getStatus(), is(Status.AVAILABLE));
-    doThrow(new RuntimeException()).when(store).close();
-    try {
-      ehcache.close();
-      fail();
-    } catch (StateTransitionException e) {
-      assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
-    }
-
+    ehcache.close();
     doThrow(new RuntimeException()).when(store).maintenance();
     try {
       ehcache.toMaintenance();
@@ -243,15 +235,8 @@ public class EhcacheTest {
     reset(store);
     ehcache.toMaintenance();
     assertThat(ehcache.getStatus(), is(Status.MAINTENANCE));
-    doThrow(new RuntimeException()).when(store).close();
-    try {
-      ehcache.close();
-      fail();
-    } catch (StateTransitionException e) {
-      assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
-    }
   }
-
+  
   @Test
   public void testPutIfAbsent() throws CacheAccessException {
     final AtomicReference<Object> existingValue = new AtomicReference<Object>();
