@@ -29,14 +29,12 @@ import org.ehcache.event.EventType;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.CacheEvents;
 import org.ehcache.events.DisabledCacheEventNotificationService;
-import org.ehcache.events.StateChangeListener;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CacheWritingException;
-import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -45,6 +43,7 @@ import org.ehcache.function.NullaryFunction;
 import org.ehcache.resilience.LoggingRobustResilienceStrategy;
 import org.ehcache.resilience.RecoveryCache;
 import org.ehcache.resilience.ResilienceStrategy;
+import org.ehcache.spi.LifeCyclable;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -1112,12 +1111,12 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
     return statusTransitioner.currentStatus();
   }
 
-  void registerListener(StateChangeListener listener) {
-    statusTransitioner.registerListener(listener);
+  void addHook(LifeCyclable hook) {
+    statusTransitioner.addHook(hook);
   }
 
-  void deregisterListener(StateChangeListener listener) {
-    statusTransitioner.deregisterListener(listener);
+  void removeHook(LifeCyclable hook) {
+    statusTransitioner.removeHook(hook);
   }
 
   private static void checkNonNull(Object... things) {

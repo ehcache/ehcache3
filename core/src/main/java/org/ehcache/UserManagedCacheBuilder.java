@@ -28,10 +28,9 @@ import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.UserManagedCacheConfiguration;
 import org.ehcache.events.CacheEventNotificationService;
-import org.ehcache.events.StateChangeListener;
-import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.spi.LifeCyclable;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -82,16 +81,15 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
         evictionPrioritizer, classLoader, expiry, persistenceMode, resourcePools);
 
     final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, cacheEventNotificationService, statisticsExecutor,logger);
-    ehcache.registerListener(new StateChangeListener() {
+    ehcache.addHook(new LifeCyclable() {
       @Override
-      public void stateTransition(Status from, Status to) {
-        if (to == Status.UNINITIALIZED) {
-          try {
-            storeProvider.releaseStore(store);
-          } catch (RuntimeException ex) {
-            throw new StateTransitionException(ex);
-          }
-        }
+      public void init() throws Exception {
+        // no-op for now
+      }
+
+      @Override
+      public void close() throws Exception {
+        storeProvider.releaseStore(store);
       }
     });
 

@@ -16,7 +16,6 @@
 
 package org.ehcache;
 
-import org.ehcache.events.StateChangeListener;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
@@ -24,6 +23,7 @@ import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
+import org.ehcache.spi.LifeCyclable;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.CoreMatchers;
@@ -53,7 +53,6 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -294,18 +293,31 @@ public class EhcacheTest {
   }
 
   @Test
-  public void testFiresListener() {
+  public void testInvokesHooks() {
     Store store = mock(Store.class);
     Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest5"));
 
-    final StateChangeListener listener = mock(StateChangeListener.class);
-    ehcache.registerListener(listener);
+    final LifeCyclable hook = mock(LifeCyclable.class);
+    ehcache.addHook(hook);
     ehcache.init();
-    verify(listener).stateTransition(Status.UNINITIALIZED, Status.AVAILABLE);
-    reset(listener);
-    ehcache.deregisterListener(listener);
+    try {
+      verify(hook).init();
+    } catch (Exception e) {
+      fail();
+    }
+    reset(hook);
+    try {
+      ehcache.removeHook(hook);
+      fail();
+    } catch (IllegalStateException e) {
+      // expected
+    }
     ehcache.close();
-    verify(listener, never()).stateTransition(Status.AVAILABLE, Status.UNINITIALIZED);
+    try {
+      verify(hook).close();
+    } catch (Exception e) {
+      fail();
+    }
   }
 
   @Test

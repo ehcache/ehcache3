@@ -130,10 +130,12 @@ public class EhcacheManagerTest {
     
     // these caches should inherit the cache manager classloader
     builder.addCache("foo1", newCacheConfigurationBuilder().buildConfig(Object.class, Object.class));
-    builder.addCache("foo2", newCacheConfigurationBuilder().withClassLoader(null).buildConfig(Object.class, Object.class));
+    builder.addCache("foo2", newCacheConfigurationBuilder().withClassLoader(null)
+        .buildConfig(Object.class, Object.class));
     
     // this cache specifies its own unique classloader
-    builder.addCache("foo3", newCacheConfigurationBuilder().withClassLoader(cl2).buildConfig(Object.class, Object.class));
+    builder.addCache("foo3", newCacheConfigurationBuilder().withClassLoader(cl2)
+        .buildConfig(Object.class, Object.class));
 
     final Store.Provider storeProvider = mock(Store.Provider.class);
     final Store mock = mock(Store.class);
@@ -147,7 +149,9 @@ public class EhcacheManagerTest {
     EhcacheManager cacheManager = new EhcacheManager(builder.build(), serviceLocator);
     cacheManager.init();
     assertSame(cl1, cacheManager.getClassLoader());
-    assertSame(cl1, cacheManager.getCache("foo1", Object.class, Object.class).getRuntimeConfiguration().getClassLoader());
+    assertSame(cl1, cacheManager.getCache("foo1", Object.class, Object.class)
+        .getRuntimeConfiguration()
+        .getClassLoader());
     assertSame(cl1, cacheManager.getCache("foo2", Object.class, Object.class).getRuntimeConfiguration().getClassLoader());
     assertSame(cl2, cacheManager.getCache("foo3", Object.class, Object.class).getRuntimeConfiguration().getClassLoader());
   }
@@ -368,8 +372,8 @@ public class EhcacheManagerTest {
 
       @Override
       <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
-                                            final Class<K> keyType, final Class<V> valueType, final Deque<Releasable> releasables) {
-        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType, releasables);
+                                            final Class<K> keyType, final Class<V> valueType) {
+        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
         caches.add(ehcache);
         if(caches.size() == 1) {
           when(storeProvider.createStore(Matchers.<Store.Configuration<K,V>>anyObject(),
@@ -380,8 +384,8 @@ public class EhcacheManagerTest {
       }
 
       @Override
-      void closeEhcache(final String alias, final Ehcache<?, ?> ehcache, final Deque<Releasable> releasables) {
-        super.closeEhcache(alias, ehcache, releasables);
+      void closeEhcache(final String alias, final Ehcache<?, ?> ehcache) {
+        super.closeEhcache(alias, ehcache);
         caches.remove(ehcache);
       }
     };
@@ -419,15 +423,15 @@ public class EhcacheManagerTest {
 
       @Override
       <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
-                                            final Class<K> keyType, final Class<V> valueType, Deque<Releasable> releasables) {
-        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType, releasables);
+                                            final Class<K> keyType, final Class<V> valueType) {
+        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
         caches.add(alias);
         return ehcache;
       }
 
       @Override
-      void closeEhcache(final String alias, final Ehcache<?, ?> ehcache, final Deque<Releasable> releasables) {
-        super.closeEhcache(alias, ehcache, releasables);
+      void closeEhcache(final String alias, final Ehcache<?, ?> ehcache) {
+        super.closeEhcache(alias, ehcache);
         if(alias.equals("foobar")) {
           throw thrown;
         }
@@ -509,8 +513,8 @@ public class EhcacheManagerTest {
     
     EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder().addCache("foo", cacheConfiguration).build(), serviceLocator) {
       @Override
-      <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config, final Class<K> keyType, final Class<V> valueType, Deque<Releasable> releasables) {
-        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType, releasables);
+      <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config, final Class<K> keyType, final Class<V> valueType) {
+        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
         return spy(ehcache);
       }
     };
@@ -518,7 +522,7 @@ public class EhcacheManagerTest {
     Ehcache<Object, Object> testCache = (Ehcache<Object, Object>) cacheManager.getCache("foo", Object.class, Object.class);
     cacheManager.close();
     verify(testCache).close();
-    verify(mockStore, atLeastOnce()).close(); //TODO : remove atLeastOnce() once issue-348 is resolved
+    verify(mockStore, times(1)).close();
     verify(cenlServiceMock, times(1)).releaseAllListeners();
   }
 
