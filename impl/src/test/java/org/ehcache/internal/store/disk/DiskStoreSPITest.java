@@ -20,9 +20,9 @@ import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
-import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -31,11 +31,13 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.StoreFactory;
-import org.ehcache.internal.store.StoreSPITest;
 import org.ehcache.internal.store.disk.DiskStorageFactory.Element;
+import org.ehcache.internal.tier.AuthoritativeTierFactory;
+import org.ehcache.internal.tier.AuthoritativeTierSPITest;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.LocalPersistenceService;
@@ -43,10 +45,10 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 import org.junit.internal.AssumptionViolatedException;
 
-import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
-
 import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 /**
  * Test the {@link org.ehcache.internal.store.disk.DiskStore} compliance to the
@@ -55,36 +57,31 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Ludovic Orban
  */
 
-public class DiskStoreSPITest extends StoreSPITest<String, String> {
+public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
 
-  private StoreFactory<String, String> storeFactory;
-
-  @Override
-  protected StoreFactory<String, String> getStoreFactory() {
-    return storeFactory;
-  }
+  private AuthoritativeTierFactory<String, String> authoritativeTierFactory;
 
   @Before
   public void setUp() {
-    storeFactory = new StoreFactory<String, String>() {
+    authoritativeTierFactory = new AuthoritativeTierFactory<String, String>() {
 
       final AtomicInteger index = new AtomicInteger();
 
       @Override
-      public Store<String, String> newStore(final Store.Configuration<String, String> config) {
+      public AuthoritativeTier<String, String> newStore(final Store.Configuration<String, String> config) {
         return newStore(config, SystemTimeSource.INSTANCE);
       }
 
       @Override
-      public Store<String, String> newStore(final Store.Configuration<String, String> config, final TimeSource timeSource) {
+      public AuthoritativeTier<String, String> newStore(final Store.Configuration<String, String> config, final TimeSource timeSource) {
         SerializationProvider serializationProvider = new JavaSerializationProvider();
         Serializer<Element> elementSerializer = serializationProvider.createSerializer(Element.class, config.getClassLoader());
         Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, config.getClassLoader());
 
         final LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(
-                new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir"))));
-        DiskStore<String, String>  diskStore = new DiskStore<String, String>(config,  localPersistenceService.getDataFile("diskStore"),
-                localPersistenceService.getIndexFile("diskStore"), timeSource, elementSerializer, objectSerializer);
+            new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir"))));
+        DiskStore<String, String> diskStore = new DiskStore<String, String>(config, localPersistenceService.getDataFile("diskStore"),
+            localPersistenceService.getIndexFile("diskStore"), timeSource, elementSerializer, objectSerializer);
         try {
           diskStore.destroy();
           diskStore.create();
@@ -96,7 +93,7 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
-      public Store.ValueHolder<String> newValueHolder(final String value) {
+      public AuthoritativeTier.ValueHolder<String> newValueHolder(final String value) {
         return new DiskStorageFactory.DiskValueHolderImpl<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), -1);
       }
 
@@ -108,17 +105,18 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
-      public Store.Configuration<String, String> newConfiguration(
+      public AuthoritativeTier.Configuration<String, String> newConfiguration(
           final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
-        Store.Configuration<String, String> configuration = newConfiguration(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer, Expirations.noExpiration());
+        Store.Configuration<String, String> configuration = newConfiguration(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer, Expirations
+            .noExpiration());
         return new PersistentStoreConfigurationImpl<String, String>(configuration, "diskStore-" + index.getAndIncrement());
       }
 
       @Override
-      public Store.Configuration<String, String> newConfiguration(
+      public AuthoritativeTier.Configuration<String, String> newConfiguration(
           final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
-          final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer, 
+          final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer,
           final Expiry<? super String, ? super String> expiry) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType,
             evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, buildResourcePools(capacityConstraint));
@@ -128,7 +126,7 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
         if (capacityConstraint == null) {
           return newResourcePoolsBuilder().disk(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
         } else {
-          return newResourcePoolsBuilder().disk((Long) capacityConstraint, EntryUnit.ENTRIES).build();
+          return newResourcePoolsBuilder().disk((Long)capacityConstraint, EntryUnit.ENTRIES).build();
         }
       }
 
@@ -162,6 +160,16 @@ public class DiskStoreSPITest extends StoreSPITest<String, String> {
         return new ServiceLocator();
       }
     };
+  }
+
+  @Override
+  protected AuthoritativeTierFactory<String, String> getAuthoritativeTierFactory() {
+    return authoritativeTierFactory;
+  }
+
+  @Override
+  protected StoreFactory<String, String> getStoreFactory() {
+    return getAuthoritativeTierFactory();
   }
 
   @Override

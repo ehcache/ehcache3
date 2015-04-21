@@ -25,58 +25,66 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.store.StoreFactory;
-import org.ehcache.internal.store.StoreSPITest;
+import org.ehcache.internal.serialization.JavaSerializer;
+import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
+import org.ehcache.internal.tier.CachingTierFactory;
+import org.ehcache.internal.tier.CachingTierSPITest;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 /**
- * Test the {@link org.ehcache.internal.store.heap.OnHeapStore} compliance to the
- * {@link org.ehcache.spi.cache.Store} contract.
+ * This factory instantiates a CachingTier
  *
  * @author Aurelien Broszniowski
  */
+public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<String, String> {
 
-public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
-
-  private StoreFactory<String, String> storeFactory;
+  private CachingTierFactory<String, String> cachingTierFactory;
 
   @Override
-  protected StoreFactory<String, String> getStoreFactory() {
-    return storeFactory;
+  protected CachingTierFactory<String, String> getCachingTierFactory() {
+    return cachingTierFactory;
   }
 
   @Before
   public void setUp() {
-    storeFactory = new StoreFactory<String, String>() {
+    cachingTierFactory = new CachingTierFactory<String, String>() {
 
       @Override
-      public Store<String, String> newStore(final Store.Configuration<String, String> config) {
-        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false, null, null);
+      public CachingTier<String, String> newCachingTier(final Store.Configuration<String, String> config) {
+        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, true,
+            new JavaSerializer<String>(getClass().getClassLoader()), new JavaSerializer<String>(getClass().getClassLoader()));
       }
 
       @Override
-      public Store<String, String> newStore(final Store.Configuration<String, String> config, TimeSource timeSource) {
-        return new OnHeapStore<String, String>(config, timeSource, false, null, null);
+      public CachingTier<String, String> newCachingTier(final Store.Configuration<String, String> config, TimeSource timeSource) {
+        return new OnHeapStore<String, String>(config, timeSource, true, new JavaSerializer<String>(getClass().getClassLoader()),
+            new JavaSerializer<String>(getClass().getClassLoader()));
       }
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new ByRefOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis());
+        return new ByValueOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), new JavaSerializer<String>(getClass()
+            .getClassLoader()));
       }
 
       @Override
       public Store.Provider newProvider() {
-        return new OnHeapStore.Provider();
+        Store.Provider service = new OnHeapStore.Provider();
+        service.start(null, new ServiceLocator());
+        return service;
       }
 
       @Override
-      public Store.Configuration<String, String> newConfiguration(final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint, final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
+      public Store.Configuration<String, String> newConfiguration(
+          final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
+          final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType,
             evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacityConstraint));
       }
@@ -110,7 +118,7 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration[] { new OnHeapStoreServiceConfig().storeByValue(true) };
       }
 
       @Override
@@ -127,6 +135,7 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
       public ServiceProvider getServiceProvider() {
         return new ServiceLocator();
       }
+
     };
   }
 
