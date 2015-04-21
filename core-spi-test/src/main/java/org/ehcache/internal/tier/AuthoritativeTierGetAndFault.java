@@ -67,25 +67,18 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
    * will be evicted with the default behaviour of the tier.
    */
   @SPITest
-  public void nonMarkedMappingIsEvictable() {
+  public void nonMarkedMappingIsEvictable() throws CacheAccessException {
     K key = factory.createKey(1);
     V value = factory.createValue(1);
 
     tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         1L, null, null, Expirations.noExpiration()));
 
-    try {
-      tier.put(key, value);
+    tier.put(key, value);
 
-      for (long seed = 2L; seed < 15000; seed++) {
-        tier.put(factory.createKey(seed), factory.createValue(seed));
-      }
-      assertThat(tier.get(key), is(nullValue()));
+    fillTierOverCapacity(tier, factory);
 
-    } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
-    }
+    assertThat(tier.get(key), is(nullValue()));
   }
 
   /**
@@ -104,9 +97,8 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
       tier.put(key, value);
       assertThat(tier.getAndFault(key).value(), is(equalTo(value)));
 
-      for (long seed = 2; seed < 15000; seed++) {
-        tier.put(factory.createKey(seed), factory.createValue(seed));
-      }
+      fillTierOverCapacity(tier, factory);
+
       assertThat(tier.get(key).value(), is(equalTo(value)));
 
     } catch (CacheAccessException e) {
@@ -135,6 +127,12 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
+    }
+  }
+
+  private void fillTierOverCapacity(AuthoritativeTier<K, V> tier, AuthoritativeTierFactory<K, V> factory) throws CacheAccessException {
+    for (long seed = 2L; seed < 15000; seed++) {
+      tier.put(factory.createKey(seed), factory.createValue(seed));
     }
   }
 }
