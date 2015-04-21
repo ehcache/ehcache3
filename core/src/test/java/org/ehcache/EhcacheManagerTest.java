@@ -55,6 +55,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -517,7 +518,7 @@ public class EhcacheManagerTest {
     Ehcache<Object, Object> testCache = (Ehcache<Object, Object>) cacheManager.getCache("foo", Object.class, Object.class);
     cacheManager.close();
     verify(testCache).close();
-    // verify(mockStore, times(1)).close();
+    verify(mockStore, atLeastOnce()).close(); //TODO : remove atLeastOnce() once issue-346 is resolved
     verify(cenlServiceMock, times(1)).releaseAllListeners();
   }
 
