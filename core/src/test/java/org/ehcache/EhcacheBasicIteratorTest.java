@@ -37,9 +37,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.spy;
 
 /**
  * Provides testing of basic ITERATOR operations on an {@code Ehcache}.
@@ -380,7 +378,11 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter) throws Exception {
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicIteratorTest"));
+    InternalRuntimeConfigurationImpl<String, String> internalRuntimeConfiguration =
+        new InternalRuntimeConfigurationImpl<String, String>(CACHE_CONFIGURATION, this.store, null);
+    RuntimeConfiguration<String, String> runtimeConfiguration =
+        new RuntimeConfiguration<String, String>(CACHE_CONFIGURATION, internalRuntimeConfiguration);
+    final Ehcache<String, String> ehcache = new Ehcache<String, String>(runtimeConfiguration, this.store, cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicIteratorTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

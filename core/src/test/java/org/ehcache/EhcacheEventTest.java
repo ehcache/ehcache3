@@ -34,7 +34,6 @@ import static org.junit.Assert.assertThat;
 
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.CacheEventListenerFactory;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
@@ -80,8 +79,15 @@ public class EhcacheEventTest {
     eventNotifier = mock(CacheEventNotificationService.class);
     CacheLoaderWriter<Number, String> loaderWriter = mock(CacheLoaderWriter.class);
 
+    InternalRuntimeConfigurationImpl<Number, String> internalRuntimeConfiguration =
+        new InternalRuntimeConfigurationImpl<Number, String>(newCacheConfigurationBuilder()
+            .buildConfig(Number.class, String.class), this.store, eventNotifier);
+    RuntimeConfiguration<Number, String> runtimeConfiguration =
+        new RuntimeConfiguration<Number, String>(newCacheConfigurationBuilder()
+            .buildConfig(Number.class, String.class), internalRuntimeConfiguration);
     cache = new Ehcache<Number, String>(
-        newCacheConfigurationBuilder().buildConfig(Number.class, String.class), store, loaderWriter, eventNotifier, null, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheEventTest"));
+        runtimeConfiguration, store, loaderWriter, eventNotifier, null,
+        LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheEventTest"));
     cache.init();
   }
   

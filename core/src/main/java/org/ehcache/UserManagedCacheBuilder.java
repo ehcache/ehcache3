@@ -79,7 +79,11 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionVeto,
         evictionPrioritizer, classLoader, expiry, persistenceMode, resourcePools);
 
-    final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, cacheEventNotificationService, statisticsExecutor,logger);
+    InternalRuntimeConfigurationImpl<K, V> internalRuntimeConfiguration =
+        new InternalRuntimeConfigurationImpl<K, V>(cacheConfig, store, cacheEventNotificationService);
+    RuntimeConfiguration<K, V> runtimeConfiguration = new RuntimeConfiguration<K, V>(cacheConfig, internalRuntimeConfiguration);
+
+    final Ehcache<K, V> ehcache = new Ehcache<K, V>(runtimeConfiguration, store, cacheLoaderWriter, cacheEventNotificationService, statisticsExecutor,logger);
 
     return cast(ehcache);
   }

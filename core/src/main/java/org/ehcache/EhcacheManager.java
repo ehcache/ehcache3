@@ -235,7 +235,7 @@ public class EhcacheManager implements PersistentCacheManager {
 
     final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
     final Store<K, V> store = storeProvider.createStore(
-            new PersistentStoreConfigurationImpl<K, V>(new StoreConfigurationImpl<K, V>(config), alias), serviceConfigs);
+        new PersistentStoreConfigurationImpl<K, V>(new StoreConfigurationImpl<K, V>(config), alias), serviceConfigs);
     releasables.add(new Releasable() {
       @Override
       public void release() {
@@ -293,7 +293,13 @@ public class EhcacheManager implements PersistentCacheManager {
       evtService = new DisabledCacheEventNotificationService<K, V>();
     }
 
-    Ehcache<K, V> ehCache = new Ehcache<K, V>(config, store, decorator, evtService, statisticsExecutor,
+    InternalRuntimeConfigurationImpl<K, V> internalRuntimeConfiguration
+        = new InternalRuntimeConfigurationImpl<K, V>(config, store, evtService);
+
+    RuntimeConfiguration<K, V> runtimeConfiguration
+        = new RuntimeConfiguration<K, V>(config, internalRuntimeConfiguration);
+
+    Ehcache<K, V> ehCache = new Ehcache<K, V>(runtimeConfiguration, store, decorator, evtService, statisticsExecutor,
         useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
 
     final CacheEventListenerFactory evntLsnrFactory = serviceLocator.findService(CacheEventListenerFactory.class);
@@ -316,6 +322,7 @@ public class EhcacheManager implements PersistentCacheManager {
       }
     }
 
+    internalRuntimeConfiguration.storeListener.setSource(ehCache);
     return ehCache;
   }
 
