@@ -184,7 +184,6 @@ final class StatusTransitioner {
     }
 
     public void succeeded() {
-
       try {
         switch(st.to()) {
           case AVAILABLE:
@@ -193,6 +192,10 @@ final class StatusTransitioner {
           case UNINITIALIZED:
             runCloseHooks();
             break;
+          case MAINTENANCE:
+            break;
+          default:
+            throw new IllegalArgumentException("Didn't expect that enum value: " + st.to());
         }
         st.succeeded();
       } catch (Exception e) {
@@ -208,9 +211,15 @@ final class StatusTransitioner {
       }
     }
 
-    public void failed() {
+    public void failed(Throwable t) {
       st.failed();
       logger.error("{} failed.", action);
+      if (t != null) {
+        if(t instanceof StateTransitionException) {
+          throw (StateTransitionException) t;
+        }
+        throw new StateTransitionException(t);
+      }
     }
   }
 }

@@ -1041,8 +1041,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
     try {
       store.init();
     } catch (RuntimeException e) {
-      st.failed();
-      throw new StateTransitionException(e);
+      st.failed(e);
     }
     st.succeeded();
   }
@@ -1076,9 +1075,9 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
       st.succeeded();
       return maintainable;
     } catch (RuntimeException e) {
-      st.failed();
-      throw new StateTransitionException(e);
+      st.failed(e); // this throws
     }
+    throw new AssertionError("Shouldn reach this line... ever!");
   }
   
   @Override

@@ -29,7 +29,7 @@ public class StateTransitionException extends RuntimeException {
    * Creates an exception with the provided cause.
    * @param cause the cause of this exception
    */
-  public StateTransitionException(final Exception cause) {
+  public StateTransitionException(final Throwable cause) {
     super(cause.getMessage(), cause);
   }
 }

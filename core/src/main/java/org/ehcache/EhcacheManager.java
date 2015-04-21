@@ -29,7 +29,6 @@ import org.ehcache.event.CacheEventListenerFactory;
 import org.ehcache.events.CacheEventNotificationListenerServiceProvider;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.CacheManagerListener;
-import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.Service;
@@ -350,8 +349,7 @@ public class EhcacheManager implements PersistentCacheManager {
       try {
         serviceLocator.startAllServices(serviceConfigs);
       } catch (Exception e) {
-        st.failed();
-        throw e;
+        st.failed(e);
       }
       Deque<String> initiatedCaches = new ArrayDeque<String>();
       try {
@@ -373,8 +371,7 @@ public class EhcacheManager implements PersistentCacheManager {
         throw e;
       }
     } catch (Exception e) {
-      st.failed();
-      throw new StateTransitionException(e);
+      st.failed(e);
     }
     st.succeeded();
   }
@@ -408,11 +405,7 @@ public class EhcacheManager implements PersistentCacheManager {
       }
     }
     if(firstException != null) {
-      st.failed();
-      if(firstException instanceof StateTransitionException) {
-        throw (StateTransitionException) firstException;
-      }
-      throw new StateTransitionException(firstException);
+      st.failed(firstException);
     }
     st.succeeded();
   }
@@ -440,9 +433,9 @@ public class EhcacheManager implements PersistentCacheManager {
       st.succeeded();
       return maintainable;
     } catch (RuntimeException e) {
-      st.failed();
-      throw e;
+      st.failed(e); // this throws
     }
+    throw new AssertionError("Shouldn reach this line... ever!");
   }
 
   void create() {
