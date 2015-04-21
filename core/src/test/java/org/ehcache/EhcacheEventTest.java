@@ -101,9 +101,6 @@ public class EhcacheEventTest {
     cache.getRuntimeConfiguration().deregisterCacheEventListener(listener);
     verify(eventNotifier).deregisterCacheEventListener(listener);
     verify(eventNotifier).hasListeners();
-    
-    cache.getRuntimeConfiguration().releaseAllEventListeners();
-    verify(eventNotifier).releaseAllListeners();
   }
   
   @Test

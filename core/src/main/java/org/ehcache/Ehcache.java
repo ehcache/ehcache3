@@ -1524,10 +1524,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
       throw new UnsupportedOperationException("implement me!"); // XXX:
     }
 
-    @Override
-    public void releaseAllEventListeners() {
-      eventNotificationService.releaseAllListeners();
-    }
     
     private <T> Collection<T> copy(Collection<T> collection) {
       if (collection == null) {

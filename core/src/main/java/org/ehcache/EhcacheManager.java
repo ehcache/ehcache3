@@ -26,10 +26,9 @@ import org.ehcache.config.writebehind.WriteBehindDecoratorLoaderWriterProvider;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerFactory;
+import org.ehcache.events.CacheEventNotificationListenerServiceProvider;
 import org.ehcache.events.CacheEventNotificationService;
-import org.ehcache.events.CacheEventNotificationServiceImpl;
 import org.ehcache.events.CacheManagerListener;
-import org.ehcache.events.DisabledCacheEventNotificationService;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
@@ -138,7 +137,6 @@ public class EhcacheManager implements PersistentCacheManager {
 
   void closeEhcache(final String alias, final Ehcache<?, ?> ehcache, final Deque<Releasable> releasables) {
     ehcache.close();
-    ehcache.getRuntimeConfiguration().releaseAllEventListeners();
     while(!releasables.isEmpty()) {
       releasables.pop().release();
     }
@@ -279,20 +277,18 @@ public class EhcacheManager implements PersistentCacheManager {
       decorator = null;
     }
 
-    // XXX this may need to become an actual "service" with its own service configuration etc
-    final CacheEventNotificationService<K, V> evtService;
-
-    final ScheduledExecutorService statisticsExecutor;
+    final CacheEventNotificationListenerServiceProvider cenlProvider = serviceLocator.findService(CacheEventNotificationListenerServiceProvider.class);
+    final CacheEventNotificationService<K, V> evtService = cenlProvider.createCacheEventNotificationService();
+    releasables.add(new Releasable() {
+      @Override
+      public void release() {
+        cenlProvider.releaseCacheEventNotificationService(evtService);
+      }
+      
+    });
+    
     final ThreadPoolsService threadPoolsService = serviceLocator.findService(ThreadPoolsService.class);
-    if (threadPoolsService != null) {
-      statisticsExecutor = threadPoolsService.getStatisticsExecutor();
-      evtService = new CacheEventNotificationServiceImpl<K, V>(threadPoolsService.getEventsOrderedDeliveryExecutor(),
-          threadPoolsService.getEventsUnorderedDeliveryExecutor());
-    } else {
-      statisticsExecutor = null;
-      evtService = new DisabledCacheEventNotificationService<K, V>();
-    }
-
+    final ScheduledExecutorService statisticsExecutor = (threadPoolsService == null) ? null : threadPoolsService.getStatisticsExecutor();
     Ehcache<K, V> ehCache = new Ehcache<K, V>(config, store, decorator, evtService, statisticsExecutor,
         useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
 
