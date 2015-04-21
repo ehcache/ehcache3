@@ -20,11 +20,12 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
-import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.Ignore;
 import org.ehcache.spi.test.SPITest;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -34,7 +35,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Test the {@link AuthoritativeTier#flush(Object, Store.ValueHolder, CachingTier)} contract of the
+ * Test the {@link AuthoritativeTier#flush(Object, Store.ValueHolder)} contract of the
  * {@link AuthoritativeTier AuthoritativeTier} interface.
  * <p/>
  *
@@ -67,9 +68,8 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
   public void entryIsFlushed() {
     K key = factory.createKey(1);
     final V value = factory.createValue(1);
-    CachingTier<K, V> cachingtier = mock(CachingTier.class);
-    when(cachingtier.getExpireTimeMillis(any(Store.ValueHolder.class))).thenReturn(1L);
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
+    when(valueHolder.expirationTime(any(TimeUnit.class))).thenReturn(1L);
 
     tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         1L, null, null, Expirations.noExpiration()));
@@ -82,7 +82,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
       e.printStackTrace();
     }
 
-    assertThat(tier.flush(key, valueHolder, cachingtier), is(equalTo(true)));
+    assertThat(tier.flush(key, valueHolder), is(equalTo(true)));
   }
 
   @SPITest
@@ -91,9 +91,8 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
   public void entryIsNotFlushed() {
     K key = factory.createKey(1);
     final V value = factory.createValue(1);
-    CachingTier<K, V> cachingtier = mock(CachingTier.class);
-    when(cachingtier.getExpireTimeMillis(any(Store.ValueHolder.class))).thenReturn(1L);
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
+    when(valueHolder.expirationTime(any(TimeUnit.class))).thenReturn(1L);
 
     tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         1L, null, null, Expirations.noExpiration()));
@@ -105,21 +104,20 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
       e.printStackTrace();
     }
 
-    assertThat(tier.flush(key, valueHolder, cachingtier), is(equalTo(false)));
+    assertThat(tier.flush(key, valueHolder), is(equalTo(false)));
   }
 
   @SPITest
   @SuppressWarnings("unchecked")
   public void entryDoesNotExist() {
     K key = factory.createKey(1);
-    CachingTier<K, V> cachingtier = mock(CachingTier.class);
-    when(cachingtier.getExpireTimeMillis(any(Store.ValueHolder.class))).thenReturn(1L);
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
+    when(valueHolder.expirationTime(any(TimeUnit.class))).thenReturn(1L);
 
     tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         1L, null, null, Expirations.noExpiration()));
 
-    assertThat(tier.flush(key, valueHolder, cachingtier), is(equalTo(false)));
+    assertThat(tier.flush(key, valueHolder), is(equalTo(false)));
   }
 
   @SPITest
@@ -127,8 +125,6 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
   public void exceptionWhenValueHolderIsNotAnInstanceFromTheCachingTier() {
     K key = factory.createKey(1);
     final V value = factory.createValue(1);
-    CachingTier<K, V> cachingtier = mock(CachingTier.class);
-    when(cachingtier.getExpireTimeMillis(any(Store.ValueHolder.class))).thenReturn(1L);
 
     tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         1L, null, null, Expirations.noExpiration()));
@@ -142,7 +138,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
     }
 
     try {
-      tier.flush(key, valueHolder, cachingtier);
+      tier.flush(key, valueHolder);
       throw new AssertionError();
     } catch (IllegalArgumentException e) {
       // expected
