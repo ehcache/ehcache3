@@ -518,7 +518,7 @@ public class EhcacheManagerTest {
     Ehcache<Object, Object> testCache = (Ehcache<Object, Object>) cacheManager.getCache("foo", Object.class, Object.class);
     cacheManager.close();
     verify(testCache).close();
-    verify(mockStore, atLeastOnce()).close(); //TODO : remove atLeastOnce() once issue-346 is resolved
+    verify(mockStore, atLeastOnce()).close(); //TODO : remove atLeastOnce() once issue-348 is resolved
     verify(cenlServiceMock, times(1)).releaseAllListeners();
   }
 
