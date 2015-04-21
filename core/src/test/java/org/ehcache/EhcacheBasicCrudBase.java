@@ -17,6 +17,10 @@ package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.event.CacheEventListener;
+import org.ehcache.event.EventFiring;
+import org.ehcache.event.EventOrdering;
+import org.ehcache.event.EventType;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
@@ -67,6 +71,16 @@ public abstract class EhcacheBasicCrudBase {
 
   protected static final CacheConfiguration<String, String> CACHE_CONFIGURATION =
       CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(String.class, String.class);
+
+
+  protected void registerCacheEventListener(Ehcache ehcache, CacheEventListener cacheEventListener) {
+    Set<EventType> eventTypes = new HashSet<EventType>();
+    eventTypes.add(EventType.CREATED);
+    eventTypes.add(EventType.REMOVED);
+    eventTypes.add(EventType.UPDATED);
+    ehcache.getRuntimeConfiguration().registerCacheEventListener(cacheEventListener, EventOrdering.ORDERED, EventFiring.SYNCHRONOUS, eventTypes);
+  }
+
 
   @Mock
   protected Store<String, String> store;
