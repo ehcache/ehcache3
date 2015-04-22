@@ -41,7 +41,7 @@ import java.util.concurrent.ConcurrentMap;
 public class DefaultStoreProvider implements Store.Provider {
   private static final Logger LOG = LoggerFactory.getLogger(DefaultStoreProvider.class);
 
-  private ServiceProvider serviceProvider;
+  private volatile ServiceProvider serviceProvider;
   private final ConcurrentMap<Store<?, ?>, Store.Provider> providersMap = new ConcurrentWeakIdentityHashMap<Store<?, ?>, Store.Provider>();
 
   @Override

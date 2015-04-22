@@ -29,7 +29,7 @@ import org.ehcache.spi.service.ServiceFactory;
  */
 public class WriteBehindDecoratorLoaderWriterProviderFactory implements ServiceFactory<WriteBehindDecoratorLoaderWriterProvider> {
   
-  private WriteBehindDecoratorLoaderWriter<?, ?> loaderWriter = null;
+  private volatile WriteBehindDecoratorLoaderWriter<?, ?> loaderWriter = null;
 
   @Override
   public WriteBehindDecoratorLoaderWriterProvider create(ServiceConfiguration<WriteBehindDecoratorLoaderWriterProvider> serviceConfiguration, ServiceLocator serviceLocator) {

@@ -408,6 +408,7 @@ public interface Store<K, V> {
 
   /**
    * The Service used to create Stores.
+   * Implementation of {@link Provider} have be thread-safe.
    */
   interface Provider extends Service {
 

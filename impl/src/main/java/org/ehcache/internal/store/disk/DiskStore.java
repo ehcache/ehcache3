@@ -993,11 +993,14 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
 
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
-    private ServiceProvider serviceProvider;
+    private volatile ServiceProvider serviceProvider;
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
 
     @Override
     public <K, V> DiskStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
+      if (serviceProvider == null) {
+        throw new RuntimeException("ServiceProvider is null.");
+      }
       TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[]) serviceConfigs);
       TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
       
