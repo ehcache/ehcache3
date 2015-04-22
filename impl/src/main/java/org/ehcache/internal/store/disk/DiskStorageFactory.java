@@ -83,7 +83,7 @@ public class DiskStorageFactory<K, V> {
 
     @Override
     public boolean isExpired(long time) {
-      return !faulted && valueHolder.isExpired(time, DiskValueHolder.TIME_UNIT);
+      return !faulted && valueHolder.isExpired(time, TimeUnit.MILLISECONDS);
     }
 
     @Override
