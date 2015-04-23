@@ -99,7 +99,9 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
       @Override
       public Store.Provider newProvider() {
         Store.Provider service = new DiskStore.Provider();
-        service.start(null, new ServiceLocator());
+        LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(
+            new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir"))));
+        service.start(null, new ServiceLocator(localPersistenceService));
         return service;
       }
 

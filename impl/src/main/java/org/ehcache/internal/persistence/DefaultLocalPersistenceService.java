@@ -22,12 +22,13 @@ import org.ehcache.internal.store.disk.DiskStorePathManager;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileLock;
-import java.util.UUID;
 
 /**
  * @author Alex Snaps
@@ -39,6 +40,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   private FileLock lock;
   private File lockFile;
   private RandomAccessFile rw;
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultLocalPersistenceService.class);
 
   private boolean started;
 
@@ -46,8 +48,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     if(persistenceConfiguration != null) {
       rootDirectory = persistenceConfiguration.getRootDirectory();
     } else {
-      // todo: this probably isn't smart... null shouldn't mean that!
-      rootDirectory = new File(System.getProperty("java.io.tmpdir"), UUID.randomUUID() + File.separator);
+      throw new NullPointerException("PersistenceConfiguration cannot be null");
     }
     diskStorePathManager = new DiskStorePathManager(rootDirectory.getAbsolutePath());
   }
@@ -64,6 +65,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
         throw new RuntimeException("Couldn't lock rootDir: " + rootDirectory.getAbsolutePath(), e);
       }
       started = true;
+      LOGGER.debug("RootDirectory Locked");
     }
   }
 
@@ -77,12 +79,13 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
         // passes on windows
         rw.close();
         if (!lockFile.delete()) {
-          // todo log something?;
+          LOGGER.debug("Lock file was not deleted {}.", lockFile.getPath());
         }
       } catch (IOException e) {
         throw new RuntimeException("Couldn't unlock rootDir: " + rootDirectory.getAbsolutePath(), e);
       }
       started = false;
+      LOGGER.debug("RootDirectory Unlocked");
     }
   }
 

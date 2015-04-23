@@ -127,7 +127,9 @@ public class GettingStarted {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES))
         .buildConfig(Long.class, String.class);
 
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("tiered-cache", tieredCacheConfiguration).build(true);
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .with(new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/tiered-cache-data")))
+        .withCache("tiered-cache", tieredCacheConfiguration).build(true);
 
     Cache<Long, String> tieredCache = cacheManager.getCache("tiered-cache", Long.class, String.class);
 
