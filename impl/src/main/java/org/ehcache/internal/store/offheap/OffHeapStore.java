@@ -45,6 +45,8 @@ import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.statistics.StoreOperationOutcomes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.Segment;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
@@ -58,6 +60,7 @@ import org.terracotta.statistics.observer.OperationObserver;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -74,6 +77,8 @@ import static org.terracotta.statistics.StatisticsBuilder.operation;
  * OffHeapStore
  */
 public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(OffHeapStore.class);
 
   private final Class<K> keyType;
   private final Class<V> valueType;
@@ -334,8 +339,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     map.clear();
   }
 
-  @Override
-  public void close() {
+  void close() {
     EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> localMap = map;
     if (localMap != null) {
       map = null;
@@ -343,8 +347,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     }
   }
 
-  @Override
-  public void init() {
+  void init() {
     this.map = createBackingMap(this.sizeInBytes, this.keySerializer, this.valueSerializer, evictionVeto);
   }
 
@@ -803,6 +806,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
     private ServiceProvider serviceProvider;
+    private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new IdentityHashMap<Store<?, ?>, Boolean>());
 
     @Override
     public <K, V> OffHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
@@ -820,12 +824,25 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       MemoryUnit unit = (MemoryUnit)offHeapPool.getUnit();
 
 
-      return new OffHeapStore<K, V>(storeConfig, keySerializer, valueSerializer, timeSource, unit.toBytes(offHeapPool.getSize()));
+      OffHeapStore<K, V> offHeapStore = new OffHeapStore<K, V>(storeConfig, keySerializer, valueSerializer, timeSource, unit.toBytes(offHeapPool.getSize()));
+      createdStores.add(offHeapStore);
+      return offHeapStore;
     }
 
     @Override
     public void releaseStore(Store<?, ?> resource) {
-      resource.close();
+      if (!createdStores.remove(resource)) {
+        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+      }
+      ((OffHeapStore) resource).close();
+    }
+
+    @Override
+    public void initStore(Store<?, ?> resource) {
+      if (!createdStores.contains(resource)) {
+        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+      }
+      ((OffHeapStore) resource).init();
     }
 
     @Override
@@ -836,6 +853,12 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     @Override
     public void stop() {
       this.serviceProvider = null;
+
+      for (Store<?, ?> store : createdStores) {
+        ((OffHeapStore) store).close();
+        LOG.warn("Store was not released : {}", store);
+      }
+      createdStores.clear();
     }
 
     @Override
@@ -846,6 +869,11 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     @Override
     public void releaseAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
       releaseStore(resource);
+    }
+
+    @Override
+    public void initAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
+      initStore(resource);
     }
   }
 

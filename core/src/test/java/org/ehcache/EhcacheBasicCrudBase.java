@@ -357,15 +357,6 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public void close() {
-      this.entries.clear();
-    }
-
-    @Override
-    public void init() {
-    }
-
-    @Override
     public void maintenance() {
     }
 

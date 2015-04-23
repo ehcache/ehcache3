@@ -96,7 +96,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
-        cacheStore.init();
+//        cacheStore.init();
         return cacheStore;
       }
 
@@ -121,7 +121,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
-        cacheStore.init();
+//        cacheStore.init();
         return cacheStore;
       }
 
@@ -237,6 +237,11 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
     }
 
     @Override
+    public void initCachingTier(CachingTier<?, ?> resource) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
       throw new UnsupportedOperationException();
     }
@@ -255,6 +260,11 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
     @Override
     public void releaseAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void initAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
       throw new UnsupportedOperationException();
     }
 

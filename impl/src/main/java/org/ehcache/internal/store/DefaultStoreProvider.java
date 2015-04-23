@@ -16,7 +16,6 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.config.ResourcePool;
-import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.internal.store.disk.DiskStore;
 import org.ehcache.internal.store.heap.OnHeapStore;
@@ -26,16 +25,23 @@ import org.ehcache.internal.store.tiering.CacheStoreServiceConfig;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Ludovic Orban
  */
 public class DefaultStoreProvider implements Store.Provider {
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultStoreProvider.class);
+
   private ServiceProvider serviceProvider;
+  private final IdentityHashMap<Store<?, ?>, Store.Provider> providersMap = new IdentityHashMap<Store<?, ?>, Store.Provider>();
 
   @Override
   public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
@@ -69,12 +75,27 @@ public class DefaultStoreProvider implements Store.Provider {
       provider = serviceProvider.findService(OnHeapStore.Provider.class);
     }
 
-    return provider.createStore(storeConfig, enhancedServiceConfigs.toArray(new ServiceConfiguration<?>[0]));
+    Store<K, V> store = provider.createStore(storeConfig, enhancedServiceConfigs.toArray(new ServiceConfiguration<?>[0]));
+    providersMap.put(store, provider);
+    return store;
   }
 
   @Override
   public void releaseStore(Store<?, ?> resource) {
-    resource.close();
+    Store.Provider provider = providersMap.remove(resource);
+    if (provider == null) {
+      throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+    }
+    provider.releaseStore(resource);
+  }
+
+  @Override
+  public void initStore(Store<?, ?> resource) {
+    Store.Provider provider = providersMap.get(resource);
+    if (provider == null) {
+      throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+    }
+    provider.initStore(resource);
   }
 
   @Override
@@ -84,6 +105,13 @@ public class DefaultStoreProvider implements Store.Provider {
 
   @Override
   public void stop() {
+    serviceProvider = null;
 
+    for (Map.Entry<Store<?, ?>, Store.Provider> entry : providersMap.entrySet()) {
+      Store<?, ?> store = entry.getKey();
+      entry.getValue().releaseStore(store);
+      LOG.warn("Store was not released : {}", store);
+    }
+    providersMap.clear();
   }
 }

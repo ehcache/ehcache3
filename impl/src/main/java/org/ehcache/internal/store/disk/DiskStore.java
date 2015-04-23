@@ -52,6 +52,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -60,7 +61,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
@@ -423,7 +423,6 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
 
   @Override
   public void destroy() throws Exception {
-    close();
     if (dataFile.delete() | indexFile.delete()) {
       LOG.info("Destroyed " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
     }
@@ -457,8 +456,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
     }
   }
 
-  @Override
-  public void close() {
+  private void close() {
     if (diskStorageFactory == null) {
       LOG.warn("disk store already closed");
       return;
@@ -468,9 +466,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
     segments = null;
   }
 
-  @Override
-  public void init() {
-
+  private void init() {
     try {
       diskStorageFactory = new DiskStorageFactory<K, V>(capacity, evictionVeto, evictionPrioritizer,
           timeSource, elementSerializer, indexSerializer, dataFile, indexFile,
@@ -1029,10 +1025,10 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
   }
 
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
-    static final AtomicInteger aliasCounter = new AtomicInteger();
 
     private ServiceProvider serviceProvider;
-    
+    private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new IdentityHashMap<Store<?, ?>, Boolean>());
+
     @Override
     public <K, V> DiskStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
       TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[]) serviceConfigs);
@@ -1052,13 +1048,26 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
 
       LocalPersistenceService localPersistenceService = serviceProvider.findService(LocalPersistenceService.class);
 
-      return new DiskStore<K, V>(storeConfig, localPersistenceService.getDataFile(identifier),
-              localPersistenceService.getIndexFile(identifier), timeSource, elementSerializer, objectSerializer);
+      DiskStore<K, V> diskStore = new DiskStore<K, V>(storeConfig, localPersistenceService.getDataFile(identifier),
+          localPersistenceService.getIndexFile(identifier), timeSource, elementSerializer, objectSerializer);
+      createdStores.add(diskStore);
+      return diskStore;
     }
 
     @Override
     public void releaseStore(final Store<?, ?> resource) {
-      resource.close();
+      if (!createdStores.remove(resource)) {
+        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+      }
+      ((DiskStore) resource).close();
+    }
+
+    @Override
+    public void initStore(Store<?, ?> resource) {
+      if (!createdStores.contains(resource)) {
+        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+      }
+      ((DiskStore) resource).init();
     }
 
     @Override
@@ -1069,6 +1078,12 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
     @Override
     public void stop() {
       this.serviceProvider = null;
+
+      for (Store<?, ?> store : createdStores) {
+        ((DiskStore) store).close();
+        LOG.warn("Store was not released : {}", store);
+      }
+      createdStores.clear();
     }
 
     @Override
@@ -1079,6 +1094,11 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
     @Override
     public void releaseAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
       releaseStore(resource);
+    }
+
+    @Override
+    public void initAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
+      initStore(resource);
     }
   }
 }

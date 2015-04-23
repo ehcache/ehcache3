@@ -52,7 +52,7 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
   @After
   public void tearDown() {
     if (tier != null) {
-      tier.close();
+//      tier.close();
       tier = null;
     }
   }

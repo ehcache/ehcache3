@@ -198,15 +198,6 @@ public interface Store<K, V> {
    */
   void clear() throws CacheAccessException;
 
-  /**
-   * Closes the store instance, releasing all transient resources locally held by it.
-   * The instance should not be used any further upon the method returning.
-   * Data held remotely or on some persistent storage remains untouched and can be accessed by creating a new Store
-   */
-  void close();
-
-  void init();
-
   void maintenance();
   
   /**
@@ -420,15 +411,13 @@ public interface Store<K, V> {
   /**
    * The Service used to create Stores.
    */
-  public interface Provider extends Service {
+  interface Provider extends Service {
 
     /**
      * Creates a new Store instance
      * 
      * @param storeConfig the basic configuration for the Store
      * @param serviceConfigs the configurations the Provider may need to configure the Store
-     * @param <K> key type
-     * @param <V> value type
      * @return the Store honoring the configurations passed in
      */
     <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
@@ -438,6 +427,12 @@ public interface Store<K, V> {
      * @param resource
      */
     void releaseStore(Store<?, ?> resource);
+
+    /**
+     * Informs this Provider, a Store it created is being initialized
+     * @param resource
+     */
+    void initStore(Store<?, ?> resource);
 
   }
 

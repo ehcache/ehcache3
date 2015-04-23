@@ -73,12 +73,12 @@ public class DiskStoreTest {
             localPersistenceService.getIndexFile("DiskStoreTest"), timeSource, elementSerializer, objectSerializer);
     diskStore.destroy();
     diskStore.create();
-    diskStore.init();
+//    diskStore.init();
   }
 
   @After
   public void tearDown() throws Exception {
-    diskStore.close();
+//    diskStore.close();
     diskStore.destroy();
     diskStore = null;
   }

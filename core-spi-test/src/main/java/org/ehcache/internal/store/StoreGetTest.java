@@ -50,11 +50,11 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
   @After
   public void tearDown() {
     if (kvStore != null) {
-      kvStore.close();
+//      kvStore.close();
       kvStore = null;
     }
     if (kvStore2 != null) {
-      kvStore2.close();
+//      kvStore2.close();
       kvStore2 = null;
     }
   }

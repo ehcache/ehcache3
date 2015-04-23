@@ -198,8 +198,8 @@ public class EhcacheManager implements PersistentCacheManager {
     final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
     final Store<K, V> store = storeProvider.createStore(
             new PersistentStoreConfigurationImpl<K, V>(new StoreConfigurationImpl<K, V>(config), alias), serviceConfigs);
-    lifeCyclableList.add(new LifeCyclable() {
 
+    lifeCyclableList.add(new LifeCyclable() {
       @Override
       public void init() throws Exception {
         if (store instanceof Persistable) {
@@ -217,14 +217,10 @@ public class EhcacheManager implements PersistentCacheManager {
             throw new RuntimeException(e);
           }
         }
-
-        store.init();
       }
 
       @Override
-      public void close() {
-        storeProvider.releaseStore(store);
-
+      public void close() throws Exception {
         if (store instanceof Persistable) {
           final Persistable persistable = (Persistable) store;
           if (!persistable.isPersistent()) {
@@ -235,6 +231,18 @@ public class EhcacheManager implements PersistentCacheManager {
             }
           }
         }
+      }
+    });
+
+    lifeCyclableList.add(new LifeCyclable() {
+      @Override
+      public void init() throws Exception {
+        storeProvider.initStore(store);
+      }
+
+      @Override
+      public void close() {
+        storeProvider.releaseStore(store);
       }
     });
 

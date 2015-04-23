@@ -201,7 +201,7 @@ public class EhcacheTest {
     final Store store = mock(Store.class);
     Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest2"));
     ehcache.init();
-    verify(store).init();
+//    verify(store).init();
     ehcache.close();
     ehcache.toMaintenance();
     verify(store).maintenance();
@@ -211,7 +211,7 @@ public class EhcacheTest {
   public void testFailingTransitionGoesToLowestStatus() {
     final Store store = mock(Store.class);
     Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest3"));
-    doThrow(new RuntimeException()).when(store).init();
+//    doThrow(new RuntimeException()).when(store).init();
     try {
       ehcache.init();
       fail();
@@ -360,11 +360,6 @@ public class EhcacheTest {
     }
 
     @Override
-    public void init() {
-      // No-Op
-    }
-
-    @Override
     public ValueHolder<String> get(String key) throws CacheAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
@@ -406,11 +401,6 @@ public class EhcacheTest {
 
     @Override
     public void clear() throws CacheAccessException {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public void close() {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 

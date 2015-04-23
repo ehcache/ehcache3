@@ -87,7 +87,6 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
-        diskStore.init();
         return diskStore;
       }
 

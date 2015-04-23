@@ -57,7 +57,7 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
   @After
   public void tearDown() {
     if (tier != null) {
-      tier.close();
+//      tier.close();
       tier = null;
     }
   }

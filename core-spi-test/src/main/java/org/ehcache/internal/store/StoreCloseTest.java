@@ -55,7 +55,7 @@ public class StoreCloseTest<K, V> extends SPIStoreTester<K, V> {
 
     kvStore.put(key, value);
 
-    kvStore.close();
+//    kvStore.close();
 
     try {
       assertThat(kvStore.containsKey(key), Matchers.is(false));

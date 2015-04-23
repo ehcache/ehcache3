@@ -48,7 +48,7 @@ public class CachingTierSetInvalidationListener<K, V> extends CachingTierTester<
   @After
   public void tearDown() {
     if (tier != null) {
-      tier.close();
+//      tier.close();
       tier = null;
     }
   }

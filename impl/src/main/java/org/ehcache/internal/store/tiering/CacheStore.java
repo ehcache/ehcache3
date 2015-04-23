@@ -27,7 +27,11 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.AbstractMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -37,6 +41,8 @@ import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
  * @author Ludovic Orban
  */
 public class CacheStore<K, V> implements Store<K, V>, Persistable {
+
+  private static final Logger LOG = LoggerFactory.getLogger(CacheStore.class);
 
   private final CachingTier<K, V> cachingTier;
   private final AuthoritativeTier<K, V> authoritativeTier;
@@ -204,21 +210,6 @@ public class CacheStore<K, V> implements Store<K, V>, Persistable {
   }
 
   @Override
-  public void close() {
-    try {
-      authoritativeTier.close();
-    } finally {
-      cachingTier.close();
-    }
-  }
-
-  @Override
-  public void init() {
-    cachingTier.init();
-    authoritativeTier.init();
-  }
-
-  @Override
   public void maintenance() {
     cachingTier.maintenance();
     authoritativeTier.maintenance();
@@ -328,6 +319,7 @@ public class CacheStore<K, V> implements Store<K, V>, Persistable {
   public static class Provider implements Store.Provider {
 
     private ServiceProvider serviceProvider;
+    private final IdentityHashMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>> providersMap = new IdentityHashMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>>();
 
     @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
@@ -356,12 +348,31 @@ public class CacheStore<K, V> implements Store<K, V>, Persistable {
       CachingTier<K, V> cachingTier = cachingTierProvider.createCachingTier(storeConfig, serviceConfigs);
       AuthoritativeTier<K, V> authoritativeTier = authoritativeTierProvider.createAuthoritativeTier(storeConfig, serviceConfigs);
 
-      return new CacheStore<K, V>(cachingTier, authoritativeTier);
+      CacheStore<K, V> store = new CacheStore<K, V>(cachingTier, authoritativeTier);
+      providersMap.put(store, new AbstractMap.SimpleEntry<CachingTier.Provider, AuthoritativeTier.Provider>(cachingTierProvider, authoritativeTierProvider));
+      return store;
     }
 
     @Override
     public void releaseStore(Store<?, ?> resource) {
-      resource.close();
+      CacheStore cacheStore = (CacheStore) resource;
+      Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider> entry = providersMap.remove(resource);
+      if (entry == null) {
+        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+      }
+      entry.getKey().releaseCachingTier(cacheStore.cachingTier);
+      entry.getValue().releaseAuthoritativeTier(cacheStore.authoritativeTier);
+    }
+
+    @Override
+    public void initStore(Store<?, ?> resource) {
+      CacheStore cacheStore = (CacheStore) resource;
+      Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider> entry = providersMap.get(resource);
+      if (entry == null) {
+        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+      }
+      entry.getKey().initCachingTier(cacheStore.cachingTier);
+      entry.getValue().initAuthoritativeTier(cacheStore.authoritativeTier);
     }
 
     @Override
@@ -372,6 +383,15 @@ public class CacheStore<K, V> implements Store<K, V>, Persistable {
     @Override
     public void stop() {
       this.serviceProvider = null;
+
+      for (Map.Entry<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>> entry : providersMap.entrySet()) {
+        CacheStore cacheStore = (CacheStore) entry.getKey();
+        Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider> providerEntry = entry.getValue();
+        providerEntry.getKey().releaseCachingTier(cacheStore.cachingTier);
+        providerEntry.getValue().releaseAuthoritativeTier(cacheStore.authoritativeTier);
+        LOG.warn("Store was not released : {}", cacheStore);
+      }
+      providersMap.clear();
     }
   }
 
