@@ -13,45 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.config;
+
+package org.ehcache.spi;
 
 /**
- * The resource pools type interface.
+ * Internal interface to control the persistence lifecycle of
+ * persistence-capable entities.
  *
  * @author Ludovic Orban
  */
-public interface ResourceType {
-
-  boolean isPersistable();
+public interface Persistable {
 
   /**
-   * An enumeration of resource types handled by core ehcache.
+   * Create the persistent representation of the entity.
+   *
+   * @throws Exception
    */
-  enum Core implements ResourceType {
-    /**
-     * Heap resource.
-     */
-    HEAP(false),
-    /**
-     * OffHeap resource.
-     */
-    OFFHEAP(false),
-    /**
-     * Disk resource.
-     */
-    DISK(true);
+  void create() throws Exception;
 
+  /**
+   * Destroy the persistent representation of the entity.
+   *
+   * @throws Exception
+   */
+  void destroy() throws Exception;
 
-    private final boolean persistable;
-
-    Core(boolean persistable) {
-      this.persistable = persistable;
-    }
-
-    @Override
-    public boolean isPersistable() {
-      return persistable;
-    }
-  }
+  /**
+   * Check if the entity wants to survive the lifecycle of the JVM.
+   *
+   * @return true if it wants to, false otherwise.
+   */
+  boolean isPersistent();
 
 }

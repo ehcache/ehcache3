@@ -34,23 +34,27 @@ public class ResourcePoolsBuilder {
     return new ResourcePoolsBuilder();
   }
 
-  public ResourcePoolsBuilder with(ResourceType type, long size, ResourceUnit unit) {
-    resourcePools.put(type, new ResourcePoolImpl(type, size, unit));
+  public ResourcePoolsBuilder with(ResourceType type, long size, ResourceUnit unit, boolean persistent) {
+    resourcePools.put(type, new ResourcePoolImpl(type, size, unit, persistent));
     return this;
   }
 
   public ResourcePoolsBuilder heap(long size, ResourceUnit unit) {
-    resourcePools.put(ResourceType.Core.HEAP, new ResourcePoolImpl(ResourceType.Core.HEAP, size, unit));
+    resourcePools.put(ResourceType.Core.HEAP, new ResourcePoolImpl(ResourceType.Core.HEAP, size, unit, false));
     return this;
   }
 
   public ResourcePoolsBuilder offheap(long size, MemoryUnit unit) {
-    resourcePools.put(ResourceType.Core.OFFHEAP, new ResourcePoolImpl(ResourceType.Core.OFFHEAP, size, unit));
+    resourcePools.put(ResourceType.Core.OFFHEAP, new ResourcePoolImpl(ResourceType.Core.OFFHEAP, size, unit, false));
     return this;
   }
 
   public ResourcePoolsBuilder disk(long size, ResourceUnit unit) {
-    resourcePools.put(ResourceType.Core.DISK, new ResourcePoolImpl(ResourceType.Core.DISK, size, unit));
+    return disk(size, unit, false);
+  }
+
+  public ResourcePoolsBuilder disk(long size, ResourceUnit unit, boolean persistent) {
+    resourcePools.put(ResourceType.Core.DISK, new ResourcePoolImpl(ResourceType.Core.DISK, size, unit, persistent));
     return this;
   }
 

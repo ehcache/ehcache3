@@ -357,15 +357,6 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public void destroy() throws CacheAccessException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void create() throws CacheAccessException {
-    }
-
-    @Override
     public void close() {
       this.entries.clear();
     }

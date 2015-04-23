@@ -23,7 +23,6 @@ import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
@@ -85,7 +84,7 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
         try {
           diskStore.destroy();
           diskStore.create();
-        } catch (CacheAccessException e) {
+        } catch (Exception e) {
           throw new RuntimeException(e);
         }
         diskStore.init();

@@ -339,16 +339,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   }
 
   @Override
-  public void destroy() throws CacheAccessException {
-    map.clear();
-  }
-
-  @Override
-  public void create() throws CacheAccessException {
-    // Nothing we have to do here...
-  }
-
-  @Override
   public void close() {
     map.clear();
     disableStoreEventNotifications();

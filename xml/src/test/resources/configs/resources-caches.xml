@@ -28,6 +28,15 @@
     </ehcache:resources>
   </ehcache:cache>
 
+  <ehcache:cache alias="tieredPersistent">
+    <ehcache:key-type>java.lang.String</ehcache:key-type>
+    <ehcache:value-type>java.lang.String</ehcache:value-type>
+    <ehcache:resources>
+      <ehcache:heap size="10" unit="entries"/>
+      <ehcache:disk size="100" unit="entries" persistent="true"/>
+    </ehcache:resources>
+  </ehcache:cache>
+
   <ehcache:cache alias="tieredOffHeap">
     <ehcache:key-type>java.lang.String</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>

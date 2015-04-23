@@ -76,10 +76,6 @@ public interface CachingTier<K, V> {
 
   /* lifecycle methods */
 
-  void destroy() throws CacheAccessException;
-
-  void create() throws CacheAccessException;
-
   void close();
 
   void init();

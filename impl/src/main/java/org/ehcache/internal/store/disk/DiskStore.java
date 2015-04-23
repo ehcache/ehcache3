@@ -34,10 +34,11 @@ import org.ehcache.function.Predicates;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
+import org.ehcache.spi.Persistable;
+import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.internal.store.disk.DiskStorageFactory.Element;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.LocalPersistenceService;
@@ -47,7 +48,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -72,7 +72,7 @@ import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
  *
  * @author Ludovic Orban
  */
-public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
+public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
 
   private static final Logger LOG = LoggerFactory.getLogger(DiskStore.class);
 
@@ -81,7 +81,6 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   private static final int DEFAULT_SEGMENT_COUNT = 16;
   private static final int DEFAULT_QUEUE_CAPACITY = 16;
   private static final int DEFAULT_EXPIRY_THREAD_INTERVAL = 30000;
-  private static final DiskStorePathManager DISK_STORE_PATH_MANAGER = new DiskStorePathManager();
 
   private final Class<K> keyType;
   private final Class<V> valueType;
@@ -93,6 +92,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   private final Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto;
   private final Comparator<DiskStorageFactory.DiskSubstitute<K, V>> evictionPrioritizer;
   private final Random random = new Random();
+  private final boolean persistent;
 
   private volatile DiskStorageFactory<K, V> diskStorageFactory;
   private volatile Segment<K, V>[] segments;
@@ -126,6 +126,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     this.indexSerializer = indexSerializer;
     this.dataFile = dataFile;
     this.indexFile = indexFile;
+    this.persistent = diskPool.isPersistent();
   }
 
   private Predicate<DiskStorageFactory.DiskSubstitute<K, V>> wrap(final Predicate<Cache.Entry<K, V>> predicate) {
@@ -421,7 +422,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public void destroy() throws CacheAccessException {
+  public void destroy() throws Exception {
     close();
     if (dataFile.delete() | indexFile.delete()) {
       LOG.info("Destroyed " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
@@ -429,27 +430,31 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public void create() throws CacheAccessException {
-    try {
-      boolean success = dataFile.createNewFile();
-      if (!success) {
-        throw new CacheAccessException("Data file already exists: " + dataFile.getAbsolutePath());
-      }
-    } catch (IOException ioe) {
-      throw new CacheAccessException(ioe);
-    }
+  public boolean isPersistent() {
+    return persistent;
+  }
 
-    try {
-      boolean success = indexFile.createNewFile();
-      if (!success) {
-        throw new CacheAccessException("Index file already exists: " + indexFile.getAbsolutePath());
-      }
-    } catch (IOException ioe) {
-      dataFile.delete();
-      throw new CacheAccessException(ioe);
-    }
+  @Override
+  public void create() throws Exception {
+    boolean dataFileCreated = dataFile.createNewFile();
+    boolean indexFileCreated = indexFile.createNewFile();
 
-    LOG.info("Created " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
+    if (dataFileCreated && indexFileCreated) {
+      LOG.info("Created " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
+    } else if (!dataFileCreated && !indexFileCreated) {
+      LOG.info("Reusing " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
+    } else {
+      if (indexFileCreated) {
+        dataFile.delete();
+        dataFile.createNewFile();
+        LOG.warn("Index file " + indexFile.getAbsolutePath() + " was missing, dropped previously persisted data");
+      }
+      if (dataFileCreated) {
+        indexFile.delete();
+        indexFile.createNewFile();
+        LOG.warn("Data file " + dataFile.getAbsolutePath() + " was missing,  dropped previously persisted data");
+      }
+    }
   }
 
   @Override

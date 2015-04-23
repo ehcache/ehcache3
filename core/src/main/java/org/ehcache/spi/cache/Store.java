@@ -199,17 +199,6 @@ public interface Store<K, V> {
   void clear() throws CacheAccessException;
 
   /**
-   * Destroys this store permanently. No data can ever be recovered afterwards.
-   *
-   * @throws CacheAccessException if the store couldn't be entirely destroyed.
-   * If the data couldn't be entirely destroyed, any further attempt to use any of it would result in the
-   * destroy procedure to "continue".
-   */
-  void destroy() throws CacheAccessException;
-
-  void create() throws CacheAccessException;
-
-  /**
    * Closes the store instance, releasing all transient resources locally held by it.
    * The instance should not be used any further upon the method returning.
    * Data held remotely or on some persistent storage remains untouched and can be accessed by creating a new Store

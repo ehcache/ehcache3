@@ -37,7 +37,6 @@ public class CacheConfigurationBuilder<K, V> {
   private ClassLoader classLoader = null;
   private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private EvictionVeto<? super K, ? super V> evictionVeto;
-  private CacheConfiguration.PersistenceMode persistenceMode;
   private ResourcePools resourcePools = newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
 
   private CacheConfigurationBuilder() {
@@ -94,7 +93,7 @@ public class CacheConfigurationBuilder<K, V> {
 
   public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType) {
     return new BaseCacheConfiguration<CK, CV>(keyType, valueType, evictionVeto,
-        evictionPrioritizer, classLoader, expiry, persistenceMode, resourcePools,
+        evictionPrioritizer, classLoader, expiry, resourcePools,
         serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
@@ -102,7 +101,7 @@ public class CacheConfigurationBuilder<K, V> {
                                                      EvictionVeto<? super CK, ? super CV> evictionVeto,
                                                      EvictionPrioritizer<? super CK, ? super CV> evictionPrioritizer) {
     return new BaseCacheConfiguration<CK, CV>(keyType, valueType, evictionVeto, evictionPrioritizer,
-        classLoader, expiry, persistenceMode, resourcePools,
+        classLoader, expiry, resourcePools,
         serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
   
@@ -121,11 +120,6 @@ public class CacheConfigurationBuilder<K, V> {
       throw new NullPointerException("Null expiry");
     }
     return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, evictionPrioritizer, evictionVeto, resourcePools, serviceConfigurations);
-  }
-
-  public CacheConfigurationBuilder<K, V> persistenceMode(CacheConfiguration.PersistenceMode persistenceMode) {
-    this.persistenceMode = persistenceMode;
-    return this;
   }
 
 }

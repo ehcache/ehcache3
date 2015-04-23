@@ -30,6 +30,7 @@ import org.ehcache.events.CacheEventNotificationListenerServiceProvider;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.CacheManagerListener;
 import org.ehcache.spi.LifeCyclable;
+import org.ehcache.spi.Persistable;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.Service;
@@ -117,20 +118,6 @@ public class EhcacheManager implements PersistentCacheManager {
         }
       }
       closeEhcache(alias, ehcache);
-      CacheConfiguration.PersistenceMode persistenceMode = ehcache.getRuntimeConfiguration().getPersistenceMode();
-      if (persistenceMode != null) {
-        Maintainable maintainable = ehcache.toMaintenance();
-        try {
-          switch (persistenceMode) {
-            case SWAP:
-              maintainable.destroy();
-              break;
-            default:
-          }
-        } finally {
-          maintainable.close();
-        }
-      }
       LOGGER.info("Cache '{}' is removed from EhcacheManager.", alias);
     }
   }
@@ -160,28 +147,6 @@ public class EhcacheManager implements PersistentCacheManager {
     RuntimeException failure = null;
     try {
       cache = createNewEhcache(alias, config, keyType, valueType);
-      CacheConfiguration.PersistenceMode persistenceMode = config.getPersistenceMode();
-      if (persistenceMode != null) {
-        Maintainable maintainable = cache.toMaintenance();
-        try {
-          switch (persistenceMode) {
-            case SWAP:
-              maintainable.destroy();
-              maintainable.create();
-              break;
-            case CREATE_IF_ABSENT:
-              try {
-                maintainable.create();
-              } catch (Exception e) {
-                // ignore
-              }
-              break;
-            default:
-          }
-        } finally {
-          maintainable.close();
-        }
-      }
       cache.init();
     } catch (RuntimeException e) {
       failure = e;
@@ -217,7 +182,7 @@ public class EhcacheManager implements PersistentCacheManager {
     if (cacheClassLoader != config.getClassLoader() ) {
       config = new BaseCacheConfiguration<K, V>(config.getKeyType(), config.getValueType(),
           config.getEvictionVeto(), config.getEvictionPrioritizer(), cacheClassLoader, config.getExpiry(),
-          config.getPersistenceMode(), config.getResourcePools(), config.getServiceConfigurations().toArray(
+          config.getResourcePools(), config.getServiceConfigurations().toArray(
           new ServiceConfiguration<?>[config.getServiceConfigurations().size()]));
     }
     return config;
@@ -237,12 +202,39 @@ public class EhcacheManager implements PersistentCacheManager {
 
       @Override
       public void init() throws Exception {
-        // no-op for now
+        if (store instanceof Persistable) {
+          final Persistable persistable = (Persistable) store;
+          if (!persistable.isPersistent()) {
+            try {
+              persistable.destroy();
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            }
+          }
+          try {
+            persistable.create();
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        }
+
+        store.init();
       }
 
       @Override
       public void close() {
         storeProvider.releaseStore(store);
+
+        if (store instanceof Persistable) {
+          final Persistable persistable = (Persistable) store;
+          if (!persistable.isPersistent()) {
+            try {
+              persistable.destroy();
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            }
+          }
+        }
       }
     });
 

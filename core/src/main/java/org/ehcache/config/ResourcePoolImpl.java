@@ -23,11 +23,16 @@ class ResourcePoolImpl implements ResourcePool {
   private final ResourceType type;
   private final long size;
   private final ResourceUnit unit;
+  private final boolean persistent;
 
-  public ResourcePoolImpl(ResourceType type, long size, ResourceUnit unit) {
+  public ResourcePoolImpl(ResourceType type, long size, ResourceUnit unit, boolean persistent) {
+    if (!type.isPersistable() && persistent) {
+      throw new IllegalStateException("Non-persistable resource cannot be configured persistent");
+    }
     this.type = type;
     this.size = size;
     this.unit = unit;
+    this.persistent = persistent;
   }
 
   public ResourceType getType() {
@@ -40,6 +45,11 @@ class ResourcePoolImpl implements ResourcePool {
 
   public ResourceUnit getUnit() {
     return unit;
+  }
+
+  @Override
+  public boolean isPersistent() {
+    return persistent;
   }
 
 }

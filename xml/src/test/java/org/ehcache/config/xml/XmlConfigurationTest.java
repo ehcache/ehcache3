@@ -271,6 +271,12 @@ public class XmlConfigurationTest {
     CacheConfiguration<?, ?> tieredCacheConfig = xmlConfig.getCacheConfigurations().get("tiered");
     assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(10L));
     assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK).getSize(), equalTo(100L));
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent(), is(false));
+
+    CacheConfiguration<?, ?> tieredPersistentCacheConfig = xmlConfig.getCacheConfigurations().get("tieredPersistent");
+    assertThat(tieredPersistentCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(10L));
+    assertThat(tieredPersistentCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK).getSize(), equalTo(100L));
+    assertThat(tieredPersistentCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent(), is(true));
 
     CacheConfiguration<?, ?> tieredOffHeapCacheConfig = xmlConfig.getCacheConfigurations().get("tieredOffHeap");
     assertThat(tieredOffHeapCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(10L));
@@ -294,6 +300,12 @@ public class XmlConfigurationTest {
     CacheConfigurationBuilder<Object, Object> tieredResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("tieredResourceTemplate");
     assertThat(tieredResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(5L));
     assertThat(tieredResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource(ResourceType.Core.DISK).getSize(), equalTo(50L));
+    assertThat(tieredResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent(), is(false));
+
+    CacheConfigurationBuilder<Object, Object> persistentTieredResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("persistentTieredResourceTemplate");
+    assertThat(persistentTieredResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(5L));
+    assertThat(persistentTieredResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource(ResourceType.Core.DISK).getSize(), equalTo(50L));
+    assertThat(persistentTieredResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent(), is(true));
 
     CacheConfigurationBuilder<Object, Object> tieredOffHeapResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("tieredOffHeapResourceTemplate");
     assertThat(tieredOffHeapResourceTemplate.buildConfig(String.class, String.class).getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(5L));

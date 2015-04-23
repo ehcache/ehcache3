@@ -410,16 +410,6 @@ public class EhcacheTest {
     }
 
     @Override
-    public void destroy() throws CacheAccessException {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public void create() throws CacheAccessException {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
     public void close() {
       throw new UnsupportedOperationException("TODO Implement me!");
     }

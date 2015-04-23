@@ -335,16 +335,6 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public void destroy() throws CacheAccessException {
-    close();
-  }
-
-  @Override
-  public void create() throws CacheAccessException {
-    // Nothing to do - not persistent
-  }
-
-  @Override
   public void close() {
     EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> localMap = map;
     if (localMap != null) {
