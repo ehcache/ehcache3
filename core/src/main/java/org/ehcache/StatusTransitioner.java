@@ -147,7 +147,10 @@ final class StatusTransitioner {
   }
 
   private void runCloseHooks() throws Exception {
-    Deque<LifeCycled> initiated = new ArrayDeque<LifeCycled>(hooks);
+    Deque<LifeCycled> initiated = new ArrayDeque<LifeCycled>();
+    for (LifeCycled hook : hooks) {
+      initiated.addFirst(hook);
+    }
     Exception firstFailure = null;
     while (!initiated.isEmpty()) {
       try {
