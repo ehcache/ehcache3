@@ -29,7 +29,7 @@ import org.ehcache.event.CacheEventListenerFactory;
 import org.ehcache.events.CacheEventNotificationListenerServiceProvider;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.CacheManagerListener;
-import org.ehcache.spi.LifeCyclable;
+import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.Persistable;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
@@ -193,13 +193,13 @@ public class EhcacheManager implements PersistentCacheManager {
     Collection<ServiceConfiguration<?>> adjustedServiceConfigs = new ArrayList<ServiceConfiguration<?>>(config.getServiceConfigurations());
     ServiceConfiguration[] serviceConfigs = adjustedServiceConfigs.toArray(new ServiceConfiguration[adjustedServiceConfigs.size()]);
 
-    List<LifeCyclable> lifeCyclableList = new ArrayList<LifeCyclable>();
+    List<LifeCycled> lifeCycledList = new ArrayList<LifeCycled>();
 
     final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
     final Store<K, V> store = storeProvider.createStore(
             new PersistentStoreConfigurationImpl<K, V>(new StoreConfigurationImpl<K, V>(config), alias), serviceConfigs);
 
-    lifeCyclableList.add(new LifeCyclable() {
+    lifeCycledList.add(new LifeCycled() {
       @Override
       public void init() throws Exception {
         if (store instanceof Persistable) {
@@ -234,7 +234,7 @@ public class EhcacheManager implements PersistentCacheManager {
       }
     });
 
-    lifeCyclableList.add(new LifeCyclable() {
+    lifeCycledList.add(new LifeCycled() {
       @Override
       public void init() throws Exception {
         storeProvider.initStore(store);
@@ -256,7 +256,7 @@ public class EhcacheManager implements PersistentCacheManager {
         final WriteBehindDecoratorLoaderWriterProvider factory = serviceLocator.findService(WriteBehindDecoratorLoaderWriterProvider.class);
         decorator = factory.createWriteBehindDecoratorLoaderWriter((CacheLoaderWriter<K, V>)loaderWriter, writeBehindConfiguration);
         if(decorator != null) {
-          lifeCyclableList.add(new LifeCyclable() {
+          lifeCycledList.add(new LifeCycled() {
 
             @Override
             public void init() throws Exception {
@@ -275,7 +275,7 @@ public class EhcacheManager implements PersistentCacheManager {
       }
       
       if (loaderWriter != null) {
-        lifeCyclableList.add(new LifeCyclable() {
+        lifeCycledList.add(new LifeCycled() {
           @Override
           public void init() throws Exception {
             // no-op for now
@@ -294,7 +294,7 @@ public class EhcacheManager implements PersistentCacheManager {
 
     final CacheEventNotificationListenerServiceProvider cenlProvider = serviceLocator.findService(CacheEventNotificationListenerServiceProvider.class);
     final CacheEventNotificationService<K, V> evtService = cenlProvider.createCacheEventNotificationService();
-    lifeCyclableList.add(new LifeCyclable() {
+    lifeCycledList.add(new LifeCycled() {
       @Override
       public void init() throws Exception {
         // no-op for now
@@ -322,7 +322,7 @@ public class EhcacheManager implements PersistentCacheManager {
         if (lsnr != null) {
           ehCache.getRuntimeConfiguration().registerCacheEventListener(lsnr, lsnrConfig.orderingMode(), lsnrConfig.firingMode(),
           lsnrConfig.fireOn());
-          lifeCyclableList.add(new LifeCyclable() {
+          lifeCycledList.add(new LifeCycled() {
             @Override
             public void init() throws Exception {
               // no-op for now
@@ -337,8 +337,8 @@ public class EhcacheManager implements PersistentCacheManager {
       }
     }
 
-    for (LifeCyclable lifeCyclable : lifeCyclableList) {
-      ehCache.addHook(lifeCyclable);
+    for (LifeCycled lifeCycled : lifeCycledList) {
+      ehCache.addHook(lifeCycled);
     }
 
     return ehCache;

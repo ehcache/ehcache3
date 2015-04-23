@@ -22,7 +22,7 @@ package org.ehcache.spi;
  *
  * @author Alex Snaps
  */
-public interface LifeCyclable {
+public interface LifeCycled {
 
   /**
    * Callback used by internal life cycling infrastructure when transitioning from

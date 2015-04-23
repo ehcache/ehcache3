@@ -25,7 +25,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 import org.ehcache.exceptions.StateTransitionException;
-import org.ehcache.spi.LifeCyclable;
+import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
@@ -44,7 +44,7 @@ public class UserManagedCacheTest {
     ServiceLocator locator = new ServiceLocator(storeProvider);
     
     Ehcache ehcache = (Ehcache) UserManagedCacheBuilder.newUserManagedCacheBuilder(Object.class, Object.class, LoggerFactory.getLogger(Ehcache.class + "-" + "UserManagedCacheTest")).build(locator);
-    final LifeCyclable mock = mock(LifeCyclable.class);
+    final LifeCycled mock = mock(LifeCycled.class);
     ehcache.addHook(mock);
     ehcache.init();
     verify(mock).init();
@@ -60,7 +60,7 @@ public class UserManagedCacheTest {
     Store.Provider storeProvider = spy(new TestStoreProvider(store));
     ServiceLocator locator = new ServiceLocator(storeProvider);
     Ehcache ehcache = (Ehcache) UserManagedCacheBuilder.newUserManagedCacheBuilder(Object.class, Object.class, LoggerFactory.getLogger(Ehcache.class + "-" + "UserManagedCacheTest")).build(locator);
-    final LifeCyclable mock = mock(LifeCyclable.class);
+    final LifeCycled mock = mock(LifeCycled.class);
     ehcache.addHook(mock);
     doThrow(new Exception()).when(mock).init();
     try {

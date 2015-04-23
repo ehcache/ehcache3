@@ -18,7 +18,7 @@ package org.ehcache;
 
 import org.ehcache.events.StateChangeListener;
 import org.ehcache.exceptions.StateTransitionException;
-import org.ehcache.spi.LifeCyclable;
+import org.ehcache.spi.LifeCycled;
 import org.slf4j.Logger;
 
 import java.util.ArrayDeque;
@@ -35,7 +35,7 @@ final class StatusTransitioner {
   private volatile Thread maintenanceLease;
   private final Logger logger;
 
-  private final CopyOnWriteArrayList<LifeCyclable> hooks = new CopyOnWriteArrayList<LifeCyclable>();
+  private final CopyOnWriteArrayList<LifeCycled> hooks = new CopyOnWriteArrayList<LifeCycled>();
   private final CopyOnWriteArrayList<StateChangeListener> listeners = new CopyOnWriteArrayList<StateChangeListener>();
 
   StatusTransitioner(Logger logger) {
@@ -101,12 +101,12 @@ final class StatusTransitioner {
     return new Transition(st, Thread.currentThread(), "Exit Maintenance");
   }
 
-  void addHook(LifeCyclable hook) {
+  void addHook(LifeCycled hook) {
     validateHookRegistration();
     hooks.add(hook);
   }
 
-  void removeHook(LifeCyclable hook) {
+  void removeHook(LifeCycled hook) {
     validateHookRegistration();
     hooks.remove(hook);
   }
@@ -128,8 +128,8 @@ final class StatusTransitioner {
   }
 
   private void runInitHooks() throws Exception {
-    Deque<LifeCyclable> initiated = new ArrayDeque<LifeCyclable>();
-    for (LifeCyclable hook : hooks) {
+    Deque<LifeCycled> initiated = new ArrayDeque<LifeCycled>();
+    for (LifeCycled hook : hooks) {
       try {
         hook.init();
         initiated.add(hook);
@@ -147,7 +147,7 @@ final class StatusTransitioner {
   }
 
   private void runCloseHooks() throws Exception {
-    Deque<LifeCyclable> initiated = new ArrayDeque<LifeCyclable>(hooks);
+    Deque<LifeCycled> initiated = new ArrayDeque<LifeCycled>(hooks);
     Exception firstFailure = null;
     while (!initiated.isEmpty()) {
       try {

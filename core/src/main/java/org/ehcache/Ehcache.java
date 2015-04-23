@@ -43,7 +43,7 @@ import org.ehcache.function.NullaryFunction;
 import org.ehcache.resilience.LoggingRobustResilienceStrategy;
 import org.ehcache.resilience.RecoveryCache;
 import org.ehcache.resilience.ResilienceStrategy;
-import org.ehcache.spi.LifeCyclable;
+import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.Persistable;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
@@ -1110,11 +1110,11 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
     return statusTransitioner.currentStatus();
   }
 
-  void addHook(LifeCyclable hook) {
+  void addHook(LifeCycled hook) {
     statusTransitioner.addHook(hook);
   }
 
-  void removeHook(LifeCyclable hook) {
+  void removeHook(LifeCycled hook) {
     statusTransitioner.removeHook(hook);
   }
 

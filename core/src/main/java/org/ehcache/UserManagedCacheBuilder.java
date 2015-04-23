@@ -30,7 +30,7 @@ import org.ehcache.config.UserManagedCacheConfiguration;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.spi.LifeCyclable;
+import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -80,7 +80,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
         evictionPrioritizer, classLoader, expiry, resourcePools);
 
     final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, cacheEventNotificationService, statisticsExecutor,logger);
-    ehcache.addHook(new LifeCyclable() {
+    ehcache.addHook(new LifeCycled() {
       @Override
       public void init() throws Exception {
         // no-op for now

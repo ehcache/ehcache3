@@ -23,7 +23,7 @@ import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
-import org.ehcache.spi.LifeCyclable;
+import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.CoreMatchers;
@@ -199,7 +199,7 @@ public class EhcacheTest {
   @Test
   public void testDelegatesLifecycleCallsToStore() throws Exception {
     Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), mock(Store.class), LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest2"));
-    final LifeCyclable mock = mock(LifeCyclable.class);
+    final LifeCycled mock = mock(LifeCycled.class);
     ehcache.addHook(mock);
     ehcache.init();
     verify(mock).init();
@@ -209,7 +209,7 @@ public class EhcacheTest {
 
   @Test
   public void testFailingTransitionGoesToLowestStatus() throws Exception {
-    final LifeCyclable mock = mock(LifeCyclable.class);
+    final LifeCycled mock = mock(LifeCycled.class);
     Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), mock(Store.class), LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest3"));
     doThrow(new Exception()).when(mock).init();
     ehcache.addHook(mock);
@@ -290,7 +290,7 @@ public class EhcacheTest {
     Store store = mock(Store.class);
     Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest5"));
 
-    final LifeCyclable hook = mock(LifeCyclable.class);
+    final LifeCycled hook = mock(LifeCycled.class);
     ehcache.addHook(hook);
     ehcache.init();
     try {
