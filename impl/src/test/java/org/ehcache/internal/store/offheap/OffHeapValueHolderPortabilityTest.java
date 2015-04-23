@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.terracotta.offheapstore.storage.portability.WriteContext;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
@@ -58,8 +59,8 @@ public class OffHeapValueHolderPortabilityTest {
     WriteContext writeContext = mock(WriteContext.class);
     OffHeapValueHolder<String> decoded = valueHolderPortability.decode(encoded, writeContext);
 
-    decoded.setExpireTimeMillis(4L);
-    decoded.setLastAccessTimeMillis(6L);
+    decoded.setExpirationTime(4L, TimeUnit.MILLISECONDS);
+    decoded.setLastAccessTime(6L, TimeUnit.MILLISECONDS);
     decoded.writeBack();
     verify(writeContext).setLong(OffHeapValueHolderPortability.ACCESS_TIME_OFFSET, 6L);
     verify(writeContext).setLong(OffHeapValueHolderPortability.EXPIRE_TIME_OFFSET, 4L);

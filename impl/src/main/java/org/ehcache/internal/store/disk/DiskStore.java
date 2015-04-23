@@ -34,11 +34,10 @@ import org.ehcache.function.Predicates;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
-import org.ehcache.spi.cache.tiering.AuthoritativeTier;
-import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.internal.store.disk.DiskStorageFactory.Element;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.LocalPersistenceService;
@@ -152,25 +151,25 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
       @Override
       public V getValue() {
-        return getDiskValueHolder().value();
+        return getValueHolder().value();
       }
 
       @Override
       public long getCreationTime(TimeUnit unit) {
-        return getDiskValueHolder().creationTime(unit);
+        return getValueHolder().creationTime(unit);
       }
 
       @Override
       public long getLastAccessTime(TimeUnit unit) {
-        return getDiskValueHolder().lastAccessTime(unit);
+        return getValueHolder().lastAccessTime(unit);
       }
 
       @Override
       public float getHitRate(TimeUnit unit) {
-        return getDiskValueHolder().hitRate(unit);
+        return getValueHolder().hitRate(unit);
       }
 
-      private DiskValueHolder<V> getDiskValueHolder() {
+      private ValueHolder<V> getValueHolder() {
         K key = value.getKey();
         int hash = hash(key.hashCode());
         DiskStorageFactory.Element<K, V> element = segmentFor(hash).get(key, hash, false);
@@ -299,7 +298,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     int hash = hash(key.hashCode());
     final long now = timeSource.getTimeMillis();
 
-    final AtomicReference<DiskValueHolder<V>> returnValue = new AtomicReference<DiskValueHolder<V>>(null);
+    final AtomicReference<ValueHolder<V>> returnValue = new AtomicReference<ValueHolder<V>>(null);
 
     segmentFor(hash).compute(key, hash, new BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>>() {
       @Override
@@ -358,7 +357,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     checkValue(value);
     int hash = hash(key.hashCode());
 
-    final AtomicReference<DiskValueHolder<V>> returnValue = new AtomicReference<DiskValueHolder<V>>(null);
+    final AtomicReference<ValueHolder<V>> returnValue = new AtomicReference<ValueHolder<V>>(null);
 
 
     segmentFor(hash).compute(key, hash, new BiFunction<K, DiskStorageFactory.Element<K, V>, DiskStorageFactory.Element<K, V>>() {
@@ -516,12 +515,12 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public boolean flush(K key, ValueHolder<V> valueHolder, CachingTier<K, V> cachingTier) {
-    if (valueHolder instanceof DiskValueHolder) {
+  public boolean flush(K key, ValueHolder<V> valueHolder) {
+    if (valueHolder instanceof DiskStorageFactory.DiskValueHolder) {
       throw new IllegalArgumentException("Value holder must be of a class coming from the caching tier");
     }
     int hash = hash(key.hashCode());
-    return segmentFor(hash).flush(key, hash, valueHolder, cachingTier);
+    return segmentFor(hash).flush(key, hash, valueHolder);
   }
 
   class DiskStoreIterator implements Iterator<Cache.Entry<K, ValueHolder<V>>> {
@@ -601,21 +600,21 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   private void setAccessTimeAndExpiry(K key, DiskStorageFactory.Element<K, V> element, long now) {
-    element.getValueHolder().setAccessTimeMillis(now);
+    element.getValueHolder().setLastAccessTime(now, DiskStorageFactory.DiskValueHolder.TIME_UNIT);
 
-    DiskValueHolder<V> valueHolder = element.getValueHolder();
+    DiskStorageFactory.DiskValueHolder<V> valueHolder = element.getValueHolder();
     Duration duration = expiry.getExpiryForAccess(key, valueHolder.value());
     if (duration != null) {
       if (duration.isForever()) {
-        valueHolder.setExpireTimeMillis(DiskStorageFactory.DiskValueHolderImpl.NO_EXPIRE);
+        valueHolder.setExpirationTime(DiskStorageFactory.DiskValueHolder.NO_EXPIRE, null);
       } else {
-        valueHolder.setExpireTimeMillis(safeExpireTime(now, duration));
+        valueHolder.setExpirationTime(safeExpireTime(now, duration), DiskStorageFactory.DiskValueHolder.TIME_UNIT);
       }
     }
   }
 
   private static long safeExpireTime(long now, Duration duration) {
-    long millis = TimeUnit.MILLISECONDS.convert(duration.getAmount(), duration.getTimeUnit());
+    long millis = DiskStorageFactory.DiskValueHolder.TIME_UNIT.convert(duration.getAmount(), duration.getTimeUnit());
 
     if (millis == Long.MAX_VALUE) {
       return Long.MAX_VALUE;
@@ -639,10 +638,10 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     }
 
     if (duration == null) {
-      return new DiskStorageFactory.ElementImpl<K, V>(key, newValue, now, oldValue.getValueHolder().getExpireTimeMillis());
+      return new DiskStorageFactory.ElementImpl<K, V>(key, newValue, now, oldValue.getValueHolder().expirationTime(DiskStorageFactory.DiskValueHolder.TIME_UNIT));
     } else {
       if (duration.isForever()) {
-        return new DiskStorageFactory.ElementImpl<K, V>(key, newValue, now, DiskStorageFactory.DiskValueHolderImpl.NO_EXPIRE);
+        return new DiskStorageFactory.ElementImpl<K, V>(key, newValue, now, DiskStorageFactory.DiskValueHolder.NO_EXPIRE);
       } else {
         return new DiskStorageFactory.ElementImpl<K, V>(key, newValue, now, safeExpireTime(now, duration));
       }
@@ -660,13 +659,13 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     }
 
     if (duration.isForever()) {
-      return new DiskStorageFactory.ElementImpl<K, V>(key, value, now, DiskStorageFactory.DiskValueHolderImpl.NO_EXPIRE);
+      return new DiskStorageFactory.ElementImpl<K, V>(key, value, now, DiskStorageFactory.DiskValueHolder.NO_EXPIRE);
     } else {
       return new DiskStorageFactory.ElementImpl<K, V>(key, value, now, safeExpireTime(now, duration));
     }
   }
 
-  DiskValueHolder<V> enforceCapacityIfValueNotNull(final DiskStorageFactory.Element<K, V> computeResult) {
+  ValueHolder<V> enforceCapacityIfValueNotNull(final DiskStorageFactory.Element<K, V> computeResult) {
     if (computeResult != null) {
       enforceCapacity(1);
     }

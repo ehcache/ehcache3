@@ -13,17 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.ehcache.internal.store.heap;
 
-import org.ehcache.spi.cache.Store.ValueHolder;
+import org.ehcache.spi.cache.AbstractValueHolder;
 
-interface OnHeapValueHolder<V> extends ValueHolder<V> {
-  
-  void setAccessTimeMillis(long accessTime);
-  
-  void setExpireTimeMillis(long expireTime);
-  
-  boolean isExpired(long now);
+import java.util.concurrent.TimeUnit;
 
-  long getExpireTimeMillis();
+/**
+ * @author Ludovic Orban
+ */
+abstract class OnHeapValueHolder<V> extends AbstractValueHolder<V> {
+
+  static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
+
+  protected OnHeapValueHolder(long creationTime) {
+    super(creationTime);
+  }
+
+  protected OnHeapValueHolder(long creationTime, long expirationTime) {
+    super(creationTime, expirationTime);
+  }
+
+  @Override
+  protected TimeUnit nativeTimeUnit() {
+    return TIME_UNIT;
+  }
 }

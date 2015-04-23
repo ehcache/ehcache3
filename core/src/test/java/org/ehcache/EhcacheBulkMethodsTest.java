@@ -231,11 +231,22 @@ public class EhcacheBulkMethodsTest {
     return new ValueHolder<V>() {
       @Override
       public V value() {
-        return value;      }
+        return value;
+      }
 
       @Override
       public long creationTime(TimeUnit unit) {
         throw new AssertionError();
+      }
+
+      @Override
+      public long expirationTime(TimeUnit unit) {
+        return 0;
+      }
+
+      @Override
+      public boolean isExpired(long expirationTime, TimeUnit unit) {
+        return false;
       }
 
       @Override

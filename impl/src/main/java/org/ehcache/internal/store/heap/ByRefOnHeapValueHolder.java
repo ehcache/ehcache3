@@ -15,9 +15,7 @@
  */
 package org.ehcache.internal.store.heap;
 
-import org.ehcache.spi.cache.Store.ValueHolder;
-
-class ByRefOnHeapValueHolder<V> extends BaseOnHeapValueHolder<V> {
+class ByRefOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   private final V value;
 
   protected ByRefOnHeapValueHolder(V value, long createTime) {
@@ -27,22 +25,39 @@ class ByRefOnHeapValueHolder<V> extends BaseOnHeapValueHolder<V> {
     }
     this.value = value;
   }
-  
+
+  protected ByRefOnHeapValueHolder(V value, long creationTime, long expirationTime) {
+    super(creationTime, expirationTime);
+    if (value == null) {
+      throw new NullPointerException("null value");
+    }
+    this.value = value;
+  }
+
   @Override
   public final V value() {
     return value;
   }
-  
+
   @Override
-  public boolean equals(Object o) {
-    if (o == this) return true;
-    if (!(o instanceof ValueHolder)) return false;
-    return value.equals(((ValueHolder<?>)o).value());
+  public boolean equals(Object other) {
+    if (this == other) return true;
+    if (other == null || getClass() != other.getClass()) return false;
+
+    ByRefOnHeapValueHolder that = (ByRefOnHeapValueHolder)other;
+
+    if (!super.equals(that)) return false;
+    if (!value.equals(that.value)) return false;
+
+    return true;
   }
-  
+
   @Override
   public int hashCode() {
-    return value.hashCode();
+    int result = 1;
+    result = 31 * result + value.hashCode();
+    result = 31 * result + super.hashCode();
+    return result;
   }
 
 }

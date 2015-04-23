@@ -142,6 +142,16 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
           }
 
           @Override
+          public long expirationTime(TimeUnit unit) {
+            return 0;
+          }
+
+          @Override
+          public boolean isExpired(long expirationTime, TimeUnit unit) {
+            return false;
+          }
+
+          @Override
           public long lastAccessTime(TimeUnit unit) {
             return 0;
           }

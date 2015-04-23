@@ -56,7 +56,7 @@ public class ByRefOnHeapValueHolderTest {
     newValueHolder(null);
   }
 
-  private static <V> OnHeapValueHolder<V> newValueHolder(V value) {
+  private static <V> ValueHolder<V> newValueHolder(V value) {
     return new ByRefOnHeapValueHolder<V>(value, SystemTimeSource.INSTANCE.getTimeMillis());
   }
 }

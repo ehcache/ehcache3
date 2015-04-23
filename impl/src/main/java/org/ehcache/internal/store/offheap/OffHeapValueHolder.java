@@ -17,8 +17,7 @@
 package org.ehcache.internal.store.offheap;
 
 import org.ehcache.internal.store.offheap.portability.OffHeapValueHolderPortability;
-import org.ehcache.spi.cache.Store;
-
+import org.ehcache.spi.cache.AbstractValueHolder;
 import org.terracotta.offheapstore.storage.portability.WriteContext;
 
 import java.util.concurrent.TimeUnit;
@@ -26,26 +25,20 @@ import java.util.concurrent.TimeUnit;
 /**
 * OffHeapValueHolder
 */
-public final class OffHeapValueHolder<V> implements Store.ValueHolder<V> {
+public final class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
 
-  public static final long NO_EXPIRE = -1;
+  public static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
 
   private final V value;
   private final WriteContext writeContext;
-  private final long creationTime;
-
-  private long lastAccessTime;
-  private long expireTime;
 
   public OffHeapValueHolder(V value, long creationTime, long expireTime) {
     this(value, creationTime, expireTime, 0, null);
   }
 
   public OffHeapValueHolder(V value, long creationTime, long expireTime, long lastAccessTime, WriteContext writeContext) {
+    super(creationTime, expireTime, lastAccessTime);
     this.value = value;
-    this.creationTime = creationTime;
-    this.expireTime = expireTime;
-    this.lastAccessTime = lastAccessTime;
     this.writeContext = writeContext;
   }
 
@@ -55,68 +48,33 @@ public final class OffHeapValueHolder<V> implements Store.ValueHolder<V> {
   }
 
   @Override
-  public long creationTime(TimeUnit unit) {
-    return TimeUnit.MILLISECONDS.convert(creationTime, unit);
-  }
-
-  public long expireTime(TimeUnit unit) {
-    return TimeUnit.MILLISECONDS.convert(expireTime, unit);
-  }
-
-  void setExpireTimeMillis(long expireTime) {
-    this.expireTime = expireTime;
-  }
-
-  @Override
-  public long lastAccessTime(TimeUnit unit) {
-    return TimeUnit.MILLISECONDS.convert(lastAccessTime, unit);
-  }
-
-  void setLastAccessTimeMillis(long accessTime) {
-    this.lastAccessTime = accessTime;
-  }
-
-  @Override
-  public float hitRate(TimeUnit unit) {
-    throw new UnsupportedOperationException("TODO Implement me!");
-  }
-
-  @Override
   public boolean equals(Object other) {
     if (this == other) return true;
     if (other == null || getClass() != other.getClass()) return false;
 
     OffHeapValueHolder that = (OffHeapValueHolder)other;
 
-    if (creationTime != that.creationTime) return false;
-    if (expireTime != that.expireTime) return false;
-    if (lastAccessTime != that.lastAccessTime) return false;
+    if (!super.equals(that)) return false;
     if (!value.equals(that.value)) return false;
 
     return true;
   }
 
   @Override
+  protected TimeUnit nativeTimeUnit() {
+    return TIME_UNIT;
+  }
+
+  @Override
   public int hashCode() {
-    int result = value.hashCode();
-    result = 31 * result + (int)(creationTime ^ (creationTime >>> 32));
-    result = 31 * result + (int)(lastAccessTime ^ (lastAccessTime >>> 32));
-    result = 31 * result + (int)(expireTime ^ (expireTime >>> 32));
+    int result = 1;
+    result = 31 * result + value.hashCode();
+    result = 31 * result + super.hashCode();
     return result;
   }
 
-  public boolean isExpired(long now) {
-    final long expire = expireTime;
-
-    if (expire == NO_EXPIRE) {
-      return false;
-    }
-
-    return expire <= now;
-  }
-
   void writeBack() {
-    writeContext.setLong(OffHeapValueHolderPortability.ACCESS_TIME_OFFSET, lastAccessTime);
-    writeContext.setLong(OffHeapValueHolderPortability.EXPIRE_TIME_OFFSET, expireTime);
+    writeContext.setLong(OffHeapValueHolderPortability.ACCESS_TIME_OFFSET, lastAccessTime(TimeUnit.MILLISECONDS));
+    writeContext.setLong(OffHeapValueHolderPortability.EXPIRE_TIME_OFFSET, expirationTime(TimeUnit.MILLISECONDS));
   }
 }

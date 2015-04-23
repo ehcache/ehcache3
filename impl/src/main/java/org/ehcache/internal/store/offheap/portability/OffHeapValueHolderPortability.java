@@ -24,7 +24,6 @@ import org.terracotta.offheapstore.storage.portability.WriteContext;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.TimeUnit;
 
 /**
  * OffHeapValueHolderPortability
@@ -48,9 +47,9 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
     try {
       ByteBuffer serialized = serializer.serialize(valueHolder.value());
       ByteBuffer byteBuffer = ByteBuffer.allocate(serialized.remaining() + FIELDS_OVERHEAD);
-      byteBuffer.putLong(valueHolder.creationTime(TimeUnit.MILLISECONDS));
-      byteBuffer.putLong(valueHolder.lastAccessTime(TimeUnit.MILLISECONDS));
-      byteBuffer.putLong(valueHolder.expireTime(TimeUnit.MILLISECONDS));
+      byteBuffer.putLong(valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT));
+      byteBuffer.putLong(valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT));
+      byteBuffer.putLong(valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT));
       byteBuffer.put(serialized);
       byteBuffer.flip();
       return byteBuffer;
