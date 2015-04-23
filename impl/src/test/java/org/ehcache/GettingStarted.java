@@ -168,7 +168,7 @@ public class GettingStarted {
         .buildConfig(Long.class, String.class);
 
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/persistent-cache-data")))
+        .with(new PersistenceConfiguration(new File(getClass().getClassLoader().getResource(".").getFile() + "/../../persistent-cache-data")))
         .withCache("persistent-cache", cacheConfiguration)
         .build(true);
 
