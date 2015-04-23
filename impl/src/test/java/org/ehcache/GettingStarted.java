@@ -29,10 +29,11 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
@@ -161,14 +162,14 @@ public class GettingStarted {
   }
 
   @Test
-  public void testPersistentDiskCache() {
+  public void testPersistentDiskCache() throws Exception {
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
         .persistenceMode(CacheConfiguration.PersistenceMode.CREATE_IF_ABSENT)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES).build())
         .buildConfig(Long.class, String.class);
 
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new PersistenceConfiguration(new File(getClass().getClassLoader().getResource(".").getFile() + "/../../persistent-cache-data")))
+        .with(new PersistenceConfiguration(new File(getClass().getClassLoader().getResource(".").toURI().getPath() + "/../../persistent-cache-data")))
         .withCache("persistent-cache", cacheConfiguration)
         .build(true);
 
