@@ -340,11 +340,6 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public void maintenance() {
-    // Nothing to do - not persistent
-  }
-
-  @Override
   public void enableStoreEventNotifications(StoreEventListener<K, V> listener) {
     eventListener = listener;
     mapEvictionListener.setStoreEventListener(eventListener);

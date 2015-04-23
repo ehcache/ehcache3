@@ -211,12 +211,6 @@ public class CacheStore<K, V> implements Store<K, V>, Persistable {
   }
 
   @Override
-  public void maintenance() {
-    cachingTier.maintenance();
-    authoritativeTier.maintenance();
-  }
-
-  @Override
   public void enableStoreEventNotifications(StoreEventListener<K, V> listener) {
     authoritativeTier.enableStoreEventNotifications(listener);
   }

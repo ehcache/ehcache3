@@ -343,7 +343,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     map.clear();
   }
 
-  @Override
   public void maintenance() {
     // Nothing we have to do here...
   }

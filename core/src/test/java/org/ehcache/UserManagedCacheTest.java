@@ -50,8 +50,6 @@ public class UserManagedCacheTest {
     verify(mock).init();
     ehcache.close();
     verify(mock).close();
-    ehcache.toMaintenance();
-    verify(store).maintenance();
   }
   
   @Test
@@ -76,14 +74,6 @@ public class UserManagedCacheTest {
     doThrow(new Exception()).when(mock).close();
     try {
       ehcache.close();
-      fail();
-    } catch (StateTransitionException e) {
-      assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
-    }
-
-    doThrow(new RuntimeException()).when(store).maintenance();
-    try {
-      ehcache.toMaintenance();
       fail();
     } catch (StateTransitionException e) {
       assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));

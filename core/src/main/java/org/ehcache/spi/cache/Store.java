@@ -198,8 +198,6 @@ public interface Store<K, V> {
    */
   void clear() throws CacheAccessException;
 
-  void maintenance();
-  
   /**
    * Enables notifications for store-initiated events, i.e. eviction and expiration.
    * @param listener listener to notify

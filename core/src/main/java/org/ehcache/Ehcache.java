@@ -1065,7 +1065,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
           statusTransitioner.exitMaintenance().succeeded();
         }
       };
-      store.maintenance();
       st.succeeded();
       return maintainable;
     } catch (RuntimeException e) {

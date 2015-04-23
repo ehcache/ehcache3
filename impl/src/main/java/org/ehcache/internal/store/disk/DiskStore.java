@@ -468,11 +468,6 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
   }
 
   @Override
-  public void maintenance() {
-    //noop;
-  }
-
-  @Override
   public void enableStoreEventNotifications(StoreEventListener<K, V> listener) {
     //todo: events are missing
   }

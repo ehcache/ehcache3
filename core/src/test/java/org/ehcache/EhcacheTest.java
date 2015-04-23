@@ -398,11 +398,6 @@ public class EhcacheTest {
     }
 
     @Override
-    public void maintenance() {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
     public void enableStoreEventNotifications(StoreEventListener<String, String> listener) {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
