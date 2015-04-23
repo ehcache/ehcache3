@@ -25,14 +25,15 @@ import org.ehcache.internal.store.tiering.CacheStoreServiceConfig;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * @author Ludovic Orban
@@ -41,7 +42,7 @@ public class DefaultStoreProvider implements Store.Provider {
   private static final Logger LOG = LoggerFactory.getLogger(DefaultStoreProvider.class);
 
   private ServiceProvider serviceProvider;
-  private final IdentityHashMap<Store<?, ?>, Store.Provider> providersMap = new IdentityHashMap<Store<?, ?>, Store.Provider>();
+  private final ConcurrentMap<Store<?, ?>, Store.Provider> providersMap = new ConcurrentWeakIdentityHashMap<Store<?, ?>, Store.Provider>();
 
   @Override
   public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
@@ -76,7 +77,9 @@ public class DefaultStoreProvider implements Store.Provider {
     }
 
     Store<K, V> store = provider.createStore(storeConfig, enhancedServiceConfigs.toArray(new ServiceConfiguration<?>[0]));
-    providersMap.put(store, provider);
+    if(providersMap.putIfAbsent(store, provider) != null) {
+      throw new IllegalStateException("Instance of the Store already registered!");
+    }
     return store;
   }
 

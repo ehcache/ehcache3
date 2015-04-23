@@ -45,6 +45,7 @@ import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.statistics.StoreOperationOutcomes;
+import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.Segment;
@@ -60,7 +61,6 @@ import org.terracotta.statistics.observer.OperationObserver;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -794,7 +794,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
     private ServiceProvider serviceProvider;
-    private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new IdentityHashMap<Store<?, ?>, Boolean>());
+    private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
 
     @Override
     public <K, V> OffHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {

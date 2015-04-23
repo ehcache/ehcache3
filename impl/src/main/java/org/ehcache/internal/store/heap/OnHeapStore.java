@@ -45,6 +45,7 @@ import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.statistics.CacheOperationOutcomes.EvictionOutcome;
+import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.statistics.observer.OperationObserver;
@@ -53,7 +54,6 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -907,7 +907,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   public static class Provider implements Store.Provider, CachingTier.Provider {
     
     private ServiceProvider serviceProvider;
-    private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new IdentityHashMap<Store<?, ?>, Boolean>());
+    private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
 
     @Override
     public <K, V> OnHeapStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
