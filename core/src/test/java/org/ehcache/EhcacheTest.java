@@ -197,21 +197,22 @@ public class EhcacheTest {
   }
 
   @Test
-  public void testDelegatesLifecycleCallsToStore() {
-    final Store store = mock(Store.class);
-    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest2"));
+  public void testDelegatesLifecycleCallsToStore() throws Exception {
+    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), mock(Store.class), LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest2"));
+    final LifeCyclable mock = mock(LifeCyclable.class);
+    ehcache.addHook(mock);
     ehcache.init();
-//    verify(store).init();
+    verify(mock).init();
     ehcache.close();
-    ehcache.toMaintenance();
-    verify(store).maintenance();
+    verify(mock).close();
   }
 
   @Test
-  public void testFailingTransitionGoesToLowestStatus() {
-    final Store store = mock(Store.class);
-    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest3"));
-//    doThrow(new RuntimeException()).when(store).init();
+  public void testFailingTransitionGoesToLowestStatus() throws Exception {
+    final LifeCyclable mock = mock(LifeCyclable.class);
+    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), mock(Store.class), LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest3"));
+    doThrow(new Exception()).when(mock).init();
+    ehcache.addHook(mock);
     try {
       ehcache.init();
       fail();
@@ -219,19 +220,11 @@ public class EhcacheTest {
       assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
     }
 
-    reset(store);
+    reset(mock);
     ehcache.init();
     assertThat(ehcache.getStatus(), is(Status.AVAILABLE));
     ehcache.close();
-    doThrow(new RuntimeException()).when(store).maintenance();
-    try {
-      ehcache.toMaintenance();
-      fail();
-    } catch (StateTransitionException e) {
-      assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
-    }
-
-    reset(store);
+    reset(mock);
     ehcache.toMaintenance();
     assertThat(ehcache.getStatus(), is(Status.MAINTENANCE));
   }

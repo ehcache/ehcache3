@@ -41,6 +41,10 @@ public interface ResourcePool {
    */
   ResourceUnit getUnit();
 
+  /**
+   * Whether the underlying resource is persistent
+   * @return <code>true</code>, if persistent
+   */
   boolean isPersistent();
 
 }

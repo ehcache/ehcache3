@@ -87,6 +87,7 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
+        DiskStore.Provider.init(diskStore);
         return diskStore;
       }
 
@@ -154,10 +155,23 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
       }
 
       @Override
+      public void close(final Store<String, String> store) {
+        DiskStore.Provider.close((DiskStore)store);
+      }
+
+      @Override
       public ServiceProvider getServiceProvider() {
         return new ServiceLocator();
       }
     };
+  }
+
+  public static void initStore(final DiskStore<?, ?> diskStore) {
+    DiskStore.Provider.init(diskStore);
+  }
+
+  public static void closeStore(final DiskStore<?, ?> diskStore) {
+    DiskStore.Provider.close(diskStore);
   }
 
   @Override

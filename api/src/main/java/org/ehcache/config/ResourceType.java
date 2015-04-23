@@ -22,6 +22,10 @@ package org.ehcache.config;
  */
 public interface ResourceType {
 
+  /**
+   * Whether the resource supports persistence
+   * @return <code>true</code> if it supports persistence
+   */
   boolean isPersistable();
 
   /**

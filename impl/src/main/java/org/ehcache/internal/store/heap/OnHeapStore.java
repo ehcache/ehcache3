@@ -343,15 +343,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     map.clear();
   }
 
-  private void close() {
-    map.clear();
-    disableStoreEventNotifications();
-  }
-
-  private void init() {
-    // Nothing we have to do here...
-  }
-
   @Override
   public void maintenance() {
     // Nothing we have to do here...
@@ -942,7 +933,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       if (!createdStores.remove(resource)) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      ((OnHeapStore) resource).close();
+      final OnHeapStore onHeapStore = (OnHeapStore)resource;
+      close(onHeapStore);
+    }
+
+    static void close(final OnHeapStore onHeapStore) {
+      onHeapStore.map.clear();
+      onHeapStore.disableStoreEventNotifications();
     }
 
     @Override
@@ -950,7 +947,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       if (!createdStores.contains(resource)) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      ((OnHeapStore) resource).init();
     }
 
     @Override
@@ -963,7 +959,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       this.serviceProvider = null;
 
       for (Store<?, ?> store : createdStores) {
-        ((OnHeapStore) store).close();
+        close((OnHeapStore)store);
         LOG.warn("Store was not released : {}", store);
       }
       createdStores.clear();

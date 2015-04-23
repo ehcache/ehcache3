@@ -33,7 +33,9 @@ import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
 import org.ehcache.internal.store.disk.DiskStorageFactory;
 import org.ehcache.internal.store.disk.DiskStore;
+import org.ehcache.internal.store.disk.DiskStoreSPITest;
 import org.ehcache.internal.store.heap.OnHeapStore;
+import org.ehcache.internal.store.heap.OnHeapStoreByValueSPITest;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
@@ -62,6 +64,9 @@ import static org.mockito.Mockito.mock;
 public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
   private StoreFactory<String, String> storeFactory;
+  private final CacheStore.Provider provider = new CacheStore.Provider();
+
+
 
   @Override
   protected StoreFactory<String, String> getStoreFactory() {
@@ -96,7 +101,58 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
-//        cacheStore.init();
+        provider.registerStore(cacheStore, new CachingTier.Provider() {
+          @Override
+          public <K, V> CachingTier<K, V> createCachingTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
+            throw new UnsupportedOperationException("Implement me!");
+          }
+
+          @Override
+          public void releaseCachingTier(final CachingTier<?, ?> resource) {
+            OnHeapStoreByValueSPITest.closeStore((OnHeapStore)resource);
+          }
+
+          @Override
+          public void initCachingTier(final CachingTier<?, ?> resource) {
+            // no op
+          }
+
+          @Override
+          public void start(final ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
+            throw new UnsupportedOperationException("Implement me!");
+          }
+
+          @Override
+          public void stop() {
+            throw new UnsupportedOperationException("Implement me!");
+          }
+        }, new AuthoritativeTier.Provider() {
+          @Override
+          public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
+            throw new UnsupportedOperationException("Implement me!");
+          }
+
+          @Override
+          public void releaseAuthoritativeTier(final AuthoritativeTier<?, ?> resource) {
+            DiskStoreSPITest.closeStore((DiskStore<?, ?>)resource);
+          }
+
+          @Override
+          public void initAuthoritativeTier(final AuthoritativeTier<?, ?> resource) {
+            DiskStoreSPITest.initStore((DiskStore<?, ?>)resource);
+          }
+
+          @Override
+          public void start(final ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
+            throw new UnsupportedOperationException("Implement me!");
+          }
+
+          @Override
+          public void stop() {
+            throw new UnsupportedOperationException("Implement me!");
+          }
+        });
+        provider.initStore(cacheStore);
         return cacheStore;
       }
 
@@ -121,7 +177,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
-//        cacheStore.init();
+        provider.initStore(cacheStore);
         return cacheStore;
       }
 
@@ -205,6 +261,11 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
       @Override
       public String createValue(long seed) {
         return new String("" + seed);
+      }
+
+      @Override
+      public void close(final Store<String, String> store) {
+        provider.releaseStore(store);
       }
 
       @Override

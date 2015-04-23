@@ -339,18 +339,6 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     map.clear();
   }
 
-  void close() {
-    EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> localMap = map;
-    if (localMap != null) {
-      map = null;
-      localMap.destroy();
-    }
-  }
-
-  void init() {
-    this.map = createBackingMap(this.sizeInBytes, this.keySerializer, this.valueSerializer, evictionVeto);
-  }
-
   @Override
   public void maintenance() {
     // Nothing to do - not persistent
@@ -834,7 +822,14 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       if (!createdStores.remove(resource)) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      ((OffHeapStore) resource).close();
+      close((OffHeapStore)resource);
+    }
+
+    static void close(final OffHeapStore resource) {EhcacheConcurrentOffHeapClockCache<Object, OffHeapValueHolder<Object>> localMap = resource.map;
+      if (localMap != null) {
+        resource.map = null;
+        localMap.destroy();
+      }
     }
 
     @Override
@@ -842,7 +837,11 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       if (!createdStores.contains(resource)) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      ((OffHeapStore) resource).init();
+      init((OffHeapStore)resource);
+    }
+
+    static void init(final OffHeapStore resource) {
+      resource.map = resource.createBackingMap(resource.sizeInBytes, resource.keySerializer, resource.valueSerializer, resource.evictionVeto);
     }
 
     @Override
@@ -855,7 +854,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       this.serviceProvider = null;
 
       for (Store<?, ?> store : createdStores) {
-        ((OffHeapStore) store).close();
+        close((OffHeapStore)store);
         LOG.warn("Store was not released : {}", store);
       }
       createdStores.clear();

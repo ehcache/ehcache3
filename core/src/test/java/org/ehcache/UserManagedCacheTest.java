@@ -25,6 +25,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 import org.ehcache.exceptions.StateTransitionException;
+import org.ehcache.spi.LifeCyclable;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
@@ -37,27 +38,31 @@ import org.slf4j.LoggerFactory;
 public class UserManagedCacheTest {
   
   @Test
-  public void testUserManagedCacheDelegatesLifecycleCallsToStore() {
+  public void testUserManagedCacheDelegatesLifecycleCallsToStore() throws Exception {
     final Store store = mock(Store.class);
     Store.Provider storeProvider = spy(new TestStoreProvider(store));
     ServiceLocator locator = new ServiceLocator(storeProvider);
     
     Ehcache ehcache = (Ehcache) UserManagedCacheBuilder.newUserManagedCacheBuilder(Object.class, Object.class, LoggerFactory.getLogger(Ehcache.class + "-" + "UserManagedCacheTest")).build(locator);
+    final LifeCyclable mock = mock(LifeCyclable.class);
+    ehcache.addHook(mock);
     ehcache.init();
-//    verify(store).init();
+    verify(mock).init();
     ehcache.close();
-//    verify(store).close();
+    verify(mock).close();
     ehcache.toMaintenance();
     verify(store).maintenance();
   }
   
   @Test
-  public void testUserManagedEhcacheFailingTransitionGoesToLowestStatus() {
+  public void testUserManagedEhcacheFailingTransitionGoesToLowestStatus() throws Exception {
     final Store store = mock(Store.class);
     Store.Provider storeProvider = spy(new TestStoreProvider(store));
     ServiceLocator locator = new ServiceLocator(storeProvider);
     Ehcache ehcache = (Ehcache) UserManagedCacheBuilder.newUserManagedCacheBuilder(Object.class, Object.class, LoggerFactory.getLogger(Ehcache.class + "-" + "UserManagedCacheTest")).build(locator);
-//    doThrow(new RuntimeException()).when(store).init();
+    final LifeCyclable mock = mock(LifeCyclable.class);
+    ehcache.addHook(mock);
+    doThrow(new Exception()).when(mock).init();
     try {
       ehcache.init();
       fail();
@@ -65,10 +70,10 @@ public class UserManagedCacheTest {
       assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
     }
 
-    reset(store);
+    reset(mock);
     ehcache.init();
     assertThat(ehcache.getStatus(), is(Status.AVAILABLE));
-//    doThrow(new RuntimeException()).when(store).close();
+    doThrow(new Exception()).when(mock).close();
     try {
       ehcache.close();
       fail();
@@ -85,9 +90,10 @@ public class UserManagedCacheTest {
     }
 
     reset(store);
+    reset(mock);
     ehcache.toMaintenance();
     assertThat(ehcache.getStatus(), is(Status.MAINTENANCE));
-//    doThrow(new RuntimeException()).when(store).close();
+    doThrow(new Exception()).when(mock).close();
     try {
       ehcache.close();
       fail();

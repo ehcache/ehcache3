@@ -52,7 +52,7 @@ public class StoreDestroyTest<K, V> extends SPIStoreTester<K, V> {
   @After
   public void tearDown() {
     if (kvStore != null) {
-//      kvStore.close();
+      factory.close(kvStore);
     }
   }
 

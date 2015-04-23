@@ -349,8 +349,12 @@ public class CacheStore<K, V> implements Store<K, V>, Persistable {
       AuthoritativeTier<K, V> authoritativeTier = authoritativeTierProvider.createAuthoritativeTier(storeConfig, serviceConfigs);
 
       CacheStore<K, V> store = new CacheStore<K, V>(cachingTier, authoritativeTier);
-      providersMap.put(store, new AbstractMap.SimpleEntry<CachingTier.Provider, AuthoritativeTier.Provider>(cachingTierProvider, authoritativeTierProvider));
+      registerStore(store, cachingTierProvider, authoritativeTierProvider);
       return store;
+    }
+
+    <K, V> void registerStore(final CacheStore<K, V> store, final CachingTier.Provider cachingTierProvider, final AuthoritativeTier.Provider authoritativeTierProvider) {
+      providersMap.put(store, new AbstractMap.SimpleEntry<CachingTier.Provider, AuthoritativeTier.Provider>(cachingTierProvider, authoritativeTierProvider));
     }
 
     @Override

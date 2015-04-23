@@ -48,7 +48,7 @@ public class OffHeapStoreTest {
     Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS));
     StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, null, classLoader, expiry, null);
     OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(storeConfiguration, serializer, serializer, timeSource, MemoryUnit.MB.toBytes(1));
-    offHeapStore.init();
+    OffHeapStore.Provider.init(offHeapStore);
 
     offHeapStore.put("key1", "value1");
     timeSource.advanceTime(10);
@@ -78,7 +78,7 @@ public class OffHeapStoreTest {
     };
     StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class, evictionVeto, null, classLoader, expiry, null);
     OffHeapStore<String, byte[]> offHeapStore = new OffHeapStore<String, byte[]>(storeConfiguration, serializer, byteArraySerializer, timeSource, MemoryUnit.MB.toBytes(1));
-    offHeapStore.init();
+    OffHeapStore.Provider.init(offHeapStore);
     offHeapStore.enableStoreEventNotifications(new TestStoreEventListener<String, byte[]>());
 
     int valueLength = 200000;

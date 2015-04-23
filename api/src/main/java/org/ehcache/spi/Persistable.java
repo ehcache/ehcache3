@@ -27,14 +27,14 @@ public interface Persistable {
   /**
    * Create the persistent representation of the entity.
    *
-   * @throws Exception
+   * @throws Exception on error
    */
   void create() throws Exception;
 
   /**
    * Destroy the persistent representation of the entity.
    *
-   * @throws Exception
+   * @throws Exception on error
    */
   void destroy() throws Exception;
 

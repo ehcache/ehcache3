@@ -423,6 +423,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
 
   @Override
   public void destroy() throws Exception {
+    internalClear();
     if (dataFile.delete() | indexFile.delete()) {
       LOG.info("Destroyed " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
     }
@@ -464,25 +465,6 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
     diskStorageFactory.unbind();
     diskStorageFactory = null;
     segments = null;
-  }
-
-  private void init() {
-    try {
-      diskStorageFactory = new DiskStorageFactory<K, V>(capacity, evictionVeto, evictionPrioritizer,
-          timeSource, elementSerializer, indexSerializer, dataFile, indexFile,
-          DEFAULT_SEGMENT_COUNT, DEFAULT_QUEUE_CAPACITY, DEFAULT_EXPIRY_THREAD_INTERVAL);
-    } catch (FileNotFoundException fnfe) {
-      throw new IllegalStateException(fnfe);
-    }
-
-    segments = new Segment[DEFAULT_SEGMENT_COUNT];
-    for (int i = 0; i < segments.length; i++) {
-      segments[i] = new Segment<K, V>(diskStorageFactory, timeSource, this);
-    }
-
-    segmentShift = Integer.numberOfLeadingZeros(segments.length - 1);
-
-    diskStorageFactory.bind(this);
   }
 
   @Override
@@ -1059,7 +1041,17 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
       if (!createdStores.remove(resource)) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      ((DiskStore) resource).close();
+      close((DiskStore)resource);
+    }
+
+    static void close(final DiskStore resource) {
+      if (resource.diskStorageFactory == null) {
+        LOG.warn("disk store already closed");
+        return;
+      }
+      resource.diskStorageFactory.unbind();
+      resource.diskStorageFactory = null;
+      resource.segments = null;
     }
 
     @Override
@@ -1067,7 +1059,26 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
       if (!createdStores.contains(resource)) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      ((DiskStore) resource).init();
+      init((DiskStore)resource);
+    }
+
+    static void init(final DiskStore resource) {
+      try {
+        resource.diskStorageFactory = new DiskStorageFactory<Object, Object>(resource.capacity, resource.evictionVeto, resource.evictionPrioritizer,
+            resource.timeSource, resource.elementSerializer, resource.indexSerializer, resource.dataFile, resource.indexFile,
+            DEFAULT_SEGMENT_COUNT, DEFAULT_QUEUE_CAPACITY, DEFAULT_EXPIRY_THREAD_INTERVAL);
+      } catch (FileNotFoundException fnfe) {
+        throw new IllegalStateException(fnfe);
+      }
+
+      resource.segments = new Segment[DEFAULT_SEGMENT_COUNT];
+      for (int i = 0; i < resource.segments.length; i++) {
+        resource.segments[i] = new Segment<Object, Object>(resource.diskStorageFactory, resource.timeSource, resource);
+      }
+
+      resource.segmentShift = Integer.numberOfLeadingZeros(resource.segments.length - 1);
+
+      resource.diskStorageFactory.bind(resource);
     }
 
     @Override
