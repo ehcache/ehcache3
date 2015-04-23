@@ -16,9 +16,8 @@
 
 package org.ehcache.config;
 
-import org.ehcache.Cache;
 import org.ehcache.Ehcache;
-import org.ehcache.internal.HeapCache;
+import org.ehcache.expiry.Expirations;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.Service;
@@ -34,6 +33,7 @@ import static org.ehcache.internal.util.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Alex Snaps
@@ -52,10 +52,12 @@ public class CachingTierConfigurationBuilderTest {
     Collection<ServiceConfiguration<?>> serviceConfigs = config.getServiceConfigurations();
     ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
     final Store<String, String> store = service.createStore(new StoreConfigurationImpl<String, String>(config), serviceConfigArray);
-    
-    
+    final CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+    when(cacheConfiguration.getExpiry()).thenReturn(Expirations.noExpiration());
+
     @SuppressWarnings("unchecked")
-    final Cache<String, String> cache = new HeapCache<String, String>(mock(CacheConfiguration.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "CachingTierConfigurationBuilderTest"));
+    final Ehcache<String, String> cache = new Ehcache<String, String>(cacheConfiguration, store, LoggerFactory.getLogger(Ehcache.class + "-" + "CachingTierConfigurationBuilderTest"));
+    cache.init();
 
     assertThat(cache, not(hasKey("key")));
     cache.put("key", "value");
