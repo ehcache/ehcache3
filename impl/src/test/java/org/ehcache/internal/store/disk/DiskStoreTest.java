@@ -25,12 +25,12 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -227,6 +227,7 @@ public class DiskStoreTest {
   }
 
   @Test
+  @Ignore
   public void testFlushingOfExpiredElementRemovesIt() throws Exception {
     Store.ValueHolder<CharSequence> valueHolder = diskStore.computeIfAbsentAndFault(1, new Function<Number, CharSequence>() {
       @Override
