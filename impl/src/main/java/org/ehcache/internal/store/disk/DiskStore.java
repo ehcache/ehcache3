@@ -457,16 +457,6 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
     }
   }
 
-  private void close() {
-    if (diskStorageFactory == null) {
-      LOG.warn("disk store already closed");
-      return;
-    }
-    diskStorageFactory.unbind();
-    diskStorageFactory = null;
-    segments = null;
-  }
-
   @Override
   public void enableStoreEventNotifications(StoreEventListener<K, V> listener) {
     //todo: events are missing
@@ -1033,7 +1023,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
 
     @Override
     public void releaseStore(final Store<?, ?> resource) {
-      if (!createdStores.remove(resource)) {
+      if (!createdStores.contains(resource)) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
       close((DiskStore)resource);
@@ -1084,11 +1074,6 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
     @Override
     public void stop() {
       this.serviceProvider = null;
-
-      for (Store<?, ?> store : createdStores) {
-        ((DiskStore) store).close();
-        LOG.warn("Store was not released : {}", store);
-      }
       createdStores.clear();
     }
 

@@ -85,7 +85,7 @@ public class DefaultStoreProvider implements Store.Provider {
 
   @Override
   public void releaseStore(Store<?, ?> resource) {
-    Store.Provider provider = providersMap.remove(resource);
+    Store.Provider provider = providersMap.get(resource);
     if (provider == null) {
       throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
     }
@@ -109,12 +109,6 @@ public class DefaultStoreProvider implements Store.Provider {
   @Override
   public void stop() {
     serviceProvider = null;
-
-    for (Map.Entry<Store<?, ?>, Store.Provider> entry : providersMap.entrySet()) {
-      Store<?, ?> store = entry.getKey();
-      entry.getValue().releaseStore(store);
-      LOG.warn("Store was not released : {}", store);
-    }
     providersMap.clear();
   }
 }

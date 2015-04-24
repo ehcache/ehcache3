@@ -357,7 +357,7 @@ public class CacheStore<K, V> implements Store<K, V>, Persistable {
     @Override
     public void releaseStore(Store<?, ?> resource) {
       CacheStore cacheStore = (CacheStore) resource;
-      Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider> entry = providersMap.remove(resource);
+      Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider> entry = providersMap.get(resource);
       if (entry == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
@@ -384,14 +384,6 @@ public class CacheStore<K, V> implements Store<K, V>, Persistable {
     @Override
     public void stop() {
       this.serviceProvider = null;
-
-      for (Map.Entry<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>> entry : providersMap.entrySet()) {
-        CacheStore cacheStore = (CacheStore) entry.getKey();
-        Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider> providerEntry = entry.getValue();
-        providerEntry.getKey().releaseCachingTier(cacheStore.cachingTier);
-        providerEntry.getValue().releaseAuthoritativeTier(cacheStore.authoritativeTier);
-        LOG.warn("Store was not released : {}", cacheStore);
-      }
       providersMap.clear();
     }
   }

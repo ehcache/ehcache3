@@ -527,7 +527,6 @@ public class EhcacheManagerTest {
     Ehcache<Object, Object> testCache = (Ehcache<Object, Object>) cacheManager.getCache("foo", Object.class, Object.class);
     cacheManager.close();
     verify(testCache).close();
-//    verify(mockStore, times(1)).close();
     verify(cenlServiceMock, times(1)).releaseAllListeners();
   }
 

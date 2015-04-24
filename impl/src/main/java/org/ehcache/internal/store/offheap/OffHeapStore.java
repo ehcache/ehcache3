@@ -814,7 +814,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
 
     @Override
     public void releaseStore(Store<?, ?> resource) {
-      if (!createdStores.remove(resource)) {
+      if (!createdStores.contains(resource)) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
       close((OffHeapStore)resource);
@@ -847,11 +847,6 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     @Override
     public void stop() {
       this.serviceProvider = null;
-
-      for (Store<?, ?> store : createdStores) {
-        close((OffHeapStore)store);
-        LOG.warn("Store was not released : {}", store);
-      }
       createdStores.clear();
     }
 

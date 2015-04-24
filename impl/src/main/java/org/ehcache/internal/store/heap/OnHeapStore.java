@@ -956,11 +956,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     @Override
     public void stop() {
       this.serviceProvider = null;
-
-      for (Store<?, ?> store : createdStores) {
-        close((OnHeapStore)store);
-        LOG.warn("Store was not released : {}", store);
-      }
       createdStores.clear();
     }
 
