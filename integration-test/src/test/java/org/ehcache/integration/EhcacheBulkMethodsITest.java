@@ -525,6 +525,11 @@ public class EhcacheBulkMethodsITest {
     }
 
     @Override
+    public void initStore(Store<?, ?> resource) {
+
+    }
+
+    @Override
     public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
 
     }

@@ -21,21 +21,29 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
+import org.ehcache.spi.Persistable;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.util.ConcurrentWeakIdentityHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * @author Ludovic Orban
  */
-public class CacheStore<K, V> implements Store<K, V> {
+public class CacheStore<K, V> implements Store<K, V>, Persistable {
+
+  private static final Logger LOG = LoggerFactory.getLogger(CacheStore.class);
 
   private final CachingTier<K, V> cachingTier;
   private final AuthoritativeTier<K, V> authoritativeTier;
@@ -43,6 +51,11 @@ public class CacheStore<K, V> implements Store<K, V> {
   public CacheStore(CachingTier<K, V> cachingTier, AuthoritativeTier<K, V> authoritativeTier) {
     this.cachingTier = cachingTier;
     this.authoritativeTier = authoritativeTier;
+
+    if (cachingTier instanceof Persistable && authoritativeTier instanceof Persistable &&
+        ((Persistable) cachingTier).isPersistent() != ((Persistable) authoritativeTier).isPersistent()) {
+      throw new IllegalArgumentException("Persistable caching tier and authoritative tier do not agree on persistence");
+    }
 
     this.cachingTier.setInvalidationListener(new CachingTier.InvalidationListener<K, V>() {
       @Override
@@ -172,36 +185,29 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public void destroy() throws CacheAccessException {
-    authoritativeTier.destroy();
-    cachingTier.destroy();
-  }
-
-  @Override
-  public void create() throws CacheAccessException {
-    cachingTier.create();
-    authoritativeTier.create();
-  }
-
-  @Override
-  public void close() {
-    try {
-      authoritativeTier.close();
-    } finally {
-      cachingTier.close();
+  public void destroy() throws Exception {
+    if (authoritativeTier instanceof Persistable) {
+      ((Persistable) authoritativeTier).destroy();
+    }
+    if (cachingTier instanceof Persistable) {
+      ((Persistable) cachingTier).destroy();
     }
   }
 
   @Override
-  public void init() {
-    cachingTier.init();
-    authoritativeTier.init();
+  public boolean isPersistent() {
+    return (authoritativeTier instanceof Persistable && ((Persistable) authoritativeTier).isPersistent()) ||
+        (cachingTier instanceof Persistable && ((Persistable) cachingTier).isPersistent());
   }
 
   @Override
-  public void maintenance() {
-    cachingTier.maintenance();
-    authoritativeTier.maintenance();
+  public void create() throws Exception {
+    if (authoritativeTier instanceof Persistable) {
+      ((Persistable) authoritativeTier).create();
+    }
+    if (cachingTier instanceof Persistable) {
+      ((Persistable) cachingTier).create();
+    }
   }
 
   @Override
@@ -308,6 +314,7 @@ public class CacheStore<K, V> implements Store<K, V> {
   public static class Provider implements Store.Provider {
 
     private ServiceProvider serviceProvider;
+    private final ConcurrentMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>>();
 
     @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
@@ -336,12 +343,37 @@ public class CacheStore<K, V> implements Store<K, V> {
       CachingTier<K, V> cachingTier = cachingTierProvider.createCachingTier(storeConfig, serviceConfigs);
       AuthoritativeTier<K, V> authoritativeTier = authoritativeTierProvider.createAuthoritativeTier(storeConfig, serviceConfigs);
 
-      return new CacheStore<K, V>(cachingTier, authoritativeTier);
+      CacheStore<K, V> store = new CacheStore<K, V>(cachingTier, authoritativeTier);
+      registerStore(store, cachingTierProvider, authoritativeTierProvider);
+      return store;
+    }
+
+    <K, V> void registerStore(final CacheStore<K, V> store, final CachingTier.Provider cachingTierProvider, final AuthoritativeTier.Provider authoritativeTierProvider) {
+      if(providersMap.putIfAbsent(store, new AbstractMap.SimpleEntry<CachingTier.Provider, AuthoritativeTier.Provider>(cachingTierProvider, authoritativeTierProvider)) != null) {
+        throw new IllegalStateException("Instance of the Store already registered!");
+      }
     }
 
     @Override
     public void releaseStore(Store<?, ?> resource) {
-      resource.close();
+      Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider> entry = providersMap.get(resource);
+      if (entry == null) {
+        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+      }
+      CacheStore cacheStore = (CacheStore) resource;
+      entry.getKey().releaseCachingTier(cacheStore.cachingTier);
+      entry.getValue().releaseAuthoritativeTier(cacheStore.authoritativeTier);
+    }
+
+    @Override
+    public void initStore(Store<?, ?> resource) {
+      Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider> entry = providersMap.get(resource);
+      if (entry == null) {
+        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+      }
+      CacheStore cacheStore = (CacheStore) resource;
+      entry.getKey().initCachingTier(cacheStore.cachingTier);
+      entry.getValue().initAuthoritativeTier(cacheStore.authoritativeTier);
     }
 
     @Override
@@ -352,6 +384,7 @@ public class CacheStore<K, V> implements Store<K, V> {
     @Override
     public void stop() {
       this.serviceProvider = null;
+      providersMap.clear();
     }
   }
 

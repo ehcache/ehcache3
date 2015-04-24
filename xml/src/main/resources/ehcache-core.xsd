@@ -330,11 +330,19 @@
     <xs:attribute name="size" use="required" type="xs:positiveInteger"/>
   </xs:complexType>
 
+  <xs:complexType name="persistable-resource-type">
+    <xs:complexContent>
+      <xs:extension base="ehcache:resource-type">
+        <xs:attribute name="persistent" type="xs:boolean" default="false" use="optional"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
   <xs:complexType name="resources-type">
     <xs:sequence>
       <xs:element name="heap" type="ehcache:resource-type" minOccurs="0" maxOccurs="1"/>
       <xs:element name="offheap" type="ehcache:resource-type" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="disk" type="ehcache:resource-type" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="disk" type="ehcache:persistable-resource-type" minOccurs="0" maxOccurs="1"/>
       <xs:any namespace="##other" minOccurs="0"/>
     </xs:sequence>
   </xs:complexType>

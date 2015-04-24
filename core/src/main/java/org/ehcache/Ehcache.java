@@ -29,14 +29,12 @@ import org.ehcache.event.EventType;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.CacheEvents;
 import org.ehcache.events.DisabledCacheEventNotificationService;
-import org.ehcache.events.StateChangeListener;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CacheWritingException;
-import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -45,6 +43,8 @@ import org.ehcache.function.NullaryFunction;
 import org.ehcache.resilience.LoggingRobustResilienceStrategy;
 import org.ehcache.resilience.RecoveryCache;
 import org.ehcache.resilience.ResilienceStrategy;
+import org.ehcache.spi.LifeCycled;
+import org.ehcache.spi.Persistable;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -911,7 +911,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
         }
         
         old.set(inCache);
-        eventNotificationService.onEvent(CacheEvents.update(newCacheEntry(k, inCache), 
+        eventNotificationService.onEvent(CacheEvents.update(newCacheEntry(k, inCache),
             newCacheEntry(k, value), Ehcache.this));
         return value;
       }
@@ -978,18 +978,18 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
                 throw newCacheWritingException(e);
               }
             }
-            
+
             if (newValueAlreadyExpired(key, oldValue, newValue)) {
               return null;
             }
-            
+
             success.set(true);
             return newValue;
           }
           return inCache;
         } finally {
           if (success.get()) {
-            eventNotificationService.onEvent(CacheEvents.update(newCacheEntry(key, oldValue), 
+            eventNotificationService.onEvent(CacheEvents.update(newCacheEntry(key, oldValue),
                 newCacheEntry(key, newValue), Ehcache.this));
           }
         }
@@ -1037,26 +1037,12 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
    */
   @Override
   public void init() {
-    final StatusTransitioner.Transition st = statusTransitioner.init();
-    try {
-      store.init();
-    } catch (RuntimeException e) {
-      st.failed();
-      throw new StateTransitionException(e);
-    }
-    st.succeeded();
+    statusTransitioner.init().succeeded();
   }
 
   @Override
   public void close() {
-    final StatusTransitioner.Transition st = statusTransitioner.close();
-    try {
-      store.close();
-    } catch (RuntimeException e) {
-      st.failed();
-      throw new StateTransitionException(e);
-    }
-    st.succeeded();
+    statusTransitioner.close().succeeded();
   }
 
   @Override
@@ -1079,13 +1065,12 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
           statusTransitioner.exitMaintenance().succeeded();
         }
       };
-      store.maintenance();
       st.succeeded();
       return maintainable;
     } catch (RuntimeException e) {
-      st.failed();
-      throw new StateTransitionException(e);
+      st.failed(e); // this throws
     }
+    throw new AssertionError("Should not reach this line... ever!");
   }
   
   @Override
@@ -1094,25 +1079,29 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
   }
 
   void create() {
-    logger.info("Creating Cache storage.");
     statusTransitioner.checkMaintenance();
     try {
-      store.create();
-    } catch (CacheAccessException e) {
+      if (store instanceof Persistable) {
+        logger.info("Creating Cache storage.");
+        ((Persistable) store).create();
+        logger.info("Cache storage successfully created.");
+      }
+    } catch (Exception e) {
       throw new RuntimeException("Couldn't create Cache storage ", e);
     }
-    logger.info("Cache storage successfully created.");
   }
 
   void destroy() {
-    logger.info("Destroying Cache storage.");
     statusTransitioner.checkMaintenance();
     try {
-      store.destroy();
-    } catch (CacheAccessException e) {
+      if (store instanceof Persistable) {
+        logger.info("Destroying Cache storage.");
+        ((Persistable) store).destroy();
+        logger.info("Cache storage successfully destroyed.");
+      }
+    } catch (Exception e) {
       throw new RuntimeException("Couldn't destroy Cache storage ", e);
     }
-    logger.info("Cache storage successfully destroyed.");
   }
 
   @Override
@@ -1120,12 +1109,12 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
     return statusTransitioner.currentStatus();
   }
 
-  void registerListener(StateChangeListener listener) {
-    statusTransitioner.registerListener(listener);
+  void addHook(LifeCycled hook) {
+    statusTransitioner.addHook(hook);
   }
 
-  void deregisterListener(StateChangeListener listener) {
-    statusTransitioner.deregisterListener(listener);
+  void removeHook(LifeCycled hook) {
+    statusTransitioner.removeHook(hook);
   }
 
   private static void checkNonNull(Object... things) {
@@ -1440,7 +1429,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
     private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
     private final ClassLoader classLoader;
     private final Expiry<? super K, ? super V> expiry;
-    private final PersistenceMode persistenceMode;
     private final ResourcePools resourcePools;
 
     RuntimeConfiguration(CacheConfiguration<K, V> config) {
@@ -1451,7 +1439,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
       this.evictionPrioritizer = config.getEvictionPrioritizer();
       this.classLoader = config.getClassLoader();
       this.expiry = config.getExpiry();
-      this.persistenceMode = config.getPersistenceMode();
       this.resourcePools = config.getResourcePools();
     }
     
@@ -1488,11 +1475,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
     @Override
     public Expiry<? super K, ? super V> getExpiry() {
       return expiry;
-    }
-
-    @Override
-    public PersistenceMode getPersistenceMode() {
-      return this.persistenceMode;
     }
 
     @Override

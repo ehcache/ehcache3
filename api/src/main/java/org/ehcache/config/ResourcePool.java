@@ -25,20 +25,26 @@ public interface ResourcePool {
    *
    * @return the type.
    */
-  public ResourceType getType();
+  ResourceType getType();
 
   /**
    * Get the value measuring the pool size.
    *
    * @return the value.
    */
-  public long getSize();
+  long getSize();
 
   /**
    * Get the unit in which the resource is measured.
    *
    * @return the unit.
    */
-  public ResourceUnit getUnit();
+  ResourceUnit getUnit();
+
+  /**
+   * Whether the underlying resource is persistent
+   * @return <code>true</code>, if persistent
+   */
+  boolean isPersistent();
 
 }

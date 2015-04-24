@@ -57,4 +57,6 @@ public interface StoreFactory<K, V> {
   K createKey(long seed);
 
   V createValue(long seed);
+
+  void close(Store<K, V> store);
 }

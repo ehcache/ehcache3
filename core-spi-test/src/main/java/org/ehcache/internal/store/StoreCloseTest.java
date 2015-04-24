@@ -26,7 +26,7 @@ import org.hamcrest.Matchers;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#close()} contract of the
+ * Test contract of closing a
  * {@link org.ehcache.spi.cache.Store Store} interface.
  * <p/>
  *
@@ -55,7 +55,7 @@ public class StoreCloseTest<K, V> extends SPIStoreTester<K, V> {
 
     kvStore.put(key, value);
 
-    kvStore.close();
+    factory.close(kvStore);
 
     try {
       assertThat(kvStore.containsKey(key), Matchers.is(false));

@@ -17,8 +17,12 @@
 package org.ehcache;
 
 import org.ehcache.events.StateChangeListener;
+import org.ehcache.exceptions.StateTransitionException;
+import org.ehcache.spi.LifeCycled;
 import org.slf4j.Logger;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -31,6 +35,7 @@ final class StatusTransitioner {
   private volatile Thread maintenanceLease;
   private final Logger logger;
 
+  private final CopyOnWriteArrayList<LifeCycled> hooks = new CopyOnWriteArrayList<LifeCycled>();
   private final CopyOnWriteArrayList<StateChangeListener> listeners = new CopyOnWriteArrayList<StateChangeListener>();
 
   StatusTransitioner(Logger logger) {
@@ -96,6 +101,22 @@ final class StatusTransitioner {
     return new Transition(st, Thread.currentThread(), "Exit Maintenance");
   }
 
+  void addHook(LifeCycled hook) {
+    validateHookRegistration();
+    hooks.add(hook);
+  }
+
+  void removeHook(LifeCycled hook) {
+    validateHookRegistration();
+    hooks.remove(hook);
+  }
+
+  private void validateHookRegistration() {
+    if(currentStatus() != Status.UNINITIALIZED) {
+      throw new IllegalStateException("Can't modify hooks when not in " + Status.UNINITIALIZED);
+    }
+  }
+
   void registerListener(StateChangeListener listener) {
     if(!listeners.contains(listener)) {
       listeners.add(listener);
@@ -104,6 +125,47 @@ final class StatusTransitioner {
 
   void deregisterListener(StateChangeListener listener) {
     listeners.remove(listener);
+  }
+
+  private void runInitHooks() throws Exception {
+    Deque<LifeCycled> initiated = new ArrayDeque<LifeCycled>();
+    for (LifeCycled hook : hooks) {
+      try {
+        hook.init();
+        initiated.add(hook);
+      } catch (Exception initException) {
+        while (!initiated.isEmpty()) {
+          try {
+            initiated.pop().close();
+          } catch (Exception closeException) {
+            logger.error("Failed to close() while shutting down because of .init() having thrown", closeException);
+          }
+        }
+        throw initException;
+      }
+    }
+  }
+
+  private void runCloseHooks() throws Exception {
+    Deque<LifeCycled> initiated = new ArrayDeque<LifeCycled>();
+    for (LifeCycled hook : hooks) {
+      initiated.addFirst(hook);
+    }
+    Exception firstFailure = null;
+    while (!initiated.isEmpty()) {
+      try {
+        initiated.pop().close();
+      } catch (Exception closeException) {
+        if (firstFailure == null) {
+          firstFailure = closeException;
+        } else {
+          logger.error("A LifeCyclable has thrown already while closing down", closeException);
+        }
+      }
+    }
+    if (firstFailure != null) {
+      throw firstFailure;
+    }
   }
 
   private void fireTransitionEvent(Status previousStatus, Status newStatus) {
@@ -126,17 +188,41 @@ final class StatusTransitioner {
 
     public void succeeded() {
       try {
+        switch(st.to()) {
+          case AVAILABLE:
+            runInitHooks();
+            break;
+          case UNINITIALIZED:
+            runCloseHooks();
+            break;
+          case MAINTENANCE:
+            break;
+          default:
+            throw new IllegalArgumentException("Didn't expect that enum value: " + st.to());
+        }
+        st.succeeded();
+      } catch (Exception e) {
+        st.failed();
+        throw new StateTransitionException(e);
+      }
+
+      try {
         fireTransitionEvent(st.from().toPublicStatus(), st.to().toPublicStatus());
       } finally {
         maintenanceLease = thread;
-        st.succeeded();
         logger.info("{} successful.", action);
       }
     }
 
-    public void failed() {
+    public void failed(Throwable t) {
       st.failed();
       logger.error("{} failed.", action);
+      if (t != null) {
+        if(t instanceof StateTransitionException) {
+          throw (StateTransitionException) t;
+        }
+        throw new StateTransitionException(t);
+      }
     }
   }
 }

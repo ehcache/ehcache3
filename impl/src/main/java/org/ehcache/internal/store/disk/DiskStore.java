@@ -34,20 +34,21 @@ import org.ehcache.function.Predicates;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
+import org.ehcache.spi.Persistable;
+import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.internal.store.disk.DiskStorageFactory.Element;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -60,7 +61,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
@@ -72,7 +72,7 @@ import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
  *
  * @author Ludovic Orban
  */
-public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
+public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
 
   private static final Logger LOG = LoggerFactory.getLogger(DiskStore.class);
 
@@ -81,7 +81,6 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   private static final int DEFAULT_SEGMENT_COUNT = 16;
   private static final int DEFAULT_QUEUE_CAPACITY = 16;
   private static final int DEFAULT_EXPIRY_THREAD_INTERVAL = 30000;
-  private static final DiskStorePathManager DISK_STORE_PATH_MANAGER = new DiskStorePathManager();
 
   private final Class<K> keyType;
   private final Class<V> valueType;
@@ -93,6 +92,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   private final Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto;
   private final Comparator<DiskStorageFactory.DiskSubstitute<K, V>> evictionPrioritizer;
   private final Random random = new Random();
+  private final boolean persistent;
 
   private volatile DiskStorageFactory<K, V> diskStorageFactory;
   private volatile Segment<K, V>[] segments;
@@ -126,6 +126,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     this.indexSerializer = indexSerializer;
     this.dataFile = dataFile;
     this.indexFile = indexFile;
+    this.persistent = diskPool.isPersistent();
   }
 
   private Predicate<DiskStorageFactory.DiskSubstitute<K, V>> wrap(final Predicate<Cache.Entry<K, V>> predicate) {
@@ -421,72 +422,39 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public void destroy() throws CacheAccessException {
-    close();
+  public void destroy() throws Exception {
+    internalClear();
     if (dataFile.delete() | indexFile.delete()) {
       LOG.info("Destroyed " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
     }
   }
 
   @Override
-  public void create() throws CacheAccessException {
-    try {
-      boolean success = dataFile.createNewFile();
-      if (!success) {
-        throw new CacheAccessException("Data file already exists: " + dataFile.getAbsolutePath());
+  public boolean isPersistent() {
+    return persistent;
+  }
+
+  @Override
+  public void create() throws Exception {
+    boolean dataFileCreated = dataFile.createNewFile();
+    boolean indexFileCreated = indexFile.createNewFile();
+
+    if (dataFileCreated && indexFileCreated) {
+      LOG.info("Created " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
+    } else if (!dataFileCreated && !indexFileCreated) {
+      LOG.info("Reusing " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
+    } else {
+      if (indexFileCreated) {
+        dataFile.delete();
+        dataFile.createNewFile();
+        LOG.warn("Index file " + indexFile.getAbsolutePath() + " was missing, dropped previously persisted data");
       }
-    } catch (IOException ioe) {
-      throw new CacheAccessException(ioe);
-    }
-
-    try {
-      boolean success = indexFile.createNewFile();
-      if (!success) {
-        throw new CacheAccessException("Index file already exists: " + indexFile.getAbsolutePath());
+      if (dataFileCreated) {
+        indexFile.delete();
+        indexFile.createNewFile();
+        LOG.warn("Data file " + dataFile.getAbsolutePath() + " was missing,  dropped previously persisted data");
       }
-    } catch (IOException ioe) {
-      dataFile.delete();
-      throw new CacheAccessException(ioe);
     }
-
-    LOG.info("Created " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
-  }
-
-  @Override
-  public void close() {
-    if (diskStorageFactory == null) {
-      LOG.warn("disk store already closed");
-      return;
-    }
-    diskStorageFactory.unbind();
-    diskStorageFactory = null;
-    segments = null;
-  }
-
-  @Override
-  public void init() {
-
-    try {
-      diskStorageFactory = new DiskStorageFactory<K, V>(capacity, evictionVeto, evictionPrioritizer,
-          timeSource, elementSerializer, indexSerializer, dataFile, indexFile,
-          DEFAULT_SEGMENT_COUNT, DEFAULT_QUEUE_CAPACITY, DEFAULT_EXPIRY_THREAD_INTERVAL);
-    } catch (FileNotFoundException fnfe) {
-      throw new IllegalStateException(fnfe);
-    }
-
-    segments = new Segment[DEFAULT_SEGMENT_COUNT];
-    for (int i = 0; i < segments.length; i++) {
-      segments[i] = new Segment<K, V>(diskStorageFactory, timeSource, this);
-    }
-
-    segmentShift = Integer.numberOfLeadingZeros(segments.length - 1);
-
-    diskStorageFactory.bind(this);
-  }
-
-  @Override
-  public void maintenance() {
-    //noop;
   }
 
   @Override
@@ -1024,10 +992,10 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
-    static final AtomicInteger aliasCounter = new AtomicInteger();
 
     private ServiceProvider serviceProvider;
-    
+    private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
+
     @Override
     public <K, V> DiskStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
       TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[]) serviceConfigs);
@@ -1047,13 +1015,55 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
       LocalPersistenceService localPersistenceService = serviceProvider.findService(LocalPersistenceService.class);
 
-      return new DiskStore<K, V>(storeConfig, localPersistenceService.getDataFile(identifier),
-              localPersistenceService.getIndexFile(identifier), timeSource, elementSerializer, objectSerializer);
+      DiskStore<K, V> diskStore = new DiskStore<K, V>(storeConfig, localPersistenceService.getDataFile(identifier),
+          localPersistenceService.getIndexFile(identifier), timeSource, elementSerializer, objectSerializer);
+      createdStores.add(diskStore);
+      return diskStore;
     }
 
     @Override
     public void releaseStore(final Store<?, ?> resource) {
-      resource.close();
+      if (!createdStores.contains(resource)) {
+        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+      }
+      close((DiskStore)resource);
+    }
+
+    static void close(final DiskStore resource) {
+      if (resource.diskStorageFactory == null) {
+        LOG.warn("disk store already closed");
+        return;
+      }
+      resource.diskStorageFactory.unbind();
+      resource.diskStorageFactory = null;
+      resource.segments = null;
+    }
+
+    @Override
+    public void initStore(Store<?, ?> resource) {
+      if (!createdStores.contains(resource)) {
+        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+      }
+      init((DiskStore)resource);
+    }
+
+    static void init(final DiskStore resource) {
+      try {
+        resource.diskStorageFactory = new DiskStorageFactory<Object, Object>(resource.capacity, resource.evictionVeto, resource.evictionPrioritizer,
+            resource.timeSource, resource.elementSerializer, resource.indexSerializer, resource.dataFile, resource.indexFile,
+            DEFAULT_SEGMENT_COUNT, DEFAULT_QUEUE_CAPACITY, DEFAULT_EXPIRY_THREAD_INTERVAL);
+      } catch (FileNotFoundException fnfe) {
+        throw new IllegalStateException(fnfe);
+      }
+
+      resource.segments = new Segment[DEFAULT_SEGMENT_COUNT];
+      for (int i = 0; i < resource.segments.length; i++) {
+        resource.segments[i] = new Segment<Object, Object>(resource.diskStorageFactory, resource.timeSource, resource);
+      }
+
+      resource.segmentShift = Integer.numberOfLeadingZeros(resource.segments.length - 1);
+
+      resource.diskStorageFactory.bind(resource);
     }
 
     @Override
@@ -1064,6 +1074,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     @Override
     public void stop() {
       this.serviceProvider = null;
+      createdStores.clear();
     }
 
     @Override
@@ -1074,6 +1085,11 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     @Override
     public void releaseAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
       releaseStore(resource);
+    }
+
+    @Override
+    public void initAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
+      initStore(resource);
     }
   }
 }

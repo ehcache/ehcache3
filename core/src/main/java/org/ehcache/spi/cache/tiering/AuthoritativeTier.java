@@ -55,6 +55,8 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
     <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
 
     void releaseAuthoritativeTier(AuthoritativeTier<?, ?> resource);
+
+    void initAuthoritativeTier(AuthoritativeTier<?, ?> resource);
   }
 
 }

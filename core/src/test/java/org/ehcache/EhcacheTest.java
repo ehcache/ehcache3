@@ -16,7 +16,6 @@
 
 package org.ehcache;
 
-import org.ehcache.events.StateChangeListener;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
@@ -24,6 +23,7 @@ import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
+import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.CoreMatchers;
@@ -53,7 +53,6 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -198,22 +197,22 @@ public class EhcacheTest {
   }
 
   @Test
-  public void testDelegatesLifecycleCallsToStore() {
-    final Store store = mock(Store.class);
-    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest2"));
+  public void testDelegatesLifecycleCallsToStore() throws Exception {
+    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), mock(Store.class), LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest2"));
+    final LifeCycled mock = mock(LifeCycled.class);
+    ehcache.addHook(mock);
     ehcache.init();
-    verify(store).init();
+    verify(mock).init();
     ehcache.close();
-    verify(store).close();
-    ehcache.toMaintenance();
-    verify(store).maintenance();
+    verify(mock).close();
   }
 
   @Test
-  public void testFailingTransitionGoesToLowestStatus() {
-    final Store store = mock(Store.class);
-    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest3"));
-    doThrow(new RuntimeException()).when(store).init();
+  public void testFailingTransitionGoesToLowestStatus() throws Exception {
+    final LifeCycled mock = mock(LifeCycled.class);
+    Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), mock(Store.class), LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest3"));
+    doThrow(new Exception()).when(mock).init();
+    ehcache.addHook(mock);
     try {
       ehcache.init();
       fail();
@@ -221,37 +220,15 @@ public class EhcacheTest {
       assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
     }
 
-    reset(store);
+    reset(mock);
     ehcache.init();
     assertThat(ehcache.getStatus(), is(Status.AVAILABLE));
-    doThrow(new RuntimeException()).when(store).close();
-    try {
-      ehcache.close();
-      fail();
-    } catch (StateTransitionException e) {
-      assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
-    }
-
-    doThrow(new RuntimeException()).when(store).maintenance();
-    try {
-      ehcache.toMaintenance();
-      fail();
-    } catch (StateTransitionException e) {
-      assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
-    }
-
-    reset(store);
+    ehcache.close();
+    reset(mock);
     ehcache.toMaintenance();
     assertThat(ehcache.getStatus(), is(Status.MAINTENANCE));
-    doThrow(new RuntimeException()).when(store).close();
-    try {
-      ehcache.close();
-      fail();
-    } catch (StateTransitionException e) {
-      assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
-    }
   }
-
+  
   @Test
   public void testPutIfAbsent() throws CacheAccessException {
     final AtomicReference<Object> existingValue = new AtomicReference<Object>();
@@ -309,18 +286,31 @@ public class EhcacheTest {
   }
 
   @Test
-  public void testFiresListener() {
+  public void testInvokesHooks() {
     Store store = mock(Store.class);
     Ehcache ehcache = new Ehcache(newCacheConfigurationBuilder().buildConfig(Object.class, Object.class), store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest5"));
 
-    final StateChangeListener listener = mock(StateChangeListener.class);
-    ehcache.registerListener(listener);
+    final LifeCycled hook = mock(LifeCycled.class);
+    ehcache.addHook(hook);
     ehcache.init();
-    verify(listener).stateTransition(Status.UNINITIALIZED, Status.AVAILABLE);
-    reset(listener);
-    ehcache.deregisterListener(listener);
+    try {
+      verify(hook).init();
+    } catch (Exception e) {
+      fail();
+    }
+    reset(hook);
+    try {
+      ehcache.removeHook(hook);
+      fail();
+    } catch (IllegalStateException e) {
+      // expected
+    }
     ehcache.close();
-    verify(listener, never()).stateTransition(Status.AVAILABLE, Status.UNINITIALIZED);
+    try {
+      verify(hook).close();
+    } catch (Exception e) {
+      fail();
+    }
   }
 
   @Test
@@ -360,11 +350,6 @@ public class EhcacheTest {
       }
 
       return Collections.emptyMap();
-    }
-
-    @Override
-    public void init() {
-      // No-Op
     }
 
     @Override
@@ -409,26 +394,6 @@ public class EhcacheTest {
 
     @Override
     public void clear() throws CacheAccessException {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public void destroy() throws CacheAccessException {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public void create() throws CacheAccessException {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public void close() {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public void maintenance() {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 

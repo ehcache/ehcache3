@@ -51,7 +51,7 @@ public class StoreClearTest<K, V> extends SPIStoreTester<K, V> {
   @After
   public void tearDown() {
     if (kvStore != null) {
-      kvStore.close();
+//      kvStore.close();
       kvStore = null;
     }
   }

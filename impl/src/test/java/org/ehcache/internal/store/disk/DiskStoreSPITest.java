@@ -23,7 +23,6 @@ import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
@@ -85,10 +84,10 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
         try {
           diskStore.destroy();
           diskStore.create();
-        } catch (CacheAccessException e) {
+        } catch (Exception e) {
           throw new RuntimeException(e);
         }
-        diskStore.init();
+        DiskStore.Provider.init(diskStore);
         return diskStore;
       }
 
@@ -156,10 +155,23 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
       }
 
       @Override
+      public void close(final Store<String, String> store) {
+        DiskStore.Provider.close((DiskStore)store);
+      }
+
+      @Override
       public ServiceProvider getServiceProvider() {
         return new ServiceLocator();
       }
     };
+  }
+
+  public static void initStore(final DiskStore<?, ?> diskStore) {
+    DiskStore.Provider.init(diskStore);
+  }
+
+  public static void closeStore(final DiskStore<?, ?> diskStore) {
+    DiskStore.Provider.close(diskStore);
   }
 
   @Override

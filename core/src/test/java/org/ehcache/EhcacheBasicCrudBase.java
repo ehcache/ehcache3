@@ -357,28 +357,6 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public void destroy() throws CacheAccessException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void create() throws CacheAccessException {
-    }
-
-    @Override
-    public void close() {
-      this.entries.clear();
-    }
-
-    @Override
-    public void init() {
-    }
-
-    @Override
-    public void maintenance() {
-    }
-
-    @Override
     public void enableStoreEventNotifications(final StoreEventListener<String, String> listener) {
       throw new UnsupportedOperationException();
     }

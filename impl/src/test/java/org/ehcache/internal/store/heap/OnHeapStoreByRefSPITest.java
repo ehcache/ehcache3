@@ -124,6 +124,11 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
+      public void close(final Store<String, String> store) {
+        OnHeapStore.Provider.close((OnHeapStore)store);
+      }
+
+      @Override
       public ServiceProvider getServiceProvider() {
         return new ServiceLocator();
       }

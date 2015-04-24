@@ -14,22 +14,35 @@
  * limitations under the License.
  */
 
-package org.ehcache.exceptions;
+package org.ehcache.spi;
 
 /**
- * Exception indicating that a state transition failed.
+ * Internal interface to control the persistence lifecycle of
+ * persistence-capable entities.
  *
- * @author Alex Snaps
+ * @author Ludovic Orban
  */
-public class StateTransitionException extends RuntimeException {
-
-  private static final long serialVersionUID = 7602752670854885218L;
+public interface Persistable {
 
   /**
-   * Creates an exception with the provided cause.
-   * @param cause the cause of this exception
+   * Create the persistent representation of the entity.
+   *
+   * @throws Exception on error
    */
-  public StateTransitionException(final Throwable cause) {
-    super(cause.getMessage(), cause);
-  }
+  void create() throws Exception;
+
+  /**
+   * Destroy the persistent representation of the entity.
+   *
+   * @throws Exception on error
+   */
+  void destroy() throws Exception;
+
+  /**
+   * Check if the entity wants to survive the lifecycle of the JVM.
+   *
+   * @return true if it wants to, false otherwise.
+   */
+  boolean isPersistent();
+
 }

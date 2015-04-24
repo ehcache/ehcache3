@@ -88,26 +88,10 @@ public interface CacheConfiguration<K, V> {
   Expiry<? super K, ? super V> getExpiry();
 
   /**
-   * Indicates if the {@link Cache} is to be persistent.
-   *
-   * @return {@code true} if the {@code Cache} needs to be persistent, {@code false} otherwise
-   */
-  PersistenceMode getPersistenceMode();
-
-  /**
    * Get the {@link ResourcePools resource pools} the {@link Cache} can make use of.
    *
    * @return the {@link ResourcePools}
    */
   ResourcePools getResourcePools();
-
-  /**
-   * The persistence mode
-   */
-  enum PersistenceMode {
-    SWAP,
-    CREATE_IF_ABSENT,
-    EXPECT_EXISTS,
-  }
 
 }

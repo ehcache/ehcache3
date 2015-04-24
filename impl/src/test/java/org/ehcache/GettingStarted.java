@@ -97,10 +97,9 @@ public class GettingStarted {
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/myData"))) // <1>
         .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder()
-            .persistenceMode(CacheConfiguration.PersistenceMode.CREATE_IF_ABSENT)
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
-                .disk(100, EntryUnit.ENTRIES) // <2>
+                .disk(100, EntryUnit.ENTRIES, true) // <2>
                 .build())
             .buildConfig(Long.class, String.class))
         .build(true);
@@ -127,7 +126,6 @@ public class GettingStarted {
   @Test
   public void testTieredStore() throws Exception {
     CacheConfiguration<Long, String> tieredCacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .persistenceMode(CacheConfiguration.PersistenceMode.SWAP)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES).build())
         .buildConfig(Long.class, String.class);
 
@@ -164,8 +162,7 @@ public class GettingStarted {
   @Test
   public void testPersistentDiskCache() throws Exception {
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .persistenceMode(CacheConfiguration.PersistenceMode.CREATE_IF_ABSENT)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES).build())
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES, true).build())
         .buildConfig(Long.class, String.class);
 
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()

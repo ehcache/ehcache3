@@ -28,6 +28,7 @@ import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.StoreFactory;
+import org.ehcache.internal.store.offheap.factories.OffHeapStoreProviderFactory;
 import org.ehcache.internal.tier.AuthoritativeTierFactory;
 import org.ehcache.internal.tier.AuthoritativeTierSPITest;
 import org.ehcache.spi.ServiceLocator;
@@ -60,7 +61,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
         OffHeapStore<String, String> store = new OffHeapStore<String, String>(config, serializationProvider
             .createSerializer(String.class, config.getClassLoader()),
             serializationProvider.createSerializer(String.class, config.getClassLoader()), timeSource, MemoryUnit.MB.toBytes(1));
-        store.init();
+        OffHeapStore.Provider.init(store);
         return store;
       }
 
@@ -127,6 +128,11 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
       @Override
       public String createValue(long seed) {
         return Long.toString(seed);
+      }
+
+      @Override
+      public void close(final Store<String, String> store) {
+        OffHeapStore.Provider.close((OffHeapStore)store);
       }
     };
   }

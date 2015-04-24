@@ -45,6 +45,9 @@ import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.statistics.CacheOperationOutcomes.EvictionOutcome;
+import org.ehcache.util.ConcurrentWeakIdentityHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terracotta.statistics.observer.OperationObserver;
 
 import java.util.AbstractMap.SimpleEntry;
@@ -68,6 +71,8 @@ import static org.terracotta.statistics.StatisticsBuilder.operation;
  * @author Alex Snaps
  */
 public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(OnHeapStore.class);
 
   private static final int ATTEMPT_RATIO = 4;
   private static final int EVICTION_RATIO = 2;
@@ -338,28 +343,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     map.clear();
   }
 
-  @Override
-  public void destroy() throws CacheAccessException {
-    map.clear();
-  }
-
-  @Override
-  public void create() throws CacheAccessException {
-    // Nothing we have to do here...
-  }
-
-  @Override
-  public void close() {
-    map.clear();
-    disableStoreEventNotifications();
-  }
-
-  @Override
-  public void init() {
-    // Nothing we have to do here...
-  }
-
-  @Override
   public void maintenance() {
     // Nothing we have to do here...
   }
@@ -923,7 +906,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   public static class Provider implements Store.Provider, CachingTier.Provider {
     
     private ServiceProvider serviceProvider;
-    
+    private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
+
     @Override
     public <K, V> OnHeapStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
       OnHeapStoreServiceConfig onHeapStoreServiceConfig = findSingletonAmongst(OnHeapStoreServiceConfig.class, (Object[])serviceConfigs);
@@ -938,15 +922,29 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
         keySerializer = serializationProvider.createSerializer(storeConfig.getKeyType(), storeConfig.getClassLoader());
         valueSerializer = serializationProvider.createSerializer(storeConfig.getValueType(), storeConfig.getClassLoader());
       }
-      return new OnHeapStore<K, V>(storeConfig, timeSource, storeByValue, keySerializer, valueSerializer);
+      OnHeapStore<K, V> onHeapStore = new OnHeapStore<K, V>(storeConfig, timeSource, storeByValue, keySerializer, valueSerializer);
+      createdStores.add(onHeapStore);
+      return onHeapStore;
     }
 
     @Override
-    public void releaseStore(final Store<?, ?> resource) {
-      try {
-        resource.clear();
-      } catch (CacheAccessException e) {
-        throw new RuntimeException(e);
+    public void releaseStore(Store<?, ?> resource) {
+      if (!createdStores.remove(resource)) {
+        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+      }
+      final OnHeapStore onHeapStore = (OnHeapStore)resource;
+      close(onHeapStore);
+    }
+
+    static void close(final OnHeapStore onHeapStore) {
+      onHeapStore.map.clear();
+      onHeapStore.disableStoreEventNotifications();
+    }
+
+    @Override
+    public void initStore(Store<?, ?> resource) {
+      if (!createdStores.contains(resource)) {
+        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
     }
 
@@ -958,6 +956,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     @Override
     public void stop() {
       this.serviceProvider = null;
+      createdStores.clear();
     }
 
     @Override
@@ -968,6 +967,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     @Override
     public void releaseCachingTier(CachingTier<?, ?> resource) {
       releaseStore((Store<?, ?>) resource);
+    }
+
+    @Override
+    public void initCachingTier(CachingTier<?, ?> resource) {
+      initStore((Store<?, ?>) resource);
     }
   }
 

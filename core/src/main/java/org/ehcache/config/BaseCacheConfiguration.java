@@ -35,20 +35,18 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   private final Collection<ServiceConfiguration<?>> serviceConfigurations;
   private final ClassLoader classLoader;
   private final Expiry<? super K, ? super V> expiry;
-  private final PersistenceMode persistenceMode;
   private final ResourcePools resourcePools;
 
   public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType,
           EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
           ClassLoader classLoader, Expiry<? super K, ? super V> expiry,
-          PersistenceMode persistenceMode, ResourcePools resourcePools, ServiceConfiguration<?>... serviceConfigurations) {
+          ResourcePools resourcePools, ServiceConfiguration<?>... serviceConfigurations) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.evictionVeto = evictionVeto;
     this.evictionPrioritizer = evictionPrioritizer;
     this.classLoader = classLoader;
     this.expiry = expiry;
-    this.persistenceMode = persistenceMode;
     this.resourcePools = resourcePools;
     this.serviceConfigurations = Collections.unmodifiableCollection(Arrays.asList(serviceConfigurations));
   }
@@ -85,11 +83,6 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   @Override
   public Expiry<? super K, ? super V> getExpiry() {
     return expiry;
-  }
-
-  @Override
-  public PersistenceMode getPersistenceMode() {
-    return persistenceMode;
   }
 
   @Override

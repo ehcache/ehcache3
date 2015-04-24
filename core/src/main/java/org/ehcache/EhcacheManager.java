@@ -29,7 +29,8 @@ import org.ehcache.event.CacheEventListenerFactory;
 import org.ehcache.events.CacheEventNotificationListenerServiceProvider;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.CacheManagerListener;
-import org.ehcache.exceptions.StateTransitionException;
+import org.ehcache.spi.LifeCycled;
+import org.ehcache.spi.Persistable;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.Service;
@@ -44,7 +45,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -116,30 +117,13 @@ public class EhcacheManager implements PersistentCacheManager {
           listener.cacheRemoved(alias, ehcache);
         }
       }
-      closeEhcache(alias, ehcache, cacheHolder.toBeReleased);
-      CacheConfiguration.PersistenceMode persistenceMode = ehcache.getRuntimeConfiguration().getPersistenceMode();
-      if (persistenceMode != null) {
-        Maintainable maintainable = ehcache.toMaintenance();
-        try {
-          switch (persistenceMode) {
-            case SWAP:
-              maintainable.destroy();
-              break;
-            default:
-          }
-        } finally {
-          maintainable.close();
-        }
-      }
+      closeEhcache(alias, ehcache);
       LOGGER.info("Cache '{}' is removed from EhcacheManager.", alias);
     }
   }
 
-  void closeEhcache(final String alias, final Ehcache<?, ?> ehcache, final Deque<Releasable> releasables) {
+  void closeEhcache(final String alias, final Ehcache<?, ?> ehcache) {
     ehcache.close();
-    while(!releasables.isEmpty()) {
-      releasables.pop().release();
-    }
     LOGGER.info("Cache '{}' is closed from EhcacheManager.", alias);
   }
 
@@ -162,29 +146,7 @@ public class EhcacheManager implements PersistentCacheManager {
 
     RuntimeException failure = null;
     try {
-      cache = createNewEhcache(alias, config, keyType, valueType, value.toBeReleased);
-      CacheConfiguration.PersistenceMode persistenceMode = config.getPersistenceMode();
-      if (persistenceMode != null) {
-        Maintainable maintainable = cache.toMaintenance();
-        try {
-          switch (persistenceMode) {
-            case SWAP:
-              maintainable.destroy();
-              maintainable.create();
-              break;
-            case CREATE_IF_ABSENT:
-              try {
-                maintainable.create();
-              } catch (Exception e) {
-                // ignore
-              }
-              break;
-            default:
-          }
-        } finally {
-          maintainable.close();
-        }
-      }
+      cache = createNewEhcache(alias, config, keyType, valueType);
       cache.init();
     } catch (RuntimeException e) {
       failure = e;
@@ -220,23 +182,66 @@ public class EhcacheManager implements PersistentCacheManager {
     if (cacheClassLoader != config.getClassLoader() ) {
       config = new BaseCacheConfiguration<K, V>(config.getKeyType(), config.getValueType(),
           config.getEvictionVeto(), config.getEvictionPrioritizer(), cacheClassLoader, config.getExpiry(),
-          config.getPersistenceMode(), config.getResourcePools(), config.getServiceConfigurations().toArray(
+          config.getResourcePools(), config.getServiceConfigurations().toArray(
           new ServiceConfiguration<?>[config.getServiceConfigurations().size()]));
     }
     return config;
   }
 
   <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
-                                        final Class<K> keyType, final Class<V> valueType, Deque<Releasable> releasables) {
+                                        final Class<K> keyType, final Class<V> valueType) {
     Collection<ServiceConfiguration<?>> adjustedServiceConfigs = new ArrayList<ServiceConfiguration<?>>(config.getServiceConfigurations());
     ServiceConfiguration[] serviceConfigs = adjustedServiceConfigs.toArray(new ServiceConfiguration[adjustedServiceConfigs.size()]);
+
+    List<LifeCycled> lifeCycledList = new ArrayList<LifeCycled>();
 
     final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
     final Store<K, V> store = storeProvider.createStore(
             new PersistentStoreConfigurationImpl<K, V>(new StoreConfigurationImpl<K, V>(config), alias), serviceConfigs);
-    releasables.add(new Releasable() {
+
+    lifeCycledList.add(new LifeCycled() {
       @Override
-      public void release() {
+      public void init() throws Exception {
+        if (store instanceof Persistable) {
+          final Persistable persistable = (Persistable) store;
+          if (!persistable.isPersistent()) {
+            try {
+              persistable.destroy();
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            }
+          }
+          try {
+            persistable.create();
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        }
+      }
+
+      @Override
+      public void close() throws Exception {
+        if (store instanceof Persistable) {
+          final Persistable persistable = (Persistable) store;
+          if (!persistable.isPersistent()) {
+            try {
+              persistable.destroy();
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            }
+          }
+        }
+      }
+    });
+
+    lifeCycledList.add(new LifeCycled() {
+      @Override
+      public void init() throws Exception {
+        storeProvider.initStore(store);
+      }
+
+      @Override
+      public void close() {
         storeProvider.releaseStore(store);
       }
     });
@@ -251,10 +256,15 @@ public class EhcacheManager implements PersistentCacheManager {
         final WriteBehindDecoratorLoaderWriterProvider factory = serviceLocator.findService(WriteBehindDecoratorLoaderWriterProvider.class);
         decorator = factory.createWriteBehindDecoratorLoaderWriter((CacheLoaderWriter<K, V>)loaderWriter, writeBehindConfiguration);
         if(decorator != null) {
-          releasables.add(new Releasable() {
-            
+          lifeCycledList.add(new LifeCycled() {
+
             @Override
-            public void release() {
+            public void init() throws Exception {
+              // no-op for now
+            }
+
+            @Override
+            public void close() {
               factory.releaseWriteBehindDecoratorCacheLoaderWriter(decorator);
             }
           });
@@ -265,9 +275,14 @@ public class EhcacheManager implements PersistentCacheManager {
       }
       
       if (loaderWriter != null) {
-        releasables.add(new Releasable() {
+        lifeCycledList.add(new LifeCycled() {
           @Override
-          public void release() {
+          public void init() throws Exception {
+            // no-op for now
+          }
+
+          @Override
+          public void close() {
             cacheLoaderWriterFactory.releaseCacheLoaderWriter(loaderWriter);
           }
         });
@@ -279,9 +294,14 @@ public class EhcacheManager implements PersistentCacheManager {
 
     final CacheEventNotificationListenerServiceProvider cenlProvider = serviceLocator.findService(CacheEventNotificationListenerServiceProvider.class);
     final CacheEventNotificationService<K, V> evtService = cenlProvider.createCacheEventNotificationService();
-    releasables.add(new Releasable() {
+    lifeCycledList.add(new LifeCycled() {
       @Override
-      public void release() {
+      public void init() throws Exception {
+        // no-op for now
+      }
+
+      @Override
+      public void close() {
         cenlProvider.releaseCacheEventNotificationService(evtService);
       }
       
@@ -302,14 +322,23 @@ public class EhcacheManager implements PersistentCacheManager {
         if (lsnr != null) {
           ehCache.getRuntimeConfiguration().registerCacheEventListener(lsnr, lsnrConfig.orderingMode(), lsnrConfig.firingMode(),
           lsnrConfig.fireOn());
-          releasables.add(new Releasable() {
+          lifeCycledList.add(new LifeCycled() {
             @Override
-            public void release() {
+            public void init() throws Exception {
+              // no-op for now
+            }
+
+            @Override
+            public void close() {
               evntLsnrFactory.releaseEventListener(lsnr);
             }
           });
         }
       }
+    }
+
+    for (LifeCycled lifeCycled : lifeCycledList) {
+      ehCache.addHook(lifeCycled);
     }
 
     return ehCache;
@@ -350,8 +379,7 @@ public class EhcacheManager implements PersistentCacheManager {
       try {
         serviceLocator.startAllServices(serviceConfigs);
       } catch (Exception e) {
-        st.failed();
-        throw e;
+        st.failed(e);
       }
       Deque<String> initiatedCaches = new ArrayDeque<String>();
       try {
@@ -373,8 +401,7 @@ public class EhcacheManager implements PersistentCacheManager {
         throw e;
       }
     } catch (Exception e) {
-      st.failed();
-      throw new StateTransitionException(e);
+      st.failed(e);
     }
     st.succeeded();
   }
@@ -408,11 +435,7 @@ public class EhcacheManager implements PersistentCacheManager {
       }
     }
     if(firstException != null) {
-      st.failed();
-      if(firstException instanceof StateTransitionException) {
-        throw (StateTransitionException) firstException;
-      }
-      throw new StateTransitionException(firstException);
+      st.failed(firstException);
     }
     st.succeeded();
   }
@@ -440,9 +463,9 @@ public class EhcacheManager implements PersistentCacheManager {
       st.succeeded();
       return maintainable;
     } catch (RuntimeException e) {
-      st.failed();
-      throw e;
+      st.failed(e); // this throws
     }
+    throw new AssertionError("Shouldn reach this line... ever!");
   }
 
   void create() {
@@ -476,7 +499,6 @@ public class EhcacheManager implements PersistentCacheManager {
   private static final class CacheHolder {
     private final Class<?> keyType;
     private final Class<?> valueType;
-    private final Deque<Releasable> toBeReleased = new LinkedList<Releasable>();
     private volatile Ehcache<?, ?> cache;
     private volatile boolean isValueSet = false;
 
@@ -522,9 +544,5 @@ public class EhcacheManager implements PersistentCacheManager {
       this.isValueSet = true;
       notifyAll();
     }
-  }
-
-  interface Releasable {
-    void release();
   }
 }

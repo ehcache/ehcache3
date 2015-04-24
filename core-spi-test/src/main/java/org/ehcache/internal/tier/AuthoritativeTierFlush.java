@@ -57,7 +57,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
   @After
   public void tearDown() {
     if (tier != null) {
-      tier.close();
+//      tier.close();
       tier = null;
     }
   }

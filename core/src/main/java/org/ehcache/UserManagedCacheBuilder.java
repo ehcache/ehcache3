@@ -30,6 +30,7 @@ import org.ehcache.config.UserManagedCacheConfiguration;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -55,7 +56,6 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
   private CacheLoaderWriter<? super K, V> cacheLoaderWriter;
   private ScheduledExecutorService statisticsExecutor;
   private CacheEventNotificationService<K, V> cacheEventNotificationService;
-  private CacheConfiguration.PersistenceMode persistenceMode;
   private ResourcePools resourcePools = newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
 
   public UserManagedCacheBuilder(final Class<K> keyType, final Class<V> valueType, final Logger logger) {
@@ -70,16 +70,27 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     } catch (Exception e) {
       throw new IllegalStateException("UserManagedCacheBuilder failed to build.", e);
     }
-    Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
+    final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
 
     final StoreConfigurationImpl<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType,
         evictionVeto, evictionPrioritizer, classLoader, expiry, resourcePools);
     final Store<K, V> store = storeProvider.createStore(storeConfig);
 
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionVeto,
-        evictionPrioritizer, classLoader, expiry, persistenceMode, resourcePools);
+        evictionPrioritizer, classLoader, expiry, resourcePools);
 
     final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, cacheEventNotificationService, statisticsExecutor,logger);
+    ehcache.addHook(new LifeCycled() {
+      @Override
+      public void init() throws Exception {
+        // no-op for now
+      }
+
+      @Override
+      public void close() throws Exception {
+        storeProvider.releaseStore(store);
+      }
+    });
 
     return cast(ehcache);
   }
@@ -133,11 +144,6 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     return this;
   }
 
-  public final UserManagedCacheBuilder<K, V, T> persistenceMode(CacheConfiguration.PersistenceMode persistenceMode) {
-    this.persistenceMode = persistenceMode;
-    return this;
-  }
-  
   public final UserManagedCacheBuilder<K, V, T> withStatistics(ScheduledExecutorService statisticsExecutor) {
     this.statisticsExecutor = statisticsExecutor;
     return this;

@@ -76,20 +76,14 @@ public interface CachingTier<K, V> {
 
   /* lifecycle methods */
 
-  void destroy() throws CacheAccessException;
-
-  void create() throws CacheAccessException;
-
-  void close();
-
-  void init();
-
   void maintenance();
 
   interface Provider extends Service {
     <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
 
     void releaseCachingTier(CachingTier<?, ?> resource);
+
+    void initCachingTier(CachingTier<?, ?> resource);
   }
 
 }

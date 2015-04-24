@@ -18,6 +18,7 @@ package org.ehcache.internal.store;
 
 import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.spi.Persistable;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
@@ -27,8 +28,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#destroy()} contract of the
- * {@link org.ehcache.spi.cache.Store Store} interface.
+ * Test the {@link Persistable#destroy()} contract of the
+ * {@link org.ehcache.spi.cache.Store stores} implementing the interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
@@ -51,21 +52,26 @@ public class StoreDestroyTest<K, V> extends SPIStoreTester<K, V> {
   @After
   public void tearDown() {
     if (kvStore != null) {
-      kvStore.close();
+      factory.close(kvStore);
     }
   }
 
   @SPITest
   public void noDataCanBeRecoveredFromDestroyedStore()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
+    if (!(kvStore instanceof Persistable)) {
+      System.err.println("disabled - store is not an instance of org.ehcache.spi.Persistable");
+      return;
+    }
+
     K key = factory.createKey(1);
     V value = factory.createValue(1);
 
     kvStore.put(key, value);
 
     try {
-      kvStore.destroy();
-    } catch (CacheAccessException e) {
+      ((Persistable) kvStore).destroy();
+    } catch (Exception e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();
     }

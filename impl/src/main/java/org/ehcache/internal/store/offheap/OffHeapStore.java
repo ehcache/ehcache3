@@ -45,6 +45,9 @@ import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.statistics.StoreOperationOutcomes;
+import org.ehcache.util.ConcurrentWeakIdentityHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.Segment;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
@@ -74,6 +77,8 @@ import static org.terracotta.statistics.StatisticsBuilder.operation;
  * OffHeapStore
  */
 public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(OffHeapStore.class);
 
   private final Class<K> keyType;
   private final Class<V> valueType;
@@ -332,35 +337,6 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   @Override
   public void clear() throws CacheAccessException {
     map.clear();
-  }
-
-  @Override
-  public void destroy() throws CacheAccessException {
-    close();
-  }
-
-  @Override
-  public void create() throws CacheAccessException {
-    // Nothing to do - not persistent
-  }
-
-  @Override
-  public void close() {
-    EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> localMap = map;
-    if (localMap != null) {
-      map = null;
-      localMap.destroy();
-    }
-  }
-
-  @Override
-  public void init() {
-    this.map = createBackingMap(this.sizeInBytes, this.keySerializer, this.valueSerializer, evictionVeto);
-  }
-
-  @Override
-  public void maintenance() {
-    // Nothing to do - not persistent
   }
 
   @Override
@@ -813,6 +789,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
     private ServiceProvider serviceProvider;
+    private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
 
     @Override
     public <K, V> OffHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
@@ -830,12 +807,36 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       MemoryUnit unit = (MemoryUnit)offHeapPool.getUnit();
 
 
-      return new OffHeapStore<K, V>(storeConfig, keySerializer, valueSerializer, timeSource, unit.toBytes(offHeapPool.getSize()));
+      OffHeapStore<K, V> offHeapStore = new OffHeapStore<K, V>(storeConfig, keySerializer, valueSerializer, timeSource, unit.toBytes(offHeapPool.getSize()));
+      createdStores.add(offHeapStore);
+      return offHeapStore;
     }
 
     @Override
     public void releaseStore(Store<?, ?> resource) {
-      resource.close();
+      if (!createdStores.contains(resource)) {
+        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+      }
+      close((OffHeapStore)resource);
+    }
+
+    static void close(final OffHeapStore resource) {EhcacheConcurrentOffHeapClockCache<Object, OffHeapValueHolder<Object>> localMap = resource.map;
+      if (localMap != null) {
+        resource.map = null;
+        localMap.destroy();
+      }
+    }
+
+    @Override
+    public void initStore(Store<?, ?> resource) {
+      if (!createdStores.contains(resource)) {
+        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+      }
+      init((OffHeapStore)resource);
+    }
+
+    static void init(final OffHeapStore resource) {
+      resource.map = resource.createBackingMap(resource.sizeInBytes, resource.keySerializer, resource.valueSerializer, resource.evictionVeto);
     }
 
     @Override
@@ -846,6 +847,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     @Override
     public void stop() {
       this.serviceProvider = null;
+      createdStores.clear();
     }
 
     @Override
@@ -856,6 +858,11 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     @Override
     public void releaseAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
       releaseStore(resource);
+    }
+
+    @Override
+    public void initAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
+      initStore(resource);
     }
   }
 

@@ -17,8 +17,14 @@
 package org.ehcache;
 
 import org.ehcache.events.StateChangeListener;
+import org.ehcache.exceptions.StateTransitionException;
+import org.ehcache.spi.LifeCycled;
+import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -35,11 +41,11 @@ public class StatusTransitionerTest {
   public void testTransitionsToLowestStateOnFailure() {
     StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
     assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
-    transitioner.init().failed();
+    transitioner.init().failed(null);
     assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
     transitioner.init().succeeded();
     assertThat(transitioner.currentStatus(), is(Status.AVAILABLE));
-    transitioner.close().failed();
+    transitioner.close().failed(null);
     assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
   }
 
@@ -136,4 +142,136 @@ public class StatusTransitionerTest {
     transitioner.close();
   }
 
+  @Test
+  public void testHookThrowingVetosTransition() throws Exception {
+    final StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+    final LifeCycled mock = mock(LifeCycled.class);
+    transitioner.addHook(mock);
+    final Exception toBeThrown = new Exception();
+    doThrow(toBeThrown).when(mock).init();
+    try {
+      transitioner.init().succeeded();
+      fail();
+    } catch (StateTransitionException e) {
+      assertThat(e.getCause(), CoreMatchers.<Throwable>sameInstance(toBeThrown));
+    }
+    assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
+    reset(mock);
+    doThrow(toBeThrown).when(mock).close();
+    transitioner.init().succeeded();
+    try {
+      transitioner.close().succeeded();
+      fail();
+    } catch (StateTransitionException e) {
+      assertThat(e.getCause(), CoreMatchers.<Throwable>sameInstance(toBeThrown));
+    }
+  }
+
+  @Test
+  public void testRepectRegistrationOrder() {
+
+    final List<LifeCycled> order = new ArrayList<LifeCycled>();
+
+    final StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+
+    final Recorder first = new Recorder(order, "first");
+    final Recorder second = new Recorder(order, "second");
+
+    transitioner.addHook(first);
+    transitioner.addHook(second);
+    transitioner.init().succeeded();
+    assertThat(order.get(0), CoreMatchers.<LifeCycled>sameInstance(first));
+    assertThat(order.get(1), CoreMatchers.<LifeCycled>sameInstance(second));
+    order.clear();
+    transitioner.close().succeeded();
+    assertThat(order.get(0), CoreMatchers.<LifeCycled>sameInstance(second));
+    assertThat(order.get(1), CoreMatchers.<LifeCycled>sameInstance(first));
+  }
+
+  @Test
+  public void testStopsInitedHooksOnFailure() throws Exception {
+    final StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+    final LifeCycled first = mock(LifeCycled.class);
+    final LifeCycled second = mock(LifeCycled.class);
+    transitioner.addHook(first);
+    transitioner.addHook(second);
+    final Exception toBeThrown = new Exception();
+    doThrow(toBeThrown).when(second).init();
+    try {
+      transitioner.init().succeeded();
+      fail();
+    } catch (StateTransitionException e) {
+      // expected
+    }
+    verify(first).init();
+    verify(first).close();
+  }
+
+  @Test
+  public void testDoesNoReInitsClosedHooksOnFailure() throws Exception {
+    final StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+    final LifeCycled first = mock(LifeCycled.class);
+    final LifeCycled second = mock(LifeCycled.class);
+    transitioner.addHook(first);
+    transitioner.addHook(second);
+    transitioner.init().succeeded();
+    reset(first);
+    reset(second);
+    final Exception toBeThrown = new Exception();
+    doThrow(toBeThrown).when(first).close();
+    try {
+      transitioner.close().succeeded();
+      fail();
+    } catch (StateTransitionException e) {
+      // expected
+    }
+    verify(second).close();
+    verify(second, never()).init();
+  }
+
+  @Test
+  public void testClosesAllHooksOnFailure() throws Exception {
+    final StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+    final LifeCycled first = mock(LifeCycled.class);
+    final LifeCycled second = mock(LifeCycled.class);
+    transitioner.addHook(first);
+    transitioner.addHook(second);
+    transitioner.init().succeeded();
+    reset(first);
+    reset(second);
+    final Exception toBeThrown = new Exception();
+    doThrow(toBeThrown).when(second).close();
+    try {
+      transitioner.close().succeeded();
+      fail();
+    } catch (StateTransitionException e) {
+      // expected
+    }
+    verify(first).close();
+  }
+
+  private static class Recorder implements LifeCycled {
+    private final List<LifeCycled> order;
+    private final String name;
+
+    public Recorder(final List<LifeCycled> order, final String name) {
+      this.order = order;
+      this.name = name;
+    }
+
+    @Override
+    public void init() throws Exception {
+      order.add(this);
+    }
+
+    @Override
+    public void close() throws Exception {
+      order.add(this);
+    }
+
+    @Override
+    public String toString() {
+      return "Recorder{" + name + '}';
+    }
+  }
 }

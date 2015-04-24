@@ -23,21 +23,39 @@ package org.ehcache.config;
 public interface ResourceType {
 
   /**
+   * Whether the resource supports persistence
+   * @return <code>true</code> if it supports persistence
+   */
+  boolean isPersistable();
+
+  /**
    * An enumeration of resource types handled by core ehcache.
    */
-  public enum Core implements ResourceType {
+  enum Core implements ResourceType {
     /**
      * Heap resource.
      */
-    HEAP,
+    HEAP(false),
     /**
      * OffHeap resource.
      */
-    OFFHEAP,
+    OFFHEAP(false),
     /**
      * Disk resource.
      */
-    DISK,
+    DISK(true);
+
+
+    private final boolean persistable;
+
+    Core(boolean persistable) {
+      this.persistable = persistable;
+    }
+
+    @Override
+    public boolean isPersistable() {
+      return persistable;
+    }
   }
 
 }
