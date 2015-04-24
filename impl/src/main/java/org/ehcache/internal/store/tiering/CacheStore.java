@@ -356,22 +356,22 @@ public class CacheStore<K, V> implements Store<K, V>, Persistable {
 
     @Override
     public void releaseStore(Store<?, ?> resource) {
-      CacheStore cacheStore = (CacheStore) resource;
       Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider> entry = providersMap.get(resource);
       if (entry == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
+      CacheStore cacheStore = (CacheStore) resource;
       entry.getKey().releaseCachingTier(cacheStore.cachingTier);
       entry.getValue().releaseAuthoritativeTier(cacheStore.authoritativeTier);
     }
 
     @Override
     public void initStore(Store<?, ?> resource) {
-      CacheStore cacheStore = (CacheStore) resource;
       Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider> entry = providersMap.get(resource);
       if (entry == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
+      CacheStore cacheStore = (CacheStore) resource;
       entry.getKey().initCachingTier(cacheStore.cachingTier);
       entry.getValue().initAuthoritativeTier(cacheStore.authoritativeTier);
     }
