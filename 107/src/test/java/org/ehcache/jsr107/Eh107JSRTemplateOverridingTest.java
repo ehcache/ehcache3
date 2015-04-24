@@ -55,8 +55,8 @@ public class Eh107JSRTemplateOverridingTest {
     }
   }
 
-  private MutableConfiguration createMutableConfiguration(Class k, Class v) {
-    MutableConfiguration mConf = new MutableConfiguration();
+  private <K, V> MutableConfiguration<K, V> createMutableConfiguration(Class<K> k, Class<V> v) {
+    MutableConfiguration<K, V> mConf = new MutableConfiguration<K, V>();
     mConf.setTypes(k, v);
     return mConf;
   }
@@ -92,7 +92,7 @@ public class Eh107JSRTemplateOverridingTest {
     c1.put(1L, new Product(1L));
     assertThat(ProductCacheLoaderWriter.written.isEmpty(), is(true));
     cm.destroyCache("productCache");
-    MutableConfiguration conf = createProductCacheConf();
+    MutableConfiguration<Long, Product> conf = createProductCacheConf();
     conf.setReadThrough(true);
     c1 = cm.createCache("productCache", conf);
     c1.put(1L, new Product(1L));

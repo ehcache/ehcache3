@@ -145,9 +145,9 @@ subprojects {
   targetCompatibility = 1.6
 
   repositories {
-    mavenLocal()
     mavenCentral()
     maven { url "http://repo.terracotta.org/maven2" }
+    mavenLocal()
   }
 
   sourceSets {

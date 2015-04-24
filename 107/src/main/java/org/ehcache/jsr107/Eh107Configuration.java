@@ -15,15 +15,26 @@
  */
 package org.ehcache.jsr107;
 
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
+
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.Configuration;
+
+import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * Eh107Configuration
  */
-abstract class Eh107Configuration<K, V> implements Configuration<K, V> {
+public abstract class Eh107Configuration<K, V> implements Configuration<K, V> {
 
   private static final long serialVersionUID = 7324956960962454439L;
+
+  public static <K, V> Configuration<K, V> fromEhcacheCacheConfiguration(CacheConfiguration<K, V> ehcacheConfig) {
+    return new Eh107ConfigurationWrapper<K, V> (ehcacheConfig);
+  }
+
+  public abstract <T> T unwrap(Class<T> clazz);
 
   abstract boolean isReadThrough();
 
@@ -40,4 +51,35 @@ abstract class Eh107Configuration<K, V> implements Configuration<K, V> {
   abstract void addCacheEntryListenerConfiguration(CacheEntryListenerConfiguration<K, V> cacheEntryListenerConfiguration);
 
   abstract void removeCacheEntryListenerConfiguration(CacheEntryListenerConfiguration<K, V> cacheEntryListenerConfiguration);
+
+  static class Eh107ConfigurationWrapper<K, V> implements Configuration<K, V> {
+
+    private static final long serialVersionUID = -142083549674760400L;
+
+    private final transient CacheConfiguration<K, V> cacheConfiguration;
+
+    private Eh107ConfigurationWrapper(CacheConfiguration<K, V> cacheConfiguration) {
+      this.cacheConfiguration = cacheConfiguration;
+    }
+
+    CacheConfiguration<K, V> getCacheConfiguration() {
+      return cacheConfiguration;
+    }
+
+    @Override
+    public Class<K> getKeyType() {
+      return cacheConfiguration.getKeyType();
+    }
+
+    @Override
+    public Class<V> getValueType() {
+      return cacheConfiguration.getValueType();
+    }
+
+    @Override
+    public boolean isStoreByValue() {
+      OnHeapStoreServiceConfiguration heapConfig = findSingletonAmongst(OnHeapStoreServiceConfiguration.class, cacheConfiguration.getServiceConfigurations());
+      return heapConfig != null && heapConfig.storeByValue();
+    }
+  }
 }

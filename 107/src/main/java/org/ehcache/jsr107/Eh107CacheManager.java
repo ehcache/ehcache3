@@ -93,11 +93,14 @@ class Eh107CacheManager implements CacheManager {
 
   private <K, V> Eh107Cache<K, V> wrapEhcacheCache(String alias, CacheConfiguration<K, V> ehConfig) {
     org.ehcache.Cache<K, V> cache = ehCacheManager.getCache(alias, ehConfig.getKeyType(), ehConfig.getValueType());
+    return wrapEhcacheCache(alias, cache);
+  }
 
+  private <K, V> Eh107Cache<K, V> wrapEhcacheCache(String alias, org.ehcache.Cache<K, V> cache) {
     CacheLoaderWriter<? super K, V> cacheLoaderWriter = EhcacheHackAccessor.getCacheLoaderWriter((Ehcache<K, V>)cache);
 
     boolean storeByValueOnHeap = false;
-    for (ServiceConfiguration<?> serviceConfiguration : ehConfig.getServiceConfigurations()) {
+    for (ServiceConfiguration<?> serviceConfiguration : cache.getRuntimeConfiguration().getServiceConfigurations()) {
       if (serviceConfiguration instanceof OnHeapStoreServiceConfiguration) {
         OnHeapStoreServiceConfiguration onHeapStoreServiceConfig = (OnHeapStoreServiceConfiguration)serviceConfiguration;
         storeByValueOnHeap = onHeapStoreServiceConfig.storeByValue();
@@ -141,12 +144,21 @@ class Eh107CacheManager implements CacheManager {
         throw new NullPointerException();
       }
 
-      // copy the config (since it can be re-used per 107 spec)
-      Eh107CompleteConfiguration<K, V> completeConfig = new Eh107CompleteConfiguration<K, V>(config);
-
       if (caches.containsKey(cacheName)) {
         throw new CacheException("A Cache named [" + cacheName + "] already exists");
       }
+
+      if (config instanceof Eh107Configuration.Eh107ConfigurationWrapper) {
+        Eh107Configuration.Eh107ConfigurationWrapper<K, V> configurationWrapper = (Eh107Configuration.Eh107ConfigurationWrapper<K, V>)config;
+        CacheConfiguration<K, V> unwrap = configurationWrapper.getCacheConfiguration();
+        Eh107Cache<K, V> cache = wrapEhcacheCache(cacheName, ehCacheManager.createCache(cacheName, unwrap));
+        caches.put(cacheName, cache);
+
+        return cache;
+      }
+
+      // copy the config (since it can be re-used per 107 spec)
+      Eh107CompleteConfiguration<K, V> completeConfig = new Eh107CompleteConfiguration<K, V>(config);
 
       CacheResources<K, V> cacheResources = new CacheResources<K, V>(cacheName, completeConfig);
       Eh107Expiry<K, V> expiry = cacheResources.getExpiryPolicy();
@@ -166,7 +178,7 @@ class Eh107CacheManager implements CacheManager {
 
       Eh107Cache<K, V> cache = null;
       try {
-        cache = new Eh107Cache<K, V>(cacheName, completeConfig, cacheResources, ehCache, this, expiry);
+        cache = new Eh107Cache<K, V>(cacheName, new Eh107CompleteConfiguration<K, V>(config, ehCache.getRuntimeConfiguration()), cacheResources, ehCache, this, expiry);
 
         caches.put(cacheName, cache);
 
@@ -436,7 +448,7 @@ class Eh107CacheManager implements CacheManager {
         unregisterObject(cache.getStatisticsMBean());
       }
 
-      cache.setStatisticsEnaled(enabled);
+      cache.setStatisticsEnabled(enabled);
     }
   }
 

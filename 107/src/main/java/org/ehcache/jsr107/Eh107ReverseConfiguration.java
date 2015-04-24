@@ -17,6 +17,8 @@ package org.ehcache.jsr107;
 
 import org.ehcache.Cache;
 
+import java.io.ObjectStreamException;
+
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 
 /**
@@ -26,7 +28,7 @@ class Eh107ReverseConfiguration<K, V> extends Eh107Configuration<K, V> {
   
   private static final long serialVersionUID = 7690458739466020356L;
   
-  private final Cache<K, V> cache;
+  private final transient Cache<K, V> cache;
   private final boolean readThrough;
   private final boolean writeThrough;
   private final boolean storeByValueOnHeap;
@@ -81,6 +83,15 @@ class Eh107ReverseConfiguration<K, V> extends Eh107Configuration<K, V> {
   }
 
   @Override
+  public <T> T unwrap(Class<T> clazz) {
+    try {
+      return Unwrap.unwrap(clazz, this);
+    } catch (IllegalArgumentException e) {
+      return Unwrap.unwrap(clazz, cache.getRuntimeConfiguration());
+    }
+  }
+
+  @Override
   public Class<K> getKeyType() {
     return cache.getRuntimeConfiguration().getKeyType();
   }
@@ -93,5 +104,9 @@ class Eh107ReverseConfiguration<K, V> extends Eh107Configuration<K, V> {
   @Override
   public boolean isStoreByValue() {
     return storeByValueOnHeap;
+  }
+
+  private Object writeReplace() throws ObjectStreamException {
+    throw new UnsupportedOperationException("Serialization of Ehcache provider configuration classes is not supported");
   }
 }
