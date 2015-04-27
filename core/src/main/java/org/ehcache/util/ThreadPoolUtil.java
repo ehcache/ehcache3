@@ -31,7 +31,7 @@ public class ThreadPoolUtil {
 
   public static ScheduledExecutorService createStatisticsExecutor() {
     return Executors.newScheduledThreadPool(
-        Integer.getInteger(ORG_EHCACHE_STATISTICS_EXECUTOR_POOL_SIZE, 0), new ThreadFactory() {
+        Integer.getInteger(ORG_EHCACHE_STATISTICS_EXECUTOR_POOL_SIZE, 1), new ThreadFactory() {
           private AtomicInteger cnt = new AtomicInteger(0);
 
           @Override
