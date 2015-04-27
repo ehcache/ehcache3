@@ -905,7 +905,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
 
   public static class Provider implements Store.Provider, CachingTier.Provider {
     
-    private ServiceProvider serviceProvider;
+    private volatile ServiceProvider serviceProvider;
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
 
     @Override
@@ -918,6 +918,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       Serializer<K> keySerializer = null;
       Serializer<V> valueSerializer = null;
       if(storeByValue){
+        if (serviceProvider == null) {
+          throw new RuntimeException("ServiceProvider is null.");
+        }
         SerializationProvider serializationProvider = serviceProvider.findService(SerializationProvider.class);
         keySerializer = serializationProvider.createSerializer(storeConfig.getKeyType(), storeConfig.getClassLoader());
         valueSerializer = serializationProvider.createSerializer(storeConfig.getValueType(), storeConfig.getClassLoader());

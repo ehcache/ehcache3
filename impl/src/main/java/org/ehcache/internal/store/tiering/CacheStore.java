@@ -313,7 +313,7 @@ public class CacheStore<K, V> implements Store<K, V>, Persistable {
 
   public static class Provider implements Store.Provider {
 
-    private ServiceProvider serviceProvider;
+    private volatile ServiceProvider serviceProvider;
     private final ConcurrentMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>>();
 
     @Override

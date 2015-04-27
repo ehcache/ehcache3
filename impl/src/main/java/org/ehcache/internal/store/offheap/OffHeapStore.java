@@ -788,7 +788,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
 
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
-    private ServiceProvider serviceProvider;
+    private volatile ServiceProvider serviceProvider;
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
 
     @Override
@@ -796,6 +796,9 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[]) serviceConfigs);
       TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
 
+      if (serviceProvider == null) {
+        throw new RuntimeException("ServiceProvider is null.");
+      }
       SerializationProvider serializationProvider = serviceProvider.findService(SerializationProvider.class);
       Serializer<K> keySerializer = serializationProvider.createSerializer(storeConfig.getKeyType(), storeConfig.getClassLoader());
       Serializer<V> valueSerializer = serializationProvider.createSerializer(storeConfig.getValueType(), storeConfig.getClassLoader());

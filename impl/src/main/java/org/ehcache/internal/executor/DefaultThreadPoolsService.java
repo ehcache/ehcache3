@@ -29,9 +29,9 @@ import java.util.concurrent.ScheduledExecutorService;
  */
 public class DefaultThreadPoolsService implements ThreadPoolsService {
 
-  private ScheduledExecutorService statisticsExecutor;
-  private ExecutorService eventsOrderedDeliveryExecutor;
-  private ExecutorService eventsUnorderedDeliveryExecutor;
+  private volatile ScheduledExecutorService statisticsExecutor;
+  private volatile ExecutorService eventsOrderedDeliveryExecutor;
+  private volatile ExecutorService eventsUnorderedDeliveryExecutor;
 
   @Override
   public ScheduledExecutorService getStatisticsExecutor() {
