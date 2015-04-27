@@ -420,6 +420,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
           Map<? super K, ? extends V> loaded = Collections.emptyMap();
           try {
             loaded = cacheLoaderWriter.loadAll(computeResult.keySet());
+          } catch(BulkCacheLoadingException bcle) {
+            collectSuccessesAndFailures(bcle, successes, failures);
           } catch (Exception e) {
             for (K key : computeResult.keySet()) {
               failures.put(key, e);
@@ -621,6 +623,13 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
     successes.addAll((Collection<K>)bcwe.getSuccesses());
     failures.putAll((Map<K, Exception>)bcwe.getFailures());
   }
+  
+  @SuppressWarnings({ "unchecked" })
+  private void collectSuccessesAndFailures(BulkCacheLoadingException bcle, Map<K, V> successes, Map<K, Exception> failures) {
+    successes.putAll((Map<K, V>)bcle.getSuccesses());
+    failures.putAll((Map<K, Exception>)bcle.getFailures());
+  }
+  
 
   @Override
   public void removeAll(final Set<? extends K> keys) throws BulkCacheWritingException {
