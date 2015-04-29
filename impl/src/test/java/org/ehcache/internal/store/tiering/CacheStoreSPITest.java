@@ -28,7 +28,6 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
-import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
 import org.ehcache.internal.store.disk.DiskStorageFactory;
@@ -41,6 +40,8 @@ import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -82,7 +83,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store<String, String> newStore(final Store.Configuration<String, String> config) {
-        JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
+        SerializationProvider serializationProvider = new DefaultSerializationProvider();
         Serializer<String> keySerializer = serializationProvider.createSerializer(String.class, config.getClassLoader());
         Serializer<String> valueSerializer = serializationProvider.createSerializer(String.class, config.getClassLoader());
         Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createSerializer(DiskStorageFactory.Element.class, config.getClassLoader());
@@ -158,7 +159,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store<String, String> newStore(Store.Configuration<String, String> config, TimeSource timeSource) {
-        JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
+        SerializationProvider serializationProvider = new DefaultSerializationProvider();
         Serializer<String> keySerializer = serializationProvider.createSerializer(String.class, config.getClassLoader());
         Serializer<String> valueSerializer = serializationProvider.createSerializer(String.class, config.getClassLoader());
         Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createSerializer(DiskStorageFactory.Element.class, config.getClassLoader());

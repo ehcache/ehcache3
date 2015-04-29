@@ -65,7 +65,7 @@
 
   <xs:complexType name="serializer-type">
     <xs:sequence>
-      <xs:element name="class" maxOccurs="unbounded" minOccurs="0">
+      <xs:element name="serializer" maxOccurs="unbounded" minOccurs="0">
         <xs:complexType>
           <xs:simpleContent>
             <xs:extension base="xs:string">

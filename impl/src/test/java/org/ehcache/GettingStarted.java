@@ -23,6 +23,7 @@ import org.ehcache.config.event.CacheEventListenerBuilder;
 import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
@@ -32,15 +33,17 @@ import org.ehcache.event.EventType;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -215,6 +218,28 @@ public class GettingStarted {
   }
 
   @Test
+  public void testDefaultSerializer() throws Exception {
+    CacheConfiguration<String, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true))
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .buildConfig(String.class, String.class);
+
+    DefaultSerializationProviderFactoryConfiguration service = new DefaultSerializationProviderFactoryConfiguration();
+    service.addSerializerFor(String.class.getName(), StringSerializer.class);
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("cache", cacheConfiguration)
+        .using(service)
+        .build(true);
+
+    Cache<String, String> cache = cacheManager.getCache("cache", String.class, String.class);
+
+    cache.put("1", "one");
+    assertThat(cache.get("1"), equalTo("one"));
+
+    cacheManager.close();
+  }
+
+  @Test
   public void testCacheEventListener() {
     CacheEventListenerBuilder cacheEventListenerConfiguration = CacheEventListenerBuilder
         .newEventListenerConfig(ListenerObject.class, EventType.CREATED, EventType.UPDATED)
@@ -243,7 +268,7 @@ public class GettingStarted {
     
     Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>)  (Class) (SampleLoaderWriter.class);
     
-    final Cache<Long, String> writeThroughCache = cacheManager.createCache("writeThroughCache", 
+    final Cache<Long, String> writeThroughCache = cacheManager.createCache("writeThroughCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder()
             .add(new DefaultCacheLoaderWriterConfiguration(klazz)) // <1>
             .buildConfig(Long.class, String.class));
@@ -263,7 +288,7 @@ public class GettingStarted {
     
     Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) (Class) (SampleLoaderWriter.class);
     
-    final Cache<Long, String> writeBehindCache = cacheManager.createCache("writeBehindCache", 
+    final Cache<Long, String> writeBehindCache = cacheManager.createCache("writeBehindCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder()
             .add(new DefaultCacheLoaderWriterConfiguration(klazz)) // <1>
             .add(WriteBehindConfigurationBuilder.newWriteBehindConfiguration() // <2>
@@ -274,7 +299,7 @@ public class GettingStarted {
                 .retry(2, 1) // <7>
                 .rateLimit(2) // <8>
                 .delay(1, 1) // <9>
-                .build()) 
+                .build())
             .buildConfig(Long.class, String.class));
     
     writeBehindCache.put(42L, "one");
@@ -309,7 +334,7 @@ public class GettingStarted {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SampleLoaderWriter.class);
     
-    private final Map<K, Pair<K, V>> data = new HashMap<K, Pair<K,V>>(); 
+    private final Map<K, Pair<K, V>> data = new HashMap<K, Pair<K, V>>();
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     
     @Override
@@ -342,10 +367,10 @@ public class GettingStarted {
     }
 
     @Override
-    public void writeAll(Iterable<? extends Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception {
+    public void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception {
       lock.writeLock().lock();
       try {
-        for (Entry<? extends K, ? extends V> entry : entries) {
+        for (Map.Entry<? extends K, ? extends V> entry : entries) {
           LOGGER.info("Key - '{}', Value - '{}' successfully written in batch", entry.getKey(), entry.getValue());
           data.put(entry.getKey(), new Pair<K, V>(entry.getKey(), entry.getValue()));
         }
@@ -383,4 +408,35 @@ public class GettingStarted {
       }
     }
   }
+
+  public static class StringSerializer implements Serializer<String> {
+    private static final Logger LOG = LoggerFactory.getLogger(StringSerializer.class);
+    private static final Charset CHARSET = Charset.forName("US-ASCII");
+
+    public StringSerializer(ClassLoader classLoader) {
+    }
+
+    @Override
+    public ByteBuffer serialize(String object) throws IOException {
+      LOG.info("serializing {}", object);
+      ByteBuffer byteBuffer = ByteBuffer.allocate(object.length());
+      byteBuffer.put(object.getBytes(CHARSET));
+      return byteBuffer;
+    }
+
+    @Override
+    public String read(ByteBuffer binary) throws IOException, ClassNotFoundException {
+      byte[] bytes = new byte[binary.flip().remaining()];
+      binary.get(bytes);
+      String s = new String(bytes, CHARSET);
+      LOG.info("deserialized {}", s);
+      return s;
+    }
+
+    @Override
+    public boolean equals(String object, ByteBuffer binary) throws IOException, ClassNotFoundException {
+      return object.equals(read(binary));
+    }
+  }
+
 }

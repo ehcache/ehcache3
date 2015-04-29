@@ -16,24 +16,30 @@
 
 package org.ehcache.config.xml;
 
+import com.pany.ehcache.serializer.TestSerializer;
+import com.pany.ehcache.serializer.TestSerializer2;
+import com.pany.ehcache.serializer.TestSerializer3;
+import com.pany.ehcache.serializer.TestSerializer4;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
-import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.config.ResourceType;
-import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.ResourceUnit;
-import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
+import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.config.writebehind.WriteBehindConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
+import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matchers;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 import org.xml.sax.SAXException;
@@ -151,7 +157,7 @@ public class XmlConfigurationTest {
     assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("example"), notNullValue());
     final CacheConfigurationBuilder<String, String> example = xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, String.class);
     assertThat(example.buildConfig(String.class, String.class).getExpiry(),
-        equalTo((Expiry)Expirations.timeToLiveExpiration(new Duration(30, TimeUnit.SECONDS))));
+        equalTo((Expiry) Expirations.timeToLiveExpiration(new Duration(30, TimeUnit.SECONDS))));
 
     try {
       xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, Number.class);
@@ -374,18 +380,38 @@ public class XmlConfigurationTest {
   }
   
   @Test
-  public void testSerializerConfiguration() throws Exception {
-    final URL resource = XmlConfigurationTest.class.getResource("/configs/ehcache-serializer.xml");
+  public void testDefaultSerializerConfiguration() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/default-serializer.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
     
     assertThat(xmlConfig.getServiceConfigurations().size(), is(1));
     
     ServiceConfiguration configuration = xmlConfig.getServiceConfigurations().iterator().next();
     
-    assertThat(configuration, instanceOf(DefaultSerializationProviderConfiguration.class));
-    
-    assertThat(((DefaultSerializationProviderConfiguration)configuration).getTypeSerializerConfig("java.lang.Number").getCacheTypeSerializerMapping().size(), is(2) );
-    assertThat(((DefaultSerializationProviderConfiguration)configuration).getTypeSerializerConfig("java.lang.String").getCacheTypeSerializerMapping().size(), is(0) );
+    assertThat(configuration, instanceOf(DefaultSerializationProviderFactoryConfiguration.class));
+
+    DefaultSerializationProviderFactoryConfiguration factoryConfiguration = (DefaultSerializationProviderFactoryConfiguration) configuration;
+    assertThat(factoryConfiguration.getDefaults().size(), is(1));
+    assertThat(factoryConfiguration.getDefaults().get(""), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer.class));
+  }
+
+  @Test
+  public void testDefaultSerializerTypedConfiguration() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/default-serializer-typed.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+
+    assertThat(xmlConfig.getServiceConfigurations().size(), is(1));
+
+    ServiceConfiguration configuration = xmlConfig.getServiceConfigurations().iterator().next();
+
+    assertThat(configuration, instanceOf(DefaultSerializationProviderFactoryConfiguration.class));
+
+    DefaultSerializationProviderFactoryConfiguration factoryConfiguration = (DefaultSerializationProviderFactoryConfiguration) configuration;
+    assertThat(factoryConfiguration.getDefaults().size(), is(4));
+    assertThat(factoryConfiguration.getDefaults().get("java.lang.String"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer.class));
+    assertThat(factoryConfiguration.getDefaults().get("java.lang.Number"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer2.class));
+    assertThat(factoryConfiguration.getDefaults().get("java.lang.String#foo"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer3.class));
+    assertThat(factoryConfiguration.getDefaults().get("java.lang.String#bar"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer4.class));
   }
 
   @Test

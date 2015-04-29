@@ -16,8 +16,9 @@
 
 package org.ehcache.internal.store.offheap;
 
-import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.offheap.portability.OffHeapValueHolderPortability;
+import org.ehcache.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.terracotta.offheapstore.storage.portability.WriteContext;
@@ -26,7 +27,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -37,7 +38,7 @@ public class OffHeapValueHolderPortabilityTest {
 
   @Before
   public void setup() {
-    JavaSerializationProvider provider = new JavaSerializationProvider();
+    SerializationProvider provider = new DefaultSerializationProvider();
     valueHolderPortability = new OffHeapValueHolderPortability<String>(provider
         .createSerializer(String.class, getClass().getClassLoader()));
 

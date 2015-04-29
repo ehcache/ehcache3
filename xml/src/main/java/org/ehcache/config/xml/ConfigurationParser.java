@@ -19,8 +19,7 @@ package org.ehcache.config.xml;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.persistence.PersistenceConfiguration;
-import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration.TypeSerializerConfig;
+import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.config.xml.model.BaseCacheType;
@@ -40,7 +39,8 @@ import org.ehcache.config.xml.model.ResourcesType;
 import org.ehcache.config.xml.model.SerializerType;
 import org.ehcache.config.xml.model.ServiceType;
 import org.ehcache.config.xml.model.TimeType;
-import org.ehcache.internal.serialization.JavaSerializationProvider;
+import org.ehcache.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
@@ -49,6 +49,16 @@ import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Source;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.SchemaFactory;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -62,17 +72,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import javax.xml.XMLConstants;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Source;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.SchemaFactory;
 
 /**
  * @author Alex Snaps
@@ -141,25 +140,31 @@ class ConfigurationParser {
     return new PersistenceConfiguration(new File(persistence.getDirectory()));
   }
 
-  private ServiceConfiguration<JavaSerializationProvider> parseDefaultSerializerConfig(SerializerType serializerType){
-    DefaultSerializationProviderConfiguration configuration = new DefaultSerializationProviderConfiguration();
+  private ServiceConfiguration<DefaultSerializationProvider> parseDefaultSerializerConfig(SerializerType serializerType) {
+    DefaultSerializationProviderFactoryConfiguration configuration = new DefaultSerializationProviderFactoryConfiguration();
         
-    for(SerializerType.Class clazz : serializerType.getClazz()){
-      String type = clazz.getType();
-      TypeSerializerConfig config = null;
-      if(configuration.contains(type)) config = configuration.getTypeSerializerConfig(type);
-      else config = new TypeSerializerConfig();
-
-      addTypeSerializerMapping(config, clazz);
-      configuration.addSerializer(type, config);
+    for (SerializerType.Serializer serializer : serializerType.getSerializer()) {
+      try {
+        configuration.addSerializerFor(buildAlias(serializer), (Class<? extends Serializer<?>>) Class.forName(serializer.getValue()));
+      } catch (ClassNotFoundException e) {
+        throw new RuntimeException(e);
+      }
     }
     return configuration;
   }
-  
-  private void addTypeSerializerMapping(TypeSerializerConfig config, SerializerType.Class clazz){
-    
-    if(clazz.getCache() == null) config.setSerializer(clazz.getValue());
-    else config.addTypeSerializerMapping(clazz.getCache(), clazz.getValue());
+
+  private String buildAlias(SerializerType.Serializer serializer) {
+    StringBuilder sb = new StringBuilder();
+    if (serializer.getType() != null) {
+      sb.append(serializer.getType());
+    }
+    if (serializer.getCache() != null) {
+      if (sb.length() > 0) {
+        sb.append("#");
+      }
+      sb.append(serializer.getCache());
+    }
+    return sb.toString();
   }
 
   public Iterable<CacheDefinition> getCacheElements() {
