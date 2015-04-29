@@ -187,7 +187,9 @@ public final class ServiceLocator implements ServiceProvider {
         throw new IllegalStateException("Already started!");
       }
       for (Service service : services.values()) {
-        service.start(serviceConfigs.get(service), this);
+        if (!started.contains(service)) {
+          service.start(serviceConfigs.get(service), this);
+        }
         started.push(service);        
       }
       LOGGER.info("All Services successfully started.");
