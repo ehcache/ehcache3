@@ -217,11 +217,9 @@ public class GettingStarted {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .buildConfig(String.class, String.class);
 
-    DefaultSerializationProviderFactoryConfiguration service = new DefaultSerializationProviderFactoryConfiguration();
-    service.addSerializerFor(String.class.getName(), StringSerializer.class);
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("cache", cacheConfiguration)
-        .using(service)
+        .using(new DefaultSerializationProviderFactoryConfiguration().addSerializerFor(String.class.getName(), StringSerializer.class))
         .build(true);
 
     Cache<String, String> cache = cacheManager.getCache("cache", String.class, String.class);
