@@ -13,7 +13,7 @@ means fulfilling a couple of roles:
  gets registered with it. These `Service` can then be looked up, e.g. by `Cache` or other `Service` instances, using the
  `ServiceProvider` interface;
  - Finally, the `CacheManager` acts as a repository of alias'ed `Cache` instances. Unlike in the previous versions, `Cache`
- instances aren't named, but are registered with the `CacheManager` under an _alias_. The `Cache` is never aware of it.
+ instances aren't named, but are registered with the `CacheManager` under an _alias_. The `Cache` is never aware of this.
 
 This diagram tries to summarize the different roles:
 
@@ -40,14 +40,14 @@ When a `Cache` is being constructed, e.g. by the `CacheManager` on a `.createCac
 will lookup a `Store.Provider` which is one of the bundled `Service` types of Ehcache, asking it to create a `Store` based
 on the `CacheConfiguration` used to configure the given `Cache`. That indirection, makes both the `Cache` as well as the
 `CacheManager` ignorant of what topology this `Cache` is to use. Ehcache comes with a `DefaultStoreProvider` that will
-be loaded by the `ServiceProvider`, should one be explicitly provided. That in turn will resolve the required `Store`
+be loaded by the `ServiceProvider`, should none be explicitly provided. That in turn will resolve the required `Store`
 instance to be provided to the `Cache` being created.
 
 image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/design/basics/cacheStore.png[Cache's Store]
 
 The `Cache` also tries to never _fails_ on operations invoked, e.g. a get shouldn't result in throwing an exception if the
 `Store` that backs it up uses serialization and fails to retrieve the mapping. Instead, Ehcache tries to be resilient and
-should try to clear that mapping from its `Store` and return `null` instead to the user. It is the responsibility of the
+will, by default, try to clear that mapping from its `Store` and return `null` instead to the user. It is the responsibility of the
 `Cache` to handle the exceptions a `Store` may throw (the `Store` interface explicitly declares it throws
 `CacheAccessException`, which is a checked exception). The `Cache` will delegate failures to the `ResilienceStrategy`,
 which in turn is responsible for handling the failure.
@@ -59,7 +59,7 @@ and will make it pluggable, when we move on to distributed topologies.
 === The new `UserManagedCache`
 
 The `UserManagedCache` are, as the name implies, managed by the user instead of being managed by a `CacheManager`. While
-these instances a meant to be lightweight, short-lived ones, nothing prohibits a user from building a distributed
+these instances are meant to be lightweight, short-lived ones, nothing prohibits a user from building a distributed
 `UserManagedCache` if so desired.
 
 As the user manages that instance himself, he needs to provide all `Service` instances required by the `UserManagedCache`.
@@ -70,7 +70,7 @@ image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/des
 
 == State transitions
 
-A lifecycled instance, e.g. a `CacheManager` or a `UserManagedCache`, have three states represented by the
+A lifecycled instance, e.g. a `CacheManager` or a `UserManagedCache`, has three states represented by the
 `org.ehcache.Status` enum:
 
  . `UNINITIALIZED`: The instance can't be used, it probably just got instantiated or got `.close()` invoked on it;
@@ -101,7 +101,7 @@ all from you and will create the actual configuration at `.build()` invocation t
 immutable. Instances of these types are used to configure some part of the system (e.g. `CacheManager`, `Cache`,
 `Service`, ...). If a given configured type has a requirement to modify it's configuration, a additional _runtime
 configuration_ is introduced, e.g. `RuntimeCacheConfiguration`. That type will expose additional mutative methods for
-attributes that are mutable. Internally it will also let consumers of the type to register listener for these attributes.
+attributes that are mutable. Internally it will also let consumers of the type register listener for these attributes.
 
 image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/design/basics/config.png[Configuration types]
 
@@ -118,7 +118,7 @@ happens underneath of that call when the `CacheManager` or a `ServiceFactory` lo
  .. If it doesn't, it looks up all `ServiceFactory` it has for one that creates instances of that `Service` type.
  ... If one is found in that `ServiceFactory` repository, it uses that to create the instance
  ... If none is found, it uses the JDK's `java.util.ServiceLoader` service to load `ServiceFactory` and recheck
- .. If nothing could be found, it an Exception is thrown
+ .. If nothing could be found, an Exception is thrown
 
 === Builder design guidelines
 
@@ -136,7 +136,7 @@ implemented and list dissimilarities as well as how they'll be addressed in the 
 == The `PersistentCacheManager`
 
 The `PersistentCacheManager` interface adds lifecycle methods to the `CacheManager` type. Those lifecycle methods enable
-the user to completely destroy `Cache` instances a given `CacheManager` (e.g. destroy the clustered state of a `Cache` entirely,
+the user to completely destroy `Cache` instances from a given `CacheManager` (e.g. destroy the clustered state of a `Cache` entirely,
 or remove all the data of a `Cache` from disk); as well as go into _maintenance mode_ (see <<state-transitions>> section).
 
 === `CacheManagerBuilder.with()` 's extension point
@@ -165,7 +165,7 @@ location for writing cached data to.
 
 === Clustered topology
 
-In a Terracotta clustered scenario, all clustered `Cache` instances are concidered persistent (i.e. will survive the
+In a Terracotta clustered scenario, all clustered `Cache` instances are considered persistent (i.e. will survive the
 _client_ JVM restart). So the idea is to provide all clustered configuration passing such a
 `CacheManagerConfiguration<PersistentCacheManager>` instance, with all the Terracotta client configuration stuff, to the
 `CacheManagerBuilder` at construction time.
