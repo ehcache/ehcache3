@@ -63,9 +63,9 @@ public class EhcacheBasicPutAllEventsTest extends EhcacheBasicCrudBase{
     protected CacheLoaderWriter<String, String> cacheLoaderWriter;
 
     @Mock
-    protected CacheEventListener testCacheEventListener;
+    protected CacheEventListener<String,String> testCacheEventListener;
 
-    protected CacheEventNotificationService cacheEventNotificationService;
+    protected CacheEventNotificationService<String,String> cacheEventNotificationService;
 
     protected IsCreatedOrUpdated isCreatedOrUpdated = new IsCreatedOrUpdated();
 
@@ -154,6 +154,7 @@ public class EhcacheBasicPutAllEventsTest extends EhcacheBasicCrudBase{
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testPutAll() throws Exception {
         final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
         final FakeStore fakeStore = new FakeStore(originalStoreContent);

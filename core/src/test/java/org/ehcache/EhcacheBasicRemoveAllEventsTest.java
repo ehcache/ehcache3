@@ -61,7 +61,7 @@ public class EhcacheBasicRemoveAllEventsTest extends EhcacheBasicCrudBase {
     @Mock
     protected CacheEventListener testCacheEventListener;
 
-    protected CacheEventNotificationService cacheEventNotificationService;
+    protected CacheEventNotificationService<String,String> cacheEventNotificationService;
 
     protected IsRemoved isRemoved = new IsRemoved();
 
@@ -112,6 +112,7 @@ public class EhcacheBasicRemoveAllEventsTest extends EhcacheBasicCrudBase {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testRemoveAll() throws Exception {
         final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
         final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
@@ -129,6 +130,7 @@ public class EhcacheBasicRemoveAllEventsTest extends EhcacheBasicCrudBase {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testRemoveAllComplete() throws Exception {
         final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
         final FakeStore fakeStore = new FakeStore(originalStoreContent);

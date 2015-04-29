@@ -54,7 +54,7 @@ public class EhcacheBasicReplaceEventsTest extends EhcacheBasicCrudBase{
     protected CacheLoaderWriter<String, String> cacheLoaderWriter;
 
     @Mock
-    protected CacheEventListener testCacheEventListener;
+    protected CacheEventListener<String,String> testCacheEventListener;
 
     protected CacheEventNotificationService cacheEventNotificationService;
 
@@ -106,6 +106,7 @@ public class EhcacheBasicReplaceEventsTest extends EhcacheBasicCrudBase{
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testReplace() throws Exception {
         final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
         this.store = spy(fakeStore);
