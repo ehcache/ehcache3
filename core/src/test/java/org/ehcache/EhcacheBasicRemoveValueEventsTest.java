@@ -54,7 +54,7 @@ public class EhcacheBasicRemoveValueEventsTest extends EhcacheBasicCrudBase {
   protected CacheLoaderWriter<String, String> cacheLoaderWriter;
 
   @Mock
-  protected CacheEventListener testCacheEventListener;
+  protected CacheEventListener<String,String> testCacheEventListener;
 
   protected CacheEventNotificationService cacheEventNotificationService;
 

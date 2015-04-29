@@ -54,7 +54,7 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheBasicCrudBase {
   protected CacheLoaderWriter<String, String> cacheLoaderWriter;
 
   @Mock
-  protected CacheEventListener testCacheEventListener;
+  protected CacheEventListener<String,String> testCacheEventListener;
 
   protected CacheEventNotificationService cacheEventNotificationService;
 
@@ -105,6 +105,7 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheBasicCrudBase {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testPutIfAbsent() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
@@ -138,6 +139,7 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheBasicCrudBase {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testPutIfAbsentNoStoreEntryCacheAccessExceptionHasCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);

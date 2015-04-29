@@ -53,7 +53,7 @@ public class EhcacheBasicRemoveEventsTest extends EhcacheBasicCrudBase{
     protected CacheLoaderWriter<String, String> cacheLoaderWriter;
 
     @Mock
-    protected CacheEventListener testCacheEventListener;
+    protected CacheEventListener<String,String> testCacheEventListener;
 
     protected CacheEventNotificationService cacheEventNotificationService;
 
@@ -74,6 +74,7 @@ public class EhcacheBasicRemoveEventsTest extends EhcacheBasicCrudBase{
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testRemove() throws Exception {
         doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), any(BiFunction.class));
         final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);

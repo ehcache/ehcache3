@@ -26,7 +26,7 @@ import org.mockito.ArgumentMatcher;
 public class IsRemoved extends ArgumentMatcher<CacheEvent> {
 
     public boolean matches(Object event) {
-        CacheEvent cacheEvent = (CacheEvent)event;
+        CacheEvent<String,String> cacheEvent = (CacheEvent)event;
         return (cacheEvent.getType() == EventType.REMOVED);
     }
 

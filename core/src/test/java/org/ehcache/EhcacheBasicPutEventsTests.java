@@ -55,7 +55,7 @@ public class EhcacheBasicPutEventsTests extends EhcacheBasicCrudBase{
     protected CacheLoaderWriter<String, String> cacheLoaderWriter;
 
     @Mock
-    protected CacheEventListener cacheEventListener;
+    protected CacheEventListener<String,String> cacheEventListener;
 
     protected CacheEventNotificationService cacheEventNotificationService;
 
@@ -106,6 +106,7 @@ public class EhcacheBasicPutEventsTests extends EhcacheBasicCrudBase{
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testPut() throws Exception {
         final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
         this.store = spy(fakeStore);
