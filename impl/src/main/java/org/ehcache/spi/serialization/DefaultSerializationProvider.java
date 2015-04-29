@@ -19,11 +19,14 @@ package org.ehcache.spi.serialization;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
 import org.ehcache.internal.classes.ClassInstanceProvider;
+import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
 
 /**
  * @author Ludovic Orban
@@ -32,6 +35,8 @@ public class DefaultSerializationProvider extends ClassInstanceProvider<Serializ
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultSerializationProvider.class);
 
+  private final Map<String, Serializer<?>> serializers = new ConcurrentHashMap<String, Serializer<?>>();
+
   public DefaultSerializationProvider() {
     super(DefaultSerializationProviderFactoryConfiguration.class, DefaultSerializationProviderConfiguration.class);
   }
@@ -39,8 +44,13 @@ public class DefaultSerializationProvider extends ClassInstanceProvider<Serializ
   @Override
   public <T> Serializer<T> createSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) {
     DefaultSerializationProviderConfiguration config = ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, configs);
-    Serializer<?> serializer = newInstance(buildAlias(clazz, config), config, new Arg(ClassLoader.class, classLoader));
-    LOG.info("Serializer for <{}> in <{}> : {}", clazz, (config != null ? config.getAlias() : "any"), serializer);
+    String alias = buildAlias(clazz, config);
+    Serializer<?> serializer = serializers.get(alias);
+    if (serializer == null) {
+      serializer = newInstance(alias, config, new Arg(ClassLoader.class, classLoader));
+      serializers.put(alias, serializer);
+    }
+    LOG.info("Serializer for <{}>{} : {}", clazz, (config != null ? " in <" + config.getAlias() + ">" : ""), serializer);
     return (Serializer<T>) serializer;
   }
 
