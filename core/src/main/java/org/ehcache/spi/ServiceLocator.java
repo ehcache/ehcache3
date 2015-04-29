@@ -19,6 +19,7 @@ package org.ehcache.spi;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.util.ClassLoading;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,7 +73,7 @@ public final class ServiceLocator implements ServiceProvider {
     for (ServiceFactory<T> factory : ServiceLocator.<T> getServiceFactories(serviceFactory)) {
       if (serviceClass.isAssignableFrom(factory.getServiceType())) {
         T service = factory.create(config, this);
-        addService(service);
+        addService(service, true);
         return service;
       }
     }
@@ -83,7 +84,7 @@ public final class ServiceLocator implements ServiceProvider {
   private static <T extends Service> Iterable<ServiceFactory<T>> getServiceFactories(@SuppressWarnings("rawtypes") ServiceLoader<ServiceFactory> serviceFactory) {
     List<ServiceFactory<T>> list = new ArrayList<ServiceFactory<T>>();
     for (ServiceFactory<?> factory : serviceFactory) {
-      list.add((ServiceFactory<T>) factory);
+      list.add((ServiceFactory<T>)factory);
     }
     return list;
   }
@@ -93,6 +94,10 @@ public final class ServiceLocator implements ServiceProvider {
   }
   
   public void addService(final Service service) {
+    addService(service, false);
+  }
+
+  private void addService(final Service service, final boolean expectsAbstractRegistration) {
     final Lock lock = runningLock.readLock();
     lock.lock();
     try {
@@ -112,10 +117,31 @@ public final class ServiceLocator implements ServiceProvider {
         throw new IllegalStateException("Registration of duplicate service " + service.getClass());
       }
 
-      for (Class<? extends Service> serviceClazz : serviceClazzes) {
-        if (services.putIfAbsent(serviceClazz, service) != null) {
-          LOGGER.warn("Duplicate service implementation found for " + serviceClazz + " by " + service.getClass() +
-              " - first registered " + services.get(serviceClazz).getClass());
+      if (!service.getClass().isAnnotationPresent(SupplementaryService.class)) {
+        boolean registered = false;
+        for (Class<? extends Service> serviceClazz : serviceClazzes) {
+          if (services.putIfAbsent(serviceClazz, service) == null && !registered) {
+            registered = true;
+          }
+        }
+        if (!registered) {
+          final StringBuilder message = new StringBuilder("Duplicate service implementation found for ").append(serviceClazzes)
+              .append(" by ")
+              .append(service.getClass());
+          for (Class<? extends Service> serviceClass : serviceClazzes) {
+            final Service declaredService = services.get(serviceClass);
+            if (declaredService != null) {
+              message
+                  .append("\n\t\t- ")
+                  .append(serviceClass)
+                  .append(" already has ")
+                  .append(declaredService.getClass());
+            }
+          }
+          if (expectsAbstractRegistration) {
+            throw new IllegalStateException(message.toString());
+          }
+          LOGGER.debug(message.toString());
         }
       }
 
