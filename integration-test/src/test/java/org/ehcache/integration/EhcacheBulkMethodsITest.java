@@ -25,13 +25,13 @@ import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.internal.SystemTimeSource;
-import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
+import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -502,7 +502,7 @@ public class EhcacheBulkMethodsITest {
   private static class CustomStoreProvider implements Store.Provider {
     @Override
     public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      ServiceLocator serviceLocator = new ServiceLocator(new JavaSerializationProvider());
+      ServiceLocator serviceLocator = new ServiceLocator(new DefaultSerializationProvider());
       SerializationProvider serializationProvider = serviceLocator.findService(SerializationProvider.class);
       Serializer<K> keySerializer = serializationProvider.createSerializer(storeConfig.getKeyType(), storeConfig.getClassLoader());
       Serializer<V> valueSerializer = serializationProvider.createSerializer(storeConfig.getValueType(), storeConfig.getClassLoader());

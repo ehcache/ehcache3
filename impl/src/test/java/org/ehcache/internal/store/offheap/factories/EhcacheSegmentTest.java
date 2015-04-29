@@ -19,9 +19,10 @@ package org.ehcache.internal.store.offheap.factories;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Predicate;
 import org.ehcache.function.Predicates;
-import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.offheap.HeuristicConfiguration;
 import org.ehcache.internal.store.offheap.portability.SerializerPortability;
+import org.ehcache.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -40,7 +41,8 @@ import java.util.Map;
 import static org.ehcache.internal.store.offheap.OffHeapStoreUtils.getBufferSource;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -53,7 +55,7 @@ public class EhcacheSegmentTest {
   @BeforeClass
   public static void setUpClass() {
     HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
-    JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
+    SerializationProvider serializationProvider = new DefaultSerializationProvider();
     PageSource pageSource = new UpfrontAllocatingPageSource(getBufferSource(), configuration.getMaximumSize(), configuration.getMaximumChunkSize(), configuration.getMinimumChunkSize());
     Serializer<String> stringSerializer = serializationProvider.createSerializer(String.class, EhcacheSegmentTest.class.getClassLoader());
     Portability<String> keyPortability = new SerializerPortability<String>(stringSerializer);

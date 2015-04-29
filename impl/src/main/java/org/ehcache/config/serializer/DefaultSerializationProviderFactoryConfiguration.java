@@ -13,31 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.internal.serialization;
 
-import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.serialization.SerializationProvider;
+package org.ehcache.config.serializer;
+
+import org.ehcache.internal.classes.ClassInstanceProviderFactoryConfig;
+import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 
-/**
- *
- * @author cdennis
- */
-public class JavaSerializationProvider implements SerializationProvider {
+public class DefaultSerializationProviderFactoryConfiguration extends ClassInstanceProviderFactoryConfig<Serializer<?>> implements ServiceConfiguration<DefaultSerializationProvider> {
 
   @Override
-  public <T> Serializer<T> createSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... config) {
-    return new JavaSerializer<T>(classLoader);
+  public Class<DefaultSerializationProvider> getServiceType() {
+    return DefaultSerializationProvider.class;
   }
 
-  @Override
-  public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
-    //no-op
-  }
-
-  @Override
-  public void stop() {
-    //no-op
+  public DefaultSerializationProviderFactoryConfiguration addSerializerFor(String alias, final Class<? extends Serializer<?>> clazz) {
+    getDefaults().put(alias, clazz);
+    return this;
   }
 }

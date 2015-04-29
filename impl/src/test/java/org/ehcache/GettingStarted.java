@@ -22,17 +22,22 @@ import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.event.CacheEventListenerBuilder;
 import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
+import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -206,6 +211,28 @@ public class GettingStarted {
   }
 
   @Test
+  public void testDefaultSerializer() throws Exception {
+    CacheConfiguration<String, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true))
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .buildConfig(String.class, String.class);
+
+    DefaultSerializationProviderFactoryConfiguration service = new DefaultSerializationProviderFactoryConfiguration();
+    service.addSerializerFor(String.class.getName(), StringSerializer.class);
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("cache", cacheConfiguration)
+        .using(service)
+        .build(true);
+
+    Cache<String, String> cache = cacheManager.getCache("cache", String.class, String.class);
+
+    cache.put("1", "one");
+    assertThat(cache.get("1"), equalTo("one"));
+
+    cacheManager.close();
+  }
+
+  @Test
   public void testCacheEventListener() {
     DefaultCacheEventListenerConfiguration cacheEventListenerConfiguration = CacheEventListenerBuilder
         .newEventListenerConfig(ListenerObject.class, EventType.CREATED, EventType.UPDATED)
@@ -243,4 +270,35 @@ public class GettingStarted {
       logger.info(event.getType().toString());
     }
   }
+
+  public static class StringSerializer implements Serializer<String> {
+    private static final Logger LOG = LoggerFactory.getLogger(StringSerializer.class);
+    private static final Charset CHARSET = Charset.forName("US-ASCII");
+
+    public StringSerializer(ClassLoader classLoader) {
+    }
+
+    @Override
+    public ByteBuffer serialize(String object) throws IOException {
+      LOG.info("serializing {}", object);
+      ByteBuffer byteBuffer = ByteBuffer.allocate(object.length());
+      byteBuffer.put(object.getBytes(CHARSET));
+      return byteBuffer;
+    }
+
+    @Override
+    public String read(ByteBuffer binary) throws IOException, ClassNotFoundException {
+      byte[] bytes = new byte[binary.flip().remaining()];
+      binary.get(bytes);
+      String s = new String(bytes, CHARSET);
+      LOG.info("deserialized {}", s);
+      return s;
+    }
+
+    @Override
+    public boolean equals(String object, ByteBuffer binary) throws IOException, ClassNotFoundException {
+      return object.equals(read(binary));
+    }
+  }
+
 }
