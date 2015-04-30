@@ -18,7 +18,6 @@ package org.ehcache;
 
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -40,6 +39,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.util.IsCreated;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.slf4j.LoggerFactory;
 
@@ -54,14 +54,13 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheBasicCrudBase {
   protected CacheLoaderWriter<String, String> cacheLoaderWriter;
 
   @Mock
-  protected CacheEventListener<String,String> testCacheEventListener;
+  protected CacheEventListener<String,String> cacheEventListener;
 
-  protected CacheEventNotificationService cacheEventNotificationService;
+  protected CacheEventNotificationService<String,String> cacheEventNotificationService;
 
   protected IsCreated isCreated = new IsCreated();
 
   @Test
-  @SuppressWarnings("unchecked")
   public void testPutIfAbsentNullNull() {
     final Ehcache<String, String> ehcache = this.getEhcache(null);
     
@@ -71,12 +70,11 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheBasicCrudBase {
     } catch (NullPointerException e) {
       // expected
     }
-    verify(testCacheEventListener,never()).onEvent(any(CacheEvent.class));
-    ehcache.getRuntimeConfiguration().deregisterCacheEventListener(testCacheEventListener);
+    verify(cacheEventListener,never()).onEvent(Matchers.<CacheEvent<String, String>>any());
+    ehcache.getRuntimeConfiguration().deregisterCacheEventListener(cacheEventListener);
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void testPutIfAbsentKeyNull() {
     final Ehcache<String, String> ehcache = this.getEhcache(null);
     try {
@@ -85,12 +83,11 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheBasicCrudBase {
     } catch (NullPointerException e) {
       // expected
     }
-    verify(testCacheEventListener,never()).onEvent(any(CacheEvent.class));
-    ehcache.getRuntimeConfiguration().deregisterCacheEventListener(testCacheEventListener);
+    verify(cacheEventListener,never()).onEvent(Matchers.<CacheEvent<String, String>>any());
+    ehcache.getRuntimeConfiguration().deregisterCacheEventListener(cacheEventListener);
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void testPutIfAbsentNullValue() {
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
@@ -100,21 +97,20 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheBasicCrudBase {
     } catch (NullPointerException e) {
       // expected
     }
-    verify(testCacheEventListener,never()).onEvent(any(CacheEvent.class));
-    ehcache.getRuntimeConfiguration().deregisterCacheEventListener(testCacheEventListener);
+    verify(cacheEventListener,never()).onEvent(Matchers.<CacheEvent<String, String>>any());
+    ehcache.getRuntimeConfiguration().deregisterCacheEventListener(cacheEventListener);
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void testPutIfAbsent() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
     ehcache.putIfAbsent("key", "value");
-    verify(testCacheEventListener,times(1)).onEvent(argThat(isCreated));
+    verify(cacheEventListener,times(1)).onEvent(argThat(isCreated));
     try {
-      ehcache.getRuntimeConfiguration().deregisterCacheEventListener(testCacheEventListener);
+      ehcache.getRuntimeConfiguration().deregisterCacheEventListener(cacheEventListener);
       fail();
     } catch (UnsupportedOperationException e){
       //expected
@@ -122,16 +118,15 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheBasicCrudBase {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void testPutIfAbsentNoStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     final Ehcache<String, String> ehcache = this.getEhcache(null);
     ehcache.putIfAbsent("key", "value");
-    verify(testCacheEventListener,never()).onEvent(any(CacheEvent.class));
+    verify(cacheEventListener,never()).onEvent(Matchers.<CacheEvent<String, String>>any());
     try {
-      ehcache.getRuntimeConfiguration().deregisterCacheEventListener(testCacheEventListener);
+      ehcache.getRuntimeConfiguration().deregisterCacheEventListener(cacheEventListener);
       fail();
     } catch (UnsupportedOperationException e){
       //expected
@@ -139,16 +134,15 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheBasicCrudBase {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void testPutIfAbsentNoStoreEntryCacheAccessExceptionHasCacheLoaderWriterEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
     ehcache.putIfAbsent("key", "value");
-    verify(testCacheEventListener,times(1)).onEvent(argThat(isCreated));
+    verify(cacheEventListener,times(1)).onEvent(argThat(isCreated));
     try {
-      ehcache.getRuntimeConfiguration().deregisterCacheEventListener(testCacheEventListener);
+      ehcache.getRuntimeConfiguration().deregisterCacheEventListener(cacheEventListener);
       fail();
     } catch (UnsupportedOperationException e){
       //expected
@@ -164,7 +158,7 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheBasicCrudBase {
             LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutIfAbsentEventsTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), CoreMatchers.is(Status.AVAILABLE));
-    super.registerCacheEventListener(ehcache, testCacheEventListener);
+    super.registerCacheEventListener(ehcache, cacheEventListener);
     return ehcache;
   }
 }

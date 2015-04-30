@@ -19,7 +19,6 @@ import static org.ehcache.EhcacheBasicBulkUtil.KEY_SET_A;
 import static org.ehcache.EhcacheBasicBulkUtil.KEY_SET_B;
 import static org.ehcache.EhcacheBasicBulkUtil.KEY_SET_C;
 import static org.ehcache.EhcacheBasicBulkUtil.KEY_SET_D;
-import static org.ehcache.EhcacheBasicBulkUtil.copyWithout;
 import static org.ehcache.EhcacheBasicBulkUtil.fanIn;
 import static org.ehcache.EhcacheBasicBulkUtil.getEntryMap;
 import static org.junit.Assert.assertThat;
@@ -50,6 +49,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.util.IsRemoved;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +59,7 @@ import org.slf4j.LoggerFactory;
 public class EhcacheBasicRemoveAllEventsTest extends EhcacheBasicCrudBase {
 
     @Mock
-    protected CacheEventListener testCacheEventListener;
+    protected CacheEventListener<String,String> cacheEventListener;
 
     protected CacheEventNotificationService<String,String> cacheEventNotificationService;
 
@@ -69,7 +69,6 @@ public class EhcacheBasicRemoveAllEventsTest extends EhcacheBasicCrudBase {
     protected CacheLoaderWriter<String, String> cacheLoaderWriter;
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testRemoveAllNull() throws Exception {
         final Ehcache<String, String> ehcache = this.getEhcache(null);
         try {
@@ -78,12 +77,11 @@ public class EhcacheBasicRemoveAllEventsTest extends EhcacheBasicCrudBase {
         } catch (NullPointerException e) {
             // Expected
         }
-        verify(testCacheEventListener,never()).onEvent(any(CacheEvent.class));
-        ehcache.getRuntimeConfiguration().deregisterCacheEventListener(testCacheEventListener);
+        verify(cacheEventListener,never()).onEvent(Matchers.<CacheEvent<String, String>>any());
+        ehcache.getRuntimeConfiguration().deregisterCacheEventListener(cacheEventListener);
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testRemoveAllNullKey() throws Exception {
         final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
         final FakeStore fakeStore = new FakeStore(originalStoreContent);
@@ -102,9 +100,9 @@ public class EhcacheBasicRemoveAllEventsTest extends EhcacheBasicCrudBase {
         } catch (NullPointerException e) {
             // Expected
         }
-        verify(testCacheEventListener,never()).onEvent(any(CacheEvent.class));
+        verify(cacheEventListener,never()).onEvent(Matchers.<CacheEvent<String, String>>any());
         try {
-            ehcache.getRuntimeConfiguration().deregisterCacheEventListener(testCacheEventListener);
+            ehcache.getRuntimeConfiguration().deregisterCacheEventListener(cacheEventListener);
             fail();
         } catch (UnsupportedOperationException e){
             //expected
@@ -112,7 +110,6 @@ public class EhcacheBasicRemoveAllEventsTest extends EhcacheBasicCrudBase {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testRemoveAll() throws Exception {
         final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
         final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
@@ -120,9 +117,9 @@ public class EhcacheBasicRemoveAllEventsTest extends EhcacheBasicCrudBase {
         final Ehcache<String, String> ehcache = this.getEhcache(null);
         final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
         ehcache.removeAll(contentUpdates);
-        verify(testCacheEventListener,times(5)).onEvent(argThat(isRemoved));
+        verify(cacheEventListener,times(5)).onEvent(argThat(isRemoved));
         try {
-            ehcache.getRuntimeConfiguration().deregisterCacheEventListener(testCacheEventListener);
+            ehcache.getRuntimeConfiguration().deregisterCacheEventListener(cacheEventListener);
             fail();
         } catch (UnsupportedOperationException e){
             //expected
@@ -130,7 +127,6 @@ public class EhcacheBasicRemoveAllEventsTest extends EhcacheBasicCrudBase {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testRemoveAllComplete() throws Exception {
         final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
         final FakeStore fakeStore = new FakeStore(originalStoreContent);
@@ -139,9 +135,9 @@ public class EhcacheBasicRemoveAllEventsTest extends EhcacheBasicCrudBase {
 
         final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
         ehcache.removeAll(contentUpdates);
-        verify(testCacheEventListener,times(12)).onEvent(argThat(isRemoved));
+        verify(cacheEventListener,times(12)).onEvent(argThat(isRemoved));
         try {
-            ehcache.getRuntimeConfiguration().deregisterCacheEventListener(testCacheEventListener);
+            ehcache.getRuntimeConfiguration().deregisterCacheEventListener(cacheEventListener);
             fail();
         } catch (UnsupportedOperationException e){
             //expected
@@ -149,7 +145,6 @@ public class EhcacheBasicRemoveAllEventsTest extends EhcacheBasicCrudBase {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testRemoveAllStoreSomeOverlapCacheAccessExceptionBeforeWriterNoOverlapSomeFail() throws Exception {
         final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
         final FakeStore fakeStore = new FakeStore(originalStoreContent);
@@ -164,17 +159,15 @@ public class EhcacheBasicRemoveAllEventsTest extends EhcacheBasicCrudBase {
         final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
         final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
-        final Set<String> expectedFailures = KEY_SET_C;
-        final Set<String> expectedSuccesses = copyWithout(contentUpdates, expectedFailures);
         try {
             ehcache.removeAll(contentUpdates);
             fail();
         } catch (BulkCacheWritingException e) {
             // Expected
         }
-        verify(testCacheEventListener,never()).onEvent(any(CacheEvent.class));
+        verify(cacheEventListener,never()).onEvent(Matchers.<CacheEvent<String, String>>any());
         try {
-            ehcache.getRuntimeConfiguration().deregisterCacheEventListener(testCacheEventListener);
+            ehcache.getRuntimeConfiguration().deregisterCacheEventListener(cacheEventListener);
             fail();
         } catch (UnsupportedOperationException e){
             //expected
@@ -210,7 +203,7 @@ public class EhcacheBasicRemoveAllEventsTest extends EhcacheBasicCrudBase {
                 LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicRemoveAllEventsTest"));
         ehcache.init();
         assertThat("cache not initialized", ehcache.getStatus(), CoreMatchers.is(Status.AVAILABLE));
-        super.registerCacheEventListener(ehcache, testCacheEventListener);
+        super.registerCacheEventListener(ehcache, cacheEventListener);
         return ehcache;
     }
 

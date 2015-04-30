@@ -21,10 +21,11 @@ import org.ehcache.event.EventType;
 import org.mockito.ArgumentMatcher;
 
 /**
- * @author
+ *
  */
-public class IsRemoved extends ArgumentMatcher<CacheEvent> {
+public class IsRemoved extends ArgumentMatcher<CacheEvent<String,String>> {
 
+    @SuppressWarnings("unchecked")
     public boolean matches(Object event) {
         CacheEvent<String,String> cacheEvent = (CacheEvent)event;
         return (cacheEvent.getType() == EventType.REMOVED);
