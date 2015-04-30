@@ -19,7 +19,6 @@ package org.ehcache.internal.store.offheap;
 import org.ehcache.Cache;
 import org.ehcache.CacheConfigurationChangeEvent;
 import org.ehcache.CacheConfigurationChangeListener;
-import org.ehcache.Status;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
@@ -90,8 +89,6 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   private final TimeSource timeSource;
 
   private final Expiry<? super K, ? super V> expiry;
-  private final AtomicReference<Status> status = new AtomicReference<Status>(Status.UNINITIALIZED);
-
 
   private final Predicate<Map.Entry<K, OffHeapValueHolder<V>>> evictionVeto;
   private final Serializer<K> keySerializer;
@@ -113,10 +110,6 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   };
 
   public OffHeapStore(final Configuration<K, V> config, Serializer<K> keySerializer, Serializer<V> valueSerializer, TimeSource timeSource, long sizeInBytes) {
-
-    if (!status.compareAndSet(Status.UNINITIALIZED, Status.AVAILABLE)) {
-      throw new AssertionError();
-    }
     keyType = config.getKeyType();
     valueType = config.getValueType();
     expiry = config.getExpiry();
@@ -781,7 +774,8 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       }
       SerializationProvider serializationProvider = serviceProvider.findService(SerializationProvider.class);
       Serializer<K> keySerializer = serializationProvider.createKeySerializer(storeConfig.getKeyType(), storeConfig.getClassLoader(), serviceConfigs);
-      Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig.getClassLoader(), serviceConfigs);
+      Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig
+          .getClassLoader(), serviceConfigs);
 
       ResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
       if (!(offHeapPool.getUnit() instanceof MemoryUnit)) {
