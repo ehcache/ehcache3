@@ -41,6 +41,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.util.IsRemoved;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.slf4j.LoggerFactory;
 
@@ -53,14 +54,13 @@ public class EhcacheBasicRemoveEventsTest extends EhcacheBasicCrudBase{
     protected CacheLoaderWriter<String, String> cacheLoaderWriter;
 
     @Mock
-    protected CacheEventListener<String,String> testCacheEventListener;
+    protected CacheEventListener<String,String> cacheEventListener;
 
-    protected CacheEventNotificationService cacheEventNotificationService;
+    protected CacheEventNotificationService<String,String> cacheEventNotificationService;
 
     protected IsRemoved isRemoved = new IsRemoved();
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testRemoveNull() {
         final Ehcache<String, String> ehcache = this.getEhcache(null);
         try {
@@ -69,8 +69,8 @@ public class EhcacheBasicRemoveEventsTest extends EhcacheBasicCrudBase{
         } catch (NullPointerException e) {
             // expected
         }
-        verify(testCacheEventListener, never()).onEvent(any(CacheEvent.class));
-        ehcache.getRuntimeConfiguration().deregisterCacheEventListener(testCacheEventListener);
+        verify(cacheEventListener,never()).onEvent(Matchers.<CacheEvent<String, String>>any());
+        ehcache.getRuntimeConfiguration().deregisterCacheEventListener(cacheEventListener);
     }
 
     @Test
@@ -79,12 +79,11 @@ public class EhcacheBasicRemoveEventsTest extends EhcacheBasicCrudBase{
         doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), any(BiFunction.class));
         final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
         ehcache.remove("key");
-        verify(testCacheEventListener,times(1)).onEvent(argThat(isRemoved));
-        ehcache.getRuntimeConfiguration().deregisterCacheEventListener(testCacheEventListener);
+        verify(cacheEventListener,times(1)).onEvent(argThat(isRemoved));
+        ehcache.getRuntimeConfiguration().deregisterCacheEventListener(cacheEventListener);
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testRemoveHasStoreEntryCacheWritingException() throws Exception {
         final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
         this.store = spy(fakeStore);
@@ -96,9 +95,9 @@ public class EhcacheBasicRemoveEventsTest extends EhcacheBasicCrudBase{
         } catch (CacheWritingException e) {
             // Expected
         }
-        verify(testCacheEventListener,never()).onEvent(any(CacheEvent.class));
+        verify(cacheEventListener,never()).onEvent(Matchers.<CacheEvent<String, String>>any());
         try {
-            ehcache.getRuntimeConfiguration().deregisterCacheEventListener(testCacheEventListener);
+            ehcache.getRuntimeConfiguration().deregisterCacheEventListener(cacheEventListener);
             fail();
         } catch (UnsupportedOperationException e){
             //expected
@@ -114,7 +113,7 @@ public class EhcacheBasicRemoveEventsTest extends EhcacheBasicCrudBase{
                 LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicRemoveEventsTest"));
         ehcache.init();
         assertThat("cache not initialized", ehcache.getStatus(), CoreMatchers.is(Status.AVAILABLE));
-        super.registerCacheEventListener(ehcache, testCacheEventListener);
+        super.registerCacheEventListener(ehcache, cacheEventListener);
         return ehcache;
     }
 }

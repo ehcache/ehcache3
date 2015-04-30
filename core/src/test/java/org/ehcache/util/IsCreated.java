@@ -23,7 +23,7 @@ import org.mockito.ArgumentMatcher;
 /**
  * @author
  */
-public class IsCreated extends ArgumentMatcher<CacheEvent> {
+public class IsCreated extends ArgumentMatcher<CacheEvent<String,String>> {
 
     public boolean matches(Object event) {
         CacheEvent<String,String> cacheEvent = (CacheEvent)event;
