@@ -97,7 +97,7 @@ public final class ServiceLocator implements ServiceProvider {
     addService(service, false);
   }
 
-  private void addService(final Service service, final boolean expectsAbstractRegistration) {
+  void addService(final Service service, final boolean expectsAbstractRegistration) {
     final Lock lock = runningLock.readLock();
     lock.lock();
     try {
