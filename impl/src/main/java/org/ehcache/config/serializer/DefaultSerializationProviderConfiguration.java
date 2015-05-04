@@ -17,14 +17,20 @@
 package org.ehcache.config.serializer;
 
 import org.ehcache.internal.classes.ClassInstanceProviderConfig;
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 
+import java.util.Collection;
+
 public class DefaultSerializationProviderConfiguration extends ClassInstanceProviderConfig<Serializer<?>> implements ServiceConfiguration<DefaultSerializationProvider> {
 
-  public DefaultSerializationProviderConfiguration() {
-    super(null);
+  private final Type type;
+
+  public DefaultSerializationProviderConfiguration(Class<Serializer<?>> clazz, Type type) {
+    super(clazz);
+    this.type = type;
   }
 
   @Override
@@ -32,8 +38,29 @@ public class DefaultSerializationProviderConfiguration extends ClassInstanceProv
     return DefaultSerializationProvider.class;
   }
 
-  public String getAlias() {
-    return null;
+  public Type getType() {
+    return type;
+  }
+
+  public enum Type {
+    KEY,
+    VALUE,
+  }
+
+  public static DefaultSerializationProviderConfiguration find(Type type, ServiceConfiguration<?>... serviceConfigurations) {
+    DefaultSerializationProviderConfiguration result = null;
+
+    Collection<DefaultSerializationProviderConfiguration> serializationProviderConfigurations = ServiceLocator.findAmongst(DefaultSerializationProviderConfiguration.class, serviceConfigurations);
+    for (DefaultSerializationProviderConfiguration serializationProviderConfiguration : serializationProviderConfigurations) {
+      if (serializationProviderConfiguration.getType() == type) {
+        if (result != null) {
+          throw new IllegalArgumentException("Duplicate " + type + " serialization provider : " + serializationProviderConfiguration);
+        }
+        result = serializationProviderConfiguration;
+      }
+    }
+
+    return result;
   }
 
 }

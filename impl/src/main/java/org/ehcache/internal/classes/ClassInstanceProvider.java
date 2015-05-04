@@ -23,7 +23,8 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -32,7 +33,10 @@ import java.util.Map;
  */
 public class ClassInstanceProvider<T> {
 
-  private final Map<String, Class<? extends T>> preconfiguredLoaders = new HashMap<String, Class<? extends T>>();
+  /**
+   * The order in which entries are put in is kept.
+   */
+  protected final Map<String, Class<? extends T>> preconfiguredLoaders = Collections.synchronizedMap(new LinkedHashMap<String, Class<? extends T>>());
 
   private final Class<? extends ClassInstanceProviderFactoryConfig<T>> factoryConfig;
   private final Class<? extends ClassInstanceProviderConfig<T>> cacheLevelConfig;
@@ -79,7 +83,7 @@ public class ClassInstanceProvider<T> {
         ctorVals.add(ctorArg.val);
       }
 
-      Constructor<? extends T> constructor = clazz.getConstructor(ctorClasses.toArray(new Class[0]));
+      Constructor<? extends T> constructor = clazz.getConstructor(ctorClasses.toArray(new Class[ctorClasses.size()]));
       return constructor.newInstance(ctorVals.toArray());
     } catch (InstantiationException e) {
       throw new RuntimeException(e);

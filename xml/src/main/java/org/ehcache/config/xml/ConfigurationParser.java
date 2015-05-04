@@ -123,9 +123,9 @@ class ConfigurationParser {
     final ArrayList<ServiceConfiguration<?>> serviceConfigurations = new ArrayList<ServiceConfiguration<?>>();
     
     for (ServiceType serviceType : config.getService()) {
-      if(serviceType.getSerializerDefault() != null) {
-        serviceConfigurations.add(parseDefaultSerializerConfig(serviceType.getSerializerDefault()));
-      } else if(serviceType.getPersistence() != null) {
+      if (serviceType.getDefaultSerializers() != null) {
+        serviceConfigurations.add(parseDefaultSerializerConfig(serviceType.getDefaultSerializers()));
+      } else if (serviceType.getPersistence() != null) {
           serviceConfigurations.add(parsePersistenceConfig(serviceType.getPersistence()));
       } else {
         final ServiceConfiguration<?> serviceConfiguration = parseExtension((Element)serviceType.getAny());
@@ -145,26 +145,12 @@ class ConfigurationParser {
         
     for (SerializerType.Serializer serializer : serializerType.getSerializer()) {
       try {
-        configuration.addSerializerFor(buildAlias(serializer), (Class<? extends Serializer<?>>) Class.forName(serializer.getValue()));
+        configuration.addSerializerFor(serializer.getType() != null ? Class.forName(serializer.getType()) : null, (Class<? extends Serializer<?>>) Class.forName(serializer.getValue()));
       } catch (ClassNotFoundException e) {
         throw new RuntimeException(e);
       }
     }
     return configuration;
-  }
-
-  private String buildAlias(SerializerType.Serializer serializer) {
-    StringBuilder sb = new StringBuilder();
-    if (serializer.getType() != null) {
-      sb.append(serializer.getType());
-    }
-    if (serializer.getCache() != null) {
-      if (sb.length() > 0) {
-        sb.append("#");
-      }
-      sb.append(serializer.getCache());
-    }
-    return sb.toString();
   }
 
   public Iterable<CacheDefinition> getCacheElements() {
@@ -194,7 +180,7 @@ class ConfigurationParser {
           public String keyType() {
             String value = null;
             for (BaseCacheType source : sources) {
-              value = source.getKeyType();
+              value = source.getKeyType() != null ? source.getKeyType().getValue() : null;
               if (value != null) break;
             }
             if (value == null) {
@@ -207,10 +193,20 @@ class ConfigurationParser {
           }
 
           @Override
+          public String keySerializer() {
+            String value = null;
+            for (BaseCacheType source : sources) {
+              value = source.getKeyType() != null ? source.getKeyType().getSerializer() : null;
+              if (value != null) break;
+            }
+            return value;
+          }
+
+          @Override
           public String valueType() {
             String value = null;
             for (BaseCacheType source : sources) {
-              value = source.getValueType();
+              value = source.getValueType() != null ? source.getValueType().getValue() : null;
               if (value != null) break;
             }
             if (value == null) {
@@ -218,6 +214,16 @@ class ConfigurationParser {
                 value = JaxbHelper.findDefaultValue(source, "valueType");
                 if (value != null) break;
               }
+            }
+            return value;
+          }
+
+          @Override
+          public String valueSerializer() {
+            String value = null;
+            for (BaseCacheType source : sources) {
+              value = source.getValueType() != null ? source.getValueType().getSerializer() : null;
+              if (value != null) break;
             }
             return value;
           }
@@ -411,7 +417,7 @@ class ConfigurationParser {
 
           @Override
           public String keyType() {
-            String keyType = cacheTemplate.getKeyType();
+            String keyType = cacheTemplate.getKeyType() != null ? cacheTemplate.getKeyType().getValue() : null;
             if (keyType == null) {
               keyType = JaxbHelper.findDefaultValue(cacheTemplate, "keyType");
             }
@@ -419,12 +425,22 @@ class ConfigurationParser {
           }
 
           @Override
+          public String keySerializer() {
+            return cacheTemplate.getKeyType() != null ? cacheTemplate.getKeyType().getSerializer() : null;
+          }
+
+          @Override
           public String valueType() {
-            String valueType = cacheTemplate.getValueType();
+            String valueType = cacheTemplate.getValueType() != null ? cacheTemplate.getValueType().getValue() : null;
             if (valueType == null) {
               valueType = JaxbHelper.findDefaultValue(cacheTemplate, "valueType");
             }
             return valueType;
+          }
+
+          @Override
+          public String valueSerializer() {
+            return cacheTemplate.getValueType() != null ? cacheTemplate.getValueType().getSerializer() : null;
           }
 
           @Override
@@ -573,11 +589,15 @@ class ConfigurationParser {
     }
   }
 
-  static interface CacheTemplate {
+  interface CacheTemplate {
 
     String keyType();
 
+    String keySerializer();
+
     String valueType();
+
+    String valueSerializer();
 
     String evictionVeto();
 
@@ -599,13 +619,13 @@ class ConfigurationParser {
 
   }
 
-  static interface CacheDefinition extends CacheTemplate {
+  interface CacheDefinition extends CacheTemplate {
 
     String id();
 
   }
 
-  static interface Listener {
+  interface Listener {
 
     String className();
 
@@ -617,7 +637,7 @@ class ConfigurationParser {
 
   }
 
-  static interface Expiry {
+  interface Expiry {
 
     boolean isUserDef();
 
@@ -633,7 +653,7 @@ class ConfigurationParser {
 
   }
   
-  static interface WriteBehind {
+  interface WriteBehind {
     
     boolean isCoalesced();
     

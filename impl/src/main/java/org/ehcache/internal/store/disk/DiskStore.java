@@ -21,6 +21,7 @@ import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
@@ -50,6 +51,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -88,7 +90,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
   private final TimeSource timeSource;
   private final Expiry<? super K, ? super V> expiry;
   private final Serializer<Element> elementSerializer;
-  private final Serializer<Object> indexSerializer;
+  private final Serializer<Serializable> indexSerializer;
   private final long capacity;
   private final Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto;
   private final Comparator<DiskStorageFactory.DiskSubstitute<K, V>> evictionPrioritizer;
@@ -104,7 +106,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
   private final File dataFile;
   private final File indexFile;
 
-  public DiskStore(final Configuration<K, V> config, File dataFile, File indexFile, TimeSource timeSource, Serializer<Element> elementSerializer, Serializer<Object> indexSerializer) {
+  public DiskStore(final Configuration<K, V> config, File dataFile, File indexFile, TimeSource timeSource, Serializer<Element> elementSerializer, Serializer<Serializable> indexSerializer) {
     ResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
     if (diskPool == null) {
       throw new IllegalArgumentException("Disk store must be configured with a resource of type 'disk'");
@@ -1007,8 +1009,8 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
       TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
       
       SerializationProvider serializationProvider = serviceProvider.findService(SerializationProvider.class);
-      Serializer<Element> elementSerializer = serializationProvider.createSerializer(Element.class, storeConfig.getClassLoader());
-      Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, storeConfig.getClassLoader());
+      Serializer<Element> elementSerializer = serializationProvider.createSerializer(Element.class, storeConfig.getClassLoader(), DefaultSerializationProviderConfiguration.find(DefaultSerializationProviderConfiguration.Type.KEY, serviceConfigs));
+      Serializer<Serializable> objectSerializer = serializationProvider.createSerializer(Serializable.class, storeConfig.getClassLoader(), DefaultSerializationProviderConfiguration.find(DefaultSerializationProviderConfiguration.Type.VALUE, serviceConfigs));
       
       // todo: This should be enforced at the type system
       Object identifier;

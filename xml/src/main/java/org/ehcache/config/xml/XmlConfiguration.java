@@ -26,6 +26,7 @@ import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
 import org.ehcache.config.xml.ConfigurationParser.WriteBehind;
 import org.ehcache.expiry.Duration;
@@ -37,6 +38,7 @@ import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
 import org.slf4j.Logger;
@@ -170,6 +172,14 @@ public class XmlConfiguration implements Configuration {
       
       Class keyType = getClassForName(cacheDefinition.keyType(), cacheClassLoader);
       Class valueType = getClassForName(cacheDefinition.valueType(), cacheClassLoader);
+      if (cacheDefinition.keySerializer() != null) {
+        Class keySerializer = getClassForName(cacheDefinition.keySerializer(), cacheClassLoader);
+        builder = builder.addServiceConfig(new DefaultSerializationProviderConfiguration(keySerializer, DefaultSerializationProviderConfiguration.Type.KEY));
+      }
+      if (cacheDefinition.valueSerializer() != null) {
+        Class valueSerializer = getClassForName(cacheDefinition.valueSerializer(), cacheClassLoader);
+        builder = builder.addServiceConfig(new DefaultSerializationProviderConfiguration(valueSerializer, DefaultSerializationProviderConfiguration.Type.VALUE));
+      }
       EvictionVeto evictionVeto = getInstanceOfName(cacheDefinition.evictionVeto(), cacheClassLoader, EvictionVeto.class);
       EvictionPrioritizer evictionPrioritizer = getInstanceOfName(cacheDefinition.evictionPrioritizer(), cacheClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class);
       final ConfigurationParser.Expiry parsedExpiry = cacheDefinition.expiry();
@@ -344,7 +354,6 @@ public class XmlConfiguration implements Configuration {
     if(keyType != null && cacheTemplate.keyType() != null && !keyClass.isAssignableFrom(keyType)) {
       throw new IllegalArgumentException("CacheTemplate '" + name + "' declares key type of " + cacheTemplate.keyType());
     }
-
     if(valueType != null && cacheTemplate.valueType() != null && !valueClass.isAssignableFrom(valueType)) {
       throw new IllegalArgumentException("CacheTemplate '" + name + "' declares value type of " + cacheTemplate.valueType());
     }
@@ -355,6 +364,15 @@ public class XmlConfiguration implements Configuration {
         .usingEvictionPrioritizer(getInstanceOfName(cacheTemplate.evictionPrioritizer(), defaultClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class))
         .evictionVeto(getInstanceOfName(cacheTemplate.evictionVeto(), defaultClassLoader, EvictionVeto.class))
         .withExpiry(getExpiry(defaultClassLoader, parsedExpiry));
+
+    if (cacheTemplate.keySerializer() != null) {
+      final Class<Serializer<?>> keySerializer = (Class<Serializer<?>>) getClassForName(cacheTemplate.keySerializer(), defaultClassLoader);
+      builder = builder.addServiceConfig(new DefaultSerializationProviderConfiguration(keySerializer, DefaultSerializationProviderConfiguration.Type.KEY));
+    }
+    if (cacheTemplate.valueSerializer() != null) {
+      final Class<Serializer<?>> valueSerializer = (Class<Serializer<?>>) getClassForName(cacheTemplate.valueSerializer(), defaultClassLoader);
+      builder = builder.addServiceConfig(new DefaultSerializationProviderConfiguration(valueSerializer, DefaultSerializationProviderConfiguration.Type.VALUE));
+    }
     final String loaderWriter = cacheTemplate.loaderWriter();
     if(loaderWriter!= null) {
       final Class<CacheLoaderWriter<?, ?>> cacheLoaderWriterClass = (Class<CacheLoaderWriter<?,?>>)getClassForName(loaderWriter, defaultClassLoader);

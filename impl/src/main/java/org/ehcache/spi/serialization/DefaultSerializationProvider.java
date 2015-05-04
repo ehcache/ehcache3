@@ -19,13 +19,14 @@ package org.ehcache.spi.serialization;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
 import org.ehcache.internal.classes.ClassInstanceProvider;
-import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.util.Map;
 
 /**
@@ -35,8 +36,6 @@ public class DefaultSerializationProvider extends ClassInstanceProvider<Serializ
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultSerializationProvider.class);
 
-  private final Map<String, Serializer<?>> serializers = new ConcurrentHashMap<String, Serializer<?>>();
-
   public DefaultSerializationProvider() {
     super(DefaultSerializationProviderFactoryConfiguration.class, DefaultSerializationProviderConfiguration.class);
   }
@@ -44,52 +43,46 @@ public class DefaultSerializationProvider extends ClassInstanceProvider<Serializ
   @Override
   public <T> Serializer<T> createSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) {
     DefaultSerializationProviderConfiguration config = ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, configs);
-    String alias = buildAlias(clazz, config);
-    Serializer<?> serializer = serializers.get(alias);
+    String alias = (config != null ? null : clazz.getName());
+    Serializer<T> serializer = (Serializer<T>) newInstance(alias, config, new Arg(ClassLoader.class, classLoader));
     if (serializer == null) {
-      serializer = newInstance(alias, config, new Arg(ClassLoader.class, classLoader));
-      serializers.put(alias, serializer);
+      throw new IllegalArgumentException("No serializer found for type '" + alias + "'");
     }
-    LOG.info("Serializer for <{}>{} : {}", clazz, (config != null ? " in <" + config.getAlias() + ">" : ""), serializer);
-    return (Serializer<T>) serializer;
-  }
-
-  private String buildAlias(Class<?> clazz, DefaultSerializationProviderConfiguration configuration) {
-    StringBuilder sb = new StringBuilder();
-    if (clazz != null) {
-      sb.append(clazz.getName());
-    }
-    if (configuration != null && configuration.getAlias() != null) {
-      if (sb.length() > 0) {
-        sb.append("#");
-      }
-      sb.append(configuration.getAlias());
-    }
-    return sb.toString();
+    LOG.info("Serializer for <{}> : {}", clazz.getName(), serializer);
+    return serializer;
   }
 
   @Override
   protected Class<? extends Serializer<?>> getPreconfigured(String alias) {
-    Class<? extends Serializer<?>> preconfigured = super.getPreconfigured(alias);
-    if (preconfigured != null) {
-      return preconfigured;
+    Class<? extends Serializer<?>> direct = preconfiguredLoaders.get(alias);
+    if (direct != null) {
+      return direct;
     }
-    String[] split = alias.split("\\#");
-    preconfigured = super.getPreconfigured(split[0]);
-    if (preconfigured != null) {
-      return preconfigured;
+    Class<?> targetSerializedClass;
+    try {
+      targetSerializedClass = Class.forName(alias);
+    } catch (ClassNotFoundException cnfe) {
+      throw new IllegalArgumentException("Configured type class '" + alias + "' not found", cnfe);
     }
-    if (split.length > 1) {
-      preconfigured = super.getPreconfigured(split[1]);
-      if (preconfigured != null) {
-        return preconfigured;
+    for (Map.Entry<String, Class<? extends Serializer<?>>> entry : preconfiguredLoaders.entrySet()) {
+      try {
+        Class<?> configuredSerializedClass = Class.forName(entry.getKey());
+        if (configuredSerializedClass.isAssignableFrom(targetSerializedClass)) {
+          return entry.getValue();
+        }
+      } catch (ClassNotFoundException cnfe) {
+        throw new IllegalArgumentException("Configured type class '" + entry.getKey() + "' for serializer '" + entry.getValue() + "' not found", cnfe);
       }
     }
-    preconfigured = super.getPreconfigured("");
-    if (preconfigured != null) {
-      return preconfigured;
-    }
-    return (Class) JavaSerializer.class;
+    return null;
   }
 
+  @Override
+  public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+    super.start(config, serviceProvider);
+    // add java.io.Serializable at the end of the map if it wasn't already there
+    if (!preconfiguredLoaders.containsKey(Serializable.class.getName())) {
+      preconfiguredLoaders.put(Serializable.class.getName(), (Class) JavaSerializer.class);
+    }
+  }
 }
