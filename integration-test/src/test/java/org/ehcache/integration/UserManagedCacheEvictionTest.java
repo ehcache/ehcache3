@@ -39,7 +39,7 @@ public class UserManagedCacheEvictionTest {
   public void test_eviction_with_specific_eviction_prioritizer() throws Exception {
     UserManagedCache<Number, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Number.class, String.class, LoggerFactory
         .getLogger(Ehcache.class + "-" + "UserManagedCacheEvictionTest"))
-        .withResourcePools(newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).build())
+        .withResourcePools(newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES))
         .prioritizeEviction(Eviction.Prioritizer.LRU)
         .build(true);
     assertThat(cache.getRuntimeConfiguration().getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(),
@@ -65,7 +65,7 @@ public class UserManagedCacheEvictionTest {
   public void test_eviction_eviction_prioritizer_not_specified() throws Exception {
     UserManagedCache<Number, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Number.class, String.class, LoggerFactory
         .getLogger(Ehcache.class + "-" + "UserManagedCacheEvictionTest1"))
-        .withResourcePools(newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).build())
+        .withResourcePools(newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES))
         .build(true);
     assertThat(cache.getRuntimeConfiguration().getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(),
         equalTo(1L));

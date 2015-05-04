@@ -24,6 +24,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.UserManagedCacheConfiguration;
@@ -157,6 +158,10 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
   public final UserManagedCacheBuilder<K, V, T> withResourcePools(ResourcePools resourcePools) {
     this.resourcePools = resourcePools;
     return this;
+  }
+
+  public final UserManagedCacheBuilder<K, V, T> withResourcePools(ResourcePoolsBuilder resourcePoolsBuilder) {
+    return withResourcePools(resourcePoolsBuilder.build());
   }
 
   public static <K, V, T extends UserManagedCache<K, V>> UserManagedCacheBuilder<K, V, T> newUserManagedCacheBuilder(Class<K> keyType, Class<V> valueType, Logger logger) {
