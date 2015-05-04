@@ -20,16 +20,10 @@ import org.ehcache.event.CacheEvent;
 import org.ehcache.event.EventType;
 import org.mockito.ArgumentMatcher;
 
-/**
- *
- */
-public class IsUpdated extends ArgumentMatcher<CacheEvent<String,String>> {
+public class IsUpdated<K, V> extends ArgumentMatcher<CacheEvent<K, V>> {
 
-    @SuppressWarnings("unchecked")
-    public boolean matches(Object event) {
-        CacheEvent<String,String> cacheEvent = (CacheEvent)event;
-        return (cacheEvent.getType() == EventType.UPDATED);
-    }
-
-
+  public boolean matches(Object event) {
+    CacheEvent<?, ?> cacheEvent = (CacheEvent)event;
+    return (cacheEvent.getType() == EventType.UPDATED);
+  }
 }

@@ -28,18 +28,18 @@ import java.util.Collections;
 
 import org.ehcache.event.CacheEvent;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.util.IsCreated;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mock;
 
+
 /**
- * Provides events testing for basic PUT_IF_ABSENT operations on an {@code Ehcache}.
- *
- *
+ * The class tries to test some of the eventing mechanism for basic PUT operations.
  */
-public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheEventsTestBase {
+public class EhcacheBasicPutEventsTest extends EhcacheEventsTestBase {
 
   @Mock
   protected CacheLoaderWriter<String, String> cacheLoaderWriter;
@@ -47,11 +47,11 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheEventsTestBase {
   protected IsCreated<String, String> isCreated = new IsCreated<String, String>();
 
   @Test
-  public void testPutIfAbsentAllArgsNull() {
+  public void testPutAllArgsNull() {
     final Ehcache<String, String> ehcache = getEhcache();
-    
+
     try {
-      ehcache.putIfAbsent(null, null);
+      ehcache.put(null, null);
       fail();
     } catch (NullPointerException e) {
       // expected
@@ -60,10 +60,10 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheEventsTestBase {
   }
 
   @Test
-  public void testPutIfAbsentKeyNotNullValueNull() {
+  public void testPutKeyNotNullValueNull() {
     final Ehcache<String, String> ehcache = getEhcache();
     try {
-      ehcache.putIfAbsent("key", null);
+      ehcache.put("key", null);
       fail();
     } catch (NullPointerException e) {
       // expected
@@ -72,11 +72,11 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheEventsTestBase {
   }
 
   @Test
-  public void testPutIfAbsentKeyNullValueNotNull() {
+  public void testPutKeyNullValueNotNull() {
     final Ehcache<String, String> ehcache = getEhcache();
 
     try {
-      ehcache.putIfAbsent(null, "value");
+      ehcache.put(null, "value");
       fail();
     } catch (NullPointerException e) {
       // expected
@@ -85,33 +85,55 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheEventsTestBase {
   }
 
   @Test
-  public void testPutIfAbsent() throws Exception {
+  public void testPut() throws Exception {
+    buildStore(Collections.<String, String>emptyMap());
+    final Ehcache<String, String> ehcache = getEhcache();
+    ehcache.put("key", "value");
+    verify(cacheEventListener, times(1)).onEvent(argThat(isCreated));
+  }
+
+  @Test
+  public void testPutStoreAndWriterThrow() throws Exception {
+    buildStore(Collections.<String, String>emptyMap());
+    doThrow(new CacheAccessException("")).when(store).compute(eq("key"), getAnyBiFunction());
+    doThrow(new Exception()).when(cacheLoaderWriter).write("key", "value");
+    final Ehcache<String, String> ehcache = getEhcache(cacheLoaderWriter, "EhcacheBasicPutEventsTest");
+    try {
+      ehcache.put("key", "value");
+      fail();
+    } catch (CacheWritingException e) {
+      // Expected
+    }
+    verify(cacheEventListener, never()).onEvent(Matchers.<CacheEvent<String, String>>any());
+  }
+
+
+  @Test
+  public void testPutWriterThrows() throws Exception {
     buildStore(Collections.singletonMap("key", "oldValue"));
-    doThrow(new CacheAccessException("")).when(store).computeIfAbsent(eq("key"), getAnyFunction());
-    final Ehcache<String, String> ehcache = getEhcache(cacheLoaderWriter, "EhcacheBasicPutIfAbsentEventsTest");
-    ehcache.putIfAbsent("key", "value");
-    verify(cacheEventListener, times(1)).onEvent(argThat(isCreated));
-  }
-
-  @Test
-  public void testPutIfAbsentStoreThrows() throws Exception {
-    buildStore(Collections.<String, String>emptyMap());
-    doThrow(new CacheAccessException("")).when(store).computeIfAbsent(eq("key"), getAnyFunction());
-    final Ehcache<String, String> ehcache = getEhcache();
-    ehcache.putIfAbsent("key", "value");
+    doThrow(new Exception()).when(cacheLoaderWriter).write("key", "value");
+    final Ehcache<String, String> ehcache = getEhcache(cacheLoaderWriter, "EhcacheBasicPutEventsTest");
+    try {
+      ehcache.put("key", "value");
+      fail();
+    } catch (CacheWritingException e) {
+      // Expected
+    }
     verify(cacheEventListener, never()).onEvent(Matchers.<CacheEvent<String, String>>any());
   }
 
   @Test
-  public void testPutIfAbsentStoreThrowsLoaderWriterRecovers() throws Exception {
-    buildStore(Collections.<String, String>emptyMap());
-    doThrow(new CacheAccessException("")).when(store).computeIfAbsent(eq("key"), getAnyFunction());
-    final Ehcache<String, String> ehcache = getEhcache(cacheLoaderWriter, "EhcacheBasicPutIfAbsentEventsTest");
-    ehcache.putIfAbsent("key", "value");
-    verify(cacheEventListener, times(1)).onEvent(argThat(isCreated));
+  public void testPutStoreThrowsNoWriter() throws Exception {
+    buildStore(Collections.singletonMap("key", "oldValue"));
+    doThrow(new CacheAccessException("")).when(store).compute(eq("key"), getAnyBiFunction());
+
+    final Ehcache<String, String> ehcache = getEhcache();
+
+    ehcache.put("key", "value");
+    verify(cacheEventListener, never()).onEvent(Matchers.<CacheEvent<String, String>>any());
   }
 
   private Ehcache<String, String> getEhcache() {
-    return getEhcache("EhcacheBasicPutIfAbsentEventsTest");
+    return getEhcache("EhcacheBasicPutEventsTest");
   }
 }
