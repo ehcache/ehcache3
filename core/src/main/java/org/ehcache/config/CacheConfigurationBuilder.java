@@ -21,10 +21,12 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Set;
 
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 
+import static java.util.Collections.emptySet;
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 /**
@@ -46,40 +48,48 @@ public class CacheConfigurationBuilder<K, V> {
     return new CacheConfigurationBuilder<K, V>();
   }
 
-  private CacheConfigurationBuilder(final Expiry<? super K, ? super V> expiry, final ClassLoader classLoader,
-                                   final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
-                                   final EvictionVeto<? super K, ? super V> evictionVeto,
-                                   final ResourcePools resourcePools,
-                                   final Collection<ServiceConfiguration<?>> serviceConfigurations) {
-    this.expiry = expiry;
-    this.classLoader = classLoader;
-    this.evictionPrioritizer = evictionPrioritizer;
-    this.evictionVeto = evictionVeto;
-    this.resourcePools = resourcePools;
-    this.serviceConfigurations.addAll(serviceConfigurations);
+  private CacheConfigurationBuilder(CacheConfigurationBuilder<? super K, ? super V> other) {
+    this.expiry = other.expiry;
+    this.classLoader = other.classLoader;
+    this.evictionPrioritizer = other.evictionPrioritizer;
+    this.evictionVeto = other.evictionVeto;
+    this.resourcePools = other.resourcePools;
+    this.serviceConfigurations.addAll(other.serviceConfigurations);
+
   }
 
-  public CacheConfigurationBuilder<K, V> addServiceConfig(ServiceConfiguration<?> configuration) {
-    serviceConfigurations.add(configuration);
-    return this;
+  public CacheConfigurationBuilder<K, V> add(ServiceConfiguration<?> configuration) {
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    otherBuilder.serviceConfigurations.add(configuration);
+    return otherBuilder;
+  }
+
+  public CacheConfigurationBuilder<K, V> add(Builder<? extends ServiceConfiguration<?>> configurationBuilder) {
+    return add(configurationBuilder.build());
   }
 
   public <NK extends K, NV extends V> CacheConfigurationBuilder<NK, NV> usingEvictionPrioritizer(final EvictionPrioritizer<? super NK, ? super NV> evictionPrioritizer) {
-    return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, evictionPrioritizer, evictionVeto, resourcePools, serviceConfigurations);
+    CacheConfigurationBuilder<NK, NV> otherBuilder = new CacheConfigurationBuilder<NK, NV>(this);
+    otherBuilder.evictionPrioritizer = evictionPrioritizer;
+    return otherBuilder;
   }
 
   public <NK extends K, NV extends V> CacheConfigurationBuilder<NK, NV> evictionVeto(final EvictionVeto<? super NK, ? super NV> veto) {
-    return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, evictionPrioritizer, veto, resourcePools, serviceConfigurations);
+    CacheConfigurationBuilder<NK, NV> otherBuilder = new CacheConfigurationBuilder<NK, NV>(this);
+    otherBuilder.evictionVeto = veto;
+    return otherBuilder;
   }
 
-  public CacheConfigurationBuilder<K, V> removeServiceConfig(ServiceConfiguration<?> configuration) {
-    serviceConfigurations.remove(configuration);
-    return this;
+  public CacheConfigurationBuilder<K, V> remove(ServiceConfiguration<?> configuration) {
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    otherBuilder.serviceConfigurations.remove(configuration);
+    return otherBuilder;
   }
 
   public CacheConfigurationBuilder<K, V> clearAllServiceConfig() {
-    serviceConfigurations.clear();
-    return this;
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    otherBuilder.serviceConfigurations.clear();
+    return otherBuilder;
   }
 
   public <T extends ServiceConfiguration<?>> T getExistingServiceConfiguration(Class<T> clazz) {
@@ -106,16 +116,24 @@ public class CacheConfigurationBuilder<K, V> {
   }
   
   public CacheConfigurationBuilder<K, V> withClassLoader(ClassLoader classLoader) {
-    this.classLoader = classLoader;
-    return this;
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    otherBuilder.classLoader = classLoader;
+    return otherBuilder;
   }
   
   public CacheConfigurationBuilder<K, V> withResourcePools(ResourcePools resourcePools) {
-    this.resourcePools = resourcePools;
-    return this;
+    if (resourcePools == null) {
+      throw new NullPointerException("Null resource pools");
+    }
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    otherBuilder.resourcePools = resourcePools;
+    return otherBuilder;
   }
 
   public CacheConfigurationBuilder<K, V> withResourcePools(ResourcePoolsBuilder resourcePoolsBuilder) {
+    if (resourcePoolsBuilder == null) {
+      throw new NullPointerException("Null resource pools builder");
+    }
     return withResourcePools(resourcePoolsBuilder.build());
   }
 
@@ -123,7 +141,9 @@ public class CacheConfigurationBuilder<K, V> {
     if (expiry == null) {
       throw new NullPointerException("Null expiry");
     }
-    return new CacheConfigurationBuilder<NK, NV>(expiry, classLoader, evictionPrioritizer, evictionVeto, resourcePools, serviceConfigurations);
+    CacheConfigurationBuilder<NK, NV> otherBuilder = new CacheConfigurationBuilder<NK, NV>(this);
+    otherBuilder.expiry = expiry;
+    return otherBuilder;
   }
 
 }

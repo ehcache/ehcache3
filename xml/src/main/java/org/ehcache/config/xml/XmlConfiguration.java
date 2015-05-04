@@ -178,13 +178,13 @@ public class XmlConfiguration implements Configuration {
       for (ResourcePool resourcePool : cacheDefinition.resourcePools()) {
         resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool.getType(), resourcePool.getSize(), resourcePool.getUnit(), resourcePool.isPersistent());
       }
-      builder.withResourcePools(resourcePoolsBuilder);
+      builder = builder.withResourcePools(resourcePoolsBuilder);
       for (ServiceConfiguration<?> serviceConfig : cacheDefinition.serviceConfigs()) {
-        builder = builder.addServiceConfig(serviceConfig);
+        builder = builder.add(serviceConfig);
       }
       if(cacheDefinition.loaderWriter()!= null) {
         final Class<CacheLoaderWriter<?, ?>> cacheLoaderWriterClass = (Class<CacheLoaderWriter<?,?>>)getClassForName(cacheDefinition.loaderWriter(), cacheClassLoader);
-        builder = builder.addServiceConfig(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriterClass));
+        builder = builder.add(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriterClass));
         if(cacheDefinition.writeBehind() != null) {
           WriteBehind writeBehind = cacheDefinition.writeBehind();
           WriteBehindConfigurationBuilder writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
@@ -197,7 +197,7 @@ public class XmlConfiguration implements Configuration {
           if(writeBehind.isCoalesced()) {
             writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.enableCoalescing();
           }
-          builder = builder.addServiceConfig(writeBehindConfigurationBuilder.build());
+          builder = builder.add(writeBehindConfigurationBuilder);
         }
       }
       if(cacheDefinition.listeners()!= null) {
@@ -230,13 +230,12 @@ public class XmlConfiguration implements Configuration {
               .newEventListenerConfig(cacheEventListenerClass, eventSetToFireOn);
           listenerBuilder.firingMode(EventFiring.valueOf(listener.eventFiring().value()));
           listenerBuilder.eventOrdering(EventOrdering.valueOf(listener.eventOrdering().value()));
-          DefaultCacheEventListenerConfiguration defaultCacheEventListenerConfiguration = listenerBuilder.build();
-          builder = builder.addServiceConfig(defaultCacheEventListenerConfiguration);
+          builder = builder.add(listenerBuilder);
         }
       }
       final OnHeapStoreServiceConfig onHeapStoreServiceConfig = new OnHeapStoreServiceConfig();
       onHeapStoreServiceConfig.storeByValue(cacheDefinition.storeByValueOnHeap());
-      builder.addServiceConfig(onHeapStoreServiceConfig);
+      builder = builder.add(onHeapStoreServiceConfig);
       final CacheConfiguration<?, ?> config = builder.buildConfig(keyType, valueType, evictionVeto, evictionPrioritizer);
       cacheConfigurations.put(alias, config);
     }
@@ -359,7 +358,7 @@ public class XmlConfiguration implements Configuration {
     final String loaderWriter = cacheTemplate.loaderWriter();
     if(loaderWriter!= null) {
       final Class<CacheLoaderWriter<?, ?>> cacheLoaderWriterClass = (Class<CacheLoaderWriter<?,?>>)getClassForName(loaderWriter, defaultClassLoader);
-      builder = builder.addServiceConfig(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriterClass));
+      builder = builder.add(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriterClass));
       if(cacheTemplate.writeBehind() != null) {
         WriteBehind writeBehind = cacheTemplate.writeBehind();
         WriteBehindConfigurationBuilder writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
@@ -372,7 +371,7 @@ public class XmlConfiguration implements Configuration {
         if(writeBehind.isCoalesced()) {
           writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.enableCoalescing();
         }
-        builder = builder.addServiceConfig(writeBehindConfigurationBuilder.build());
+        builder = builder.add(writeBehindConfigurationBuilder);
       }
     }
     if(cacheTemplate.listeners()!= null) {
@@ -405,22 +404,20 @@ public class XmlConfiguration implements Configuration {
             .newEventListenerConfig(cacheEventListenerClass, eventSetToFireOn);
         listenerBuilder.firingMode(EventFiring.valueOf(listener.eventFiring().value()));
         listenerBuilder.eventOrdering(EventOrdering.valueOf(listener.eventOrdering().value()));
-        DefaultCacheEventListenerConfiguration defaultCacheEventListenerConfiguration
-            = listenerBuilder.build();
-        builder = builder.addServiceConfig(defaultCacheEventListenerConfiguration);
+        builder = builder.add(listenerBuilder);
       }
     }
     ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
     for (ResourcePool resourcePool : cacheTemplate.resourcePools()) {
       resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool.getType(), resourcePool.getSize(), resourcePool.getUnit(), resourcePool.isPersistent());
     }
-    builder.withResourcePools(resourcePoolsBuilder);
+    builder = builder.withResourcePools(resourcePoolsBuilder);
     for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {
-      builder = builder.addServiceConfig(serviceConfiguration);
+      builder = builder.add(serviceConfiguration);
     }
     final OnHeapStoreServiceConfig onHeapStoreServiceConfig = new OnHeapStoreServiceConfig();
     onHeapStoreServiceConfig.storeByValue(cacheTemplate.storeByValueOnHeap());
-    builder.addServiceConfig(onHeapStoreServiceConfig);
+    builder = builder.add(onHeapStoreServiceConfig);
     return builder;
   }
 

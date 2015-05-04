@@ -16,6 +16,7 @@
 
 package org.ehcache.config.event;
 
+import org.ehcache.config.Builder;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
@@ -28,7 +29,7 @@ import java.util.Set;
 /**
  * @author rism
  */
-public class CacheEventListenerBuilder {
+public class CacheEventListenerBuilder implements Builder<DefaultCacheEventListenerConfiguration> {
   private EventOrdering eventOrdering;
   private EventFiring eventFiringMode;
   private EnumSet<EventType> eventsToFireOn;

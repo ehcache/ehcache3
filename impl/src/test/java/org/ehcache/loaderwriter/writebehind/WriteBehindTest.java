@@ -57,7 +57,7 @@ public class WriteBehindTest extends AbstractWriteBehindTestBase {
     cacheManager = builder.build(true);
     testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder()
         .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)))
-        .addServiceConfig(writeBehindConfiguration)
+        .add(writeBehindConfiguration)
         .buildConfig(String.class, String.class));
 
   }
