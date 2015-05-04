@@ -572,12 +572,25 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public boolean flush(K key, ValueHolder<V> valueHolder) {
-    if (valueHolder instanceof OffHeapValueHolder) {
+  public boolean flush(K key, final ValueHolder<V> valueFlushed) {
+    if (valueFlushed instanceof OffHeapValueHolder) {
       throw new IllegalArgumentException("ValueHolder must come from the caching tier");
     }
     checkKey(key);
-    return map.unpin(key);
+    final AtomicBoolean applied = new AtomicBoolean();
+    map.unpinAndCompute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+      @Override
+      public OffHeapValueHolder<V> apply(final K k, final OffHeapValueHolder<V> valuePresent) {
+        if (valuePresent != null && valueFlushed.value().equals(valuePresent.value())) {
+          valuePresent.setLastAccessTime(valueFlushed.lastAccessTime(OffHeapValueHolder.TIME_UNIT), OffHeapValueHolder.TIME_UNIT);
+          valuePresent.setExpirationTime(valueFlushed.expirationTime(OffHeapValueHolder.TIME_UNIT), OffHeapValueHolder.TIME_UNIT);
+          valuePresent.writeBack();
+          applied.set(true);
+        }
+        return valuePresent;
+      }
+    });
+    return applied.get();
   }
 
   //TODO wire that in if/when needed
