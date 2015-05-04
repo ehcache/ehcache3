@@ -31,8 +31,6 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
-import org.ehcache.loaderwriter.writebehind.WriteBehindTestLoaderWriter;
-import org.ehcache.loaderwriter.writebehind.WriteBehindTestLoaderWriter.Pair;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -238,47 +236,54 @@ public class GettingStarted {
   
 
   @Test
-  public void testLoaderWriter() throws ClassNotFoundException {
+  public void writeThroughCache() throws ClassNotFoundException {
     
+    // tag::writeThroughCache[]    
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
     
     Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) Class.forName(SampleLoaderWriter.class.getName());
     
-    final Cache<Long, String> cache1 = cacheManager.createCache("cache1", 
+    final Cache<Long, String> writeThroughCache = cacheManager.createCache("writeThroughCache", 
         CacheConfigurationBuilder.newCacheConfigurationBuilder()
-          .addServiceConfig(new DefaultCacheLoaderWriterConfiguration(klazz))
-          .buildConfig(Long.class, String.class));
+            .addServiceConfig(new DefaultCacheLoaderWriterConfiguration(klazz)) // <1>
+            .buildConfig(Long.class, String.class));
     
-    performAssertions(cache1, true);
-    
-    cache1.put(42L, "one");
-    assertThat(cache1.get(42L), equalTo("one"));
+    writeThroughCache.put(42L, "one");
+    assertThat(writeThroughCache.get(42L), equalTo("one"));
     
     cacheManager.close();
+    // end::writeThroughCache[]
   }
   
   @Test
-  public void testWriteBehind() throws ClassNotFoundException {
+  public void writeBehindCache() throws ClassNotFoundException {
     
+    // tag::writeBehindCache[]    
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
     
     Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) Class.forName(SampleLoaderWriter.class.getName());
     
-    final Cache<Long, String> cache1 = cacheManager.createCache("cache1", 
+    final Cache<Long, String> writeBehindCache = cacheManager.createCache("writeBehindCache", 
         CacheConfigurationBuilder.newCacheConfigurationBuilder()
-          .addServiceConfig(new DefaultCacheLoaderWriterConfiguration(klazz))
-          .addServiceConfig(WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
-            .queueSize(5)
-            .segment(4)
-            .build())
-          .buildConfig(Long.class, String.class));
+            .addServiceConfig(new DefaultCacheLoaderWriterConfiguration(klazz)) // <1>
+            .addServiceConfig(WriteBehindConfigurationBuilder.newWriteBehindConfiguration() // <2> 
+                .queueSize(3)// <3>
+                .segment(1) // <4>
+                .coalesce() // <5>
+                .batch(3) // <6>
+                .retry(2, 1) // <7>
+                .rateLimit(2) // <8>
+                .delay(1, 1) // <9>
+                .build()) 
+            .buildConfig(Long.class, String.class));
     
-    performAssertions(cache1, true);
-    
-    cache1.put(42L, "one");
-    assertThat(cache1.get(42L), equalTo("one"));
+    writeBehindCache.put(42L, "one");
+    writeBehindCache.put(43L, "two");
+    writeBehindCache.put(42L, "This goes for the record");
+    assertThat(writeBehindCache.get(42L), equalTo("This goes for the record"));
     
     cacheManager.close();
+    // end::writeBehindCache[]  
   }
 
   private void performAssertions(Cache<Long, String> cache, boolean same) {
@@ -329,7 +334,7 @@ public class GettingStarted {
     public void write(K key, V value) throws Exception {
       lock.writeLock().lock();
       try {
-        LOGGER.info("Key - '{}' ,Value - '{}' successfully wriiten", key, value);
+        LOGGER.info("Key - '{}', Value - '{}' successfully written", key, value);
         data.put(key, new Pair<K, V>(key, value));
       } finally {
         lock.writeLock().unlock();
@@ -341,8 +346,8 @@ public class GettingStarted {
       lock.writeLock().lock();
       try {
         for (Entry<? extends K, ? extends V> entry : entries) {
-         data.put(entry.getKey(), new Pair<K, V>(entry.getKey(), entry.getValue()));
-         
+          LOGGER.info("Key - '{}', Value - '{}' successfully written in batch", entry.getKey(), entry.getValue());
+          data.put(entry.getKey(), new Pair<K, V>(entry.getKey(), entry.getValue()));
         }
       } finally {
         lock.writeLock().unlock();
