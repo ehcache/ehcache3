@@ -3,6 +3,11 @@
     xmlns:jcache="http://www.ehcache.org/v3/jsr107">
 
   <ehcache:service>
+    <ehcache:default-serializers>
+      <ehcache:serializer type="java.lang.Object">org.ehcache.internal.serialization.JavaSerializer</ehcache:serializer>
+    </ehcache:default-serializers>
+  </ehcache:service>
+  <ehcache:service>
     <jcache:defaults>
       <jcache:cache name="defaultCache" template="defaultCacheTemplate"/>
     </jcache:defaults>

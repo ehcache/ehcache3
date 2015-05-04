@@ -21,6 +21,7 @@ import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.CacheEvents;
 import org.ehcache.events.StoreEventListener;
@@ -917,13 +918,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
       Serializer<K> keySerializer = null;
       Serializer<V> valueSerializer = null;
-      if(storeByValue){
+      if (storeByValue) {
         if (serviceProvider == null) {
           throw new RuntimeException("ServiceProvider is null.");
         }
         SerializationProvider serializationProvider = serviceProvider.findService(SerializationProvider.class);
-        keySerializer = serializationProvider.createSerializer(storeConfig.getKeyType(), storeConfig.getClassLoader());
-        valueSerializer = serializationProvider.createSerializer(storeConfig.getValueType(), storeConfig.getClassLoader());
+        keySerializer = serializationProvider.createSerializer(storeConfig.getKeyType(), storeConfig.getClassLoader(), DefaultSerializationProviderConfiguration.find(DefaultSerializationProviderConfiguration.Type.KEY, serviceConfigs));
+        valueSerializer = serializationProvider.createSerializer(storeConfig.getValueType(), storeConfig.getClassLoader(), DefaultSerializationProviderConfiguration.find(DefaultSerializationProviderConfiguration.Type.VALUE, serviceConfigs));
       }
       OnHeapStore<K, V> onHeapStore = new OnHeapStore<K, V>(storeConfig, timeSource, storeByValue, keySerializer, valueSerializer);
       createdStores.add(onHeapStore);

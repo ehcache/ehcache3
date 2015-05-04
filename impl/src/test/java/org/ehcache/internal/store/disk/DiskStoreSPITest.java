@@ -45,6 +45,7 @@ import org.junit.Before;
 import org.junit.internal.AssumptionViolatedException;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -75,7 +76,7 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
       public AuthoritativeTier<String, String> newStore(final Store.Configuration<String, String> config, final TimeSource timeSource) {
         SerializationProvider serializationProvider = new DefaultSerializationProvider();
         Serializer<Element> elementSerializer = serializationProvider.createSerializer(Element.class, config.getClassLoader());
-        Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, config.getClassLoader());
+        Serializer<Serializable> objectSerializer = serializationProvider.createSerializer(Serializable.class, config.getClassLoader());
 
         final LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(
             new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir"))));

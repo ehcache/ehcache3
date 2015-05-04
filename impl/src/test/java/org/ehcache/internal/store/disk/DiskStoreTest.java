@@ -35,6 +35,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -64,7 +65,7 @@ public class DiskStoreTest {
         null, null, ClassLoader.getSystemClassLoader(), Expirations.timeToLiveExpiration(new Duration(10, TimeUnit.MILLISECONDS)), newResourcePoolsBuilder().disk(capacityConstraint, EntryUnit.ENTRIES).build());
     SerializationProvider serializationProvider = new DefaultSerializationProvider();
     Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createSerializer(DiskStorageFactory.Element.class, config.getClassLoader());
-    Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, config.getClassLoader());
+    Serializer<Serializable> objectSerializer = serializationProvider.createSerializer(Serializable.class, config.getClassLoader());
 
 
     final LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(

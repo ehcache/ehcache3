@@ -51,7 +51,7 @@
 
   <xs:complexType name="service-type">
     <xs:choice>
-      <xs:element name="serializer-default" type="ehcache:serializer-type" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="default-serializers" type="ehcache:serializer-type" minOccurs="0" maxOccurs="1"/>
       <xs:element name="persistence" type="ehcache:persistence-type" minOccurs="0" maxOccurs="1"/>
       <xs:any namespace="##other" minOccurs="0" maxOccurs="1"/>
     </xs:choice>
@@ -69,8 +69,7 @@
         <xs:complexType>
           <xs:simpleContent>
             <xs:extension base="xs:string">
-              <xs:attribute type="xs:string" name="cache" use="optional"/>
-              <xs:attribute type="xs:string" name="type" use="optional"/>
+              <xs:attribute type="xs:string" name="type" use="required"/>
             </xs:extension>
           </xs:simpleContent>
         </xs:complexType>
@@ -117,14 +116,14 @@
 
   <xs:complexType name="baseCache-type" abstract="true">
     <xs:sequence>
-      <xs:element name="key-type" type="xs:string" minOccurs="0" maxOccurs="1" default="java.lang.Object">
+      <xs:element name="key-type" type="ehcache:cache-entry-type" minOccurs="0" maxOccurs="1" default="java.lang.Object">
         <xs:annotation>
           <xs:documentation xml:lang="en">
             Defines the type for the keys &lt;K&gt; of the Cache&lt;K, V&gt;. Takes a fully qualified class name.
           </xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element name="value-type" type="xs:string" minOccurs="0" maxOccurs="1" default="java.lang.Object">
+      <xs:element name="value-type" type="ehcache:cache-entry-type" minOccurs="0" maxOccurs="1" default="java.lang.Object">
         <xs:annotation>
           <xs:documentation xml:lang="en">
             Defines the type for the values &lt;V&gt; of the Cache&lt;K, V&gt;. Takes a fully qualified class name.
@@ -274,6 +273,20 @@
         </xs:complexType>
       </xs:element>
     </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="cache-entry-type">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="serializer" type="xs:string">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">
+              A fully qualified class name of the type's serializer class.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:simpleContent>
   </xs:complexType>
 
   <xs:complexType name="expiry-type">

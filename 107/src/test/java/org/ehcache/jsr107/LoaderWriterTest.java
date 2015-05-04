@@ -47,9 +47,9 @@ import static org.mockito.Mockito.when;
  */
 public class LoaderWriterTest {
 
-  private CacheLoader<Number, CharSequence> cacheLoader;
+  private CacheLoader<Integer, String> cacheLoader;
   private CacheWriter<Number, CharSequence> cacheWriter;
-  private Cache<Number, CharSequence> testCache;
+  private Cache<Integer, String> testCache;
   private CacheManager cacheManager;
 
   @Before
@@ -60,12 +60,12 @@ public class LoaderWriterTest {
     CachingProvider provider = Caching.getCachingProvider();
     cacheManager = provider.getCacheManager(this.getClass().getResource("/ehcache-loader-writer-107.xml").toURI(), getClass().getClassLoader());
 
-    testCache = cacheManager.createCache("testCache", new MutableConfiguration<Number, CharSequence>()
+    testCache = cacheManager.createCache("testCache", new MutableConfiguration<Integer, String>()
         .setReadThrough(true)
         .setWriteThrough(true)
-        .setCacheLoaderFactory(new Factory<CacheLoader<Number, CharSequence>>() {
+        .setCacheLoaderFactory(new Factory<CacheLoader<Integer, String>>() {
           @Override
-          public CacheLoader<Number, CharSequence> create() {
+          public CacheLoader<Integer, String> create() {
             return cacheLoader;
           }
         })
@@ -75,7 +75,7 @@ public class LoaderWriterTest {
             return cacheWriter;
           }
         })
-        .setTypes(Number.class, CharSequence.class));
+        .setTypes(Integer.class, String.class));
   }
 
   @After

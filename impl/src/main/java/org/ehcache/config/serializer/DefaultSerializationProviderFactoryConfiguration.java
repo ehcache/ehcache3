@@ -28,8 +28,18 @@ public class DefaultSerializationProviderFactoryConfiguration extends ClassInsta
     return DefaultSerializationProvider.class;
   }
 
-  public DefaultSerializationProviderFactoryConfiguration addSerializerFor(String alias, final Class<? extends Serializer<?>> clazz) {
-    getDefaults().put(alias, clazz);
+  public DefaultSerializationProviderFactoryConfiguration addSerializerFor(Class<?> serializableClass, Class<? extends Serializer<?>> serializerClass) {
+    if (serializableClass == null) {
+      throw new NullPointerException("Serializable class cannot be null");
+    }
+    if (serializerClass == null) {
+      throw new NullPointerException("Serializer class cannot be null");
+    }
+    String alias = serializableClass.getName();
+    if (getDefaults().containsKey(alias)) {
+      throw new IllegalArgumentException("Duplicate serializer for class : " + alias);
+    }
+    getDefaults().put(alias, serializerClass);
     return this;
   }
 }

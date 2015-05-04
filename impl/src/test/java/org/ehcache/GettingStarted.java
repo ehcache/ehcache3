@@ -22,6 +22,7 @@ import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.event.CacheEventListenerBuilder;
 import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
@@ -217,9 +218,35 @@ public class GettingStarted {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .buildConfig(String.class, String.class);
 
+    DefaultSerializationProviderFactoryConfiguration defaultSerializationProviderFactoryConfiguration =
+        new DefaultSerializationProviderFactoryConfiguration()
+            .addSerializerFor(CharSequence.class, CharSequenceSerializer.class);
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("cache", cacheConfiguration)
-        .using(new DefaultSerializationProviderFactoryConfiguration().addSerializerFor(String.class.getName(), StringSerializer.class))
+        .using(defaultSerializationProviderFactoryConfiguration)
+        .build(true);
+
+    Cache<String, String> cache = cacheManager.getCache("cache", String.class, String.class);
+
+    cache.put("1", "one");
+    assertThat(cache.get("1"), equalTo("one"));
+
+    cacheManager.close();
+  }
+
+  @Test
+  public void testCacheSerializer() throws Exception {
+    CacheConfiguration<String, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true))
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .addServiceConfig(new DefaultSerializationProviderConfiguration((Class) CharSequenceSerializer.class,
+            DefaultSerializationProviderConfiguration.Type.KEY))
+        .addServiceConfig(new DefaultSerializationProviderConfiguration((Class) StringSerializer.class,
+            DefaultSerializationProviderConfiguration.Type.VALUE))
+        .buildConfig(String.class, String.class);
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("cache", cacheConfiguration)
         .build(true);
 
     Cache<String, String> cache = cacheManager.getCache("cache", String.class, String.class);
@@ -295,6 +322,36 @@ public class GettingStarted {
 
     @Override
     public boolean equals(String object, ByteBuffer binary) throws IOException, ClassNotFoundException {
+      return object.equals(read(binary));
+    }
+  }
+
+  public static class CharSequenceSerializer implements Serializer<CharSequence> {
+    private static final Logger LOG = LoggerFactory.getLogger(StringSerializer.class);
+    private static final Charset CHARSET = Charset.forName("US-ASCII");
+
+    public CharSequenceSerializer(ClassLoader classLoader) {
+    }
+
+    @Override
+    public ByteBuffer serialize(CharSequence object) throws IOException {
+      LOG.info("serializing {}", object);
+      ByteBuffer byteBuffer = ByteBuffer.allocate(object.length());
+      byteBuffer.put(object.toString().getBytes(CHARSET));
+      return byteBuffer;
+    }
+
+    @Override
+    public CharSequence read(ByteBuffer binary) throws IOException, ClassNotFoundException {
+      byte[] bytes = new byte[binary.flip().remaining()];
+      binary.get(bytes);
+      String s = new String(bytes, CHARSET);
+      LOG.info("deserialized {}", s);
+      return s;
+    }
+
+    @Override
+    public boolean equals(CharSequence object, ByteBuffer binary) throws IOException, ClassNotFoundException {
       return object.equals(read(binary));
     }
   }
