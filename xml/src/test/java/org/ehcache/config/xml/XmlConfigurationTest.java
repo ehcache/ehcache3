@@ -350,7 +350,7 @@ public class XmlConfigurationTest {
   public void testNoClassLoaderSpecified() throws Exception {
     XmlConfiguration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
 
-    assertNull(config.getClassLoader());
+    assertSame(config.getClassLoader(), Thread.currentThread().getContextClassLoader());
     assertNull(config.getCacheConfigurations().get("bar").getClassLoader());
   }
   
@@ -400,7 +400,7 @@ public class XmlConfigurationTest {
     DefaultSerializationProviderFactoryConfiguration factoryConfiguration = (DefaultSerializationProviderFactoryConfiguration) configuration;
     assertThat(factoryConfiguration.getDefaults().size(), is(4));
     assertThat(factoryConfiguration.getDefaults().get("java.lang.CharSequence"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer.class));
-    assertThat(factoryConfiguration.getDefaults().get("java.io.Serializable"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer2.class));
+    assertThat(factoryConfiguration.getDefaults().get("java.lang.Number"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer2.class));
     assertThat(factoryConfiguration.getDefaults().get("java.lang.Long"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer3.class));
     assertThat(factoryConfiguration.getDefaults().get("java.lang.Integer"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer4.class));
 

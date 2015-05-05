@@ -101,7 +101,7 @@ public class XmlConfiguration implements Configuration {
    */
   public XmlConfiguration(URL url)
       throws ClassNotFoundException, SAXException, InstantiationException, IllegalAccessException, IOException {
-    this(url, null);
+    this(url, Thread.currentThread().getContextClassLoader());
   }
 
   /**
