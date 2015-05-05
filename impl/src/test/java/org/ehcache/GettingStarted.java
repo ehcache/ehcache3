@@ -222,16 +222,16 @@ public class GettingStarted {
   public void defaultSerializers() throws Exception {
     // tag::defaultSerializers[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true))
+        .addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true)) //// <1>
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .buildConfig(Long.class, String.class);
 
     DefaultSerializationProviderFactoryConfiguration defaultSerializationProviderFactoryConfiguration =
         new DefaultSerializationProviderFactoryConfiguration()
-            .addSerializerFor(String.class, StringSerializer.class);
+            .addSerializerFor(String.class, StringSerializer.class); //// <2>
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("cache", cacheConfiguration)
-        .using(defaultSerializationProviderFactoryConfiguration)
+        .using(defaultSerializationProviderFactoryConfiguration) //// <3>
         .build(true);
 
     Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
@@ -247,12 +247,12 @@ public class GettingStarted {
   public void cacheSerializers() throws Exception {
     // tag::cacheSerializers[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true))
+        .addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true)) //// <1>
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .addServiceConfig(new DefaultSerializationProviderConfiguration<Long>(LongSerializer.class,
-            DefaultSerializationProviderConfiguration.Type.KEY))
+            DefaultSerializationProviderConfiguration.Type.KEY)) //// <2>
         .addServiceConfig(new DefaultSerializationProviderConfiguration<CharSequence>(CharSequenceSerializer.class,
-            DefaultSerializationProviderConfiguration.Type.VALUE))
+            DefaultSerializationProviderConfiguration.Type.VALUE)) //// <3>
         .buildConfig(Long.class, String.class);
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
