@@ -36,19 +36,50 @@ public class WriteBehindConfiguration implements ServiceConfiguration<WriteBehin
   private int writeBehindMaxQueueSize;
   
   public WriteBehindConfiguration(int minWriteDelay, int maxWriteDelay, int rateLimitPerSecond, boolean writeCoalescing, 
-      boolean writeBatching, int writeBatchSize, int retryAttempts,int retryAttemptDelaySeconds,
+      int writeBatchSize, int retryAttempts,int retryAttemptDelaySeconds,
       int writeBehindConcurrency, int writeBehindMaxQueueSize) {
+    
+    validateParams(minWriteDelay, maxWriteDelay, rateLimitPerSecond, writeBatchSize, retryAttempts, 
+        retryAttemptDelaySeconds, writeBehindConcurrency, writeBehindMaxQueueSize);
     
     this.minWriteDelay = minWriteDelay;
     this.maxWriteDelay = maxWriteDelay;
     this.rateLimitPerSecond = rateLimitPerSecond;
     this.writeCoalescing = writeCoalescing;
-    this.writeBatching = writeBatching;
     this.writeBatchSize = writeBatchSize;
+    this.writeBatching = writeBatchSize == 1 ? false : true ;
     this.retryAttempts = retryAttempts;
     this.retryAttemptDelaySeconds = retryAttemptDelaySeconds;
     this.writeBehindConcurrency = writeBehindConcurrency;
     this.writeBehindMaxQueueSize = writeBehindMaxQueueSize;
+  }
+  
+  private void validateParams(int minWriteDelay, int maxWriteDelay, int rateLimitPerSecond, 
+      int writeBatchSize, int retryAttempts,int retryAttemptDelaySeconds,
+      int writeBehindConcurrency, int writeBehindMaxQueueSize) {
+    
+    if(minWriteDelay < 1 || maxWriteDelay < 1) {
+      throw new IllegalArgumentException("Minimum and Maximum write delay seconds cannot be less then 1.");
+    }
+    if(rateLimitPerSecond < 0) {
+      throw new IllegalArgumentException("RateLimitPerSecond cannot be less than 0.");
+    }
+    if(writeBehindConcurrency < 1) {
+      throw new IllegalArgumentException("Concurrency Level cannot be less than 1.");
+    }
+    if(writeBehindMaxQueueSize < 0) {
+      throw new IllegalArgumentException("WriteBehind queue size cannot be less than 0.");
+    }
+    if(retryAttempts < 0) {
+      throw new IllegalArgumentException("RetryAttempts cannot be less than 0.");
+    }
+    if(retryAttemptDelaySeconds < 1) {
+      throw new IllegalArgumentException("RetryAttemptDelaySeconds cannot be less than 1.");
+    }
+    if(writeBatchSize < 1) {
+      throw new IllegalArgumentException("Batchsize cannot be less than 1.");
+    }
+      
   }
   
   /**

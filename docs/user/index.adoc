@@ -103,9 +103,9 @@ include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=writeBehin
 <3> Configure maximum size of the writebehind queue.
 <4> Define the concurrency level of writebehind queue, at a time these many writer threads will update
     the  underlying resource asynchronously.
-<5> Enable the write coalescing behavior, which ensures that only latest update on a key hits the
-    underlying resource  .
-<6> Enable write-behind queue to batch the updates to underlying resource.
+<5> Enable write-behind queue to batch the updates to underlying resource.
+<6> Enable the write coalescing behavior, which ensures that only latest update on a key hits the
+    underlying resource.
 <7> You can configure write-behind queue to retry failed updates for `retryAttempts` times with
     `retryAttemptDelaySeconds` delay.
 <8> Control maximum number of updates allowed per second.

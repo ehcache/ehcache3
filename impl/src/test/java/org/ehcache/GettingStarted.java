@@ -241,7 +241,7 @@ public class GettingStarted {
     // tag::writeThroughCache[]    
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
     
-    Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) Class.forName(SampleLoaderWriter.class.getName());
+    Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>)  (Class) (SampleLoaderWriter.class);
     
     final Cache<Long, String> writeThroughCache = cacheManager.createCache("writeThroughCache", 
         CacheConfigurationBuilder.newCacheConfigurationBuilder()
@@ -261,16 +261,16 @@ public class GettingStarted {
     // tag::writeBehindCache[]    
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
     
-    Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) Class.forName(SampleLoaderWriter.class.getName());
+    Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) (Class) (SampleLoaderWriter.class);
     
     final Cache<Long, String> writeBehindCache = cacheManager.createCache("writeBehindCache", 
         CacheConfigurationBuilder.newCacheConfigurationBuilder()
             .addServiceConfig(new DefaultCacheLoaderWriterConfiguration(klazz)) // <1>
             .addServiceConfig(WriteBehindConfigurationBuilder.newWriteBehindConfiguration() // <2> 
                 .queueSize(3)// <3>
-                .segment(1) // <4>
-                .coalesce() // <5>
-                .batch(3) // <6>
+                .concurrencyLevel(1) // <4>
+                .batchSize(3) // <5>
+                .enableCoalescing() // <6>
                 .retry(2, 1) // <7>
                 .rateLimit(2) // <8>
                 .delay(1, 1) // <9>
