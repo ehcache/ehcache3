@@ -28,7 +28,7 @@ public class DefaultSerializationProviderFactoryConfiguration extends ClassInsta
     return DefaultSerializationProvider.class;
   }
 
-  public DefaultSerializationProviderFactoryConfiguration addSerializerFor(Class<?> serializableClass, Class<? extends Serializer<?>> serializerClass) {
+  public <T> DefaultSerializationProviderFactoryConfiguration addSerializerFor(Class<T> serializableClass, Class<? extends Serializer<T>> serializerClass) {
     if (serializableClass == null) {
       throw new NullPointerException("Serializable class cannot be null");
     }

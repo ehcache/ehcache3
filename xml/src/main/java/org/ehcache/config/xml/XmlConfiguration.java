@@ -163,7 +163,7 @@ public class XmlConfiguration implements Configuration {
 
         for (SerializerType.Serializer serializer : serviceType.getDefaultSerializers().getSerializer()) {
           try {
-            configuration.addSerializerFor(getClassForName(serializer.getType(), classLoader), (Class<? extends Serializer<?>>) getClassForName(serializer.getValue(), classLoader));
+            configuration.addSerializerFor(getClassForName(serializer.getType(), classLoader), (Class) getClassForName(serializer.getValue(), classLoader));
           } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
           }
