@@ -42,7 +42,7 @@ public class DefaultSerializationProvider extends ClassInstanceProvider<Serializ
 
   @Override
   public <T> Serializer<T> createSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) {
-    DefaultSerializationProviderConfiguration config = ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, configs);
+    DefaultSerializationProviderConfiguration config = ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, (Object[]) configs);
     String alias = (config != null ? null : clazz.getName());
     Serializer<T> serializer = (Serializer<T>) newInstance(alias, config, new Arg(ClassLoader.class, classLoader));
     if (serializer == null) {

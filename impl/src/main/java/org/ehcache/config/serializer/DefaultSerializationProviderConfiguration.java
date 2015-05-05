@@ -50,7 +50,7 @@ public class DefaultSerializationProviderConfiguration<T> extends ClassInstanceP
   public static DefaultSerializationProviderConfiguration find(Type type, ServiceConfiguration<?>... serviceConfigurations) {
     DefaultSerializationProviderConfiguration result = null;
 
-    Collection<DefaultSerializationProviderConfiguration> serializationProviderConfigurations = ServiceLocator.findAmongst(DefaultSerializationProviderConfiguration.class, serviceConfigurations);
+    Collection<DefaultSerializationProviderConfiguration> serializationProviderConfigurations = ServiceLocator.findAmongst(DefaultSerializationProviderConfiguration.class, (Object[]) serviceConfigurations);
     for (DefaultSerializationProviderConfiguration serializationProviderConfiguration : serializationProviderConfigurations) {
       if (serializationProviderConfiguration.getType() == type) {
         if (result != null) {
