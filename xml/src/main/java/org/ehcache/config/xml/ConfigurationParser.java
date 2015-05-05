@@ -40,7 +40,6 @@ import org.ehcache.config.xml.model.SerializerType;
 import org.ehcache.config.xml.model.ServiceType;
 import org.ehcache.config.xml.model.TimeType;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
-import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
@@ -118,39 +117,8 @@ class ConfigurationParser {
 
   }
 
-  public Iterable<ServiceConfiguration<?>> getServiceConfigurations() {
-
-    final ArrayList<ServiceConfiguration<?>> serviceConfigurations = new ArrayList<ServiceConfiguration<?>>();
-    
-    for (ServiceType serviceType : config.getService()) {
-      if (serviceType.getDefaultSerializers() != null) {
-        serviceConfigurations.add(parseDefaultSerializerConfig(serviceType.getDefaultSerializers()));
-      } else if (serviceType.getPersistence() != null) {
-          serviceConfigurations.add(parsePersistenceConfig(serviceType.getPersistence()));
-      } else {
-        final ServiceConfiguration<?> serviceConfiguration = parseExtension((Element)serviceType.getAny());
-        serviceConfigurations.add(serviceConfiguration);
-      }
-    }
-
-    return Collections.unmodifiableList(serviceConfigurations);
-  }
-
-  private ServiceConfiguration<LocalPersistenceService> parsePersistenceConfig(PersistenceType persistence) {
-    return new PersistenceConfiguration(new File(persistence.getDirectory()));
-  }
-
-  private ServiceConfiguration<DefaultSerializationProvider> parseDefaultSerializerConfig(SerializerType serializerType) {
-    DefaultSerializationProviderFactoryConfiguration configuration = new DefaultSerializationProviderFactoryConfiguration();
-        
-    for (SerializerType.Serializer serializer : serializerType.getSerializer()) {
-      try {
-        configuration.addSerializerFor(serializer.getType() != null ? Class.forName(serializer.getType()) : null, (Class<? extends Serializer<?>>) Class.forName(serializer.getValue()));
-      } catch (ClassNotFoundException e) {
-        throw new RuntimeException(e);
-      }
-    }
-    return configuration;
+  public Iterable<ServiceType> getServiceElements() {
+    return config.getService();
   }
 
   public Iterable<CacheDefinition> getCacheElements() {
@@ -561,7 +529,7 @@ class ConfigurationParser {
     }
   }
 
-  private ServiceConfiguration<?> parseExtension(final Element element) {
+  ServiceConfiguration<?> parseExtension(final Element element) {
     URI namespace = URI.create(element.getNamespaceURI());
     final XmlConfigurationParser<?> xmlConfigurationParser = xmlParsers.get(namespace);
     if(xmlConfigurationParser == null) {

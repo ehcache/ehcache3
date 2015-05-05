@@ -26,9 +26,13 @@ import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
 import org.ehcache.config.xml.ConfigurationParser.WriteBehind;
+import org.ehcache.config.xml.model.SerializerType;
+import org.ehcache.config.xml.model.ServiceType;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -43,8 +47,10 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -149,7 +155,29 @@ public class XmlConfiguration implements Configuration {
     LOGGER.info("Loading Ehcache XML configuration from {}.", xml.getPath());
     ConfigurationParser configurationParser = new ConfigurationParser(xml.toExternalForm(), CORE_SCHEMA_URL);
 
-    for (ServiceConfiguration<?> serviceConfiguration : configurationParser.getServiceConfigurations()) {
+    final ArrayList<ServiceConfiguration<?>> serviceConfigs = new ArrayList<ServiceConfiguration<?>>();
+
+    for (ServiceType serviceType : configurationParser.getServiceElements()) {
+      if (serviceType.getDefaultSerializers() != null) {
+        DefaultSerializationProviderFactoryConfiguration configuration = new DefaultSerializationProviderFactoryConfiguration();
+
+        for (SerializerType.Serializer serializer : serviceType.getDefaultSerializers().getSerializer()) {
+          try {
+            configuration.addSerializerFor(getClassForName(serializer.getType(), classLoader), (Class<? extends Serializer<?>>) getClassForName(serializer.getValue(), classLoader));
+          } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+          }
+        }
+        serviceConfigs.add(configuration);
+      } else if (serviceType.getPersistence() != null) {
+        serviceConfigs.add(new PersistenceConfiguration(new File(serviceType.getPersistence().getDirectory())));
+      } else {
+        final ServiceConfiguration<?> serviceConfiguration1 = configurationParser.parseExtension((Element)serviceType.getAny());
+        serviceConfigs.add(serviceConfiguration1);
+      }
+    }
+
+    for (ServiceConfiguration<?> serviceConfiguration : Collections.unmodifiableList(serviceConfigs)) {
       serviceConfigurations.add(serviceConfiguration);
     }
 
