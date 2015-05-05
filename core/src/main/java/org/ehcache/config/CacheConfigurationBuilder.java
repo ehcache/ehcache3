@@ -115,6 +115,10 @@ public class CacheConfigurationBuilder<K, V> {
     return this;
   }
 
+  public CacheConfigurationBuilder<K, V> withResourcePools(ResourcePoolsBuilder resourcePoolsBuilder) {
+    return withResourcePools(resourcePoolsBuilder.build());
+  }
+
   public <NK extends K, NV extends V> CacheConfigurationBuilder<NK, NV> withExpiry(Expiry<? super NK, ? super NV> expiry) {
     if (expiry == null) {
       throw new NullPointerException("Null expiry");

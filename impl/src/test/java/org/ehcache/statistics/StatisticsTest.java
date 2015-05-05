@@ -52,7 +52,7 @@ public class StatisticsTest {
 
     cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Number.class, String.class, LoggerFactory.getLogger(Ehcache.class + "-" + "StatisticsTest"))
         .withStatistics(scheduledExecutorService)
-        .withResourcePools(newResourcePoolsBuilder().heap(capacity, EntryUnit.ENTRIES).build()).build(true);
+        .withResourcePools(newResourcePoolsBuilder().heap(capacity, EntryUnit.ENTRIES)).build(true);
   }
 
   @After
@@ -117,7 +117,7 @@ public class StatisticsTest {
     final UserManagedCache<Number, String> testCache = UserManagedCacheBuilder
         .newUserManagedCacheBuilder(Number.class, String.class,
             LoggerFactory.getLogger(Ehcache.class + "-" + "StatisticsTest"))
-        .withResourcePools(newResourcePoolsBuilder().heap(capacity, EntryUnit.ENTRIES).build()).build(true);
+        .withResourcePools(newResourcePoolsBuilder().heap(capacity, EntryUnit.ENTRIES)).build(true);
     final CacheStatistics statistics = testCache.getStatistics();
 
     try {

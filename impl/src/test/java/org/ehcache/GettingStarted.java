@@ -99,8 +99,7 @@ public class GettingStarted {
         .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder()
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
-                .disk(100, EntryUnit.ENTRIES, true) // <2>
-                .build())
+                .disk(100, EntryUnit.ENTRIES, true)) // <2>
             .buildConfig(Long.class, String.class))
         .build(true);
 
@@ -115,8 +114,7 @@ public class GettingStarted {
         CacheConfigurationBuilder.newCacheConfigurationBuilder()
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
-                .offheap(10, MemoryUnit.MB) // <1>
-                .build())
+                .offheap(10, MemoryUnit.MB)) // <1>
             .buildConfig(Long.class, String.class)).build(true);
 
     cacheManager.close();
@@ -126,7 +124,7 @@ public class GettingStarted {
   @Test
   public void testTieredStore() throws Exception {
     CacheConfiguration<Long, String> tieredCacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES).build())
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES))
         .buildConfig(Long.class, String.class);
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("tiered-cache", tieredCacheConfiguration).build(true);
@@ -144,7 +142,7 @@ public class GettingStarted {
   @Test
   public void testTieredOffHeapStore() throws Exception {
     CacheConfiguration<Long, String> tieredCacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB).build())
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
         .buildConfig(Long.class, String.class);
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("tieredCache", tieredCacheConfiguration).build(true);
@@ -162,7 +160,7 @@ public class GettingStarted {
   @Test
   public void testPersistentDiskCache() throws Exception {
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES, true).build())
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES, true))
         .buildConfig(Long.class, String.class);
 
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -188,7 +186,7 @@ public class GettingStarted {
     cacheManager.init();
 
     final Cache<Long, String> cache1 = cacheManager.createCache("cache1",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder().withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).build())
+        CacheConfigurationBuilder.newCacheConfigurationBuilder().withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES))
             .buildConfig(Long.class, String.class));
     performAssertions(cache1, true);
 

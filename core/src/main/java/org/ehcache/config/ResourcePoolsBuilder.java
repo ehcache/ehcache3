@@ -30,23 +30,30 @@ public class ResourcePoolsBuilder {
   private ResourcePoolsBuilder() {
   }
 
+  private ResourcePoolsBuilder(ResourcePoolsBuilder resourcePoolsBuilder) {
+    resourcePools.putAll(resourcePoolsBuilder.resourcePools);
+  }
+
   public static ResourcePoolsBuilder newResourcePoolsBuilder() {
     return new ResourcePoolsBuilder();
   }
 
   public ResourcePoolsBuilder with(ResourceType type, long size, ResourceUnit unit, boolean persistent) {
-    resourcePools.put(type, new ResourcePoolImpl(type, size, unit, persistent));
-    return this;
+    ResourcePoolsBuilder otherBuilder = new ResourcePoolsBuilder(this);
+    otherBuilder.resourcePools.put(type, new ResourcePoolImpl(type, size, unit, persistent));
+    return otherBuilder;
   }
 
   public ResourcePoolsBuilder heap(long size, ResourceUnit unit) {
-    resourcePools.put(ResourceType.Core.HEAP, new ResourcePoolImpl(ResourceType.Core.HEAP, size, unit, false));
-    return this;
+    ResourcePoolsBuilder otherBuilder = new ResourcePoolsBuilder(this);
+    otherBuilder.resourcePools.put(ResourceType.Core.HEAP, new ResourcePoolImpl(ResourceType.Core.HEAP, size, unit, false));
+    return otherBuilder;
   }
 
   public ResourcePoolsBuilder offheap(long size, MemoryUnit unit) {
-    resourcePools.put(ResourceType.Core.OFFHEAP, new ResourcePoolImpl(ResourceType.Core.OFFHEAP, size, unit, false));
-    return this;
+    ResourcePoolsBuilder otherBuilder = new ResourcePoolsBuilder(this);
+    otherBuilder.resourcePools.put(ResourceType.Core.OFFHEAP, new ResourcePoolImpl(ResourceType.Core.OFFHEAP, size, unit, false));
+    return otherBuilder;
   }
 
   public ResourcePoolsBuilder disk(long size, ResourceUnit unit) {
@@ -54,8 +61,9 @@ public class ResourcePoolsBuilder {
   }
 
   public ResourcePoolsBuilder disk(long size, ResourceUnit unit, boolean persistent) {
-    resourcePools.put(ResourceType.Core.DISK, new ResourcePoolImpl(ResourceType.Core.DISK, size, unit, persistent));
-    return this;
+    ResourcePoolsBuilder otherBuilder = new ResourcePoolsBuilder(this);
+    otherBuilder.resourcePools.put(ResourceType.Core.DISK, new ResourcePoolImpl(ResourceType.Core.DISK, size, unit, persistent));
+    return otherBuilder;
   }
 
   public ResourcePools build() {

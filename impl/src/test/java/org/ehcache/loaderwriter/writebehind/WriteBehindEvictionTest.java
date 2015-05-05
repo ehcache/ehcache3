@@ -56,13 +56,13 @@ public class WriteBehindEvictionTest extends AbstractWriteBehindTestBase {
                                                                                         .build();
     
     builder.using(cacheLoaderWriterFactory);
-    ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
-    resourcePoolsBuilder.with(org.ehcache.config.ResourceType.Core.HEAP, 10, EntryUnit.ENTRIES, false);
+    ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder()
+        .with(org.ehcache.config.ResourceType.Core.HEAP, 10, EntryUnit.ENTRIES, false);
    
     cacheManager = builder.build(true);
     testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder()
         .withExpiry(Expirations.timeToLiveExpiration(new Duration(100, TimeUnit.MILLISECONDS)))
-        .withResourcePools(resourcePoolsBuilder.build())
+        .withResourcePools(resourcePoolsBuilder)
         .addServiceConfig(writeBehindConfiguration)
         .buildConfig(String.class, String.class));
 
