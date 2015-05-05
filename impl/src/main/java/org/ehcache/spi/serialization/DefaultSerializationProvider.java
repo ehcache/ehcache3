@@ -80,6 +80,10 @@ public class DefaultSerializationProvider extends ClassInstanceProvider<Serializ
   @Override
   public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
     super.start(config, serviceProvider);
+    addDefaultSerializer();
+  }
+
+  protected void addDefaultSerializer() {
     // add java.io.Serializable at the end of the map if it wasn't already there
     if (!preconfiguredLoaders.containsKey(Serializable.class.getName())) {
       preconfiguredLoaders.put(Serializable.class.getName(), (Class) JavaSerializer.class);
