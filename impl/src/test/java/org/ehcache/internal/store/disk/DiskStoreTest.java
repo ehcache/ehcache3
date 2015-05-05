@@ -23,8 +23,9 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.function.Function;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
-import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.hamcrest.Matchers;
@@ -34,6 +35,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -61,9 +63,9 @@ public class DiskStoreTest {
     capacityConstraint = 5L;
     StoreConfigurationImpl<Number, CharSequence> config = new StoreConfigurationImpl<Number, CharSequence>(Number.class, CharSequence.class,
         null, null, ClassLoader.getSystemClassLoader(), Expirations.timeToLiveExpiration(new Duration(10, TimeUnit.MILLISECONDS)), newResourcePoolsBuilder().disk(capacityConstraint, EntryUnit.ENTRIES).build());
-    JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
+    SerializationProvider serializationProvider = new DefaultSerializationProvider();
     Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createSerializer(DiskStorageFactory.Element.class, config.getClassLoader());
-    Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, config.getClassLoader());
+    Serializer<Serializable> objectSerializer = serializationProvider.createSerializer(Serializable.class, config.getClassLoader());
 
 
     final LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(

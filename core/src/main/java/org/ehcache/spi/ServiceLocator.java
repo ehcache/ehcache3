@@ -160,7 +160,7 @@ public final class ServiceLocator implements ServiceProvider {
   public static <T> Collection<T> findAmongst(Class<T> clazz, Object ... instances) {
     Collection<T> matches = new ArrayList<T>();
     for (Object instance : instances) {
-      if(clazz.isAssignableFrom(instance.getClass())) {
+      if (instance != null && clazz.isAssignableFrom(instance.getClass())) {
         matches.add(clazz.cast(instance));
       }
     }

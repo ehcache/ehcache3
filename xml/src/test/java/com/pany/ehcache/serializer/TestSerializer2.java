@@ -13,24 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.pany.ehcache.serializer;
 
-package org.ehcache.internal.classes;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-/**
- * Base class for ProviderFactory config that instantiates service classes.
- * Keeps the order in which defaults are added.
- *
- * @author Alex Snaps
- */
-public class ClassInstanceProviderFactoryConfig<T> {
-
-  private Map<String, Class<? extends T>> defaults = new LinkedHashMap<String, Class<? extends T>>();
-
-  public Map<String, Class<? extends T>> getDefaults() {
-    return defaults;
+public class TestSerializer2<T> extends TestSerializer<T> {
+  public TestSerializer2(ClassLoader classLoader) {
+    super(classLoader);
   }
-
 }

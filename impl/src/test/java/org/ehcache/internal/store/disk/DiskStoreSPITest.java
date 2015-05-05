@@ -28,7 +28,6 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
-import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.disk.DiskStorageFactory.Element;
 import org.ehcache.internal.tier.AuthoritativeTierFactory;
@@ -37,6 +36,7 @@ import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.LocalPersistenceService;
@@ -45,6 +45,7 @@ import org.junit.Before;
 import org.junit.internal.AssumptionViolatedException;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -73,9 +74,9 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
 
       @Override
       public AuthoritativeTier<String, String> newStore(final Store.Configuration<String, String> config, final TimeSource timeSource) {
-        SerializationProvider serializationProvider = new JavaSerializationProvider();
+        SerializationProvider serializationProvider = new DefaultSerializationProvider();
         Serializer<Element> elementSerializer = serializationProvider.createSerializer(Element.class, config.getClassLoader());
-        Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, config.getClassLoader());
+        Serializer<Serializable> objectSerializer = serializationProvider.createSerializer(Serializable.class, config.getClassLoader());
 
         final LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(
             new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir"))));

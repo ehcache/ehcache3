@@ -16,54 +16,51 @@
 
 package org.ehcache.config.serializer;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.ehcache.internal.serialization.JavaSerializationProvider;
+import org.ehcache.internal.classes.ClassInstanceProviderConfig;
+import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 
-public class DefaultSerializationProviderConfiguration implements ServiceConfiguration<JavaSerializationProvider> {
+import java.util.Collection;
 
-  private final Map<String, TypeSerializerConfig> serializerConfig = new HashMap<String, TypeSerializerConfig>();
-  
+public class DefaultSerializationProviderConfiguration<T> extends ClassInstanceProviderConfig<Serializer<T>> implements ServiceConfiguration<DefaultSerializationProvider> {
+
+  private final Type type;
+
+  public DefaultSerializationProviderConfiguration(Class<? extends Serializer<T>> clazz, Type type) {
+    super(clazz);
+    this.type = type;
+  }
+
   @Override
-  public Class<JavaSerializationProvider> getServiceType() {
-    return JavaSerializationProvider.class;
+  public Class<DefaultSerializationProvider> getServiceType() {
+    return DefaultSerializationProvider.class;
   }
-  
-  public DefaultSerializationProviderConfiguration addSerializer(String type , TypeSerializerConfig typeSerializerConfig){
-    serializerConfig.put(type, typeSerializerConfig);
-    return this;
+
+  public Type getType() {
+    return type;
   }
-  
-  public boolean contains(String type){
-    return serializerConfig.containsKey(type);
+
+  public enum Type {
+    KEY,
+    VALUE,
   }
-  
-  public TypeSerializerConfig getTypeSerializerConfig(String type){
-    return serializerConfig.get(type);
-  }
-  
-  public static class TypeSerializerConfig {
-    private String serializer;
-    private final Map<String, String> cacheTypeSerializerMapping = new HashMap<String, String>();
-       
-    public String getSerializer() {
-      return serializer;
-    }
-    
-    public void setSerializer(String serializer) {
-      this.serializer = serializer;
+
+  public static DefaultSerializationProviderConfiguration find(Type type, ServiceConfiguration<?>... serviceConfigurations) {
+    DefaultSerializationProviderConfiguration result = null;
+
+    Collection<DefaultSerializationProviderConfiguration> serializationProviderConfigurations = ServiceLocator.findAmongst(DefaultSerializationProviderConfiguration.class, serviceConfigurations);
+    for (DefaultSerializationProviderConfiguration serializationProviderConfiguration : serializationProviderConfigurations) {
+      if (serializationProviderConfiguration.getType() == type) {
+        if (result != null) {
+          throw new IllegalArgumentException("Duplicate " + type + " serialization provider : " + serializationProviderConfiguration);
+        }
+        result = serializationProviderConfiguration;
+      }
     }
 
-    public Map<String, String> getCacheTypeSerializerMapping() {
-      return cacheTypeSerializerMapping;
-    }
-    
-    public void addTypeSerializerMapping(String alias, String typeSerializer) {
-      cacheTypeSerializerMapping.put(alias, typeSerializer);
-    }
-    
+    return result;
   }
 
 }

@@ -16,24 +16,32 @@
 
 package org.ehcache.config.xml;
 
+import com.pany.ehcache.serializer.TestSerializer;
+import com.pany.ehcache.serializer.TestSerializer2;
+import com.pany.ehcache.serializer.TestSerializer3;
+import com.pany.ehcache.serializer.TestSerializer4;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
-import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.config.ResourceType;
-import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.ResourceUnit;
+import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
+import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.config.writebehind.WriteBehindConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
+import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 import org.xml.sax.SAXException;
@@ -42,8 +50,13 @@ import org.xml.sax.SAXParseException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -51,6 +64,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+import static org.hamcrest.collection.IsIn.isIn;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
@@ -151,7 +165,7 @@ public class XmlConfigurationTest {
     assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("example"), notNullValue());
     final CacheConfigurationBuilder<String, String> example = xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, String.class);
     assertThat(example.buildConfig(String.class, String.class).getExpiry(),
-        equalTo((Expiry)Expirations.timeToLiveExpiration(new Duration(30, TimeUnit.SECONDS))));
+        equalTo((Expiry) Expirations.timeToLiveExpiration(new Duration(30, TimeUnit.SECONDS))));
 
     try {
       xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, Number.class);
@@ -372,20 +386,45 @@ public class XmlConfigurationTest {
     assertSame(cl, config.getClassLoader());
     assertSame(cl2, config.getCacheConfigurations().get("bar").getClassLoader());
   }
-  
+
   @Test
-  public void testSerializerConfiguration() throws Exception {
-    final URL resource = XmlConfigurationTest.class.getResource("/configs/ehcache-serializer.xml");
+  public void testDefaultSerializerConfiguration() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/default-serializer.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
-    
+
     assertThat(xmlConfig.getServiceConfigurations().size(), is(1));
-    
+
     ServiceConfiguration configuration = xmlConfig.getServiceConfigurations().iterator().next();
-    
-    assertThat(configuration, instanceOf(DefaultSerializationProviderConfiguration.class));
-    
-    assertThat(((DefaultSerializationProviderConfiguration)configuration).getTypeSerializerConfig("java.lang.Number").getCacheTypeSerializerMapping().size(), is(2) );
-    assertThat(((DefaultSerializationProviderConfiguration)configuration).getTypeSerializerConfig("java.lang.String").getCacheTypeSerializerMapping().size(), is(0) );
+
+    assertThat(configuration, instanceOf(DefaultSerializationProviderFactoryConfiguration.class));
+
+    DefaultSerializationProviderFactoryConfiguration factoryConfiguration = (DefaultSerializationProviderFactoryConfiguration) configuration;
+    assertThat(factoryConfiguration.getDefaults().size(), is(4));
+    assertThat(factoryConfiguration.getDefaults().get("java.lang.CharSequence"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer.class));
+    assertThat(factoryConfiguration.getDefaults().get("java.io.Serializable"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer2.class));
+    assertThat(factoryConfiguration.getDefaults().get("java.lang.Long"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer3.class));
+    assertThat(factoryConfiguration.getDefaults().get("java.lang.Integer"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer4.class));
+
+
+    List<ServiceConfiguration<?>> orderedServiceConfigurations = new ArrayList<ServiceConfiguration<?>>(xmlConfig.getCacheConfigurations().get("baz").getServiceConfigurations());
+    // order services by class name so the test can rely on some sort of ordering
+    Collections.sort(orderedServiceConfigurations, new Comparator<ServiceConfiguration<?>>() {
+      @Override
+      public int compare(ServiceConfiguration<?> o1, ServiceConfiguration<?> o2) {
+        return o1.getClass().getName().compareTo(o2.getClass().getName());
+      }
+    });
+    Iterator<ServiceConfiguration<?>> it = orderedServiceConfigurations.iterator();
+
+    DefaultSerializationProviderConfiguration keySerializationProviderConfiguration = (DefaultSerializationProviderConfiguration) it.next();
+    assertThat(keySerializationProviderConfiguration.getType(), isIn(DefaultSerializationProviderConfiguration.Type.KEY, DefaultSerializationProviderConfiguration.Type.VALUE));
+
+    DefaultSerializationProviderConfiguration valueSerializationProviderConfiguration = (DefaultSerializationProviderConfiguration) it.next();
+    assertThat(valueSerializationProviderConfiguration.getType(), isIn(DefaultSerializationProviderConfiguration.Type.KEY, DefaultSerializationProviderConfiguration.Type.VALUE));
+  }
+
+  public static <T> Matcher<T> isIn(T... elements) {
+    return org.hamcrest.collection.IsIn.isIn(elements);
   }
 
   @Test

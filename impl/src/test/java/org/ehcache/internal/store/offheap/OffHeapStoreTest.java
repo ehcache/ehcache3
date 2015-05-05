@@ -26,7 +26,8 @@ import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.serialization.JavaSerializationProvider;
+import org.ehcache.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 
@@ -41,7 +42,7 @@ public class OffHeapStoreTest {
 
   @Test
   public void testWriteBackOfValueHolder() throws CacheAccessException {
-    JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
+    SerializationProvider serializationProvider = new DefaultSerializationProvider();
     ClassLoader classLoader = getClass().getClassLoader();
     Serializer<String> serializer = serializationProvider.createSerializer(String.class, classLoader);
     TestTimeSource timeSource = new TestTimeSource();
@@ -62,7 +63,7 @@ public class OffHeapStoreTest {
 
   @Test
   public void testEvictionVeto() throws CacheAccessException {
-    JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
+    SerializationProvider serializationProvider = new DefaultSerializationProvider();
     ClassLoader classLoader = getClass().getClassLoader();
     Serializer<String> serializer = serializationProvider.createSerializer(String.class, classLoader);
     Serializer<byte[]> byteArraySerializer = serializationProvider.createSerializer(byte[].class, classLoader);

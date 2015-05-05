@@ -28,7 +28,7 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
-import org.ehcache.internal.serialization.JavaSerializationProvider;
+import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
 import org.ehcache.internal.store.disk.DiskStorageFactory;
@@ -41,6 +41,8 @@ import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -48,6 +50,7 @@ import org.junit.Before;
 import org.junit.internal.AssumptionViolatedException;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -82,11 +85,10 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store<String, String> newStore(final Store.Configuration<String, String> config) {
-        JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
-        Serializer<String> keySerializer = serializationProvider.createSerializer(String.class, config.getClassLoader());
-        Serializer<String> valueSerializer = serializationProvider.createSerializer(String.class, config.getClassLoader());
-        Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createSerializer(DiskStorageFactory.Element.class, config.getClassLoader());
-        Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, config.getClassLoader());
+        Serializer<String> keySerializer = new JavaSerializer<String>(config.getClassLoader());
+        Serializer<String> valueSerializer = new JavaSerializer<String>(config.getClassLoader());
+        Serializer<DiskStorageFactory.Element> elementSerializer = new JavaSerializer<DiskStorageFactory.Element>(config.getClassLoader());
+        Serializer<Serializable> objectSerializer = new JavaSerializer<Serializable>(config.getClassLoader());
 
         OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false, keySerializer, valueSerializer);
         String id = "alias-" + aliasCounter.incrementAndGet();
@@ -158,11 +160,11 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store<String, String> newStore(Store.Configuration<String, String> config, TimeSource timeSource) {
-        JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
+        SerializationProvider serializationProvider = new DefaultSerializationProvider();
         Serializer<String> keySerializer = serializationProvider.createSerializer(String.class, config.getClassLoader());
         Serializer<String> valueSerializer = serializationProvider.createSerializer(String.class, config.getClassLoader());
         Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createSerializer(DiskStorageFactory.Element.class, config.getClassLoader());
-        Serializer<Object> objectSerializer = serializationProvider.createSerializer(Object.class, config.getClassLoader());
+        Serializer<Serializable> objectSerializer = serializationProvider.createSerializer(Serializable.class, config.getClassLoader());
 
         OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false, keySerializer, valueSerializer);
         String id = "alias-" + aliasCounter.incrementAndGet();

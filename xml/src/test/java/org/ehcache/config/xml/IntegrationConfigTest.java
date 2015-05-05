@@ -43,6 +43,21 @@ import static org.hamcrest.CoreMatchers.nullValue;
 public class IntegrationConfigTest {
 
   @Test
+  public void testName() throws Exception {
+    Configuration configuration = new XmlConfiguration(this.getClass().getResource("/configs/default-serializer.xml"));
+    final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
+    cacheManager.init();
+
+    Cache<String, String> bar = cacheManager.getCache("bar", String.class, String.class);
+
+    bar.put("1", "one");
+
+    bar.get("1");
+
+    cacheManager.close();
+  }
+
+  @Test
   public void testLoaderWriter() throws ClassNotFoundException, SAXException, InstantiationException,
       IOException, IllegalAccessException {
     Configuration configuration = new XmlConfiguration(this.getClass().getResource("/configs/cache-integration.xml"));

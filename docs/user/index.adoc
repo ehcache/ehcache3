@@ -78,6 +78,35 @@ include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=persistent
     data should be stored on disk to the `CacheManagerBuilder.persistence(String)` static method.
 <2> You define a resource pool for the disk.
 
+==== Serializers
+
+You can configure a set of serializers on the cache manager:
+
+[source,java,indent=0]
+----
+include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=defaultSerializers]
+----
+
+<1> By default, objects stored on-heap are stored by reference. If you wish to store them by value (which requires copying them
+    with a serializer) then you have to set storeByValue to true.
+<2> Configure a global set of serializers. Each serializer is mapped to a type and the cache's declared key and value
+    types are used to select the best serializer from the list. Each cache will pick a serializer for both key and value
+    during initialization. If none is found, an error will be thrown. The serializer is chosen according to two rules:
+    either there is one configured for the exact declared type, or the first type-compatible one from the list is chosen.
+    By default, there is a serializer already configured for type `java.io.Serializable`.
+<3> Don't forget to set the serializers' config on the `CacheManagerBuilder`.
+
+Or you can configure specific serializers on the cache itself:
+
+[source,java,indent=0]
+----
+include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=cacheSerializers]
+----
+
+<1> As above, you must configure the on-heap store to store objects by value.
+<2> Configure the key's serializer.
+<3> Configure the value's serializer.
+
 === It wouldn't be Java without _some_ XML
 
 You can create a XML file to configure a `CacheManager`:
