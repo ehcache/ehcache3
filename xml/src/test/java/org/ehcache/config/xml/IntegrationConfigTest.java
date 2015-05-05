@@ -17,25 +17,28 @@
 package org.ehcache.config.xml;
 
 import com.pany.ehcache.integration.TestCacheEventListener;
+import com.pany.ehcache.integration.TestCacheLoaderWriter;
 import com.pany.ehcache.integration.TestSecondCacheEventListener;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.event.EventType;
+import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
 import org.junit.Test;
 import org.xml.sax.SAXException;
-
-import com.pany.ehcache.integration.TestCacheLoaderWriter;
 
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * @author Alex Snaps
@@ -43,16 +46,25 @@ import static org.hamcrest.CoreMatchers.nullValue;
 public class IntegrationConfigTest {
 
   @Test
-  public void testName() throws Exception {
+  public void testSerializers() throws Exception {
     Configuration configuration = new XmlConfiguration(this.getClass().getResource("/configs/default-serializer.xml"));
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
     cacheManager.init();
 
-    Cache<String, String> bar = cacheManager.getCache("bar", String.class, String.class);
+    Cache<Long, Double> bar = cacheManager.getCache("bar", Long.class, Double.class);
+    bar.put(1L, 1.0);
+    assertThat(bar.get(1L), equalTo(1.0));
 
-    bar.put("1", "one");
+    Cache<String, String> baz = cacheManager.getCache("baz", String.class, String.class);
+    baz.put("1", "one");
+    assertThat(baz.get("1"), equalTo("one"));
 
-    bar.get("1");
+    try {
+      cacheManager.createCache("bam", newCacheConfigurationBuilder().addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true)).buildConfig(String.class, Object.class));
+      fail("expected IllegalStateException");
+    } catch (IllegalStateException ise) {
+      // expected
+    }
 
     cacheManager.close();
   }

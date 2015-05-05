@@ -43,6 +43,7 @@ public class OffHeapStoreTest {
   @Test
   public void testWriteBackOfValueHolder() throws CacheAccessException {
     SerializationProvider serializationProvider = new DefaultSerializationProvider();
+    serializationProvider.start(null, null);
     ClassLoader classLoader = getClass().getClassLoader();
     Serializer<String> serializer = serializationProvider.createSerializer(String.class, classLoader);
     TestTimeSource timeSource = new TestTimeSource();
@@ -64,6 +65,7 @@ public class OffHeapStoreTest {
   @Test
   public void testEvictionVeto() throws CacheAccessException {
     SerializationProvider serializationProvider = new DefaultSerializationProvider();
+    serializationProvider.start(null, null);
     ClassLoader classLoader = getClass().getClassLoader();
     Serializer<String> serializer = serializationProvider.createSerializer(String.class, classLoader);
     Serializer<byte[]> byteArraySerializer = serializationProvider.createSerializer(byte[].class, classLoader);

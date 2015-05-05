@@ -34,12 +34,13 @@ import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
-import org.ehcache.spi.serialization.DefaultSerializationProvider;
-import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 import org.junit.internal.AssumptionViolatedException;
+
+import java.util.Collections;
 
 /**
  * OffHeapStoreSPITest
@@ -119,7 +120,13 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
 
       @Override
       public ServiceProvider getServiceProvider() {
-        return new ServiceLocator();
+        ServiceLocator serviceLocator = new ServiceLocator();
+        try {
+          serviceLocator.startAllServices(Collections.<Service, ServiceConfiguration<?>>emptyMap());
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+        return serviceLocator;
       }
 
       @Override

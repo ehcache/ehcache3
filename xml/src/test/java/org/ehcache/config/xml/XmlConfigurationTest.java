@@ -64,7 +64,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.hamcrest.collection.IsIn.isIn;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
@@ -418,9 +417,6 @@ public class XmlConfigurationTest {
 
     DefaultSerializationProviderConfiguration keySerializationProviderConfiguration = (DefaultSerializationProviderConfiguration) it.next();
     assertThat(keySerializationProviderConfiguration.getType(), isIn(DefaultSerializationProviderConfiguration.Type.KEY, DefaultSerializationProviderConfiguration.Type.VALUE));
-
-    DefaultSerializationProviderConfiguration valueSerializationProviderConfiguration = (DefaultSerializationProviderConfiguration) it.next();
-    assertThat(valueSerializationProviderConfiguration.getType(), isIn(DefaultSerializationProviderConfiguration.Type.KEY, DefaultSerializationProviderConfiguration.Type.VALUE));
   }
 
   public static <T> Matcher<T> isIn(T... elements) {

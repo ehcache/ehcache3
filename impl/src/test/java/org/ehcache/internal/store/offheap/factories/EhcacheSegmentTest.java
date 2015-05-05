@@ -56,6 +56,7 @@ public class EhcacheSegmentTest {
   public static void setUpClass() {
     HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
     SerializationProvider serializationProvider = new DefaultSerializationProvider();
+    serializationProvider.start(null, null);
     PageSource pageSource = new UpfrontAllocatingPageSource(getBufferSource(), configuration.getMaximumSize(), configuration.getMaximumChunkSize(), configuration.getMinimumChunkSize());
     Serializer<String> stringSerializer = serializationProvider.createSerializer(String.class, EhcacheSegmentTest.class.getClassLoader());
     Portability<String> keyPortability = new SerializerPortability<String>(stringSerializer);

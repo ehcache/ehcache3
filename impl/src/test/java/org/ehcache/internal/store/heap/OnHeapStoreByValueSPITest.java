@@ -32,8 +32,11 @@ import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
+
+import java.util.Collections;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
@@ -137,7 +140,13 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceProvider getServiceProvider() {
-        return new ServiceLocator();
+        ServiceLocator serviceLocator = new ServiceLocator();
+        try {
+          serviceLocator.startAllServices(Collections.<Service, ServiceConfiguration<?>>emptyMap());
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+        return serviceLocator;
       }
     };
   }
