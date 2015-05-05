@@ -37,7 +37,7 @@ public class DefaultSerializationProvider extends ClassInstanceProvider<Serializ
   private static final Logger LOG = LoggerFactory.getLogger(DefaultSerializationProvider.class);
 
   public DefaultSerializationProvider() {
-    super(DefaultSerializationProviderFactoryConfiguration.class, DefaultSerializationProviderConfiguration.class);
+    super(DefaultSerializationProviderFactoryConfiguration.class, (Class) DefaultSerializationProviderConfiguration.class);
   }
 
   @Override

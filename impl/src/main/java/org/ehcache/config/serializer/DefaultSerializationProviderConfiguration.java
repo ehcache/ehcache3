@@ -24,11 +24,11 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
 
-public class DefaultSerializationProviderConfiguration extends ClassInstanceProviderConfig<Serializer<?>> implements ServiceConfiguration<DefaultSerializationProvider> {
+public class DefaultSerializationProviderConfiguration<T> extends ClassInstanceProviderConfig<Serializer<T>> implements ServiceConfiguration<DefaultSerializationProvider> {
 
   private final Type type;
 
-  public DefaultSerializationProviderConfiguration(Class<Serializer<?>> clazz, Type type) {
+  public DefaultSerializationProviderConfiguration(Class<? extends Serializer<T>> clazz, Type type) {
     super(clazz);
     this.type = type;
   }
