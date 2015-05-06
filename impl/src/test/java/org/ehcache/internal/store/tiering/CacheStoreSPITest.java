@@ -220,7 +220,12 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store.Provider newProvider() {
-        return new CacheStore.Provider();
+        Store.Provider provider = new CacheStore.Provider();
+        ServiceLocator serviceLocator = new ServiceLocator();
+        serviceLocator.addService(new FakeCachingTierProvider());
+        serviceLocator.addService(new FakeAuthoritativeTierProvider());
+        provider.start(null, serviceLocator);
+        return provider;
       }
 
       @Override

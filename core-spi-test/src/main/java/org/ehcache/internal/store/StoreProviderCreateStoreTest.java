@@ -40,12 +40,8 @@ public class StoreProviderCreateStoreTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void createStore() throws IllegalAccessException, InstantiationException {
-    Store.Provider provider = factory.newProvider();
-
     Store.Configuration<K, V> storeConfig = factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null);
-    ServiceProvider serviceProvider = factory.getServiceProvider();
-    provider.start(null, serviceProvider);
-    Store<K, V> store = provider.createStore(storeConfig, factory.getServiceConfigurations());
+    Store<K, V> store = factory.newProvider().createStore(storeConfig, factory.getServiceConfigurations());
 
     assertThat(store, is(notNullValue()));
   }
