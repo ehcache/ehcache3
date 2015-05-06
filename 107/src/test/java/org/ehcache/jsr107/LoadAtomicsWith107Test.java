@@ -41,9 +41,9 @@ import static org.mockito.Mockito.verify;
  * LoadAtomicsWith107Test
  */
 public class LoadAtomicsWith107Test {
-  private CacheLoader<Integer, String> cacheLoader;
+  private CacheLoader<Number, CharSequence> cacheLoader;
   private CacheWriter<Number, CharSequence> cacheWriter;
-  private Cache<Integer, String> testCache;
+  private Cache<Number, CharSequence> testCache;
   private CacheManager cacheManager;
 
   @Before
@@ -54,12 +54,12 @@ public class LoadAtomicsWith107Test {
     CachingProvider provider = Caching.getCachingProvider();
     cacheManager = provider.getCacheManager(this.getClass().getResource("/ehcache-loader-writer-107-load-atomics.xml").toURI(), getClass().getClassLoader());
 
-    testCache = cacheManager.createCache("testCache", new MutableConfiguration<Integer, String>()
+    testCache = cacheManager.createCache("testCache", new MutableConfiguration<Number, CharSequence>()
         .setReadThrough(true)
         .setWriteThrough(true)
-        .setCacheLoaderFactory(new Factory<CacheLoader<Integer, String>>() {
+        .setCacheLoaderFactory(new Factory<CacheLoader<Number, CharSequence>>() {
           @Override
-          public CacheLoader<Integer, String> create() {
+          public CacheLoader<Number, CharSequence> create() {
             return cacheLoader;
           }
         })
@@ -69,7 +69,7 @@ public class LoadAtomicsWith107Test {
             return cacheWriter;
           }
         })
-        .setTypes(Integer.class, String.class));
+        .setTypes(Number.class, CharSequence.class));
   }
 
   @After
