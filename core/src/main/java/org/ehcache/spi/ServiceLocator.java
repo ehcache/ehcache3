@@ -215,8 +215,8 @@ public final class ServiceLocator implements ServiceProvider {
       for (Service service : services.values()) {
         if (!started.contains(service)) {
           service.start(serviceConfigs.get(service), this);
+          started.push(service);
         }
-        started.push(service);        
       }
       LOGGER.info("All Services successfully started.");
     } catch (Exception e) {
