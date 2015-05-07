@@ -188,14 +188,14 @@ public class XmlConfiguration implements Configuration {
         if(cacheDefinition.writeBehind() != null) {
           WriteBehind writeBehind = cacheDefinition.writeBehind();
           WriteBehindConfigurationBuilder writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
-              .segment(writeBehind.concurrency()).queueSize(writeBehind.maxQueueSize()).rateLimit(writeBehind.rateLimitPerSecond())
+              .concurrencyLevel(writeBehind.concurrency()).queueSize(writeBehind.maxQueueSize()).rateLimit(writeBehind.rateLimitPerSecond())
               .retry(writeBehind.retryAttempts(), writeBehind.retryAttemptsDelay())
               .delay(writeBehind.minWriteDelay(), writeBehind.maxWriteDelay());
           if(writeBehind.isBatched()){
-            writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.batch(writeBehind.batchSize());
+            writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.batchSize(writeBehind.batchSize());
           }
           if(writeBehind.isCoalesced()) {
-            writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.coalesce();
+            writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.enableCoalescing();
           }
           builder = builder.addServiceConfig(writeBehindConfigurationBuilder.build());
         }
@@ -363,14 +363,14 @@ public class XmlConfiguration implements Configuration {
       if(cacheTemplate.writeBehind() != null) {
         WriteBehind writeBehind = cacheTemplate.writeBehind();
         WriteBehindConfigurationBuilder writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
-            .segment(writeBehind.concurrency()).queueSize(writeBehind.maxQueueSize()).rateLimit(writeBehind.rateLimitPerSecond())
+            .concurrencyLevel(writeBehind.concurrency()).queueSize(writeBehind.maxQueueSize()).rateLimit(writeBehind.rateLimitPerSecond())
             .retry(writeBehind.retryAttempts(), writeBehind.retryAttemptsDelay())
             .delay(writeBehind.minWriteDelay(), writeBehind.maxWriteDelay());
         if(writeBehind.isBatched()){
-          writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.batch(writeBehind.batchSize());
+          writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.batchSize(writeBehind.batchSize());
         }
         if(writeBehind.isCoalesced()) {
-          writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.coalesce();
+          writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.enableCoalescing();
         }
         builder = builder.addServiceConfig(writeBehindConfigurationBuilder.build());
       }

@@ -78,6 +78,39 @@ include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=persistent
     data should be stored on disk to the `CacheManagerBuilder.persistence(String)` static method.
 <2> You define a resource pool for the disk.
 
+==== Write-Through Cache
+
+[source,java,indent=0]
+----
+include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=writeThroughCache]
+----
+
+<1> If you wish to use a cache in read-through/write-through caching pattern, you'll have to implement
+    `CacheLoaderWriter` and register `CacheLoaderWriterFactory` service by adding concrete type to the
+    Cache using `DefaultCacheLoaderWriterConfiguration`.
+
+==== Write-Behind Cache
+
+[source,java,indent=0]
+----
+include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=writeBehindCache]
+----
+
+<1> A Cache can be used in write-behind pattern as well. You will have to implement `CacheLoaderWriter`
+    and register using `DefaultCacheLoaderWriterConfiguration`.
+<2> Additionally, register a `WriteBehindDecoratorLoaderWriterProvider` service to Cache by adding
+    `WriteBehindConfiguration`.
+<3> Configure maximum size of the writebehind queue.
+<4> Define the concurrency level of writebehind queue, at a time these many writer threads will update
+    the  underlying resource asynchronously.
+<5> Enable write-behind queue to batch the updates to underlying resource.
+<6> Enable the write coalescing behavior, which ensures that only latest update on a key hits the
+    underlying resource.
+<7> You can configure write-behind queue to retry failed updates for `retryAttempts` times with
+    `retryAttemptDelaySeconds` delay.
+<8> Control maximum number of updates allowed per second.
+<9> Configure maximum and minimum number of seconds to wait before writing to the underlying resource.
+
 === It wouldn't be Java without _some_ XML
 
 You can create a XML file to configure a `CacheManager`:

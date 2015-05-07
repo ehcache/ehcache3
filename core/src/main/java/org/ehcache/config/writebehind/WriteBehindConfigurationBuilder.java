@@ -25,7 +25,6 @@ public class WriteBehindConfigurationBuilder {
   private int maxWriteDelay = 1;
   private int rateLimitPerSecond = 0;
   private boolean writeCoalescing = false;
-  private boolean writeBatching = false;
   private int writeBatchSize =1;
   private int retryAttempts = 0;
   private int retryAttemptDelaySeconds = 1;
@@ -42,7 +41,7 @@ public class WriteBehindConfigurationBuilder {
   
   public WriteBehindConfiguration build() {
     return new WriteBehindConfiguration(minWriteDelay, maxWriteDelay, rateLimitPerSecond,
-        writeCoalescing, writeBatching, writeBatchSize, retryAttempts,
+        writeCoalescing, writeBatchSize, retryAttempts,
         retryAttemptDelaySeconds, writeBehindConcurrency, writeBehindMaxQueueSize);
   }
   
@@ -52,20 +51,25 @@ public class WriteBehindConfigurationBuilder {
     return this;
   }
   
-  public WriteBehindConfigurationBuilder segment(int concurrency) {
+  public WriteBehindConfigurationBuilder concurrencyLevel(int concurrency) {
     this.writeBehindConcurrency = concurrency;
     
     return this;
   }
   
-  public WriteBehindConfigurationBuilder coalesce() {
+  public WriteBehindConfigurationBuilder enableCoalescing() {
     this.writeCoalescing = true;
     
     return this;
   }
   
-  public WriteBehindConfigurationBuilder batch(int batchSize) {
-    this.writeBatching = true;
+  public WriteBehindConfigurationBuilder disableCoalescing() {
+    this.writeCoalescing = false;
+    
+    return this;
+  }
+  
+  public WriteBehindConfigurationBuilder batchSize(int batchSize) {
     this.writeBatchSize = batchSize;
     
     return this;

@@ -49,7 +49,7 @@ public class WriteBehindTest extends AbstractWriteBehindTestBase {
     when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), (CacheConfiguration<String, String>)anyObject())).thenReturn((CacheLoaderWriter)loaderWriter);
     
     WriteBehindConfigurationBuilder writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newWriteBehindConfiguration();
-    WriteBehindConfiguration writeBehindConfiguration = writeBehindConfigurationBuilder.segment(3).batch(4)
+    WriteBehindConfiguration writeBehindConfiguration = writeBehindConfigurationBuilder.concurrencyLevel(3).batchSize(4)
                                                                                         .queueSize(10)
                                                                                         .build();
     builder.using(cacheLoaderWriterFactory);
