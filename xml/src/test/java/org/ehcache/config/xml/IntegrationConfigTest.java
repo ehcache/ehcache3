@@ -60,7 +60,7 @@ public class IntegrationConfigTest {
     assertThat(baz.get("1"), equalTo("one"));
 
     try {
-      cacheManager.createCache("bam", newCacheConfigurationBuilder().addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true)).buildConfig(String.class, Object.class));
+      cacheManager.createCache("bam", newCacheConfigurationBuilder().add(new OnHeapStoreServiceConfig().storeByValue(true)).buildConfig(String.class, Object.class));
       fail("expected IllegalStateException");
     } catch (IllegalStateException ise) {
       // expected

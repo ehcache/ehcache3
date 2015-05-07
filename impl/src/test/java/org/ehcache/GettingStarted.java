@@ -223,7 +223,7 @@ public class GettingStarted {
   public void defaultSerializers() throws Exception {
     // tag::defaultSerializers[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true)) //// <1>
+        .add(new OnHeapStoreServiceConfig().storeByValue(true)) //// <1>
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .buildConfig(Long.class, String.class);
 
@@ -248,11 +248,11 @@ public class GettingStarted {
   public void cacheSerializers() throws Exception {
     // tag::cacheSerializers[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true)) //// <1>
+        .add(new OnHeapStoreServiceConfig().storeByValue(true)) //// <1>
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
-        .addServiceConfig(new DefaultSerializationProviderConfiguration<Long>(LongSerializer.class,
+        .add(new DefaultSerializationProviderConfiguration<Long>(LongSerializer.class,
             SerializationProviderConfiguration.Type.KEY)) //// <2>
-        .addServiceConfig(new DefaultSerializationProviderConfiguration<CharSequence>(CharSequenceSerializer.class,
+        .add(new DefaultSerializationProviderConfiguration<CharSequence>(CharSequenceSerializer.class,
             SerializationProviderConfiguration.Type.VALUE)) //// <3>
         .buildConfig(Long.class, String.class);
 
