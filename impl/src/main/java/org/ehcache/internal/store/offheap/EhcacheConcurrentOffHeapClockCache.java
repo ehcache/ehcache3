@@ -63,25 +63,8 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
     return segment.computeIfPresent(key, mappingFunction);
   }
 
-  public V unpinAndCompute(final K key, final BiFunction<K, V, V> remappingFunction) {
-    final PinnableSegment<K, V> segment = segmentFor(key);
-    final Lock lock = segment.writeLock();
-    lock.lock();
-    try {
-      final V previousValue = segment.get(key);
-      final V newValue = remappingFunction.apply(key, previousValue);
-
-      if(newValue != previousValue) {
-        if(newValue == null) {
-          segment.remove(key);
-        } else {
-          segment.put(key, newValue);
-        }
-      }
-      segment.setMetadata(key, Metadata.PINNED, 0);
-      return newValue;
-    } finally {
-      lock.unlock();
-    }
+  public V computeAndUnpin(final K key, final BiFunction<K, V, V> remappingFunction) {
+    EhcacheSegmentFactory.EhcacheSegment<K, V> segment = (EhcacheSegmentFactory.EhcacheSegment) segmentFor(key);
+    return segment.computeAndUnpin(key, remappingFunction);
   }
 }

@@ -597,7 +597,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     }
     checkKey(key);
     final AtomicBoolean applied = new AtomicBoolean();
-    map.unpinAndCompute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+    map.computeAndUnpin(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
       @Override
       public OffHeapValueHolder<V> apply(final K k, final OffHeapValueHolder<V> valuePresent) {
         if (valuePresent != null && valueFlushed.value().equals(valuePresent.value())) {

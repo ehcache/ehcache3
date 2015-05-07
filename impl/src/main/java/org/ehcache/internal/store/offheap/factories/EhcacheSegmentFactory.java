@@ -174,6 +174,28 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
       }
     }
 
+    public V computeAndUnpin(final K key, final BiFunction<K, V, V> remappingFunction) {
+      final Lock lock = writeLock();
+      lock.lock();
+      try {
+        final V previousValue = get(key);
+        final V newValue = remappingFunction.apply(key, previousValue);
+
+        if(newValue != previousValue) {
+          if(newValue == null) {
+            remove(key);
+          } else {
+            put(key, newValue);
+          }
+        }
+        setMetadata(key, Metadata.PINNED, 0);
+        return newValue;
+      } finally {
+        lock.unlock();
+      }
+
+    }
+
     @Override
     public V put(K key, V value) {
       int metadata = getVetoedStatus(key, value);
