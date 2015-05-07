@@ -327,8 +327,7 @@ public class GettingStarted {
                 .enableCoalescing() // <6>
                 .retry(2, 1) // <7>
                 .rateLimit(2) // <8>
-                .delay(1, 1) // <9>
-                .build())
+                .delay(1, 1)) // <9>
             .buildConfig(Long.class, String.class));
     
     writeBehindCache.put(42L, "one");
