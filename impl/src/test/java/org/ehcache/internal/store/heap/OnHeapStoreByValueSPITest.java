@@ -79,7 +79,7 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
       @Override
       public Store.Provider newProvider() {
         Store.Provider service = new OnHeapStore.Provider();
-        service.start(null, new ServiceLocator());
+        service.start(null, getServiceProvider());
         return service;
       }
 

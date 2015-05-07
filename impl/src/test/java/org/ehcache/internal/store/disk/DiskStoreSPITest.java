@@ -105,7 +105,9 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
         Store.Provider service = new DiskStore.Provider();
         LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(
             new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir"))));
-        service.start(null, new ServiceLocator(localPersistenceService));
+        ServiceLocator serviceProvider = getServiceProvider();
+        serviceProvider.addService(localPersistenceService);
+        service.start(null, serviceProvider);
         return service;
       }
 
@@ -166,7 +168,7 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
       }
 
       @Override
-      public ServiceProvider getServiceProvider() {
+      public ServiceLocator getServiceProvider() {
         ServiceLocator serviceLocator = new ServiceLocator();
         try {
           serviceLocator.startAllServices(Collections.<Service, ServiceConfiguration<?>>emptyMap());

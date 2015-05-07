@@ -99,7 +99,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
       @Override
       public Store.Provider newProvider() {
         Store.Provider provider = new OffHeapStore.Provider();
-        provider.start(null, new ServiceLocator());
+        provider.start(null, getServiceProvider());
         return provider;
       }
 
