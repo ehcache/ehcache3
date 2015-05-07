@@ -38,7 +38,7 @@ public class DefaultCacheLoaderWriterFactoryTest {
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("foo",
             CacheConfigurationBuilder.newCacheConfigurationBuilder()
-                .addServiceConfig(new DefaultCacheLoaderWriterConfiguration(MyLoader.class))
+                .add(new DefaultCacheLoaderWriterConfiguration(MyLoader.class))
                 .buildConfig(Object.class, Object.class)).build(true);
     final Object foo = manager.getCache("foo", Object.class, Object.class).get(new Object());
     assertThat(foo, is(MyLoader.object));
@@ -63,7 +63,7 @@ public class DefaultCacheLoaderWriterFactoryTest {
   @Test
   public void testCacheConfigOverridesCacheManagerConfig() {
     final CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .addServiceConfig(new DefaultCacheLoaderWriterConfiguration(MyOtherLoader.class))
+        .add(new DefaultCacheLoaderWriterConfiguration(MyOtherLoader.class))
         .buildConfig(Object.class, Object.class);
 
     final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();

@@ -63,7 +63,7 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testOffheapGetsAddedToCacheConfiguration() {
-    final CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
 
     final EvictionPrioritizer<Long, CharSequence> prioritizer = new EvictionPrioritizer<Long, CharSequence>() {
       @Override
@@ -74,7 +74,7 @@ public class CacheConfigurationBuilderTest {
 
     final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
 
-    builder.withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES)
+    builder = builder.withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES)
         .offheap(10, MemoryUnit.MB));
     CacheConfiguration config = builder
         .evictionVeto(new EvictionVeto<Long, String>() {

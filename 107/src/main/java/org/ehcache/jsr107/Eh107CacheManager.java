@@ -210,7 +210,7 @@ class Eh107CacheManager implements CacheManager {
 
     OnHeapStoreServiceConfig onHeapStoreServiceConfig = builder.getExistingServiceConfiguration(OnHeapStoreServiceConfig.class);
     if (onHeapStoreServiceConfig == null) {
-      builder.addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(jsr107Config.isStoreByValue()));
+      builder = builder.add(new OnHeapStoreServiceConfig().storeByValue(jsr107Config.isStoreByValue()));
     } else {
       onHeapStoreServiceConfig.storeByValue(jsr107Config.isStoreByValue());
     }
@@ -235,7 +235,7 @@ class Eh107CacheManager implements CacheManager {
       DefaultCacheLoaderWriterConfiguration conf = builder.getExistingServiceConfiguration(DefaultCacheLoaderWriterConfiguration.class);
       if(conf != null) {
         LOG.warn("Removing the loader/writer service configuration from the JSR107 cache {}", cacheName);
-        builder.removeServiceConfig(conf);
+        builder = builder.remove(conf);
       }
     }
 

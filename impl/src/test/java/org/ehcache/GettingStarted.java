@@ -202,12 +202,12 @@ public class GettingStarted {
     performAssertions(cache1, true);
 
     final Cache<Long, String> cache2 = cacheManager.createCache("cache2",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder().addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true))
+        CacheConfigurationBuilder.newCacheConfigurationBuilder().add(new OnHeapStoreServiceConfig().storeByValue(true))
             .buildConfig(Long.class, String.class));
     performAssertions(cache2, false);
 
     final Cache<Long, String> cache3 = cacheManager.createCache("cache3",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder().addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(false))
+        CacheConfigurationBuilder.newCacheConfigurationBuilder().add(new OnHeapStoreServiceConfig().storeByValue(false))
             .buildConfig(Long.class, String.class));
     performAssertions(cache3, true);
 
@@ -216,14 +216,14 @@ public class GettingStarted {
 
   @Test
   public void testCacheEventListener() {
-    DefaultCacheEventListenerConfiguration cacheEventListenerConfiguration = CacheEventListenerBuilder
+    CacheEventListenerBuilder cacheEventListenerConfiguration = CacheEventListenerBuilder
         .newEventListenerConfig(ListenerObject.class, EventType.CREATED, EventType.UPDATED)
-        .unordered().asynchronous().build();
+        .unordered().asynchronous();
     
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("foo",
             CacheConfigurationBuilder.newCacheConfigurationBuilder()
-                .addServiceConfig(cacheEventListenerConfiguration)
+                .add(cacheEventListenerConfiguration)
                 .buildConfig(String.class, String.class)).build(true);
 
     final Cache<String, String> cache = manager.getCache("foo", String.class, String.class);
@@ -245,7 +245,7 @@ public class GettingStarted {
     
     final Cache<Long, String> writeThroughCache = cacheManager.createCache("writeThroughCache", 
         CacheConfigurationBuilder.newCacheConfigurationBuilder()
-            .addServiceConfig(new DefaultCacheLoaderWriterConfiguration(klazz)) // <1>
+            .add(new DefaultCacheLoaderWriterConfiguration(klazz)) // <1>
             .buildConfig(Long.class, String.class));
     
     writeThroughCache.put(42L, "one");
@@ -265,8 +265,8 @@ public class GettingStarted {
     
     final Cache<Long, String> writeBehindCache = cacheManager.createCache("writeBehindCache", 
         CacheConfigurationBuilder.newCacheConfigurationBuilder()
-            .addServiceConfig(new DefaultCacheLoaderWriterConfiguration(klazz)) // <1>
-            .addServiceConfig(WriteBehindConfigurationBuilder.newWriteBehindConfiguration() // <2> 
+            .add(new DefaultCacheLoaderWriterConfiguration(klazz)) // <1>
+            .add(WriteBehindConfigurationBuilder.newWriteBehindConfiguration() // <2>
                 .queueSize(3)// <3>
                 .concurrencyLevel(1) // <4>
                 .batchSize(3) // <5>

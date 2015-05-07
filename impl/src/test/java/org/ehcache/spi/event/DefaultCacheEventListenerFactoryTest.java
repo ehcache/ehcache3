@@ -54,7 +54,7 @@ public class DefaultCacheEventListenerFactoryTest {
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("foo",
             CacheConfigurationBuilder.newCacheConfigurationBuilder()
-                .addServiceConfig(cacheEventListenerConfiguration)
+                .add(cacheEventListenerConfiguration)
                 .buildConfig(Object.class, Object.class)).build(true);
     final Collection<?> bar = manager.getCache("foo", Object.class, Object.class).getRuntimeConfiguration().getServiceConfigurations();
     assertThat(bar.iterator().next().getClass().toString(), is(ListenerObject.object.toString()));

@@ -63,7 +63,7 @@ public class WriteBehindEvictionTest extends AbstractWriteBehindTestBase {
     testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder()
         .withExpiry(Expirations.timeToLiveExpiration(new Duration(100, TimeUnit.MILLISECONDS)))
         .withResourcePools(resourcePoolsBuilder)
-        .addServiceConfig(writeBehindConfiguration)
+        .add(writeBehindConfiguration)
         .buildConfig(String.class, String.class));
 
   }
