@@ -25,15 +25,17 @@ import java.util.concurrent.TimeUnit;
  */
 public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V>, Serializable {
 
+  private final long id;
   private final long creationTime;
   private volatile long lastAccessTime;
   private volatile long expirationTime;
 
-  protected AbstractValueHolder(long creationTime) {
-    this(creationTime, NO_EXPIRE);
+  protected AbstractValueHolder(long id, long creationTime) {
+    this(id, creationTime, NO_EXPIRE);
   }
 
-  protected AbstractValueHolder(long creationTime, long expirationTime) {
+  protected AbstractValueHolder(long id, long creationTime, long expirationTime) {
+    this.id = id;
     this.creationTime = creationTime;
     this.expirationTime = expirationTime;
     this.lastAccessTime = creationTime;
@@ -130,6 +132,11 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V>, Se
   public float hitRate(TimeUnit unit) {
     //XXX
     return 0.0f;
+  }
+
+  @Override
+  public long getId() {
+    return id;
   }
 
   @Override

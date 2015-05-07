@@ -596,20 +596,19 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       throw new IllegalArgumentException("ValueHolder must come from the caching tier");
     }
     checkKey(key);
-    final AtomicBoolean applied = new AtomicBoolean();
-    map.computeAndUnpin(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+    return map.computeIfPinnedAndUnpin(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
       @Override
       public OffHeapValueHolder<V> apply(final K k, final OffHeapValueHolder<V> valuePresent) {
-        if (valuePresent != null && valueFlushed.value().equals(valuePresent.value())) {
-          valuePresent.setLastAccessTime(valueFlushed.lastAccessTime(OffHeapValueHolder.TIME_UNIT), OffHeapValueHolder.TIME_UNIT);
-          valuePresent.setExpirationTime(valueFlushed.expirationTime(OffHeapValueHolder.TIME_UNIT), OffHeapValueHolder.TIME_UNIT);
+        if (valuePresent.getId() == valueFlushed.getId()) {
+          if (valueFlushed.isExpired(timeSource.getTimeMillis(), OffHeapValueHolder.TIME_UNIT)) {
+            return null;
+          }
+          valuePresent.updateMetadata(valueFlushed);
           valuePresent.writeBack();
-          applied.set(true);
         }
         return valuePresent;
       }
     });
-    return applied.get();
   }
 
   //TODO wire that in if/when needed
@@ -640,11 +639,11 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     }
 
     if (duration == null) {
-      return new OffHeapValueHolder<V>(value, now, existing.expirationTime(OffHeapValueHolder.TIME_UNIT));
+      return new OffHeapValueHolder<V>(map.nextIdFor(key), value, now, existing.expirationTime(OffHeapValueHolder.TIME_UNIT));
     } else if (duration.isForever()) {
-      return new OffHeapValueHolder<V>(value, now, OffHeapValueHolder.NO_EXPIRE);
+      return new OffHeapValueHolder<V>(map.nextIdFor(key), value, now, OffHeapValueHolder.NO_EXPIRE);
     } else {
-      return new OffHeapValueHolder<V>(value, now, safeExpireTime(now, duration));
+      return new OffHeapValueHolder<V>(map.nextIdFor(key), value, now, safeExpireTime(now, duration));
     }
   }
 
@@ -655,9 +654,9 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     }
 
     if (duration.isForever()) {
-      return new OffHeapValueHolder<V>(value, now, OffHeapValueHolder.NO_EXPIRE);
+      return new OffHeapValueHolder<V>(map.nextIdFor(key), value, now, OffHeapValueHolder.NO_EXPIRE);
     } else {
-      return new OffHeapValueHolder<V>(value, now, safeExpireTime(now, duration));
+      return new OffHeapValueHolder<V>(map.nextIdFor(key), value, now, safeExpireTime(now, duration));
     }
   }
 

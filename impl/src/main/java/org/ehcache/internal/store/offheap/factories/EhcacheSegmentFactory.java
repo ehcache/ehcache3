@@ -174,22 +174,36 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
       }
     }
 
-    public V computeAndUnpin(final K key, final BiFunction<K, V, V> remappingFunction) {
+    /**
+     * Computes a new value for the given key if a mapping is present and pinned, <code>BiFunction</code> is invoked under appropriate lock scope
+     * @param key the key of the mapping to compute the value for
+     * @param remappingFunction the function used to compute
+     * @return true if transitioned to unpinned, false otherwise
+     */
+    public boolean computeIfPinnedAndUnpin(final K key, final BiFunction<K, V, V> remappingFunction) {
       final Lock lock = writeLock();
       lock.lock();
       try {
-        final V previousValue = get(key);
-        final V newValue = remappingFunction.apply(key, previousValue);
+        final V newValue;
+        // can't be pinned if absent
+        if ((getMetadata(key) & Metadata.PINNED) == Metadata.PINNED) {
 
-        if(newValue != previousValue) {
-          if(newValue == null) {
-            remove(key);
-          } else {
-            put(key, newValue);
+          final V previousValue = get(key);
+          newValue = remappingFunction.apply(key, previousValue);
+
+          if(newValue != previousValue) {
+            if(newValue == null) {
+              remove(key);
+            } else {
+              put(key, newValue);
+            }
           }
+          if (newValue != null) {
+            setMetadata(key, Metadata.PINNED, 0);
+          }
+          return true;
         }
-        setMetadata(key, Metadata.PINNED, 0);
-        return newValue;
+        return false;
       } finally {
         lock.unlock();
       }

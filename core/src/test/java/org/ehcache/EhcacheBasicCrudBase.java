@@ -675,6 +675,11 @@ public abstract class EhcacheBasicCrudBase {
       }
 
       @Override
+      public long getId() {
+        throw new UnsupportedOperationException("Implement me!");
+      }
+
+      @Override
       public String toString() {
         return "FakeValueHolder{" +
             "value='" + this.value + '\'' +

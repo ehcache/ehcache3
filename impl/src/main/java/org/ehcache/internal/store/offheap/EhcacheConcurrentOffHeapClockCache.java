@@ -19,28 +19,29 @@ package org.ehcache.internal.store.offheap;
 import org.ehcache.function.BiFunction;
 import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory;
 
-import org.terracotta.offheapstore.Metadata;
 import org.terracotta.offheapstore.Segment;
 import org.terracotta.offheapstore.concurrent.AbstractConcurrentOffHeapCache;
 import org.terracotta.offheapstore.pinning.PinnableSegment;
 import org.terracotta.offheapstore.util.Factory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * EhcacheConcurrentOffHeapClockCache
  */
 public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrentOffHeapCache<K, V> {
 
+  private final AtomicLong[] counters;
+
   protected EhcacheConcurrentOffHeapClockCache(Factory<? extends PinnableSegment<K, V>> segmentFactory, int ssize) {
     super(segmentFactory, ssize);
+    counters = new AtomicLong[segments.length];
+    for(int i = 0; i < segments.length; i++) {
+      counters[i] = new AtomicLong();
+    }
   }
 
   public boolean remove(K key, V value, EhcacheSegmentFactory.ValueComparator<V> comparator) {
@@ -63,8 +64,12 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
     return segment.computeIfPresent(key, mappingFunction);
   }
 
-  public V computeAndUnpin(final K key, final BiFunction<K, V, V> remappingFunction) {
+  public boolean computeIfPinnedAndUnpin(final K key, final BiFunction<K, V, V> remappingFunction) {
     EhcacheSegmentFactory.EhcacheSegment<K, V> segment = (EhcacheSegmentFactory.EhcacheSegment) segmentFor(key);
-    return segment.computeAndUnpin(key, remappingFunction);
+    return segment.computeIfPinnedAndUnpin(key, remappingFunction);
+  }
+
+  public long nextIdFor(final K key) {
+    return counters[getIndexFor(key.hashCode())].getAndIncrement();
   }
 }

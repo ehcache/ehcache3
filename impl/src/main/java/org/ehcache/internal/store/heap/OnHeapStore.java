@@ -531,7 +531,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     private boolean complete;
 
     public Fault(final NullaryFunction<ValueHolder<V>> source) {
-      super(0);
+      super(-1, 0);
       this.source = source;
     }
 

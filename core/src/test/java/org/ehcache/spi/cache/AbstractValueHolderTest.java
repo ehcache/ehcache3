@@ -102,7 +102,7 @@ public class AbstractValueHolderTest {
 
   @Test
   public void testSubclassEquals() throws Exception {
-    assertThat(new AbstractValueHolder<String>(1000L) {
+    assertThat(new AbstractValueHolder<String>(-1, 1000L) {
       @Override
       public String value() {
         return "aaa";
@@ -125,7 +125,7 @@ public class AbstractValueHolderTest {
         }
         return false;
       }
-    }.equals(new AbstractValueHolder<String>(1L) {
+    }.equals(new AbstractValueHolder<String>(-1, 1L) {
       @Override
       public String value() {
         return "aaa";
@@ -144,14 +144,14 @@ public class AbstractValueHolderTest {
       @Override
       public boolean equals(Object obj) {
         if (obj instanceof AbstractValueHolder) {
-          AbstractValueHolder<?> other = (AbstractValueHolder<?>) obj;
+          AbstractValueHolder<?> other = (AbstractValueHolder<?>)obj;
           return super.equals(obj) && value().equals(other.value());
         }
         return false;
       }
     }), is(true));
 
-    assertThat(new AbstractValueHolder<String>(1000L) {
+    assertThat(new AbstractValueHolder<String>(-1, 1000L) {
       @Override
       public String value() {
         return "aaa";
@@ -174,7 +174,7 @@ public class AbstractValueHolderTest {
         }
         return false;
       }
-    }.equals(new AbstractValueHolder<String>(1L) {
+    }.equals(new AbstractValueHolder<String>(-1, 1L) {
       @Override
       public String value() {
         return "bbb";
@@ -193,7 +193,7 @@ public class AbstractValueHolderTest {
       @Override
       public boolean equals(Object obj) {
         if (obj instanceof AbstractValueHolder) {
-          AbstractValueHolder<?> other = (AbstractValueHolder<?>) obj;
+          AbstractValueHolder<?> other = (AbstractValueHolder<?>)obj;
           return super.equals(obj) && value().equals(other.value());
         }
         return false;
@@ -203,7 +203,7 @@ public class AbstractValueHolderTest {
 
 
   private AbstractValueHolder<String> newAbstractValueHolder(final TimeUnit timeUnit, long creationTime) {
-    return new AbstractValueHolder<String>(creationTime) {
+    return new AbstractValueHolder<String>(-1, creationTime) {
       @Override
       protected TimeUnit nativeTimeUnit() {
         return timeUnit;
@@ -215,7 +215,7 @@ public class AbstractValueHolderTest {
     };
   }
   private AbstractValueHolder<String> newAbstractValueHolder(final TimeUnit timeUnit, long creationTime, long expirationTime) {
-    return new AbstractValueHolder<String>(creationTime, expirationTime) {
+    return new AbstractValueHolder<String>(-1, creationTime, expirationTime) {
       @Override
       protected TimeUnit nativeTimeUnit() {
         return timeUnit;
@@ -227,7 +227,7 @@ public class AbstractValueHolderTest {
     };
   }
   private AbstractValueHolder<String> newAbstractValueHolder(final TimeUnit timeUnit, long creationTime, long expirationTime, long lastAccessTime) {
-    final AbstractValueHolder<String> abstractValueHolder = new AbstractValueHolder<String>(creationTime, expirationTime) {
+    final AbstractValueHolder<String> abstractValueHolder = new AbstractValueHolder<String>(-1, creationTime, expirationTime) {
       @Override
       protected TimeUnit nativeTimeUnit() {
         return timeUnit;

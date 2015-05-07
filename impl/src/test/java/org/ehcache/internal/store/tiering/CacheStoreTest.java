@@ -631,6 +631,11 @@ public class CacheStoreTest {
       public float hitRate(TimeUnit unit) {
         return 0;
       }
+
+      @Override
+      public long getId() {
+        throw new UnsupportedOperationException("Implement me!");
+      }
     };
   }
 

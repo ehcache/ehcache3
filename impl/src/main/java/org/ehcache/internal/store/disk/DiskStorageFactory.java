@@ -116,7 +116,7 @@ public class DiskStorageFactory<K, V> {
     private final V value;
 
     public DiskValueHolder(V value, long createTime, long expireTime) {
-      super(createTime, expireTime);
+      super(-1, createTime, expireTime);
       this.value = value;
     }
 

@@ -406,6 +406,16 @@ public interface Store<K, V> {
      * @return the hit rate in the given unit
      */
     float hitRate(TimeUnit unit);
+
+    /**
+     * The combination of this identifier and the <code>key</code> that ValueHolder is mapped to should to be
+     * unique at a given time.
+     *
+     * @return a unique identifier
+     *
+     */
+    long getId();
+
   }
 
   /**

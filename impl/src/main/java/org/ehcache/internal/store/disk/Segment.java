@@ -838,11 +838,10 @@ public class Segment<K, V> extends ReentrantReadWriteLock {
       HashEntry<K, V> e = getFirst(hash);
       while (e != null) {
         if (e.hash == hash && key.equals(e.key)) {
-          V value = valueHolder.value();
           DiskStorageFactory.Element<K, V> retrieved = disk.retrieve(e.element);
-          V retrievedValue = retrieved == null ? null : retrieved.getValueHolder() == null ? null : retrieved.getValueHolder().value();
+          Store.ValueHolder<V> retrievedValueHolder = retrieved == null ? null : retrieved.getValueHolder() == null ? null : retrieved.getValueHolder();
 
-          if (!eq(value, retrievedValue)) {
+          if (retrievedValueHolder == null || valueHolder.getId() != retrievedValueHolder.getId()) {
             return false;
           }
 
