@@ -49,7 +49,7 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
   }
 
   public boolean replace(K key, V oldValue, V newValue, EhcacheSegmentFactory.ValueComparator<V> comparator) {
-    EhcacheSegmentFactory.EhcacheSegment segment = (EhcacheSegmentFactory.EhcacheSegment) segmentFor(key);
+    EhcacheSegmentFactory.EhcacheSegment<K, V> segment = (EhcacheSegmentFactory.EhcacheSegment) segmentFor(key);
     return segment.replace(key, oldValue, newValue, comparator);
   }
 
