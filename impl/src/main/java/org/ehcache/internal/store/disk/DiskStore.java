@@ -43,6 +43,7 @@ import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -991,6 +992,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
     }
   }
 
+  @SupplementaryService
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
     private volatile ServiceProvider serviceProvider;

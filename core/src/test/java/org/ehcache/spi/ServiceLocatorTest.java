@@ -26,6 +26,7 @@ import org.ehcache.spi.cache.CacheProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.SupplementaryService;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
@@ -72,7 +73,20 @@ public class ServiceLocatorTest {
     assertThat(serviceLocator.findService(DullCacheProvider.class), sameInstance(dullCacheProvider));
   }
   
-  
+  @Test
+  public void testDoesNotRegisterSupplementaryServiceUnderAbstractType() {
+    ServiceLocator serviceLocator = new ServiceLocator();
+
+    DullCacheProvider dullCacheProvider = new DullCacheProvider();
+
+    serviceLocator.addService(dullCacheProvider);
+
+    assertThat(serviceLocator.findService(FooProvider.class), nullValue());
+    assertThat(serviceLocator.findService(CacheProvider.class), nullValue());
+    assertThat(serviceLocator.findService(DullCacheProvider.class), sameInstance(dullCacheProvider));
+  }
+
+
   @Test
   public void testDoesNotUseTCCL() {
     Thread.currentThread().setContextClassLoader(new ClassLoader() {
@@ -196,6 +210,7 @@ class FancyCacheProvider implements CacheProvider {
   }
 }
 
+@SupplementaryService
 class DullCacheProvider implements CacheProvider {
   @Override
   public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {

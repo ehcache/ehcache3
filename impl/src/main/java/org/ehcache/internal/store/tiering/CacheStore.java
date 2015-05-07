@@ -27,6 +27,7 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -311,6 +312,7 @@ public class CacheStore<K, V> implements Store<K, V>, Persistable {
     }
   }
 
+  @SupplementaryService
   public static class Provider implements Store.Provider {
 
     private volatile ServiceProvider serviceProvider;
