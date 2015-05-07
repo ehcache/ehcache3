@@ -78,8 +78,8 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
       public AuthoritativeTier<String, String> newStore(final Store.Configuration<String, String> config, final TimeSource timeSource) {
         SerializationProvider serializationProvider = new DefaultSerializationProvider();
         serializationProvider.start(null, null);
-        Serializer<Element> elementSerializer = serializationProvider.createSerializer(Element.class, config.getClassLoader());
-        Serializer<Serializable> objectSerializer = serializationProvider.createSerializer(Serializable.class, config.getClassLoader());
+        Serializer<Element> elementSerializer = serializationProvider.createValueSerializer(Element.class, config.getClassLoader());
+        Serializer<Serializable> objectSerializer = serializationProvider.createValueSerializer(Serializable.class, config.getClassLoader());
 
         final LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(
             new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir"))));

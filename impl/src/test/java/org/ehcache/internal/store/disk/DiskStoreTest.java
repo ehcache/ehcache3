@@ -65,8 +65,8 @@ public class DiskStoreTest {
         null, null, ClassLoader.getSystemClassLoader(), Expirations.timeToLiveExpiration(new Duration(10, TimeUnit.MILLISECONDS)), newResourcePoolsBuilder().disk(capacityConstraint, EntryUnit.ENTRIES).build());
     SerializationProvider serializationProvider = new DefaultSerializationProvider();
     serializationProvider.start(null, null);
-    Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createSerializer(DiskStorageFactory.Element.class, config.getClassLoader());
-    Serializer<Serializable> objectSerializer = serializationProvider.createSerializer(Serializable.class, config.getClassLoader());
+    Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createKeySerializer(DiskStorageFactory.Element.class, config.getClassLoader());
+    Serializer<Serializable> objectSerializer = serializationProvider.createValueSerializer(Serializable.class, config.getClassLoader());
 
 
     final LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(

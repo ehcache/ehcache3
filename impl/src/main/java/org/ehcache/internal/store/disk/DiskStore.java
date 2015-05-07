@@ -1009,9 +1009,9 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
       TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
       
       SerializationProvider serializationProvider = serviceProvider.findService(SerializationProvider.class);
-      Serializer<Element> elementSerializer = serializationProvider.createSerializer(Element.class, storeConfig.getClassLoader(), DefaultSerializationProviderConfiguration.find(DefaultSerializationProviderConfiguration.Type.KEY, serviceConfigs));
-      Serializer<Serializable> objectSerializer = serializationProvider.createSerializer(Serializable.class, storeConfig.getClassLoader(), DefaultSerializationProviderConfiguration.find(DefaultSerializationProviderConfiguration.Type.VALUE, serviceConfigs));
-      
+      Serializer<Element> elementSerializer = serializationProvider.createKeySerializer(Element.class, storeConfig.getClassLoader(), serviceConfigs);
+      Serializer<Serializable> objectSerializer = serializationProvider.createValueSerializer(Serializable.class, storeConfig.getClassLoader(), serviceConfigs);
+
       // todo: This should be enforced at the type system
       Object identifier;
       if(storeConfig instanceof PersistentStoreConfiguration<?, ?, ?>) {

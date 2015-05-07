@@ -161,10 +161,10 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
       @Override
       public Store<String, String> newStore(Store.Configuration<String, String> config, TimeSource timeSource) {
         SerializationProvider serializationProvider = new DefaultSerializationProvider();
-        Serializer<String> keySerializer = serializationProvider.createSerializer(String.class, config.getClassLoader());
-        Serializer<String> valueSerializer = serializationProvider.createSerializer(String.class, config.getClassLoader());
-        Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createSerializer(DiskStorageFactory.Element.class, config.getClassLoader());
-        Serializer<Serializable> objectSerializer = serializationProvider.createSerializer(Serializable.class, config.getClassLoader());
+        Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, config.getClassLoader());
+        Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, config.getClassLoader());
+        Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createValueSerializer(DiskStorageFactory.Element.class, config.getClassLoader());
+        Serializer<Serializable> objectSerializer = serializationProvider.createValueSerializer(Serializable.class, config.getClassLoader());
 
         OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false, keySerializer, valueSerializer);
         String id = "alias-" + aliasCounter.incrementAndGet();

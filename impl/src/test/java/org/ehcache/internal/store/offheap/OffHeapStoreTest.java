@@ -45,7 +45,7 @@ public class OffHeapStoreTest {
     SerializationProvider serializationProvider = new DefaultSerializationProvider();
     serializationProvider.start(null, null);
     ClassLoader classLoader = getClass().getClassLoader();
-    Serializer<String> serializer = serializationProvider.createSerializer(String.class, classLoader);
+    Serializer<String> serializer = serializationProvider.createValueSerializer(String.class, classLoader);
     TestTimeSource timeSource = new TestTimeSource();
     Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS));
     StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, null, classLoader, expiry, null);
@@ -67,8 +67,8 @@ public class OffHeapStoreTest {
     SerializationProvider serializationProvider = new DefaultSerializationProvider();
     serializationProvider.start(null, null);
     ClassLoader classLoader = getClass().getClassLoader();
-    Serializer<String> serializer = serializationProvider.createSerializer(String.class, classLoader);
-    Serializer<byte[]> byteArraySerializer = serializationProvider.createSerializer(byte[].class, classLoader);
+    Serializer<String> serializer = serializationProvider.createValueSerializer(String.class, classLoader);
+    Serializer<byte[]> byteArraySerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
     TestTimeSource timeSource = new TestTimeSource();
     Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS));
     EvictionVeto<String, byte[]> evictionVeto = new EvictionVeto<String, byte[]>() {

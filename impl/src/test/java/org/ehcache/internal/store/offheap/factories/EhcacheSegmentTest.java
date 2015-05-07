@@ -58,7 +58,7 @@ public class EhcacheSegmentTest {
     SerializationProvider serializationProvider = new DefaultSerializationProvider();
     serializationProvider.start(null, null);
     PageSource pageSource = new UpfrontAllocatingPageSource(getBufferSource(), configuration.getMaximumSize(), configuration.getMaximumChunkSize(), configuration.getMinimumChunkSize());
-    Serializer<String> stringSerializer = serializationProvider.createSerializer(String.class, EhcacheSegmentTest.class.getClassLoader());
+    Serializer<String> stringSerializer = serializationProvider.createValueSerializer(String.class, EhcacheSegmentTest.class.getClassLoader());
     Portability<String> keyPortability = new SerializerPortability<String>(stringSerializer);
     Portability<String> elementPortability = new SerializerPortability<String>(stringSerializer);
     Factory<OffHeapBufferStorageEngine<String, String>> storageEngineFactory = OffHeapBufferStorageEngine.createFactory(PointerSize.INT, pageSource, configuration.getInitialSegmentTableSize(), keyPortability, elementPortability, false, true);

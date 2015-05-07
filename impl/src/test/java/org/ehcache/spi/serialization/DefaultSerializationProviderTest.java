@@ -15,8 +15,10 @@
  */
 package org.ehcache.spi.serialization;
 
+import org.ehcache.config.SerializationProviderConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
+import org.ehcache.internal.classes.ClassInstanceProvider;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.junit.Test;
 
@@ -42,9 +44,9 @@ public class DefaultSerializationProviderTest {
     DefaultSerializationProviderFactoryConfiguration dspfConfig = new DefaultSerializationProviderFactoryConfiguration();
     dsp.start(dspfConfig, null);
 
-    assertThat(dsp.createSerializer(String.class, ClassLoader.getSystemClassLoader()), instanceOf(JavaSerializer.class));
+    assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader()), instanceOf(JavaSerializer.class));
     try {
-      dsp.createSerializer(Object.class, ClassLoader.getSystemClassLoader());
+      dsp.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader());
       fail("expected IllegalArgumentException");
     } catch (IllegalArgumentException iae) {
       // expected
@@ -57,10 +59,10 @@ public class DefaultSerializationProviderTest {
     DefaultSerializationProviderFactoryConfiguration dspfConfig = new DefaultSerializationProviderFactoryConfiguration();
     dsp.start(dspfConfig, null);
 
-    DefaultSerializationProviderConfiguration dspConfig = new DefaultSerializationProviderConfiguration((Class) TestSerializer.class, DefaultSerializationProviderConfiguration.Type.KEY);
+    DefaultSerializationProviderConfiguration dspConfig = new DefaultSerializationProviderConfiguration((Class) TestSerializer.class, DefaultSerializationProviderConfiguration.Type.VALUE);
 
-    assertThat(dsp.createSerializer(String.class, ClassLoader.getSystemClassLoader(), dspConfig), instanceOf(TestSerializer.class));
-    assertThat(dsp.createSerializer(Object.class, ClassLoader.getSystemClassLoader(), dspConfig), instanceOf(TestSerializer.class));
+    assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader(), dspConfig), instanceOf(TestSerializer.class));
+    assertThat(dsp.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), dspConfig), instanceOf(TestSerializer.class));
   }
 
   @Test
@@ -70,8 +72,8 @@ public class DefaultSerializationProviderTest {
     dspfConfig.addSerializerFor(Number.class, (Class) TestSerializer.class);
     dsp.start(dspfConfig, null);
 
-    assertThat(dsp.createSerializer(Long.class, ClassLoader.getSystemClassLoader()), instanceOf(TestSerializer.class));
-    assertThat(dsp.createSerializer(String.class, ClassLoader.getSystemClassLoader()), instanceOf(JavaSerializer.class));
+    assertThat(dsp.createValueSerializer(Long.class, ClassLoader.getSystemClassLoader()), instanceOf(TestSerializer.class));
+    assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader()), instanceOf(JavaSerializer.class));
   }
 
   @Test
@@ -82,10 +84,12 @@ public class DefaultSerializationProviderTest {
     dspfConfig.addSerializerFor(String.class, (Class) TestSerializer.class);
     dsp.start(dspfConfig, null);
 
-    assertThat(dsp.getPreconfigured("java.lang.String"), equalTo((Class) TestSerializer.class));
-    assertThat(dsp.getPreconfigured("java.io.Serializable"), equalTo((Class) JavaSerializer.class));
-    assertThat(dsp.getPreconfigured("java.lang.Integer"), equalTo((Class) JavaSerializer.class));
-    assertThat(dsp.getPreconfigured("java.lang.Object"), is(nullValue()));
+    ClassInstanceProvider.Arg arg = new ClassInstanceProvider.Arg<ClassLoader>(ClassLoader.class, ClassLoader.getSystemClassLoader());
+
+    assertThat(dsp.getPreconfigured("java.lang.String", arg), equalTo((Class) TestSerializer.class));
+    assertThat(dsp.getPreconfigured("java.io.Serializable", arg), equalTo((Class) JavaSerializer.class));
+    assertThat(dsp.getPreconfigured("java.lang.Integer", arg), equalTo((Class) JavaSerializer.class));
+    assertThat(dsp.getPreconfigured("java.lang.Object", arg), is(nullValue()));
   }
 
   @Test
@@ -96,9 +100,11 @@ public class DefaultSerializationProviderTest {
     dspfConfig.addSerializerFor(Serializable.class, (Class) TestSerializer.class);
     dsp.start(dspfConfig, null);
 
-    assertThat(dsp.getPreconfigured("java.lang.String"), equalTo((Class) TestSerializer.class));
-    assertThat(dsp.getPreconfigured("java.io.Serializable"), equalTo((Class) TestSerializer.class));
-    assertThat(dsp.getPreconfigured("java.lang.Integer"), equalTo((Class) TestSerializer.class));
+    ClassInstanceProvider.Arg arg = new ClassInstanceProvider.Arg<ClassLoader>(ClassLoader.class, ClassLoader.getSystemClassLoader());
+
+    assertThat(dsp.getPreconfigured("java.lang.String", arg), equalTo((Class) TestSerializer.class));
+    assertThat(dsp.getPreconfigured("java.io.Serializable", arg), equalTo((Class) TestSerializer.class));
+    assertThat(dsp.getPreconfigured("java.lang.Integer", arg), equalTo((Class) TestSerializer.class));
   }
 
   public static class TestSerializer<T> implements Serializer<T> {

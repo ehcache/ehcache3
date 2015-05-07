@@ -801,8 +801,8 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
         throw new RuntimeException("ServiceProvider is null.");
       }
       SerializationProvider serializationProvider = serviceProvider.findService(SerializationProvider.class);
-      Serializer<K> keySerializer = serializationProvider.createSerializer(storeConfig.getKeyType(), storeConfig.getClassLoader(), DefaultSerializationProviderConfiguration.find(DefaultSerializationProviderConfiguration.Type.KEY, serviceConfigs));
-      Serializer<V> valueSerializer = serializationProvider.createSerializer(storeConfig.getValueType(), storeConfig.getClassLoader(), DefaultSerializationProviderConfiguration.find(DefaultSerializationProviderConfiguration.Type.VALUE, serviceConfigs));
+      Serializer<K> keySerializer = serializationProvider.createKeySerializer(storeConfig.getKeyType(), storeConfig.getClassLoader(), serviceConfigs);
+      Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig.getClassLoader(), serviceConfigs);
 
       ResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
       if (!(offHeapPool.getUnit() instanceof MemoryUnit)) {

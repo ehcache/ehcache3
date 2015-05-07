@@ -46,7 +46,7 @@ public class ClassInstanceProvider<T> {
     this.cacheLevelConfig = cacheLevelConfig;
   }
 
-  protected Class<? extends T> getPreconfigured(String alias) {
+  protected Class<? extends T> getPreconfigured(String alias, Arg<?>... ctorArgs) {
     return preconfiguredLoaders.get(alias);
   }
 
@@ -60,7 +60,7 @@ public class ClassInstanceProvider<T> {
     return newInstance(alias, clazz);
   }
 
-  protected T newInstance(String alias, ServiceConfiguration<?> serviceConfiguration, Arg... ctorArgs) {
+  protected T newInstance(String alias, ServiceConfiguration<?> serviceConfiguration, Arg<?>... ctorArgs) {
     Class<? extends T> clazz = null;
     if (serviceConfiguration != null && cacheLevelConfig.isAssignableFrom(serviceConfiguration.getClass())) {
       clazz = cacheLevelConfig.cast(serviceConfiguration).getClazz();
@@ -68,9 +68,9 @@ public class ClassInstanceProvider<T> {
     return newInstance(alias, clazz, ctorArgs);
   }
 
-  private T newInstance(String alias, Class<? extends T> clazz, Arg... ctorArgs) {
+  private T newInstance(String alias, Class<? extends T> clazz, Arg<?>... ctorArgs) {
     if (clazz == null) {
-      clazz = getPreconfigured(alias);
+      clazz = getPreconfigured(alias, (Arg[]) ctorArgs);
       if (clazz == null) {
         return null;
       }
@@ -107,13 +107,25 @@ public class ClassInstanceProvider<T> {
     preconfiguredLoaders.clear();
   }
 
+  /**
+   * Constructor argument for creating the class instance.
+   * @param <T>
+   */
+  public static class Arg<T> {
+    private final Class<T> clazz;
+    private final T val;
 
-  protected static class Arg {
-    protected final Class<?> clazz;
-    protected final Object val;
-    public Arg(Class<?> clazz, Object val) {
+    public Arg(Class<T> clazz, T val) {
       this.clazz = clazz;
       this.val = val;
+    }
+
+    public Class<T> getClazz() {
+      return clazz;
+    }
+
+    public T getVal() {
+      return val;
     }
   }
 }

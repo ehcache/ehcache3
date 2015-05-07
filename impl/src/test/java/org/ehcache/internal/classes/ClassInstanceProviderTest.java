@@ -45,7 +45,7 @@ public class ClassInstanceProviderTest {
     ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>((Class)ClassInstanceProviderFactoryConfig.class, (Class)ClassInstanceProviderConfig.class);
 
     classInstanceProvider.preconfiguredLoaders.put("test stuff", TestService.class);
-    TestService obj = classInstanceProvider.newInstance("test stuff", null, new ClassInstanceProvider.Arg(String.class, "test string"));
+    TestService obj = classInstanceProvider.newInstance("test stuff", null, new ClassInstanceProvider.Arg<String>(String.class, "test string"));
 
     assertThat(obj.theString, equalTo("test string"));
   }

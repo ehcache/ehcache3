@@ -19,6 +19,7 @@ package org.ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
+import org.ehcache.config.SerializationProviderConfiguration;
 import org.ehcache.config.event.CacheEventListenerBuilder;
 import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
@@ -250,9 +251,9 @@ public class GettingStarted {
         .addServiceConfig(new OnHeapStoreServiceConfig().storeByValue(true)) //// <1>
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .addServiceConfig(new DefaultSerializationProviderConfiguration<Long>(LongSerializer.class,
-            DefaultSerializationProviderConfiguration.Type.KEY)) //// <2>
+            SerializationProviderConfiguration.Type.KEY)) //// <2>
         .addServiceConfig(new DefaultSerializationProviderConfiguration<CharSequence>(CharSequenceSerializer.class,
-            DefaultSerializationProviderConfiguration.Type.VALUE)) //// <3>
+            SerializationProviderConfiguration.Type.VALUE)) //// <3>
         .buildConfig(Long.class, String.class);
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
