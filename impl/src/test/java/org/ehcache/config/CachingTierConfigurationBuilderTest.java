@@ -17,6 +17,7 @@
 package org.ehcache.config;
 
 import org.ehcache.Ehcache;
+import org.ehcache.RuntimeConfiguration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
@@ -56,7 +57,8 @@ public class CachingTierConfigurationBuilderTest {
     when(cacheConfiguration.getExpiry()).thenReturn(Expirations.noExpiration());
 
     @SuppressWarnings("unchecked")
-    final Ehcache<String, String> cache = new Ehcache<String, String>(cacheConfiguration, store, LoggerFactory.getLogger(Ehcache.class + "-" + "CachingTierConfigurationBuilderTest"));
+    RuntimeConfiguration<String, String> runtimeConfiguration = new RuntimeConfiguration<String, String>(cacheConfiguration, null);
+    final Ehcache<String, String> cache = new Ehcache<String, String>(runtimeConfiguration, store, LoggerFactory.getLogger(Ehcache.class + "-" + "CachingTierConfigurationBuilderTest"));
     cache.init();
 
     assertThat(cache, not(hasKey("key")));

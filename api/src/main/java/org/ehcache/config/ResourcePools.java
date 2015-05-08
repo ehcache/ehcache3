@@ -15,6 +15,8 @@
  */
 package org.ehcache.config;
 
+import java.util.Set;
+
 /**
  * A collection of {@link ResourcePool resource pools} a cache has at its disposal to store its mappings.
  *
@@ -30,4 +32,10 @@ public interface ResourcePools {
    */
   ResourcePool getPoolForResource(ResourceType resourceType);
 
+  /**
+   * Get the set of {@link ResourceType} of all the pools present in the ResourcePools
+   *
+   * @return the set of {@link ResourceType}
+   */
+  Set<ResourceType> getResourceTypeSet();
 }

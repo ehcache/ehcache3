@@ -17,11 +17,12 @@
 package org.ehcache.internal.store.offheap;
 
 import org.ehcache.Cache;
+import org.ehcache.CacheConfigurationChangeEvent;
+import org.ehcache.CacheConfigurationChangeListener;
 import org.ehcache.Status;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
-import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.events.CacheEvents;
 import org.ehcache.events.StoreEventListener;
@@ -60,8 +61,10 @@ import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
 import org.terracotta.statistics.observer.OperationObserver;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -101,6 +104,12 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener();
   private BackingMapEvictionListener<K, V> mapEvictionListener;
   private volatile EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
+  private final CacheConfigurationChangeListener cacheConfigurationChangeListener = new CacheConfigurationChangeListener() {
+    @Override
+    public void cacheConfigurationChange(CacheConfigurationChangeEvent event) {
+      // noop
+    }
+  };
 
   public OffHeapStore(final Configuration<K, V> config, Serializer<K> keySerializer, Serializer<V> valueSerializer, TimeSource timeSource, long sizeInBytes) {
 
@@ -559,6 +568,14 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       result.put(key, computed);
     }
     return result;
+  }
+
+  @Override
+  public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
+    List<CacheConfigurationChangeListener> configurationChangeListenerList
+        = new ArrayList<CacheConfigurationChangeListener>();
+    configurationChangeListenerList.add(this.cacheConfigurationChangeListener);
+    return configurationChangeListenerList;
   }
 
   @Override

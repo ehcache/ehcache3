@@ -40,8 +40,10 @@ import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
@@ -91,7 +93,7 @@ public class EhcacheManagerTest {
     
     final CacheEventNotificationListenerServiceProvider cenlProvider = mock(CacheEventNotificationListenerServiceProvider.class);
     final CacheEventNotificationService<Object, Object> cenlServiceMock = mock(CacheEventNotificationServiceImpl.class);
-    when(cenlProvider.createCacheEventNotificationService()).thenReturn(cenlServiceMock);
+    when(cenlProvider.createCacheEventNotificationService(mock(Store.class))).thenReturn(cenlServiceMock);
     
     final ServiceLocator serviceLocator = new ServiceLocator(storeProvider, cenlProvider);
     when(storeProvider
@@ -139,7 +141,7 @@ public class EhcacheManagerTest {
     final Store mock = mock(Store.class);
     final CacheEventNotificationListenerServiceProvider cenlProvider = mock(CacheEventNotificationListenerServiceProvider.class);
     final CacheEventNotificationService<Object, Object> cenlServiceMock = mock(CacheEventNotificationServiceImpl.class);
-    when(cenlProvider.createCacheEventNotificationService()).thenReturn(cenlServiceMock);
+    when(cenlProvider.createCacheEventNotificationService(mock(Store.class))).thenReturn(cenlServiceMock);
 
     final ServiceLocator serviceLocator = new ServiceLocator(storeProvider, cenlProvider);
     when(storeProvider
@@ -170,7 +172,7 @@ public class EhcacheManagerTest {
 
     final CacheEventNotificationListenerServiceProvider cenlProvider = mock(CacheEventNotificationListenerServiceProvider.class);
     final CacheEventNotificationService<Object, Object> cenlServiceMock = mock(CacheEventNotificationServiceImpl.class);
-    when(cenlProvider.createCacheEventNotificationService()).thenReturn(cenlServiceMock);
+    when(cenlProvider.createCacheEventNotificationService(mock(Store.class))).thenReturn(cenlServiceMock);
     final ServiceLocator serviceLocator = new ServiceLocator(storeProvider, cenlProvider);
 
     when(storeProvider
@@ -228,7 +230,7 @@ public class EhcacheManagerTest {
     
     final CacheEventNotificationListenerServiceProvider cenlProvider = mock(CacheEventNotificationListenerServiceProvider.class);
     final CacheEventNotificationService<Object, Object> cenlServiceMock = mock(CacheEventNotificationServiceImpl.class);
-    when(cenlProvider.createCacheEventNotificationService()).thenReturn(cenlServiceMock);
+    when(cenlProvider.createCacheEventNotificationService(mock(Store.class))).thenReturn(cenlServiceMock);
     
     final ServiceLocator serviceLocator = new ServiceLocator(storeProvider, cenlProvider);
     when(storeProvider
@@ -289,7 +291,7 @@ public class EhcacheManagerTest {
     final Store mock = mock(Store.class);
     final CacheEventNotificationListenerServiceProvider cenlProvider = mock(CacheEventNotificationListenerServiceProvider.class);
     final CacheEventNotificationService<Object, Object> cenlServiceMock = mock(CacheEventNotificationServiceImpl.class);
-    when(cenlProvider.createCacheEventNotificationService()).thenReturn(cenlServiceMock);
+    when(cenlProvider.createCacheEventNotificationService(mock(Store.class))).thenReturn(cenlServiceMock);
     final ServiceLocator serviceLocator = new ServiceLocator(cacheLoaderWriterFactory, storeProvider, decoratorLoaderWriterProvider, cenlProvider);
     when(storeProvider
         .createStore(Matchers.<Store.Configuration>anyObject(), Matchers.<ServiceConfiguration[]>anyVararg())).thenReturn(mock);
@@ -313,7 +315,7 @@ public class EhcacheManagerTest {
     
     final CacheEventNotificationListenerServiceProvider cenlProvider = mock(CacheEventNotificationListenerServiceProvider.class);
     final CacheEventNotificationService<Object, Object> cenlServiceMock = mock(CacheEventNotificationServiceImpl.class);
-    when(cenlProvider.createCacheEventNotificationService()).thenReturn(cenlServiceMock);
+    when(cenlProvider.createCacheEventNotificationService(mock(Store.class))).thenReturn(cenlServiceMock);
     
     final ServiceLocator serviceLocator = new ServiceLocator(mock, cenlProvider);
     when(mock.createStore(Matchers.<Store.Configuration>anyObject())).thenReturn(mock(Store.class));
@@ -337,7 +339,7 @@ public class EhcacheManagerTest {
     
     final CacheEventNotificationListenerServiceProvider cenlProvider = mock(CacheEventNotificationListenerServiceProvider.class);
     final CacheEventNotificationService<Object, Object> cenlServiceMock = mock(CacheEventNotificationServiceImpl.class);
-    when(cenlProvider.createCacheEventNotificationService()).thenReturn(cenlServiceMock);
+    when(cenlProvider.createCacheEventNotificationService(mock(Store.class))).thenReturn(cenlServiceMock);
     
     final ServiceLocator serviceLocator = new ServiceLocator(mock, cenlProvider);
     when(mock.createStore(Matchers.<Store.Configuration>anyObject())).thenReturn(mock(Store.class));
@@ -408,7 +410,7 @@ public class EhcacheManagerTest {
     
     final CacheEventNotificationListenerServiceProvider cenlProvider = mock(CacheEventNotificationListenerServiceProvider.class);
     final CacheEventNotificationService<Object, Object> cenlServiceMock = mock(CacheEventNotificationServiceImpl.class);
-    when(cenlProvider.createCacheEventNotificationService()).thenReturn(cenlServiceMock);
+    when(cenlProvider.createCacheEventNotificationService(mock(Store.class))).thenReturn(cenlServiceMock);
     
     final ServiceLocator serviceLocator = new ServiceLocator(storeProvider, cenlProvider);
     final RuntimeException thrown = new RuntimeException();
@@ -499,7 +501,7 @@ public class EhcacheManagerTest {
       }
 
       @Override
-      public <K, V> CacheEventNotificationService<K, V> createCacheEventNotificationService() {
+      public <K, V> CacheEventNotificationService<K, V> createCacheEventNotificationService(Store<K, V> store) {
         return null;
       }
 
@@ -508,11 +510,14 @@ public class EhcacheManagerTest {
         cenlService.releaseAllListeners();
       }
     });
-    final CacheEventNotificationService<Object, Object> cenlServiceMock = mock(CacheEventNotificationServiceImpl.class);
-    when(cenlProvider.createCacheEventNotificationService()).thenReturn(cenlServiceMock);
-    final ServiceLocator serviceLocator = new ServiceLocator(storeProvider, cenlProvider);
     Store mockStore = mock(Store.class);
-    when(storeProvider.createStore(Matchers.<Store.Configuration> anyObject())).thenReturn(mockStore);
+    final CacheEventNotificationService<Object, Object> cenlServiceMock = mock(CacheEventNotificationServiceImpl.class);
+    when(cenlProvider.createCacheEventNotificationService(mockStore)).thenReturn(cenlServiceMock);
+    final ServiceLocator serviceLocator = new ServiceLocator(storeProvider, cenlProvider);
+    List<CacheConfigurationChangeListener> configurationChangeListenerList = new ArrayList<CacheConfigurationChangeListener>();
+    configurationChangeListenerList.add(mock(CacheConfigurationChangeListener.class));
+    when(mockStore.getConfigurationChangeListeners()).thenReturn(configurationChangeListenerList);
+    when(storeProvider.createStore(Matchers.<Store.Configuration>anyObject())).thenReturn(mockStore);
     
     EhcacheManager cacheManager = new EhcacheManager(newConfigurationBuilder().addCache("foo", cacheConfiguration).build(), serviceLocator) {
       @Override

@@ -18,10 +18,10 @@ package org.ehcache.events;
 
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.CacheEventListenerFactory;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
+import org.ehcache.spi.cache.Store;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,12 +57,14 @@ public class CacheEventNotificationServiceImplTest {
   private CacheEventListener<Number, String> listener;
   private ExecutorService orderedExecutor;
   private ExecutorService unorderedExecutor;
+  private Store<Number, String> store;
 
   @Before
   public void setUp() {
     orderedExecutor = Executors.newSingleThreadExecutor();
     unorderedExecutor = Executors.newCachedThreadPool();
-    eventService = new CacheEventNotificationServiceImpl<Number, String>(orderedExecutor, unorderedExecutor);
+    store = mock(Store.class);
+    eventService = new CacheEventNotificationServiceImpl<Number, String>(orderedExecutor, unorderedExecutor, store);
     listener = mock(CacheEventListener.class);
   }
 
@@ -214,10 +216,19 @@ public class CacheEventNotificationServiceImplTest {
     verify(otherLsnr, new NoMoreInteractions()).onEvent(any(CacheEvent.class));
   }
 
+  @Test
+  public void testRegisterEventListenerForStoreNotifications() {
+    eventService.registerCacheEventListener(listener,
+        EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EXPIRED));
+    verify(store).enableStoreEventNotifications(any(StoreEventListener.class));
+    eventService.deregisterCacheEventListener(listener);
+    verify(store).disableStoreEventNotifications();
+  }
+
   private static <K, V> CacheEvent<K, V> eventOfType(EventType type) {
     CacheEvent<K, V> event = mock(CacheEvent.class, type.name());
     when(event.getType()).thenReturn(type);
     return event;
   }
-  
+
 }

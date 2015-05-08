@@ -13,29 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.config;
 
-import java.util.Map;
-import java.util.Set;
+package org.ehcache;
 
 /**
- * @author Ludovic Orban
+ * @author rism
  */
-class ResourcePoolsImpl implements ResourcePools {
-
-  private final Map<ResourceType, ResourcePool> pools;
-
-  ResourcePoolsImpl(Map<ResourceType, ResourcePool> pools) {
-    this.pools = pools;
-  }
-
-  @Override
-  public ResourcePool getPoolForResource(ResourceType resourceType) {
-    return pools.get(resourceType);
-  }
-
-  @Override
-  public Set<ResourceType> getResourceTypeSet() {
-    return pools.keySet();
-  }
+public enum CacheConfigurationProperty {
+  /**
+   * used to update size of ResourcePool in RuntimeConfig
+   */
+  UPDATESIZE
 }

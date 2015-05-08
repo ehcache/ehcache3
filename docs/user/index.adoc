@@ -78,6 +78,20 @@ include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=persistent
     data should be stored on disk to the `CacheManagerBuilder.persistence(String)` static method.
 <2> You define a resource pool for the disk.
 
+==== Update ResourcePools
+
+[source,java,indent=0]
+----
+include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=updateResourcesAtRuntime]
+----
+
+<1> You will need to create a new `ResourcePools` object with resources of required size, using `ResourcePoolsBuilder`. This object can
+    then be passed to the said method so as to trigger the update.
+<2> To update capacity of `ResourcePools`, `updateResourcePools(ResourcePools)` method in `RuntimeConfiguration` can be of help.
+    `ResourcePools` object created earlier can then be passed to this method so as to trigger the update.
+
+NOTE: Presently, `updateResourcePools()` only supports updating heap and disk tiers, if they are defined with `EntryUnit.ENTRIES` as the unit of measure.
+
 ==== Write-Through Cache
 
 [source,java,indent=0]

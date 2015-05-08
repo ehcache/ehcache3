@@ -56,8 +56,10 @@ public class EhcacheLoaderWriterTest {
   public void setUp() throws Exception {
     store = mock(Store.class);
     CacheLoaderWriter<Number, String> loaderWriter = mock(CacheLoaderWriter.class);
+    RuntimeConfiguration<Number, String> runtimeConfiguration
+        = new RuntimeConfiguration<Number, String>(CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, String.class), null);
     cache = new Ehcache<Number, String>(
-        CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, String.class), store, loaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheLoaderWriterTest"));
+        runtimeConfiguration, store, loaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheLoaderWriterTest"));
     cache.init();
   }
   

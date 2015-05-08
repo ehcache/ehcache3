@@ -16,6 +16,7 @@
 
 package org.ehcache.events;
 
+import org.ehcache.Cache;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
@@ -23,6 +24,7 @@ import org.ehcache.event.CacheEventListenerFactory;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
+import org.ehcache.spi.cache.Store;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,10 +54,14 @@ import java.util.concurrent.Future;
 public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotificationService<K, V> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CacheEventNotificationServiceImpl.class);
+  private final StoreListener<K, V> storeListener = new StoreListener<K, V>();
+  private final Store<K, V> store;
 
-  public CacheEventNotificationServiceImpl(ExecutorService orderedDelivery, ExecutorService unorderedDelivery) {
+  public CacheEventNotificationServiceImpl(ExecutorService orderedDelivery, ExecutorService unorderedDelivery, Store<K, V> store) {
     this.orderedDelivery = orderedDelivery;
     this.unorderedDelivery = unorderedDelivery;
+    this.store = store;
+    storeListener.setEventNotificationService(this);
   }
 
   /**
@@ -71,8 +77,12 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
   @Override
   public void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener,
                                   EventOrdering ordering, EventFiring firing, EnumSet<EventType> forEventTypes) {
+    boolean doRegister = forEventTypes.contains(EventType.EVICTED) || forEventTypes.contains(EventType.EXPIRED);
     if (!registeredListeners.add(new EventListenerWrapper(listener, firing, ordering, forEventTypes))) {
       throw new IllegalStateException("Cache Event Listener already registered: " + listener);
+    }
+    if (doRegister) {
+      store.enableStoreEventNotifications(storeListener);
     }
   }
 
@@ -89,6 +99,9 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
         EventFiring.ASYNCHRONOUS, EventOrdering.UNORDERED, EnumSet.allOf(EventType.class)))) {
       throw new IllegalStateException("Unknown cache event listener: " + listener);
     }
+    if (!hasListeners()) {
+      store.disableStoreEventNotifications();
+    }
   }
 
   // TODO this should be really the shutdown method for the service
@@ -97,6 +110,11 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
     for (EventListenerWrapper wrapper: registeredListeners) {
       registeredListeners.remove(wrapper);
     }
+  }
+
+  @Override
+  public void setStoreListenerSource(Cache<K, V> source) {
+    storeListener.setSource(source);
   }
 
   @Override
@@ -206,4 +224,27 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
     }
   }
 
+  private final class StoreListener<K, V> implements StoreEventListener<K, V> {
+
+    private CacheEventNotificationService<K, V> eventNotificationService;
+    private Cache<K, V> source;
+
+    @Override
+    public void onEviction(Cache.Entry<K, V> entry) {
+      eventNotificationService.onEvent(CacheEvents.eviction(entry, this.source));
+    }
+
+    @Override
+    public void onExpiration(Cache.Entry<K, V> entry) {
+      eventNotificationService.onEvent(CacheEvents.expiry(entry, this.source));
+    }
+
+    public void setEventNotificationService(CacheEventNotificationService<K, V> eventNotificationService) {
+      this.eventNotificationService = eventNotificationService;
+    }
+
+    public void setSource(Cache<K, V> source) {
+      this.source = source;
+    }
+  }
 }

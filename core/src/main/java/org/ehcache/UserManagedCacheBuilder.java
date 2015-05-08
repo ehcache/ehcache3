@@ -80,7 +80,9 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionVeto,
         evictionPrioritizer, classLoader, expiry, resourcePools);
 
-    final Ehcache<K, V> ehcache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, cacheEventNotificationService, statisticsExecutor,logger);
+    RuntimeConfiguration<K, V> runtimeConfiguration = new RuntimeConfiguration<K, V>(cacheConfig, cacheEventNotificationService);
+
+    final Ehcache<K, V> ehcache = new Ehcache<K, V>(runtimeConfiguration, store, cacheLoaderWriter, cacheEventNotificationService, statisticsExecutor,logger);
     ehcache.addHook(new LifeCycled() {
       @Override
       public void init() throws Exception {

@@ -24,22 +24,15 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.times;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.argThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import org.ehcache.event.CacheEvent;
-import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.CacheEventListenerFactory;
-import org.ehcache.event.EventFiring;
-import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.events.CacheEventNotificationService;
-import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.function.BiFunction;
@@ -60,7 +53,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -80,8 +72,10 @@ public class EhcacheEventTest {
     eventNotifier = mock(CacheEventNotificationService.class);
     CacheLoaderWriter<Number, String> loaderWriter = mock(CacheLoaderWriter.class);
 
+    RuntimeConfiguration<Number, String> runtimeConfiguration = new RuntimeConfiguration<Number, String>(newCacheConfigurationBuilder()
+        .buildConfig(Number.class, String.class), eventNotifier);
     cache = new Ehcache<Number, String>(
-        newCacheConfigurationBuilder().buildConfig(Number.class, String.class), store, loaderWriter, eventNotifier, null, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheEventTest"));
+        runtimeConfiguration, store, loaderWriter, eventNotifier, null, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheEventTest"));
     cache.init();
   }
   
@@ -89,50 +83,6 @@ public class EhcacheEventTest {
   public void tearDown() {
     // Make sure no more events have been sent
     verify(eventNotifier, new NoMoreInteractions()).onEvent(any(CacheEvent.class));
-  }
-
-  @Test
-  public void testRuntimeConfigDelegatesToNotifier() {
-    CacheEventListener<Number, String> listener = mock(CacheEventListener.class);
-    cache.getRuntimeConfiguration().registerCacheEventListener(listener, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.CREATED));
-    verify(eventNotifier).registerCacheEventListener(eq(listener), eq(EventOrdering.UNORDERED), eq(EventFiring.SYNCHRONOUS),
-        eq(EnumSet.of(EventType.CREATED)));
-    
-    cache.getRuntimeConfiguration().deregisterCacheEventListener(listener);
-    verify(eventNotifier).deregisterCacheEventListener(listener);
-    verify(eventNotifier).hasListeners();
-  }
-  
-  @Test
-  public void testLazyStoreEventListening() {
-    verify(store, never()).enableStoreEventNotifications(any(StoreEventListener.class));
-    CacheEventListener<Number, String> expiryListener = mock(CacheEventListener.class);
-    
-    when(eventNotifier.hasListeners()).thenReturn(false);
-    cache.getRuntimeConfiguration().registerCacheEventListener(expiryListener, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, 
-        EnumSet.of(EventType.EXPIRED));
-    
-    CacheEventListener<Number, String> evictionListener = mock(CacheEventListener.class);
-    cache.getRuntimeConfiguration().registerCacheEventListener(evictionListener, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, 
-        EnumSet.of(EventType.EVICTED));
-    verify(eventNotifier).registerCacheEventListener(eq(expiryListener), 
-        eq(EventOrdering.UNORDERED), eq(EventFiring.SYNCHRONOUS),
-        eq(EnumSet.of(EventType.EXPIRED)));
-    verify(eventNotifier).registerCacheEventListener(eq(evictionListener), 
-        eq(EventOrdering.UNORDERED), eq(EventFiring.SYNCHRONOUS),
-        eq(EnumSet.of(EventType.EVICTED)));
-    
-    verify(store, times(2)).enableStoreEventNotifications(any(StoreEventListener.class));
-    
-    when(eventNotifier.hasListeners()).thenReturn(true);
-    cache.getRuntimeConfiguration().deregisterCacheEventListener(evictionListener);
-    verify(store, never()).disableStoreEventNotifications();
-    
-    when(eventNotifier.hasListeners()).thenReturn(false);
-    cache.getRuntimeConfiguration().deregisterCacheEventListener(expiryListener);
-    verify(store).disableStoreEventNotifications();
-    verify(eventNotifier, times(2)).hasListeners();
-    verify(eventNotifier, times(2)).deregisterCacheEventListener(any(CacheEventListener.class));
   }
 
   @Test

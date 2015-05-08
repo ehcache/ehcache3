@@ -18,7 +18,9 @@ package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsBuilder;
+import org.ehcache.config.ResourceType;
 import org.ehcache.config.SerializationProviderConfiguration;
 import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
@@ -45,6 +47,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -339,6 +342,45 @@ public class GettingStarted {
     // end::writeBehindCache[]  
   }
 
+  @Test
+  public void updateResourcesAtRuntime() throws InterruptedException {
+    CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
+        .newEventListenerConfiguration(ListenerObject.class, EventType.EVICTED).unordered().asynchronous();
+
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .add(cacheEventListenerConfiguration)
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            .heap(10L, EntryUnit.ENTRIES).build()).buildConfig(Long.class, String.class);
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
+        .build(true);
+
+    Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
+    ListenerObject.latch = new CountDownLatch(10);
+    for(long i = 0; i < 20; i++ ){
+      cache.put(i, "Hello World");
+    }
+    ListenerObject.latch.await();
+    assertThat(ListenerObject.evicted, is(10));
+
+    cache.clear();
+    ListenerObject.resetEvictionCount();
+
+    // tag::updateResourcesAtRuntime[]
+    ResourcePools pools = ResourcePoolsBuilder.newResourcePoolsBuilder().heap(20L, EntryUnit.ENTRIES).build(); //// <1>
+    cache.getRuntimeConfiguration().updateResourcePools(pools); //// <2>
+    assertThat(cache.getRuntimeConfiguration().getResourcePools()
+        .getPoolForResource(ResourceType.Core.HEAP).getSize(), is(20L));
+    // end::updateResourcesAtRuntime[]
+    
+    for(long i = 0; i < 20; i++ ){
+      cache.put(i, "Hello World");
+    }
+    assertThat(ListenerObject.evicted, is(0));
+
+    cacheManager.close();
+  }
+
   private void performAssertions(Cache<Long, String> cache, boolean same) {
     cache.put(1L, "one");
     String s1 = cache.get(1L);
@@ -350,11 +392,20 @@ public class GettingStarted {
   }
 
   public static class ListenerObject implements CacheEventListener<Object, Object> {
+    private static int evicted;
+    private static CountDownLatch latch;
     @Override
     public void onEvent(CacheEvent<Object, Object> event) {
-      //noop
       Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted");
       logger.info(event.getType().toString());
+      if(event.getType() == EventType.EVICTED){
+        evicted++;
+      }
+      latch.countDown();
+    }
+
+    public static void resetEvictionCount() {
+      evicted = 0;
     }
   }
   

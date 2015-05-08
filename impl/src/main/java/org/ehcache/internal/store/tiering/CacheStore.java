@@ -16,6 +16,7 @@
 package org.ehcache.internal.store.tiering;
 
 import org.ehcache.Cache;
+import org.ehcache.CacheConfigurationChangeListener;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
@@ -33,6 +34,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
@@ -310,6 +313,15 @@ public class CacheStore<K, V> implements Store<K, V>, Persistable {
         cachingTier.remove(key);
       }
     }
+  }
+
+  @Override
+  public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
+    List<CacheConfigurationChangeListener> configurationChangeListenerList
+        = new ArrayList<CacheConfigurationChangeListener>();
+    configurationChangeListenerList.addAll(((Store)cachingTier).getConfigurationChangeListeners());
+    configurationChangeListenerList.addAll(((Store)authoritativeTier).getConfigurationChangeListeners());
+    return configurationChangeListenerList;
   }
 
   @SupplementaryService

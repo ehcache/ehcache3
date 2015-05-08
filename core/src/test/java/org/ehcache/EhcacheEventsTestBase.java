@@ -61,8 +61,9 @@ public class EhcacheEventsTestBase extends EhcacheBasicCrudBase {
   protected Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, String name) {
     ExecutorService orderedExecutor = Executors.newSingleThreadExecutor();
     ExecutorService unorderedExecutor = Executors.newCachedThreadPool();
-    cacheEventNotificationService = new CacheEventNotificationServiceImpl<String, String>(orderedExecutor, unorderedExecutor);
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store,
+    cacheEventNotificationService = new CacheEventNotificationServiceImpl<String, String>(orderedExecutor, unorderedExecutor, store);
+    RuntimeConfiguration<String, String> runtimeConfiguration = new RuntimeConfiguration<String, String>(CACHE_CONFIGURATION, cacheEventNotificationService);
+    final Ehcache<String, String> ehcache = new Ehcache<String, String>(runtimeConfiguration, this.store,
         cacheLoaderWriter, cacheEventNotificationService, null,
         LoggerFactory.getLogger(Ehcache.class + "-" + name));
     ehcache.init();
