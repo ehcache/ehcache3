@@ -17,14 +17,14 @@
 package org.ehcache.config.serializer;
 
 import org.ehcache.config.SerializationProviderConfiguration;
-import org.ehcache.internal.classes.ClassInstanceProviderConfig;
+import org.ehcache.internal.classes.ClassInstanceProviderConfiguration;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 
 /**
  * @author Ludovic Orban
  */
-public class DefaultSerializationProviderConfiguration<T> extends ClassInstanceProviderConfig<Serializer<T>> implements SerializationProviderConfiguration<DefaultSerializationProvider> {
+public class DefaultSerializationProviderConfiguration<T> extends ClassInstanceProviderConfiguration<Serializer<T>> implements SerializationProviderConfiguration<DefaultSerializationProvider> {
 
   private final Type type;
 

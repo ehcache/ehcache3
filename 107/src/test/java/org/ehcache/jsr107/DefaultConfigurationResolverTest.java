@@ -31,7 +31,7 @@ import javax.cache.CacheException;
 import org.junit.Before;
 import org.junit.Test;
 
-public class DefaultConfigResolverTest {
+public class DefaultConfigurationResolverTest {
 
   private static URI makeURI() throws URISyntaxException {
     return new URI("cheese://" + System.nanoTime());
@@ -40,7 +40,7 @@ public class DefaultConfigResolverTest {
   @Before
   public void setUp() {
     // just in case to prevent cross talk between test methods
-    System.getProperties().remove(DefaultConfigResolver.DEFAULT_CONFIG_PROPERTY_NAME);
+    System.getProperties().remove(DefaultConfigurationResolver.DEFAULT_CONFIG_PROPERTY_NAME);
   }
 
   @Test
@@ -48,9 +48,9 @@ public class DefaultConfigResolverTest {
     URI uri = makeURI();
 
     Properties props = new Properties();
-    props.put(DefaultConfigResolver.DEFAULT_CONFIG_PROPERTY_NAME, uri);
+    props.put(DefaultConfigurationResolver.DEFAULT_CONFIG_PROPERTY_NAME, uri);
 
-    URI resolved = DefaultConfigResolver.resolveConfigURI(props);
+    URI resolved = DefaultConfigurationResolver.resolveConfigURI(props);
     assertSame(uri, resolved);
   }
 
@@ -58,9 +58,9 @@ public class DefaultConfigResolverTest {
   public void testSystemProperty() throws Exception {
     URI uri = makeURI();
 
-    System.getProperties().put(DefaultConfigResolver.DEFAULT_CONFIG_PROPERTY_NAME, uri);
+    System.getProperties().put(DefaultConfigurationResolver.DEFAULT_CONFIG_PROPERTY_NAME, uri);
 
-    URI resolved = DefaultConfigResolver.resolveConfigURI(new Properties());
+    URI resolved = DefaultConfigurationResolver.resolveConfigURI(new Properties());
     assertSame(uri, resolved);
   }
 
@@ -72,16 +72,16 @@ public class DefaultConfigResolverTest {
     assertFalse(uri1.equals(uri2));
 
     Properties props = new Properties();
-    props.put(DefaultConfigResolver.DEFAULT_CONFIG_PROPERTY_NAME, uri1);
-    System.getProperties().put(DefaultConfigResolver.DEFAULT_CONFIG_PROPERTY_NAME, uri2);
+    props.put(DefaultConfigurationResolver.DEFAULT_CONFIG_PROPERTY_NAME, uri1);
+    System.getProperties().put(DefaultConfigurationResolver.DEFAULT_CONFIG_PROPERTY_NAME, uri2);
 
-    URI resolved = DefaultConfigResolver.resolveConfigURI(props);
+    URI resolved = DefaultConfigurationResolver.resolveConfigURI(props);
     assertSame(uri1, resolved);
   }
 
   @Test
   public void testDefault() throws Exception {
-    URI resolved = DefaultConfigResolver.resolveConfigURI(new Properties());
+    URI resolved = DefaultConfigurationResolver.resolveConfigURI(new Properties());
     assertNull(resolved);
   }
 
@@ -90,9 +90,9 @@ public class DefaultConfigResolverTest {
     URL url = new URL("http://www.cheese.com/asiago");
 
     Properties props = new Properties();
-    props.put(DefaultConfigResolver.DEFAULT_CONFIG_PROPERTY_NAME, url);
+    props.put(DefaultConfigurationResolver.DEFAULT_CONFIG_PROPERTY_NAME, url);
 
-    URI resolved = DefaultConfigResolver.resolveConfigURI(props);
+    URI resolved = DefaultConfigurationResolver.resolveConfigURI(props);
     assertEquals(url.toURI(), resolved);
   }
 
@@ -101,19 +101,19 @@ public class DefaultConfigResolverTest {
     String string = "http://www.cheese.com/armenian-string-cheese/";
 
     Properties props = new Properties();
-    props.put(DefaultConfigResolver.DEFAULT_CONFIG_PROPERTY_NAME, string);
+    props.put(DefaultConfigurationResolver.DEFAULT_CONFIG_PROPERTY_NAME, string);
 
-    URI resolved = DefaultConfigResolver.resolveConfigURI(props);
+    URI resolved = DefaultConfigurationResolver.resolveConfigURI(props);
     assertEquals(new URI(string), resolved);
   }
 
   @Test
   public void testInvalidType() throws Exception {
     Properties props = new Properties();
-    props.put(DefaultConfigResolver.DEFAULT_CONFIG_PROPERTY_NAME, this);
+    props.put(DefaultConfigurationResolver.DEFAULT_CONFIG_PROPERTY_NAME, this);
 
     try {
-      DefaultConfigResolver.resolveConfigURI(props);
+      DefaultConfigurationResolver.resolveConfigURI(props);
       fail();
     } catch (CacheException ce) {
       // expected

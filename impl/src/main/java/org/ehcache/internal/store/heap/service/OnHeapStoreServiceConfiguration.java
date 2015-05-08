@@ -22,7 +22,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 /**
  * @author Ludovic Orban
  */
-public class OnHeapStoreServiceConfig implements ServiceConfiguration<OnHeapStore.Provider> {
+public class OnHeapStoreServiceConfiguration implements ServiceConfiguration<OnHeapStore.Provider> {
 
     private boolean storeByValue = false;
 
@@ -30,7 +30,7 @@ public class OnHeapStoreServiceConfig implements ServiceConfiguration<OnHeapStor
         return storeByValue;
     }
 
-    public OnHeapStoreServiceConfig storeByValue(boolean storeByValue) {
+    public OnHeapStoreServiceConfiguration storeByValue(boolean storeByValue) {
         this.storeByValue = storeByValue;
         return this;
     }

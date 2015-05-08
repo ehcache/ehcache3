@@ -16,21 +16,18 @@
 
 package org.ehcache.internal.classes;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 /**
- * Base class for ProviderFactory config that instantiates service classes.
- * Keeps the order in which defaults are added.
- *
  * @author Alex Snaps
  */
-public class ClassInstanceProviderFactoryConfig<T> {
+public class ClassInstanceProviderConfiguration<T> {
 
-  private Map<String, Class<? extends T>> defaults = new LinkedHashMap<String, Class<? extends T>>();
+  private final Class<? extends T> clazz;
 
-  public Map<String, Class<? extends T>> getDefaults() {
-    return defaults;
+  public ClassInstanceProviderConfiguration(final Class<? extends T> clazz) {
+    this.clazz = clazz;
   }
 
+  public Class<? extends T> getClazz() {
+    return clazz;
+  }
 }

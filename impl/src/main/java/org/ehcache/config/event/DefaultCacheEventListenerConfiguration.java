@@ -22,14 +22,14 @@ import org.ehcache.event.CacheEventListenerFactory;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
-import org.ehcache.internal.classes.ClassInstanceProviderConfig;
+import org.ehcache.internal.classes.ClassInstanceProviderConfiguration;
 
 import java.util.EnumSet;
 
 /**
  * @author rism
  */
-public class DefaultCacheEventListenerConfiguration extends ClassInstanceProviderConfig<CacheEventListener<?, ?>> implements CacheEventListenerConfiguration{
+public class DefaultCacheEventListenerConfiguration extends ClassInstanceProviderConfiguration<CacheEventListener<?, ?>> implements CacheEventListenerConfiguration{
 
   private EventFiring eventFiringMode;
   private EventOrdering eventOrderingMode;

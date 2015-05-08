@@ -28,7 +28,7 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
+import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
@@ -120,7 +120,7 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[] { new OnHeapStoreServiceConfig().storeByValue(true)};
+        return new ServiceConfiguration[] { new OnHeapStoreServiceConfiguration().storeByValue(true)};
       }
 
       @Override

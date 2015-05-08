@@ -21,7 +21,6 @@ import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.SerializationProviderConfiguration;
 import org.ehcache.config.event.CacheEventListenerBuilder;
-import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
@@ -33,7 +32,7 @@ import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
 import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
+import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
@@ -207,12 +206,12 @@ public class GettingStarted {
     performAssertions(cache1, true);
 
     final Cache<Long, String> cache2 = cacheManager.createCache("cache2",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder().add(new OnHeapStoreServiceConfig().storeByValue(true))
+        CacheConfigurationBuilder.newCacheConfigurationBuilder().add(new OnHeapStoreServiceConfiguration().storeByValue(true))
             .buildConfig(Long.class, String.class));
     performAssertions(cache2, false);
 
     final Cache<Long, String> cache3 = cacheManager.createCache("cache3",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder().add(new OnHeapStoreServiceConfig().storeByValue(false))
+        CacheConfigurationBuilder.newCacheConfigurationBuilder().add(new OnHeapStoreServiceConfiguration().storeByValue(false))
             .buildConfig(Long.class, String.class));
     performAssertions(cache3, true);
 
@@ -223,7 +222,7 @@ public class GettingStarted {
   public void defaultSerializers() throws Exception {
     // tag::defaultSerializers[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .add(new OnHeapStoreServiceConfig().storeByValue(true)) //// <1>
+        .add(new OnHeapStoreServiceConfiguration().storeByValue(true)) //// <1>
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .buildConfig(Long.class, String.class);
 
@@ -248,7 +247,7 @@ public class GettingStarted {
   public void cacheSerializers() throws Exception {
     // tag::cacheSerializers[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .add(new OnHeapStoreServiceConfig().storeByValue(true)) //// <1>
+        .add(new OnHeapStoreServiceConfiguration().storeByValue(true)) //// <1>
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .add(new DefaultSerializationProviderConfiguration<Long>(LongSerializer.class,
             SerializationProviderConfiguration.Type.KEY)) //// <2>

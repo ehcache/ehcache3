@@ -38,10 +38,10 @@ public class ClassInstanceProvider<T> {
    */
   protected final Map<String, Class<? extends T>> preconfiguredLoaders = Collections.synchronizedMap(new LinkedHashMap<String, Class<? extends T>>());
 
-  private final Class<? extends ClassInstanceProviderFactoryConfig<T>> factoryConfig;
-  private final Class<? extends ClassInstanceProviderConfig<T>> cacheLevelConfig;
+  private final Class<? extends ClassInstanceProviderFactoryConfiguration<T>> factoryConfig;
+  private final Class<? extends ClassInstanceProviderConfiguration<T>> cacheLevelConfig;
 
-  protected ClassInstanceProvider(Class<? extends ClassInstanceProviderFactoryConfig<T>> factoryConfig, Class<? extends ClassInstanceProviderConfig<T>> cacheLevelConfig) {
+  protected ClassInstanceProvider(Class<? extends ClassInstanceProviderFactoryConfiguration<T>> factoryConfig, Class<? extends ClassInstanceProviderConfiguration<T>> cacheLevelConfig) {
     this.factoryConfig = factoryConfig;
     this.cacheLevelConfig = cacheLevelConfig;
   }
@@ -98,7 +98,7 @@ public class ClassInstanceProvider<T> {
 
   public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
     if (config != null && factoryConfig.isAssignableFrom(config.getClass())) {
-      ClassInstanceProviderFactoryConfig<T> instanceProviderFactoryConfig = factoryConfig.cast(config);
+      ClassInstanceProviderFactoryConfiguration<T> instanceProviderFactoryConfig = factoryConfig.cast(config);
       preconfiguredLoaders.putAll(instanceProviderFactoryConfig.getDefaults());
     }
   }

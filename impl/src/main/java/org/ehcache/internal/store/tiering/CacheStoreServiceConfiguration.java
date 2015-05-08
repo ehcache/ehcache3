@@ -22,17 +22,17 @@ import org.ehcache.spi.service.ServiceConfiguration;
 /**
  * @author Ludovic Orban
  */
-public class CacheStoreServiceConfig implements ServiceConfiguration<CacheStore.Provider> {
+public class CacheStoreServiceConfiguration implements ServiceConfiguration<CacheStore.Provider> {
 
   private Class<? extends CachingTier.Provider> cachingTierProvider;
   private Class<? extends AuthoritativeTier.Provider> authoritativeTierProvider;
 
-  public CacheStoreServiceConfig cachingTierProvider(Class<? extends CachingTier.Provider> cachingTierProvider) {
+  public CacheStoreServiceConfiguration cachingTierProvider(Class<? extends CachingTier.Provider> cachingTierProvider) {
     this.cachingTierProvider = cachingTierProvider;
     return this;
   }
 
-  public CacheStoreServiceConfig authoritativeTierProvider(Class<? extends AuthoritativeTier.Provider> authoritativeTierProvider) {
+  public CacheStoreServiceConfiguration authoritativeTierProvider(Class<? extends AuthoritativeTier.Provider> authoritativeTierProvider) {
     this.authoritativeTierProvider = authoritativeTierProvider;
     return this;
   }
