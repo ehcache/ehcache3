@@ -17,7 +17,6 @@
 package org.ehcache.internal.store.offheap;
 
 import org.ehcache.Cache;
-import org.ehcache.Status;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
@@ -86,8 +85,6 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   private final TimeSource timeSource;
 
   private final Expiry<? super K, ? super V> expiry;
-  private final AtomicReference<Status> status = new AtomicReference<Status>(Status.UNINITIALIZED);
-
 
   private final Predicate<Map.Entry<K, OffHeapValueHolder<V>>> evictionVeto;
   private final Serializer<K> keySerializer;
@@ -103,10 +100,6 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   private volatile EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
 
   public OffHeapStore(final Configuration<K, V> config, Serializer<K> keySerializer, Serializer<V> valueSerializer, TimeSource timeSource, long sizeInBytes) {
-
-    if (!status.compareAndSet(Status.UNINITIALIZED, Status.AVAILABLE)) {
-      throw new AssertionError();
-    }
     keyType = config.getKeyType();
     valueType = config.getValueType();
     expiry = config.getExpiry();
@@ -580,12 +573,25 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public boolean flush(K key, ValueHolder<V> valueHolder) {
-    if (valueHolder instanceof OffHeapValueHolder) {
+  public boolean flush(K key, final ValueHolder<V> valueFlushed) {
+    if (valueFlushed instanceof OffHeapValueHolder) {
       throw new IllegalArgumentException("ValueHolder must come from the caching tier");
     }
     checkKey(key);
-    return map.unpin(key);
+    final AtomicBoolean applied = new AtomicBoolean();
+    map.unpinAndCompute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+      @Override
+      public OffHeapValueHolder<V> apply(final K k, final OffHeapValueHolder<V> valuePresent) {
+        if (valuePresent != null && valueFlushed.value().equals(valuePresent.value())) {
+          valuePresent.setLastAccessTime(valueFlushed.lastAccessTime(OffHeapValueHolder.TIME_UNIT), OffHeapValueHolder.TIME_UNIT);
+          valuePresent.setExpirationTime(valueFlushed.expirationTime(OffHeapValueHolder.TIME_UNIT), OffHeapValueHolder.TIME_UNIT);
+          valuePresent.writeBack();
+          applied.set(true);
+        }
+        return valuePresent;
+      }
+    });
+    return applied.get();
   }
 
   //TODO wire that in if/when needed

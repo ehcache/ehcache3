@@ -19,6 +19,7 @@ package org.ehcache.internal.store.offheap;
 import org.ehcache.function.BiFunction;
 import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory;
 
+import org.terracotta.offheapstore.Metadata;
 import org.terracotta.offheapstore.Segment;
 import org.terracotta.offheapstore.concurrent.AbstractConcurrentOffHeapCache;
 import org.terracotta.offheapstore.pinning.PinnableSegment;
@@ -30,6 +31,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -59,5 +61,27 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
   public V computeIfPresent(K key, BiFunction<K, V, V> mappingFunction) {
     EhcacheSegmentFactory.EhcacheSegment<K, V> segment = (EhcacheSegmentFactory.EhcacheSegment) segmentFor(key);
     return segment.computeIfPresent(key, mappingFunction);
+  }
+
+  public V unpinAndCompute(final K key, final BiFunction<K, V, V> remappingFunction) {
+    final PinnableSegment<K, V> segment = segmentFor(key);
+    final Lock lock = segment.writeLock();
+    lock.lock();
+    try {
+      final V previousValue = segment.get(key);
+      final V newValue = remappingFunction.apply(key, previousValue);
+
+      if(newValue != previousValue) {
+        if(newValue == null) {
+          segment.remove(key);
+        } else {
+          segment.put(key, newValue);
+        }
+      }
+      segment.setMetadata(key, Metadata.PINNED, 0);
+      return newValue;
+    } finally {
+      lock.unlock();
+    }
   }
 }
