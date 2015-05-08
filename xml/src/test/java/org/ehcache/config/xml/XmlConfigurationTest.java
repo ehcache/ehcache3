@@ -36,7 +36,7 @@ import org.ehcache.config.writebehind.WriteBehindConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
+import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.CoreMatchers;
@@ -189,8 +189,8 @@ public class XmlConfigurationTest {
     for (ServiceConfiguration<?> serviceConfiguration : xmlConfiguration.getCacheConfigurations()
         .get("bar")
         .getServiceConfigurations()) {
-      if(serviceConfiguration instanceof OnHeapStoreServiceConfig) {
-        storeByValueOnHeap = ((OnHeapStoreServiceConfig)serviceConfiguration).storeByValue();
+      if(serviceConfiguration instanceof OnHeapStoreServiceConfiguration) {
+        storeByValueOnHeap = ((OnHeapStoreServiceConfiguration)serviceConfiguration).storeByValue();
       }
     }
     assertThat(storeByValueOnHeap, is(false));
@@ -203,8 +203,8 @@ public class XmlConfigurationTest {
     for (ServiceConfiguration<?> serviceConfiguration : xmlConfiguration.getCacheConfigurations()
         .get("bar")
         .getServiceConfigurations()) {
-      if(serviceConfiguration instanceof OnHeapStoreServiceConfig) {
-        storeByValueOnHeap = ((OnHeapStoreServiceConfig)serviceConfiguration).storeByValue();
+      if(serviceConfiguration instanceof OnHeapStoreServiceConfiguration) {
+        storeByValueOnHeap = ((OnHeapStoreServiceConfiguration)serviceConfiguration).storeByValue();
       }
     }
     assertThat(storeByValueOnHeap, is(true));

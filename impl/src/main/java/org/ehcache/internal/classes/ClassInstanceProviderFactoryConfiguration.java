@@ -14,17 +14,23 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store.disk;
+package org.ehcache.internal.classes;
 
-import org.ehcache.spi.service.ServiceConfiguration;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
- * @author Ludovic Orban
+ * Base class for ProviderFactory config that instantiates service classes.
+ * Keeps the order in which defaults are added.
+ *
+ * @author Alex Snaps
  */
-public class DiskStoreServiceConfig implements ServiceConfiguration<DiskStore.Provider> {
+public class ClassInstanceProviderFactoryConfiguration<T> {
 
-    @Override
-    public Class<DiskStore.Provider> getServiceType() {
-        return DiskStore.Provider.class;
-    }
+  private Map<String, Class<? extends T>> defaults = new LinkedHashMap<String, Class<? extends T>>();
+
+  public Map<String, Class<? extends T>> getDefaults() {
+    return defaults;
+  }
+
 }

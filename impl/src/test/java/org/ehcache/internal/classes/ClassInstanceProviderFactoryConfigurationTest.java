@@ -26,11 +26,11 @@ import static org.hamcrest.Matchers.equalTo;
 /**
  * @author Ludovic Orban
  */
-public class ClassInstanceProviderFactoryConfigTest {
+public class ClassInstanceProviderFactoryConfigurationTest {
 
   @Test
   public void testOrdering() throws Exception {
-    ClassInstanceProviderFactoryConfig<String> classInstanceProviderFactoryConfig = new ClassInstanceProviderFactoryConfig<String>();
+    ClassInstanceProviderFactoryConfiguration<String> classInstanceProviderFactoryConfig = new ClassInstanceProviderFactoryConfiguration<String>();
 
     for (int i = 0; i < 100; i++) {
       classInstanceProviderFactoryConfig.getDefaults().put("" + i, String.class);

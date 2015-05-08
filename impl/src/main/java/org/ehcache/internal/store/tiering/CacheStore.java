@@ -320,7 +320,7 @@ public class CacheStore<K, V> implements Store<K, V>, Persistable {
 
     @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      CacheStoreServiceConfig cacheStoreServiceConfig = findSingletonAmongst(CacheStoreServiceConfig.class, (Object[])serviceConfigs);
+      CacheStoreServiceConfiguration cacheStoreServiceConfig = findSingletonAmongst(CacheStoreServiceConfiguration.class, (Object[])serviceConfigs);
       if (cacheStoreServiceConfig == null) {
         throw new IllegalArgumentException("Cache store cannot be configured without explicit config");
       }

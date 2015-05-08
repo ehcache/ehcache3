@@ -26,7 +26,7 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.serialization.JavaSerializer;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
+import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.ehcache.internal.tier.CachingTierFactory;
 import org.ehcache.internal.tier.CachingTierSPITest;
 import org.ehcache.spi.ServiceLocator;
@@ -118,7 +118,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[] { new OnHeapStoreServiceConfig().storeByValue(true) };
+        return new ServiceConfiguration[] { new OnHeapStoreServiceConfiguration().storeByValue(true) };
       }
 
       @Override

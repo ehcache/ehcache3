@@ -21,7 +21,7 @@ import org.ehcache.internal.store.disk.DiskStore;
 import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.offheap.OffHeapStore;
 import org.ehcache.internal.store.tiering.CacheStore;
-import org.ehcache.internal.store.tiering.CacheStoreServiceConfig;
+import org.ehcache.internal.store.tiering.CacheStoreServiceConfiguration;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -32,7 +32,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
 /**
@@ -62,14 +61,14 @@ public class DefaultStoreProvider implements Store.Provider {
         throw new IllegalArgumentException("Cannot store to disk without heap resource");
       }
       provider = serviceProvider.findService(CacheStore.Provider.class);
-      enhancedServiceConfigs.add(new CacheStoreServiceConfig().cachingTierProvider(OnHeapStore.Provider.class)
+      enhancedServiceConfigs.add(new CacheStoreServiceConfiguration().cachingTierProvider(OnHeapStore.Provider.class)
           .authoritativeTierProvider(DiskStore.Provider.class));
     } else if (offHeapPool != null) {
       if (heapPool == null) {
         throw new IllegalArgumentException("Cannot store to offheap without heap resource");
       }
       provider = serviceProvider.findService(CacheStore.Provider.class);
-      enhancedServiceConfigs.add(new CacheStoreServiceConfig().cachingTierProvider(OnHeapStore.Provider.class)
+      enhancedServiceConfigs.add(new CacheStoreServiceConfiguration().cachingTierProvider(OnHeapStore.Provider.class)
           .authoritativeTierProvider(OffHeapStore.Provider.class));
     } else {
       // default to on-heap cache

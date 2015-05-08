@@ -61,7 +61,7 @@ public class EhcacheCachingProvider implements CachingProvider {
     properties = properties == null ? new Properties() : cloneProperties(properties);
 
     if (URI_DEFAULT.equals(uri)) {
-      URI override = DefaultConfigResolver.resolveConfigURI(properties);
+      URI override = DefaultConfigurationResolver.resolveConfigURI(properties);
       if (override != null) {
         uri = override;
       }

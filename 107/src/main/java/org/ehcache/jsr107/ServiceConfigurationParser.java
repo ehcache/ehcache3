@@ -33,10 +33,10 @@ import javax.xml.transform.stream.StreamSource;
 /**
  * @author Alex Snaps
  */
-public class ServiceConfigParser implements XmlConfigurationParser<Jsr107Service> {
+public class ServiceConfigurationParser implements XmlConfigurationParser<Jsr107Service> {
 
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/jsr107");
-  private static final URL XML_SCHEMA = ServiceConfigParser.class.getResource("/ehcache-107ext.xsd");
+  private static final URL XML_SCHEMA = ServiceConfigurationParser.class.getResource("/ehcache-107ext.xsd");
 
   @Override
   public Source getXmlSchema() throws IOException {

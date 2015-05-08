@@ -14,20 +14,17 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.classes;
+package org.ehcache.internal.store.disk;
+
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * @author Alex Snaps
+ * @author Ludovic Orban
  */
-public class ClassInstanceProviderConfig<T> {
+public class DiskStoreServiceConfiguration implements ServiceConfiguration<DiskStore.Provider> {
 
-  private final Class<? extends T> clazz;
-
-  public ClassInstanceProviderConfig(final Class<? extends T> clazz) {
-    this.clazz = clazz;
-  }
-
-  public Class<? extends T> getClazz() {
-    return clazz;
-  }
+    @Override
+    public Class<DiskStore.Provider> getServiceType() {
+        return DiskStore.Provider.class;
+    }
 }

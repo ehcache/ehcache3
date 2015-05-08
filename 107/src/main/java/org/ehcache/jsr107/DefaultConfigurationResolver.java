@@ -22,7 +22,7 @@ import java.util.Properties;
 
 import javax.cache.CacheException;
 
-public class DefaultConfigResolver {
+public class DefaultConfigurationResolver {
 
   public static final String DEFAULT_CONFIG_PROPERTY_NAME = "ehcache.jsr107.config.default";
 
@@ -58,7 +58,7 @@ public class DefaultConfigResolver {
     throw new CacheException("Unsupported type for default config: " + config.getClass().getName());
   }
 
-  private DefaultConfigResolver() {
+  private DefaultConfigurationResolver() {
     //
   }
 

@@ -50,7 +50,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * @author Alex Snaps
  */
-public class ParsesConfigExtensionTest {
+public class ParsesConfigurationExtensionTest {
 
   @Test
   public void testConfigParse() throws ClassNotFoundException, SAXException, InstantiationException, IllegalAccessException, IOException {
@@ -68,7 +68,7 @@ public class ParsesConfigExtensionTest {
   @SuppressWarnings("rawtypes")
   @Test
   public void testXmlExample() throws ClassNotFoundException, SAXException, InstantiationException, IOException, IllegalAccessException {
-    XmlConfiguration config = new XmlConfiguration(ParsesConfigExtensionTest.class.getResource("/ehcache-example.xml"));
+    XmlConfiguration config = new XmlConfiguration(ParsesConfigurationExtensionTest.class.getResource("/ehcache-example.xml"));
     final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceConfigurations().toArray()));
     final ServiceLocator serviceLocator = new ServiceLocator(jsr107Service);
     final CacheManager cacheManager = new EhcacheManager(config, serviceLocator);

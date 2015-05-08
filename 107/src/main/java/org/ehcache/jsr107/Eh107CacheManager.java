@@ -41,7 +41,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.xml.XmlConfiguration;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
+import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
@@ -98,8 +98,8 @@ class Eh107CacheManager implements CacheManager {
 
     boolean storeByValueOnHeap = false;
     for (ServiceConfiguration<?> serviceConfiguration : ehConfig.getServiceConfigurations()) {
-      if (serviceConfiguration instanceof OnHeapStoreServiceConfig) {
-        OnHeapStoreServiceConfig onHeapStoreServiceConfig = (OnHeapStoreServiceConfig)serviceConfiguration;
+      if (serviceConfiguration instanceof OnHeapStoreServiceConfiguration) {
+        OnHeapStoreServiceConfiguration onHeapStoreServiceConfig = (OnHeapStoreServiceConfiguration)serviceConfiguration;
         storeByValueOnHeap = onHeapStoreServiceConfig.storeByValue();
       }
     }
@@ -208,9 +208,9 @@ class Eh107CacheManager implements CacheManager {
     }
     builder = builder.withExpiry(expiry);
 
-    OnHeapStoreServiceConfig onHeapStoreServiceConfig = builder.getExistingServiceConfiguration(OnHeapStoreServiceConfig.class);
+    OnHeapStoreServiceConfiguration onHeapStoreServiceConfig = builder.getExistingServiceConfiguration(OnHeapStoreServiceConfiguration.class);
     if (onHeapStoreServiceConfig == null) {
-      builder = builder.add(new OnHeapStoreServiceConfig().storeByValue(jsr107Config.isStoreByValue()));
+      builder = builder.add(new OnHeapStoreServiceConfiguration().storeByValue(jsr107Config.isStoreByValue()));
     } else {
       onHeapStoreServiceConfig.storeByValue(jsr107Config.isStoreByValue());
     }

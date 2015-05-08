@@ -24,7 +24,7 @@ import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.event.EventType;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
+import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -43,7 +43,7 @@ import static org.junit.Assert.fail;
 /**
  * @author Alex Snaps
  */
-public class IntegrationConfigTest {
+public class IntegrationConfigurationTest {
 
   @Test
   public void testSerializers() throws Exception {
@@ -60,7 +60,7 @@ public class IntegrationConfigTest {
     assertThat(baz.get("1"), equalTo("one"));
 
     try {
-      cacheManager.createCache("bam", newCacheConfigurationBuilder().add(new OnHeapStoreServiceConfig().storeByValue(true)).buildConfig(String.class, Object.class));
+      cacheManager.createCache("bam", newCacheConfigurationBuilder().add(new OnHeapStoreServiceConfiguration().storeByValue(true)).buildConfig(String.class, Object.class));
       fail("expected IllegalStateException");
     } catch (IllegalStateException ise) {
       // expected

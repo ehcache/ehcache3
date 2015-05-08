@@ -22,7 +22,6 @@ import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.event.CacheEventListenerBuilder;
-import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
@@ -40,7 +39,7 @@ import org.ehcache.config.xml.model.EventType;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfig;
+import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -271,7 +270,7 @@ public class XmlConfiguration implements Configuration {
           builder = builder.add(listenerBuilder);
         }
       }
-      final OnHeapStoreServiceConfig onHeapStoreServiceConfig = new OnHeapStoreServiceConfig();
+      final OnHeapStoreServiceConfiguration onHeapStoreServiceConfig = new OnHeapStoreServiceConfiguration();
       onHeapStoreServiceConfig.storeByValue(cacheDefinition.storeByValueOnHeap());
       builder = builder.add(onHeapStoreServiceConfig);
       final CacheConfiguration<?, ?> config = builder.buildConfig(keyType, valueType, evictionVeto, evictionPrioritizer);
@@ -461,7 +460,7 @@ public class XmlConfiguration implements Configuration {
     for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {
       builder = builder.add(serviceConfiguration);
     }
-    final OnHeapStoreServiceConfig onHeapStoreServiceConfig = new OnHeapStoreServiceConfig();
+    final OnHeapStoreServiceConfiguration onHeapStoreServiceConfig = new OnHeapStoreServiceConfiguration();
     onHeapStoreServiceConfig.storeByValue(cacheTemplate.storeByValueOnHeap());
     builder = builder.add(onHeapStoreServiceConfig);
     return builder;

@@ -17,14 +17,14 @@
 package org.ehcache.config.event;
 
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.internal.classes.ClassInstanceProviderFactoryConfig;
+import org.ehcache.internal.classes.ClassInstanceProviderFactoryConfiguration;
 import org.ehcache.spi.event.DefaultCacheEventListenerFactory;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author rism
  */
-public class DefaultCacheEventListenerFactoryConfiguration extends ClassInstanceProviderFactoryConfig<CacheEventListener<?, ?>>  implements ServiceConfiguration<DefaultCacheEventListenerFactory>{
+public class DefaultCacheEventListenerFactoryConfiguration extends ClassInstanceProviderFactoryConfiguration<CacheEventListener<?, ?>> implements ServiceConfiguration<DefaultCacheEventListenerFactory>{
 
   @Override
   public Class<DefaultCacheEventListenerFactory> getServiceType() {

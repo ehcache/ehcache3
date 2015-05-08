@@ -43,7 +43,7 @@ public class EhCachingProviderTest {
     URI override = getClass().getResource("/ehcache-107.xml").toURI();
 
     Properties props = new Properties();
-    props.put(DefaultConfigResolver.DEFAULT_CONFIG_PROPERTY_NAME, override);
+    props.put(DefaultConfigurationResolver.DEFAULT_CONFIG_PROPERTY_NAME, override);
 
     CacheManager cacheManager = Caching.getCachingProvider().getCacheManager(null, null, props);
 
