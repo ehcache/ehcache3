@@ -16,7 +16,7 @@
 
 package org.ehcache.spi.event;
 
-import org.ehcache.config.event.CacheEventListenerBuilder;
+import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
@@ -34,17 +34,17 @@ import static org.junit.Assert.assertNotNull;
 /**
  * @author rism
  */
-public class CacheEventListenerBuilderTest {
+public class CacheEventListenerConfigurationBuilderTest {
   @Test
   public void builderTest() {
     Set<EventType> eventTypeSet = new HashSet<EventType>();
     eventTypeSet.add(EventType.CREATED);
     eventTypeSet.add(EventType.UPDATED);
-    CacheEventListenerBuilder cacheEventListenerBuilder = CacheEventListenerBuilder
+    CacheEventListenerConfigurationBuilder cacheEventListenerConfigurationBuilder = CacheEventListenerConfigurationBuilder
         .newEventListenerConfig(ListenerObject.class, eventTypeSet);
-    cacheEventListenerBuilder.firingMode(EventFiring.ASYNCHRONOUS);
-    cacheEventListenerBuilder.eventOrdering(EventOrdering.UNORDERED);
-    DefaultCacheEventListenerConfiguration config = cacheEventListenerBuilder.build();
+    cacheEventListenerConfigurationBuilder.firingMode(EventFiring.ASYNCHRONOUS);
+    cacheEventListenerConfigurationBuilder.eventOrdering(EventOrdering.UNORDERED);
+    DefaultCacheEventListenerConfiguration config = cacheEventListenerConfigurationBuilder.build();
     assertNotNull(config);
     assertEquals(config.getClass().toString(), ListenerObject.object.toString());
   }

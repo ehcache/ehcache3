@@ -20,7 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.SerializationProviderConfiguration;
-import org.ehcache.config.event.CacheEventListenerBuilder;
+import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
@@ -270,7 +270,7 @@ public class GettingStarted {
 
   @Test
   public void testCacheEventListener() {
-    CacheEventListenerBuilder cacheEventListenerConfiguration = CacheEventListenerBuilder
+    CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
         .newEventListenerConfig(ListenerObject.class, EventType.CREATED, EventType.UPDATED)
         .unordered().asynchronous();
     
