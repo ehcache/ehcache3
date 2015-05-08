@@ -15,7 +15,6 @@
  */
 package org.ehcache.spi.serialization;
 
-import org.ehcache.config.SerializationProviderConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
 import org.ehcache.internal.classes.ClassInstanceProvider;
@@ -84,7 +83,7 @@ public class DefaultSerializationProviderTest {
     dspfConfig.addSerializerFor(String.class, (Class) TestSerializer.class);
     dsp.start(dspfConfig, null);
 
-    ClassInstanceProvider.Arg arg = new ClassInstanceProvider.Arg<ClassLoader>(ClassLoader.class, ClassLoader.getSystemClassLoader());
+    ClassInstanceProvider.ConstructorArgument arg = new ClassInstanceProvider.ConstructorArgument<ClassLoader>(ClassLoader.class, ClassLoader.getSystemClassLoader());
 
     assertThat(dsp.getPreconfigured("java.lang.String", arg), equalTo((Class) TestSerializer.class));
     assertThat(dsp.getPreconfigured("java.io.Serializable", arg), equalTo((Class) JavaSerializer.class));
@@ -100,7 +99,7 @@ public class DefaultSerializationProviderTest {
     dspfConfig.addSerializerFor(Serializable.class, (Class) TestSerializer.class);
     dsp.start(dspfConfig, null);
 
-    ClassInstanceProvider.Arg arg = new ClassInstanceProvider.Arg<ClassLoader>(ClassLoader.class, ClassLoader.getSystemClassLoader());
+    ClassInstanceProvider.ConstructorArgument arg = new ClassInstanceProvider.ConstructorArgument<ClassLoader>(ClassLoader.class, ClassLoader.getSystemClassLoader());
 
     assertThat(dsp.getPreconfigured("java.lang.String", arg), equalTo((Class) TestSerializer.class));
     assertThat(dsp.getPreconfigured("java.io.Serializable", arg), equalTo((Class) TestSerializer.class));

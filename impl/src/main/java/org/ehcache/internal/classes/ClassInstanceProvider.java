@@ -46,7 +46,7 @@ public class ClassInstanceProvider<T> {
     this.cacheLevelConfig = cacheLevelConfig;
   }
 
-  protected Class<? extends T> getPreconfigured(String alias, Arg<?>... ctorArgs) {
+  protected Class<? extends T> getPreconfigured(String alias, ConstructorArgument<?>... ctorArgs) {
     return preconfiguredLoaders.get(alias);
   }
 
@@ -60,7 +60,7 @@ public class ClassInstanceProvider<T> {
     return newInstance(alias, clazz);
   }
 
-  protected T newInstance(String alias, ServiceConfiguration<?> serviceConfiguration, Arg<?>... ctorArgs) {
+  protected T newInstance(String alias, ServiceConfiguration<?> serviceConfiguration, ConstructorArgument<?>... ctorArgs) {
     Class<? extends T> clazz = null;
     if (serviceConfiguration != null && cacheLevelConfig.isAssignableFrom(serviceConfiguration.getClass())) {
       clazz = cacheLevelConfig.cast(serviceConfiguration).getClazz();
@@ -68,9 +68,9 @@ public class ClassInstanceProvider<T> {
     return newInstance(alias, clazz, ctorArgs);
   }
 
-  private T newInstance(String alias, Class<? extends T> clazz, Arg<?>... ctorArgs) {
+  private T newInstance(String alias, Class<? extends T> clazz, ConstructorArgument<?>... ctorArgs) {
     if (clazz == null) {
-      clazz = getPreconfigured(alias, (Arg[]) ctorArgs);
+      clazz = getPreconfigured(alias, (ConstructorArgument[]) ctorArgs);
       if (clazz == null) {
         return null;
       }
@@ -78,7 +78,7 @@ public class ClassInstanceProvider<T> {
     try {
       List<Class<?>> ctorClasses = new ArrayList<Class<?>>();
       List<Object> ctorVals = new ArrayList<Object>();
-      for (Arg ctorArg : ctorArgs) {
+      for (ConstructorArgument ctorArg : ctorArgs) {
         ctorClasses.add(ctorArg.clazz);
         ctorVals.add(ctorArg.val);
       }
@@ -111,11 +111,11 @@ public class ClassInstanceProvider<T> {
    * Constructor argument for creating the class instance.
    * @param <T>
    */
-  public static class Arg<T> {
+  public static class ConstructorArgument<T> {
     private final Class<T> clazz;
     private final T val;
 
-    public Arg(Class<T> clazz, T val) {
+    public ConstructorArgument(Class<T> clazz, T val) {
       this.clazz = clazz;
       this.val = val;
     }

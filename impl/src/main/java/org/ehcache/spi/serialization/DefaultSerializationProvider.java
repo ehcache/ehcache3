@@ -56,7 +56,7 @@ public class DefaultSerializationProvider extends ClassInstanceProvider<Serializ
 
   private <T> Serializer<T> createSerializer(Class<T> clazz, ClassLoader classLoader, DefaultSerializationProviderConfiguration<T> config) {
     String alias = (config != null ? null : clazz.getName());
-    Serializer<T> serializer = (Serializer<T>) newInstance(alias, config, new Arg<ClassLoader>(ClassLoader.class, classLoader));
+    Serializer<T> serializer = (Serializer<T>) newInstance(alias, config, new ConstructorArgument<ClassLoader>(ClassLoader.class, classLoader));
     if (serializer == null) {
       throw new IllegalArgumentException("No serializer found for type '" + alias + "'");
     }
@@ -65,7 +65,7 @@ public class DefaultSerializationProvider extends ClassInstanceProvider<Serializ
   }
 
   @Override
-  protected Class<? extends Serializer<?>> getPreconfigured(String alias, Arg<?>... ctorArgs) {
+  protected Class<? extends Serializer<?>> getPreconfigured(String alias, ConstructorArgument<?>... ctorArgs) {
     Class<? extends Serializer<?>> direct = preconfiguredLoaders.get(alias);
     if (direct != null) {
       return direct;
