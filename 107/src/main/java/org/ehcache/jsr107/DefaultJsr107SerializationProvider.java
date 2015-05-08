@@ -13,24 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.jsr107;
 
-package org.ehcache.internal.classes;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
+import org.ehcache.internal.serialization.JavaSerializer;
+import org.ehcache.spi.serialization.DefaultSerializationProvider;
 
 /**
- * Base class for ProviderFactory config that instantiates service classes.
- * Keeps the order in which defaults are added.
- *
- * @author Alex Snaps
+ * @author Ludovic Orban
  */
-public class ClassInstanceProviderFactoryConfig<T> {
+public class DefaultJsr107SerializationProvider extends DefaultSerializationProvider {
 
-  private Map<String, Class<? extends T>> defaults = new LinkedHashMap<String, Class<? extends T>>();
-
-  public Map<String, Class<? extends T>> getDefaults() {
-    return defaults;
+  @Override
+  protected void addDefaultSerializer() {
+    // add java.lang.Object at the end of the map if it wasn't already there
+    if (!preconfiguredLoaders.containsKey(Object.class.getName())) {
+      preconfiguredLoaders.put(Object.class.getName(), (Class) JavaSerializer.class);
+    }
   }
 
 }

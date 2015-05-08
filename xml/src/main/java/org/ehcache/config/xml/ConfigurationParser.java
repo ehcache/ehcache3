@@ -19,8 +19,7 @@ package org.ehcache.config.xml;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.persistence.PersistenceConfiguration;
-import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration.TypeSerializerConfig;
+import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.config.xml.model.BaseCacheType;
@@ -40,7 +39,7 @@ import org.ehcache.config.xml.model.ResourcesType;
 import org.ehcache.config.xml.model.SerializerType;
 import org.ehcache.config.xml.model.ServiceType;
 import org.ehcache.config.xml.model.TimeType;
-import org.ehcache.internal.serialization.JavaSerializationProvider;
+import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
@@ -49,6 +48,16 @@ import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Source;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.SchemaFactory;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -62,17 +71,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import javax.xml.XMLConstants;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Source;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.SchemaFactory;
 
 /**
  * @author Alex Snaps
@@ -119,47 +117,8 @@ class ConfigurationParser {
 
   }
 
-  public Iterable<ServiceConfiguration<?>> getServiceConfigurations() {
-
-    final ArrayList<ServiceConfiguration<?>> serviceConfigurations = new ArrayList<ServiceConfiguration<?>>();
-    
-    for (ServiceType serviceType : config.getService()) {
-      if(serviceType.getSerializerDefault() != null) {
-        serviceConfigurations.add(parseDefaultSerializerConfig(serviceType.getSerializerDefault()));
-      } else if(serviceType.getPersistence() != null) {
-          serviceConfigurations.add(parsePersistenceConfig(serviceType.getPersistence()));
-      } else {
-        final ServiceConfiguration<?> serviceConfiguration = parseExtension((Element)serviceType.getAny());
-        serviceConfigurations.add(serviceConfiguration);
-      }
-    }
-
-    return Collections.unmodifiableList(serviceConfigurations);
-  }
-
-  private ServiceConfiguration<LocalPersistenceService> parsePersistenceConfig(PersistenceType persistence) {
-    return new PersistenceConfiguration(new File(persistence.getDirectory()));
-  }
-
-  private ServiceConfiguration<JavaSerializationProvider> parseDefaultSerializerConfig(SerializerType serializerType){
-    DefaultSerializationProviderConfiguration configuration = new DefaultSerializationProviderConfiguration();
-        
-    for(SerializerType.Class clazz : serializerType.getClazz()){
-      String type = clazz.getType();
-      TypeSerializerConfig config = null;
-      if(configuration.contains(type)) config = configuration.getTypeSerializerConfig(type);
-      else config = new TypeSerializerConfig();
-
-      addTypeSerializerMapping(config, clazz);
-      configuration.addSerializer(type, config);
-    }
-    return configuration;
-  }
-  
-  private void addTypeSerializerMapping(TypeSerializerConfig config, SerializerType.Class clazz){
-    
-    if(clazz.getCache() == null) config.setSerializer(clazz.getValue());
-    else config.addTypeSerializerMapping(clazz.getCache(), clazz.getValue());
+  public Iterable<ServiceType> getServiceElements() {
+    return config.getService();
   }
 
   public Iterable<CacheDefinition> getCacheElements() {
@@ -189,7 +148,7 @@ class ConfigurationParser {
           public String keyType() {
             String value = null;
             for (BaseCacheType source : sources) {
-              value = source.getKeyType();
+              value = source.getKeyType() != null ? source.getKeyType().getValue() : null;
               if (value != null) break;
             }
             if (value == null) {
@@ -202,10 +161,20 @@ class ConfigurationParser {
           }
 
           @Override
+          public String keySerializer() {
+            String value = null;
+            for (BaseCacheType source : sources) {
+              value = source.getKeyType() != null ? source.getKeyType().getSerializer() : null;
+              if (value != null) break;
+            }
+            return value;
+          }
+
+          @Override
           public String valueType() {
             String value = null;
             for (BaseCacheType source : sources) {
-              value = source.getValueType();
+              value = source.getValueType() != null ? source.getValueType().getValue() : null;
               if (value != null) break;
             }
             if (value == null) {
@@ -213,6 +182,16 @@ class ConfigurationParser {
                 value = JaxbHelper.findDefaultValue(source, "valueType");
                 if (value != null) break;
               }
+            }
+            return value;
+          }
+
+          @Override
+          public String valueSerializer() {
+            String value = null;
+            for (BaseCacheType source : sources) {
+              value = source.getValueType() != null ? source.getValueType().getSerializer() : null;
+              if (value != null) break;
             }
             return value;
           }
@@ -406,7 +385,7 @@ class ConfigurationParser {
 
           @Override
           public String keyType() {
-            String keyType = cacheTemplate.getKeyType();
+            String keyType = cacheTemplate.getKeyType() != null ? cacheTemplate.getKeyType().getValue() : null;
             if (keyType == null) {
               keyType = JaxbHelper.findDefaultValue(cacheTemplate, "keyType");
             }
@@ -414,12 +393,22 @@ class ConfigurationParser {
           }
 
           @Override
+          public String keySerializer() {
+            return cacheTemplate.getKeyType() != null ? cacheTemplate.getKeyType().getSerializer() : null;
+          }
+
+          @Override
           public String valueType() {
-            String valueType = cacheTemplate.getValueType();
+            String valueType = cacheTemplate.getValueType() != null ? cacheTemplate.getValueType().getValue() : null;
             if (valueType == null) {
               valueType = JaxbHelper.findDefaultValue(cacheTemplate, "valueType");
             }
             return valueType;
+          }
+
+          @Override
+          public String valueSerializer() {
+            return cacheTemplate.getValueType() != null ? cacheTemplate.getValueType().getSerializer() : null;
           }
 
           @Override
@@ -540,7 +529,7 @@ class ConfigurationParser {
     }
   }
 
-  private ServiceConfiguration<?> parseExtension(final Element element) {
+  ServiceConfiguration<?> parseExtension(final Element element) {
     URI namespace = URI.create(element.getNamespaceURI());
     final XmlConfigurationParser<?> xmlConfigurationParser = xmlParsers.get(namespace);
     if(xmlConfigurationParser == null) {
@@ -568,11 +557,15 @@ class ConfigurationParser {
     }
   }
 
-  static interface CacheTemplate {
+  interface CacheTemplate {
 
     String keyType();
 
+    String keySerializer();
+
     String valueType();
+
+    String valueSerializer();
 
     String evictionVeto();
 
@@ -594,13 +587,13 @@ class ConfigurationParser {
 
   }
 
-  static interface CacheDefinition extends CacheTemplate {
+  interface CacheDefinition extends CacheTemplate {
 
     String id();
 
   }
 
-  static interface Listener {
+  interface Listener {
 
     String className();
 
@@ -612,7 +605,7 @@ class ConfigurationParser {
 
   }
 
-  static interface Expiry {
+  interface Expiry {
 
     boolean isUserDef();
 
@@ -628,7 +621,7 @@ class ConfigurationParser {
 
   }
   
-  static interface WriteBehind {
+  interface WriteBehind {
     
     boolean isCoalesced();
     

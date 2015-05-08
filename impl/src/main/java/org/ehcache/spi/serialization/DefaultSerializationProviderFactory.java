@@ -13,27 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.internal.serialization;
+
+package org.ehcache.spi.serialization;
 
 import org.ehcache.spi.ServiceLocator;
-import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
 /**
- *
- * @author cdennis
+ * @author Ludovic Orban
  */
-public class JavaSerializationProviderFactory implements ServiceFactory<SerializationProvider> {
+public class DefaultSerializationProviderFactory implements ServiceFactory<DefaultSerializationProvider> {
 
   @Override
-  public SerializationProvider create(ServiceConfiguration<SerializationProvider> serviceConfiguration, final ServiceLocator serviceLocator) {
-    return new JavaSerializationProvider();
+  public DefaultSerializationProvider create(ServiceConfiguration<DefaultSerializationProvider> serviceConfiguration, ServiceLocator serviceLocator) {
+    return new DefaultSerializationProvider();
   }
 
   @Override
-  public Class<SerializationProvider> getServiceType() {
-    return SerializationProvider.class;
+  public Class<DefaultSerializationProvider> getServiceType() {
+    return DefaultSerializationProvider.class;
   }
-  
 }

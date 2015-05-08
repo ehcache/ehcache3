@@ -26,7 +26,8 @@ import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.serialization.JavaSerializationProvider;
+import org.ehcache.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 
@@ -41,9 +42,10 @@ public class OffHeapStoreTest {
 
   @Test
   public void testWriteBackOfValueHolder() throws CacheAccessException {
-    JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
+    SerializationProvider serializationProvider = new DefaultSerializationProvider();
+    serializationProvider.start(null, null);
     ClassLoader classLoader = getClass().getClassLoader();
-    Serializer<String> serializer = serializationProvider.createSerializer(String.class, classLoader);
+    Serializer<String> serializer = serializationProvider.createValueSerializer(String.class, classLoader);
     TestTimeSource timeSource = new TestTimeSource();
     Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS));
     StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, null, classLoader, expiry, null);
@@ -62,10 +64,11 @@ public class OffHeapStoreTest {
 
   @Test
   public void testEvictionVeto() throws CacheAccessException {
-    JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
+    SerializationProvider serializationProvider = new DefaultSerializationProvider();
+    serializationProvider.start(null, null);
     ClassLoader classLoader = getClass().getClassLoader();
-    Serializer<String> serializer = serializationProvider.createSerializer(String.class, classLoader);
-    Serializer<byte[]> byteArraySerializer = serializationProvider.createSerializer(byte[].class, classLoader);
+    Serializer<String> serializer = serializationProvider.createValueSerializer(String.class, classLoader);
+    Serializer<byte[]> byteArraySerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
     TestTimeSource timeSource = new TestTimeSource();
     Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS));
     EvictionVeto<String, byte[]> evictionVeto = new EvictionVeto<String, byte[]>() {

@@ -20,6 +20,7 @@ import java.nio.ByteBuffer;
 
 /**
  * Interface defining the contract used to transform types in a serial form.
+ * Implementations must be thread-safe and must define a constructor accepting a single ClassLoader parameter.
  *
  * @param <T> the type of the instances to serialize
  *

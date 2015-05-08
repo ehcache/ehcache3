@@ -26,18 +26,21 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.serialization.JavaSerializationProvider;
+import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
-import org.ehcache.internal.store.offheap.factories.OffHeapStoreProviderFactory;
 import org.ehcache.internal.tier.AuthoritativeTierFactory;
 import org.ehcache.internal.tier.AuthoritativeTierSPITest;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 import org.junit.internal.AssumptionViolatedException;
+
+import java.util.Collections;
 
 /**
  * OffHeapStoreSPITest
@@ -56,11 +59,9 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
 
       @Override
       public AuthoritativeTier<String, String> newStore(final AuthoritativeTier.Configuration<String, String> config, final TimeSource timeSource) {
-        JavaSerializationProvider serializationProvider = new JavaSerializationProvider();
-
-        OffHeapStore<String, String> store = new OffHeapStore<String, String>(config, serializationProvider
-            .createSerializer(String.class, config.getClassLoader()),
-            serializationProvider.createSerializer(String.class, config.getClassLoader()), timeSource, MemoryUnit.MB.toBytes(1));
+        Serializer<String> keySerializer = new JavaSerializer<String>(config.getClassLoader());
+        Serializer<String> valueSerializer = new JavaSerializer<String>(config.getClassLoader());
+        OffHeapStore<String, String> store = new OffHeapStore<String, String>(config, keySerializer, valueSerializer, timeSource, MemoryUnit.MB.toBytes(1));
         OffHeapStore.Provider.init(store);
         return store;
       }
@@ -98,7 +99,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
       @Override
       public Store.Provider newProvider() {
         Store.Provider provider = new OffHeapStore.Provider();
-        provider.start(null, new ServiceLocator());
+        provider.start(null, getServiceProvider());
         return provider;
       }
 
@@ -119,7 +120,13 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
 
       @Override
       public ServiceProvider getServiceProvider() {
-        return new ServiceLocator();
+        ServiceLocator serviceLocator = new ServiceLocator();
+        try {
+          serviceLocator.startAllServices(Collections.<Service, ServiceConfiguration<?>>emptyMap());
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+        return serviceLocator;
       }
 
       @Override

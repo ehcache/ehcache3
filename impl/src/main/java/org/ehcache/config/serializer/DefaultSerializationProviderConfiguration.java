@@ -16,54 +16,30 @@
 
 package org.ehcache.config.serializer;
 
-import java.util.HashMap;
-import java.util.Map;
+import org.ehcache.config.SerializationProviderConfiguration;
+import org.ehcache.internal.classes.ClassInstanceProviderConfig;
+import org.ehcache.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.spi.serialization.Serializer;
 
-import org.ehcache.internal.serialization.JavaSerializationProvider;
-import org.ehcache.spi.service.ServiceConfiguration;
+/**
+ * @author Ludovic Orban
+ */
+public class DefaultSerializationProviderConfiguration<T> extends ClassInstanceProviderConfig<Serializer<T>> implements SerializationProviderConfiguration<DefaultSerializationProvider> {
 
-public class DefaultSerializationProviderConfiguration implements ServiceConfiguration<JavaSerializationProvider> {
+  private final Type type;
 
-  private final Map<String, TypeSerializerConfig> serializerConfig = new HashMap<String, TypeSerializerConfig>();
-  
+  public DefaultSerializationProviderConfiguration(Class<? extends Serializer<T>> clazz, Type type) {
+    super(clazz);
+    this.type = type;
+  }
+
   @Override
-  public Class<JavaSerializationProvider> getServiceType() {
-    return JavaSerializationProvider.class;
+  public Class<DefaultSerializationProvider> getServiceType() {
+    return DefaultSerializationProvider.class;
   }
-  
-  public DefaultSerializationProviderConfiguration addSerializer(String type , TypeSerializerConfig typeSerializerConfig){
-    serializerConfig.put(type, typeSerializerConfig);
-    return this;
-  }
-  
-  public boolean contains(String type){
-    return serializerConfig.containsKey(type);
-  }
-  
-  public TypeSerializerConfig getTypeSerializerConfig(String type){
-    return serializerConfig.get(type);
-  }
-  
-  public static class TypeSerializerConfig {
-    private String serializer;
-    private final Map<String, String> cacheTypeSerializerMapping = new HashMap<String, String>();
-       
-    public String getSerializer() {
-      return serializer;
-    }
-    
-    public void setSerializer(String serializer) {
-      this.serializer = serializer;
-    }
 
-    public Map<String, String> getCacheTypeSerializerMapping() {
-      return cacheTypeSerializerMapping;
-    }
-    
-    public void addTypeSerializerMapping(String alias, String typeSerializer) {
-      cacheTypeSerializerMapping.put(alias, typeSerializer);
-    }
-    
+  public Type getType() {
+    return type;
   }
 
 }
