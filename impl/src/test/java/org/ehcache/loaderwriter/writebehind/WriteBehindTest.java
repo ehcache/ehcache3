@@ -26,7 +26,7 @@ import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
-import org.ehcache.config.writebehind.WriteBehindConfiguration;
+import org.ehcache.config.writebehind.DefaultWriteBehindConfiguration;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
@@ -49,7 +49,7 @@ public class WriteBehindTest extends AbstractWriteBehindTestBase {
     when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), (CacheConfiguration<String, String>)anyObject())).thenReturn((CacheLoaderWriter)loaderWriter);
     
     WriteBehindConfigurationBuilder writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newWriteBehindConfiguration();
-    WriteBehindConfiguration writeBehindConfiguration = writeBehindConfigurationBuilder.concurrencyLevel(3).batchSize(4)
+    DefaultWriteBehindConfiguration writeBehindConfiguration = writeBehindConfigurationBuilder.concurrencyLevel(3).batchSize(4)
                                                                                         .queueSize(10)
                                                                                         .build();
     builder.using(cacheLoaderWriterFactory);

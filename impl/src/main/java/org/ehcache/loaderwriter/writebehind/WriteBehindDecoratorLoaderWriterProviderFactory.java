@@ -15,11 +15,11 @@
  */
 package org.ehcache.loaderwriter.writebehind;
 
-import org.ehcache.config.writebehind.WriteBehindConfiguration;
-import org.ehcache.config.writebehind.WriteBehindDecoratorLoaderWriterProvider;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
+import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 

@@ -19,12 +19,9 @@ package org.ehcache.spi.event;
 import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfigurationBuilder;
-import org.ehcache.config.event.CacheEventListenerBuilder;
-import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
+import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.EventFiring;
-import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.junit.Test;
 
@@ -46,15 +43,12 @@ public class DefaultCacheEventListenerFactoryTest {
     eventTypeSet.add(EventType.CREATED);
     eventTypeSet.add(EventType.UPDATED);
 
-    CacheEventListenerBuilder listenerBuilder = CacheEventListenerBuilder
-        .newEventListenerConfig(ListenerObject.class, eventTypeSet);
-    listenerBuilder.eventOrdering(EventOrdering.UNORDERED);
-    listenerBuilder.firingMode(EventFiring.ASYNCHRONOUS);
-    DefaultCacheEventListenerConfiguration cacheEventListenerConfiguration = listenerBuilder.build();
+    CacheEventListenerConfigurationBuilder listenerBuilder = CacheEventListenerConfigurationBuilder
+        .newEventListenerConfiguration(ListenerObject.class, eventTypeSet).unordered().asynchronous();
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("foo",
             CacheConfigurationBuilder.newCacheConfigurationBuilder()
-                .add(cacheEventListenerConfiguration)
+                .add(listenerBuilder)
                 .buildConfig(Object.class, Object.class)).build(true);
     final Collection<?> bar = manager.getCache("foo", Object.class, Object.class).getRuntimeConfiguration().getServiceConfigurations();
     assertThat(bar.iterator().next().getClass().toString(), is(ListenerObject.object.toString()));

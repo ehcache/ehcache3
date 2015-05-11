@@ -20,7 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.SerializationProviderConfiguration;
-import org.ehcache.config.event.CacheEventListenerBuilder;
+import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
@@ -270,8 +270,8 @@ public class GettingStarted {
 
   @Test
   public void testCacheEventListener() {
-    CacheEventListenerBuilder cacheEventListenerConfiguration = CacheEventListenerBuilder
-        .newEventListenerConfig(ListenerObject.class, EventType.CREATED, EventType.UPDATED)
+    CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
+        .newEventListenerConfiguration(ListenerObject.class, EventType.CREATED, EventType.UPDATED)
         .unordered().asynchronous();
     
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -327,8 +327,7 @@ public class GettingStarted {
                 .enableCoalescing() // <6>
                 .retry(2, 1) // <7>
                 .rateLimit(2) // <8>
-                .delay(1, 1) // <9>
-                .build())
+                .delay(1, 1)) // <9>
             .buildConfig(Long.class, String.class));
     
     writeBehindCache.put(42L, "one");

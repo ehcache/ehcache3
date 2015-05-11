@@ -21,7 +21,7 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.config.event.CacheEventListenerBuilder;
+import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
@@ -263,10 +263,10 @@ public class XmlConfiguration implements Configuration {
                 throw new IllegalArgumentException("Invalid Event Type provided");
             }
           }
-          CacheEventListenerBuilder listenerBuilder = CacheEventListenerBuilder
-              .newEventListenerConfig(cacheEventListenerClass, eventSetToFireOn);
-          listenerBuilder.firingMode(EventFiring.valueOf(listener.eventFiring().value()));
-          listenerBuilder.eventOrdering(EventOrdering.valueOf(listener.eventOrdering().value()));
+          CacheEventListenerConfigurationBuilder listenerBuilder = CacheEventListenerConfigurationBuilder
+              .newEventListenerConfiguration(cacheEventListenerClass, eventSetToFireOn)
+              .firingMode(EventFiring.valueOf(listener.eventFiring().value()))
+              .eventOrdering(EventOrdering.valueOf(listener.eventOrdering().value()));
           builder = builder.add(listenerBuilder);
         }
       }
@@ -445,10 +445,10 @@ public class XmlConfiguration implements Configuration {
               throw new IllegalArgumentException("Invalid Event Type provided");
           }
         }
-        CacheEventListenerBuilder listenerBuilder = CacheEventListenerBuilder
-            .newEventListenerConfig(cacheEventListenerClass, eventSetToFireOn);
-        listenerBuilder.firingMode(EventFiring.valueOf(listener.eventFiring().value()));
-        listenerBuilder.eventOrdering(EventOrdering.valueOf(listener.eventOrdering().value()));
+        CacheEventListenerConfigurationBuilder listenerBuilder = CacheEventListenerConfigurationBuilder
+            .newEventListenerConfiguration(cacheEventListenerClass, eventSetToFireOn)
+            .firingMode(EventFiring.valueOf(listener.eventFiring().value()))
+            .eventOrdering(EventOrdering.valueOf(listener.eventOrdering().value()));
         builder = builder.add(listenerBuilder);
       }
     }

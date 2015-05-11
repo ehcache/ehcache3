@@ -21,79 +21,117 @@ import org.ehcache.config.Builder;
  * @author Abhilash
  *
  */
-public class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfiguration> {
+public class WriteBehindConfigurationBuilder implements Builder<DefaultWriteBehindConfiguration> {
   
-  private int minWriteDelay = 1;
-  private int maxWriteDelay = 1;
-  private int rateLimitPerSecond = 0;
-  private boolean writeCoalescing = false;
-  private int writeBatchSize =1;
-  private int retryAttempts = 0;
-  private int retryAttemptDelaySeconds = 1;
-  private int writeBehindConcurrency = 1;
-  private int writeBehindMaxQueueSize = 0;
+  private Integer minWriteDelay;
+  private Integer maxWriteDelay;
+  private Integer rateLimitPerSecond;
+  private Boolean writeCoalescing;
+  private Integer writeBatchSize;
+  private Integer retryAttempts;
+  private Integer retryAttemptDelaySeconds;
+  private Integer writeBehindConcurrency;
+  private Integer writeBehindMaxQueueSize;
   
   
   private WriteBehindConfigurationBuilder() {
+  }
+
+  private WriteBehindConfigurationBuilder(WriteBehindConfigurationBuilder other) {
+    minWriteDelay = other.minWriteDelay;
+    maxWriteDelay = other.maxWriteDelay;
+    rateLimitPerSecond = other.rateLimitPerSecond;
+    writeCoalescing = other.writeCoalescing;
+    writeBatchSize = other.writeBatchSize;
+    retryAttempts = other.retryAttempts;
+    retryAttemptDelaySeconds = other.retryAttemptDelaySeconds;
+    writeBehindConcurrency = other.writeBehindConcurrency;
+    writeBehindMaxQueueSize = other.writeBehindMaxQueueSize;
   }
 
   public static WriteBehindConfigurationBuilder newWriteBehindConfiguration() {
     return new WriteBehindConfigurationBuilder();
   }
   
-  public WriteBehindConfiguration build() {
-    return new WriteBehindConfiguration(minWriteDelay, maxWriteDelay, rateLimitPerSecond,
-        writeCoalescing, writeBatchSize, retryAttempts,
-        retryAttemptDelaySeconds, writeBehindConcurrency, writeBehindMaxQueueSize);
+  public DefaultWriteBehindConfiguration build() {
+    DefaultWriteBehindConfiguration configuration = new DefaultWriteBehindConfiguration();
+    if (minWriteDelay != null) {
+      configuration.setMinWriteDelay(minWriteDelay);
+    }
+    if (maxWriteDelay != null) {
+      configuration.setMaxWriteDelay(maxWriteDelay);
+    }
+    if (rateLimitPerSecond != null) {
+      configuration.setRateLimitPerSecond(rateLimitPerSecond);
+    }
+    if (writeCoalescing != null) {
+      configuration.setWriteCoalescing(writeCoalescing);
+    }
+    if (writeBatchSize != null) {
+      configuration.setWriteBatchSize(writeBatchSize);
+    }
+    if (retryAttempts != null) {
+      configuration.setRetryAttempts(retryAttempts);
+    }
+    if (retryAttemptDelaySeconds != null) {
+      configuration.setRetryAttemptDelaySeconds(retryAttemptDelaySeconds);
+    }
+    if (writeBehindConcurrency != null) {
+      configuration.setWriteBehindConcurrency(writeBehindConcurrency);
+    }
+    if (writeBehindMaxQueueSize != null) {
+      configuration.setWriteBehindMaxQueueSize(writeBehindMaxQueueSize);
+    }
+    return configuration;
   }
   
   public WriteBehindConfigurationBuilder queueSize(int size) {
-    this.writeBehindMaxQueueSize = size;
-    
-    return this;
+    WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
+    otherBuilder.writeBehindMaxQueueSize = size;
+    return otherBuilder;
   }
   
   public WriteBehindConfigurationBuilder concurrencyLevel(int concurrency) {
-    this.writeBehindConcurrency = concurrency;
-    
-    return this;
+    WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
+    otherBuilder.writeBehindConcurrency = concurrency;
+    return otherBuilder;
   }
   
   public WriteBehindConfigurationBuilder enableCoalescing() {
-    this.writeCoalescing = true;
-    
-    return this;
+    WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
+    otherBuilder.writeCoalescing = true;
+    return otherBuilder;
   }
   
   public WriteBehindConfigurationBuilder disableCoalescing() {
-    this.writeCoalescing = false;
-    
-    return this;
+    WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
+    otherBuilder.writeCoalescing = false;
+    return otherBuilder;
   }
   
   public WriteBehindConfigurationBuilder batchSize(int batchSize) {
-    this.writeBatchSize = batchSize;
-    
-    return this;
+    WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
+    otherBuilder.writeBatchSize = batchSize;
+    return otherBuilder;
   }
   
   public WriteBehindConfigurationBuilder retry(int retryAttempts, int retryAttemptDelaySeconds) {
-    this.retryAttempts = retryAttempts;
-    this.retryAttemptDelaySeconds = retryAttemptDelaySeconds;
-    
-    return this;
+    WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
+    otherBuilder.retryAttempts = retryAttempts;
+    otherBuilder.retryAttemptDelaySeconds = retryAttemptDelaySeconds;
+    return otherBuilder;
   }
   
   public WriteBehindConfigurationBuilder rateLimit(int rateLimitPerSecond) {
-    this.rateLimitPerSecond = rateLimitPerSecond;
-    
-    return this;
+    WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
+    otherBuilder.rateLimitPerSecond = rateLimitPerSecond;
+    return otherBuilder;
   }
   
   public WriteBehindConfigurationBuilder delay(int minWriteDelay, int maxWriteDelay) {
-    this.maxWriteDelay = maxWriteDelay;
-    this.minWriteDelay = minWriteDelay;
-    
-    return this;
+    WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
+    otherBuilder.maxWriteDelay = maxWriteDelay;
+    otherBuilder.minWriteDelay = minWriteDelay;
+    return otherBuilder;
   }
 }

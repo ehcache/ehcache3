@@ -29,10 +29,11 @@ import java.util.EnumSet;
 /**
  * @author rism
  */
-public class DefaultCacheEventListenerConfiguration extends ClassInstanceProviderConfiguration<CacheEventListener<?, ?>> implements CacheEventListenerConfiguration{
+public class DefaultCacheEventListenerConfiguration extends ClassInstanceProviderConfiguration<CacheEventListener<?, ?>>
+    implements CacheEventListenerConfiguration {
 
-  private EventFiring eventFiringMode;
-  private EventOrdering eventOrderingMode;
+  private EventFiring eventFiringMode = EventFiring.ASYNCHRONOUS;
+  private EventOrdering eventOrderingMode = EventOrdering.UNORDERED;
   private EnumSet<EventType> eventsToFireOn;
 
   public DefaultCacheEventListenerConfiguration(final Class<? extends CacheEventListener<?, ?>> clazz) {

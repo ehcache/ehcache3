@@ -25,13 +25,13 @@ import org.ehcache.events.CacheEventNotificationServiceImpl;
 import org.ehcache.events.CacheManagerListener;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.config.ConfigurationBuilder;
-import org.ehcache.config.writebehind.WriteBehindConfiguration;
-import org.ehcache.config.writebehind.WriteBehindDecoratorLoaderWriterProvider;
+import org.ehcache.config.writebehind.DefaultWriteBehindConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
+import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.CoreMatchers;
@@ -40,7 +40,6 @@ import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
 
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -55,7 +54,6 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -272,7 +270,7 @@ public class EhcacheManagerTest {
 
     CacheLoaderWriter fooLoaderWriter = mock(CacheLoaderWriter.class);
     
-    final WriteBehindConfiguration configuration = mock(WriteBehindConfiguration.class);
+    final DefaultWriteBehindConfiguration configuration = mock(DefaultWriteBehindConfiguration.class);
     final WriteBehindDecoratorLoaderWriterProvider decoratorLoaderWriterProvider = mock(WriteBehindDecoratorLoaderWriterProvider.class);
 
     when(cacheLoaderWriterFactory.createCacheLoaderWriter("foo", fooConfig)).thenReturn(fooLoaderWriter);
