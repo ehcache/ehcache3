@@ -35,6 +35,7 @@ import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
+import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.junit.Before;
 
 /**
@@ -51,7 +52,7 @@ public class WriteBehindEvictionTest extends AbstractWriteBehindTestBase {
     when(cacheLoaderWriterFactory.createCacheLoaderWriter(anyString(), (CacheConfiguration<String, String>)anyObject())).thenReturn((CacheLoaderWriter)loaderWriter);
     
     WriteBehindConfigurationBuilder writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newWriteBehindConfiguration();
-    DefaultWriteBehindConfiguration writeBehindConfiguration = writeBehindConfigurationBuilder.concurrencyLevel(3).batchSize(4)
+    WriteBehindConfiguration writeBehindConfiguration = writeBehindConfigurationBuilder.concurrencyLevel(3).batchSize(4)
                                                                                         .queueSize(10)
                                                                                         .build();
     
@@ -65,7 +66,5 @@ public class WriteBehindEvictionTest extends AbstractWriteBehindTestBase {
         .withResourcePools(resourcePoolsBuilder)
         .add(writeBehindConfiguration)
         .buildConfig(String.class, String.class));
-
   }
-  
 }

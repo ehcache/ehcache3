@@ -16,12 +16,13 @@
 package org.ehcache.config.writebehind;
 
 import org.ehcache.config.Builder;
+import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 
 /**
  * @author Abhilash
  *
  */
-public class WriteBehindConfigurationBuilder implements Builder<DefaultWriteBehindConfiguration> {
+public class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfiguration> {
   
   private Integer minWriteDelay;
   private Integer maxWriteDelay;
@@ -53,7 +54,7 @@ public class WriteBehindConfigurationBuilder implements Builder<DefaultWriteBehi
     return new WriteBehindConfigurationBuilder();
   }
   
-  public DefaultWriteBehindConfiguration build() {
+  public WriteBehindConfiguration build() {
     DefaultWriteBehindConfiguration configuration = new DefaultWriteBehindConfiguration();
     if (minWriteDelay != null) {
       configuration.setMinWriteDelay(minWriteDelay);
