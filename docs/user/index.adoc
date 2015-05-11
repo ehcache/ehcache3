@@ -39,7 +39,7 @@ include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=cachemanag
 <9> We can also `CacheManager.remove()` a given `Cache`. The `CacheManager` will not only remove it's reference to the
     `Cache`, but will also close it. The `Cache` releases all locally held transient resources (such as memory).
     References to this `Cache` become unusable.
-<9> In order to release all transient resources (memory, threads, ...) a `CacheManager` provides to `Cache` instances
+<10> In order to release all transient resources (memory, threads, ...) a `CacheManager` provides to `Cache` instances
      it manages, you have to invoke `CacheManager.close()`, which in turns closes all `Cache` instances known at the time.
 
 ==== User managed cache
