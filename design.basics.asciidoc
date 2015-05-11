@@ -126,6 +126,7 @@ happens underneath of that call when the `CacheManager` or a `ServiceFactory` lo
  - Accept other builders as input, instead of just the actual "other thing's" configuration
  - Provide names methods for boolean or `Enum` based settings. Apply this while keeping in mind that we do not want
  method explosion on the builder as a whole. 
+ - Default values are to be handled inside the configuration classes and not duplicated inside the builder.
 
 == `javax.cache` API implications
 
