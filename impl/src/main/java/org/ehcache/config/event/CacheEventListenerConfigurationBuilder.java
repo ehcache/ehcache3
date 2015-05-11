@@ -18,6 +18,7 @@ package org.ehcache.config.event;
 
 import org.ehcache.config.Builder;
 import org.ehcache.event.CacheEventListener;
+import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
@@ -28,9 +29,9 @@ import java.util.Set;
 /**
  * @author rism
  */
-public class CacheEventListenerConfigurationBuilder implements Builder<DefaultCacheEventListenerConfiguration> {
-  private EventOrdering eventOrdering = EventOrdering.UNORDERED;
-  private EventFiring eventFiringMode = EventFiring.ASYNCHRONOUS;
+public class CacheEventListenerConfigurationBuilder implements Builder<CacheEventListenerConfiguration> {
+  private EventOrdering eventOrdering;
+  private EventFiring eventFiringMode;
   private final EnumSet<EventType> eventsToFireOn;
   private final Class<? extends CacheEventListener<?, ?>> listenerClass;
 
@@ -46,12 +47,12 @@ public class CacheEventListenerConfigurationBuilder implements Builder<DefaultCa
     listenerClass = other.listenerClass;
   }
 
-  public static CacheEventListenerConfigurationBuilder newEventListenerConfig(
+  public static CacheEventListenerConfigurationBuilder newEventListenerConfiguration(
       Class<? extends CacheEventListener<?, ?>> listenerClass, EventType eventType, EventType... eventTypes){
     return new CacheEventListenerConfigurationBuilder(EnumSet.of(eventType, eventTypes), listenerClass);
   }
 
-  public static CacheEventListenerConfigurationBuilder newEventListenerConfig(
+  public static CacheEventListenerConfigurationBuilder newEventListenerConfiguration(
       Class<? extends CacheEventListener<?, ?>> listenerClass,
       Set<EventType> eventSetToFireOn) throws IllegalArgumentException {
     if (eventSetToFireOn.isEmpty()) {
@@ -88,12 +89,16 @@ public class CacheEventListenerConfigurationBuilder implements Builder<DefaultCa
     return firingMode(EventFiring.ASYNCHRONOUS);
   }
 
-  public DefaultCacheEventListenerConfiguration build() {
+  public CacheEventListenerConfiguration build() {
     DefaultCacheEventListenerConfiguration defaultCacheEventListenerConfiguration
         = new DefaultCacheEventListenerConfiguration(this.listenerClass);
-    defaultCacheEventListenerConfiguration.setEventOrderingMode(this.eventOrdering);
-    defaultCacheEventListenerConfiguration.setEventFiringMode(this.eventFiringMode);
     defaultCacheEventListenerConfiguration.setEventsToFireOn(this.eventsToFireOn);
+    if (eventOrdering != null) {
+      defaultCacheEventListenerConfiguration.setEventOrderingMode(this.eventOrdering);
+    }
+    if (eventFiringMode != null) {
+      defaultCacheEventListenerConfiguration.setEventFiringMode(this.eventFiringMode);
+    }
     return defaultCacheEventListenerConfiguration;
   }
 

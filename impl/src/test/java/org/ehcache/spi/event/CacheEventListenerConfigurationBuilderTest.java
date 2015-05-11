@@ -17,9 +17,9 @@
 package org.ehcache.spi.event;
 
 import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
-import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
+import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
@@ -41,10 +41,10 @@ public class CacheEventListenerConfigurationBuilderTest {
     eventTypeSet.add(EventType.CREATED);
     eventTypeSet.add(EventType.UPDATED);
     CacheEventListenerConfigurationBuilder cacheEventListenerConfigurationBuilder = CacheEventListenerConfigurationBuilder
-        .newEventListenerConfig(ListenerObject.class, eventTypeSet);
+        .newEventListenerConfiguration(ListenerObject.class, eventTypeSet);
     cacheEventListenerConfigurationBuilder.firingMode(EventFiring.ASYNCHRONOUS);
     cacheEventListenerConfigurationBuilder.eventOrdering(EventOrdering.UNORDERED);
-    DefaultCacheEventListenerConfiguration config = cacheEventListenerConfigurationBuilder.build();
+    CacheEventListenerConfiguration config = cacheEventListenerConfigurationBuilder.build();
     assertNotNull(config);
     assertEquals(config.getClass().toString(), ListenerObject.object.toString());
   }

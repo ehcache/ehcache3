@@ -20,11 +20,8 @@ import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
-import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.EventFiring;
-import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.junit.Test;
 
@@ -47,7 +44,7 @@ public class DefaultCacheEventListenerFactoryTest {
     eventTypeSet.add(EventType.UPDATED);
 
     CacheEventListenerConfigurationBuilder listenerBuilder = CacheEventListenerConfigurationBuilder
-        .newEventListenerConfig(ListenerObject.class, eventTypeSet).unordered().asynchronous();
+        .newEventListenerConfiguration(ListenerObject.class, eventTypeSet).unordered().asynchronous();
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("foo",
             CacheConfigurationBuilder.newCacheConfigurationBuilder()

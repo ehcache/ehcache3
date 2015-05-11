@@ -21,17 +21,17 @@ import org.ehcache.config.Builder;
  * @author Abhilash
  *
  */
-public class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfiguration> {
+public class WriteBehindConfigurationBuilder implements Builder<DefaultWriteBehindConfiguration> {
   
-  private int minWriteDelay = 1;
-  private int maxWriteDelay = 1;
-  private int rateLimitPerSecond = 0;
-  private boolean writeCoalescing = false;
-  private int writeBatchSize =1;
-  private int retryAttempts = 0;
-  private int retryAttemptDelaySeconds = 1;
-  private int writeBehindConcurrency = 1;
-  private int writeBehindMaxQueueSize = 0;
+  private Integer minWriteDelay;
+  private Integer maxWriteDelay;
+  private Integer rateLimitPerSecond;
+  private Boolean writeCoalescing;
+  private Integer writeBatchSize;
+  private Integer retryAttempts;
+  private Integer retryAttemptDelaySeconds;
+  private Integer writeBehindConcurrency;
+  private Integer writeBehindMaxQueueSize;
   
   
   private WriteBehindConfigurationBuilder() {
@@ -53,10 +53,36 @@ public class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfi
     return new WriteBehindConfigurationBuilder();
   }
   
-  public WriteBehindConfiguration build() {
-    return new WriteBehindConfiguration(minWriteDelay, maxWriteDelay, rateLimitPerSecond,
-        writeCoalescing, writeBatchSize, retryAttempts,
-        retryAttemptDelaySeconds, writeBehindConcurrency, writeBehindMaxQueueSize);
+  public DefaultWriteBehindConfiguration build() {
+    DefaultWriteBehindConfiguration configuration = new DefaultWriteBehindConfiguration();
+    if (minWriteDelay != null) {
+      configuration.setMinWriteDelay(minWriteDelay);
+    }
+    if (maxWriteDelay != null) {
+      configuration.setMaxWriteDelay(maxWriteDelay);
+    }
+    if (rateLimitPerSecond != null) {
+      configuration.setRateLimitPerSecond(rateLimitPerSecond);
+    }
+    if (writeCoalescing != null) {
+      configuration.setWriteCoalescing(writeCoalescing);
+    }
+    if (writeBatchSize != null) {
+      configuration.setWriteBatchSize(writeBatchSize);
+    }
+    if (retryAttempts != null) {
+      configuration.setRetryAttempts(retryAttempts);
+    }
+    if (retryAttemptDelaySeconds != null) {
+      configuration.setRetryAttemptDelaySeconds(retryAttemptDelaySeconds);
+    }
+    if (writeBehindConcurrency != null) {
+      configuration.setWriteBehindConcurrency(writeBehindConcurrency);
+    }
+    if (writeBehindMaxQueueSize != null) {
+      configuration.setWriteBehindMaxQueueSize(writeBehindMaxQueueSize);
+    }
+    return configuration;
   }
   
   public WriteBehindConfigurationBuilder queueSize(int size) {

@@ -32,11 +32,12 @@ import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.config.writebehind.WriteBehindConfiguration;
+import org.ehcache.config.writebehind.DefaultWriteBehindConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
+import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.CoreMatchers;
@@ -449,7 +450,7 @@ public class XmlConfigurationTest {
     assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
     
     for (ServiceConfiguration<?> configuration : serviceConfiguration) {
-      if(configuration instanceof WriteBehindConfiguration) {
+      if(configuration instanceof DefaultWriteBehindConfiguration) {
         assertThat(((WriteBehindConfiguration) configuration).getMaxWriteDelay(), is(1));
         assertThat(((WriteBehindConfiguration) configuration).getMinWriteDelay(), is(1));
         assertThat(((WriteBehindConfiguration) configuration).isWriteCoalescing(), is(false));

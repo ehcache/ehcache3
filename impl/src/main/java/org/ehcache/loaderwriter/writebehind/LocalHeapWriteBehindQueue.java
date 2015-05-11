@@ -19,10 +19,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.ehcache.function.BiFunction;
-import org.ehcache.config.writebehind.WriteBehindConfiguration;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.loaderwriter.writebehind.operations.SingleOperation;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 
 /**
  * @author Geert Bevin

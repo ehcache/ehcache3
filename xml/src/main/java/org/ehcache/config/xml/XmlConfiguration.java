@@ -264,7 +264,7 @@ public class XmlConfiguration implements Configuration {
             }
           }
           CacheEventListenerConfigurationBuilder listenerBuilder = CacheEventListenerConfigurationBuilder
-              .newEventListenerConfig(cacheEventListenerClass, eventSetToFireOn)
+              .newEventListenerConfiguration(cacheEventListenerClass, eventSetToFireOn)
               .firingMode(EventFiring.valueOf(listener.eventFiring().value()))
               .eventOrdering(EventOrdering.valueOf(listener.eventOrdering().value()));
           builder = builder.add(listenerBuilder);
@@ -446,7 +446,7 @@ public class XmlConfiguration implements Configuration {
           }
         }
         CacheEventListenerConfigurationBuilder listenerBuilder = CacheEventListenerConfigurationBuilder
-            .newEventListenerConfig(cacheEventListenerClass, eventSetToFireOn)
+            .newEventListenerConfiguration(cacheEventListenerClass, eventSetToFireOn)
             .firingMode(EventFiring.valueOf(listener.eventFiring().value()))
             .eventOrdering(EventOrdering.valueOf(listener.eventOrdering().value()));
         builder = builder.add(listenerBuilder);

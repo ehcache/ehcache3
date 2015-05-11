@@ -19,11 +19,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.ehcache.config.writebehind.WriteBehindConfiguration;
 import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.loaderwriter.writebehind.operations.OperationsFilter;
 import org.ehcache.loaderwriter.writebehind.operations.SingleOperation;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 
 /**
  * @author Alex Snaps

@@ -27,7 +27,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.ehcache.config.writebehind.ResilientCacheWriter;
-import org.ehcache.config.writebehind.WriteBehindConfiguration;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.loaderwriter.writebehind.operations.DeleteOperation;
@@ -36,6 +35,7 @@ import org.ehcache.loaderwriter.writebehind.operations.SingleOperation;
 import org.ehcache.loaderwriter.writebehind.operations.SingleOperationType;
 import org.ehcache.loaderwriter.writebehind.operations.WriteOperation;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

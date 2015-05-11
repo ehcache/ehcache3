@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.config.writebehind;
+package org.ehcache.spi.loaderwriter;
 
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.Service;
 
 /**

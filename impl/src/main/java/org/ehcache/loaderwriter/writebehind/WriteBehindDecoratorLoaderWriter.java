@@ -21,10 +21,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.ehcache.config.writebehind.WriteBehindConfiguration;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.loaderwriter.writebehind.operations.CoalesceKeysFilter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 
 /**
  * @author Abhilash

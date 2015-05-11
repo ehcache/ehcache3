@@ -271,7 +271,7 @@ public class GettingStarted {
   @Test
   public void testCacheEventListener() {
     CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
-        .newEventListenerConfig(ListenerObject.class, EventType.CREATED, EventType.UPDATED)
+        .newEventListenerConfiguration(ListenerObject.class, EventType.CREATED, EventType.UPDATED)
         .unordered().asynchronous();
     
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
