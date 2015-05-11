@@ -122,9 +122,10 @@ happens underneath of that call when the `CacheManager` or a `ServiceFactory` lo
 
 === Builder design guidelines
 
- - Copy the instance returned, instead of returning `this`
+ - Copy the instance, apply modification and return the copy. Never modify and return `this`
  - Accept other builders as input, instead of just the actual "other thing's" configuration
- - ...
+ - Provide names methods for boolean or `Enum` based settings. Apply this while keeping in mind that we do not want
+ method explosion on the builder as a whole. 
 
 == `javax.cache` API implications
 
