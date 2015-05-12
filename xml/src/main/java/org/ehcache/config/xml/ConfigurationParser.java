@@ -231,7 +231,7 @@ class ConfigurationParser {
               value = source.isStoreByValueOnHeap();
               if (value != null) break;
             }
-            return value == null ? false : value;
+            return value == null ? Boolean.FALSE : value;
           }
 
           @Override

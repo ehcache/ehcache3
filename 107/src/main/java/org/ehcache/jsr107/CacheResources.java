@@ -40,19 +40,23 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
  */
 class CacheResources<K, V> {
 
-  private final Eh107Expiry<K, V> expiryPolicy;
+  private final CompleteConfiguration<K, V> configuration;
+  private Eh107Expiry<K, V> expiryPolicy;
   private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
   private final Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> listenerResources = new ConcurrentHashMap<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>>();
   private final AtomicBoolean closed = new AtomicBoolean();
   private final String cacheName;
 
+  private boolean expiryInitialized;
+
   CacheResources(String cacheName, CompleteConfiguration<K, V> config) {
     this.cacheName = cacheName;
+    this.configuration = config;
+    this.expiryInitialized = false;
 
     MultiCacheException mce = new MultiCacheException();
     try {
-      this.cacheLoaderWriter = initCacheLoaderWriter(config, mce);
-      this.expiryPolicy = initExpiryPolicy(config, mce);
+      cacheLoaderWriter = initCacheLoaderWriter(config, mce);
       initCacheEventListeners(config, mce);
     } catch (Throwable t) {
       if (t != mce) {
@@ -67,10 +71,17 @@ class CacheResources<K, V> {
     }
   }
 
-  CacheResources(String cacheName, CacheLoaderWriter<? super K, V> cacheLoaderWriter, Eh107Expiry<K, V> expiry) {
+  CacheResources(String cacheName, CacheLoaderWriter<? super K, V> cacheLoaderWriter, Eh107Expiry<K, V> expiry, Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> listenerResources) {
     this.cacheName = cacheName;
+    this.configuration = null;
     this.cacheLoaderWriter = cacheLoaderWriter;
     this.expiryPolicy = expiry;
+    this.expiryInitialized = true;
+    this.listenerResources.putAll(listenerResources);
+  }
+
+  CacheResources(String cacheName, CacheLoaderWriter<? super K, V> cacheLoaderWriter, Eh107Expiry<K, V> expiry) {
+    this(cacheName, cacheLoaderWriter, expiry, new ConcurrentHashMap<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>>());
   }
 
   private Eh107Expiry<K, V> initExpiryPolicy(CompleteConfiguration<K, V> config, MultiCacheException mce) {
@@ -84,6 +95,23 @@ class CacheResources<K, V> {
   }
 
   Eh107Expiry<K, V> getExpiryPolicy() {
+    if (!expiryInitialized) {
+      expiryInitialized = true;
+      MultiCacheException mce = new MultiCacheException();
+      try {
+        expiryPolicy = initExpiryPolicy(configuration, mce);
+      } catch (Throwable t) {
+        if (t != mce) {
+          mce.addThrowable(t);
+        }
+        try {
+          closeResources(mce);
+        } catch (Throwable ignore) {
+          mce.addThrowable(t);
+        }
+        throw mce;
+      }
+    }
     return expiryPolicy;
   }
 

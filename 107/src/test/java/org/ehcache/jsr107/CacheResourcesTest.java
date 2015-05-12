@@ -92,12 +92,12 @@ public class CacheResourcesTest {
   @Test
   public void testNoExceptions() {
     // test that construction succeeds
-    CacheResources<Object, Object> cacheResources = new CacheResources<Object, Object>("cache", config);
+    CacheResources<Object, Object> cacheResources = createAndInitCacheResources(config);
     config.verifyAllFactoriesAccessed(); 
     
     MultiCacheException mce = new MultiCacheException();
     cacheResources.closeResources(mce);
-    assertThat(mce.getThrowables(), everyItem(is((Throwable) RE)));
+    assertThat(mce.getThrowables(), everyItem(is((Throwable)RE)));
   }
 
   @SuppressWarnings("unchecked")
@@ -123,7 +123,7 @@ public class CacheResourcesTest {
 
   private static void newCacheResourcesExpectCacheException(CompleteConfiguration<Object, Object> config) {
     try {
-      new CacheResources<Object, Object>("cache", config);
+      createAndInitCacheResources(config);
       fail();
     } catch (MultiCacheException mce) {
       // expected the static instance is present, anything else is some unexpected failure
@@ -131,6 +131,12 @@ public class CacheResourcesTest {
         throw mce;
       }
     }
+  }
+
+  private static CacheResources<Object, Object> createAndInitCacheResources(CompleteConfiguration<Object, Object> config) {
+    CacheResources<Object, Object> cacheResources = new CacheResources<Object, Object>("cache", config);
+    cacheResources.getExpiryPolicy();
+    return cacheResources;
   }
 
   @SuppressWarnings({ "serial" })
