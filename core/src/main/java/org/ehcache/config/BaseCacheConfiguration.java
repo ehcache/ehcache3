@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -46,7 +47,11 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
     this.evictionVeto = evictionVeto;
     this.evictionPrioritizer = evictionPrioritizer;
     this.classLoader = classLoader;
-    this.expiry = expiry;
+    if (expiry != null) {
+      this.expiry = expiry;
+    } else {
+      this.expiry = Expirations.noExpiration();
+    }
     this.resourcePools = resourcePools;
     this.serviceConfigurations = Collections.unmodifiableCollection(Arrays.asList(serviceConfigurations));
   }

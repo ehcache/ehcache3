@@ -35,7 +35,7 @@ import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 public class CacheConfigurationBuilder<K, V> {
 
   private final Collection<ServiceConfiguration<?>> serviceConfigurations = new HashSet<ServiceConfiguration<?>>();
-  private Expiry<? super K, ? super V> expiry = Expirations.noExpiration();
+  private Expiry<? super K, ? super V> expiry;
   private ClassLoader classLoader = null;
   private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private EvictionVeto<? super K, ? super V> evictionVeto;
