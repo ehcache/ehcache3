@@ -146,4 +146,7 @@ public class CacheConfigurationBuilder<K, V> {
     return otherBuilder;
   }
 
+  public boolean hasDefaultExpiry() {
+    return expiry == null;
+  }
 }

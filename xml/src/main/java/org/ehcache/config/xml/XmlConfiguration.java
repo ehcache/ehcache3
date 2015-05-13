@@ -210,7 +210,9 @@ public class XmlConfiguration implements Configuration {
       EvictionVeto evictionVeto = getInstanceOfName(cacheDefinition.evictionVeto(), cacheClassLoader, EvictionVeto.class);
       EvictionPrioritizer evictionPrioritizer = getInstanceOfName(cacheDefinition.evictionPrioritizer(), cacheClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class);
       final ConfigurationParser.Expiry parsedExpiry = cacheDefinition.expiry();
-      builder = builder.withExpiry(getExpiry(cacheClassLoader, parsedExpiry));
+      if (parsedExpiry != null) {
+        builder = builder.withExpiry(getExpiry(cacheClassLoader, parsedExpiry));
+      }
       ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
       for (ResourcePool resourcePool : cacheDefinition.resourcePools()) {
         resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool.getType(), resourcePool.getSize(), resourcePool.getUnit(), resourcePool.isPersistent());
@@ -270,9 +272,11 @@ public class XmlConfiguration implements Configuration {
           builder = builder.add(listenerBuilder);
         }
       }
-      final OnHeapStoreServiceConfiguration onHeapStoreServiceConfig = new OnHeapStoreServiceConfiguration();
-      onHeapStoreServiceConfig.storeByValue(cacheDefinition.storeByValueOnHeap());
-      builder = builder.add(onHeapStoreServiceConfig);
+      if (cacheDefinition.storeByValueOnHeap() != null) {
+        final OnHeapStoreServiceConfiguration onHeapStoreServiceConfig = new OnHeapStoreServiceConfiguration();
+        onHeapStoreServiceConfig.storeByValue(cacheDefinition.storeByValueOnHeap());
+        builder = builder.add(onHeapStoreServiceConfig);
+      }
       final CacheConfiguration<?, ?> config = builder.buildConfig(keyType, valueType, evictionVeto, evictionPrioritizer);
       cacheConfigurations.put(alias, config);
     }
@@ -386,11 +390,13 @@ public class XmlConfiguration implements Configuration {
     }
 
     CacheConfigurationBuilder<K, V> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-    final ConfigurationParser.Expiry parsedExpiry = cacheTemplate.expiry();
     builder = builder
         .usingEvictionPrioritizer(getInstanceOfName(cacheTemplate.evictionPrioritizer(), defaultClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class))
-        .evictionVeto(getInstanceOfName(cacheTemplate.evictionVeto(), defaultClassLoader, EvictionVeto.class))
-        .withExpiry(getExpiry(defaultClassLoader, parsedExpiry));
+        .evictionVeto(getInstanceOfName(cacheTemplate.evictionVeto(), defaultClassLoader, EvictionVeto.class));
+    final ConfigurationParser.Expiry parsedExpiry = cacheTemplate.expiry();
+    if (parsedExpiry != null) {
+      builder = builder.withExpiry(getExpiry(defaultClassLoader, parsedExpiry));
+    }
 
     if (cacheTemplate.keySerializer() != null) {
       final Class<Serializer<?>> keySerializer = (Class<Serializer<?>>) getClassForName(cacheTemplate.keySerializer(), defaultClassLoader);
@@ -460,9 +466,11 @@ public class XmlConfiguration implements Configuration {
     for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {
       builder = builder.add(serviceConfiguration);
     }
-    final OnHeapStoreServiceConfiguration onHeapStoreServiceConfig = new OnHeapStoreServiceConfiguration();
-    onHeapStoreServiceConfig.storeByValue(cacheTemplate.storeByValueOnHeap());
-    builder = builder.add(onHeapStoreServiceConfig);
+    if (cacheTemplate.storeByValueOnHeap() != null) {
+      final OnHeapStoreServiceConfiguration onHeapStoreServiceConfig = new OnHeapStoreServiceConfiguration();
+      onHeapStoreServiceConfig.storeByValue(cacheTemplate.storeByValueOnHeap());
+      builder = builder.add(onHeapStoreServiceConfig);
+    }
     return builder;
   }
 

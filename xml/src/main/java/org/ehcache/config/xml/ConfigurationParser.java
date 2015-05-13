@@ -18,8 +18,6 @@ package org.ehcache.config.xml;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceUnit;
-import org.ehcache.config.persistence.PersistenceConfiguration;
-import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.config.xml.model.BaseCacheType;
@@ -33,14 +31,10 @@ import org.ehcache.config.xml.model.EventOrderingType;
 import org.ehcache.config.xml.model.EventType;
 import org.ehcache.config.xml.model.ExpiryType;
 import org.ehcache.config.xml.model.PersistableResourceType;
-import org.ehcache.config.xml.model.PersistenceType;
 import org.ehcache.config.xml.model.ResourceType;
 import org.ehcache.config.xml.model.ResourcesType;
-import org.ehcache.config.xml.model.SerializerType;
 import org.ehcache.config.xml.model.ServiceType;
 import org.ehcache.config.xml.model.TimeType;
-import org.ehcache.spi.serialization.DefaultSerializationProvider;
-import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
 import org.w3c.dom.Element;
@@ -58,7 +52,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.SchemaFactory;
-import java.io.File;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
@@ -223,11 +217,15 @@ class ConfigurationParser {
               value = source.getExpiry();
               if (value != null) break;
             }
-            return new XmlExpiry(value);
+            if (value != null) {
+              return new XmlExpiry(value);
+            } else {
+              return null;
+            }
           }
 
           @Override
-          public boolean storeByValueOnHeap() {
+          public Boolean storeByValueOnHeap() {
             Boolean value = null;
             for (BaseCacheType source : sources) {
               value = source.isStoreByValueOnHeap();
@@ -423,13 +421,17 @@ class ConfigurationParser {
 
           @Override
           public Expiry expiry() {
-            return new XmlExpiry(cacheTemplate.getExpiry());
+            ExpiryType cacheTemplateExpiry = cacheTemplate.getExpiry();
+            if (cacheTemplateExpiry != null) {
+              return new XmlExpiry(cacheTemplateExpiry);
+            } else {
+              return null;
+            }
           }
 
           @Override
-          public boolean storeByValueOnHeap() {
-            final Boolean storeByValueOnHeap = cacheTemplate.isStoreByValueOnHeap();
-            return storeByValueOnHeap == null ? false : storeByValueOnHeap;
+          public Boolean storeByValueOnHeap() {
+            return cacheTemplate.isStoreByValueOnHeap();
           }
 
           @Override
@@ -573,7 +575,7 @@ class ConfigurationParser {
 
     Expiry expiry();
 
-    boolean storeByValueOnHeap();
+    Boolean storeByValueOnHeap();
 
     String loaderWriter();
 
