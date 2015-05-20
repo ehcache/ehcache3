@@ -475,6 +475,21 @@ public class XmlConfigurationTest {
     assertThat(xmlConfig.getCacheConfigurations().size(), is(2));
 
     Collection<?> configuration = xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations();
+    checkListenerConfigurationExists(configuration);
+  }
+
+  @Test
+  public void testCacheEventListenerThroughTemplate() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/ehcache-cacheEventListener.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    CacheConfiguration<?, ?> cacheConfig = xmlConfig.getCacheConfigurations().get("template1");
+    checkListenerConfigurationExists(cacheConfig.getServiceConfigurations());
+
+    CacheConfigurationBuilder<Object, Object> templateConfig = xmlConfig.newCacheConfigurationBuilderFromTemplate("example");
+    assertThat(templateConfig.getExistingServiceConfiguration(DefaultCacheEventListenerConfiguration.class), notNullValue());
+  }
+
+  private void checkListenerConfigurationExists(Collection<?> configuration) {
     int count = 0;
     for (Object o : configuration) {
       if(o instanceof DefaultCacheEventListenerConfiguration) {

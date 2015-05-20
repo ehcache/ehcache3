@@ -421,7 +421,7 @@ public class XmlConfiguration implements Configuration {
     }
     if(cacheTemplate.listeners()!= null) {
       for (ConfigurationParser.Listener listener : cacheTemplate.listeners()) {
-        final Class<CacheEventListener<?, ?>> cacheEventListenerClass = (Class<CacheEventListener<?, ?>>)getClassForName(listener.toString(), defaultClassLoader);
+        final Class<CacheEventListener<?, ?>> cacheEventListenerClass = (Class<CacheEventListener<?, ?>>)getClassForName(listener.className(), defaultClassLoader);
         final List<EventType> eventListToFireOn = listener.fireOn();
         Set<org.ehcache.event.EventType> eventSetToFireOn = new HashSet<org.ehcache.event.EventType>();
         for (EventType events : eventListToFireOn) {
