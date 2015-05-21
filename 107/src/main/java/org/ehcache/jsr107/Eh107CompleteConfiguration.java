@@ -15,6 +15,9 @@
  */
 package org.ehcache.jsr107;
 
+import org.ehcache.config.CacheConfiguration;
+
+import java.io.ObjectStreamException;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -23,7 +26,6 @@ import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.CompleteConfiguration;
 import javax.cache.configuration.Configuration;
 import javax.cache.configuration.Factory;
-import javax.cache.expiry.Duration;
 import javax.cache.expiry.EternalExpiryPolicy;
 import javax.cache.expiry.ExpiryPolicy;
 import javax.cache.integration.CacheLoader;
@@ -48,7 +50,15 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
   private final Factory<CacheWriter<? super K, ? super V>> cacheWriterFactory;
   private final Factory<ExpiryPolicy> expiryPolicyFactory;
 
+  private final transient CacheConfiguration<K, V> ehcacheConfig;
+
+
   Eh107CompleteConfiguration(Configuration<K, V> config) {
+    this(config, null);
+  }
+
+  Eh107CompleteConfiguration(Configuration<K, V> config, org.ehcache.config.CacheConfiguration<K, V> ehcacheConfig) {
+    this.ehcacheConfig = ehcacheConfig;
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
     this.isStoreByValue = config.isStoreByValue();
@@ -149,5 +159,18 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
   @Override
   void removeCacheEntryListenerConfiguration(CacheEntryListenerConfiguration<K, V> listenerConfig) {
     this.cacheEntryListenerConfigs.remove(listenerConfig);
+  }
+
+  @Override
+  public <T> T unwrap(Class<T> clazz) {
+    try {
+      return Unwrap.unwrap(clazz, this);
+    } catch (IllegalArgumentException e) {
+      return Unwrap.unwrap(clazz, ehcacheConfig);
+    }
+  }
+
+  private Object writeReplace() throws ObjectStreamException {
+    throw new UnsupportedOperationException("Serialization of Ehcache provider configuration classes is not supported");
   }
 }

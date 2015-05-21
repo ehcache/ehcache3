@@ -43,6 +43,39 @@ NOTE: You can also use the `CachingProvider.getCacheManager()` method that takes
       vendor specific values returned by `CachingProvider.getDefaultURI` and `.getDefaultClassLoader` respectively.
       Be aware that these are not entirely specified for Ehcache 3.0 and may change in future releases!
 
+== JSR-107 and Ehcache configuration integration
+
+=== Starting from JSR-107 created caches
+
+When you create a `Cache` on a `CacheManager` using a `MutableConfiguration` - that is you only use JSR-107 types -
+you can still get to the underlying Ehcache `RuntimeCacheConfiguration`:
+
+[source,java,indent=0]
+----
+include::../../107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationTest.java[tag=mutableConfigurationExample]
+----
+
+<1> Create a JSR-107 cache using the `MutableConfiguration` from the specification
+<2> Get to the JSR-107 `CompleteConfiguration`
+<3> Get to the Ehcache JSR-107 configuration bridge
+<4> Unwrap to the Ehcache `RuntimeCacheConfiguration` type
+
+=== Building the configuration using Ehcache APIs
+
+You can also create a JSR-107 `Cache` using an Ehcache `CacheConfiguration`.
+When using this mechanism, no JSR-107 `CompleteConfiguration` is used and so you cannot get to one.
+
+[source,java,indent=0]
+----
+include::../../107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationTest.java[tag=ehcacheBasedConfigurationExample]
+----
+
+<1> Create an Ehcache `CacheConfiguration` - through a builder as shown here or even through XML
+<2> Use the configuration with JSR-107 API by wrapping it
+<3> Get back to the Ehcache `CacheConfiguration` ...
+<4> or to the runtime configuration even.
+<5> No JSR-107 `CompleteConfiguration` is available in this context
+
 === Supplement JSR-107's configurations
 
 As of Ehcache 3.0, you can also create `cache-templates`.  See the

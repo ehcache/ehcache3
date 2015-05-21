@@ -325,7 +325,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   @Override
   public <C extends Configuration<K, V>> C getConfiguration(Class<C> clazz) {
     checkClosed();
-    return Unwrap.unwrap(clazz, config);
+    return config.unwrap(clazz);
   }
 
   @Override
@@ -539,7 +539,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     return statisticsBean;
   }
 
-  void setStatisticsEnaled(boolean enabled) {
+  void setStatisticsEnabled(boolean enabled) {
     config.setStatisticsEnabled(enabled);
   }
 
