@@ -22,4 +22,10 @@
   <module name="SuppressionFilter">
     <property name="file" value="${projectDir}/config/checkstyle-suppressions.xml"/>
   </module>
+
+  <module name="TreeWalker">
+    <module name="AvoidStaticImport">
+      <property name="excludes" value="org.hamcrest.Matchers.*,org.junit.Assert.*"/>
+    </module>
+  </module>
 </module>
