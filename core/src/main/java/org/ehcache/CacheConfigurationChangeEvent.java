@@ -13,29 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.config;
 
-import java.util.Map;
-import java.util.Set;
+package org.ehcache;
 
 /**
- * @author Ludovic Orban
+ * @author rism
  */
-class ResourcePoolsImpl implements ResourcePools {
+public class CacheConfigurationChangeEvent {
+  private final CacheConfigurationProperty property;
+  private final Object newValue;
+  private final Object oldValue;
 
-  private final Map<ResourceType, ResourcePool> pools;
+  public CacheConfigurationChangeEvent(CacheConfigurationProperty property, Object oldValue, Object newValue) {
 
-  ResourcePoolsImpl(Map<ResourceType, ResourcePool> pools) {
-    this.pools = pools;
+    this.property = property;
+    this.newValue = newValue;
+    this.oldValue = oldValue;
   }
 
-  @Override
-  public ResourcePool getPoolForResource(ResourceType resourceType) {
-    return pools.get(resourceType);
+  public CacheConfigurationProperty getProperty() {
+    return this.property;
   }
 
-  @Override
-  public Set<ResourceType> getResourceTypeSet() {
-    return pools.keySet();
+  public Object getNewValue() {
+    return this.newValue;
+  }
+
+  public Object getOldValue() {
+    return this.oldValue;
   }
 }

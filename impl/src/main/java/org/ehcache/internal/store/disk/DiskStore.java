@@ -17,11 +17,14 @@
 package org.ehcache.internal.store.disk;
 
 import org.ehcache.Cache;
+import org.ehcache.CacheConfigurationChangeEvent;
+import org.ehcache.CacheConfigurationChangeListener;
+import org.ehcache.CacheConfigurationProperty;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
@@ -91,7 +94,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
   private final Expiry<? super K, ? super V> expiry;
   private final Serializer<Element> elementSerializer;
   private final Serializer<Serializable> indexSerializer;
-  private final long capacity;
+  private volatile long capacity;
   private final Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto;
   private final Comparator<DiskStorageFactory.DiskSubstitute<K, V>> evictionPrioritizer;
   private final Random random = new Random();
@@ -100,6 +103,20 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
   private volatile DiskStorageFactory<K, V> diskStorageFactory;
   private volatile Segment<K, V>[] segments;
   private volatile int segmentShift;
+  private final CacheConfigurationChangeListener configurationListener = new CacheConfigurationChangeListener() {
+    @Override
+    public void cacheConfigurationChange(CacheConfigurationChangeEvent event) {
+      if(event.getProperty().equals(CacheConfigurationProperty.UPDATESIZE)) {
+        ResourcePools updatedPools = (ResourcePools)event.getNewValue();
+        ResourcePools configuredPools = (ResourcePools)event.getOldValue();
+        if(updatedPools.getPoolForResource(ResourceType.Core.DISK).getSize() !=
+            configuredPools.getPoolForResource(ResourceType.Core.DISK).getSize()) {
+          LOG.info("Setting size: " + updatedPools.getPoolForResource(ResourceType.Core.DISK).getSize());
+          capacity = updatedPools.getPoolForResource(ResourceType.Core.DISK).getSize();
+        }
+      }
+    }
+  };
 
   // TODO: These should not be handled directly by the DiskStore, but through the LocalPersistenceService instead;
   //       Sadly, that's currently not feasible without major refactoring to all this...
@@ -844,6 +861,14 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
       result.put(key, computed);
     }
     return result;
+  }
+
+  @Override
+  public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
+    List<CacheConfigurationChangeListener> configurationChangeListenerList
+        = new ArrayList<CacheConfigurationChangeListener>();
+    configurationChangeListenerList.add(this.configurationListener);
+    return configurationChangeListenerList;
   }
 
   public void flushToDisk() throws ExecutionException, InterruptedException {

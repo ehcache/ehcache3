@@ -16,9 +16,9 @@
 
 package org.ehcache.events;
 
+import org.ehcache.Cache;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.CacheEventListenerFactory;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
@@ -51,4 +51,7 @@ public class DisabledCacheEventNotificationService<K, V> implements CacheEventNo
   public void releaseAllListeners() {
   }
 
+  @Override
+  public void setStoreListenerSource(Cache<K, V> source) {
+  }
 }

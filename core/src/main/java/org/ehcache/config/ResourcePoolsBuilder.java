@@ -38,6 +38,15 @@ public class ResourcePoolsBuilder {
     return new ResourcePoolsBuilder();
   }
 
+  public static ResourcePoolsBuilder newResourcePoolsBuilder(ResourcePools pools) {
+    ResourcePoolsBuilder poolsBuilder = new ResourcePoolsBuilder();
+    for (ResourceType currentResourceType : pools.getResourceTypeSet()) {
+      poolsBuilder = poolsBuilder.with(currentResourceType, pools.getPoolForResource(currentResourceType).getSize(),
+          pools.getPoolForResource(currentResourceType).getUnit(), pools.getPoolForResource(currentResourceType).isPersistent());
+    }
+    return poolsBuilder;
+  }
+
   public ResourcePoolsBuilder with(ResourceType type, long size, ResourceUnit unit, boolean persistent) {
     ResourcePoolsBuilder otherBuilder = new ResourcePoolsBuilder(this);
     otherBuilder.resourcePools.put(type, new ResourcePoolImpl(type, size, unit, persistent));

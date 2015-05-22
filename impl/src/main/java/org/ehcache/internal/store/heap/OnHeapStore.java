@@ -17,9 +17,13 @@
 package org.ehcache.internal.store.heap;
 
 import org.ehcache.Cache;
+import org.ehcache.CacheConfigurationChangeEvent;
+import org.ehcache.CacheConfigurationChangeListener;
+import org.ehcache.CacheConfigurationProperty;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.CacheEvents;
@@ -51,10 +55,12 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.statistics.observer.OperationObserver;
 
 import java.util.AbstractMap.SimpleEntry;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
@@ -83,13 +89,27 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   private final Serializer<V> valueSerializer;
   private final Serializer<K> keySerializer;
 
-  private final long capacity;
+  private volatile long capacity;
   private final Predicate<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionVeto;
   private final Comparator<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionPrioritizer;
   private final Expiry<? super K, ? super V> expiry;
   private final TimeSource timeSource;
   private volatile InvalidationListener<K, V> invalidationListener = NullInvalidationListener.instance();
   private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener();
+  private CacheConfigurationChangeListener cacheConfigurationChangeListener = new CacheConfigurationChangeListener() {
+    @Override
+    public void cacheConfigurationChange(CacheConfigurationChangeEvent event) {
+      if(event.getProperty().equals(CacheConfigurationProperty.UPDATESIZE)) {
+        ResourcePools updatedPools = (ResourcePools)event.getNewValue();
+        ResourcePools configuredPools = (ResourcePools)event.getOldValue();
+        if(updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize() !=
+           configuredPools.getPoolForResource(ResourceType.Core.HEAP).getSize()) {
+          LOG.info("Setting size: " + updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize());
+          capacity = updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize();
+        }
+      }
+    }
+  };
 
   private final OperationObserver<EvictionOutcome> evictionObserver = operation(EvictionOutcome.class).named("eviction").of(this).tag("onheap-store").build();
 
@@ -714,6 +734,14 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       result.put(key, newValue);
     }
     return result;
+  }
+
+  @Override
+  public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
+    List<CacheConfigurationChangeListener> configurationChangeListenerList
+        = new ArrayList<CacheConfigurationChangeListener>();
+    configurationChangeListenerList.add(this.cacheConfigurationChangeListener);
+    return configurationChangeListenerList;
   }
 
   @Override

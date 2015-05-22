@@ -41,6 +41,7 @@ import org.terracotta.statistics.ValueStatistic;
 
 import java.lang.reflect.Field;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -233,7 +234,14 @@ public abstract class EhcacheBasicCrudBase {
   // TODO: Use a validated Store implementation.
   protected static class FakeStore implements Store<String, String> {
 
-     private static final NullaryFunction<Boolean> REPLACE_EQUAL_TRUE = new NullaryFunction<Boolean>() {
+    private final CacheConfigurationChangeListener cacheConfigurationChangeListener = new CacheConfigurationChangeListener() {
+      @Override
+      public void cacheConfigurationChange(CacheConfigurationChangeEvent event) {
+        // noop
+      }
+    };
+
+    private static final NullaryFunction<Boolean> REPLACE_EQUAL_TRUE = new NullaryFunction<Boolean>() {
       @Override
       public Boolean apply() {
         return true;
@@ -605,6 +613,14 @@ public abstract class EhcacheBasicCrudBase {
         resultMap.put(key, newValue);
       }
       return resultMap;
+    }
+
+    @Override
+    public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
+      List<CacheConfigurationChangeListener> configurationChangeListenerList
+          = new ArrayList<CacheConfigurationChangeListener>();
+      configurationChangeListenerList.add(this.cacheConfigurationChangeListener);
+      return configurationChangeListenerList;
     }
 
     private void checkFailingKey(final String key) throws CacheAccessException {

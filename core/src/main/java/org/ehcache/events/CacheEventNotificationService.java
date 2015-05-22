@@ -16,9 +16,9 @@
 
 package org.ehcache.events;
 
+import org.ehcache.Cache;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.CacheEventListenerFactory;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
@@ -39,4 +39,6 @@ public interface CacheEventNotificationService<K, V> {
   void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener);
 
   void releaseAllListeners();
+
+  void setStoreListenerSource(Cache<K, V> source);
 }

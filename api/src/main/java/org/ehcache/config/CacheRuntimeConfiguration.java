@@ -36,13 +36,6 @@ import java.util.Set;
 public interface CacheRuntimeConfiguration<K, V> extends CacheConfiguration<K, V> {
 
   /**
-   * The capacity constraint to be used on the cache
-   *
-   * @param constraint the new constraint
-   */
-  void setCapacityConstraint(Comparable<Long> constraint);
-
-  /**
    * Allows for registering {@link org.ehcache.event.CacheEventListener} on the cache
    *
    * @param listener the listener instance to register
@@ -64,4 +57,10 @@ public interface CacheRuntimeConfiguration<K, V> extends CacheConfiguration<K, V
    */
   void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener);
   
+  /**
+   * updates ResourcePools
+   *
+   * @param pools the {@link ResourcePools} that need to be updated
+   */
+  void updateResourcePools(ResourcePools pools);
 }

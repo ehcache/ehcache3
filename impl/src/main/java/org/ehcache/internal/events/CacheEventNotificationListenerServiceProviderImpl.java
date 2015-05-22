@@ -20,6 +20,7 @@ import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.CacheEventNotificationServiceImpl;
 import org.ehcache.events.DisabledCacheEventNotificationService;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ThreadPoolsService;
 
@@ -44,11 +45,11 @@ public class CacheEventNotificationListenerServiceProviderImpl implements CacheE
     this.config = null;
   }
 
-  public <K, V> CacheEventNotificationService<K, V> createCacheEventNotificationService() {
+  public <K, V> CacheEventNotificationService<K, V> createCacheEventNotificationService(Store<K, V> store) {
     ThreadPoolsService threadPoolsService = serviceProvider.findService(ThreadPoolsService.class);
     if (threadPoolsService != null) {
       return new CacheEventNotificationServiceImpl<K, V>(threadPoolsService.getEventsOrderedDeliveryExecutor(),
-                                                         threadPoolsService.getEventsUnorderedDeliveryExecutor());
+                                                         threadPoolsService.getEventsUnorderedDeliveryExecutor(), store);
     } else {
       return new DisabledCacheEventNotificationService<K, V>();
     }

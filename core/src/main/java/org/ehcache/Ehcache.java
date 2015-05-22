@@ -16,27 +16,17 @@
 
 package org.ehcache;
 
-import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
-import org.ehcache.config.EvictionPrioritizer;
-import org.ehcache.config.EvictionVeto;
-import org.ehcache.config.ResourcePools;
 import org.ehcache.event.CacheEvent;
-import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.EventFiring;
-import org.ehcache.event.EventOrdering;
-import org.ehcache.event.EventType;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.CacheEvents;
 import org.ehcache.events.DisabledCacheEventNotificationService;
-import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
@@ -47,7 +37,6 @@ import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.Persistable;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.statistics.BulkOps;
 import org.ehcache.statistics.CacheOperationOutcomes.CacheLoadingOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
@@ -67,7 +56,6 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -103,9 +91,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
   private final Store<K, V> store;
   private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
   private final ResilienceStrategy<K, V> resilienceStrategy;
-  private final RuntimeConfiguration runtimeConfiguration;
+  private final RuntimeConfiguration<K, V> runtimeConfiguration;
   private final CacheEventNotificationService<K, V> eventNotificationService;
-  private final StoreEventListener<K, V> storeListener;
   private final Jsr107CacheImpl jsr107Cache;
   private final boolean useLoaderInAtomics;
   private final Logger logger;
@@ -128,26 +115,26 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
     }
   };
 
-  public Ehcache(CacheConfiguration<K, V> config, final Store<K, V> store, Logger logger) {
-    this(config, store, null,logger);
+  public Ehcache(RuntimeConfiguration<K, V> runtimeConfiguration, final Store<K, V> store, Logger logger) {
+    this(runtimeConfiguration, store, null,logger);
   }
 
-  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoaderWriter<? super K, V> cacheLoaderWriter, Logger logger) {
-    this(config, store, cacheLoaderWriter, null,logger);
+  public Ehcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store, final CacheLoaderWriter<? super K, V> cacheLoaderWriter, Logger logger) {
+    this(runtimeConfiguration, store, cacheLoaderWriter, null,logger);
   }
 
-  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, final CacheLoaderWriter<? super K, V> cacheLoaderWriter, ScheduledExecutorService statisticsExecutor, Logger logger) {
-    this(config, store, cacheLoaderWriter, null, statisticsExecutor,logger);
+  public Ehcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store, final CacheLoaderWriter<? super K, V> cacheLoaderWriter, ScheduledExecutorService statisticsExecutor, Logger logger) {
+    this(runtimeConfiguration, store, cacheLoaderWriter, null, statisticsExecutor,logger);
   }
 
-  public Ehcache(CacheConfiguration<K, V> config, Store<K, V> store, 
+  public Ehcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
       final CacheLoaderWriter<? super K, V> cacheLoaderWriter, 
       CacheEventNotificationService<K, V> eventNotifier,
       ScheduledExecutorService statisticsExecutor, Logger logger) {
-    this(config, store, cacheLoaderWriter, eventNotifier, statisticsExecutor, true, logger);
+    this(runtimeConfiguration, store, cacheLoaderWriter, eventNotifier, statisticsExecutor, true, logger);
   }
 
-  Ehcache(CacheConfiguration<K, V> config, Store<K, V> store,
+  Ehcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
           CacheLoaderWriter<? super K, V> cacheLoaderWriter,
           CacheEventNotificationService<K, V> eventNotifier, ScheduledExecutorService statisticsExecutor, boolean useLoaderInAtomics, Logger logger) {
     this.store = store;
@@ -169,8 +156,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
     } else {
       this.eventNotificationService = new DisabledCacheEventNotificationService<K, V>();
     }
-    this.runtimeConfiguration = new RuntimeConfiguration(config);
-    this.storeListener = new StoreListener();
+    this.runtimeConfiguration = runtimeConfiguration;
     this.jsr107Cache = new Jsr107CacheImpl();
 
     this.useLoaderInAtomics = useLoaderInAtomics;
@@ -1428,102 +1414,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
       }
     }
   }
-
-  private class RuntimeConfiguration implements CacheRuntimeConfiguration<K, V> {
-    
-    private final Collection<ServiceConfiguration<?>> serviceConfigurations;
-    private final Class<K> keyType;
-    private final Class<V> valueType;
-    private final EvictionVeto<? super K, ? super V> evictionVeto;
-    private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
-    private final ClassLoader classLoader;
-    private final Expiry<? super K, ? super V> expiry;
-    private final ResourcePools resourcePools;
-
-    RuntimeConfiguration(CacheConfiguration<K, V> config) {
-      this.serviceConfigurations = copy(config.getServiceConfigurations());
-      this.keyType = config.getKeyType();
-      this.valueType = config.getValueType();
-      this.evictionVeto = config.getEvictionVeto();
-      this.evictionPrioritizer = config.getEvictionPrioritizer();
-      this.classLoader = config.getClassLoader();
-      this.expiry = config.getExpiry();
-      this.resourcePools = config.getResourcePools();
-    }
-    
-    @Override
-    public Collection<ServiceConfiguration<?>> getServiceConfigurations() {
-      return this.serviceConfigurations;
-    }
-
-    @Override
-    public Class<K> getKeyType() {
-      return this.keyType;
-    }
-
-    @Override
-    public Class<V> getValueType() {
-      return this.valueType;
-    }
-
-    @Override
-    public EvictionVeto<? super K, ? super V> getEvictionVeto() {
-      return this.evictionVeto;
-    }
-
-    @Override
-    public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
-      return this.evictionPrioritizer;
-    }
-
-    @Override
-    public ClassLoader getClassLoader() {
-      return this.classLoader;
-    }
-    
-    @Override
-    public Expiry<? super K, ? super V> getExpiry() {
-      return expiry;
-    }
-
-    @Override
-    public ResourcePools getResourcePools() {
-      return this.resourcePools;
-    }
-
-    @Override
-    public synchronized void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener) {
-      eventNotificationService.deregisterCacheEventListener(listener);
-      if (!eventNotificationService.hasListeners()) {
-        store.disableStoreEventNotifications();
-      }
-    }
-    
-    @Override
-    public synchronized void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering,
-        EventFiring firing, Set<EventType> forEventTypes) {
-      boolean doRegister = forEventTypes.contains(EventType.EVICTED) || forEventTypes.contains(EventType.EXPIRED);
-      eventNotificationService.registerCacheEventListener(listener, ordering, firing, EnumSet.copyOf(forEventTypes));
-      if (doRegister) {
-        store.enableStoreEventNotifications(storeListener);
-      }
-    }
-    
-    
-    @Override
-    public void setCapacityConstraint(Comparable<Long> constraint) {
-      throw new UnsupportedOperationException("implement me!"); // XXX:
-    }
-
-    
-    private <T> Collection<T> copy(Collection<T> collection) {
-      if (collection == null) {
-        return null;
-      }
-      
-      return Collections.unmodifiableCollection(new ArrayList<T>(collection));
-    }
-  }
   
   private class CacheEntryIterator implements Iterator<Entry<K, V>> {
 
@@ -1620,19 +1510,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
         }
       }
     };
-  }
-  
-  private final class StoreListener implements StoreEventListener<K, V> {
-
-    @Override
-    public void onEviction(Cache.Entry<K, V> entry) {
-      eventNotificationService.onEvent(CacheEvents.eviction(entry, Ehcache.this));
-    }
-
-    @Override
-    public void onExpiration(Cache.Entry<K, V> entry) {
-      eventNotificationService.onEvent(CacheEvents.expiry(entry, Ehcache.this));
-    }
   }
   
   private static class ValueHolderBasedEntry<K, V> implements Cache.Entry<K, V> {

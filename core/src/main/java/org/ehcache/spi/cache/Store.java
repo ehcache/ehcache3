@@ -17,6 +17,7 @@
 package org.ehcache.spi.cache;
 
 import org.ehcache.Cache;
+import org.ehcache.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
@@ -29,6 +30,7 @@ import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -494,6 +496,12 @@ public interface Store<K, V> {
     T getIdentifier();
 
   }
+
+  /**
+   * get the {@link List} {@link CacheConfigurationChangeListener} defined in the {@link Store}
+   * @return a list of {@link CacheConfigurationChangeListener}
+   */
+  public List<CacheConfigurationChangeListener> getConfigurationChangeListeners();
 
   /**
    * An iterator over a Store.

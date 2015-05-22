@@ -293,7 +293,7 @@ public class EhcacheManager implements PersistentCacheManager {
     }
 
     final CacheEventNotificationListenerServiceProvider cenlProvider = serviceLocator.findService(CacheEventNotificationListenerServiceProvider.class);
-    final CacheEventNotificationService<K, V> evtService = cenlProvider.createCacheEventNotificationService();
+    final CacheEventNotificationService<K, V> evtService = cenlProvider.createCacheEventNotificationService(store);
     lifeCycledList.add(new LifeCycled() {
       @Override
       public void init() throws Exception {
@@ -309,7 +309,10 @@ public class EhcacheManager implements PersistentCacheManager {
     
     final ThreadPoolsService threadPoolsService = serviceLocator.findService(ThreadPoolsService.class);
     final ScheduledExecutorService statisticsExecutor = (threadPoolsService == null) ? null : threadPoolsService.getStatisticsExecutor();
-    Ehcache<K, V> ehCache = new Ehcache<K, V>(config, store, decorator, evtService, statisticsExecutor,
+
+    RuntimeConfiguration<K, V> runtimeConfiguration = new RuntimeConfiguration<K, V>(config, evtService);
+    runtimeConfiguration.addCacheConfigurationListener(store.getConfigurationChangeListeners());
+    Ehcache<K, V> ehCache = new Ehcache<K, V>(runtimeConfiguration, store, decorator, evtService, statisticsExecutor,
         useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
 
     final CacheEventListenerFactory evntLsnrFactory = serviceLocator.findService(CacheEventListenerFactory.class);
@@ -335,6 +338,7 @@ public class EhcacheManager implements PersistentCacheManager {
           });
         }
       }
+      evtService.setStoreListenerSource(ehCache);
     }
 
     for (LifeCycled lifeCycled : lifeCycledList) {
