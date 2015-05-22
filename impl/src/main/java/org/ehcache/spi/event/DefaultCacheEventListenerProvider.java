@@ -17,7 +17,7 @@
 package org.ehcache.spi.event;
 
 import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
-import org.ehcache.config.event.DefaultCacheEventListenerFactoryConfiguration;
+import org.ehcache.config.event.DefaultCacheEventListenerProviderConfiguration;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerFactory;
 import org.ehcache.internal.classes.ClassInstanceProvider;
@@ -26,10 +26,10 @@ import org.ehcache.spi.service.ServiceConfiguration;
 /**
  * @author rism
  */
-public class DefaultCacheEventListenerFactory extends ClassInstanceProvider<CacheEventListener<?, ?>> implements CacheEventListenerFactory{
+public class DefaultCacheEventListenerProvider extends ClassInstanceProvider<CacheEventListener<?, ?>> implements CacheEventListenerFactory{
 
-  public DefaultCacheEventListenerFactory() {
-    super(DefaultCacheEventListenerFactoryConfiguration.class, DefaultCacheEventListenerConfiguration.class);
+  public DefaultCacheEventListenerProvider() {
+    super(DefaultCacheEventListenerProviderConfiguration.class, DefaultCacheEventListenerConfiguration.class);
   }
 
   @SuppressWarnings("unchecked")

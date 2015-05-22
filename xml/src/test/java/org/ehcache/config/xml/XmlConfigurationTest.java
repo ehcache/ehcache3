@@ -29,8 +29,8 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.config.writebehind.DefaultWriteBehindConfiguration;
 import org.ehcache.expiry.Duration;
@@ -396,9 +396,9 @@ public class XmlConfigurationTest {
 
     ServiceConfiguration configuration = xmlConfig.getServiceConfigurations().iterator().next();
 
-    assertThat(configuration, instanceOf(DefaultSerializationProviderFactoryConfiguration.class));
+    assertThat(configuration, instanceOf(DefaultSerializationProviderConfiguration.class));
 
-    DefaultSerializationProviderFactoryConfiguration factoryConfiguration = (DefaultSerializationProviderFactoryConfiguration) configuration;
+    DefaultSerializationProviderConfiguration factoryConfiguration = (DefaultSerializationProviderConfiguration) configuration;
     assertThat(factoryConfiguration.getDefaults().size(), is(4));
     assertThat(factoryConfiguration.getDefaults().get("java.lang.CharSequence"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer.class));
     assertThat(factoryConfiguration.getDefaults().get("java.lang.Number"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer2.class));
@@ -416,8 +416,8 @@ public class XmlConfigurationTest {
     });
     Iterator<ServiceConfiguration<?>> it = orderedServiceConfigurations.iterator();
 
-    DefaultSerializationProviderConfiguration keySerializationProviderConfiguration = (DefaultSerializationProviderConfiguration) it.next();
-    assertThat(keySerializationProviderConfiguration.getType(), isIn(DefaultSerializationProviderConfiguration.Type.KEY, DefaultSerializationProviderConfiguration.Type.VALUE));
+    DefaultSerializerConfiguration keySerializationProviderConfiguration = (DefaultSerializerConfiguration) it.next();
+    assertThat(keySerializationProviderConfiguration.getType(), isIn(DefaultSerializerConfiguration.Type.KEY, DefaultSerializerConfiguration.Type.VALUE));
   }
 
   public static <T> Matcher<T> isIn(T... elements) {

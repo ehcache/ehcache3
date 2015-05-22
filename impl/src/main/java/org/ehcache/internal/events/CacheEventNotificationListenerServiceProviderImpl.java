@@ -30,19 +30,16 @@ import org.ehcache.spi.service.ThreadPoolsService;
  */
 public class CacheEventNotificationListenerServiceProviderImpl implements CacheEventNotificationListenerServiceProvider {
 
-  private volatile ServiceConfiguration<?> config;
   private volatile ServiceProvider serviceProvider;
 
   @Override
   public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
-    this.config = config;
     this.serviceProvider = serviceProvider;
   }
 
   @Override
   public void stop() {
     this.serviceProvider = null;
-    this.config = null;
   }
 
   public <K, V> CacheEventNotificationService<K, V> createCacheEventNotificationService(Store<K, V> store) {

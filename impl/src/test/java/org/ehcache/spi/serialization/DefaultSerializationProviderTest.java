@@ -15,8 +15,8 @@
  */
 package org.ehcache.spi.serialization;
 
+import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
 import org.ehcache.internal.classes.ClassInstanceProvider;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.junit.Test;
@@ -40,7 +40,7 @@ public class DefaultSerializationProviderTest {
   @Test
   public void testCreateSerializerNoConfig() throws Exception {
     DefaultSerializationProvider dsp = new DefaultSerializationProvider();
-    DefaultSerializationProviderFactoryConfiguration dspfConfig = new DefaultSerializationProviderFactoryConfiguration();
+    DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
     dsp.start(dspfConfig, null);
 
     assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader()), instanceOf(JavaSerializer.class));
@@ -55,10 +55,10 @@ public class DefaultSerializationProviderTest {
   @Test
   public void testCreateSerializerWithConfig() throws Exception {
     DefaultSerializationProvider dsp = new DefaultSerializationProvider();
-    DefaultSerializationProviderFactoryConfiguration dspfConfig = new DefaultSerializationProviderFactoryConfiguration();
+    DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
     dsp.start(dspfConfig, null);
 
-    DefaultSerializationProviderConfiguration dspConfig = new DefaultSerializationProviderConfiguration((Class) TestSerializer.class, DefaultSerializationProviderConfiguration.Type.VALUE);
+    DefaultSerializerConfiguration dspConfig = new DefaultSerializerConfiguration((Class) TestSerializer.class, DefaultSerializerConfiguration.Type.VALUE);
 
     assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader(), dspConfig), instanceOf(TestSerializer.class));
     assertThat(dsp.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), dspConfig), instanceOf(TestSerializer.class));
@@ -67,7 +67,7 @@ public class DefaultSerializationProviderTest {
   @Test
   public void testCreateSerializerWithFactoryConfig() throws Exception {
     DefaultSerializationProvider dsp = new DefaultSerializationProvider();
-    DefaultSerializationProviderFactoryConfiguration dspfConfig = new DefaultSerializationProviderFactoryConfiguration();
+    DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
     dspfConfig.addSerializerFor(Number.class, (Class) TestSerializer.class);
     dsp.start(dspfConfig, null);
 
@@ -79,7 +79,7 @@ public class DefaultSerializationProviderTest {
   public void testGetPreconfigured() throws Exception {
     DefaultSerializationProvider dsp = new DefaultSerializationProvider();
 
-    DefaultSerializationProviderFactoryConfiguration dspfConfig = new DefaultSerializationProviderFactoryConfiguration();
+    DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
     dspfConfig.addSerializerFor(String.class, (Class) TestSerializer.class);
     dsp.start(dspfConfig, null);
 
@@ -95,7 +95,7 @@ public class DefaultSerializationProviderTest {
   public void testGetPreconfiguredWithOverriddenSerializableType() throws Exception {
     DefaultSerializationProvider dsp = new DefaultSerializationProvider();
 
-    DefaultSerializationProviderFactoryConfiguration dspfConfig = new DefaultSerializationProviderFactoryConfiguration();
+    DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
     dspfConfig.addSerializerFor(Serializable.class, (Class) TestSerializer.class);
     dsp.start(dspfConfig, null);
 

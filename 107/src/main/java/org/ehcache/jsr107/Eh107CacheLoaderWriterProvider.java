@@ -20,13 +20,13 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.spi.loaderwriter.DefaultCacheLoaderWriterFactory;
+import org.ehcache.spi.loaderwriter.DefaultCacheLoaderWriterProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author teck
  */
-class Eh107CacheLoaderWriterFactory extends DefaultCacheLoaderWriterFactory {
+class Eh107CacheLoaderWriterProvider extends DefaultCacheLoaderWriterProvider {
 
   private final ConcurrentMap<String, CacheLoaderWriter<?, ?>> cacheLoaderWriters = new ConcurrentHashMap<String, CacheLoaderWriter<?, ?>>();
 

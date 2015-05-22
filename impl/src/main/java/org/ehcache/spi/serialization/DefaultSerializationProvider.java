@@ -16,9 +16,9 @@
 
 package org.ehcache.spi.serialization;
 
-import org.ehcache.config.SerializationProviderConfiguration;
+import org.ehcache.config.SerializerConfiguration;
+import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
 import org.ehcache.internal.classes.ClassInstanceProvider;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.spi.ServiceLocator;
@@ -39,22 +39,22 @@ public class DefaultSerializationProvider extends ClassInstanceProvider<Serializ
   private static final Logger LOG = LoggerFactory.getLogger(DefaultSerializationProvider.class);
 
   public DefaultSerializationProvider() {
-    super(DefaultSerializationProviderFactoryConfiguration.class, (Class) DefaultSerializationProviderConfiguration.class);
+    super(DefaultSerializationProviderConfiguration.class, (Class) DefaultSerializerConfiguration.class);
   }
 
   @Override
   public <T> Serializer<T> createKeySerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) {
-    DefaultSerializationProviderConfiguration<T> conf = find(SerializationProviderConfiguration.Type.KEY, configs);
+    DefaultSerializerConfiguration<T> conf = find(SerializerConfiguration.Type.KEY, configs);
     return createSerializer(clazz, classLoader, conf);
   }
 
   @Override
   public <T> Serializer<T> createValueSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) {
-    DefaultSerializationProviderConfiguration<T> conf = find(SerializationProviderConfiguration.Type.VALUE, configs);
+    DefaultSerializerConfiguration<T> conf = find(SerializerConfiguration.Type.VALUE, configs);
     return createSerializer(clazz, classLoader, conf);
   }
 
-  private <T> Serializer<T> createSerializer(Class<T> clazz, ClassLoader classLoader, DefaultSerializationProviderConfiguration<T> config) {
+  private <T> Serializer<T> createSerializer(Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config) {
     String alias = (config != null ? null : clazz.getName());
     Serializer<T> serializer = (Serializer<T>) newInstance(alias, config, new ConstructorArgument<ClassLoader>(ClassLoader.class, classLoader));
     if (serializer == null) {
@@ -104,11 +104,11 @@ public class DefaultSerializationProvider extends ClassInstanceProvider<Serializ
   }
 
   @SuppressWarnings("unchecked")
-  private static <T> DefaultSerializationProviderConfiguration<T> find(SerializationProviderConfiguration.Type type, ServiceConfiguration<?>... serviceConfigurations) {
-    DefaultSerializationProviderConfiguration<T> result = null;
+  private static <T> DefaultSerializerConfiguration<T> find(SerializerConfiguration.Type type, ServiceConfiguration<?>... serviceConfigurations) {
+    DefaultSerializerConfiguration<T> result = null;
 
-    Collection<DefaultSerializationProviderConfiguration> serializationProviderConfigurations = ServiceLocator.findAmongst(DefaultSerializationProviderConfiguration.class, (Object[]) serviceConfigurations);
-    for (DefaultSerializationProviderConfiguration serializationProviderConfiguration : serializationProviderConfigurations) {
+    Collection<DefaultSerializerConfiguration> serializationProviderConfigurations = ServiceLocator.findAmongst(DefaultSerializerConfiguration.class, (Object[]) serviceConfigurations);
+    for (DefaultSerializerConfiguration serializationProviderConfiguration : serializationProviderConfigurations) {
       if (serializationProviderConfiguration.getType() == type) {
         if (result != null) {
           throw new IllegalArgumentException("Duplicate " + type + " serialization provider : " + serializationProviderConfiguration);

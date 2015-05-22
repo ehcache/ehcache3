@@ -18,16 +18,16 @@ package org.ehcache.spi.loaderwriter;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterFactoryConfiguration;
+import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterProviderConfiguration;
 import org.ehcache.internal.classes.ClassInstanceProvider;
 
 /**
  * @author Alex Snaps
  */
-public class DefaultCacheLoaderWriterFactory extends ClassInstanceProvider<CacheLoaderWriter<?, ?>> implements CacheLoaderWriterFactory {
+public class DefaultCacheLoaderWriterProvider extends ClassInstanceProvider<CacheLoaderWriter<?, ?>> implements CacheLoaderWriterFactory {
 
-  public DefaultCacheLoaderWriterFactory() {
-    super(DefaultCacheLoaderWriterFactoryConfiguration.class, DefaultCacheLoaderWriterConfiguration.class);
+  public DefaultCacheLoaderWriterProvider() {
+    super(DefaultCacheLoaderWriterProviderConfiguration.class, DefaultCacheLoaderWriterConfiguration.class);
   }
 
   @SuppressWarnings("unchecked")

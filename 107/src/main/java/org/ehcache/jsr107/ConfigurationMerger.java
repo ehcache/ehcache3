@@ -43,10 +43,10 @@ class ConfigurationMerger {
 
   private final XmlConfiguration xmlConfiguration;
   private final Jsr107Service jsr107Service;
-  private final Eh107CacheLoaderWriterFactory cacheLoaderWriterFactory;
+  private final Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory;
   private final Logger log;
 
-  ConfigurationMerger(org.ehcache.config.Configuration ehConfig, Jsr107Service jsr107Service, Eh107CacheLoaderWriterFactory cacheLoaderWriterFactory, Logger log) {
+  ConfigurationMerger(org.ehcache.config.Configuration ehConfig, Jsr107Service jsr107Service, Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory, Logger log) {
     if (ehConfig instanceof XmlConfiguration) {
       xmlConfiguration = (XmlConfiguration) ehConfig;
     } else {

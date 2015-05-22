@@ -13,25 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.config;
 
-package org.ehcache.spi.event;
-
-import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.serialization.SerializationProvider;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.ServiceFactory;
 
 /**
- * @author rism
+ * Configuration passed to {@link org.ehcache.spi.serialization.SerializationProvider} in order to control
+ * the creation of a {@link org.ehcache.spi.serialization.Serializer}.
+ *
+ * @author Ludovic Orban
  */
-public class DefaultCacheEventListenerFactoryProvider implements ServiceFactory<DefaultCacheEventListenerFactory> {
+public interface SerializerConfiguration<T extends SerializationProvider> extends ServiceConfiguration<T> {
 
-  @Override
-  public DefaultCacheEventListenerFactory create(ServiceConfiguration<DefaultCacheEventListenerFactory> serviceConfiguration, final ServiceLocator serviceLocator) {
-    return new DefaultCacheEventListenerFactory();
+  /**
+   * Get the type of the serializer configured
+   *
+   * @return the type
+   */
+  Type getType();
+
+  /**
+   * Serialization provider types
+   */
+  enum Type {
+    KEY,
+    VALUE,
   }
 
-  @Override
-  public Class<DefaultCacheEventListenerFactory> getServiceType() {
-    return DefaultCacheEventListenerFactory.class;
-  }
 }
