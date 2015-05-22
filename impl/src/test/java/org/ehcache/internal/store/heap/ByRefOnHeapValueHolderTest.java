@@ -34,21 +34,30 @@ public class ByRefOnHeapValueHolderTest {
   @Test
   public void testValue() {
     Object o = "foo";
-    ValueHolder<?> vh1 = newValueHolder(o);
-    ValueHolder<?> vh2 = newValueHolder(o);
+    ValueHolder<Object> vh1 = newValueHolder(o);
+    ValueHolder<Object> vh2 = newValueHolder(o);
     assertSame(vh1.value(), vh2.value());
   }
 
   @Test
   public void testEquals() {
-    ValueHolder<Integer> vh = newValueHolder(10);
-    assertThat(newValueHolder(10), is(vh));
+    long time = SystemTimeSource.INSTANCE.getTimeMillis();
+    ValueHolder<Integer> vh = newValueHolder(10, time);
+    assertThat(newValueHolder(10, time), is(vh));
+  }
+
+  @Test
+  public void testNotEqualsOnCreationTime() {
+    long time = SystemTimeSource.INSTANCE.getTimeMillis();
+    ValueHolder<Integer> vh = newValueHolder(10, time);
+    assertThat(newValueHolder(10, time + 1000), not(vh));
   }
 
   @Test
   public void testNotEquals() {
-    ValueHolder<Integer> vh = newValueHolder(10);
-    assertThat(newValueHolder(101), not(vh));
+    long time = SystemTimeSource.INSTANCE.getTimeMillis();
+    ValueHolder<Integer> vh = newValueHolder(10, time);
+    assertThat(newValueHolder(101, time), not(vh));
   }
 
   @Test(expected=NullPointerException.class)
@@ -57,6 +66,10 @@ public class ByRefOnHeapValueHolderTest {
   }
 
   private static <V> ValueHolder<V> newValueHolder(V value) {
-    return new ByRefOnHeapValueHolder<V>(value, SystemTimeSource.INSTANCE.getTimeMillis());
+    return newValueHolder(value, SystemTimeSource.INSTANCE.getTimeMillis());
+  }
+
+  private static <V> ValueHolder<V> newValueHolder(V value, long creationTimeMillis) {
+    return new ByRefOnHeapValueHolder<V>(value, creationTimeMillis);
   }
 }
