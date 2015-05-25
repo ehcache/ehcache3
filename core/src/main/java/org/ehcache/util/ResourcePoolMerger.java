@@ -40,6 +40,10 @@ public class ResourcePoolMerger {
           existing.getPoolForResource(currentResourceType).isPersistent()) {
         throw new IllegalArgumentException("Persistence configuration cannot be updated");
       }
+      if(!toBeUpdated.getPoolForResource(currentResourceType).getUnit()
+          .equals(existing.getPoolForResource(currentResourceType).getUnit())) {
+        throw new UnsupportedOperationException("Updating ResourceUnit is not supported");
+      }
     }
 
     ResourcePoolsBuilder mergedPoolsBuilder = ResourcePoolsBuilder.newResourcePoolsBuilder(existing);
@@ -53,7 +57,7 @@ public class ResourcePoolMerger {
        && checkForTierSizingViolation(mergedResourcePools)) {
       throw new IllegalArgumentException("Updating resource pools leads authoritative tier being smaller than caching tier");
     }
-    return mergedPoolsBuilder.build();
+    return mergedResourcePools;
   }
 
   /**

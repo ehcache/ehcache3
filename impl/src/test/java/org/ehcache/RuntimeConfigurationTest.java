@@ -23,7 +23,6 @@ import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.config.units.MemoryUnit;
 import org.junit.Test;
 
 import java.io.File;
@@ -71,7 +70,6 @@ public class RuntimeConfigurationTest {
             .heap(10L, EntryUnit.ENTRIES).build()).buildConfig(Long.class, String.class);
 
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/myData")))
         .withCache("cache", cacheConfiguration).build(true);
 
     Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
@@ -81,9 +79,9 @@ public class RuntimeConfigurationTest {
     ResourcePools pools = poolsBuilder.build();
     try {
       cache.getRuntimeConfiguration().updateResourcePools(pools);
-    } catch (Exception e) {
+    } catch (IllegalArgumentException iae) {
 //      expected
-      assertThat(e instanceof IllegalArgumentException, is(true));
+      assertThat(iae.getMessage(), is("Pools to be updated cannot contain previously undefined resources pools"));
     }
     assertThat(cache.getRuntimeConfiguration().getResourcePools()
         .getPoolForResource(ResourceType.Core.HEAP).getSize(), is(10L));
