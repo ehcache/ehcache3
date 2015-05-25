@@ -14,4 +14,12 @@
  * limitations under the License.
  */
 
-include "api", "spi-tester", "core", "jmx", "core-spi-test", "impl", "107", "xml", "terracotta", "integration-test", "dist", "demos/00-NoCache", "demos/01-CacheAside"
+package org.ehcache.config;
+
+/**
+ * @author Alex Snaps
+ */
+public interface TerracottaCacheRuntimeConfiguration<K, V> extends CacheRuntimeConfiguration<K, V> {
+
+  ClusteredCacheSharedRuntimeConfiguration<K, V> getClusteredCacheSharedRuntimeConfiguration();
+}
