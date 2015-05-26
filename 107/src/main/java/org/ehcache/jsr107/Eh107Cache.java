@@ -40,7 +40,6 @@ import org.ehcache.event.EventOrdering;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
-import org.ehcache.jsr107.CacheResources.ListenerResources;
 import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 

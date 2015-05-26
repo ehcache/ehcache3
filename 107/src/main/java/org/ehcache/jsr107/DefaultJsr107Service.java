@@ -43,15 +43,6 @@ public class DefaultJsr107Service implements Jsr107Service {
   }
 
   @Override
-  public String getDefaultTemplate() {
-    final Jsr107Configuration cfg = configuration;
-    if (cfg == null) {
-      return null;
-    }
-    return cfg.getDefaultTemplate();
-  }
-
-  @Override
   public String getTemplateNameForCache(String name) {
     final Jsr107Configuration cfg = configuration;
     if (cfg == null) {
@@ -61,7 +52,7 @@ public class DefaultJsr107Service implements Jsr107Service {
     if (template != null) {
       return template;
     }
-    return null;
+    return cfg.getDefaultTemplate();
   }
 
   @Override

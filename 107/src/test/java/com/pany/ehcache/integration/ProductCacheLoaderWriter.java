@@ -22,8 +22,10 @@ import com.pany.domain.Product;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -33,14 +35,19 @@ import java.util.concurrent.ConcurrentMap;
 public class ProductCacheLoaderWriter implements CacheLoaderWriter<Long, Product> {
 
   public static final ConcurrentMap<Long, List<Product>> written = new ConcurrentHashMap<Long, List<Product>>();
+  public static final Set<Long> seen = new HashSet<Long>();
   
   @Override
   public Product load(final Long key) throws Exception {
+    seen.add(key);
     return new Product(key);
   }
 
   @Override
   public Map<Long, Product> loadAll(final Iterable<? extends Long> keys) throws Exception {
+    for (Long key : keys) {
+      seen.add(key);
+    }
     return Collections.emptyMap();
   }
 

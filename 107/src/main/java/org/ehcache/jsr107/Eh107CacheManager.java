@@ -166,20 +166,22 @@ class Eh107CacheManager implements CacheManager {
       }
 
       Eh107Cache<K, V> cache = null;
+      CacheResources<K, V> cacheResources = configHolder.cacheResources;
       try {
         if (configHolder.useEhcacheLoaderWriter) {
-          configHolder.cacheResources = new CacheResources<K, V>(cacheName, EhcacheHackAccessor.getCacheLoaderWriter((Ehcache<K, V>)ehCache), configHolder.cacheResources.getExpiryPolicy(), configHolder.cacheResources.getListenerResources());
+          cacheResources = new CacheResources<K, V>(cacheName, EhcacheHackAccessor.getCacheLoaderWriter((Ehcache<K, V>)ehCache),
+              cacheResources.getExpiryPolicy(), cacheResources.getListenerResources());
         }
-        cache = new Eh107Cache<K, V>(cacheName, new Eh107CompleteConfiguration<K, V>(configHolder.completeConfiguration, ehCache
-            .getRuntimeConfiguration()), configHolder.cacheResources, ehCache, this);
+        cache = new Eh107Cache<K, V>(cacheName, new Eh107CompleteConfiguration<K, V>(configHolder.jsr107Configuration, ehCache
+            .getRuntimeConfiguration()), cacheResources, ehCache, this);
 
         caches.put(cacheName, cache);
 
-        if (configHolder.completeConfiguration.isManagementEnabled()) {
+        if (configHolder.jsr107Configuration.isManagementEnabled()) {
           enableManagement(cacheName, true);
         }
 
-        if (configHolder.completeConfiguration.isStatisticsEnabled()) {
+        if (configHolder.jsr107Configuration.isStatisticsEnabled()) {
           enableStatistics(cacheName, true);
         }
 
@@ -188,6 +190,8 @@ class Eh107CacheManager implements CacheManager {
         MultiCacheException mce = new MultiCacheException(t);
         if (cache != null) {
           cache.closeInternal(mce);
+        } else {
+          cacheResources.closeResources(mce);
         }
         throw mce;
       }

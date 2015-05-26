@@ -40,6 +40,11 @@
     <Bug pattern="REC_CATCH_EXCEPTION"/>
   </Match>
   <Match>
+    <Class name="org.ehcache.internal.concurrent.ForkJoinPool"/>
+    <Method name="makeCommonPool"/>
+    <Bug pattern="DE_MIGHT_IGNORE"/>
+  </Match>
+  <Match>
     <Class name="org.ehcache.internal.concurrent.ForkJoinTask"/>
     <Method name="setCompletion"/>
     <Bug pattern="NN_NAKED_NOTIFY"/>

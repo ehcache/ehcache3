@@ -23,6 +23,7 @@ import com.pany.domain.Customer;
 import com.pany.domain.Product;
 import com.pany.ehcache.Test107CacheEntryListener;
 import com.pany.ehcache.TestCacheEventListener;
+import com.pany.ehcache.integration.ProductCacheLoaderWriter;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -53,6 +54,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasItem;
 
 public class Eh107XmlIntegrationTest {
 
@@ -133,16 +136,18 @@ public class Eh107XmlIntegrationTest {
 
     Cache<Long, Product> productCache2 = cacheManager.createCache("productCache2", product2Configuration);
 
-    assertThat(loaderFactoryInvoked.get(), is(true));
+    assertThat(loaderFactoryInvoked.get(), is(false));
 
     Product product = productCache2.get(124L);
     assertThat(product.getId(), is(124L));
-    assertThat(product2CacheLoader.seen.isEmpty(), is(true));
+    assertThat(ProductCacheLoaderWriter.seen, hasItem(124L));
+    assertThat(product2CacheLoader.seen, is(empty()));
 
     CompletionListenerFuture future = new CompletionListenerFuture();
     productCache2.loadAll(Collections.singleton(42L), false, future);
     future.get();
-    assertThat(product2CacheLoader.seen, contains(42L));
+    assertThat(ProductCacheLoaderWriter.seen, hasItem(42L));
+    assertThat(product2CacheLoader.seen, is(empty()));
   }
 
   @Test
