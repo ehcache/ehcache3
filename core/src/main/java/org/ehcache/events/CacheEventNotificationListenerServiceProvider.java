@@ -18,6 +18,7 @@ package org.ehcache.events;
 import org.ehcache.CacheManager;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.Service;
+import org.ehcache.event.CacheEventListener;
 
 /**
  * A provider {@link org.ehcache.spi.service.Service} that will facilitate {@link CacheEventNotificationService} instance
@@ -36,9 +37,9 @@ public interface CacheEventNotificationListenerServiceProvider extends Service {
   
   
   /**
-   * Invoked by {@link CacheManager} to release all  {@link CacheEventListener} listeners registered with {@link CacheEventNotificationService}
+   * Invoked by {@link CacheManager} to release all {@link CacheEventListener} listeners registered with {@link CacheEventNotificationService}
    * 
-   * @param the {@link CacheEventNotificationService}
+   * @param cenlService the {@link CacheEventNotificationService}
    */
   <K, V> void releaseCacheEventNotificationService(CacheEventNotificationService<K, V> cenlService);
 }

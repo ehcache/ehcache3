@@ -18,17 +18,14 @@ package org.ehcache.util;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.hamcrest.Matchers;
 import org.junit.Test;
-
-import java.util.HashSet;
-import java.util.Set;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * @author rism
@@ -75,5 +72,25 @@ public class ResourcePoolsMergerTest {
     } catch (IllegalArgumentException iae) {
       assertThat(iae.getMessage(), is("Updating resource pools leads authoritative tier being smaller than caching tier"));
     }
+  }
+  
+  @Test
+  public void testUpdateResourceUnit() {
+    ResourcePoolsBuilder existingPoolsBuilder = ResourcePoolsBuilder.newResourcePoolsBuilder();
+    existingPoolsBuilder = existingPoolsBuilder.heap(20L, EntryUnit.ENTRIES).disk(500L, EntryUnit.ENTRIES);
+    ResourcePools existing = existingPoolsBuilder.build();
+
+    ResourcePoolsBuilder toBeUpdatedPoolsBuilder = ResourcePoolsBuilder.newResourcePoolsBuilder();
+    toBeUpdatedPoolsBuilder = toBeUpdatedPoolsBuilder.disk(2, MemoryUnit.GB);
+    ResourcePools toBeUpdated = toBeUpdatedPoolsBuilder.build();
+
+    ResourcePoolMerger merger = new ResourcePoolMerger();
+    try {
+      existing = merger.validateAndMerge(existing, toBeUpdated);
+    } catch (UnsupportedOperationException uoe) {
+      assertThat(uoe.getMessage(), is("Updating ResourceUnit is not supported"));
+    }
+    assertThat(existing.getPoolForResource(ResourceType.Core.DISK).getSize(), is(500L));
+    assertThat(existing.getPoolForResource(ResourceType.Core.DISK).getUnit(), Matchers.<ResourceUnit>is(EntryUnit.ENTRIES));
   }
 }

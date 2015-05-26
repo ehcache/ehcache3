@@ -36,7 +36,6 @@ import java.util.Set;
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThan;
 import static org.mockito.Mockito.mock;
 
 /**
