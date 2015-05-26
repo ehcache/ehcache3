@@ -70,25 +70,25 @@ public class GettingStarted {
   public void cachemanagerExample() {
     // tag::cachemanagerExample[]
     CacheManager cacheManager
-        = CacheManagerBuilder.newCacheManagerBuilder() //// <1>
+        = CacheManagerBuilder.newCacheManagerBuilder() // <1>
         .withCache("preConfigured",
             CacheConfigurationBuilder.newCacheConfigurationBuilder()
-                .buildConfig(Long.class, String.class)) //// <2>
-        .build(false); //// <3>
-    cacheManager.init(); //// <4>
+                .buildConfig(Long.class, String.class)) // <2>
+        .build(false); // <3>
+    cacheManager.init(); // <4>
 
     Cache<Long, String> preConfigured =
-        cacheManager.getCache("preConfigured", Long.class, String.class); //// <5>
+        cacheManager.getCache("preConfigured", Long.class, String.class); // <5>
 
-    Cache<Long, String> myCache = cacheManager.createCache("myCache", //// <6>
+    Cache<Long, String> myCache = cacheManager.createCache("myCache", // <6>
         CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Long.class, String.class));
 
-    myCache.put(1L, "da one!"); //// <7>
-    String value = myCache.get(1L); //// <8>
+    myCache.put(1L, "da one!"); // <7>
+    String value = myCache.get(1L); // <8>
 
-    cacheManager.removeCache("preConfigured"); //// <9>
+    cacheManager.removeCache("preConfigured"); // <9>
 
-    cacheManager.close(); //// <10>
+    cacheManager.close(); // <10>
     // end::cachemanagerExample[]
   }
 
@@ -98,12 +98,12 @@ public class GettingStarted {
     UserManagedCache<Long, String> userManagedCache =
         UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class,
             LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted"))
-            .build(false); //// <1>
-    userManagedCache.init(); //// <2>
+            .build(false); // <1>
+    userManagedCache.init(); // <2>
 
-    userManagedCache.put(1L, "da one!"); //// <3>
+    userManagedCache.put(1L, "da one!"); // <3>
 
-    userManagedCache.close(); //// <4>
+    userManagedCache.close(); // <4>
     // end::userManagedCacheExample[]
   }
 
@@ -111,11 +111,11 @@ public class GettingStarted {
   public void persistentCacheManager() {
     // tag::persistentCacheManager[]
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/myData"))) //// <1>
+        .with(new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/myData"))) // <1>
         .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder()
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
-                .disk(100, EntryUnit.ENTRIES, true)) //// <2>
+                .disk(100, EntryUnit.ENTRIES, true)) // <2>
             .buildConfig(Long.class, String.class))
         .build(true);
 
@@ -130,7 +130,7 @@ public class GettingStarted {
         CacheConfigurationBuilder.newCacheConfigurationBuilder()
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
-                .offheap(10, MemoryUnit.MB)) //// <1>
+                .offheap(10, MemoryUnit.MB)) // <1>
             .buildConfig(Long.class, String.class)).build(true);
 
     cacheManager.close();
@@ -225,16 +225,16 @@ public class GettingStarted {
   public void defaultSerializers() throws Exception {
     // tag::defaultSerializers[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .add(new OnHeapStoreServiceConfiguration().storeByValue(true)) //// <1>
+        .add(new OnHeapStoreServiceConfiguration().storeByValue(true)) // <1>
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .buildConfig(Long.class, String.class);
 
     DefaultSerializationProviderFactoryConfiguration defaultSerializationProviderFactoryConfiguration =
         new DefaultSerializationProviderFactoryConfiguration()
-            .addSerializerFor(String.class, StringSerializer.class); //// <2>
+            .addSerializerFor(String.class, StringSerializer.class); // <2>
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("cache", cacheConfiguration)
-        .using(defaultSerializationProviderFactoryConfiguration) //// <3>
+        .using(defaultSerializationProviderFactoryConfiguration) // <3>
         .build(true);
 
     Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
@@ -250,12 +250,12 @@ public class GettingStarted {
   public void cacheSerializers() throws Exception {
     // tag::cacheSerializers[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .add(new OnHeapStoreServiceConfiguration().storeByValue(true)) //// <1>
+        .add(new OnHeapStoreServiceConfiguration().storeByValue(true)) // <1>
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .add(new DefaultSerializationProviderConfiguration<Long>(LongSerializer.class,
-            SerializationProviderConfiguration.Type.KEY)) //// <2>
+            SerializationProviderConfiguration.Type.KEY)) // <2>
         .add(new DefaultSerializationProviderConfiguration<CharSequence>(CharSequenceSerializer.class,
-            SerializationProviderConfiguration.Type.VALUE)) //// <3>
+            SerializationProviderConfiguration.Type.VALUE)) // <3>
         .buildConfig(Long.class, String.class);
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -302,7 +302,7 @@ public class GettingStarted {
     
     final Cache<Long, String> writeThroughCache = cacheManager.createCache("writeThroughCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder()
-            .add(new DefaultCacheLoaderWriterConfiguration(klazz)) //// <1>
+            .add(new DefaultCacheLoaderWriterConfiguration(klazz)) // <1>
             .buildConfig(Long.class, String.class));
     
     writeThroughCache.put(42L, "one");
@@ -322,15 +322,15 @@ public class GettingStarted {
     
     final Cache<Long, String> writeBehindCache = cacheManager.createCache("writeBehindCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder()
-            .add(new DefaultCacheLoaderWriterConfiguration(klazz)) //// <1>
-            .add(WriteBehindConfigurationBuilder.newWriteBehindConfiguration() //// <2>
-                .queueSize(3)//// <3>
-                .concurrencyLevel(1) //// <4>
-                .batchSize(3) //// <5>
-                .enableCoalescing() //// <6>
-                .retry(2, 1) //// <7>
-                .rateLimit(2) //// <8>
-                .delay(1, 1)) //// <9>
+            .add(new DefaultCacheLoaderWriterConfiguration(klazz)) // <1>
+            .add(WriteBehindConfigurationBuilder.newWriteBehindConfiguration() // <2>
+                .queueSize(3)// <3>
+                .concurrencyLevel(1) // <4>
+                .batchSize(3) // <5>
+                .enableCoalescing() // <6>
+                .retry(2, 1) // <7>
+                .rateLimit(2) // <8>
+                .delay(1, 1)) // <9>
             .buildConfig(Long.class, String.class));
     
     writeBehindCache.put(42L, "one");
@@ -365,8 +365,8 @@ public class GettingStarted {
     ListenerObject.resetEvictionCount();
 
     // tag::updateResourcesAtRuntime[]
-    ResourcePools pools = ResourcePoolsBuilder.newResourcePoolsBuilder().heap(20L, EntryUnit.ENTRIES).build(); //// <1>
-    cache.getRuntimeConfiguration().updateResourcePools(pools); //// <2>
+    ResourcePools pools = ResourcePoolsBuilder.newResourcePoolsBuilder().heap(20L, EntryUnit.ENTRIES).build(); // <1>
+    cache.getRuntimeConfiguration().updateResourcePools(pools); // <2>
     assertThat(cache.getRuntimeConfiguration().getResourcePools()
         .getPoolForResource(ResourceType.Core.HEAP).getSize(), is(20L));
     // end::updateResourcesAtRuntime[]
