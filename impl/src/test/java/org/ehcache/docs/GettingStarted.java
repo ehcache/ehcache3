@@ -14,8 +14,15 @@
  * limitations under the License.
  */
 
-package org.ehcache;
+package org.ehcache.docs;
 
+import org.ehcache.Cache;
+import org.ehcache.CacheManager;
+import org.ehcache.CacheManagerBuilder;
+import org.ehcache.Ehcache;
+import org.ehcache.PersistentCacheManager;
+import org.ehcache.UserManagedCache;
+import org.ehcache.UserManagedCacheBuilder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePools;
@@ -50,21 +57,19 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 /**
- * @author Alex Snaps
+ * Samples to get started with Ehcache 3
+ *
+ * If you add new examples, you should use tags to have them included in the README.adoc
+ * You need to edit the README.adoc too to add  your new content.
+ * The callouts are also used in docs/user/index.adoc
  */
 @SuppressWarnings("unused")
 public class GettingStarted {
-
-  /**
-   * If you add new examples, you should use tags to have them included in the README.adoc
-   * You need to edit the README.adoc too to add  your new content.
-   * The callouts are also used in docs/user/index.adoc
-   */
 
   @Test
   public void cachemanagerExample() {
@@ -138,90 +143,6 @@ public class GettingStarted {
   }
 
   @Test
-  public void testTieredStore() throws Exception {
-    CacheConfiguration<Long, String> tieredCacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES))
-        .buildConfig(Long.class, String.class);
-
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/tiered-cache-data")))
-        .withCache("tiered-cache", tieredCacheConfiguration).build(true);
-
-    Cache<Long, String> tieredCache = cacheManager.getCache("tiered-cache", Long.class, String.class);
-
-    tieredCache.put(1L, "one");
-
-    assertThat(tieredCache.get(1L), equalTo("one")); // probably coming from disk
-    assertThat(tieredCache.get(1L), equalTo("one")); // probably coming from heap
-
-    cacheManager.close();
-  }
-
-  @Test
-  public void testTieredOffHeapStore() throws Exception {
-    CacheConfiguration<Long, String> tieredCacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
-        .buildConfig(Long.class, String.class);
-
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("tieredCache", tieredCacheConfiguration).build(true);
-
-    Cache<Long, String> tieredCache = cacheManager.getCache("tieredCache", Long.class, String.class);
-
-    tieredCache.put(1L, "one");
-
-    assertThat(tieredCache.get(1L), equalTo("one")); // probably coming from offheap
-    assertThat(tieredCache.get(1L), equalTo("one")); // probably coming from heap
-
-    cacheManager.close();
-  }
-
-  @Test
-  public void testPersistentDiskCache() throws Exception {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(100, EntryUnit.ENTRIES, true))
-        .buildConfig(Long.class, String.class);
-
-    PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new PersistenceConfiguration(new File(getClass().getClassLoader().getResource(".").toURI().getPath() + "/../../persistent-cache-data")))
-        .withCache("persistent-cache", cacheConfiguration)
-        .build(true);
-
-    Cache<Long, String> cache = persistentCacheManager.getCache("persistent-cache", Long.class, String.class);
-
-    // Comment the following line on subsequent run and see the test pass
-    cache.put(42L, "That's the answer!");
-    assertThat(cache.get(42L), is("That's the answer!"));
-
-    // Uncomment the following line to nuke the disk store
-//    persistentCacheManager.destroyCache("persistent-cache");
-
-    persistentCacheManager.close();
-  }
-
-  @Test
-  public void testStoreByValue() {
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(false);
-    cacheManager.init();
-
-    final Cache<Long, String> cache1 = cacheManager.createCache("cache1",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder().withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES))
-            .buildConfig(Long.class, String.class));
-    performAssertions(cache1, true);
-
-    final Cache<Long, String> cache2 = cacheManager.createCache("cache2",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder().add(new OnHeapStoreServiceConfiguration().storeByValue(true))
-            .buildConfig(Long.class, String.class));
-    performAssertions(cache2, false);
-
-    final Cache<Long, String> cache3 = cacheManager.createCache("cache3",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder().add(new OnHeapStoreServiceConfiguration().storeByValue(false))
-            .buildConfig(Long.class, String.class));
-    performAssertions(cache3, true);
-
-    cacheManager.close();
-  }
-
-  @Test
   public void defaultSerializers() throws Exception {
     // tag::defaultSerializers[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
@@ -273,24 +194,25 @@ public class GettingStarted {
 
   @Test
   public void testCacheEventListener() {
+    // tag::cacheEventListener[]
     CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
-        .newEventListenerConfiguration(ListenerObject.class, EventType.CREATED, EventType.UPDATED)
-        .unordered().asynchronous();
+        .newEventListenerConfiguration(ListenerObject.class, EventType.CREATED, EventType.UPDATED) // <1>
+        .unordered().asynchronous(); // <2>
     
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("foo",
             CacheConfigurationBuilder.newCacheConfigurationBuilder()
-                .add(cacheEventListenerConfiguration)
+                .add(cacheEventListenerConfiguration) // <3>
                 .buildConfig(String.class, String.class)).build(true);
 
     final Cache<String, String> cache = manager.getCache("foo", String.class, String.class);
-    cache.put("Hello", "World");
-    cache.put("Hello", "Everyone");
-    cache.remove("Hello");
+    cache.put("Hello", "World"); // <4>
+    cache.put("Hello", "Everyone"); // <5>
+    cache.remove("Hello"); // <6>
+    // end::cacheEventListener[]
 
     manager.close();
   }
-  
 
   @Test
   public void writeThroughCache() throws ClassNotFoundException {
@@ -377,16 +299,6 @@ public class GettingStarted {
     assertThat(ListenerObject.evicted, is(0));
 
     cacheManager.close();
-  }
-
-  private void performAssertions(Cache<Long, String> cache, boolean same) {
-    cache.put(1L, "one");
-    String s1 = cache.get(1L);
-    String s2 = cache.get(1L);
-    String s3 = cache.get(1L);
-
-    assertThat(s1 == s2, is(same));
-    assertThat(s2 == s3, is(same));
   }
 
   public static class ListenerObject implements CacheEventListener<Object, Object> {
