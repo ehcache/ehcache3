@@ -3,3 +3,4 @@ ifdef::basebackend-html[:outfilesuffix: .html]
 :stylesheet: ehcache.css
 :linkcss:
 :icons: font
+:sourcedir: ../../../../../

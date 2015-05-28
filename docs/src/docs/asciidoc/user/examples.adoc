@@ -99,5 +99,5 @@ Note the presence of the +Filling cache with peeps+, +Clearing peeps cache+, and
 
 [source,xml,indent=0]
 ----
-include::../../107/src/test/resources/ehcache-example.xml[]
+include::{sourcedir}/107/src/test/resources/ehcache-example.xml[]
 ----

@@ -55,10 +55,18 @@ task shadowJavadocJar(type: Jar, dependsOn: shadowJar) {
   projectsToInclude.each {from project(it).javadoc.destinationDir}
 }
 
+task asciidocZip(type: Zip, dependsOn: ':docs:asciidoctor') {
+  baseName = 'ehcache'
+  classifier = 'docs'
+
+  from '../docs/build/asciidoc/html5'
+}
+
 artifacts {
   archives shadowJar
   archives shadowSourceJar
   archives shadowJavadocJar
+  archives asciidocZip
 }
 
 def artifactFiltering = {
