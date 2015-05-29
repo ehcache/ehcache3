@@ -58,10 +58,16 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
   }
 
   Eh107CompleteConfiguration(Configuration<K, V> config, org.ehcache.config.CacheConfiguration<K, V> ehcacheConfig) {
+    this(config, ehcacheConfig, false, false);
+  }
+
+  public Eh107CompleteConfiguration(Configuration<K, V> config, final CacheConfiguration<K, V> ehcacheConfig, boolean useEhcacheExpiry, boolean useEhcacheLoaderWriter) {
     this.ehcacheConfig = ehcacheConfig;
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
     this.isStoreByValue = config.isStoreByValue();
+
+    Factory<ExpiryPolicy> tempExpiryPolicyFactory = EternalExpiryPolicy.factoryOf();
 
     if (config instanceof CompleteConfiguration) {
       CompleteConfiguration<K, V> completeConfig = (CompleteConfiguration<K, V>) config;
@@ -69,9 +75,16 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
       this.isWriteThrough = completeConfig.isWriteThrough();
       this.isStatisticsEnabled = completeConfig.isStatisticsEnabled();
       this.isManagementEnabled = completeConfig.isManagementEnabled();
-      this.cacheLoaderFactory = completeConfig.getCacheLoaderFactory();
-      this.cacheWriterFactory = completeConfig.getCacheWriterFactory();
-      this.expiryPolicyFactory = completeConfig.getExpiryPolicyFactory();
+
+      if (useEhcacheLoaderWriter) {
+        this.cacheLoaderFactory = createThrowingFactory();
+        this.cacheWriterFactory = createThrowingFactory();
+      } else {
+        this.cacheLoaderFactory = completeConfig.getCacheLoaderFactory();
+        this.cacheWriterFactory = completeConfig.getCacheWriterFactory();
+      }
+
+      tempExpiryPolicyFactory = completeConfig.getExpiryPolicyFactory();
       for (CacheEntryListenerConfiguration<K, V> listenerConfig : completeConfig.getCacheEntryListenerConfigurations()) {
         cacheEntryListenerConfigs.add(listenerConfig);
       }
@@ -82,8 +95,13 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
       this.isManagementEnabled = false;
       this.cacheLoaderFactory = null;
       this.cacheWriterFactory = null;
-      this.expiryPolicyFactory = EternalExpiryPolicy.factoryOf();
     }
+
+    if (useEhcacheExpiry) {
+      tempExpiryPolicyFactory = createThrowingFactory();
+    }
+
+    this.expiryPolicyFactory = tempExpiryPolicyFactory;
   }
 
   @Override
@@ -172,5 +190,14 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
 
   private Object writeReplace() throws ObjectStreamException {
     throw new UnsupportedOperationException("Serialization of Ehcache provider configuration classes is not supported");
+  }
+
+  private <T> Factory<T> createThrowingFactory() {
+    return new Factory<T>() {
+      @Override
+      public T create() {
+        throw new UnsupportedOperationException("Cannot convert from Ehcache type to JSR-107 factory");
+      }
+    };
   }
 }

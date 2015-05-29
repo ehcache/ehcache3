@@ -60,9 +60,8 @@ public class ParsesConfigurationExtensionTest {
     final CacheManager cacheManager = new EhcacheManager(configuration, serviceLocator);
     cacheManager.init();
 
-    assertThat(jsr107Service.getDefaultTemplate(), equalTo("tinyCache"));
     assertThat(jsr107Service.getTemplateNameForCache("foos"), equalTo("stringCache"));
-    assertThat(jsr107Service.getTemplateNameForCache("bars"), nullValue());
+    assertThat(jsr107Service.getTemplateNameForCache("bars"), equalTo("tinyCache"));
   }
 
   @SuppressWarnings("rawtypes")

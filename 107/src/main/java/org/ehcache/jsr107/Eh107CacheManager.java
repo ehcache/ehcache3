@@ -28,7 +28,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.cache.Cache;
 import javax.cache.CacheException;
 import javax.cache.CacheManager;
-import javax.cache.configuration.CompleteConfiguration;
 import javax.cache.configuration.Configuration;
 import javax.cache.spi.CachingProvider;
 import javax.management.InstanceAlreadyExistsException;
@@ -38,9 +37,6 @@ import javax.management.MBeanServer;
 import org.ehcache.Ehcache;
 import org.ehcache.EhcacheHackAccessor;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.CacheConfigurationBuilder;
-import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -64,9 +60,8 @@ class Eh107CacheManager implements CacheManager {
   private final ClassLoader classLoader;
   private final URI uri;
   private final Properties props;
-  private final Eh107CacheLoaderWriterFactory cacheLoaderWriterFactory;
-  private final Jsr107Service jsr107Service;
   private final org.ehcache.config.Configuration ehConfig;
+  private final ConfigurationMerger configurationMerger;
 
   Eh107CacheManager(EhcacheCachingProvider cachingProvider, org.ehcache.CacheManager ehCacheManager, Properties props,
       ClassLoader classLoader, URI uri, Eh107CacheLoaderWriterFactory cacheLoaderWriterFactory,
@@ -76,9 +71,8 @@ class Eh107CacheManager implements CacheManager {
     this.props = props;
     this.classLoader = classLoader;
     this.uri = uri;
-    this.cacheLoaderWriterFactory = cacheLoaderWriterFactory;
     this.ehConfig = ehConfig;
-    this.jsr107Service = jsr107Service;
+    this.configurationMerger = new ConfigurationMerger(ehConfig, jsr107Service, cacheLoaderWriterFactory, LOG);
 
     loadExistingEhcaches();
   }
@@ -109,7 +103,7 @@ class Eh107CacheManager implements CacheManager {
     Eh107Configuration<K, V> config = new Eh107ReverseConfiguration<K, V>(cache, cacheLoaderWriter != null, cacheLoaderWriter != null, storeByValueOnHeap);
     Eh107Expiry<K, V> expiry = new EhcacheExpiryWrapper<K, V>(cache.getRuntimeConfiguration().getExpiry());
     CacheResources<K, V> resources = new CacheResources<K, V>(alias, cacheLoaderWriter, expiry);
-    return new Eh107Cache<K, V>(alias, config, resources, cache, this, expiry);
+    return new Eh107Cache<K, V>(alias, config, resources, cache, this);
   }
 
   @Override
@@ -157,36 +151,37 @@ class Eh107CacheManager implements CacheManager {
         return cache;
       }
 
-      // copy the config (since it can be re-used per 107 spec)
-      Eh107CompleteConfiguration<K, V> completeConfig = new Eh107CompleteConfiguration<K, V>(config);
-
-      CacheResources<K, V> cacheResources = new CacheResources<K, V>(cacheName, completeConfig);
-      Eh107Expiry<K, V> expiry = cacheResources.getExpiryPolicy();
+      ConfigurationMerger.ConfigHolder<K, V> configHolder = configurationMerger.mergeConfigurations(cacheName, config);
 
       final org.ehcache.Cache<K, V> ehCache;
       try {
-        ehCache = ehCacheManager.createCache(cacheName,
-            toEhcacheConfig(cacheName, completeConfig, cacheResources, expiry));
+        ehCache = ehCacheManager.createCache(cacheName, configHolder.cacheConfiguration);
       } catch (Throwable t) {
         // something went wrong in ehcache land, make sure to clean up our stuff
         // NOTE: one relatively simple error path is if a pre-configured cache of the same name already exists in
         // ehcache
         MultiCacheException mce = new MultiCacheException(t);
-        cacheResources.closeResources(mce);
+        configHolder.cacheResources.closeResources(mce);
         throw mce;
       }
 
       Eh107Cache<K, V> cache = null;
+      CacheResources<K, V> cacheResources = configHolder.cacheResources;
       try {
-        cache = new Eh107Cache<K, V>(cacheName, new Eh107CompleteConfiguration<K, V>(config, ehCache.getRuntimeConfiguration()), cacheResources, ehCache, this, expiry);
+        if (configHolder.useEhcacheLoaderWriter) {
+          cacheResources = new CacheResources<K, V>(cacheName, EhcacheHackAccessor.getCacheLoaderWriter((Ehcache<K, V>)ehCache),
+              cacheResources.getExpiryPolicy(), cacheResources.getListenerResources());
+        }
+        cache = new Eh107Cache<K, V>(cacheName, new Eh107CompleteConfiguration<K, V>(configHolder.jsr107Configuration, ehCache
+            .getRuntimeConfiguration()), cacheResources, ehCache, this);
 
         caches.put(cacheName, cache);
 
-        if (completeConfig.isManagementEnabled()) {
+        if (configHolder.jsr107Configuration.isManagementEnabled()) {
           enableManagement(cacheName, true);
         }
 
-        if (completeConfig.isStatisticsEnabled()) {
+        if (configHolder.jsr107Configuration.isStatisticsEnabled()) {
           enableStatistics(cacheName, true);
         }
 
@@ -195,71 +190,12 @@ class Eh107CacheManager implements CacheManager {
         MultiCacheException mce = new MultiCacheException(t);
         if (cache != null) {
           cache.closeInternal(mce);
+        } else {
+          cacheResources.closeResources(mce);
         }
         throw mce;
       }
     }
-  }
-
-  private <K, V> org.ehcache.config.CacheConfiguration<K, V> toEhcacheConfig(String cacheName,
-      CompleteConfiguration<K, V> jsr107Config, CacheResources<K, V> cacheResources, Eh107Expiry<K, V> expiry)
-      throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-
-    CacheConfigurationBuilder<K, V> builder = null;
-
-    String cacheTemplate = getCacheTemplateName(cacheName);
-    if (cacheTemplate != null) {
-      if (ehConfig instanceof XmlConfiguration) {
-        builder = ((XmlConfiguration) ehConfig).newCacheConfigurationBuilderFromTemplate(cacheTemplate,
-            jsr107Config.getKeyType(), jsr107Config.getValueType());
-      }
-    }
-
-    if (builder == null) {
-      builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-    }
-    builder = builder.withExpiry(expiry);
-
-    OnHeapStoreServiceConfiguration onHeapStoreServiceConfig = builder.getExistingServiceConfiguration(OnHeapStoreServiceConfiguration.class);
-    if (onHeapStoreServiceConfig == null) {
-      builder = builder.add(new OnHeapStoreServiceConfiguration().storeByValue(jsr107Config.isStoreByValue()));
-    } else {
-      onHeapStoreServiceConfig.storeByValue(jsr107Config.isStoreByValue());
-    }
-
-    // This code is a little weird. In particular that it doesn't
-    // complain if you have config.isReadThrough() true and a null
-    // loader -- see https://github.com/jsr107/jsr107tck/issues/59
-    CacheLoaderWriter<? super K, V> cacheLoaderWriter = cacheResources.getCacheLoaderWriter();
-
-    if(jsr107Config.isReadThrough() || jsr107Config.isWriteThrough()) {
-      if(cacheLoaderWriter != null) {
-        LOG.warn("Ignoring templated loader/writer & using JSR107 configuration cacheloader/writer for {}", cacheName);
-        cacheLoaderWriterFactory.registerJsr107Loader(cacheName, cacheLoaderWriter);
-      } else  {
-        DefaultCacheLoaderWriterConfiguration conf = builder.getExistingServiceConfiguration(DefaultCacheLoaderWriterConfiguration.class);
-        if(conf == null) {
-          throw new InstantiationException("Unable to construct (read/write)through cache without either a templated loader/writer or configured loader/writer");
-        }
-        LOG.warn("Using the templated cache loader/writer {} for the cache {}", conf.getClazz().getName(), cacheName);
-      }
-    } else {
-      DefaultCacheLoaderWriterConfiguration conf = builder.getExistingServiceConfiguration(DefaultCacheLoaderWriterConfiguration.class);
-      if(conf != null) {
-        LOG.warn("Removing the loader/writer service configuration from the JSR107 cache {}", cacheName);
-        builder = builder.remove(conf);
-      }
-    }
-
-    return builder.buildConfig(jsr107Config.getKeyType(), jsr107Config.getValueType());
-  }
-
-  private String getCacheTemplateName(String cacheName) {
-    String template = jsr107Service.getTemplateNameForCache(cacheName);
-    if (template != null) {
-      return template;
-    }
-    return jsr107Service.getDefaultTemplate();
   }
 
   private void checkClosed() {

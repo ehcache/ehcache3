@@ -40,7 +40,6 @@ import org.ehcache.event.EventOrdering;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
-import org.ehcache.jsr107.CacheResources.ListenerResources;
 import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
@@ -59,11 +58,9 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   private final Eh107CacheStatisticsMXBean statisticsBean;
   private final Eh107Configuration<K, V> config;
   private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
-  private final Eh107Expiry<K, V> expiry;
 
   Eh107Cache(String name, Eh107Configuration<K, V> config, CacheResources<K, V> cacheResources,
-      org.ehcache.Cache<K, V> ehCache, Eh107CacheManager cacheManager, Eh107Expiry<K, V> expiry) {
-    this.expiry = expiry;
+      org.ehcache.Cache<K, V> ehCache, Eh107CacheManager cacheManager) {
     this.cacheLoaderWriter = cacheResources.getCacheLoaderWriter();
     this.config = config;
     this.ehCache = ehCache;
@@ -210,12 +207,12 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   public boolean putIfAbsent(K key, V value) {
     checkClosed();
     try {
-      expiry.enableShortCircuitAccessCalls();
+      cacheResources.getExpiryPolicy().enableShortCircuitAccessCalls();
       return ehCache.putIfAbsent(key, value) == null;
     } catch (org.ehcache.exceptions.CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     } finally {
-      expiry.disableShortCircuitAccessCalls();
+      cacheResources.getExpiryPolicy().disableShortCircuitAccessCalls();
     }
   }
 

@@ -5,6 +5,7 @@
   <ehcache:service>
     <jcache:defaults>
       <jcache:cache name="productCache2" template="productCacheTemplate"/>
+      <jcache:cache name="productCache3" template="productCacheTemplate"/>
     </jcache:defaults>
   </ehcache:service>
 
@@ -36,6 +37,9 @@
     <ehcache:key-type>java.lang.Long</ehcache:key-type>
 
     <ehcache:value-type>com.pany.domain.Product</ehcache:value-type>
+    <ehcache:expiry>
+      <ehcache:ttl unit="days">2</ehcache:ttl>
+    </ehcache:expiry>
 
     <ehcache:integration>
         <ehcache:loaderwriter>

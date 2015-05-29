@@ -19,30 +19,6 @@ CacheManager cacheManager = provider.getCacheManager(); // <2>
     You can also force use of `org.ehcache.EhCachingProvider` by using the `Caching.getCachingProvider(String)` static method instead.
 <2> Retrieve the default `CacheManager` instance using the provider.
 
-=== Using a specific configuration file
-
-You can also add an XML file that preconfigures `Cache` instances upfront. See
-link:xml{outfilesuffix}[the XML documentation] for more details on configuring `Cache` in XML.
-
-In order to pre-configure the `CacheManager` at creation time using the XML file, simply:
-
-[source,java]
-----
-CachingProvider provider = Caching.getCachingProvider();
-CacheManager cacheManager = provider.getCacheManager( // <1>
-        this.getClass().getResource("/ehcache.xml").toURI(), // <2>
-        Customer.class.getClassLoader()); // <3>
-----
-<1> Invoking `javax.cache.spi.CachingProvider.getCacheManager(java.net.URI, java.lang.ClassLoader)`
-<2> where the first argument is an `URI` pointing to our XML configuration file, e.g. `ehcache.xml`;
-<3> the second argument being the `ClassLoader` to use to load user-types if needed; i.e. `Class` instances that are
-    stored in the `Cache` managed by our `CacheManager`.
-
-NOTE: You can also use the `CachingProvider.getCacheManager()` method that takes no arguments instead.
-      The `URI` and `ClassLoader` used to configure the `CacheManager` will then use the
-      vendor specific values returned by `CachingProvider.getDefaultURI` and `.getDefaultClassLoader` respectively.
-      Be aware that these are not entirely specified for Ehcache 3.0 and may change in future releases!
-
 == JSR-107 and Ehcache configuration integration
 
 === Starting from JSR-107 created caches
@@ -52,9 +28,8 @@ you can still get to the underlying Ehcache `RuntimeCacheConfiguration`:
 
 [source,java,indent=0]
 ----
-include::../../107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationTest.java[tag=mutableConfigurationExample]
+include::../../107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=mutableConfigurationExample]
 ----
-
 <1> Create a JSR-107 cache using the `MutableConfiguration` from the specification
 <2> Get to the JSR-107 `CompleteConfiguration`
 <3> Get to the Ehcache JSR-107 configuration bridge
@@ -67,14 +42,40 @@ When using this mechanism, no JSR-107 `CompleteConfiguration` is used and so you
 
 [source,java,indent=0]
 ----
-include::../../107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationTest.java[tag=ehcacheBasedConfigurationExample]
+include::../../107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=ehcacheBasedConfigurationExample]
 ----
-
 <1> Create an Ehcache `CacheConfiguration` - through a builder as shown here or even through XML
 <2> Use the configuration with JSR-107 API by wrapping it
 <3> Get back to the Ehcache `CacheConfiguration` ...
 <4> or to the runtime configuration even.
 <5> No JSR-107 `CompleteConfiguration` is available in this context
+
+=== Getting JSR-107 caches configured through Ehcache XML
+
+Another way to have the full Ehcache configuration options on your caches while having no code dependency on the provider is
+to use XML based configuration. See link:xml{outfilesuffix}[the XML documentation] for more details on configuring `Cache`s in XML.
+
+Find below the XML configuration followed by the code to use it from JSR-107:
+
+[source,xml,indent=0]
+----
+include::../../107/src/test/resources/org/ehcache/docs/ehcache-jsr107-config.xml[]
+----
+
+[source,java,indent=0]
+----
+include::../../107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=jsr107UsingXMLConfigExample]
+----
+<1> Invoking `javax.cache.spi.CachingProvider.getCacheManager(java.net.URI, java.lang.ClassLoader)`
+<2> and passing in a URI that resolves to an Ehcache XLM configuration file.
+<3> the second argument being the `ClassLoader` to use to load user-types if needed; i.e. `Class` instances that are
+    stored in the `Cache` managed by our `CacheManager`.
+<4> Get the configured `Cache` out of the `CacheManager`
+
+NOTE: You can also use the `CachingProvider.getCacheManager()` method that takes no arguments instead.
+      The `URI` and `ClassLoader` used to configure the `CacheManager` will then use the
+      vendor specific values returned by `CachingProvider.getDefaultURI` and `.getDefaultClassLoader` respectively.
+      Be aware that these are not entirely specified for Ehcache 3.0 and may change in future releases!
 
 === Supplement JSR-107's configurations
 
@@ -88,29 +89,9 @@ JSR-107 Caching Provider comes with an extension to the regular XML configuratio
 This feature is particularly useful to configure `Cache` beyond the JSR-107 specification, for example, giving `Cache` a capacity
 constraint. All that's needed is adding a `jsr107` service in your XML configuration file:
 
-[source,xml]
+[source,xml,indent=0]
 ----
-<config
-    xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
-    xmlns='http://www.ehcache.org/v3'
-    xmlns:jsr107='http://www.ehcache.org/v3/jsr107'> <!--1-->
-
-  <service> <!--2-->
-    <jsr107:defaults default-template="tinyCache"> <!--3-->
-      <jsr107:cache name="foos" template="stringCache"/> <!--4-->
-    </jsr107:defaults>
-  </service>
-
-  <cache-template name="stringCache">
-    <key-type>java.lang.String</key-type>
-    <value-type>java.lang.String</value-type>
-    <heap size="2000" unit="entries"/>
-  </cache-template>
-
-  <cache-template name="tinyCache">
-    <heap size="20" unit="entries"/>
-  </cache-template>
-</config>
+include::../../107/src/test/resources/org/ehcache/docs/ehcache-jsr107-template-override.xml[]
 ----
 <1> First, declare a namespace for the 107 extension, e.g. `jsr107`
 <2> Within a `service` element at the top of you configuration, add a `jsr107:defaults` element
@@ -123,3 +104,19 @@ constraint. All that's needed is adding a `jsr107` service in your XML configura
     as well as insuring both key and value types are `String`.
 
 NOTE: See link:xsds{outfilesuffix}#_jsr_107_extension[this xsd] for complete definition
+
+Using the above configuration, you can not only supplement but also override the configuration of JSR-107 created caches
+without modifying the application code.
+
+[source,java,indent=0]
+----
+include::../../107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=jsr107SupplementWithTemplatesExample]
+----
+<1> Assume existing JSR-107 configuration code
+<2> that creates JSR-107 `Cache`
+<3> If you were to get to the Ehcache `RuntimeConfiguration`
+<4> you could verify that the template configured capacity is applied to the cache and returns _20_ here.
+<5> Templates will also override JSR-107 config, see here a configuration with TTL 1 minute
+<6> used to create a cache where the template says TTL 2 minutes.
+<7> And we can indeed verify that the template provided configuration has been applied, duration will be _2 minutes_ and not _1_.
+<8> One drawback of this is that when getting at the `CompleteConfiguration`, you no longer have access to the factories from JSR-107.

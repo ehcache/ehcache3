@@ -14,24 +14,22 @@
  * limitations under the License.
  */
 
-package org.ehcache.jsr107;
+package com.pany.ehcache;
 
-import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.event.CacheEvent;
+import org.ehcache.event.CacheEventListener;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * @author Alex Snaps
+ * TestCacheEventListener
  */
-public interface Jsr107Service extends Service {
-  @Override
-  void start(ServiceConfiguration<?> serviceConfiguration, final ServiceProvider serviceProvider);
+public class TestCacheEventListener implements CacheEventListener<String, String> {
+  public static List<CacheEvent<String, String>> seen = new ArrayList<CacheEvent<String, String>>();
 
   @Override
-  void stop();
-
-  String getTemplateNameForCache(String name);
-
-  boolean jsr107CompliantAtomics();
-
+  public void onEvent(CacheEvent<String, String> event) {
+    seen.add(event);
+  }
 }
