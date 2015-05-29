@@ -21,5 +21,4 @@ package org.ehcache.config;
  */
 public interface ClusteredCacheSharedRuntimeConfiguration<K, V> extends ClusteredCacheSharedConfiguration<K, V> {
 
-  void setSomething();
 }

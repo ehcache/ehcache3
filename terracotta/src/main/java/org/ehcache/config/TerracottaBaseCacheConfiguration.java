@@ -16,7 +16,6 @@
 
 package org.ehcache.config;
 
-import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
@@ -25,18 +24,6 @@ import org.ehcache.spi.service.ServiceConfiguration;
 public class TerracottaBaseCacheConfiguration<K, V> extends BaseCacheConfiguration<K, V> implements TerracottaCacheConfiguration<K, V> {
 
   private ClusteredCacheSharedConfiguration<K, V> cacheSharedConfiguration;
-
-  public TerracottaBaseCacheConfiguration(final Class<K> keyType, final Class<V> valueType,
-                                          final EvictionVeto<? super K, ? super V> evictionVeto,
-                                          final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
-                                          final Expiry<? super K, ? super V> expiry,
-                                          final ClassLoader classLoader,
-                                          final ResourcePools resourcePools,
-                                          final ServiceConfiguration<?>... serviceConfigurations) {
-    super(keyType, valueType, evictionVeto, evictionPrioritizer, expiry,
-        classLoader, resourcePools, serviceConfigurations);
-    cacheSharedConfiguration = null; // TODO: Means default to what's on the server?
-  }
 
   public TerracottaBaseCacheConfiguration(final ClusteredCacheSharedConfiguration<K, V> cacheSharedConfiguration,
                                           final ClassLoader classLoader,
@@ -49,6 +36,10 @@ public class TerracottaBaseCacheConfiguration<K, V> extends BaseCacheConfigurati
         cacheSharedConfiguration.getExpiry(),
         classLoader, resourcePools, serviceConfigurations);
     this.cacheSharedConfiguration = cacheSharedConfiguration;
+  }
+
+  public TerracottaBaseCacheConfiguration(final Class<K> keyType, final Class<V> valueType, final ClassLoader classLoader, final ResourcePools resourcePools) {
+    super(keyType, valueType, null, null, null, classLoader, resourcePools);
   }
 
   // TODO Override all getters to first check whether to delegate to the cacheSharedConfiguration ?!

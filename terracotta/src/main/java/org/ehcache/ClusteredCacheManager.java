@@ -14,26 +14,14 @@
  * limitations under the License.
  */
 
-package org.ehcache.config;
+package org.ehcache;
 
-import org.ehcache.CacheManager;
-import org.ehcache.CacheManagerBuilder;
-import org.ehcache.ClusteredCacheManager;
-import org.ehcache.PersistentCacheManager;
-
-import java.net.URI;
+import org.ehcache.config.ClusteredCacheSharedRuntimeConfiguration;
 
 /**
  * @author Alex Snaps
  */
-public class TerracottaConfiguration implements CacheManagerConfiguration<ClusteredCacheManager> {
+public interface ClusteredCacheManager extends PersistentCacheManager {
 
-  public TerracottaConfiguration(URI uri, URI... uris) {
-  }
-
-  @Override
-  public CacheManagerBuilder<ClusteredCacheManager> builder(final CacheManagerBuilder<? extends CacheManager> other) {
-    return (CacheManagerBuilder<ClusteredCacheManager>) other;
-  }
-
+  <K, V> ClusteredCacheSharedRuntimeConfiguration<K, V> getClusteredConfig(Cache<K, V> simple);
 }
