@@ -345,7 +345,7 @@ public class GettingStarted {
   @Test
   public void updateResourcesAtRuntime() throws InterruptedException {
     CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
-        .newEventListenerConfiguration(ListenerObject.class, EventType.EVICTED).unordered().asynchronous();
+        .newEventListenerConfiguration(ListenerObject.class, EventType.EVICTED).unordered().synchronous();
 
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
         .add(cacheEventListenerConfiguration)
@@ -356,11 +356,9 @@ public class GettingStarted {
         .build(true);
 
     Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
-    ListenerObject.latch = new CountDownLatch(10);
     for(long i = 0; i < 20; i++ ){
       cache.put(i, "Hello World");
     }
-    ListenerObject.latch.await();
     assertThat(ListenerObject.evicted, is(10));
 
     cache.clear();
@@ -393,7 +391,6 @@ public class GettingStarted {
 
   public static class ListenerObject implements CacheEventListener<Object, Object> {
     private static int evicted;
-    private static CountDownLatch latch;
     @Override
     public void onEvent(CacheEvent<Object, Object> event) {
       Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted");
@@ -401,7 +398,6 @@ public class GettingStarted {
       if(event.getType() == EventType.EVICTED){
         evicted++;
       }
-      latch.countDown();
     }
 
     public static void resetEvictionCount() {
