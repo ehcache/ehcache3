@@ -14,4 +14,14 @@
  * limitations under the License.
  */
 
-include "api", "spi-tester", "core", "jmx", "core-spi-test", "impl", "107", "xml", "terracotta", "integration-test", "dist", "demos/00-NoCache", "demos/01-CacheAside"
+package org.ehcache;
+
+import org.ehcache.config.ClusteredCacheSharedRuntimeConfiguration;
+
+/**
+ * @author Alex Snaps
+ */
+public interface ClusteredCacheManager extends PersistentCacheManager {
+
+  <K, V> ClusteredCacheSharedRuntimeConfiguration<K, V> getClusteredConfig(Cache<K, V> simple);
+}

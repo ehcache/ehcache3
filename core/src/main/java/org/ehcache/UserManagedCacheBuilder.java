@@ -78,7 +78,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     final Store<K, V> store = storeProvider.createStore(storeConfig);
 
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionVeto,
-        evictionPrioritizer, classLoader, expiry, resourcePools);
+        evictionPrioritizer, expiry, classLoader, resourcePools);
 
     RuntimeConfiguration<K, V> runtimeConfiguration = new RuntimeConfiguration<K, V>(cacheConfig, cacheEventNotificationService);
 

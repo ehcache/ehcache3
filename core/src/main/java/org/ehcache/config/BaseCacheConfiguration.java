@@ -39,9 +39,9 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   private final ResourcePools resourcePools;
 
   public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType,
-          EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
-          ClassLoader classLoader, Expiry<? super K, ? super V> expiry,
-          ResourcePools resourcePools, ServiceConfiguration<?>... serviceConfigurations) {
+                                EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
+                                Expiry<? super K, ? super V> expiry, ClassLoader classLoader,
+                                ResourcePools resourcePools, ServiceConfiguration<?>... serviceConfigurations) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.evictionVeto = evictionVeto;

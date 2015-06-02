@@ -21,12 +21,10 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Set;
 
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 
-import static java.util.Collections.emptySet;
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 /**
@@ -103,7 +101,7 @@ public class CacheConfigurationBuilder<K, V> {
 
   public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType) {
     return new BaseCacheConfiguration<CK, CV>(keyType, valueType, evictionVeto,
-        evictionPrioritizer, classLoader, expiry, resourcePools,
+        evictionPrioritizer, expiry, classLoader, resourcePools,
         serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
@@ -111,7 +109,7 @@ public class CacheConfigurationBuilder<K, V> {
                                                      EvictionVeto<? super CK, ? super CV> evictionVeto,
                                                      EvictionPrioritizer<? super CK, ? super CV> evictionPrioritizer) {
     return new BaseCacheConfiguration<CK, CV>(keyType, valueType, evictionVeto, evictionPrioritizer,
-        classLoader, expiry, resourcePools,
+        expiry, classLoader, resourcePools,
         serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
   
