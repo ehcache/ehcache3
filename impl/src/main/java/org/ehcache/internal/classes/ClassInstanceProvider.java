@@ -97,9 +97,14 @@ public class ClassInstanceProvider<T> {
   }
 
   public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
-    if (config != null && factoryConfig.isAssignableFrom(config.getClass())) {
-      ClassInstanceProviderFactoryConfiguration<T> instanceProviderFactoryConfig = factoryConfig.cast(config);
-      preconfiguredLoaders.putAll(instanceProviderFactoryConfig.getDefaults());
+    if (config != null ) {
+      if(cacheLevelConfig.isAssignableFrom(config.getClass())) {
+        throw new IllegalArgumentException(cacheLevelConfig.getSimpleName() + " must not be provided at CacheManager level");
+      }
+      if(factoryConfig.isAssignableFrom(config.getClass())) {
+        ClassInstanceProviderFactoryConfiguration<T> instanceProviderFactoryConfig = factoryConfig.cast(config);
+        preconfiguredLoaders.putAll(instanceProviderFactoryConfig.getDefaults());
+      }
     }
   }
 

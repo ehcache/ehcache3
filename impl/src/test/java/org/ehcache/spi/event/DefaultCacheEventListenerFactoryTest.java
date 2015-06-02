@@ -16,13 +16,22 @@
 
 package org.ehcache.spi.event;
 
+import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
+import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
+import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.EventType;
+import org.ehcache.exceptions.StateTransitionException;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.hamcrest.core.Is;
+import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 
 import java.util.Collection;
@@ -30,6 +39,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -52,6 +62,43 @@ public class DefaultCacheEventListenerFactoryTest {
                 .buildConfig(Object.class, Object.class)).build(true);
     final Collection<?> bar = manager.getCache("foo", Object.class, Object.class).getRuntimeConfiguration().getServiceConfigurations();
     assertThat(bar.iterator().next().getClass().toString(), is(ListenerObject.object.toString()));
+  }
+
+  @Test
+  public void testAddingCacheEventListenerConfigurationAtManagerLevelThrows() {
+    CacheManagerBuilder<CacheManager> cacheManagerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
+    CacheEventListenerConfiguration cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
+        .newEventListenerConfiguration(ListenerObject.class, EventType.CREATED).unordered().asynchronous().build();
+    cacheManagerBuilder.using(cacheEventListenerConfiguration);
+    CacheManager cacheManager = null;
+    try {
+      cacheManager = cacheManagerBuilder.build(true);
+    } catch (StateTransitionException ste) {
+      // expected
+      assertThat(ste.getMessage(), Is.is("DefaultCacheEventListenerConfiguration must not be provided at CacheManager level"));
+    } finally {
+      if(cacheManager != null) {
+        cacheManager.close();
+      }
+    }
+  }
+
+  @Test
+  public void testAddingCacheEventListenerConfigurationAtCacheLevel() {
+    CacheManagerBuilder<CacheManager> cacheManagerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
+    CacheEventListenerConfiguration cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
+        .newEventListenerConfiguration(ListenerObject.class, EventType.CREATED).unordered().asynchronous().build();
+    CacheManager cacheManager = cacheManagerBuilder.build(true);
+    final Cache<Long, String> cache = cacheManager.createCache("cache",
+        CacheConfigurationBuilder.newCacheConfigurationBuilder()
+            .add(cacheEventListenerConfiguration)
+            .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+                .heap(100, EntryUnit.ENTRIES).build())
+            .buildConfig(Long.class, String.class));
+    Collection<ServiceConfiguration<?>> serviceConfiguration = cache.getRuntimeConfiguration()
+        .getServiceConfigurations();
+    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(DefaultCacheEventListenerConfiguration.class)));
+    cacheManager.close();
   }
 
   public static class ListenerObject implements CacheEventListener<Object, Object> {

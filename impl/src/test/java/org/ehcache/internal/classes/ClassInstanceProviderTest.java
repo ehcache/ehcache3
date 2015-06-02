@@ -72,6 +72,17 @@ public class ClassInstanceProviderTest {
     TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration) null);
     assertThat(obj.theString, is(nullValue()));
   }
+  
+  @Test
+  public void testAddingCacheLevelConfigurationAtCacheManagerLevel() {
+    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>((Class)ClassInstanceProviderFactoryConfiguration.class, (Class)ClassInstanceProviderConfiguration.class);
+    TestServiceProviderConfiguration cacheLevelConfig = new TestServiceProviderConfiguration();
+    try {
+      classInstanceProvider.start(cacheLevelConfig, null);
+    } catch (IllegalArgumentException iae) {
+      assertThat(iae.getMessage(), is("ClassInstanceProviderConfiguration must not be provided at CacheManager level"));
+    }
+  }
 
   public static class TestService implements Service {
     public final String theString;
