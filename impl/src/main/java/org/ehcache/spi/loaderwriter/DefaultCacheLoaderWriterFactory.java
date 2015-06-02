@@ -40,5 +40,4 @@ public class DefaultCacheLoaderWriterFactory extends ClassInstanceProvider<Cache
   public void releaseCacheLoaderWriter(final CacheLoaderWriter<?, ?> cacheLoaderWriter) {
     // noop
   }
-
 }

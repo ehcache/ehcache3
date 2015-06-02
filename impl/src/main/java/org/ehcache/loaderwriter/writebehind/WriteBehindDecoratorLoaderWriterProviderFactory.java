@@ -43,8 +43,9 @@ public class WriteBehindDecoratorLoaderWriterProviderFactory implements ServiceF
       
       @Override
       public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
-        // no op
-        
+        if (config != null) {
+          throw new IllegalArgumentException("WriteBehind configuration must not be provided at CacheManager level");
+        }
       }
       
       @Override

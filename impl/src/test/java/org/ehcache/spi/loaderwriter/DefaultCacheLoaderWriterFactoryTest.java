@@ -16,19 +16,28 @@
 
 package org.ehcache.spi.loaderwriter;
 
+import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.DefaultConfiguration;
+import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterFactoryConfiguration;
+import org.ehcache.config.units.EntryUnit;
+import org.ehcache.exceptions.StateTransitionException;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.hamcrest.core.Is;
+import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
 
 public class DefaultCacheLoaderWriterFactoryTest {
@@ -74,6 +83,43 @@ public class DefaultCacheLoaderWriterFactoryTest {
     manager.init();
     final Object foo = manager.getCache("foo", Object.class, Object.class).get(new Object());
     assertThat(foo, is(MyOtherLoader.object));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void testAddingCacheLoaderWriterConfigurationAtManagerLevelThrows() {
+    CacheManagerBuilder<CacheManager> cacheManagerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
+    Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) (Class) (MyLoader.class);
+    cacheManagerBuilder.using(new DefaultCacheLoaderWriterConfiguration(klazz));
+    CacheManager cacheManager = null;
+    try {
+      cacheManager = cacheManagerBuilder.build(true);
+    } catch (StateTransitionException ste) {
+      // expected
+      assertThat(ste.getMessage(), Is.is("DefaultCacheLoaderWriterConfiguration must not be provided at CacheManager level"));
+    } finally {
+      if(cacheManager != null) {
+        cacheManager.close();
+      }
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void testAddingCacheLoaderWriterConfigurationAtCacheLevel() {
+    CacheManagerBuilder<CacheManager> cacheManagerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
+    Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) (Class) (MyLoader.class);
+    CacheManager cacheManager = cacheManagerBuilder.build(true);
+    final Cache<Long, String> cache = cacheManager.createCache("cache",
+        CacheConfigurationBuilder.newCacheConfigurationBuilder()
+            .add(new DefaultCacheLoaderWriterConfiguration(klazz))
+            .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+                .heap(100, EntryUnit.ENTRIES).build())
+            .buildConfig(Long.class, String.class));
+    Collection<ServiceConfiguration<?>> serviceConfiguration = cache.getRuntimeConfiguration()
+        .getServiceConfigurations();
+    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(DefaultCacheLoaderWriterConfiguration.class)));
+    cacheManager.close();
   }
 
   public static class MyLoader implements CacheLoaderWriter<Object, Object> {
