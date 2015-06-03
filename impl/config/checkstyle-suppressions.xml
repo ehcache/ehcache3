@@ -6,4 +6,5 @@
 
 <suppressions>
   <suppress files="ConcurrentHashMapV8.java" checks="Header"/>
+  <suppress files="^((?!.*test[\\/]java[\\/]org[\\/]ehcache[\\/]docs[\\/].*).)*$" checks="AvoidStaticImport"/>
 </suppressions>

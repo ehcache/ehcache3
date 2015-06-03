@@ -17,7 +17,7 @@ WARNING: *This is still a work in progress*. While it represents the API as it e
 
 [source,java,indent=0]
 ----
-include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=cachemanagerExample]
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cachemanagerExample]
 ----
 
 <1> Static method `org.ehcache.CacheManagerBuilder.newCacheManagerBuilder` that returns a new `org.ehcache.CacheManagerBuilder`
@@ -46,7 +46,7 @@ include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=cachemanag
 
 [source,java,indent=0]
 ----
-include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=userManagedCacheExample]
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=userManagedCacheExample]
 ----
 
 <1> A new feature of Ehcache 3.0 is the ability to create `UserManagedCache` instances, i.e. ones not managed by a `CacheManager`, again you can either have the builder `init()` it for you, passing true or
@@ -59,7 +59,7 @@ include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=userManage
 
 [source,java,indent=0]
 ----
-include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=offheapCacheManager]
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=offheapCacheManager]
 ----
 
 <1> If you wish to use off-heap, you'll have to define resource pool, giving the memory size you want to allocate.
@@ -70,7 +70,7 @@ Do not forget to define in the java options the -XX:MaxDirectMemorySize option, 
 
 [source,java,indent=0]
 ----
-include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=persistentCacheManager]
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=persistentCacheManager]
 ----
 
 <1> If you wish to use disk storage (like for persistent `Cache` instances), you'll have to register a
@@ -82,7 +82,7 @@ include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=persistent
 
 [source,java,indent=0]
 ----
-include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=updateResourcesAtRuntime]
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=updateResourcesAtRuntime]
 ----
 
 <1> You will need to create a new `ResourcePools` object with resources of required size, using `ResourcePoolsBuilder`. This object can
@@ -92,11 +92,26 @@ include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=updateReso
 
 NOTE: Presently, `updateResourcePools()` only supports updating heap and disk tiers, if they are defined with `EntryUnit.ENTRIES` as the unit of measure.
 
+==== Cache Event Listeners
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheEventListener]
+----
+
+<1> Create a `CacheEventListenerConfiguration` using the builder indicating the listener class and the events to receive
+<2> Optionally indicate the delivery mode - defaults are _asynchronous_ and _un-ordered_
+<3> Pass the configuration of the listener into the cache configuration
+<4> You will be notified on creation
+<5> And on update
+<6> But not on removal
+
+
 ==== Write-Through Cache
 
 [source,java,indent=0]
 ----
-include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=writeThroughCache]
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeThroughCache]
 ----
 
 <1> If you wish to use a cache in read-through/write-through caching pattern, you'll have to implement
@@ -107,7 +122,7 @@ include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=writeThrou
 
 [source,java,indent=0]
 ----
-include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=writeBehindCache]
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeBehindCache]
 ----
 
 <1> A Cache can be used in write-behind pattern as well. You will have to implement `CacheLoaderWriter`
@@ -131,7 +146,7 @@ You can configure a set of serializers on the cache manager:
 
 [source,java,indent=0]
 ----
-include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=defaultSerializers]
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=defaultSerializers]
 ----
 
 <1> By default, objects stored on-heap are stored by reference. If you wish to store them by value (which requires copying them
@@ -147,7 +162,7 @@ Or you can configure specific serializers on the cache itself:
 
 [source,java,indent=0]
 ----
-include::../../impl/src/test/java/org/ehcache/GettingStarted.java[tag=cacheSerializers]
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheSerializers]
 ----
 
 <1> As above, you must configure the on-heap store to store objects by value.
@@ -160,7 +175,7 @@ You can create a XML file to configure a `CacheManager`:
 
 [source,xml]
 ----
-include::../../xml/src/test/resources/configs/getting-started.xml[tags=gettingStarted]
+include::{sourcedir}/xml/src/test/resources/configs/getting-started.xml[tags=gettingStarted]
 ----
 
 <1> Declares a `Cache` aliased to `foo`

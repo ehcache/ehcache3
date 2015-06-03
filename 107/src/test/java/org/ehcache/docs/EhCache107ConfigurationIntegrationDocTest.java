@@ -41,11 +41,11 @@ import javax.cache.expiry.Duration;
 import javax.cache.expiry.ExpiryPolicy;
 import javax.cache.spi.CachingProvider;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
 
 /**
  * This class uses unit test assertions but serves mostly as the live code repository for Asciidoctor documentation.
@@ -68,13 +68,13 @@ public class EhCache107ConfigurationIntegrationDocTest {
     // tag::mutableConfigurationExample[]
     MutableConfiguration<Long, String> configuration = new MutableConfiguration<Long, String>();
     configuration.setTypes(Long.class, String.class);
-    Cache<Long, String> cache = cacheManager.createCache("someCache", configuration); //// <1>
+    Cache<Long, String> cache = cacheManager.createCache("someCache", configuration); // <1>
 
-    CompleteConfiguration<Long, String> completeConfiguration = cache.getConfiguration(CompleteConfiguration.class); //// <2>
+    CompleteConfiguration<Long, String> completeConfiguration = cache.getConfiguration(CompleteConfiguration.class); // <2>
 
-    Eh107Configuration<Long, String> eh107Configuration = cache.getConfiguration(Eh107Configuration.class); //// <3>
+    Eh107Configuration<Long, String> eh107Configuration = cache.getConfiguration(Eh107Configuration.class); // <3>
 
-    CacheRuntimeConfiguration<Long, String> runtimeConfiguration = eh107Configuration.unwrap(CacheRuntimeConfiguration.class); //// <4>
+    CacheRuntimeConfiguration<Long, String> runtimeConfiguration = eh107Configuration.unwrap(CacheRuntimeConfiguration.class); // <4>
     // end::mutableConfigurationExample[]
     assertThat(completeConfiguration, notNullValue());
     assertThat(runtimeConfiguration, notNullValue());
@@ -95,18 +95,18 @@ public class EhCache107ConfigurationIntegrationDocTest {
   public void testUsingEhcacheConfiguration() throws Exception {
     // tag::ehcacheBasedConfigurationExample[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .buildConfig(Long.class, String.class); //// <1>
+        .buildConfig(Long.class, String.class); // <1>
 
     Cache<Long, String> cache = cacheManager.createCache("myCache",
-        Eh107Configuration.fromEhcacheCacheConfiguration(cacheConfiguration)); //// <2>
+        Eh107Configuration.fromEhcacheCacheConfiguration(cacheConfiguration)); // <2>
 
     Eh107Configuration<Long, String> configuration = cache.getConfiguration(Eh107Configuration.class);
-    configuration.unwrap(CacheConfiguration.class); //// <3>
+    configuration.unwrap(CacheConfiguration.class); // <3>
 
-    configuration.unwrap(CacheRuntimeConfiguration.class); //// <4>
+    configuration.unwrap(CacheRuntimeConfiguration.class); // <4>
 
     try {
-      cache.getConfiguration(CompleteConfiguration.class); //// <5>
+      cache.getConfiguration(CompleteConfiguration.class); // <5>
       throw new AssertionError("IllegalArgumentException expected");
     } catch (IllegalArgumentException iaex) {
       // Expected
@@ -118,10 +118,10 @@ public class EhCache107ConfigurationIntegrationDocTest {
   public void testWithoutEhcacheExplicitDependencyCanSpecifyXML() throws Exception {
     // tag::jsr107UsingXMLConfigExample[]
     CachingProvider cachingProvider = Caching.getCachingProvider();
-    CacheManager manager = cachingProvider.getCacheManager( //// <1>
-        getClass().getResource("/org/ehcache/docs/ehcache-jsr107-config.xml").toURI(), //// <2>
-        getClass().getClassLoader()); //// <3>
-    Cache<Long, Product> readyCache = manager.getCache("ready-cache", Long.class, Product.class); //// <4>
+    CacheManager manager = cachingProvider.getCacheManager( // <1>
+        getClass().getResource("/org/ehcache/docs/ehcache-jsr107-config.xml").toURI(), // <2>
+        getClass().getClassLoader()); // <3>
+    Cache<Long, Product> readyCache = manager.getCache("ready-cache", Long.class, Product.class); // <4>
     // end::jsr107UsingXMLConfigExample[]
     assertThat(readyCache, notNullValue());
   }
@@ -134,27 +134,27 @@ public class EhCache107ConfigurationIntegrationDocTest {
 
     // tag::jsr107SupplementWithTemplatesExample[]
     MutableConfiguration<Long, String> mutableConfiguration = new MutableConfiguration<Long, String>();
-    mutableConfiguration.setTypes(Long.class, String.class); //// <1>
+    mutableConfiguration.setTypes(Long.class, String.class); // <1>
 
-    Cache<Long, String> anyCache = manager.createCache("anyCache", mutableConfiguration); //// <2>
+    Cache<Long, String> anyCache = manager.createCache("anyCache", mutableConfiguration); // <2>
 
     CacheRuntimeConfiguration<Long, String> ehcacheConfig = (CacheRuntimeConfiguration<Long, String>)anyCache.getConfiguration(
-        Eh107Configuration.class).unwrap(CacheRuntimeConfiguration.class); //// <3>
-    ehcacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(); //// <4>
+        Eh107Configuration.class).unwrap(CacheRuntimeConfiguration.class); // <3>
+    ehcacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(); // <4>
 
     MutableConfiguration<String, String> otherConfiguration = new MutableConfiguration<String, String>();
     otherConfiguration.setTypes(String.class, String.class);
-    otherConfiguration.setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(Duration.ONE_MINUTE)); //// <5>
+    otherConfiguration.setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(Duration.ONE_MINUTE)); // <5>
 
-    Cache<String, String> foosCache = manager.createCache("foos", otherConfiguration);//// <6>
+    Cache<String, String> foosCache = manager.createCache("foos", otherConfiguration);// <6>
     CacheRuntimeConfiguration<Long, String> foosEhcacheConfig = (CacheRuntimeConfiguration<Long, String>)foosCache.getConfiguration(
         Eh107Configuration.class).unwrap(CacheRuntimeConfiguration.class);
-    foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, "Answer!").getAmount(); //// <7>
+    foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, "Answer!").getAmount(); // <7>
 
     CompleteConfiguration<String, String> foosConfig = foosCache.getConfiguration(CompleteConfiguration.class);
 
     try {
-      ExpiryPolicy expiryPolicy = foosConfig.getExpiryPolicyFactory().create(); //// <8>
+      ExpiryPolicy expiryPolicy = foosConfig.getExpiryPolicyFactory().create(); // <8>
       throw new AssertionError("Expected UnsupportedOperationException");
     } catch (UnsupportedOperationException e) {
       // Expected

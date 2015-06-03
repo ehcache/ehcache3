@@ -1,17 +1,14 @@
 #!/bin/bash
 ## Generate content for github.com/ehcache/ehcache.github.io
 ##
-## TODO: Convert this to Gradle
-##
 ## This script presumes:
-## 1) ehcache/ehcache.github.io is checked out and available
-## 2) asciidoctor is installed and available in PATH
-## 3) this script is being executed from it's "home" directory (the 'docs' directory of the ehcache3 project)
+## 1) ehcache/ehcache.github.io is checked out and available locally
+## 2) this script is being executed from it's "home" directory (the 'docs' directory of the ehcache3 project)
 
 declare -r syntax="Syntax: ${0} <ehcache.github.io_project_root> <version>"
 
 declare -r contentRoot="$( cd "$(dirname "${0}")" ; pwd )"
-declare -r siteDocDir="${contentRoot}/user"
+declare -r siteDocDir="${contentRoot}/build/asciidoc/html5/user"
 
 ## 'adoc' files which don't need direct conversion
 declare -ar adocExclusions=(
@@ -62,24 +59,10 @@ if [ ! -d "${docsTarget}" ]; then
     mkdir -p "${docsTarget}" || exit
 fi
 
-## 1) Copy/replace ehcache.css
-echo "Copying 'ehcache.css'"
-cp -p "${siteDocDir}/ehcache.css" "${docsTarget}/." || exit
-
-## 2) Assemble the list of adoc files to convert; some are nested files and are not converted directly
-declare -a adocs
-for adoc in "${siteDocDir}"/*.adoc ; do
-    for exclusion in "${adocExclusions[@]}"; do
-        if [ "$(basename "${adoc}")" == "${exclusion}" ]; then
-            continue 2
-        fi
-    done
-    adocs+=( "${adoc}" )
-done
-
-## 3) Convert the adocs & place into site
+## 1) Convert and place
 echo "Converting & installing adocs"
-asciidoctor --destination-dir "${docsTarget}" "${adocs[@]}" || exit
+../gradlew clean asciidoctor || exit
+cp -p "${siteDocDir}/"* "${docsTarget}/." || exit
 
 echo "Done"
 

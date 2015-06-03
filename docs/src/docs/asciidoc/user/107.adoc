@@ -28,7 +28,7 @@ you can still get to the underlying Ehcache `RuntimeCacheConfiguration`:
 
 [source,java,indent=0]
 ----
-include::../../107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=mutableConfigurationExample]
+include::{sourcedir}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=mutableConfigurationExample]
 ----
 <1> Create a JSR-107 cache using the `MutableConfiguration` from the specification
 <2> Get to the JSR-107 `CompleteConfiguration`
@@ -42,7 +42,7 @@ When using this mechanism, no JSR-107 `CompleteConfiguration` is used and so you
 
 [source,java,indent=0]
 ----
-include::../../107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=ehcacheBasedConfigurationExample]
+include::{sourcedir}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=ehcacheBasedConfigurationExample]
 ----
 <1> Create an Ehcache `CacheConfiguration` - through a builder as shown here or even through XML
 <2> Use the configuration with JSR-107 API by wrapping it
@@ -59,12 +59,12 @@ Find below the XML configuration followed by the code to use it from JSR-107:
 
 [source,xml,indent=0]
 ----
-include::../../107/src/test/resources/org/ehcache/docs/ehcache-jsr107-config.xml[]
+include::{sourcedir}/107/src/test/resources/org/ehcache/docs/ehcache-jsr107-config.xml[]
 ----
 
 [source,java,indent=0]
 ----
-include::../../107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=jsr107UsingXMLConfigExample]
+include::{sourcedir}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=jsr107UsingXMLConfigExample]
 ----
 <1> Invoking `javax.cache.spi.CachingProvider.getCacheManager(java.net.URI, java.lang.ClassLoader)`
 <2> and passing in a URI that resolves to an Ehcache XLM configuration file.
@@ -91,7 +91,7 @@ constraint. All that's needed is adding a `jsr107` service in your XML configura
 
 [source,xml,indent=0]
 ----
-include::../../107/src/test/resources/org/ehcache/docs/ehcache-jsr107-template-override.xml[]
+include::{sourcedir}/107/src/test/resources/org/ehcache/docs/ehcache-jsr107-template-override.xml[]
 ----
 <1> First, declare a namespace for the 107 extension, e.g. `jsr107`
 <2> Within a `service` element at the top of you configuration, add a `jsr107:defaults` element
@@ -110,7 +110,7 @@ without modifying the application code.
 
 [source,java,indent=0]
 ----
-include::../../107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=jsr107SupplementWithTemplatesExample]
+include::{sourcedir}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=jsr107SupplementWithTemplatesExample]
 ----
 <1> Assume existing JSR-107 configuration code
 <2> that creates JSR-107 `Cache`
