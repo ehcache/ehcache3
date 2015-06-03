@@ -23,7 +23,7 @@ import java.util.Enumeration;
 
 import org.ehcache.Ehcache;
 import org.ehcache.spi.cache.CacheProvider;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.SupplementaryService;
@@ -121,7 +121,7 @@ public class ServiceLocatorTest {
   public void testAttemptsToStopAllServicesOnCloseFailure() {
     Service s1 = mock(CacheProvider.class);
     Service s2 = mock(FooProvider.class);
-    Service s3 = mock(CacheLoaderWriterFactory.class);
+    Service s3 = mock(CacheLoaderWriterProvider.class);
 
     ServiceLocator locator = new ServiceLocator(s1, s2, s3);
     try {
@@ -145,7 +145,7 @@ public class ServiceLocatorTest {
 
   @Test
   public void testStopAllServicesOnlyStopsEachServiceOnce() throws Exception {
-    Service s1 = mock(CacheProvider.class, withSettings().extraInterfaces(CacheLoaderWriterFactory.class));
+    Service s1 = mock(CacheProvider.class, withSettings().extraInterfaces(CacheLoaderWriterProvider.class));
 
     ServiceLocator locator = new ServiceLocator(s1);
     try {

@@ -19,14 +19,14 @@ package org.ehcache.spi.event;
 import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.config.event.DefaultCacheEventListenerProviderConfiguration;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.CacheEventListenerFactory;
+import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.internal.classes.ClassInstanceProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author rism
  */
-public class DefaultCacheEventListenerProvider extends ClassInstanceProvider<CacheEventListener<?, ?>> implements CacheEventListenerFactory{
+public class DefaultCacheEventListenerProvider extends ClassInstanceProvider<CacheEventListener<?, ?>> implements CacheEventListenerProvider {
 
   public DefaultCacheEventListenerProvider() {
     super(DefaultCacheEventListenerProviderConfiguration.class, DefaultCacheEventListenerConfiguration.class);
@@ -34,7 +34,7 @@ public class DefaultCacheEventListenerProvider extends ClassInstanceProvider<Cac
 
   @SuppressWarnings("unchecked")
   @Override
-  public <K, V> CacheEventListener<K, V> createEventListener(String alias, ServiceConfiguration<CacheEventListenerFactory> serviceConfiguration) {
+  public <K, V> CacheEventListener<K, V> createEventListener(String alias, ServiceConfiguration<CacheEventListenerProvider> serviceConfiguration) {
     return (CacheEventListener<K, V>) newInstance(alias, serviceConfiguration);
   }
 

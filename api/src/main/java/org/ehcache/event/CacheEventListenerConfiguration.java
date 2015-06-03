@@ -25,7 +25,7 @@ import java.util.EnumSet;
  *
  * @author Alex Snaps
  */
-public interface CacheEventListenerConfiguration extends ServiceConfiguration<CacheEventListenerFactory> {
+public interface CacheEventListenerConfiguration extends ServiceConfiguration<CacheEventListenerProvider> {
 
   /**
    * Indicates which {@link EventFiring firing mode} to use

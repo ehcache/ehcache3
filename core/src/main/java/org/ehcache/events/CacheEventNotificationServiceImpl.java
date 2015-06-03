@@ -20,7 +20,7 @@ import org.ehcache.Cache;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
-import org.ehcache.event.CacheEventListenerFactory;
+import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
@@ -183,8 +183,8 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
       this.config = new CacheEventListenerConfiguration() {
         
         @Override
-        public Class<CacheEventListenerFactory> getServiceType() {
-          return CacheEventListenerFactory.class;
+        public Class<CacheEventListenerProvider> getServiceType() {
+          return CacheEventListenerProvider.class;
         }
         
         @Override

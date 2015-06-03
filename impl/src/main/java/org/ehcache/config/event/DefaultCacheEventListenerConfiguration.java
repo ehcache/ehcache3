@@ -18,7 +18,7 @@ package org.ehcache.config.event;
 
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
-import org.ehcache.event.CacheEventListenerFactory;
+import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
@@ -41,8 +41,8 @@ public class DefaultCacheEventListenerConfiguration extends ClassInstanceConfigu
   }
 
   @Override
-  public Class<CacheEventListenerFactory> getServiceType() {
-    return CacheEventListenerFactory.class;
+  public Class<CacheEventListenerProvider> getServiceType() {
+    return CacheEventListenerProvider.class;
   }
 
   public void setEventFiringMode(EventFiring firingMode) {

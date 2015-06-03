@@ -32,7 +32,7 @@ import org.ehcache.spi.service.Service;
  *
  * @author Alex Snaps
  */
-public interface CacheLoaderWriterFactory extends Service {
+public interface CacheLoaderWriterProvider extends Service {
 
   /**
    * Invoked by the {@link org.ehcache.CacheManager} when a {@link org.ehcache.Cache} is being added to it.

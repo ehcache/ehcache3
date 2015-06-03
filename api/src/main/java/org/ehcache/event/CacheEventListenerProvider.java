@@ -22,7 +22,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 /**
  * @author Alex Snaps
  */
-public interface CacheEventListenerFactory extends Service {
+public interface CacheEventListenerProvider extends Service {
 
   /**
    * Creates a new {@link org.ehcache.event.CacheEventListener}
@@ -34,7 +34,7 @@ public interface CacheEventListenerFactory extends Service {
    *
    * @return the CacheEventListener to be registered with the given {@link org.ehcache.Cache}
    */
-  <K, V> CacheEventListener<K, V> createEventListener(String alias, ServiceConfiguration<CacheEventListenerFactory> serviceConfiguration);
+  <K, V> CacheEventListener<K, V> createEventListener(String alias, ServiceConfiguration<CacheEventListenerProvider> serviceConfiguration);
 
   /**
    * Releases a given {@link org.ehcache.event.CacheEventListener}
