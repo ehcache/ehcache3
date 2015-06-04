@@ -20,43 +20,55 @@ plugins {
   id 'com.github.johnrengelman.shadow' version '1.2.0'
 }
 
-def projectsToInclude = [':api', ':core', ':impl', ':jmx', ':107', ':xml']
+def shadowBaseName = 'ehcache'
+
+
+def projectNamesToInclude = [':api', ':core', ':impl', ':jmx', ':107', ':xml']
+def projectsToInclude = projectNamesToInclude.collect {project(it)}
 
 dependencies {
-  projectsToInclude.each {compile project(it)}
+  projectsToInclude.each {compile it}
   shadow 'org.slf4j:slf4j-api:1.7.7'
   shadow group: 'org.terracotta', name: 'offheap-store', version: parent.offHeapVersion
 
 }
 
 shadowJar {
-  baseName = 'ehcache'
+  baseName = shadowBaseName
   classifier = ''
-  projectsToInclude.each {projName -> dependencies {include(project(projName))}}
+  projectNamesToInclude.each {projName -> dependencies {include(project(projName))}}
   dependencies {
     include(dependency('org.terracotta.internal:statistics:1.0.3'))
   }
-  fillManifest(manifest, 'ehcache')
+  fillManifest(manifest, shadowBaseName)
   mergeServiceFiles()
 }
 
 task shadowSourceJar(type: Jar, dependsOn: shadowJar) {
-  baseName = 'ehcache'
+  baseName = shadowBaseName
   classifier = 'sources'
 
-  projectsToInclude.each {from project(it).sourceSets.main.allSource}
+  projectsToInclude.each {from it.sourceSets.main.allSource}
 }
 
-task shadowJavadocJar(type: Jar, dependsOn: shadowJar) {
-  baseName = 'ehcache'
+task aggregateJavadoc(type: Javadoc) {
+  title "$shadowBaseName $version API"
+  dependsOn projectsToInclude.javadoc
+  source projectsToInclude.javadoc.source
+  destinationDir file("$buildDir/docs/javadoc")
+  classpath = files(projectsToInclude.javadoc.classpath)
+}
+
+task shadowJavadocJar(type: Jar) {
+  dependsOn shadowJar, aggregateJavadoc
+  baseName = shadowBaseName
   classifier = 'javadoc'
 
-  // This is brute force and not completely valid as we need to merge some files
-  projectsToInclude.each {from project(it).javadoc.destinationDir}
+  from aggregateJavadoc.destinationDir
 }
 
 task asciidocZip(type: Zip, dependsOn: ':docs:asciidoctor') {
-  baseName = 'ehcache'
+  baseName = shadowBaseName
   classifier = 'docs'
 
   from '../docs/build/asciidoc/html5'
@@ -71,12 +83,12 @@ artifacts {
 
 def artifactFiltering = {
   addFilter('shadow') {artifact, file ->
-    artifact.name == 'ehcache'
+    artifact.name == shadowBaseName
   }
 
   def shadowPom = pom('shadow')
   shadowPom.groupId = 'org.ehcache'
-  shadowPom.artifactId = 'ehcache'
+  shadowPom.artifactId = shadowBaseName
   shadowPom.scopeMappings.mappings.remove(project.configurations.compile)
   shadowPom.scopeMappings.mappings.remove(project.configurations.runtime)
   shadowPom.scopeMappings.mappings.remove(project.configurations.testCompile)
