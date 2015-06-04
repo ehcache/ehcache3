@@ -20,13 +20,15 @@ package org.ehcache.jsr107;
  */
 final class Unwrap {
 
-  static <T> T unwrap(Class<T> clazz, Object obj) {
+  static <T> T unwrap(Class<T> clazz, Object... obj) {
     if (clazz == null || obj == null) {
       throw new NullPointerException();
     }
 
-    if (clazz.isAssignableFrom(obj.getClass())) {
-      return clazz.cast(obj);
+    for (Object o : obj) {
+      if (o != null && clazz.isAssignableFrom(o.getClass())) {
+        return clazz.cast(o);
+      }
     }
 
     throw new IllegalArgumentException("Cannot unwrap to " + clazz);

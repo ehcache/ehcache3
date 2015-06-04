@@ -84,11 +84,7 @@ class Eh107ReverseConfiguration<K, V> extends Eh107Configuration<K, V> {
 
   @Override
   public <T> T unwrap(Class<T> clazz) {
-    try {
-      return Unwrap.unwrap(clazz, this);
-    } catch (IllegalArgumentException e) {
-      return Unwrap.unwrap(clazz, cache.getRuntimeConfiguration());
-    }
+      return Unwrap.unwrap(clazz, this, cache.getRuntimeConfiguration());
   }
 
   @Override

@@ -462,7 +462,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
   @Override
   public <T> T unwrap(Class<T> clazz) {
-    return Unwrap.unwrap(clazz, ehCache);
+    return Unwrap.unwrap(clazz, this, ehCache);
   }
 
   @Override
@@ -639,7 +639,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
     @Override
     public <T> T unwrap(Class<T> clazz) {
-      return Unwrap.unwrap(clazz, ehEntry);
+      return Unwrap.unwrap(clazz, this, ehEntry);
     }
   }
 
