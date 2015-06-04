@@ -31,7 +31,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.SerializerConfiguration;
 import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.units.EntryUnit;
@@ -50,11 +50,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -101,8 +101,7 @@ public class GettingStarted {
   public void userManagedCacheExample() {
     // tag::userManagedCacheExample[]
     UserManagedCache<Long, String> userManagedCache =
-        UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class,
-            LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted"))
+        UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
             .build(false); // <1>
     userManagedCache.init(); // <2>
 
@@ -113,10 +112,10 @@ public class GettingStarted {
   }
 
   @Test
-  public void persistentCacheManager() {
+  public void persistentCacheManager() throws Exception {
     // tag::persistentCacheManager[]
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/myData"))) // <1>
+        .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "myData"))) // <1>
         .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder()
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
@@ -299,6 +298,10 @@ public class GettingStarted {
     assertThat(ListenerObject.evicted, is(0));
 
     cacheManager.close();
+  }
+
+  private String getStoragePath() throws URISyntaxException {
+    return getClass().getClassLoader().getResource(".").toURI().getPath();
   }
 
   public static class ListenerObject implements CacheEventListener<Object, Object> {

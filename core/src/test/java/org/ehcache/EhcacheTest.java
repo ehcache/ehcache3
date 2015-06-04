@@ -73,10 +73,6 @@ public class EhcacheTest {
     assertThat(ehcache.getStatus(), is(Status.AVAILABLE));
     ehcache.close();
     assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
-    ehcache.toMaintenance();
-    assertThat(ehcache.getStatus(), is(Status.MAINTENANCE));
-    ehcache.close();
-    assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
   }
 
   @Test
@@ -237,9 +233,6 @@ public class EhcacheTest {
     ehcache.init();
     assertThat(ehcache.getStatus(), is(Status.AVAILABLE));
     ehcache.close();
-    reset(mock);
-    ehcache.toMaintenance();
-    assertThat(ehcache.getStatus(), is(Status.MAINTENANCE));
   }
   
   @Test

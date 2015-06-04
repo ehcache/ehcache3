@@ -21,7 +21,8 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.StoreConfigurationImpl;
-import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
+import org.ehcache.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.CachePersistenceException;
@@ -69,7 +70,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
   
   @Before
   public void setUp() throws Exception {
-    persistenceService = new DefaultLocalPersistenceService(new PersistenceConfiguration(folder.newFolder()));
+    persistenceService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(folder.newFolder()));
     persistenceService.start(null, null);
             
     authoritativeTierFactory = new AuthoritativeTierFactory<String, String>() {
@@ -136,7 +137,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
       public Store.Provider newProvider() {
         Store.Provider provider = new OffHeapDiskStore.Provider();
         try {
-          LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(new PersistenceConfiguration(folder.newFolder()));
+          LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(folder.newFolder()));
           ServiceLocator serviceProvider = getServiceProvider();
           serviceProvider.addService(localPersistenceService);
           provider.start(null, serviceProvider);

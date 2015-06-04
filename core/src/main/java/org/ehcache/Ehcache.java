@@ -77,9 +77,9 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
 /**
  * @author Alex Snaps
  */
-public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, PersistentUserManagedCache<K, V> {
+public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
 
-  private final StatusTransitioner statusTransitioner;
+  protected final StatusTransitioner statusTransitioner;
 
   private final Store<K, V> store;
   private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
@@ -88,7 +88,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
   private final CacheEventNotificationService<K, V> eventNotificationService;
   private final Jsr107CacheImpl jsr107Cache;
   private final boolean useLoaderInAtomics;
-  private final Logger logger;
+  protected final Logger logger;
   
   private final OperationObserver<GetOutcome> getObserver = operation(GetOutcome.class).named("get").of(this).tag("cache").build();
   private final OperationObserver<PutOutcome> putObserver = operation(PutOutcome.class).named("put").of(this).tag("cache").build();
@@ -1026,43 +1026,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
     statusTransitioner.close().succeeded();
   }
 
-  @Override
-  public Maintainable toMaintenance() {
-    final StatusTransitioner.Transition st = statusTransitioner.maintenance();
-    try {
-      final Maintainable maintainable = new Maintainable() {
-        @Override
-        public void create() {
-          Ehcache.this.create();
-        }
-
-        @Override
-        public void destroy() {
-          Ehcache.this.destroy();
-        }
-
-        @Override
-        public void close() {
-          statusTransitioner.exitMaintenance().succeeded();
-        }
-      };
-      st.succeeded();
-      return maintainable;
-    } catch (RuntimeException e) {
-      st.failed(e); // this throws
-    }
-    throw new AssertionError("Should not reach this line... ever!");
-  }
-  
-  void create() {
-    statusTransitioner.checkMaintenance();
-    // TODO figure out persistence and user managed caches
-  }
-
-  void destroy() {
-    statusTransitioner.checkMaintenance();
-    // TODO figure out persistence and user managed caches
-  }
+  void checkMaintenance() {statusTransitioner.checkMaintenance();}
 
   @Override
   public Status getStatus() {

@@ -18,7 +18,7 @@ package org.ehcache.internal.store.disk;
 
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.StoreConfigurationImpl;
-import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expiry;
@@ -51,7 +51,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   
   @BeforeClass
   public static void classSetUp() throws Exception {
-    persistenceService = new DefaultLocalPersistenceService(new PersistenceConfiguration(
+    persistenceService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(
             new File(OffHeapDiskStoreTest.class.getClassLoader().getResource(".").toURI().getPath(), "disk-store-spi-test")));
     persistenceService.start(null, null);
     Store.PersistentStoreConfiguration persistentStoreConfiguration = mock(Store.PersistentStoreConfiguration.class);

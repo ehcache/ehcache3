@@ -16,7 +16,7 @@
 
 package org.ehcache.internal.persistence;
 
-import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.persistence.DefaultPersistenceConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -38,7 +38,7 @@ public class DefaultLocalPersistenceServiceTest {
     File f = folder.newFolder("testFailsIfDirectoryExistsButNotWritable");
     f.setWritable(false);
     try {
-      final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new PersistenceConfiguration(f));
+      final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
       try {
         service.start(null, null);
       } catch(IllegalArgumentException e) {
@@ -52,7 +52,7 @@ public class DefaultLocalPersistenceServiceTest {
   @Test
   public void testFailsIfFileExistsButIsNotDirectory() throws IOException {
     File f = folder.newFile("testFailsIfFileExistsButIsNotDirectory");
-    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new PersistenceConfiguration(f));
+    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
     try {
       service.start(null, null);
     } catch(IllegalArgumentException e) {
@@ -66,7 +66,7 @@ public class DefaultLocalPersistenceServiceTest {
     fdr.setWritable(false);
     try {
       File f = new File(fdr, "notallowed");
-      final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new PersistenceConfiguration(f));
+      final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
       try {
         service.start(null, null);
       } catch(IllegalArgumentException e) {
@@ -80,7 +80,7 @@ public class DefaultLocalPersistenceServiceTest {
   @Test
   public void testLocksDirectoryAndUnlocks() throws IOException {
     final File f = folder.newFolder("testLocksDirectoryAndUnlocks");
-    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new PersistenceConfiguration(f));
+    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
     service.start(null, null);
     assertThat(service.getLockFile().exists(), is(true));
     service.stop();

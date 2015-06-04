@@ -21,7 +21,7 @@ import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.ResourceType;
-import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.junit.Test;
 
@@ -43,7 +43,7 @@ public class RuntimeConfigurationTest {
             .heap(10L, EntryUnit.ENTRIES).disk(10, MemoryUnit.MB).build()).buildConfig(Long.class, String.class);
 
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/myData")))
+        .with(new CacheManagerPersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/myData")))
         .withCache("cache", cacheConfiguration).build(true);
 
     Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);

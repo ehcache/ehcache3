@@ -32,7 +32,6 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.Configuration;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class UserManagedCacheTest {
@@ -43,7 +42,7 @@ public class UserManagedCacheTest {
     Store.Provider storeProvider = spy(new TestStoreProvider(store));
     ServiceLocator locator = new ServiceLocator(storeProvider);
     
-    Ehcache ehcache = (Ehcache) UserManagedCacheBuilder.newUserManagedCacheBuilder(Object.class, Object.class, LoggerFactory.getLogger(Ehcache.class + "-" + "UserManagedCacheTest")).build(locator);
+    Ehcache ehcache = (Ehcache) UserManagedCacheBuilder.newUserManagedCacheBuilder(Object.class, Object.class).identifier("UserManagedCacheTest").build(locator);
     final LifeCycled mock = mock(LifeCycled.class);
     ehcache.addHook(mock);
     ehcache.init();
@@ -57,7 +56,7 @@ public class UserManagedCacheTest {
     final Store store = mock(Store.class);
     Store.Provider storeProvider = spy(new TestStoreProvider(store));
     ServiceLocator locator = new ServiceLocator(storeProvider);
-    Ehcache ehcache = (Ehcache) UserManagedCacheBuilder.newUserManagedCacheBuilder(Object.class, Object.class, LoggerFactory.getLogger(Ehcache.class + "-" + "UserManagedCacheTest")).build(locator);
+    Ehcache ehcache = (Ehcache) UserManagedCacheBuilder.newUserManagedCacheBuilder(Object.class, Object.class).identifier("UserManagedCacheTest").build(locator);
     final LifeCycled mock = mock(LifeCycled.class);
     ehcache.addHook(mock);
     doThrow(new Exception()).when(mock).init();
@@ -71,18 +70,6 @@ public class UserManagedCacheTest {
     reset(mock);
     ehcache.init();
     assertThat(ehcache.getStatus(), is(Status.AVAILABLE));
-    doThrow(new Exception()).when(mock).close();
-    try {
-      ehcache.close();
-      fail();
-    } catch (StateTransitionException e) {
-      assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
-    }
-
-    reset(store);
-    reset(mock);
-    ehcache.toMaintenance();
-    assertThat(ehcache.getStatus(), is(Status.MAINTENANCE));
     doThrow(new Exception()).when(mock).close();
     try {
       ehcache.close();

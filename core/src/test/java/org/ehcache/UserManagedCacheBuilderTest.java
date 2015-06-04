@@ -37,7 +37,7 @@ public class UserManagedCacheBuilderTest {
     final UserManagedCacheConfiguration<String, Object, TestUserManagedCache<String, Object>> cfg = new UserManagedCacheConfiguration<String, Object, TestUserManagedCache<String, Object>>() {
       @Override
       public UserManagedCacheBuilder<String, Object, TestUserManagedCache<String, Object>> builder(final UserManagedCacheBuilder<String, Object, ? extends UserManagedCache<String, Object>> builder) {
-        return new UserManagedCacheBuilder<String, Object, TestUserManagedCache<String, Object>>(String.class, Object.class,LoggerFactory.getLogger(Ehcache.class + "-" + "UserManagedCacheBuilderTest")) {
+        return new UserManagedCacheBuilder<String, Object, TestUserManagedCache<String, Object>>(String.class, Object.class) {
           @Override
           TestUserManagedCache<String, Object> build(final ServiceLocator serviceProvider) {
             return new TestUserManagedCache<String, Object>();

@@ -21,7 +21,7 @@ import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
-import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.exceptions.CachePersistenceException;
@@ -84,7 +84,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
   @Before
   public void setUp() throws IOException {
-    persistenceService = new DefaultLocalPersistenceService(new PersistenceConfiguration(folder.newFolder()));
+    persistenceService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(folder.newFolder()));
     persistenceService.start(null, null);
             
     storeFactory = new StoreFactory<String, String>() {

@@ -16,7 +16,7 @@
 
 package org.ehcache;
 
-import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -34,12 +34,12 @@ public class PersistentCacheManagerTest {
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
-  
+
   @Test
   public void testInitializesLocalPersistenceService() throws IOException {
     final File rootDirectory = folder.newFolder("testInitializesLocalPersistenceService");
     assertTrue(rootDirectory.delete());
-    newCacheManagerBuilder().with(new PersistenceConfiguration(rootDirectory)).build(true);
+    newCacheManagerBuilder().with(new CacheManagerPersistenceConfiguration(rootDirectory)).build(true);
     assertTrue(rootDirectory.isDirectory());
   }
 }
