@@ -38,10 +38,10 @@ public class ClassInstanceProvider<T> {
    */
   protected final Map<String, Class<? extends T>> preconfiguredLoaders = Collections.synchronizedMap(new LinkedHashMap<String, Class<? extends T>>());
 
-  private final Class<? extends ClassInstanceProviderFactoryConfiguration<T>> factoryConfig;
-  private final Class<? extends ClassInstanceProviderConfiguration<T>> cacheLevelConfig;
+  private final Class<? extends ClassInstanceProviderConfiguration<T>> factoryConfig;
+  private final Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig;
 
-  protected ClassInstanceProvider(Class<? extends ClassInstanceProviderFactoryConfiguration<T>> factoryConfig, Class<? extends ClassInstanceProviderConfiguration<T>> cacheLevelConfig) {
+  protected ClassInstanceProvider(Class<? extends ClassInstanceProviderConfiguration<T>> factoryConfig, Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig) {
     this.factoryConfig = factoryConfig;
     this.cacheLevelConfig = cacheLevelConfig;
   }
@@ -97,12 +97,12 @@ public class ClassInstanceProvider<T> {
   }
 
   public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
-    if (config != null ) {
+    if (config != null) {
       if(cacheLevelConfig.isAssignableFrom(config.getClass())) {
         throw new IllegalArgumentException(cacheLevelConfig.getSimpleName() + " must not be provided at CacheManager level");
       }
-      if(factoryConfig.isAssignableFrom(config.getClass())) {
-        ClassInstanceProviderFactoryConfiguration<T> instanceProviderFactoryConfig = factoryConfig.cast(config);
+      if (factoryConfig.isAssignableFrom(config.getClass())) {
+        ClassInstanceProviderConfiguration<T> instanceProviderFactoryConfig = factoryConfig.cast(config);
         preconfiguredLoaders.putAll(instanceProviderFactoryConfig.getDefaults());
       }
     }

@@ -16,30 +16,30 @@
 
 package org.ehcache.config.serializer;
 
-import org.ehcache.config.SerializationProviderConfiguration;
 import org.ehcache.internal.classes.ClassInstanceProviderConfiguration;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.ServiceConfiguration;
 
-/**
- * @author Ludovic Orban
- */
-public class DefaultSerializationProviderConfiguration<T> extends ClassInstanceProviderConfiguration<Serializer<T>> implements SerializationProviderConfiguration<DefaultSerializationProvider> {
-
-  private final Type type;
-
-  public DefaultSerializationProviderConfiguration(Class<? extends Serializer<T>> clazz, Type type) {
-    super(clazz);
-    this.type = type;
-  }
+public class DefaultSerializationProviderConfiguration extends ClassInstanceProviderConfiguration<Serializer<?>> implements ServiceConfiguration<DefaultSerializationProvider> {
 
   @Override
   public Class<DefaultSerializationProvider> getServiceType() {
     return DefaultSerializationProvider.class;
   }
 
-  public Type getType() {
-    return type;
+  public <T> DefaultSerializationProviderConfiguration addSerializerFor(Class<T> serializableClass, Class<? extends Serializer<T>> serializerClass) {
+    if (serializableClass == null) {
+      throw new NullPointerException("Serializable class cannot be null");
+    }
+    if (serializerClass == null) {
+      throw new NullPointerException("Serializer class cannot be null");
+    }
+    String alias = serializableClass.getName();
+    if (getDefaults().containsKey(alias)) {
+      throw new IllegalArgumentException("Duplicate serializer for class : " + alias);
+    }
+    getDefaults().put(alias, serializerClass);
+    return this;
   }
-
 }

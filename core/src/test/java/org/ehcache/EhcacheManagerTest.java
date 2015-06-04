@@ -30,7 +30,7 @@ import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriterFactory;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -263,7 +263,7 @@ public class EhcacheManagerTest {
   @Test
   public void testLifeCyclesCacheLoaders() {
 
-    final CacheLoaderWriterFactory cacheLoaderWriterFactory = mock(CacheLoaderWriterFactory.class);
+    final CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
 
     final CacheConfiguration<Long, Long> barConfig = mock(CacheConfiguration.class);
     when(barConfig.getClassLoader()).thenReturn(getClass().getClassLoader());
@@ -275,7 +275,7 @@ public class EhcacheManagerTest {
     final DefaultWriteBehindConfiguration configuration = mock(DefaultWriteBehindConfiguration.class);
     final WriteBehindDecoratorLoaderWriterProvider decoratorLoaderWriterProvider = mock(WriteBehindDecoratorLoaderWriterProvider.class);
 
-    when(cacheLoaderWriterFactory.createCacheLoaderWriter("foo", fooConfig)).thenReturn(fooLoaderWriter);
+    when(cacheLoaderWriterProvider.createCacheLoaderWriter("foo", fooConfig)).thenReturn(fooLoaderWriter);
     
 
     @SuppressWarnings("serial")
@@ -292,20 +292,20 @@ public class EhcacheManagerTest {
     final CacheEventNotificationListenerServiceProvider cenlProvider = mock(CacheEventNotificationListenerServiceProvider.class);
     final CacheEventNotificationService<Object, Object> cenlServiceMock = mock(CacheEventNotificationServiceImpl.class);
     when(cenlProvider.createCacheEventNotificationService(mock(Store.class))).thenReturn(cenlServiceMock);
-    final ServiceLocator serviceLocator = new ServiceLocator(cacheLoaderWriterFactory, storeProvider, decoratorLoaderWriterProvider, cenlProvider);
+    final ServiceLocator serviceLocator = new ServiceLocator(cacheLoaderWriterProvider, storeProvider, decoratorLoaderWriterProvider, cenlProvider);
     when(storeProvider
         .createStore(Matchers.<Store.Configuration>anyObject(), Matchers.<ServiceConfiguration[]>anyVararg())).thenReturn(mock);
 
     final EhcacheManager manager = new EhcacheManager(cfg, serviceLocator);
     manager.init();
 
-    verify(cacheLoaderWriterFactory).createCacheLoaderWriter("bar", barConfig);
-    verify(cacheLoaderWriterFactory).createCacheLoaderWriter("foo", fooConfig);
+    verify(cacheLoaderWriterProvider).createCacheLoaderWriter("bar", barConfig);
+    verify(cacheLoaderWriterProvider).createCacheLoaderWriter("foo", fooConfig);
 
     manager.removeCache("bar");
-    verify(cacheLoaderWriterFactory, never()).releaseCacheLoaderWriter((CacheLoaderWriter<?, ?>)Mockito.anyObject());
+    verify(cacheLoaderWriterProvider, never()).releaseCacheLoaderWriter((CacheLoaderWriter<?, ?>)Mockito.anyObject());
     manager.removeCache("foo");
-    verify(cacheLoaderWriterFactory).releaseCacheLoaderWriter(fooLoaderWriter);
+    verify(cacheLoaderWriterProvider).releaseCacheLoaderWriter(fooLoaderWriter);
   }
 
   @Test

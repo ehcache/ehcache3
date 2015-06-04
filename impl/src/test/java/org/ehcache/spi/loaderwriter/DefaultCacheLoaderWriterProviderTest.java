@@ -24,7 +24,7 @@ import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.DefaultConfiguration;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterFactoryConfiguration;
+import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterProviderConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -40,7 +40,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
 
-public class DefaultCacheLoaderWriterFactoryTest {
+public class DefaultCacheLoaderWriterProviderTest {
 
   @Test
   public void testCacheConfigUsage() {
@@ -61,7 +61,7 @@ public class DefaultCacheLoaderWriterFactoryTest {
 
     final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
     caches.put("foo", cacheConfiguration);
-    final DefaultConfiguration configuration = new DefaultConfiguration(caches, null, new DefaultCacheLoaderWriterFactoryConfiguration()
+    final DefaultConfiguration configuration = new DefaultConfiguration(caches, null, new DefaultCacheLoaderWriterProviderConfiguration()
         .addLoaderFor("foo", MyLoader.class));
     final CacheManager manager = CacheManagerBuilder.newCacheManager(configuration);
     manager.init();
@@ -77,7 +77,7 @@ public class DefaultCacheLoaderWriterFactoryTest {
 
     final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
     caches.put("foo", cacheConfiguration);
-    final DefaultConfiguration configuration = new DefaultConfiguration(caches, null, new DefaultCacheLoaderWriterFactoryConfiguration()
+    final DefaultConfiguration configuration = new DefaultConfiguration(caches, null, new DefaultCacheLoaderWriterProviderConfiguration()
         .addLoaderFor("foo", MyLoader.class));
     final CacheManager manager = CacheManagerBuilder.newCacheManager(configuration);
     manager.init();

@@ -13,31 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.config;
 
-import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
+package org.ehcache.internal.classes;
 
 /**
- * Configuration of {@link org.ehcache.spi.serialization.SerializationProvider}
- *
- * @author Ludovic Orban
+ * @author Alex Snaps
  */
-public interface SerializationProviderConfiguration<T extends Service> extends ServiceConfiguration<T> {
+public class ClassInstanceConfiguration<T> {
 
-  /**
-   * Get the type of the serialization provider
-   *
-   * @return the type
-   */
-  Type getType();
+  private final Class<? extends T> clazz;
 
-  /**
-   * Serialization provider types
-   */
-  enum Type {
-    KEY,
-    VALUE,
+  public ClassInstanceConfiguration(final Class<? extends T> clazz) {
+    this.clazz = clazz;
   }
 
+  public Class<? extends T> getClazz() {
+    return clazz;
+  }
 }

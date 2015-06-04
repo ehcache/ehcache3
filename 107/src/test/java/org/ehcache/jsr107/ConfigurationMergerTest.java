@@ -67,13 +67,13 @@ public class ConfigurationMergerTest {
   private ConfigurationMerger merger;
   private XmlConfiguration xmlConfiguration;
   private Jsr107Service jsr107Service;
-  private Eh107CacheLoaderWriterFactory cacheLoaderWriterFactory;
+  private Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory;
 
   @Before
   public void setUp() {
     xmlConfiguration = mock(XmlConfiguration.class);
     jsr107Service = mock(Jsr107Service.class);
-    cacheLoaderWriterFactory = mock(Eh107CacheLoaderWriterFactory.class);
+    cacheLoaderWriterFactory = mock(Eh107CacheLoaderWriterProvider.class);
     merger = new ConfigurationMerger(xmlConfiguration, jsr107Service, cacheLoaderWriterFactory, LOGGER);
   }
 

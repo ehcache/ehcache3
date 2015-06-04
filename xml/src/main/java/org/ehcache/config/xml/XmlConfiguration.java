@@ -26,8 +26,8 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
 import org.ehcache.config.xml.ConfigurationParser.WriteBehind;
 import org.ehcache.config.xml.model.SerializerType;
@@ -158,7 +158,7 @@ public class XmlConfiguration implements Configuration {
 
     for (ServiceType serviceType : configurationParser.getServiceElements()) {
       if (serviceType.getDefaultSerializers() != null) {
-        DefaultSerializationProviderFactoryConfiguration configuration = new DefaultSerializationProviderFactoryConfiguration();
+        DefaultSerializationProviderConfiguration configuration = new DefaultSerializationProviderConfiguration();
 
         for (SerializerType.Serializer serializer : serviceType.getDefaultSerializers().getSerializer()) {
           try {
@@ -201,11 +201,11 @@ public class XmlConfiguration implements Configuration {
       Class valueType = getClassForName(cacheDefinition.valueType(), cacheClassLoader);
       if (cacheDefinition.keySerializer() != null) {
         Class keySerializer = getClassForName(cacheDefinition.keySerializer(), cacheClassLoader);
-        builder = builder.add(new DefaultSerializationProviderConfiguration(keySerializer, DefaultSerializationProviderConfiguration.Type.KEY));
+        builder = builder.add(new DefaultSerializerConfiguration(keySerializer, DefaultSerializerConfiguration.Type.KEY));
       }
       if (cacheDefinition.valueSerializer() != null) {
         Class valueSerializer = getClassForName(cacheDefinition.valueSerializer(), cacheClassLoader);
-        builder = builder.add(new DefaultSerializationProviderConfiguration(valueSerializer, DefaultSerializationProviderConfiguration.Type.VALUE));
+        builder = builder.add(new DefaultSerializerConfiguration(valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
       }
       EvictionVeto evictionVeto = getInstanceOfName(cacheDefinition.evictionVeto(), cacheClassLoader, EvictionVeto.class);
       EvictionPrioritizer evictionPrioritizer = getInstanceOfName(cacheDefinition.evictionPrioritizer(), cacheClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class);
@@ -400,11 +400,11 @@ public class XmlConfiguration implements Configuration {
 
     if (cacheTemplate.keySerializer() != null) {
       final Class<Serializer<?>> keySerializer = (Class<Serializer<?>>) getClassForName(cacheTemplate.keySerializer(), defaultClassLoader);
-      builder = builder.add(new DefaultSerializationProviderConfiguration(keySerializer, DefaultSerializationProviderConfiguration.Type.KEY));
+      builder = builder.add(new DefaultSerializerConfiguration(keySerializer, DefaultSerializerConfiguration.Type.KEY));
     }
     if (cacheTemplate.valueSerializer() != null) {
       final Class<Serializer<?>> valueSerializer = (Class<Serializer<?>>) getClassForName(cacheTemplate.valueSerializer(), defaultClassLoader);
-      builder = builder.add(new DefaultSerializationProviderConfiguration(valueSerializer, DefaultSerializationProviderConfiguration.Type.VALUE));
+      builder = builder.add(new DefaultSerializerConfiguration(valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
     }
     final String loaderWriter = cacheTemplate.loaderWriter();
     if(loaderWriter!= null) {

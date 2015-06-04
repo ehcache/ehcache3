@@ -23,15 +23,15 @@ import org.ehcache.spi.service.ServiceFactory;
 /**
  * @author Alex Snaps
  */
-public class DefaultCacheLoaderWriterFactoryProvider implements ServiceFactory<DefaultCacheLoaderWriterFactory> {
+public class DefaultCacheLoaderWriterProviderFactory implements ServiceFactory<DefaultCacheLoaderWriterProvider> {
 
   @Override
-  public DefaultCacheLoaderWriterFactory create(final ServiceConfiguration<DefaultCacheLoaderWriterFactory> serviceConfiguration, final ServiceLocator serviceLocator) {
-    return new DefaultCacheLoaderWriterFactory();
+  public DefaultCacheLoaderWriterProvider create(final ServiceConfiguration<DefaultCacheLoaderWriterProvider> serviceConfiguration, final ServiceLocator serviceLocator) {
+    return new DefaultCacheLoaderWriterProvider();
   }
 
   @Override
-  public Class<DefaultCacheLoaderWriterFactory> getServiceType() {
-    return DefaultCacheLoaderWriterFactory.class;
+  public Class<DefaultCacheLoaderWriterProvider> getServiceType() {
+    return DefaultCacheLoaderWriterProvider.class;
   }
 }

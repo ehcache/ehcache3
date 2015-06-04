@@ -14,25 +14,32 @@
  * limitations under the License.
  */
 
-package org.ehcache.config.loaderwriter;
+package org.ehcache.config.serializer;
 
+import org.ehcache.config.SerializerConfiguration;
 import org.ehcache.internal.classes.ClassInstanceConfiguration;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.spi.loaderwriter.DefaultCacheLoaderWriterProvider;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.spi.serialization.Serializer;
 
 /**
-* @author Alex Snaps
-*/
-public class DefaultCacheLoaderWriterConfiguration extends ClassInstanceConfiguration<CacheLoaderWriter<?, ?>> implements ServiceConfiguration<DefaultCacheLoaderWriterProvider>  {
+ * @author Ludovic Orban
+ */
+public class DefaultSerializerConfiguration<T> extends ClassInstanceConfiguration<Serializer<T>> implements SerializerConfiguration<DefaultSerializationProvider> {
 
-  public DefaultCacheLoaderWriterConfiguration(final Class<? extends CacheLoaderWriter<?, ?>> clazz) {
+  private final Type type;
+
+  public DefaultSerializerConfiguration(Class<? extends Serializer<T>> clazz, Type type) {
     super(clazz);
+    this.type = type;
   }
 
   @Override
-  public Class<DefaultCacheLoaderWriterProvider> getServiceType() {
-    return DefaultCacheLoaderWriterProvider.class;
+  public Class<DefaultSerializationProvider> getServiceType() {
+    return DefaultSerializationProvider.class;
+  }
+
+  public Type getType() {
+    return type;
   }
 
 }

@@ -90,7 +90,7 @@ public class EhcacheCachingProvider implements CachingProvider {
           throw new javax.cache.CacheException(e);
         }
 
-        Eh107CacheLoaderWriterFactory cacheLoaderWriterFactory = new Eh107CacheLoaderWriterFactory();
+        Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory = new Eh107CacheLoaderWriterProvider();
         Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceConfigurations().toArray()));
 
         ServiceLocator serviceLocator = new ServiceLocator();

@@ -5,8 +5,8 @@ org.ehcache.internal.store.disk.DiskStoreProviderFactory
 org.ehcache.internal.store.tiering.CacheStoreProviderFactory
 
 org.ehcache.spi.serialization.DefaultSerializationProviderFactory
-org.ehcache.spi.loaderwriter.DefaultCacheLoaderWriterFactoryProvider
-org.ehcache.spi.event.DefaultCacheEventListenerFactoryProvider
+org.ehcache.spi.loaderwriter.DefaultCacheLoaderWriterProviderFactory
+org.ehcache.spi.event.DefaultCacheEventListenerProviderFactory
 org.ehcache.internal.executor.DefaultThreadPoolsServiceFactory
 org.ehcache.internal.persistence.DefaultLocalPersistenceServiceFactory
 org.ehcache.loaderwriter.writebehind.WriteBehindDecoratorLoaderWriterProviderFactory

@@ -28,12 +28,12 @@ import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.ResourceType;
-import org.ehcache.config.SerializationProviderConfiguration;
+import org.ehcache.config.SerializerConfiguration;
 import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.config.serializer.DefaultSerializationProviderFactoryConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
@@ -150,9 +150,9 @@ public class GettingStarted {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .buildConfig(Long.class, String.class);
 
-    DefaultSerializationProviderFactoryConfiguration defaultSerializationProviderFactoryConfiguration =
-        new DefaultSerializationProviderFactoryConfiguration()
-            .addSerializerFor(String.class, StringSerializer.class); // <2>
+    DefaultSerializationProviderConfiguration defaultSerializationProviderFactoryConfiguration =
+        new DefaultSerializationProviderConfiguration()
+            .addSerializerFor(String.class, StringSerializer.class); //// <2>
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("cache", cacheConfiguration)
         .using(defaultSerializationProviderFactoryConfiguration) // <3>
@@ -173,10 +173,10 @@ public class GettingStarted {
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
         .add(new OnHeapStoreServiceConfiguration().storeByValue(true)) // <1>
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
-        .add(new DefaultSerializationProviderConfiguration<Long>(LongSerializer.class,
-            SerializationProviderConfiguration.Type.KEY)) // <2>
-        .add(new DefaultSerializationProviderConfiguration<CharSequence>(CharSequenceSerializer.class,
-            SerializationProviderConfiguration.Type.VALUE)) // <3>
+        .add(new DefaultSerializerConfiguration<Long>(LongSerializer.class,
+            SerializerConfiguration.Type.KEY)) //// <2>
+        .add(new DefaultSerializerConfiguration<CharSequence>(CharSequenceSerializer.class,
+            SerializerConfiguration.Type.VALUE)) //// <3>
         .buildConfig(Long.class, String.class);
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()

@@ -64,7 +64,7 @@ class Eh107CacheManager implements CacheManager {
   private final ConfigurationMerger configurationMerger;
 
   Eh107CacheManager(EhcacheCachingProvider cachingProvider, org.ehcache.CacheManager ehCacheManager, Properties props,
-      ClassLoader classLoader, URI uri, Eh107CacheLoaderWriterFactory cacheLoaderWriterFactory,
+      ClassLoader classLoader, URI uri, Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory,
       org.ehcache.config.Configuration ehConfig, Jsr107Service jsr107Service) {
     this.cachingProvider = cachingProvider;
     this.ehCacheManager = ehCacheManager;

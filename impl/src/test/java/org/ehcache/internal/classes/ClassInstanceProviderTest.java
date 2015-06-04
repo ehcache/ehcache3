@@ -32,7 +32,7 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testNewInstanceUsingAliasAndNoArgs() throws Exception {
-    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>((Class)ClassInstanceProviderFactoryConfiguration.class, (Class)ClassInstanceProviderConfiguration.class);
+    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>((Class)ClassInstanceProviderConfiguration.class, (Class)ClassInstanceConfiguration.class);
 
     classInstanceProvider.preconfiguredLoaders.put("test stuff", TestService.class);
     TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration) null);
@@ -42,7 +42,7 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testNewInstanceUsingAliasAndArg() throws Exception {
-    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>((Class)ClassInstanceProviderFactoryConfiguration.class, (Class)ClassInstanceProviderConfiguration.class);
+    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>((Class)ClassInstanceProviderConfiguration.class, (Class)ClassInstanceConfiguration.class);
 
     classInstanceProvider.preconfiguredLoaders.put("test stuff", TestService.class);
     TestService obj = classInstanceProvider.newInstance("test stuff", null, new ClassInstanceProvider.ConstructorArgument<String>(String.class, "test string"));
@@ -52,9 +52,9 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testNewInstanceUsingServiceConfig() throws Exception {
-    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>((Class)ClassInstanceProviderFactoryConfiguration.class, (Class)ClassInstanceProviderConfiguration.class);
+    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>((Class)ClassInstanceProviderConfiguration.class, (Class)ClassInstanceConfiguration.class);
 
-    TestServiceProviderConfiguration config = new TestServiceProviderConfiguration();
+    TestServiceConfiguration config = new TestServiceConfiguration();
     TestService obj = classInstanceProvider.newInstance("test stuff", config);
 
     assertThat(obj.theString, is(nullValue()));
@@ -62,9 +62,9 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testNewInstanceUsingServiceConfigFactory() throws Exception {
-    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>((Class)ClassInstanceProviderFactoryConfiguration.class, (Class)ClassInstanceProviderConfiguration.class);
+    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>((Class)ClassInstanceProviderConfiguration.class, (Class)ClassInstanceConfiguration.class);
 
-    TestServiceProviderFactoryConfiguration factoryConfig = new TestServiceProviderFactoryConfiguration();
+    TestServiceProviderConfiguration factoryConfig = new TestServiceProviderConfiguration();
     factoryConfig.getDefaults().put("test stuff", TestService.class);
 
     classInstanceProvider.start(factoryConfig, null);
@@ -75,7 +75,7 @@ public class ClassInstanceProviderTest {
   
   @Test
   public void testAddingCacheLevelConfigurationAtCacheManagerLevel() {
-    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>((Class)ClassInstanceProviderFactoryConfiguration.class, (Class)ClassInstanceProviderConfiguration.class);
+    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>((Class)ClassInstanceProviderConfiguration.class, (Class)ClassInstanceConfiguration.class);
     TestServiceProviderConfiguration cacheLevelConfig = new TestServiceProviderConfiguration();
     try {
       classInstanceProvider.start(cacheLevelConfig, null);
@@ -104,8 +104,8 @@ public class ClassInstanceProviderTest {
     }
   }
 
-  public static class TestServiceProviderConfiguration extends ClassInstanceProviderConfiguration<TestService> implements ServiceConfiguration<TestService> {
-    public TestServiceProviderConfiguration() {
+  public static class TestServiceConfiguration extends ClassInstanceConfiguration<TestService> implements ServiceConfiguration<TestService> {
+    public TestServiceConfiguration() {
       super(TestService.class);
     }
 
@@ -115,7 +115,7 @@ public class ClassInstanceProviderTest {
     }
   }
 
-  public static class TestServiceProviderFactoryConfiguration extends ClassInstanceProviderFactoryConfiguration<TestService> implements ServiceConfiguration<TestService> {
+  public static class TestServiceProviderConfiguration extends ClassInstanceProviderConfiguration<TestService> implements ServiceConfiguration<TestService> {
     @Override
     public Class<TestService> getServiceType() {
       return TestService.class;

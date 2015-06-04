@@ -18,18 +18,18 @@ package org.ehcache.config.event;
 
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
-import org.ehcache.event.CacheEventListenerFactory;
+import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
-import org.ehcache.internal.classes.ClassInstanceProviderConfiguration;
+import org.ehcache.internal.classes.ClassInstanceConfiguration;
 
 import java.util.EnumSet;
 
 /**
  * @author rism
  */
-public class DefaultCacheEventListenerConfiguration extends ClassInstanceProviderConfiguration<CacheEventListener<?, ?>>
+public class DefaultCacheEventListenerConfiguration extends ClassInstanceConfiguration<CacheEventListener<?, ?>>
     implements CacheEventListenerConfiguration {
 
   private EventFiring eventFiringMode = EventFiring.ASYNCHRONOUS;
@@ -41,8 +41,8 @@ public class DefaultCacheEventListenerConfiguration extends ClassInstanceProvide
   }
 
   @Override
-  public Class<CacheEventListenerFactory> getServiceType() {
-    return CacheEventListenerFactory.class;
+  public Class<CacheEventListenerProvider> getServiceType() {
+    return CacheEventListenerProvider.class;
   }
 
   public void setEventFiringMode(EventFiring firingMode) {

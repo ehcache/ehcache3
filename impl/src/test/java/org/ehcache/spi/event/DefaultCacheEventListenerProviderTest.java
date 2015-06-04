@@ -45,7 +45,7 @@ import static org.junit.Assert.assertThat;
 /**
  * @author rism
  */
-public class DefaultCacheEventListenerFactoryTest {
+public class DefaultCacheEventListenerProviderTest {
 
   @Test
   public void testCacheConfigUsage() {
