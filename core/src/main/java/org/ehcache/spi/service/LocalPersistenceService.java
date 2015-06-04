@@ -16,20 +16,40 @@
 
 package org.ehcache.spi.service;
 
-import org.ehcache.config.CacheConfiguration;
-
-import java.io.File;
+import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.spi.cache.Store;
 
 /**
+ * Service to provide persistence context to caches requiring it.
+ *
+ * Will be used by caches with a disk store, whether or not the data should survive a program restart.
+ *
  * @author Alex Snaps
  */
 public interface LocalPersistenceService extends Service {
 
-  Object persistenceContext(String cacheAlias, CacheConfiguration<?, ?> cacheConfiguration);
+  /**
+   * Creates a new persistence context
+   *
+   * @param identifier the identifier to be used for the persistence context
+   * @param storeConfiguration the configuration of the {@link Store} that will use the persistence context
+   *
+   * @return a {@link FileBasedPersistenceContext}
+   *
+   * @throws CachePersistenceException if the persistence context cannot be created
+   */
+  FileBasedPersistenceContext createPersistenceContext(Object identifier, Store.PersistentStoreConfiguration<?, ?, ?> storeConfiguration) throws CachePersistenceException;
 
-  @Deprecated
-  File getDataFile(Object identifier);
+  /**
+   * Destroys the persistence context with the given identifier.
+   *
+   * Note that this method can be called without creating the persistence context beforehand in the same JVM.
+   * It will nonetheless try to delete any persistent data that could have been associated with the identifier.
+   *
+   * @param identifier the identifier of the persistence context
+   *
+   * @throws CachePersistenceException if the persistence context cannot be destroyed
+   */
+  void destroyPersistenceContext(Object identifier) throws CachePersistenceException;
 
-  @Deprecated
-  File getIndexFile(Object identifier);
 }

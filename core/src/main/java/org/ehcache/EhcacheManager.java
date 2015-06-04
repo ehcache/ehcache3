@@ -19,6 +19,8 @@ package org.ehcache;
 import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourceType;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
 import org.ehcache.event.CacheEventListener;
@@ -27,12 +29,13 @@ import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.events.CacheEventNotificationListenerServiceProvider;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.CacheManagerListener;
+import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.spi.LifeCycled;
-import org.ehcache.spi.Persistable;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
+import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ThreadPoolsService;
@@ -123,8 +126,27 @@ public class EhcacheManager implements PersistentCacheManager {
   }
 
   void closeEhcache(final String alias, final Ehcache<?, ?> ehcache) {
+    boolean diskTransient = isDiskTransient(ehcache);
     ehcache.close();
+    if (diskTransient) {
+      try {
+        destroyPersistenceContext(alias);
+      } catch (CachePersistenceException e) {
+        LOGGER.debug("Unable to clear persistent context for cache {}", alias, e);
+      }
+    }
     LOGGER.info("Cache '{}' is closed from EhcacheManager.", alias);
+  }
+
+  private boolean isDiskTransient(Ehcache<?, ?> ehcache) {
+    boolean diskTransient = false;
+    ResourcePool diskResource = ehcache.getRuntimeConfiguration()
+      .getResourcePools()
+      .getPoolForResource(ResourceType.Core.DISK);
+    if (diskResource != null) {
+      diskTransient = !diskResource.isPersistent();
+    }
+    return diskTransient;
   }
 
   @Override
@@ -196,43 +218,11 @@ public class EhcacheManager implements PersistentCacheManager {
     List<LifeCycled> lifeCycledList = new ArrayList<LifeCycled>();
 
     final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
-    final Store<K, V> store = storeProvider.createStore(
-            new PersistentStoreConfigurationImpl<K, V>(new StoreConfigurationImpl<K, V>(config), alias), serviceConfigs);
-
-    lifeCycledList.add(new LifeCycled() {
-      @Override
-      public void init() throws Exception {
-        if (store instanceof Persistable) {
-          final Persistable persistable = (Persistable) store;
-          if (!persistable.isPersistent()) {
-            try {
-              persistable.destroy();
-            } catch (Exception e) {
-              throw new RuntimeException(e);
-            }
-          }
-          try {
-            persistable.create();
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-        }
-      }
-
-      @Override
-      public void close() throws Exception {
-        if (store instanceof Persistable) {
-          final Persistable persistable = (Persistable) store;
-          if (!persistable.isPersistent()) {
-            try {
-              persistable.destroy();
-            } catch (Exception e) {
-              throw new RuntimeException(e);
-            }
-          }
-        }
-      }
-    });
+    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<K, V>(config);
+    if (config.getResourcePools().getResourceTypeSet().contains(ResourceType.Core.DISK)) {
+      storeConfiguration = new PersistentStoreConfigurationImpl<K, V>(storeConfiguration, alias);
+    }
+    final Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigs);
 
     lifeCycledList.add(new LifeCycled() {
       @Override
@@ -469,7 +459,7 @@ public class EhcacheManager implements PersistentCacheManager {
     } catch (RuntimeException e) {
       st.failed(e); // this throws
     }
-    throw new AssertionError("Shouldn reach this line... ever!");
+    throw new AssertionError("Shouldn't reach this line... ever!");
   }
 
   void create() {
@@ -481,18 +471,22 @@ public class EhcacheManager implements PersistentCacheManager {
   }
 
   @Override
-  public void destroyCache(final String alias) {
-    LOGGER.info("Destoying Cache '{}' in EhcacheManager.", alias);
+  public void destroyCache(final String alias) throws CachePersistenceException {
+    LOGGER.info("Destroying Cache '{}' in EhcacheManager.", alias);
     final CacheHolder cacheHolder = caches.remove(alias);
-    if(cacheHolder == null) {
-      throw new IllegalArgumentException("No Cache associated with alias " + alias);
+    if(cacheHolder != null) {
+      final Ehcache<?, ?> ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
+      if(ehcache.getStatus() == Status.AVAILABLE) {
+        ehcache.close();
+      }
     }
-    final Ehcache<?, ?> ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
-    if(ehcache.getStatus() == Status.AVAILABLE) {
-      ehcache.close();
-    }
-    ehcache.toMaintenance().destroy();
+    destroyPersistenceContext(alias);
     LOGGER.info("Cache '{}' is successfully destroyed in EhcacheManager.", alias);
+  }
+
+  private void destroyPersistenceContext(String alias) throws CachePersistenceException {
+    LocalPersistenceService persistenceService = serviceLocator.findService(LocalPersistenceService.class);
+    persistenceService.destroyPersistenceContext(alias);
   }
 
   // for tests at the moment

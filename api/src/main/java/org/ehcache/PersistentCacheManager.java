@@ -16,6 +16,8 @@
 
 package org.ehcache;
 
+import org.ehcache.exceptions.CachePersistenceException;
+
 /**
  * A CacheManager that knows how to lifecycle {@link org.ehcache.Cache} data that outlive the JVM's process existence.
  *
@@ -36,7 +38,9 @@ public interface PersistentCacheManager extends CacheManager {
    * by this {@link org.ehcache.CacheManager}
    *
    * @param alias the {@link org.ehcache.Cache}'s alias to destroy all persistent data from
+   *
+   * @throws CachePersistenceException When something goes wrong destroying the persistent data
    */
-  void destroyCache(String alias);
+  void destroyCache(String alias) throws CachePersistenceException;
 
 }

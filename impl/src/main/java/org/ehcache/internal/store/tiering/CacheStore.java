@@ -22,7 +22,6 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
-import org.ehcache.spi.Persistable;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
@@ -45,7 +44,7 @@ import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 /**
  * @author Ludovic Orban
  */
-public class CacheStore<K, V> implements Store<K, V>, Persistable {
+public class CacheStore<K, V> implements Store<K, V> {
 
   private static final Logger LOG = LoggerFactory.getLogger(CacheStore.class);
 
@@ -55,11 +54,6 @@ public class CacheStore<K, V> implements Store<K, V>, Persistable {
   public CacheStore(CachingTier<K, V> cachingTier, AuthoritativeTier<K, V> authoritativeTier) {
     this.cachingTier = cachingTier;
     this.authoritativeTier = authoritativeTier;
-
-    if (cachingTier instanceof Persistable && authoritativeTier instanceof Persistable &&
-        ((Persistable) cachingTier).isPersistent() != ((Persistable) authoritativeTier).isPersistent()) {
-      throw new IllegalArgumentException("Persistable caching tier and authoritative tier do not agree on persistence");
-    }
 
     this.cachingTier.setInvalidationListener(new CachingTier.InvalidationListener<K, V>() {
       @Override
@@ -185,32 +179,6 @@ public class CacheStore<K, V> implements Store<K, V>, Persistable {
       authoritativeTier.clear();
     } finally {
       cachingTier.clear();
-    }
-  }
-
-  @Override
-  public void destroy() throws Exception {
-    if (authoritativeTier instanceof Persistable) {
-      ((Persistable) authoritativeTier).destroy();
-    }
-    if (cachingTier instanceof Persistable) {
-      ((Persistable) cachingTier).destroy();
-    }
-  }
-
-  @Override
-  public boolean isPersistent() {
-    return (authoritativeTier instanceof Persistable && ((Persistable) authoritativeTier).isPersistent()) ||
-        (cachingTier instanceof Persistable && ((Persistable) cachingTier).isPersistent());
-  }
-
-  @Override
-  public void create() throws Exception {
-    if (authoritativeTier instanceof Persistable) {
-      ((Persistable) authoritativeTier).create();
-    }
-    if (cachingTier instanceof Persistable) {
-      ((Persistable) cachingTier).create();
     }
   }
 

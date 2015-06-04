@@ -23,31 +23,35 @@ import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.disk.DiskStorageFactory.Element;
 import org.ehcache.internal.tier.AuthoritativeTierFactory;
 import org.ehcache.internal.tier.AuthoritativeTierSPITest;
 import org.ehcache.spi.ServiceLocator;
-import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.test.After;
 import org.junit.Before;
 import org.junit.internal.AssumptionViolatedException;
 
 import java.io.File;
 import java.io.Serializable;
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -62,9 +66,13 @@ import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
 
   private AuthoritativeTierFactory<String, String> authoritativeTierFactory;
+  private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<Store<String, String>, String>();
+  private LocalPersistenceService persistenceService;
 
   @Before
   public void setUp() {
+    persistenceService = new DefaultLocalPersistenceService(
+        new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir"), "disk-store-spi-test")));
     authoritativeTierFactory = new AuthoritativeTierFactory<String, String>() {
 
       final AtomicInteger index = new AtomicInteger();
@@ -81,18 +89,17 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
         Serializer<Element> elementSerializer = serializationProvider.createValueSerializer(Element.class, config.getClassLoader());
         Serializer<Serializable> objectSerializer = serializationProvider.createValueSerializer(Serializable.class, config.getClassLoader());
 
-        final LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(
-            new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir"))));
-        DiskStore<String, String> diskStore = new DiskStore<String, String>(config, localPersistenceService.getDataFile("diskStore"),
-            localPersistenceService.getIndexFile("diskStore"), timeSource, elementSerializer, objectSerializer);
+        Store.PersistentStoreConfiguration<String, String, String> persistentStoreConfiguration = (Store.PersistentStoreConfiguration) config;
         try {
-          diskStore.destroy();
-          diskStore.create();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
+          FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContext(persistentStoreConfiguration.getIdentifier(), persistentStoreConfiguration);
+          DiskStore<String, String> diskStore = new DiskStore<String, String>(config, persistenceContext, timeSource,
+              elementSerializer, objectSerializer);
+          DiskStore.Provider.init(diskStore);
+          createdStores.put(diskStore, persistentStoreConfiguration.getIdentifier());
+          return diskStore;
+        } catch (CachePersistenceException e) {
+          throw new RuntimeException("Error creation persistence context", e);
         }
-        DiskStore.Provider.init(diskStore);
-        return diskStore;
       }
 
       @Override
@@ -125,8 +132,9 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
           final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer,
           final Expiry<? super String, ? super String> expiry) {
-        return new StoreConfigurationImpl<String, String>(keyType, valueType,
+        StoreConfigurationImpl<String, String> configuration = new StoreConfigurationImpl<String, String>(keyType, valueType,
             evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, buildResourcePools(capacityConstraint));
+        return new PersistentStoreConfigurationImpl<String, String>(configuration, "diskStore-" + index.getAndIncrement());
       }
 
       private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
@@ -164,7 +172,14 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
 
       @Override
       public void close(final Store<String, String> store) {
+        String alias = createdStores.get(store);
         DiskStore.Provider.close((DiskStore)store);
+        try {
+          persistenceService.destroyPersistenceContext(alias);
+        } catch (CachePersistenceException e) {
+          // Not doing anything here
+        }
+        createdStores.remove(store);
       }
 
       @Override
@@ -178,6 +193,14 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
         return serviceLocator;
       }
     };
+  }
+
+  @After
+  public void tearDown() throws CachePersistenceException {
+    for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
+      DiskStore.Provider.close((DiskStore) entry.getKey());
+      persistenceService.destroyPersistenceContext(entry.getValue());
+    }
   }
 
   public static void initStore(final DiskStore<?, ?> diskStore) {

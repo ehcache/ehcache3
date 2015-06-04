@@ -34,7 +34,6 @@ import org.ehcache.resilience.LoggingRobustResilienceStrategy;
 import org.ehcache.resilience.RecoveryCache;
 import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.spi.LifeCycled;
-import org.ehcache.spi.Persistable;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.statistics.BulkOps;
@@ -1075,28 +1074,12 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
 
   void create() {
     statusTransitioner.checkMaintenance();
-    try {
-      if (store instanceof Persistable) {
-        logger.info("Creating Cache storage.");
-        ((Persistable) store).create();
-        logger.info("Cache storage successfully created.");
-      }
-    } catch (Exception e) {
-      throw new RuntimeException("Couldn't create Cache storage ", e);
-    }
+    // TODO figure out persistence and user managed caches
   }
 
   void destroy() {
     statusTransitioner.checkMaintenance();
-    try {
-      if (store instanceof Persistable) {
-        logger.info("Destroying Cache storage.");
-        ((Persistable) store).destroy();
-        logger.info("Cache storage successfully destroyed.");
-      }
-    } catch (Exception e) {
-      throw new RuntimeException("Couldn't destroy Cache storage ", e);
-    }
+    // TODO figure out persistence and user managed caches
   }
 
   @Override

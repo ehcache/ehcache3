@@ -443,7 +443,7 @@ public interface Store<K, V> {
    * @param <K> key type
    * @param <V> value type
    */
-  public interface Configuration<K, V> {
+  interface Configuration<K, V> {
 
     /**
      * The {@link java.lang.Class type} of the keys that a Store will hold.
@@ -491,9 +491,11 @@ public interface Store<K, V> {
     ResourcePools getResourcePools();
   }
 
-  public interface PersistentStoreConfiguration<K, V, T> extends Configuration<K, V> {
+  interface PersistentStoreConfiguration<K, V, T> extends Configuration<K, V> {
 
     T getIdentifier();
+
+    boolean isPersistent();
 
   }
 

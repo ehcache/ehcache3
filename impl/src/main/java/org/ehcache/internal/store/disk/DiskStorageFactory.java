@@ -24,6 +24,7 @@ import org.ehcache.internal.store.disk.ods.Region;
 import org.ehcache.internal.store.disk.utils.ConcurrencyUtil;
 import org.ehcache.spi.cache.AbstractValueHolder;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -202,7 +203,7 @@ public class DiskStorageFactory<K, V> {
    */
   public DiskStorageFactory(long capacity, Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto,
                             Comparator<DiskSubstitute<K, V>> evictionPrioritizer, TimeSource timeSource,
-                            Serializer<Element> elementSerializer, Serializer<Object> indexSerializer, File dataFile, File indexFile,
+                            Serializer<Element> elementSerializer, Serializer<Object> indexSerializer, FileBasedPersistenceContext persistenceContext,
                             int stripes, long queueCapacity, int expiryThreadInterval) throws FileNotFoundException {
     this.capacity = capacity;
     this.evictionVeto = evictionVeto;
@@ -210,11 +211,11 @@ public class DiskStorageFactory<K, V> {
     this.timeSource = timeSource;
     this.elementSerializer = elementSerializer;
     this.indexSerializer = indexSerializer;
-    this.file = dataFile;
-    this.indexFile = indexFile;
+    this.file = persistenceContext.getDataFile();
+    this.indexFile = persistenceContext.getIndexFile();
 
-    if (!dataFile.exists() || !indexFile.exists()) {
-      throw new FileNotFoundException("Data file " + dataFile + " or index file " + indexFile + " missing.");
+    if (!file.exists() || !indexFile.exists()) {
+      throw new FileNotFoundException("Data file " + file + " or index file " + indexFile + " missing.");
     }
 
     try {

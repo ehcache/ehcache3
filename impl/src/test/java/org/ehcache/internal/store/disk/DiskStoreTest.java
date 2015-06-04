@@ -17,6 +17,7 @@ package org.ehcache.internal.store.disk;
 
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
@@ -27,6 +28,7 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -56,6 +58,8 @@ public class DiskStoreTest {
   private TestTimeSource timeSource;
   private DiskStore<Number, CharSequence> diskStore;
   private long capacityConstraint;
+  private LocalPersistenceService persistenceService;
+  private String alias;
 
   @Before
   public void setUp() throws Exception {
@@ -69,21 +73,22 @@ public class DiskStoreTest {
     Serializer<Serializable> objectSerializer = serializationProvider.createValueSerializer(Serializable.class, config.getClassLoader());
 
 
-    final LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(
+    persistenceService = new DefaultLocalPersistenceService(
             new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir"))));
 
-    diskStore = new DiskStore<Number, CharSequence>(config, localPersistenceService.getDataFile("DiskStoreTest"),
-            localPersistenceService.getIndexFile("DiskStoreTest"), timeSource, elementSerializer, objectSerializer);
-    diskStore.destroy();
-    diskStore.create();
+    alias = "DiskStoreTest";
+    PersistentStoreConfigurationImpl<Number, CharSequence> persistentConfig = new PersistentStoreConfigurationImpl<Number, CharSequence>(config, alias);
+
+    FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContext(persistentConfig.getIdentifier(), persistentConfig);
+    diskStore = new DiskStore<Number, CharSequence>(config, persistenceContext, timeSource, elementSerializer, objectSerializer);
     DiskStore.Provider.init(diskStore);
   }
 
   @After
   public void tearDown() throws Exception {
     DiskStore.Provider.close(diskStore);
-    diskStore.destroy();
     diskStore = null;
+    persistenceService.destroyPersistenceContext(alias);
   }
 
   @Test

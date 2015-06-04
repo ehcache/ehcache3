@@ -23,10 +23,12 @@ import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
@@ -44,13 +46,16 @@ import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.internal.AssumptionViolatedException;
 
 import java.io.File;
 import java.io.Serializable;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -68,6 +73,9 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
   private StoreFactory<String, String> storeFactory;
   private final CacheStore.Provider provider = new CacheStore.Provider();
+  private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<Store<String, String>, String>();
+  final LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(
+          new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir"), "cache-store-spi-test")));
 
 
 
@@ -80,8 +88,6 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
   public void setUp() {
     storeFactory = new StoreFactory<String, String>() {
       final AtomicInteger aliasCounter = new AtomicInteger();
-      final LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(
-              new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir"))));
 
       @Override
       public Store<String, String> newStore(final Store.Configuration<String, String> config) {
@@ -91,71 +97,70 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
         Serializer<Serializable> objectSerializer = new JavaSerializer<Serializable>(config.getClassLoader());
 
         OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false, keySerializer, valueSerializer);
-        String id = "alias-" + aliasCounter.incrementAndGet();
-        DiskStore<String, String> diskStore = new DiskStore<String, String>(config,
-                localPersistenceService.getDataFile(id), localPersistenceService.getIndexFile(id),
-                SystemTimeSource.INSTANCE, elementSerializer, objectSerializer);
-
-        CacheStore<String, String> cacheStore = new CacheStore<String, String>(onHeapStore, diskStore);
+        Store.PersistentStoreConfiguration<String, String, String> persistentStoreConfiguration = (Store.PersistentStoreConfiguration) config;
         try {
-          cacheStore.destroy();
-          cacheStore.create();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
+          FileBasedPersistenceContext persistenceContext = localPersistenceService.createPersistenceContext(persistentStoreConfiguration.getIdentifier(), persistentStoreConfiguration);
+          DiskStore<String, String> diskStore = new DiskStore<String, String>(config, persistenceContext,
+                  SystemTimeSource.INSTANCE, elementSerializer, objectSerializer);
+
+          CacheStore<String, String> cacheStore = new CacheStore<String, String>(onHeapStore, diskStore);
+          provider.registerStore(cacheStore, new CachingTier.Provider() {
+            @Override
+            public <K, V> CachingTier<K, V> createCachingTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
+              throw new UnsupportedOperationException("Implement me!");
+            }
+
+            @Override
+            public void releaseCachingTier(final CachingTier<?, ?> resource) {
+              OnHeapStoreByValueSPITest.closeStore((OnHeapStore)resource);
+            }
+
+            @Override
+            public void initCachingTier(final CachingTier<?, ?> resource) {
+              // no op
+            }
+
+            @Override
+            public void start(final ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
+              throw new UnsupportedOperationException("Implement me!");
+            }
+
+            @Override
+            public void stop() {
+              throw new UnsupportedOperationException("Implement me!");
+            }
+          }, new AuthoritativeTier.Provider() {
+            @Override
+            public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
+              throw new UnsupportedOperationException("Implement me!");
+            }
+
+            @Override
+            public void releaseAuthoritativeTier(final AuthoritativeTier<?, ?> resource) {
+              DiskStoreSPITest.closeStore((DiskStore<?, ?>)resource);
+            }
+
+            @Override
+            public void initAuthoritativeTier(final AuthoritativeTier<?, ?> resource) {
+              DiskStoreSPITest.initStore((DiskStore<?, ?>)resource);
+            }
+
+            @Override
+            public void start(final ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
+              throw new UnsupportedOperationException("Implement me!");
+            }
+
+            @Override
+            public void stop() {
+              throw new UnsupportedOperationException("Implement me!");
+            }
+          });
+          provider.initStore(cacheStore);
+          createdStores.put(cacheStore, persistentStoreConfiguration.getIdentifier());
+          return cacheStore;
+        } catch (CachePersistenceException e) {
+          throw new RuntimeException("Error creation persistence context", e);
         }
-        provider.registerStore(cacheStore, new CachingTier.Provider() {
-          @Override
-          public <K, V> CachingTier<K, V> createCachingTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-
-          @Override
-          public void releaseCachingTier(final CachingTier<?, ?> resource) {
-            OnHeapStoreByValueSPITest.closeStore((OnHeapStore)resource);
-          }
-
-          @Override
-          public void initCachingTier(final CachingTier<?, ?> resource) {
-            // no op
-          }
-
-          @Override
-          public void start(final ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-
-          @Override
-          public void stop() {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-        }, new AuthoritativeTier.Provider() {
-          @Override
-          public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-
-          @Override
-          public void releaseAuthoritativeTier(final AuthoritativeTier<?, ?> resource) {
-            DiskStoreSPITest.closeStore((DiskStore<?, ?>)resource);
-          }
-
-          @Override
-          public void initAuthoritativeTier(final AuthoritativeTier<?, ?> resource) {
-            DiskStoreSPITest.initStore((DiskStore<?, ?>)resource);
-          }
-
-          @Override
-          public void start(final ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-
-          @Override
-          public void stop() {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-        });
-        provider.initStore(cacheStore);
-        return cacheStore;
       }
 
       @Override
@@ -167,20 +172,19 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
         Serializer<Serializable> objectSerializer = serializationProvider.createValueSerializer(Serializable.class, config.getClassLoader());
 
         OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false, keySerializer, valueSerializer);
-        String id = "alias-" + aliasCounter.incrementAndGet();
-        DiskStore<String, String> diskStore = new DiskStore<String, String>(config,
-                localPersistenceService.getDataFile(id), localPersistenceService.getIndexFile(id),
-                SystemTimeSource.INSTANCE, elementSerializer, objectSerializer);
-
-        CacheStore<String, String> cacheStore = new CacheStore<String, String>(onHeapStore, diskStore);
+        Store.PersistentStoreConfiguration<String, String, String> persistentStoreConfiguration = (Store.PersistentStoreConfiguration) config;
         try {
-          cacheStore.destroy();
-          cacheStore.create();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
+          FileBasedPersistenceContext persistenceContext = localPersistenceService.createPersistenceContext(persistentStoreConfiguration.getIdentifier(), persistentStoreConfiguration);
+          DiskStore<String, String> diskStore = new DiskStore<String, String>(config, persistenceContext,
+                  SystemTimeSource.INSTANCE, elementSerializer, objectSerializer);
+
+          CacheStore<String, String> cacheStore = new CacheStore<String, String>(onHeapStore, diskStore);
+          provider.initStore(cacheStore);
+          createdStores.put(cacheStore, persistentStoreConfiguration.getIdentifier());
+          return cacheStore;
+        } catch (CachePersistenceException e) {
+          throw new RuntimeException("Error creating persistence context", e);
         }
-        provider.initStore(cacheStore);
-        return cacheStore;
       }
 
       @Override
@@ -272,7 +276,14 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public void close(final Store<String, String> store) {
+        String alias = createdStores.get(store);
         provider.releaseStore(store);
+        try {
+          localPersistenceService.destroyPersistenceContext(alias);
+        } catch (CachePersistenceException e) {
+          // Nothing to do here
+        }
+        createdStores.remove(store);
       }
 
       @Override
@@ -283,6 +294,14 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
         return serviceLocator;
       }
     };
+  }
+
+  @After
+  public void tearDown() throws CachePersistenceException {
+    for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
+      provider.releaseStore(entry.getKey());
+      localPersistenceService.destroyPersistenceContext(entry.getValue());
+    }
   }
 
   private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
