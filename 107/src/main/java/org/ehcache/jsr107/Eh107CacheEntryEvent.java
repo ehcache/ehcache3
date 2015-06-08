@@ -50,7 +50,7 @@ class Eh107CacheEntryEvent<K, V> extends CacheEntryEvent<K, V> {
 
   @Override
   public <T> T unwrap(Class<T> clazz) {
-    return Unwrap.unwrap(clazz, ehEvent);
+    return Unwrap.unwrap(clazz, this, ehEvent);
   }
 
   @Override

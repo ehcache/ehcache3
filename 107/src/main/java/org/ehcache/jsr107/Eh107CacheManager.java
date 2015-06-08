@@ -395,8 +395,7 @@ class Eh107CacheManager implements CacheManager {
 
   @Override
   public <T> T unwrap(Class<T> clazz) {
-    // TODO: We could try to wrap this instance to prevent "bad" interactions through it
-    return Unwrap.unwrap(clazz, ehCacheManager);
+    return Unwrap.unwrap(clazz, this, ehCacheManager);
   }
 
   @Override

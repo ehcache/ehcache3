@@ -181,11 +181,7 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
 
   @Override
   public <T> T unwrap(Class<T> clazz) {
-    try {
-      return Unwrap.unwrap(clazz, this);
-    } catch (IllegalArgumentException e) {
-      return Unwrap.unwrap(clazz, ehcacheConfig);
-    }
+      return Unwrap.unwrap(clazz, this, ehcacheConfig);
   }
 
   private Object writeReplace() throws ObjectStreamException {
