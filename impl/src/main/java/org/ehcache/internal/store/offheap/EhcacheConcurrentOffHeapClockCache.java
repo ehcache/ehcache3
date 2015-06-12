@@ -41,16 +41,6 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
     }
   }
 
-  public boolean remove(K key, V value, EhcacheSegmentFactory.ValueComparator<V> comparator) {
-    EhcacheSegmentFactory.EhcacheSegment<K, V> segment = (EhcacheSegmentFactory.EhcacheSegment) segmentFor(key);
-    return segment.remove(key, value, comparator);
-  }
-
-  public boolean replace(K key, V oldValue, V newValue, EhcacheSegmentFactory.ValueComparator<V> comparator) {
-    EhcacheSegmentFactory.EhcacheSegment<K, V> segment = (EhcacheSegmentFactory.EhcacheSegment) segmentFor(key);
-    return segment.replace(key, oldValue, newValue, comparator);
-  }
-
   public V compute(K key, BiFunction<K, V, V> mappingFunction, boolean pin) {
     EhcacheSegmentFactory.EhcacheSegment<K, V> segment = (EhcacheSegmentFactory.EhcacheSegment) segmentFor(key);
     return segment.compute(key, mappingFunction, pin);

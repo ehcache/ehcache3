@@ -122,7 +122,6 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       evictionVeto = Predicates.none();
     }
     this.timeSource = timeSource;
-    eventListener = CacheEvents.nullStoreEventListener();
     mapEvictionListener = new BackingMapEvictionListener<K, V>();
     this.keySerializer = keySerializer;
     this.valueSerializer = valueSerializer;
@@ -839,7 +838,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       init((OffHeapStore)resource);
     }
 
-    static void init(final OffHeapStore resource) {
+    static <K, V> void init(final OffHeapStore<K, V> resource) {
       resource.map = resource.createBackingMap(resource.sizeInBytes, resource.keySerializer, resource.valueSerializer, resource.evictionVeto);
     }
 

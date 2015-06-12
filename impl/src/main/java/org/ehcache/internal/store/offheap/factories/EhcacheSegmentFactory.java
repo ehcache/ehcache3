@@ -72,44 +72,6 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
       this.evictionListener = evictionListener;
     }
 
-    public boolean remove(K key, V value, ValueComparator<V> comparator) {
-      Lock l = writeLock();
-      l.lock();
-      try {
-        if (key == null) {
-          throw new NullPointerException();
-        }
-        if (value == null) {
-          return false;
-        }
-        V existing = super.get(key);
-        if (comparator.equals(value, existing)) {
-          remove(key);
-          return true;
-        } else {
-          return false;
-        }
-      } finally {
-        l.unlock();
-      }
-    }
-
-    public boolean replace(K key, V oldValue, V newValue, ValueComparator<V> comparator) {
-      Lock l = writeLock();
-      l.lock();
-      try {
-        V existing = get(key);
-        if (comparator.equals(oldValue, existing)) {
-          put(key, newValue);
-          return true;
-        } else {
-          return false;
-        }
-      } finally {
-        l.unlock();
-      }
-    }
-
     /**
      * Computes a new mapping for the given key by calling the function passed in. It will pin the mapping
      * if the flag is true, it will however not unpin an existing pinned mapping in case the function returns
@@ -250,12 +212,7 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
     }
 
     public interface EvictionListener<K, V> {
-      public void onEviction(K key, V value);
+      void onEviction(K key, V value);
     }
   }
-
-  public interface ValueComparator<V> {
-    public boolean equals(V value1, V value2);
-  }
-
 }
