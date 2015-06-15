@@ -20,12 +20,11 @@ import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CacheWritingException;
-import org.ehcache.statistics.CacheStatistics;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
  * Basic interface to a cache, defines all operational methods to create, access,
@@ -196,13 +195,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @return the configuration currently in use
    */
   CacheRuntimeConfiguration<K, V> getRuntimeConfiguration();
-  
-  /**
-   * Returns statistics instance for this cache
-   *
-   * @return the statistics
-   */
-  CacheStatistics getStatistics();
+
   
   /**
    * Represent a mapping of key to value held in a Cache

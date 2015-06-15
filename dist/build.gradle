@@ -23,7 +23,7 @@ plugins {
 def shadowBaseName = 'ehcache'
 
 
-def projectNamesToInclude = [':api', ':core', ':impl', ':jmx', ':107', ':xml']
+def projectNamesToInclude = [':api', ':core', ':impl', ':107', ':xml']
 def projectsToInclude = projectNamesToInclude.collect {project(it)}
 
 dependencies {

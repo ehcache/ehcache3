@@ -15,179 +15,74 @@
  */
 package org.ehcache.jsr107;
 
-import java.util.EnumMap;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
-
 import javax.cache.management.CacheStatisticsMXBean;
-
-import org.ehcache.statistics.BulkOps;
-import org.ehcache.statistics.CacheStatistics;
 
 /**
  * @author teck
  */
 class Eh107CacheStatisticsMXBean extends Eh107MXBean implements CacheStatisticsMXBean {
 
-  private final org.ehcache.statistics.CacheStatistics statistics;
-  private final ConcurrentMap<BulkOps, AtomicLong> bulkMethodCounts;
-  private final EnumMap<Stat, AtomicLong> baselines = new EnumMap<Stat, AtomicLong>(Stat.class);
-
-  Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager,
-      org.ehcache.statistics.CacheStatistics statistics) {
+  Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager) {
     super(cacheName, cacheManager, "CacheStatistics");
-    this.statistics = statistics;
-    bulkMethodCounts = statistics.getBulkMethodEntries();
-
-    for (Stat s : Stat.values()) {
-      baselines.put(s, new AtomicLong());
-    }
   }
 
   @Override
   public void clear() {
-    // snapshot all the counters
-    for (Entry<Stat, AtomicLong> entry : baselines.entrySet()) {
-      entry.getValue().set(entry.getKey().snapshot(statistics));
-    }
+
   }
 
   @Override
   public long getCacheHits() {
-    return minZero(statistics.getCacheHits() - baselineValue(Stat.GETS));
+    return 0;
   }
 
   @Override
   public float getCacheHitPercentage() {
-    return zeroForNaN(statistics.getCacheHitPercentage());
+    return 0;
   }
 
   @Override
   public long getCacheMisses() {
-    return minZero(statistics.getCacheMisses() - baselineValue(Stat.MISSES));
+    return 0;
   }
 
   @Override
   public float getCacheMissPercentage() {
-    return zeroForNaN(statistics.getCacheMissPercentage());
+    return 0;
   }
 
   @Override
   public long getCacheGets() {
-    return minZero((getBulkCount(BulkOps.GET_ALL) - baselineValue(Stat.BULK_GETS))
-        + (statistics.getCacheGets() - baselineValue(Stat.GETS)));
+    return 0;
   }
 
   @Override
   public long getCachePuts() {
-    return minZero((getBulkCount(BulkOps.PUT_ALL) - baselineValue(Stat.BULK_PUTS))
-        + (statistics.getCachePuts() - baselineValue(Stat.PUTS)));
+    return 0;
   }
 
   @Override
   public long getCacheRemovals() {
-    return minZero((getBulkCount(BulkOps.REMOVE_ALL) - baselineValue(Stat.BULK_REMOVES))
-        + (statistics.getCacheRemovals() - baselineValue(Stat.REMOVALS)));
+    return 0;
   }
 
   @Override
   public long getCacheEvictions() {
-    return minZero(statistics.getCacheEvictions() - baselineValue(Stat.EVICTIONS));
+    return 0;
   }
 
   @Override
   public float getAverageGetTime() {
-    return zeroForNaN(statistics.getAverageGetTime());
+    return 0;
   }
 
   @Override
   public float getAveragePutTime() {
-    return zeroForNaN(statistics.getAveragePutTime());
+    return 0;
   }
 
   @Override
   public float getAverageRemoveTime() {
-    return zeroForNaN(statistics.getAverageRemoveTime());
+    return 0;
   }
-
-  private long getBulkCount(BulkOps op) {
-    AtomicLong counter = bulkMethodCounts.get(op);
-    return counter == null ? 0L : counter.get();
-  }
-
-  private long baselineValue(Stat stat) {
-    return baselines.get(stat).get();
-  }
-
-  private static long minZero(long value) {
-    return Math.max(0, value);
-  }
-
-  private static float zeroForNaN(float value) {
-    if (Float.isNaN(value)) {
-      return 0F;
-    }
-    return value;
-  }
-
-  private enum Stat {
-    EVICTIONS {
-      @Override
-      long snapshot(CacheStatistics stats) {
-        return stats.getCacheEvictions();
-      }
-    },
-    GETS {
-      @Override
-      long snapshot(CacheStatistics stats) {
-        return stats.getCacheGets();
-      }
-    },
-    HITS {
-      @Override
-      long snapshot(CacheStatistics stats) {
-        return stats.getCacheHits();
-      }
-    },
-    MISSES {
-      @Override
-      long snapshot(CacheStatistics stats) {
-        return stats.getCacheMisses();
-      }
-    },
-    PUTS {
-      @Override
-      long snapshot(CacheStatistics stats) {
-        return stats.getCachePuts();
-      }
-    },
-    REMOVALS {
-      @Override
-      long snapshot(CacheStatistics stats) {
-        return stats.getCacheRemovals();
-      }
-    },
-    BULK_GETS {
-      @Override
-      long snapshot(CacheStatistics stats) {
-        return stats.getBulkMethodEntries().get(BulkOps.GET_ALL).get();
-      }
-    },
-    BULK_PUTS {
-      @Override
-      long snapshot(CacheStatistics stats) {
-        return stats.getBulkMethodEntries().get(BulkOps.PUT_ALL).get();
-      }
-    },
-    BULK_REMOVES {
-      @Override
-      long snapshot(CacheStatistics stats) {
-        return stats.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).get();
-      }
-    };
-
-    abstract long snapshot(CacheStatistics stats);
-  }
-
 }

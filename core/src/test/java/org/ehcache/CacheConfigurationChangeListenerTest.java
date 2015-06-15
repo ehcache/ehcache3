@@ -58,7 +58,7 @@ public class CacheConfigurationChangeListenerTest {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().disk(50L, EntryUnit.ENTRIES).heap(2L, EntryUnit.ENTRIES))
         .buildConfig(Object.class, Object.class);
     this.runtimeConfiguration = new RuntimeConfiguration<Object, Object>(this.config, this.eventNotifier);
-    this.cache = new Ehcache<Object, Object>(runtimeConfiguration, store, loaderWriter, eventNotifier, null,
+    this.cache = new Ehcache<Object, Object>(runtimeConfiguration, store, loaderWriter, eventNotifier,
         LoggerFactory.getLogger(Ehcache.class + "-" + "CacheConfigurationListenerTest"));
     cache.init();
   }

@@ -36,6 +36,7 @@ import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.BulkOps;
 import org.ehcache.statistics.CacheOperationOutcomes.CacheLoadingOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
@@ -44,9 +45,6 @@ import org.ehcache.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.PutOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.ReplaceOutcome;
-import org.ehcache.statistics.CacheStatistics;
-import org.ehcache.statistics.DisabledStatistics;
-import org.ehcache.statistics.StatisticsGateway;
 import org.slf4j.Logger;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
@@ -75,9 +73,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.ehcache.Functions.memoize;
 import static org.ehcache.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.exceptions.ExceptionFactory.newCacheWritingException;
-
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-
 import static org.terracotta.statistics.StatisticsBuilder.operation;
 
 /**
@@ -104,8 +99,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
   private final OperationObserver<PutIfAbsentOutcome> putIfAbsentObserver = operation(PutIfAbsentOutcome.class).named("putIfAbsent").of(this).tag("cache").build();
   private final OperationObserver<ReplaceOutcome> replaceObserver = operation(ReplaceOutcome.class).named("replace").of(this).tag("cache").build();  
   private final ConcurrentMap<BulkOps, AtomicLong> bulkMethodEntries = new ConcurrentHashMap<BulkOps, AtomicLong>();
-  
-  private final CacheStatistics cacheStatistics;
 
   private static final NullaryFunction<Boolean> REPLACE_FALSE = new NullaryFunction<Boolean>() {
     @Override
@@ -122,28 +115,19 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
     this(runtimeConfiguration, store, cacheLoaderWriter, null,logger);
   }
 
-  public Ehcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store, final CacheLoaderWriter<? super K, V> cacheLoaderWriter, ScheduledExecutorService statisticsExecutor, Logger logger) {
-    this(runtimeConfiguration, store, cacheLoaderWriter, null, statisticsExecutor,logger);
-  }
-
   public Ehcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
       final CacheLoaderWriter<? super K, V> cacheLoaderWriter, 
       CacheEventNotificationService<K, V> eventNotifier,
-      ScheduledExecutorService statisticsExecutor, Logger logger) {
-    this(runtimeConfiguration, store, cacheLoaderWriter, eventNotifier, statisticsExecutor, true, logger);
+      Logger logger) {
+    this(runtimeConfiguration, store, cacheLoaderWriter, eventNotifier, true, logger);
   }
 
   Ehcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
           CacheLoaderWriter<? super K, V> cacheLoaderWriter,
-          CacheEventNotificationService<K, V> eventNotifier, ScheduledExecutorService statisticsExecutor, boolean useLoaderInAtomics, Logger logger) {
+          CacheEventNotificationService<K, V> eventNotifier, boolean useLoaderInAtomics, Logger logger) {
     this.store = store;
     StatisticsManager.associate(store).withParent(this);
     this.cacheLoaderWriter = cacheLoaderWriter;
-    if (statisticsExecutor != null) {
-      this.cacheStatistics = new StatisticsGateway(this, statisticsExecutor, bulkMethodEntries);
-    } else {
-      this.cacheStatistics = new DisabledStatistics();
-    }
     if (store instanceof RecoveryCache) {
       this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>(castToRecoveryCache(store));
     } else {
@@ -1067,11 +1051,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
     throw new AssertionError("Should not reach this line... ever!");
   }
   
-  @Override
-  public CacheStatistics getStatistics() {
-    return cacheStatistics;
-  }
-
   void create() {
     statusTransitioner.checkMaintenance();
     // TODO figure out persistence and user managed caches

@@ -75,7 +75,7 @@ public class EhcacheEventTest {
     RuntimeConfiguration<Number, String> runtimeConfiguration = new RuntimeConfiguration<Number, String>(newCacheConfigurationBuilder()
         .buildConfig(Number.class, String.class), eventNotifier);
     cache = new Ehcache<Number, String>(
-        runtimeConfiguration, store, loaderWriter, eventNotifier, null, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheEventTest"));
+        runtimeConfiguration, store, loaderWriter, eventNotifier, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheEventTest"));
     cache.init();
   }
   
