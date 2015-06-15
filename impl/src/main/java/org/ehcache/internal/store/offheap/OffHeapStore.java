@@ -75,7 +75,7 @@ import java.util.concurrent.locks.Lock;
 
 import static org.ehcache.internal.store.offheap.OffHeapStoreUtils.getBufferSource;
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
-import static org.terracotta.statistics.StatisticsBuilder.operation;
+import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
  * OffHeapStore

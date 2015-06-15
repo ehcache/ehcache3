@@ -63,7 +63,6 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -73,7 +72,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.ehcache.Functions.memoize;
 import static org.ehcache.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.exceptions.ExceptionFactory.newCacheWritingException;
-import static org.terracotta.statistics.StatisticsBuilder.operation;
+import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
  * @author Alex Snaps

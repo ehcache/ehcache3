@@ -71,7 +71,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
-import static org.terracotta.statistics.StatisticsBuilder.operation;
+import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
  * @author Alex Snaps

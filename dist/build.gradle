@@ -38,7 +38,7 @@ shadowJar {
   classifier = ''
   projectNamesToInclude.each {projName -> dependencies {include(project(projName))}}
   dependencies {
-    include(dependency('org.terracotta.internal:statistics:1.0.3'))
+    include(dependency('org.terracotta:statistics:1.1.0'))
   }
   fillManifest(manifest, shadowBaseName)
   mergeServiceFiles()
