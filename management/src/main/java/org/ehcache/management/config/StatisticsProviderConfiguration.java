@@ -13,6 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.management.config;
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "107", "xml", "integration-test", "dist",
-        "demos/00-NoCache", "demos/01-CacheAside", "docs"
+import org.ehcache.management.providers.ManagementProvider;
+
+import java.util.concurrent.TimeUnit;
+
+/**
+ * @author Ludovic Orban
+ */
+public interface StatisticsProviderConfiguration<T extends ManagementProvider> {
+
+  long averageWindowDuration();
+  TimeUnit averageWindowUnit();
+
+  int historySize();
+  long historyInterval();
+  TimeUnit historyIntervalUnit();
+
+  long timeToDisable();
+  TimeUnit timeToDisableUnit();
+
+
+  Class<T> getStatisticsProviderType();
+
+}

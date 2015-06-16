@@ -13,6 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.management.annotations;
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "107", "xml", "integration-test", "dist",
-        "demos/00-NoCache", "demos/01-CacheAside", "docs"
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+/**
+ * Method-level annotation used to mark a method as action-callable.
+ *
+ * @author Ludovic Orban
+ */
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface Exposed {
+}

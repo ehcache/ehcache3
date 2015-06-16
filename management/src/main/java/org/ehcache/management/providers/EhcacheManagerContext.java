@@ -13,6 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.management.providers;
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "107", "xml", "integration-test", "dist",
-        "demos/00-NoCache", "demos/01-CacheAside", "docs"
+import org.ehcache.EhcacheManager;
+import org.ehcache.management.utils.ContextHelper;
+
+import java.util.Collection;
+
+/**
+ * @author Ludovic Orban
+ */
+class EhcacheManagerContext {
+  private final EhcacheManager ehcacheManager;
+
+  public EhcacheManagerContext(EhcacheManager ehcacheManager) {
+    this.ehcacheManager = ehcacheManager;
+  }
+
+  public String cacheManagerName() {
+    return ContextHelper.findCacheManagerName(ehcacheManager);
+  }
+
+  public Collection<String> cacheNames() {
+    return ContextHelper.findCacheNames(ehcacheManager);
+  }
+
+}

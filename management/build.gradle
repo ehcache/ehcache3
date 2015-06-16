@@ -14,5 +14,7 @@
  * limitations under the License.
  */
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "107", "xml", "integration-test", "dist",
-        "demos/00-NoCache", "demos/01-CacheAside", "docs"
+dependencies {
+  compile project(':api'), project(':core'), project(':impl')
+  compile group: 'org.terracotta', name: 'management-model', version: '0.1.0'
+}
