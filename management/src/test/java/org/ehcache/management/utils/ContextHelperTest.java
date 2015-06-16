@@ -32,6 +32,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 
 /**
  * @author Ludovic Orban
@@ -96,7 +97,7 @@ public class ContextHelperTest {
       cacheManager.createCache("cache3", cacheConfiguration);
 
       String cacheManagerName = ContextHelper.findCacheManagerName((EhcacheManager) cacheManager);
-      assertThat(cacheManagerName, equalTo("the-cache-manager-name"));
+      assertThat(cacheManagerName, startsWith("cache-manager-"));
     } finally {
       cacheManager.close();
     }
@@ -117,7 +118,7 @@ public class ContextHelperTest {
       cacheManager.createCache("cache3", cacheConfiguration);
 
       String cacheManagerName = ContextHelper.findCacheManagerName((Ehcache<?, ?>) cacheManager.getCache("cache1", Long.class, String.class));
-      assertThat(cacheManagerName, equalTo("the-cache-manager-name"));
+      assertThat(cacheManagerName, startsWith("cache-manager-"));
     } finally {
       cacheManager.close();
     }

@@ -1,0 +1,63 @@
+include::common.adoc[]
+
+= Management and Monitoring
+
+include::menu.adoc[]
+
+== Intro
+
+Managed objects like caches, cache managers and stores are registered into a `org.ehcache.management.ManagementRegistry`
+instance.
+
+A `ManagementRegistry` implementation has to understand the registered object and provide management and monitoring
+capabilities for them, including the capabilities' context.
+
+Given a capability and a context, statistics can be collected or calls can be made.
+
+The current `ManagementRegistry` implementation provides minimal support for `Ehcache` instances, providing
+a minimal set of statistics and actions via a couple of capabilities.
+
+
+== Making use of the `ManagementRegistry`
+
+By default, a `ManagementRegistry` is automatically discovered and enabled, but can only be accessed by ehcache
+internal services. If you wish to make use of it, you should create your own instance and pass it to the
+cache manager builder as a service:
+
+[source,java]
+----
+ManagementRegistry managementRegistry = new DefaultManagementRegistry(); //// <1>
+CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
+    .withCache("aCache", cacheConfiguration)
+    .using(managementRegistry) //// <2>
+    .build(true);
+----
+<1> Create an instance of `org.ehcache.management.registry.DefaultManagementRegistry`
+<2> Pass it as a service to the cache manager
+
+Obviously, you may use the above technique to pass your own implementation of `ManagementRegistry`.
+
+== Managing multiple cache managers
+
+The default `ManagementRegistry` instance that is created when none are manually registered only manage a single cache
+manager by default.
+
+`ManagementRegistry` instances are thread-safe, so one instance can be shared amongst multiple cache managers:
+
+[source,java]
+----
+ManagementRegistry managementRegistry = new DefaultManagementRegistry(); //// <1>
+CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
+    .withCache("aCache", cacheConfiguration)
+    .using(managementRegistry) //// <2>
+    .build(true);
+CacheManager cacheManager2 = CacheManagerBuilder.newCacheManagerBuilder()
+    .withCache("aCache", cacheConfiguration)
+    .using(managementRegistry) //// <3>
+    .build(true);
+----
+<1> Create an instance of `org.ehcache.management.registry.DefaultManagementRegistry`
+<2> Pass it as a service to the first cache manager
+<3> Pass it as a service to the second cache manager
+
+This way, all managed objects get registered into a common `ManagementRegistry` instance.

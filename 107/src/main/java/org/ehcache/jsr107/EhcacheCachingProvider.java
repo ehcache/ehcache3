@@ -98,7 +98,7 @@ public class EhcacheCachingProvider implements CachingProvider {
         serviceLocator.addService(jsr107Service);
         serviceLocator.addService(new DefaultJsr107SerializationProvider());
        
-        org.ehcache.CacheManager ehcacheManager = new EhcacheManager(config, serviceLocator, !jsr107Service.jsr107CompliantAtomics());
+        EhcacheManager ehcacheManager = new EhcacheManager(config, serviceLocator, !jsr107Service.jsr107CompliantAtomics());
         ehcacheManager.init();
         cacheManager = new Eh107CacheManager(this, ehcacheManager, properties, classLoader, uri, cacheLoaderWriterFactory,
             config, jsr107Service);

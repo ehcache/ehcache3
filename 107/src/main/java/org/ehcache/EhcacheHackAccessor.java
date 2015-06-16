@@ -16,6 +16,10 @@
 package org.ehcache;
 
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.statistics.BulkOps;
+
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * EhcacheHackAccessor
@@ -32,6 +36,10 @@ public final class EhcacheHackAccessor {
 
   public static <K, V> Jsr107Cache<K, V> getJsr107Cache(Ehcache<K, V> ehcache) {
     return ehcache.getJsr107Cache();
+  }
+
+  public static ConcurrentMap<BulkOps, AtomicLong> getBulkMethodEntries(Ehcache<?, ?> ehcache) {
+    return ehcache.getBulkMethodEntries();
   }
 
 }

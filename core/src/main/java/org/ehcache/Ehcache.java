@@ -146,6 +146,10 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
     this.statusTransitioner = new StatusTransitioner(logger);
   }
 
+  ConcurrentMap<BulkOps, AtomicLong> getBulkMethodEntries() {
+    return bulkMethodEntries;
+  }
+
   @SuppressWarnings("unchecked")
   private RecoveryCache<K> castToRecoveryCache(Store<K, V> store) {
     return (RecoveryCache<K>) store;

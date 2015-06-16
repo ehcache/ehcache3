@@ -36,6 +36,7 @@ import javax.management.MBeanServer;
 
 import org.ehcache.Ehcache;
 import org.ehcache.EhcacheHackAccessor;
+import org.ehcache.EhcacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -55,7 +56,7 @@ class Eh107CacheManager implements CacheManager {
   private final Object cachesLock = new Object();
   private final ConcurrentMap<String, Eh107Cache<?, ?>> caches = new ConcurrentHashMap<String, Eh107Cache<?, ?>>();
   private final AtomicBoolean closed = new AtomicBoolean();
-  private final org.ehcache.CacheManager ehCacheManager;
+  private final EhcacheManager ehCacheManager;
   private final EhcacheCachingProvider cachingProvider;
   private final ClassLoader classLoader;
   private final URI uri;
@@ -63,7 +64,7 @@ class Eh107CacheManager implements CacheManager {
   private final org.ehcache.config.Configuration ehConfig;
   private final ConfigurationMerger configurationMerger;
 
-  Eh107CacheManager(EhcacheCachingProvider cachingProvider, org.ehcache.CacheManager ehCacheManager, Properties props,
+  Eh107CacheManager(EhcacheCachingProvider cachingProvider, EhcacheManager ehCacheManager, Properties props,
       ClassLoader classLoader, URI uri, Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory,
       org.ehcache.config.Configuration ehConfig, Jsr107Service jsr107Service) {
     this.cachingProvider = cachingProvider;
@@ -75,6 +76,10 @@ class Eh107CacheManager implements CacheManager {
     this.configurationMerger = new ConfigurationMerger(ehConfig, jsr107Service, cacheLoaderWriterFactory, LOG);
 
     loadExistingEhcaches();
+  }
+
+  EhcacheManager getEhCacheManager() {
+    return ehCacheManager;
   }
 
   private void loadExistingEhcaches() {
