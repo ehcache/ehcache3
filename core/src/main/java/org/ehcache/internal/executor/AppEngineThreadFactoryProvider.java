@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.spi.service;
+package org.ehcache.internal.executor;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.ThreadFactory;
 
 /**
- * This class is for demonstration only , showing how Google app engine {@link ThreadFactory} is sourced.
+ * This class is for demonstration only , showing how {@link ThreadFactory} can be source from google app engine.
  *  
  * @author palmanojkumar
  *

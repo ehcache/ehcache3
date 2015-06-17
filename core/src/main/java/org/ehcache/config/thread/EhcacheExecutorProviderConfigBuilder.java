@@ -16,24 +16,25 @@
 package org.ehcache.config.thread;
 
 import org.ehcache.config.Builder;
-import org.ehcache.spi.service.ThreadFactoryProvider;
+import org.ehcache.internal.executor.ContextAnalyzer;
+import org.ehcache.internal.executor.ThreadFactoryProvider;
 import org.ehcache.spi.service.ThreadPoolConfig;
 
 public class EhcacheExecutorProviderConfigBuilder implements Builder<EhcacheExecutorProviderConfig> {
 
   private ThreadPoolConfig sharedCachedThreadPoolConfig;
-  private ThreadPoolConfig sharedScheduledThreadPoolConfig;
-  private int maximumThreadsAllowed;
+  private int sharedScheduledThreadPoolCoreSize;
   private Class<? extends ThreadFactoryProvider> tfProvider;
+  //private Class<? extends ContextAnalyzer> clazz;
   
   private EhcacheExecutorProviderConfigBuilder() {
   }
   
   private EhcacheExecutorProviderConfigBuilder(EhcacheExecutorProviderConfigBuilder other) {
     this.sharedCachedThreadPoolConfig = other.sharedCachedThreadPoolConfig;
-    this.sharedScheduledThreadPoolConfig = other.sharedScheduledThreadPoolConfig;
-    this.maximumThreadsAllowed = other.maximumThreadsAllowed;
+    this.sharedScheduledThreadPoolCoreSize = other.sharedScheduledThreadPoolCoreSize;
     this.tfProvider = other.tfProvider;
+//    this.clazz = other.clazz;
   }
   
   public static EhcacheExecutorProviderConfigBuilder newEhcacheExecutorProviderconfigBuilder() {
@@ -46,17 +47,17 @@ public class EhcacheExecutorProviderConfigBuilder implements Builder<EhcacheExec
     return newBuilder;
   }
   
-  public EhcacheExecutorProviderConfigBuilder sharedScheduledThreadPoolConfig(ThreadPoolConfig poolConfig) {
+  public EhcacheExecutorProviderConfigBuilder sharedScheduledThreadPoolCoreSize(int coreSize) {
     EhcacheExecutorProviderConfigBuilder newBuilder = new EhcacheExecutorProviderConfigBuilder(this);
-    newBuilder.sharedScheduledThreadPoolConfig = poolConfig;
+    newBuilder.sharedScheduledThreadPoolCoreSize = coreSize;
     return newBuilder;
   }
-  
-  public EhcacheExecutorProviderConfigBuilder maximumThreadsAllowed(int maximumThreadsAllowed) {
+
+ /* public EhcacheExecutorProviderConfigBuilder contextAnalyzer(Class<? extends ContextAnalyzer> clazz) {
     EhcacheExecutorProviderConfigBuilder newBuilder = new EhcacheExecutorProviderConfigBuilder(this);
-    newBuilder.maximumThreadsAllowed = maximumThreadsAllowed;
+    newBuilder.clazz = clazz;
     return newBuilder;
-  }
+  }*/
   
   public EhcacheExecutorProviderConfigBuilder threadFactoryProvider(Class<? extends ThreadFactoryProvider> tfProvider) {
     EhcacheExecutorProviderConfigBuilder newBuilder = new EhcacheExecutorProviderConfigBuilder(this);
@@ -66,7 +67,12 @@ public class EhcacheExecutorProviderConfigBuilder implements Builder<EhcacheExec
   
   @Override
   public EhcacheExecutorProviderConfig build() {
-    return null;
+    DefaultEhcacheExecutorProviderConfig executorConfig = new DefaultEhcacheExecutorProviderConfig();
+    executorConfig.setSharedCachedThreadPoolConfig(sharedCachedThreadPoolConfig);
+    executorConfig.setSharedScheduledThreadPoolCoreSize(sharedScheduledThreadPoolCoreSize);
+    //executorConfig.setContextAnalyzer(clazz);
+    executorConfig.setThreadFactoryProvider(tfProvider);
+    return executorConfig;
   }
 
 }

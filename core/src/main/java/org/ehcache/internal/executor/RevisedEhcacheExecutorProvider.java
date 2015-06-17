@@ -15,15 +15,16 @@
  */
 package org.ehcache.internal.executor;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.ehcache.spi.service.Service;
 
 /**
- * Different types of {@link ExecutorService} can be configured using service configuration builder.
+ * Provides different types of shared or exclusive {@link ExecutorService} to submit {@link Runnable} or {@link Callable} task.
  * 
- * Tasks can optionally provide an {@link TaskListener} to receive notifications of task status, through the use of {@link EhcacheManagedTask} interface.
+ * {@link Runnable} or {@link Callable} tasks can optionally provide an {@link TaskListener} to receive notifications of task status, through the use of {@link EhcacheManagedTask} interface.
  * <p>
  * Example:
  * <pre>
@@ -50,24 +51,24 @@ import org.ehcache.spi.service.Service;
 public interface RevisedEhcacheExecutorProvider extends Service {
 
   /**
-   * Returns managed instance of <em>shared</em> or <em>exclusive</em> {@link ExecutorService} based on {@link ExecutionContext}
+   * Returns managed instance of <em>shared</em> or <em>exclusive</em> {@link ExecutorService} based on {@link RequestContext}
    * <p>
    * The lifecycle of shared {@link ExecutorService} is managed by {@link RevisedEhcacheExecutorProvider} and 
-   * invocation of such lifecycle methods by client will be ignored.
+   * invocation of such lifecycle methods will be ignored.
    * </p><p>
    * The lifecycle of exclusive {@link ExecutorService} is managed by {@link RevisedEhcacheExecutorProvider} but
    *  client can request to release it by invoking lifecycle methods.
    * </p>
    * 
    * @param config 
-   * @param context used to decide type of {@link ExecutorService} to return
+   * @param context is used to decide type of {@link ExecutorService} to return
    * @return
    */
-  ExecutorService getExecutorService(PoolConfig config,  ExecutionContext context);
+  ExecutorService getExecutorService(PoolConfig config,  RequestContext context);
   
   
   /**
-   * Returns managed instance of <em>shared</em> or <em>exclusive</em> {@link ScheduledExecutorService} based on {@link ExecutionContext}
+   * Returns managed instance of <em>shared</em> or <em>exclusive</em> {@link ScheduledExecutorService} based on {@link RequestContext}
    * 
    * The lifecycle of shared {@link ScheduledExecutorService} is managed by {@link RevisedEhcacheExecutorProvider} and 
    * invocation of such lifecycle methods by client will throw exception {@link IllegalStateException}.
@@ -78,6 +79,6 @@ public interface RevisedEhcacheExecutorProvider extends Service {
    * @param context used to decide type of {@link ScheduledExecutorService} to return
    * @return 
    */
-  ScheduledExecutorService getScheduledExecutorService(ExecutionContext context);
+  ScheduledExecutorService getScheduledExecutorService(RequestContext context);
   
 }

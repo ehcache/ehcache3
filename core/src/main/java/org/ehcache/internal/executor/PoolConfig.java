@@ -74,6 +74,4 @@ public class PoolConfig {
     this.executorType = executorType;
   }
   
-  
-  
 }

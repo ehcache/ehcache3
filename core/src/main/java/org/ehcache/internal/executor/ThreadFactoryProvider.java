@@ -13,12 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.spi.service;
+package org.ehcache.internal.executor;
+
+import java.util.concurrent.ThreadFactory;
 
 /**
+ * 
  * @author palmanojkumar
  *
  */
-public enum ExecutorServiceType {
-  SINGLE_THREAD_EXECUTOR_SERVICE, CACHED_THREAD_POOL;//, SCHEDULED_EXECUTOR_SERVICE;
+public interface ThreadFactoryProvider {
+
+  /**
+   * Returns platform specific {@link ThreadFactory} which is used to create new {@link Thread}.
+   * @return {@link ThreadFactory}
+   */
+  ThreadFactory newThreadFactory();
+  
 }

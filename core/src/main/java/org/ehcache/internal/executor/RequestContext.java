@@ -15,13 +15,39 @@
  */
 package org.ehcache.internal.executor;
 
+import java.util.UUID;
+
 /**
  * @author palmanojkumar
  *
  */
-public interface TaskListener {
+public class RequestContext {
 
-  public void taskRejected();
+  private String contextId;
+  private TaskPriority priority = TaskPriority.NORMAL;
   
-  public void taskCompleted();
+  public RequestContext() {
+    this(UUID.randomUUID().toString(), TaskPriority.NORMAL);
+  }
+
+  public RequestContext(TaskPriority tPriority) {
+    this(UUID.randomUUID().toString(), tPriority);
+  }
+  
+  public RequestContext(String contextId, TaskPriority priority) {
+    this.contextId = contextId;
+    this.priority = priority;
+  }
+  
+  public String getContextId() {
+    return contextId;
+  }
+
+  public TaskPriority getTaskPriority() {
+    return priority;
+  }
+
+  static enum TaskPriority {
+    HIGH, NORMAL;
+  }
 }

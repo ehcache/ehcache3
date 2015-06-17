@@ -15,18 +15,19 @@
  */
 package org.ehcache.config.thread;
 
-import org.ehcache.spi.service.EhcacheExecutorProvider;
+import org.ehcache.internal.executor.ContextAnalyzer;
+import org.ehcache.internal.executor.RevisedEhcacheExecutorProvider;
+import org.ehcache.internal.executor.ThreadFactoryProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.ThreadFactoryProvider;
 import org.ehcache.spi.service.ThreadPoolConfig;
 
-public interface EhcacheExecutorProviderConfig extends ServiceConfiguration<EhcacheExecutorProvider> {
+public interface EhcacheExecutorProviderConfig extends ServiceConfiguration<RevisedEhcacheExecutorProvider> {
 
   ThreadPoolConfig getSharedCachedThreadPoolConfig();
 
-  ThreadPoolConfig getSharedScheduledThreadPoolConfig();
+  int getSharedScheduledThreadPoolCoreSize();
+
+  Class<? extends ThreadFactoryProvider> getThreadFactoryProvider();
   
-  int getMaximumThreadsAllowed();
-  
-  ThreadFactoryProvider getThreadFactoryProvider(); 
+  //Class<? extends ContextAnalyzer> getContextAnalyzer();
 }

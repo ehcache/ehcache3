@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.service;
+package org.ehcache.internal.executor;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;

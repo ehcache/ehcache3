@@ -15,19 +15,10 @@
  */
 package org.ehcache.spi.service;
 
-import java.util.concurrent.ThreadFactory;
-
 /**
- * 
  * @author palmanojkumar
  *
  */
-public interface ThreadFactoryProvider {
-
-  /**
-   * Returns platform specific {@link ThreadFactory} which is used to create new {@link Thread}.
-   * @return {@link ThreadFactory}
-   */
-  ThreadFactory newThreadFactory();
-  
+public enum ExecutorServiceType {
+  SINGLE_THREAD_EXECUTOR_SERVICE, CACHED_THREAD_POOL, SCHEDULED_EXECUTOR_SERVICE;
 }
