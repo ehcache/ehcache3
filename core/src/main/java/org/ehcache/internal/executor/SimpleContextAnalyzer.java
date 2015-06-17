@@ -3,7 +3,7 @@ package org.ehcache.internal.executor;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import org.ehcache.internal.executor.RequestContext.TaskPriority;
-import org.ehcache.spi.service.ExecutorServiceType;
+
 
 
 /**

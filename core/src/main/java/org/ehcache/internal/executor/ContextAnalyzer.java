@@ -1,6 +1,6 @@
 package org.ehcache.internal.executor;
 
-import org.ehcache.spi.service.ExecutorServiceType;
+
 
 /**
  * @author palmanojkumar

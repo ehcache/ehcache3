@@ -1,6 +1,6 @@
 package org.ehcache.internal.executor;
 
-import org.ehcache.spi.service.ExecutorServiceType;
+
 
 /**
  * Analyze different stats provided by {@link ExecutionContext} alongwith {@link RequestContext} to decide pool type 

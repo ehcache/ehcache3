@@ -17,7 +17,7 @@ package org.ehcache.internal.executor;
 
 import java.util.concurrent.TimeUnit;
 
-import org.ehcache.spi.service.ExecutorServiceType;
+
 
 /**
  * @author palmanojkumar

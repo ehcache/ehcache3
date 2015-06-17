@@ -16,20 +16,6 @@
 
 package org.ehcache.internal.store.disk;
 
-import org.ehcache.function.Predicate;
-import org.ehcache.function.Predicates;
-import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.store.disk.ods.FileAllocationTree;
-import org.ehcache.internal.store.disk.ods.Region;
-import org.ehcache.internal.store.disk.utils.ConcurrencyUtil;
-import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.AbstractValueHolder;
-import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.EhcacheExecutorProvider;
-import org.ehcache.spi.service.ScheduledEhcacheExecutorService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -47,14 +33,26 @@ import java.util.Comparator;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
+
+import org.ehcache.function.Predicate;
+import org.ehcache.function.Predicates;
+import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.executor.RequestContext;
+import org.ehcache.internal.executor.RevisedEhcacheExecutorProvider;
+import org.ehcache.internal.store.disk.ods.FileAllocationTree;
+import org.ehcache.internal.store.disk.ods.Region;
+import org.ehcache.internal.store.disk.utils.ConcurrencyUtil;
+import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.cache.AbstractValueHolder;
+import org.ehcache.spi.serialization.Serializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A mock-up of a on-disk element proxy factory.
@@ -173,7 +171,7 @@ public class DiskStorageFactory<K, V> {
   /**
    * Executor service used to write elements to disk
    */
-  private final ScheduledEhcacheExecutorService diskWriter;
+  private final ScheduledExecutorService diskWriter;
 
   private final long queueCapacity;
 
@@ -228,8 +226,8 @@ public class DiskStorageFactory<K, V> {
     this.allocator = new FileAllocationTree(Long.MAX_VALUE, dataAccess[0]);
 
     ServiceProvider sProvider = null;//get Reference of ServiceProvider
-    EhcacheExecutorProvider eprovider = sProvider.findService(EhcacheExecutorProvider.class);
-    diskWriter = eprovider.getSharedScheduledEhcacheExecutorService();
+    RevisedEhcacheExecutorProvider eprovider = sProvider.findService(RevisedEhcacheExecutorProvider.class);
+    diskWriter = eprovider.getScheduledExecutorService(new RequestContext());
 
     this.queueCapacity = queueCapacity;
 
