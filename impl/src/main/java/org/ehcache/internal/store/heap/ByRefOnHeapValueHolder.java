@@ -15,6 +15,8 @@
  */
 package org.ehcache.internal.store.heap;
 
+import org.ehcache.spi.cache.Store;
+
 class ByRefOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   private final V value;
 
@@ -32,6 +34,11 @@ class ByRefOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
       throw new NullPointerException("null value");
     }
     this.value = value;
+  }
+
+  protected ByRefOnHeapValueHolder(Store.ValueHolder<V> valueHolder) {
+    this(valueHolder.value(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT));
+    this.setLastAccessTime(valueHolder.lastAccessTime(TIME_UNIT), TIME_UNIT);
   }
 
   @Override

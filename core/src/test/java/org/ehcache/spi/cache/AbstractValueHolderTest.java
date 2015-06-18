@@ -227,16 +227,19 @@ public class AbstractValueHolderTest {
     };
   }
   private AbstractValueHolder<String> newAbstractValueHolder(final TimeUnit timeUnit, long creationTime, long expirationTime, long lastAccessTime) {
-    return new AbstractValueHolder<String>(creationTime, expirationTime, lastAccessTime) {
+    final AbstractValueHolder<String> abstractValueHolder = new AbstractValueHolder<String>(creationTime, expirationTime) {
       @Override
       protected TimeUnit nativeTimeUnit() {
         return timeUnit;
       }
+
       @Override
       public String value() {
         throw new UnsupportedOperationException();
       }
     };
+    abstractValueHolder.setLastAccessTime(lastAccessTime, timeUnit);
+    return abstractValueHolder;
   }
 
 }

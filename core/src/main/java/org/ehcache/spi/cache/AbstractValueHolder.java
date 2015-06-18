@@ -28,17 +28,13 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V>, Se
   private volatile long expirationTime;
 
   protected AbstractValueHolder(long creationTime) {
-    this(creationTime, NO_EXPIRE, creationTime);
+    this(creationTime, NO_EXPIRE);
   }
 
   protected AbstractValueHolder(long creationTime, long expirationTime) {
-    this(creationTime, expirationTime, creationTime);
-  }
-
-  protected AbstractValueHolder(long creationTime, long expirationTime, long lastAccessTime) {
     this.creationTime = creationTime;
-    this.lastAccessTime = lastAccessTime;
     this.expirationTime = expirationTime;
+    this.lastAccessTime = creationTime;
   }
 
   protected abstract TimeUnit nativeTimeUnit();

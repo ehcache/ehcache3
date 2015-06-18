@@ -37,7 +37,8 @@ public final class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
   }
 
   public OffHeapValueHolder(V value, long creationTime, long expireTime, long lastAccessTime, WriteContext writeContext) {
-    super(creationTime, expireTime, lastAccessTime);
+    super(creationTime, expireTime);
+    setLastAccessTime(lastAccessTime, TIME_UNIT);
     this.value = value;
     this.writeContext = writeContext;
   }

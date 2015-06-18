@@ -458,12 +458,23 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
         enforceCapacity(1);
         try {
           ValueHolder<V> value = fault.get();
-          OnHeapValueHolder<V> newValue = value == null ? null : newCreateValueHolder(key, value.value(), now);
-
-          if (value == null) {
+          final OnHeapValueHolder<V> newValue;
+          if(value != null) {
+            if (valueSerializer != null) {
+              newValue = new ByValueOnHeapValueHolder<V>(value, valueSerializer);
+            } else {
+              newValue = new ByRefOnHeapValueHolder<V>(value);
+            }
+            final Duration expiryForAccess = expiry.getExpiryForAccess(key, value.value());
+            if(expiryForAccess != null) {
+              newValue.setExpirationTime(expiryForAccess.getAmount(), expiryForAccess.getTimeUnit());
+            }
+          } else {
             backEnd.remove(key, fault);
             return null;
-          } else if (backEnd.replace(key, fault, newValue)) {
+          }
+
+          if (backEnd.replace(key, fault, newValue)) {
             return getValue(newValue);
           } else {
             ValueHolder<V> p = getValue(backEnd.remove(key));
