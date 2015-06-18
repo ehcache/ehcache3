@@ -24,7 +24,7 @@ public interface StoreOperationOutcomes {
   /**
    * The Enum GetOutcome.
    */
-  public enum GetOutcome {
+  enum GetOutcome {
 
     /** hit. */
     HIT,
@@ -35,7 +35,7 @@ public interface StoreOperationOutcomes {
   /**
    * The Enum PutOutcome.
    */
-  public enum PutOutcome {
+  enum PutOutcome {
     /** added. */
     ADDED,
     /** updated. */
@@ -45,8 +45,19 @@ public interface StoreOperationOutcomes {
   /**
    * The Enum RemoveOutcome.
    */
-  public enum RemoveOutcome {
+  enum RemoveOutcome {
     /** success. */
     SUCCESS
   };
+
+  /**
+   * The eviction outcomes.
+   */
+  enum EvictionOutcome implements CacheOperationOutcomes {
+    /** success. */
+    SUCCESS,
+    /** failure */
+    FAILURE
+  };
+
 }

@@ -50,9 +50,11 @@ import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.SupplementaryService;
+import org.ehcache.statistics.StoreOperationOutcomes;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.statistics.observer.OperationObserver;
 
 import java.io.FileNotFoundException;
 import java.io.Serializable;
@@ -71,6 +73,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
+import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
  * Implements a persistent-to-disk store.
@@ -118,6 +121,8 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
       }
     }
   };
+
+  private final OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver = operation(StoreOperationOutcomes.EvictionOutcome.class).named("eviction").of(this).tag("disk-store").build();
 
   public DiskStore(final Configuration<K, V> config, FileBasedPersistenceContext persistenceContext, TimeSource timeSource, Serializer<Element> elementSerializer, Serializer<Serializable> indexSerializer) {
     this.persistenceContext = persistenceContext;

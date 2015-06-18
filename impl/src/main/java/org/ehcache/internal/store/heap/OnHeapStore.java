@@ -48,17 +48,21 @@ import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.statistics.CacheOperationOutcomes.EvictionOutcome;
+import org.ehcache.statistics.StoreOperationOutcomes;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.context.annotations.ContextAttribute;
+import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
 
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -112,7 +116,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
   };
 
-  private final OperationObserver<EvictionOutcome> evictionObserver = operation(EvictionOutcome.class).named("eviction").of(this).tag("onheap-store").build();
+  private final OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver = operation(StoreOperationOutcomes.EvictionOutcome.class).named("eviction").of(this).tag("onheap-store").build();
+  private final OnHeapStoreStatsSettings onHeapStoreStatsSettings;
 
   private static final NullaryFunction<Boolean> REPLACE_EQUALS_TRUE = new NullaryFunction<Boolean>() {
     @Override
@@ -149,6 +154,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
     
     this.map = new MapWrapper<K, V>(this.keySerializer);
+    onHeapStoreStatsSettings = new OnHeapStoreStatsSettings(this);
+    StatisticsManager.associate(onHeapStoreStatsSettings).withParent(this);
   }
 
   @Override
@@ -931,11 +938,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       Map.Entry<K, OnHeapValueHolder<V>> evict = Collections.max(values, (Comparator<? super Map.Entry<K, OnHeapValueHolder<V>>>)evictionPrioritizer);
       
       if (map.remove(evict.getKey(), evict.getValue())) {
-        evictionObserver.end(EvictionOutcome.SUCCESS);
+        evictionObserver.end(StoreOperationOutcomes.EvictionOutcome.SUCCESS);
         eventListener.onEviction(evict.getKey(), evict.getValue());
         return true;
       } else {
-        evictionObserver.end(EvictionOutcome.FAILURE);
+        evictionObserver.end(StoreOperationOutcomes.EvictionOutcome.FAILURE);
         return false;
       }
     }
@@ -1217,6 +1224,17 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       } else {
         return keyCopyMap.replace(lookupOnlyKey(key), oldValue, newValue);
       }
+    }
+  }
+
+  private static final class OnHeapStoreStatsSettings {
+    @ContextAttribute("tags") private final Set<String> tags = new HashSet<String>(Arrays.asList("store"));
+    @ContextAttribute("cachingTier") private final CachingTier<?, ?> cachingTier;
+    @ContextAttribute("authoritativeTier") private final OnHeapStore<?, ?> authoritativeTier;
+
+    OnHeapStoreStatsSettings(OnHeapStore<?, ?> onHeapStore) {
+      this.cachingTier = null;
+      this.authoritativeTier = onHeapStore;
     }
   }
 }

@@ -26,10 +26,10 @@ cache manager builder as a service:
 
 [source,java]
 ----
-ManagementRegistry managementRegistry = new DefaultManagementRegistry(); //// <1>
+ManagementRegistry managementRegistry = new DefaultManagementRegistry(); // <1>
 CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
     .withCache("aCache", cacheConfiguration)
-    .using(managementRegistry) //// <2>
+    .using(managementRegistry) // <2>
     .build(true);
 ----
 <1> Create an instance of `org.ehcache.management.registry.DefaultManagementRegistry`
@@ -46,14 +46,14 @@ manager by default.
 
 [source,java]
 ----
-ManagementRegistry managementRegistry = new DefaultManagementRegistry(); //// <1>
+ManagementRegistry managementRegistry = new DefaultManagementRegistry(); // <1>
 CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
     .withCache("aCache", cacheConfiguration)
-    .using(managementRegistry) //// <2>
+    .using(managementRegistry) // <2>
     .build(true);
 CacheManager cacheManager2 = CacheManagerBuilder.newCacheManagerBuilder()
     .withCache("aCache", cacheConfiguration)
-    .using(managementRegistry) //// <3>
+    .using(managementRegistry) // <3>
     .build(true);
 ----
 <1> Create an instance of `org.ehcache.management.registry.DefaultManagementRegistry`

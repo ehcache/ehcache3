@@ -32,7 +32,11 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.DefaultConfiguration;
 import org.ehcache.config.Jsr107Configuration;
 import org.ehcache.config.xml.XmlConfiguration;
+import org.ehcache.management.ManagementRegistry;
 import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
 
 /**
@@ -92,21 +96,39 @@ public class EhcacheCachingProvider implements CachingProvider {
 
         Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory = new Eh107CacheLoaderWriterProvider();
         Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceConfigurations().toArray()));
+        ManagementRegistryCollectorService managementRegistryCollectorService = new ManagementRegistryCollectorService();
 
         ServiceLocator serviceLocator = new ServiceLocator();
         serviceLocator.addService(cacheLoaderWriterFactory);
         serviceLocator.addService(jsr107Service);
         serviceLocator.addService(new DefaultJsr107SerializationProvider());
+        serviceLocator.addService(managementRegistryCollectorService);
        
         EhcacheManager ehcacheManager = new EhcacheManager(config, serviceLocator, !jsr107Service.jsr107CompliantAtomics());
         ehcacheManager.init();
         cacheManager = new Eh107CacheManager(this, ehcacheManager, properties, classLoader, uri, cacheLoaderWriterFactory,
-            config, jsr107Service);
+            config, jsr107Service, managementRegistryCollectorService.managementRegistry);
         byURI.put(uri, cacheManager);
       }
     }
 
     return cacheManager;
+  }
+
+  static class ManagementRegistryCollectorService implements Service {
+
+    public volatile ManagementRegistry managementRegistry;
+
+    @Override
+    public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+      managementRegistry = serviceProvider.findService(ManagementRegistry.class);
+    }
+
+    @Override
+    public void stop() {
+      managementRegistry = null;
+    }
+
   }
 
   @Override

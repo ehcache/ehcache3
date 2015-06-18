@@ -15,22 +15,15 @@
  */
 package org.ehcache.management.providers.statistics;
 
-import org.ehcache.Ehcache;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.terracotta.context.extended.OperationType;
-import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
-import org.terracotta.context.query.QueryBuilder;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.terracotta.context.query.Matchers.identifier;
-import static org.terracotta.context.query.Matchers.not;
-import static org.terracotta.context.query.Matchers.subclassOf;
-import static org.terracotta.context.query.Queries.descendants;
 import static org.terracotta.context.query.Queries.self;
 
 
@@ -72,10 +65,7 @@ enum StandardOperationStatistic implements OperationType {
    */
   CACHE_REPLACE(true, self(), CacheOperationOutcomes.ReplaceOutcome.class, "replace", "cache"),
 
-  /**
-   * The evicted.
-   */
-  EVICTION(false, QueryBuilder.queryBuilder().children().filter(Matchers.context(identifier(not(subclassOf(Ehcache.class))))).chain(descendants()).build(), CacheOperationOutcomes.EvictionOutcome.class, "eviction");
+  ;
 
   private final boolean required;
   private final Query context;

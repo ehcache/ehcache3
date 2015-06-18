@@ -83,6 +83,7 @@ public class EhcacheManager implements PersistentCacheManager {
 
   private final CopyOnWriteArrayList<CacheManagerListener> listeners = new CopyOnWriteArrayList<CacheManagerListener>();
   private final StatisticsManager statisticsManager = new StatisticsManager();
+  private final EhcacheManagerStatsSettings ehcacheManagerStatsSettings = new EhcacheManagerStatsSettings(Collections.<String, Object>singletonMap("Setting", "CacheManagerName"));
 
   public EhcacheManager(Configuration config) {
     this(config, new ServiceLocator(), true);
@@ -96,6 +97,7 @@ public class EhcacheManager implements PersistentCacheManager {
     this.useLoaderInAtomics = useLoaderInAtomics;
     this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
     this.configuration = config;
+    StatisticsManager.associate(ehcacheManagerStatsSettings).withParent(this);
   }
 
   public StatisticsManager getStatisticsManager() {
@@ -406,8 +408,6 @@ public class EhcacheManager implements PersistentCacheManager {
       }
 
       statisticsManager.root(this);
-      final EhcacheManagerStatsSettings ehcacheManagerStatsSettings = new EhcacheManagerStatsSettings(Collections.<String, Object>singletonMap("Setting", "CacheManagerName"));
-      StatisticsManager.associate(ehcacheManagerStatsSettings).withParent(EhcacheManager.this);
       ManagementRegistry managementRegistry = serviceLocator.findService(ManagementRegistry.class);
       if (managementRegistry != null) {
         managementRegistry.register(EhcacheManager.class, this);

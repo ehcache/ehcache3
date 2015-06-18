@@ -95,9 +95,11 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   private final Serializer<V> valueSerializer;
   private final long sizeInBytes;
 
-  private OperationObserver<StoreOperationOutcomes.GetOutcome> getOperationObserver = operation(StoreOperationOutcomes.GetOutcome.class).of(this).named("get").tag("local-offheap").build();
-  private OperationObserver<StoreOperationOutcomes.PutOutcome> putOperationObserver = operation(StoreOperationOutcomes.PutOutcome.class).of(this).named("put").tag("local-offheap").build();
-  private OperationObserver<StoreOperationOutcomes.RemoveOutcome> removeOperationObserver = operation(StoreOperationOutcomes.RemoveOutcome.class).of(this).named("remove").tag("local-offheap").build();
+  private final OperationObserver<StoreOperationOutcomes.GetOutcome> getOperationObserver = operation(StoreOperationOutcomes.GetOutcome.class).of(this).named("get").tag("local-offheap").build();
+  private final OperationObserver<StoreOperationOutcomes.PutOutcome> putOperationObserver = operation(StoreOperationOutcomes.PutOutcome.class).of(this).named("put").tag("local-offheap").build();
+  private final OperationObserver<StoreOperationOutcomes.RemoveOutcome> removeOperationObserver = operation(StoreOperationOutcomes.RemoveOutcome.class).of(this).named("remove").tag("local-offheap").build();
+  private final OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver = operation(StoreOperationOutcomes.EvictionOutcome.class).named("eviction").of(this).tag("local-offheap").build();
+
   private volatile Callable<Void> valve;
   private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener();
   private BackingMapEvictionListener<K, V> mapEvictionListener;
