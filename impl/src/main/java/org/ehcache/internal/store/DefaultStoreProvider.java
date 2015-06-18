@@ -60,6 +60,11 @@ public class DefaultStoreProvider implements Store.Provider {
       if (heapPool == null) {
         throw new IllegalArgumentException("Cannot store to disk without heap resource");
       }
+      if (diskPool.getSize() == heapPool.getSize()) {
+        LOG.info("Disk pool size should be greater than Heap pool size");
+      } else if (diskPool.getSize() < heapPool.getSize()) {
+        throw new IllegalArgumentException("Disk pool size must be greater than Heap pool size");
+      }
       provider = serviceProvider.findService(CacheStore.Provider.class);
       enhancedServiceConfigs.add(new CacheStoreServiceConfiguration().cachingTierProvider(OnHeapStore.Provider.class)
           .authoritativeTierProvider(DiskStore.Provider.class));
