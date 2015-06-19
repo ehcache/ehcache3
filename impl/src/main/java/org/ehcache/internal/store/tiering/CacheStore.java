@@ -86,10 +86,6 @@ public class CacheStore<K, V> implements Store<K, V> {
           }
         }
       });
-      if(valueHolder != null && valueHolder.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
-        authoritativeTier.flush(key, valueHolder); // so it gets removed from the authority
-        return null;
-      }
       return valueHolder;
     } catch (ComputationException ce) {
       throw ce.getCacheAccessException();

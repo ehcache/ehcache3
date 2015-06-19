@@ -20,6 +20,7 @@ import org.ehcache.Cache;
 import org.ehcache.Cache.Entry;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.EventType;
+import org.ehcache.spi.cache.Store;
 
 public final class CacheEvents {
   private CacheEvents() { }
@@ -48,11 +49,11 @@ public final class CacheEvents {
   public static <K, V> StoreEventListener<K, V> nullStoreEventListener() {
     return new StoreEventListener<K, V>() {
       @Override
-      public void onEviction(Entry<K, V> entry) {
+      public void onEviction(final K key, final Store.ValueHolder<V> valueHolder) {
       }
 
       @Override
-      public void onExpiration(Entry<K, V> entry) {
+      public void onExpiration(final K key, final Store.ValueHolder<V> valueHolder) {
       }
     };
   }
