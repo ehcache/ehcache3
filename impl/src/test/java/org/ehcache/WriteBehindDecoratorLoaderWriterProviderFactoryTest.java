@@ -21,11 +21,14 @@ import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
 import org.ehcache.exceptions.StateTransitionException;
+import org.ehcache.loaderwriter.writebehind.WriteBehindDecoratorLoaderWriterProviderFactory;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.core.IsCollectionContaining;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Collection;
 import java.util.Map;
@@ -38,6 +41,9 @@ import static org.junit.Assert.assertThat;
  * @author rism
  */
 public class WriteBehindDecoratorLoaderWriterProviderFactoryTest {
+  
+  @Rule
+  public ExpectedException expectedEx = ExpectedException.none();
   
   @Test
   public void testAddingWriteBehindConfigurationAtManagerLevelThrows() {
@@ -80,6 +86,15 @@ public class WriteBehindDecoratorLoaderWriterProviderFactoryTest {
         .getServiceConfigurations();
     assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
     cacheManager.close();
+  }
+  
+  @Test
+  public void testWriteBehindWithoutCacheLoaderWriter() {
+    expectedEx.expect(NullPointerException.class);
+    expectedEx.expectMessage("WriteBehind requires non null CacheLoaderWriter");
+
+    WriteBehindDecoratorLoaderWriterProviderFactory factory = new WriteBehindDecoratorLoaderWriterProviderFactory();
+    factory.create(null, null).createWriteBehindDecoratorLoaderWriter(null, null);
   }
 
   public static class SampleLoaderWriter<K, V> implements CacheLoaderWriter<K, V> {

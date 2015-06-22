@@ -50,6 +50,9 @@ public class WriteBehindDecoratorLoaderWriterProviderFactory implements ServiceF
       
       @Override
       public <K, V> WriteBehindDecoratorLoaderWriter<K, V> createWriteBehindDecoratorLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration configuration) {
+        if (cacheLoaderWriter == null) {
+          throw new NullPointerException("WriteBehind requires non null CacheLoaderWriter.");
+        }
         loaderWriter = new WriteBehindDecoratorLoaderWriter<K, V>(cacheLoaderWriter, configuration);
         return (WriteBehindDecoratorLoaderWriter<K, V>)loaderWriter;
       }
