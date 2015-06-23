@@ -457,10 +457,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
             } else {
               newValue = new ByRefOnHeapValueHolder<V>(value);
             }
-            final Duration expiryForAccess = expiry.getExpiryForAccess(key, value.value());
-            if(expiryForAccess != null) {
-              newValue.setExpirationTime(safeExpireTime(now, expiryForAccess), TimeUnit.MILLISECONDS);
-            }
+            newValue.accessed(now, expiry.getExpiryForAccess(key, value.value()));
           } else {
             backEnd.remove(key, fault);
             return null;
@@ -812,16 +809,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   }
   
   private void setAccessTimeAndExpiry(K key, OnHeapValueHolder<V> valueHolder, long now) {
-    valueHolder.setLastAccessTime(now, OnHeapValueHolder.TIME_UNIT);
-
-    Duration duration = expiry.getExpiryForAccess(key, valueHolder.value());
-    if (duration != null) {
-      if (duration.isForever()) {
-        valueHolder.setExpirationTime(ValueHolder.NO_EXPIRE, null);
-      } else {
-        valueHolder.setExpirationTime(safeExpireTime(now, duration), OnHeapValueHolder.TIME_UNIT);
-      }
-    }
+    valueHolder.accessed(now, expiry.getExpiryForAccess(key, valueHolder.value()));
   }
 
   private OnHeapValueHolder<V> newUpdateValueHolder(K key, OnHeapValueHolder<V> oldValue, V newValue, long now) {

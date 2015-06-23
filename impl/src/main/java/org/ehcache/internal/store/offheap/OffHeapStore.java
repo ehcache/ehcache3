@@ -623,16 +623,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   };
 
   private void setAccessTimeAndExpiry(K key, OffHeapValueHolder<V> valueHolder, long now) {
-    valueHolder.setLastAccessTime(now, OffHeapValueHolder.TIME_UNIT);
-
-    Duration duration = expiry.getExpiryForAccess(key, valueHolder.value());
-    if (duration != null) {
-      if (duration.isForever()) {
-        valueHolder.setExpirationTime(ValueHolder.NO_EXPIRE, null);
-      } else {
-        valueHolder.setExpirationTime(safeExpireTime(now, duration), OffHeapValueHolder.TIME_UNIT);
-      }
-    }
+    valueHolder.accessed(now, expiry.getExpiryForAccess(key, valueHolder.value()));
     valueHolder.writeBack();
   }
 

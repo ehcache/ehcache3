@@ -37,7 +37,7 @@ abstract class OnHeapValueHolder<V> extends AbstractValueHolder<V> {
   }
 
   @Override
-  protected TimeUnit nativeTimeUnit() {
+  final protected TimeUnit nativeTimeUnit() {
     return TIME_UNIT;
   }
 }
