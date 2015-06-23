@@ -16,6 +16,16 @@
 
 package org.ehcache.events;
 
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+
 import org.ehcache.Cache;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
@@ -24,18 +34,12 @@ import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
+import org.ehcache.internal.executor.RequestContext;
+import org.ehcache.internal.executor.RevisedEhcacheExecutorProvider;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
 /**
  * Per-cache component that manages cache event listener registrations, and provides event delivery based on desired
@@ -128,16 +132,23 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
       if (!wrapper.config.fireOn().contains(type)) {
         continue;
       }
-      Runnable notificationTask = new Runnable() {
+      
+      Callable<Void> notificationTask = new Callable<Void>() {
         @Override
-        public void run() {
+        public Void call() throws Exception {
           CacheEventListener<K, V> listener = wrapper.getListener();
           listener.onEvent(event);
+          return null;
         }
       };
-      
-      ExecutorService eventDelivery = wrapper.config.orderingMode().equals(EventOrdering.UNORDERED) ? unorderedDelivery : orderedDelivery;
-      notificationResults.put(wrapper, eventDelivery.submit(notificationTask));
+      ServiceProvider serviceProvider = null; // get service locator instance reference
+
+      RevisedEhcacheExecutorProvider eProvider = serviceProvider.findService(RevisedEhcacheExecutorProvider.class);
+      org.ehcache.internal.executor.ExecutorServiceType tpt = null;//wrapper.config.orderingMode().equals(EventOrdering.UNORDERED) ? ExecutorServiceType.CACHED_THREAD_POOL : ExecutorServiceType.SINGLE_THREAD_EXECUTOR_SERVICE;
+
+      RequestContext rContext = new RequestContext();
+      ExecutorService eExecutor = eProvider.getExecutorService(null, rContext);
+      notificationResults.put(wrapper, eExecutor.submit(notificationTask));
     }
     
     for (Map.Entry<EventListenerWrapper, Future<?>> entry: notificationResults.entrySet()) {

@@ -20,6 +20,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -29,13 +32,17 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.ehcache.config.writebehind.ResilientCacheWriter;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheWritingException;
+import org.ehcache.internal.executor.RequestContext;
+import org.ehcache.internal.executor.RevisedEhcacheExecutorProvider;
 import org.ehcache.loaderwriter.writebehind.operations.DeleteOperation;
 import org.ehcache.loaderwriter.writebehind.operations.OperationsFilter;
 import org.ehcache.loaderwriter.writebehind.operations.SingleOperation;
 import org.ehcache.loaderwriter.writebehind.operations.SingleOperationType;
 import org.ehcache.loaderwriter.writebehind.operations.WriteOperation;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,6 +82,9 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
   private final AtomicLong lastProcessing = new AtomicLong(System.currentTimeMillis());
   private final AtomicLong lastWorkDone = new AtomicLong(System.currentTimeMillis());
   private final AtomicBoolean busyProcessing = new AtomicBoolean(false);
+  
+  private ExecutorService eService;
+  private Future<Void> futureResponse;
 
   public AbstractWriteBehindQueue(WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     this.stopping = false;
@@ -90,6 +100,10 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
     this.retryAttemptDelaySeconds = config.getRetryAttemptDelaySeconds();
     this.cacheLoaderWriter = cacheLoaderWriter;
 
+    ServiceProvider sProvider = null;//get reference of serviceprovider, 
+    RevisedEhcacheExecutorProvider eProvider = sProvider.findService(RevisedEhcacheExecutorProvider.class);
+    eService = eProvider.getExecutorService(null, new RequestContext());
+    
     this.processingThread = new Thread(new ProcessingThread(), cacheLoaderWriter.getClass().getName() + " write-behind");
     this.processingThread.setDaemon(true);
   }
@@ -130,14 +144,22 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
         throw new RuntimeException("The write-behind queue for cache '" + cacheLoaderWriter.getClass().getName() + "' can't be started more than once");
       }
 
-      if (processingThread.isAlive()) {
+      if (futureResponse != null) {
         throw new RuntimeException("The thread with name " + processingThread.getName() + " already exists and is still running");
       }
 
       this.stopping = false;
       this.stopped = false;
 
-      processingThread.start();
+      futureResponse = eService.submit(new Callable<Void>() {
+
+        @Override
+        public Void call() throws Exception {
+           Runnable runnable = new ProcessingThread();
+           runnable.run();
+          return null;
+        }
+      });
     } finally {
       queueWriteLock.unlock();
     }

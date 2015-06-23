@@ -16,17 +16,6 @@
 
 package org.ehcache.internal.store.disk;
 
-import org.ehcache.function.Predicate;
-import org.ehcache.function.Predicates;
-import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.store.disk.ods.FileAllocationTree;
-import org.ehcache.internal.store.disk.ods.Region;
-import org.ehcache.internal.store.disk.utils.ConcurrencyUtil;
-import org.ehcache.spi.cache.AbstractValueHolder;
-import org.ehcache.spi.serialization.Serializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -44,14 +33,26 @@ import java.util.Comparator;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
+
+import org.ehcache.function.Predicate;
+import org.ehcache.function.Predicates;
+import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.executor.RequestContext;
+import org.ehcache.internal.executor.RevisedEhcacheExecutorProvider;
+import org.ehcache.internal.store.disk.ods.FileAllocationTree;
+import org.ehcache.internal.store.disk.ods.Region;
+import org.ehcache.internal.store.disk.utils.ConcurrencyUtil;
+import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.cache.AbstractValueHolder;
+import org.ehcache.spi.serialization.Serializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A mock-up of a on-disk element proxy factory.
@@ -166,11 +167,11 @@ public class DiskStorageFactory<K, V> {
    */
   protected volatile DiskStore<K, V> store;
 
-  private final BlockingQueue<Runnable> diskQueue;
+  //private final BlockingQueue<Runnable> diskQueue;
   /**
    * Executor service used to write elements to disk
    */
-  private final ScheduledThreadPoolExecutor diskWriter;
+  private final ScheduledExecutorService diskWriter;
 
   private final long queueCapacity;
 
@@ -224,18 +225,12 @@ public class DiskStorageFactory<K, V> {
     }
     this.allocator = new FileAllocationTree(Long.MAX_VALUE, dataAccess[0]);
 
-    diskWriter = new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
-      public Thread newThread(Runnable r) {
-        Thread t = new Thread(r, file.getName());
-        t.setDaemon(false);
-        return t;
-      }
-    });
-    this.diskQueue = diskWriter.getQueue();
+    ServiceProvider sProvider = null;//get Reference of ServiceProvider
+    RevisedEhcacheExecutorProvider eprovider = sProvider.findService(RevisedEhcacheExecutorProvider.class);
+    diskWriter = eprovider.getScheduledExecutorService(new RequestContext());
+
     this.queueCapacity = queueCapacity;
 
-    diskWriter.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
-    diskWriter.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
     diskWriter.scheduleWithFixedDelay(new DiskExpiryTask(), (long) expiryThreadInterval, (long) expiryThreadInterval, TimeUnit.SECONDS);
 
     flushTask = new IndexWriteTask(indexFile);
@@ -352,19 +347,6 @@ public class DiskStorageFactory<K, V> {
    * @throws java.io.IOException if an IO error occurred
    */
   protected void shutdown() throws IOException {
-    diskWriter.shutdown();
-    for (int i = 0; i < SHUTDOWN_GRACE_PERIOD; i++) {
-      try {
-        if (diskWriter.awaitTermination(1, TimeUnit.SECONDS)) {
-          break;
-        } else {
-          LOG.info("Waited " + (i + 1) + " seconds for shutdown of [" + file.getName() + "]");
-        }
-      } catch (InterruptedException e) {
-        LOG.warn("Received exception while waiting for shutdown", e);
-      }
-    }
-
     for (final RandomAccessFile raf : dataAccess) {
       synchronized (raf) {
         raf.close();
@@ -460,9 +442,9 @@ public class DiskStorageFactory<K, V> {
    *
    * @return {@code true} if the disk write queue is full.
    */
-  public boolean bufferFull() {
+ /* public boolean bufferFull() {  //there is no consumer for this method
     return (diskQueue.size() * elementSize) > queueCapacity;
-  }
+  }*/
 
   /**
    * DiskWriteTasks are used to serialize elements
@@ -846,6 +828,7 @@ public class DiskStorageFactory<K, V> {
         store.expire(marker.getKey(), marker);
       }
     }
+   
   }
 
 
