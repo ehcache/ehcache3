@@ -19,6 +19,7 @@ package org.ehcache.config.persistence;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.ResourceType;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.cache.Store;
 
@@ -38,6 +39,11 @@ public class PersistentStoreConfigurationImpl<K, V> implements Store.PersistentS
   @Override
   public String getIdentifier() {
     return identifier;
+  }
+
+  @Override
+  public boolean isPersistent() {
+    return config.getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent();
   }
 
   @Override

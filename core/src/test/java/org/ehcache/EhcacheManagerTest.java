@@ -19,6 +19,9 @@ package org.ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.DefaultConfiguration;
+import org.ehcache.config.ResourcePools;
+import org.ehcache.config.ResourcePoolsBuilder;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.CacheEventNotificationListenerServiceProvider;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.CacheEventNotificationServiceImpl;
@@ -263,16 +266,19 @@ public class EhcacheManagerTest {
   @Test
   public void testLifeCyclesCacheLoaders() {
 
+    ResourcePools resourcePools = ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10L, EntryUnit.ENTRIES).build();
+
     final CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
 
     final CacheConfiguration<Long, Long> barConfig = mock(CacheConfiguration.class);
     when(barConfig.getClassLoader()).thenReturn(getClass().getClassLoader());
+    when(barConfig.getResourcePools()).thenReturn(resourcePools);
     final CacheConfiguration<Integer, CharSequence> fooConfig = mock(CacheConfiguration.class);
     when(fooConfig.getClassLoader()).thenReturn(getClass().getClassLoader());
+    when(fooConfig.getResourcePools()).thenReturn(resourcePools);
 
     CacheLoaderWriter fooLoaderWriter = mock(CacheLoaderWriter.class);
     
-    final DefaultWriteBehindConfiguration configuration = mock(DefaultWriteBehindConfiguration.class);
     final WriteBehindDecoratorLoaderWriterProvider decoratorLoaderWriterProvider = mock(WriteBehindDecoratorLoaderWriterProvider.class);
 
     when(cacheLoaderWriterProvider.createCacheLoaderWriter("foo", fooConfig)).thenReturn(fooLoaderWriter);

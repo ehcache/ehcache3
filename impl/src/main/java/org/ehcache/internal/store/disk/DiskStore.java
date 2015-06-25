@@ -28,6 +28,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -38,13 +39,13 @@ import org.ehcache.function.Predicates;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
-import org.ehcache.spi.Persistable;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.internal.store.disk.DiskStorageFactory.Element;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.SupplementaryService;
@@ -52,7 +53,6 @@ import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -78,7 +78,7 @@ import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
  *
  * @author Ludovic Orban
  */
-public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
+public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
 
   private static final Logger LOG = LoggerFactory.getLogger(DiskStore.class);
 
@@ -94,11 +94,11 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
   private final Expiry<? super K, ? super V> expiry;
   private final Serializer<Element> elementSerializer;
   private final Serializer<Serializable> indexSerializer;
+  private final FileBasedPersistenceContext persistenceContext;
   private volatile long capacity;
   private final Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto;
   private final Comparator<DiskStorageFactory.DiskSubstitute<K, V>> evictionPrioritizer;
   private final Random random = new Random();
-  private final boolean persistent;
 
   private volatile DiskStorageFactory<K, V> diskStorageFactory;
   private volatile Segment<K, V>[] segments;
@@ -118,12 +118,8 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
     }
   };
 
-  // TODO: These should not be handled directly by the DiskStore, but through the LocalPersistenceService instead;
-  //       Sadly, that's currently not feasible without major refactoring to all this...
-  private final File dataFile;
-  private final File indexFile;
-
-  public DiskStore(final Configuration<K, V> config, File dataFile, File indexFile, TimeSource timeSource, Serializer<Element> elementSerializer, Serializer<Serializable> indexSerializer) {
+  public DiskStore(final Configuration<K, V> config, FileBasedPersistenceContext persistenceContext, TimeSource timeSource, Serializer<Element> elementSerializer, Serializer<Serializable> indexSerializer) {
+    this.persistenceContext = persistenceContext;
     ResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
     if (diskPool == null) {
       throw new IllegalArgumentException("Disk store must be configured with a resource of type 'disk'");
@@ -144,9 +140,6 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
     this.expiry = config.getExpiry();
     this.elementSerializer = elementSerializer;
     this.indexSerializer = indexSerializer;
-    this.dataFile = dataFile;
-    this.indexFile = indexFile;
-    this.persistent = diskPool.isPersistent();
   }
 
   private Predicate<DiskStorageFactory.DiskSubstitute<K, V>> wrap(final Predicate<Cache.Entry<K, V>> predicate) {
@@ -437,42 +430,6 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
     if (segments != null) {
       for (Segment s : segments) {
         s.clear();
-      }
-    }
-  }
-
-  @Override
-  public void destroy() throws Exception {
-    internalClear();
-    if (dataFile.delete() | indexFile.delete()) {
-      LOG.info("Destroyed " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
-    }
-  }
-
-  @Override
-  public boolean isPersistent() {
-    return persistent;
-  }
-
-  @Override
-  public void create() throws Exception {
-    boolean dataFileCreated = dataFile.createNewFile();
-    boolean indexFileCreated = indexFile.createNewFile();
-
-    if (dataFileCreated && indexFileCreated) {
-      LOG.info("Created " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
-    } else if (!dataFileCreated && !indexFileCreated) {
-      LOG.info("Reusing " + dataFile.getAbsolutePath() + " and " + indexFile.getAbsolutePath());
-    } else {
-      if (indexFileCreated) {
-        dataFile.delete();
-        dataFile.createNewFile();
-        LOG.warn("Index file " + indexFile.getAbsolutePath() + " was missing, dropped previously persisted data");
-      }
-      if (dataFileCreated) {
-        indexFile.delete();
-        indexFile.createNewFile();
-        LOG.warn("Data file " + dataFile.getAbsolutePath() + " was missing,  dropped previously persisted data");
       }
     }
   }
@@ -1037,20 +994,25 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
       Serializer<Element> elementSerializer = serializationProvider.createKeySerializer(Element.class, storeConfig.getClassLoader(), serviceConfigs);
       Serializer<Serializable> objectSerializer = serializationProvider.createValueSerializer(Serializable.class, storeConfig.getClassLoader(), serviceConfigs);
 
-      // todo: This should be enforced at the type system
-      Object identifier;
-      if(storeConfig instanceof PersistentStoreConfiguration<?, ?, ?>) {
-        identifier = ((PersistentStoreConfiguration) storeConfig).getIdentifier();
-      } else {
+      PersistentStoreConfiguration persistentStoreConfiguration;
+      if (!(storeConfig instanceof PersistentStoreConfiguration<?, ?, ?>)) {
         throw new IllegalArgumentException("Store.Configuration for DiskStore should implement Store.PersistentStoreConfiguration");
       }
 
+      persistentStoreConfiguration = (PersistentStoreConfiguration) storeConfig;
+
       LocalPersistenceService localPersistenceService = serviceProvider.findService(LocalPersistenceService.class);
 
-      DiskStore<K, V> diskStore = new DiskStore<K, V>(storeConfig, localPersistenceService.getDataFile(identifier),
-          localPersistenceService.getIndexFile(identifier), timeSource, elementSerializer, objectSerializer);
-      createdStores.add(diskStore);
-      return diskStore;
+      try {
+        FileBasedPersistenceContext persistenceContext = localPersistenceService.createPersistenceContext(persistentStoreConfiguration.getIdentifier(),
+            persistentStoreConfiguration);
+
+        DiskStore<K, V> diskStore = new DiskStore<K, V>(storeConfig, persistenceContext, timeSource, elementSerializer, objectSerializer);
+        createdStores.add(diskStore);
+        return diskStore;
+      } catch (CachePersistenceException e) {
+        throw new RuntimeException("Unable to create persistence context for " + persistentStoreConfiguration.getIdentifier(), e);
+      }
     }
 
     @Override
@@ -1082,7 +1044,7 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V>, Persistable {
     static void init(final DiskStore resource) {
       try {
         resource.diskStorageFactory = new DiskStorageFactory<Object, Object>(resource.capacity, resource.evictionVeto, resource.evictionPrioritizer,
-            resource.timeSource, resource.elementSerializer, resource.indexSerializer, resource.dataFile, resource.indexFile,
+            resource.timeSource, resource.elementSerializer, resource.indexSerializer, resource.persistenceContext,
             DEFAULT_SEGMENT_COUNT, DEFAULT_QUEUE_CAPACITY, DEFAULT_EXPIRY_THREAD_INTERVAL);
       } catch (FileNotFoundException fnfe) {
         throw new IllegalStateException(fnfe);

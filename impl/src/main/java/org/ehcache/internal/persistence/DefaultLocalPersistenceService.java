@@ -16,11 +16,14 @@
 
 package org.ehcache.internal.persistence;
 
-import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.store.disk.DiskStorePathManager;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.LocalPersistenceService;
+import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,17 +32,21 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileLock;
+import java.util.Map;
 
 /**
  * @author Alex Snaps
  */
 public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
+  private final Map<Object, FileBasedPersistenceContext> knownPersistenceContexts = new ConcurrentHashMap<Object, FileBasedPersistenceContext>();
   private final File rootDirectory;
   private final DiskStorePathManager diskStorePathManager;
   private FileLock lock;
   private File lockFile;
+
   private RandomAccessFile rw;
+
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultLocalPersistenceService.class);
 
   private boolean started;
@@ -104,21 +111,114 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   }
 
   @Override
-  public Object persistenceContext(final String cacheAlias, final CacheConfiguration<?, ?> cacheConfiguration) {
-    throw new UnsupportedOperationException("Implement me!");
+  public FileBasedPersistenceContext createPersistenceContext(Object identifier, Store.PersistentStoreConfiguration<?, ?, ?> storeConfiguration) throws CachePersistenceException {
+    DefaultFiledBasedPersistenceContext filedBased = new DefaultFiledBasedPersistenceContext(diskStorePathManager.getFile(identifier, ".data"),
+        diskStorePathManager.getFile(identifier, ".index"));
+    knownPersistenceContexts.put(identifier, filedBased);
+
+    if (!storeConfiguration.isPersistent()) {
+      destroy(identifier, filedBased, false);
+    }
+
+    try {
+      create(filedBased);
+    } catch (IOException e) {
+      knownPersistenceContexts.remove(identifier);
+      throw new CachePersistenceException("Unable to create persistence context for " + identifier, e);
+    }
+
+    return filedBased;
   }
 
   @Override
-  public File getDataFile(Object identifier) {
-    return diskStorePathManager.getFile(identifier, ".data");
-  }
-
-  @Override
-  public File getIndexFile(Object identifier) {
-    return diskStorePathManager.getFile(identifier, ".index");
+  public void destroyPersistenceContext(Object identifier) {
+    FileBasedPersistenceContext persistenceContext = knownPersistenceContexts.get(identifier);
+    if (persistenceContext != null) {
+      try {
+        destroy(identifier, persistenceContext, true);
+      } finally {
+        knownPersistenceContexts.remove(identifier);
+      }
+    } else {
+      destroy(identifier, new DefaultFiledBasedPersistenceContext(diskStorePathManager.getFile(identifier, ".data"), diskStorePathManager.getFile(identifier, ".index")), true);
+    }
   }
 
   File getLockFile() {
     return lockFile;
+  }
+
+
+  static void create(FileBasedPersistenceContext fileBasedPersistenceContext) throws IOException, CachePersistenceException {
+    boolean dataFileCreated = fileBasedPersistenceContext.getDataFile().createNewFile();
+    boolean indexFileCreated = fileBasedPersistenceContext.getIndexFile().createNewFile();
+
+    if (dataFileCreated && indexFileCreated) {
+      LOGGER.info("Created " + fileBasedPersistenceContext.getDataFile().getAbsolutePath() + " and " + fileBasedPersistenceContext
+          .getIndexFile()
+          .getAbsolutePath());
+    } else if (!dataFileCreated && !indexFileCreated) {
+      LOGGER.info("Reusing " + fileBasedPersistenceContext.getDataFile().getAbsolutePath() + " and " + fileBasedPersistenceContext
+          .getIndexFile().getAbsolutePath());
+    } else {
+      if (indexFileCreated) {
+        if (fileBasedPersistenceContext.getDataFile().delete()) {
+          if (!fileBasedPersistenceContext.getDataFile().createNewFile()) {
+            throw new CachePersistenceException("Unable to create data file for persistence context");
+          }
+          LOGGER.warn("Index file " + fileBasedPersistenceContext.getIndexFile().getAbsolutePath() + " was missing, dropped previously persisted data");
+        } else {
+          throw new CachePersistenceException("Unable to clean up inconsistent persistence context state - no index file, old data file cannot be deleted");
+        }
+      }
+      if (dataFileCreated) {
+        if (fileBasedPersistenceContext.getIndexFile().delete()) {
+          if (!fileBasedPersistenceContext.getIndexFile().createNewFile()) {
+            throw new CachePersistenceException("Unable to create index file for persistence context");
+          }
+          LOGGER.warn("Data file " + fileBasedPersistenceContext.getDataFile().getAbsolutePath() + " was missing,  dropped previously persisted data");
+        } else {
+          throw new CachePersistenceException("Unable to clean up inconsistent persistence context state - no data file, old index file cannot be deleted");
+        }
+      }
+    }
+  }
+
+  static void destroy(Object identifier, FileBasedPersistenceContext fileBasedPersistenceContext, boolean verbose) {
+    if (verbose) {
+      LOGGER.info("Destroying file based persistence context for {}", identifier);
+    }
+    if (fileBasedPersistenceContext.getDataFile().exists() && !fileBasedPersistenceContext.getDataFile().delete()) {
+      if (verbose) {
+        LOGGER.warn("Could not delete data file for context {}", identifier);
+      }
+    }
+    if (fileBasedPersistenceContext.getIndexFile().exists() && !fileBasedPersistenceContext.getIndexFile().delete()) {
+      if (verbose) {
+        LOGGER.warn("Could not delete index file for context {}", identifier);
+      }
+    }
+  }
+
+
+  private static class DefaultFiledBasedPersistenceContext implements FileBasedPersistenceContext {
+
+    final File dataFile;
+    final File indexFile;
+
+    DefaultFiledBasedPersistenceContext(File dataFile, File indexFile) {
+      this.dataFile = dataFile;
+      this.indexFile = indexFile;
+    }
+
+    @Override
+    public File getDataFile() {
+      return dataFile;
+    }
+
+    @Override
+    public File getIndexFile() {
+      return indexFile;
+    }
   }
 }

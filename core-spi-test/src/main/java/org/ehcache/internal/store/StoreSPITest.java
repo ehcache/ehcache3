@@ -99,12 +99,6 @@ public abstract class StoreSPITest<K, V> {
   }
 
   @Test
-  public void testDestroy() throws Exception {
-    StoreDestroyTest<K, V> testSuite = new StoreDestroyTest<K, V>(getStoreFactory());
-    testSuite.runTestSuite().reportAndThrow();
-  }
-
-  @Test
   public void testClose() throws Exception {
     StoreCloseTest<K, V> testSuite = new StoreCloseTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
