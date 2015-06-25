@@ -15,7 +15,6 @@
  */
 package org.ehcache.internal.store.heap;
 
-import org.ehcache.Cache;
 import org.ehcache.Cache.Entry;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
@@ -45,11 +44,11 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Matchers.argThat;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public abstract class BaseOnHeapStoreTest {
 
@@ -626,20 +625,8 @@ public abstract class BaseOnHeapStoreTest {
 
     assertThat(newValue.value(), equalTo("value2"));
     assertThat(store.get("key").value(), equalTo("value2"));
-    verify(listener).onExpiration(argThat(new ArgumentMatcher<String>() {
-
-          @Override
-          public boolean matches(Object argument) {
-            return "key".equals(argument);
-          }
-        }), argThat(new ArgumentMatcher<Store.ValueHolder<String>>() {
-
-          @Override
-          public boolean matches(Object argument) {
-            return ((Store.ValueHolder<String>)argument).value().equals("value");
-          }
-        })
-    );
+    final String value = "value";
+    verify(listener).onExpiration(eq("key"), valueHolderValueEq(value));
   }
 
   @Test
@@ -795,19 +782,7 @@ public abstract class BaseOnHeapStoreTest {
 
     assertThat(newValue, nullValue());
     assertThat(store.get("key"), nullValue());
-    verify(listener).onExpiration(argThat(new ArgumentMatcher<String>() {
-
-          @Override
-          public boolean matches(Object argument) {
-            return "key".equals(argument);
-          }
-        }), argThat(new ArgumentMatcher<Store.ValueHolder<String>>() {
-
-          @Override
-          public boolean matches(Object argument) {
-            return ((Store.ValueHolder<String>)argument).value().equals("value");
-          }
-        })
+    verify(listener).onExpiration(eq("key"), valueHolderValueEq("value")
     );
     
   }
@@ -832,21 +807,18 @@ public abstract class BaseOnHeapStoreTest {
 
     assertThat(newValue, nullValue());
     assertThat(store.get("key"), nullValue());
-    verify(listener).onExpiration(argThat(new ArgumentMatcher<String>() {
-
-          @Override
-          public boolean matches(Object argument) {
-            return "key".equals(argument);
-          }
-        }), argThat(new ArgumentMatcher<Store.ValueHolder<String>>() {
-
-          @Override
-          public boolean matches(Object argument) {
-            return ((Store.ValueHolder<String>)argument).value().equals("value");
-          }
-        })
-    );
+    verify(listener).onExpiration(eq("key"), valueHolderValueEq("value"));
     assertThat(storeSize(store), is(0));
+  }
+
+  public static <V> ValueHolder<V> valueHolderValueEq(final V value) {
+    return argThat(new ArgumentMatcher<ValueHolder<V>>() {
+
+      @Override
+      public boolean matches(Object argument) {
+        return ((ValueHolder<V>)argument).value().equals(value);
+      }
+    });
   }
 
   private static int storeSize(OnHeapStore<?, ?> store) throws Exception {
@@ -868,19 +840,7 @@ public abstract class BaseOnHeapStoreTest {
 
   @SuppressWarnings("unchecked")
   private static <K, V> void checkExpiryEvent(StoreEventListener<K, V> listener, final K key, final V value) {
-    verify(listener).onExpiration(argThat(new ArgumentMatcher<K>() {
-
-      @Override
-      public boolean matches(Object argument) {
-        return key.equals(argument);
-      }
-    }), argThat(new ArgumentMatcher<Store.ValueHolder<V>>() {
-
-      @Override
-      public boolean matches(Object argument) {
-        return ((Store.ValueHolder<V>) argument).value().equals(value);
-      }
-    }));
+    verify(listener).onExpiration(eq(key), valueHolderValueEq(value));
 
   }
 
