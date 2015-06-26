@@ -577,6 +577,14 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     getOperationObserver.begin();
     checkKey(key);
     OffHeapValueHolder<V> mappedValue = map.getAndPin(key);
+
+    if(mappedValue != null && mappedValue.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
+      if(map.remove(key, mappedValue)) {
+        eventListener.onExpiration(key, mappedValue);
+      }
+      mappedValue = null;
+    }
+
     if (mappedValue == null) {
       getOperationObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
     } else {

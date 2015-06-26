@@ -22,7 +22,6 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
-import org.ehcache.spi.test.Ignore;
 import org.ehcache.spi.test.SPITest;
 
 import java.util.concurrent.TimeUnit;
