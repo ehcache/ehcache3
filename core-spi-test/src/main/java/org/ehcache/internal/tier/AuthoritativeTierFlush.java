@@ -63,13 +63,13 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
   }
 
   @SPITest
-  @Ignore(reason = "until issue 362/363 is clarified if a boolean should be returned")
   @SuppressWarnings("unchecked")
   public void entryIsFlushed() {
     K key = factory.createKey(1);
     final V value = factory.createValue(1);
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
     when(valueHolder.expirationTime(any(TimeUnit.class))).thenReturn(1L);
+    when(valueHolder.getId()).thenReturn(-1L);
 
     tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         1L, null, null, Expirations.noExpiration()));
@@ -86,7 +86,6 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
   }
 
   @SPITest
-  @Ignore(reason = "until issue 362/363 is clarified if a boolean should be returned")
   @SuppressWarnings("unchecked")
   public void entryIsNotFlushed() {
     K key = factory.createKey(1);
