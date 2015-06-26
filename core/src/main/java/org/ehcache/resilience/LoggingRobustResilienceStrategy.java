@@ -39,17 +39,17 @@ public class LoggingRobustResilienceStrategy<K, V> extends RobustResilienceStrat
 
   @Override
   protected void recovered(K key, CacheAccessException from) {
-    LOGGER.info("Ehcache key {} recovered from {}", key, from);
+    LOGGER.info("Ehcache key {} recovered from", key, from);
   }
 
   @Override
   protected void recovered(Iterable<? extends K> keys, CacheAccessException from) {
-    LOGGER.info("Ehcache keys {} recovered from {}", keys, from);
+    LOGGER.info("Ehcache keys {} recovered from", keys, from);
   }
 
   @Override
   protected void recovered(CacheAccessException from) {
-    LOGGER.info("Ehcache recovered from {}", from);
+    LOGGER.info("Ehcache recovered from", from);
   }
 
   @Override

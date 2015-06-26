@@ -17,6 +17,7 @@
 package org.ehcache.internal.store.heap;
 
 import org.ehcache.spi.cache.AbstractValueHolder;
+import org.ehcache.spi.cache.Store;
 
 import java.util.concurrent.TimeUnit;
 
@@ -36,7 +37,7 @@ abstract class OnHeapValueHolder<V> extends AbstractValueHolder<V> {
   }
 
   @Override
-  protected TimeUnit nativeTimeUnit() {
+  final protected TimeUnit nativeTimeUnit() {
     return TIME_UNIT;
   }
 }

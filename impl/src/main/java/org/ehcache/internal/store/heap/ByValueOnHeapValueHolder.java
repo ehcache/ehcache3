@@ -16,6 +16,7 @@
 package org.ehcache.internal.store.heap;
 
 import org.ehcache.exceptions.SerializerException;
+import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.io.IOException;
@@ -46,7 +47,12 @@ class ByValueOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
       throw new SerializerException(ioe);
     }
   }
-  
+
+  protected ByValueOnHeapValueHolder(Store.ValueHolder<V> valueHolder, Serializer<V> serializer) {
+    this(valueHolder.value(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), serializer);
+    this.setLastAccessTime(valueHolder.lastAccessTime(TIME_UNIT), TIME_UNIT);
+  }
+
   @Override
   public final V value() {
     try {

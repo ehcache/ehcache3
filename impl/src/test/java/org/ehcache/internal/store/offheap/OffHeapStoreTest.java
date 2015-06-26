@@ -26,6 +26,7 @@ import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -102,13 +103,13 @@ public class OffHeapStoreTest {
   private static class TestStoreEventListener<K, V> implements StoreEventListener<K, V> {
 
     @Override
-    public void onEviction(Cache.Entry<K, V> entry) {
-      System.out.println("Evicted " + entry.getKey());
+    public void onEviction(final K key, final Store.ValueHolder<V> valueHolder) {
+      System.out.println("Evicted " + key);
     }
 
     @Override
-    public void onExpiration(Cache.Entry<K, V> entry) {
-      System.out.println("Expired " + entry.getKey());
+    public void onExpiration(final K key, final Store.ValueHolder<V> valueHolder) {
+      System.out.println("Expired " + key);
     }
   }
 

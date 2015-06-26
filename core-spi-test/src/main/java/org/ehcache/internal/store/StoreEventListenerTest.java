@@ -306,14 +306,15 @@ public class StoreEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   private class TestStoreEventListener implements StoreEventListener<K, V> {
     private final Set<K> evicted = new HashSet<K>();
     private final Set<K> expired = new HashSet<K>();
+
     @Override
-    public void onEviction(Cache.Entry<K, V> entry) {
-      evicted.add(entry.getKey());
+    public void onEviction(final K key, final Store.ValueHolder<V> valueHolder) {
+      evicted.add(key);
     }
 
     @Override
-    public void onExpiration(Cache.Entry<K, V> entry) {
-      expired.add(entry.getKey());
+    public void onExpiration(final K key, final Store.ValueHolder<V> valueHolder) {
+      expired.add(key);
     }
   }
 

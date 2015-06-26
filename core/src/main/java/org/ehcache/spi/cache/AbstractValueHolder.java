@@ -15,6 +15,8 @@
  */
 package org.ehcache.spi.cache;
 
+import org.ehcache.expiry.Duration;
+
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 
@@ -28,17 +30,13 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V>, Se
   private volatile long expirationTime;
 
   protected AbstractValueHolder(long creationTime) {
-    this(creationTime, NO_EXPIRE, creationTime);
+    this(creationTime, NO_EXPIRE);
   }
 
   protected AbstractValueHolder(long creationTime, long expirationTime) {
-    this(creationTime, expirationTime, creationTime);
-  }
-
-  protected AbstractValueHolder(long creationTime, long expirationTime, long lastAccessTime) {
     this.creationTime = creationTime;
-    this.lastAccessTime = lastAccessTime;
     this.expirationTime = expirationTime;
+    this.lastAccessTime = creationTime;
   }
 
   protected abstract TimeUnit nativeTimeUnit();
@@ -56,6 +54,28 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V>, Se
     } else {
       this.expirationTime = nativeTimeUnit().convert(expirationTime, unit);;
     }
+  }
+
+  public void accessed(long now, Duration expiration) {
+    final TimeUnit timeUnit = nativeTimeUnit();
+    if (expiration != null) {
+      if (expiration.isForever()) {
+        setExpirationTime(Store.ValueHolder.NO_EXPIRE, null);
+      } else {
+        long millis = timeUnit.convert(expiration.getAmount(), expiration.getTimeUnit());
+        long newExpirationTime ;
+        if (millis == Long.MAX_VALUE) {
+          newExpirationTime = Long.MAX_VALUE;
+        } else {
+          newExpirationTime = now + millis;
+          if (newExpirationTime < 0) {
+            newExpirationTime = Long.MAX_VALUE;
+          }
+        }
+        setExpirationTime(newExpirationTime, timeUnit);
+      }
+    }
+    setLastAccessTime(now, timeUnit);
   }
 
   @Override

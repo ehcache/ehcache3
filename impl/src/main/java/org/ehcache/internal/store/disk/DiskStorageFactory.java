@@ -139,7 +139,7 @@ public class DiskStorageFactory<K, V> {
     }
 
     @Override
-    protected TimeUnit nativeTimeUnit() {
+    final protected TimeUnit nativeTimeUnit() {
       return TIME_UNIT;
     }
 

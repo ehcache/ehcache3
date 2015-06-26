@@ -22,6 +22,9 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
+import org.ehcache.internal.SystemTimeSource;
+import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
@@ -38,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
@@ -48,10 +52,16 @@ public class CacheStore<K, V> implements Store<K, V> {
 
   private static final Logger LOG = LoggerFactory.getLogger(CacheStore.class);
 
+  private final TimeSource timeSource;
   private final CachingTier<K, V> cachingTier;
   private final AuthoritativeTier<K, V> authoritativeTier;
 
   public CacheStore(CachingTier<K, V> cachingTier, AuthoritativeTier<K, V> authoritativeTier) {
+    this(SystemTimeSource.INSTANCE, cachingTier, authoritativeTier);
+  }
+
+  public CacheStore(final TimeSource timeSource, CachingTier<K, V> cachingTier, AuthoritativeTier<K, V> authoritativeTier) {
+    this.timeSource = timeSource;
     this.cachingTier = cachingTier;
     this.authoritativeTier = authoritativeTier;
 
@@ -66,7 +76,7 @@ public class CacheStore<K, V> implements Store<K, V> {
   @Override
   public ValueHolder<V> get(final K key) throws CacheAccessException {
     try {
-      return cachingTier.getOrComputeIfAbsent(key, new Function<K, ValueHolder<V>>() {
+      final ValueHolder<V> valueHolder = cachingTier.getOrComputeIfAbsent(key, new Function<K, ValueHolder<V>>() {
         @Override
         public ValueHolder<V> apply(K key) {
           try {
@@ -76,6 +86,7 @@ public class CacheStore<K, V> implements Store<K, V> {
           }
         }
       });
+      return valueHolder;
     } catch (ComputationException ce) {
       throw ce.getCacheAccessException();
     }
@@ -217,7 +228,7 @@ public class CacheStore<K, V> implements Store<K, V> {
 
   public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
     try {
-      return cachingTier.getOrComputeIfAbsent(key, new Function<K, ValueHolder<V>>() {
+      final ValueHolder<V> valueHolder = cachingTier.getOrComputeIfAbsent(key, new Function<K, ValueHolder<V>>() {
         @Override
         public ValueHolder<V> apply(K k) {
           try {
@@ -227,6 +238,13 @@ public class CacheStore<K, V> implements Store<K, V> {
           }
         }
       });
+      if(valueHolder != null && valueHolder.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
+        // todo wire listeners in
+        authoritativeTier.flush(key, valueHolder);
+        cachingTier.remove(key);
+        return null;
+      }
+      return valueHolder;
     } catch (ComputationException ce) {
       throw ce.getCacheAccessException();
     }
@@ -325,7 +343,9 @@ public class CacheStore<K, V> implements Store<K, V> {
       CachingTier<K, V> cachingTier = cachingTierProvider.createCachingTier(storeConfig, serviceConfigs);
       AuthoritativeTier<K, V> authoritativeTier = authoritativeTierProvider.createAuthoritativeTier(storeConfig, serviceConfigs);
 
-      CacheStore<K, V> store = new CacheStore<K, V>(cachingTier, authoritativeTier);
+      TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[])serviceConfigs);
+      TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
+      CacheStore<K, V> store = new CacheStore<K, V>(timeSource, cachingTier, authoritativeTier);
       registerStore(store, cachingTierProvider, authoritativeTierProvider);
       return store;
     }

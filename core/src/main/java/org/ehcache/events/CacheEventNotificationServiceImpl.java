@@ -24,6 +24,7 @@ import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
+import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -230,13 +231,13 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
     private Cache<K, V> source;
 
     @Override
-    public void onEviction(Cache.Entry<K, V> entry) {
-      eventNotificationService.onEvent(CacheEvents.eviction(entry, this.source));
+    public void onEviction(final K key, final Store.ValueHolder<V> valueHolder) {
+      eventNotificationService.onEvent(CacheEvents.eviction(CacheStoreHelper.cacheEntry(key, valueHolder), this.source));
     }
 
     @Override
-    public void onExpiration(Cache.Entry<K, V> entry) {
-      eventNotificationService.onEvent(CacheEvents.expiry(entry, this.source));
+    public void onExpiration(final K key, final Store.ValueHolder<V> valueHolder) {
+      eventNotificationService.onEvent(CacheEvents.expiry(CacheStoreHelper.cacheEntry(key, valueHolder), this.source));
     }
 
     public void setEventNotificationService(CacheEventNotificationService<K, V> eventNotificationService) {
@@ -247,4 +248,5 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
       this.source = source;
     }
   }
+
 }

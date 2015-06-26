@@ -39,6 +39,7 @@ import org.ehcache.function.Predicates;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
+import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.internal.store.disk.DiskStorageFactory.Element;
 import org.ehcache.spi.ServiceProvider;
@@ -156,40 +157,11 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   private Cache.Entry<K, V> wrap(final DiskStorageFactory.DiskSubstitute<K, V> value) {
-    return new Cache.Entry<K, V>() {
-
-      @Override
-      public K getKey() {
-        return value.getKey();
-      }
-
-      @Override
-      public V getValue() {
-        return getValueHolder().value();
-      }
-
-      @Override
-      public long getCreationTime(TimeUnit unit) {
-        return getValueHolder().creationTime(unit);
-      }
-
-      @Override
-      public long getLastAccessTime(TimeUnit unit) {
-        return getValueHolder().lastAccessTime(unit);
-      }
-
-      @Override
-      public float getHitRate(TimeUnit unit) {
-        return getValueHolder().hitRate(unit);
-      }
-
-      private ValueHolder<V> getValueHolder() {
-        K key = value.getKey();
-        int hash = hash(key.hashCode());
-        DiskStorageFactory.Element<K, V> element = segmentFor(hash).get(key, hash, false);
-        return element == null ? null : element.getValueHolder();
-      }
-    };
+    K key = value.getKey();
+    int hash = hash(key.hashCode());
+    DiskStorageFactory.Element<K, V> element = segmentFor(hash).get(key, hash, false);
+    final ValueHolder<V> vh = element == null ? null : element.getValueHolder();
+    return CacheStoreHelper.cacheEntry(key, vh);
   }
 
   private Comparator<DiskStorageFactory.DiskSubstitute<K, V>> wrap(final Comparator<Cache.Entry<K, V>> comparator) {
@@ -545,17 +517,8 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   private void setAccessTimeAndExpiry(K key, DiskStorageFactory.Element<K, V> element, long now) {
-    element.getValueHolder().setLastAccessTime(now, DiskStorageFactory.DiskValueHolder.TIME_UNIT);
-
     DiskStorageFactory.DiskValueHolder<V> valueHolder = element.getValueHolder();
-    Duration duration = expiry.getExpiryForAccess(key, valueHolder.value());
-    if (duration != null) {
-      if (duration.isForever()) {
-        valueHolder.setExpirationTime(DiskStorageFactory.DiskValueHolder.NO_EXPIRE, null);
-      } else {
-        valueHolder.setExpirationTime(safeExpireTime(now, duration), DiskStorageFactory.DiskValueHolder.TIME_UNIT);
-      }
-    }
+    valueHolder.accessed(now, expiry.getExpiryForAccess(key, valueHolder.value()));
   }
 
   private static long safeExpireTime(long now, Duration duration) {

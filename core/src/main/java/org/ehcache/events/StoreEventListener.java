@@ -16,21 +16,23 @@
 
 package org.ehcache.events;
 
-import org.ehcache.Cache;
+import org.ehcache.spi.cache.Store;
 
 public interface StoreEventListener<K, V> {
 
   /**
    * Called when an entry gets evicted during a {@code org.ehcache.spi.cache.Store} operation..
    *
-   * @param entry the entry that is evicted
+   * @param key the <code>key</code> of the mapping being evicted
+   * @param valueHolder the {@link Store.ValueHolder} being evicted
    */
-  public void onEviction(Cache.Entry<K, V> entry);
+   void onEviction(K key, Store.ValueHolder<V> valueHolder);
 
   /**
    * Called when an entry gets expired during a {@code org.ehcache.spi.cache.Store} operation..
    *
-   * @param entry the entry that is expired
+   * @param key the <code>key</code> of the mapping that is expired
+   * @param valueHolder the {@link Store.ValueHolder} that is expired
    */
-  public void onExpiration(Cache.Entry<K, V> entry);
+   void onExpiration(K key, Store.ValueHolder<V> valueHolder);
 }

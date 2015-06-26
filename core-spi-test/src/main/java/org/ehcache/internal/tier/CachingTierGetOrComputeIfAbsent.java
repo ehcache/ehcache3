@@ -24,11 +24,18 @@ import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.SPITest;
+import org.hamcrest.CoreMatchers;
+import org.mockito.Matchers;
+import org.mockito.stubbing.OngoingStubbing;
+
+import java.sql.Time;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -94,6 +101,7 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
     V value = factory.createValue(1);
     final Store.ValueHolder<V> computedValueHolder = mock(Store.ValueHolder.class);
     when(computedValueHolder.value()).thenReturn(value);
+    when(computedValueHolder.expirationTime(any(TimeUnit.class))).thenReturn(Store.ValueHolder.NO_EXPIRE);
 
     tier = factory.newCachingTier(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         1L, null, null, Expirations.noExpiration()));
