@@ -16,13 +16,16 @@
 package org.ehcache.management.providers.statistics;
 
 import org.ehcache.Ehcache;
+import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.extended.ExposedStatistic;
+import org.terracotta.context.extended.OperationType;
 import org.terracotta.context.extended.StatisticsRegistry;
 import org.terracotta.context.query.Matcher;
+import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
 import org.terracotta.management.capabilities.descriptors.Descriptor;
 import org.terracotta.management.capabilities.descriptors.StatisticDescriptor;
@@ -30,11 +33,13 @@ import org.terracotta.management.capabilities.descriptors.StatisticDescriptorCat
 import org.terracotta.management.stats.Sample;
 import org.terracotta.management.stats.Statistic;
 import org.terracotta.management.stats.StatisticType;
+import org.terracotta.management.stats.primitive.Counter;
 import org.terracotta.management.stats.primitive.Setting;
 import org.terracotta.management.stats.sampled.SampledCounter;
 import org.terracotta.management.stats.sampled.SampledDuration;
 import org.terracotta.management.stats.sampled.SampledRate;
 import org.terracotta.management.stats.sampled.SampledRatio;
+import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.archive.Timestamped;
 import org.terracotta.statistics.extended.Result;
 import org.terracotta.statistics.extended.SampledStatistic;
@@ -48,12 +53,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static org.terracotta.context.query.Matchers.attributes;
 import static org.terracotta.context.query.Matchers.context;
 import static org.terracotta.context.query.Matchers.hasAttribute;
+import static org.terracotta.context.query.Matchers.identifier;
+import static org.terracotta.context.query.Matchers.subclassOf;
 import static org.terracotta.context.query.QueryBuilder.queryBuilder;
 
 /**
@@ -71,9 +79,11 @@ class EhcacheStatistics {
 
   private final StatisticsRegistry statisticsRegistry;
   private final Ehcache<?, ?> contextObject;
+  private final ConcurrentMap<String, OperationStatistic<?>> operationStatistics;
 
   EhcacheStatistics(Ehcache<?, ?> contextObject, StatisticsProviderConfiguration configuration, ScheduledExecutorService executor) {
     this.contextObject = contextObject;
+    this.operationStatistics = discoverOperationObservers();
     this.statisticsRegistry = new StatisticsRegistry(StandardOperationStatistic.class, contextObject, executor, configuration.averageWindowDuration(),
         configuration.averageWindowUnit(), configuration.historySize(), configuration.historyInterval(), configuration.historyIntervalUnit(),
         configuration.timeToDisable(), configuration.timeToDisableUnit());
@@ -153,6 +163,12 @@ class EhcacheStatistics {
       }
     }
 
+    OperationStatistic<?> operationStatistic = operationStatistics.get(statisticName);
+    if (operationStatistic != null) {
+      long sum = operationStatistic.sum();
+      return (Collection) Collections.singleton(new Counter(statisticName, sum));
+    }
+
     throw new IllegalArgumentException("Unknown statistic name : " + statisticName);
   }
 
@@ -172,6 +188,17 @@ class EhcacheStatistics {
 
     capabilities.addAll(searchContextTreeForSettings());
     capabilities.addAll(queryStatisticsRegistry());
+    capabilities.addAll(operationStatistics());
+
+    return capabilities;
+  }
+
+  private Set<Descriptor> operationStatistics() {
+    Set<Descriptor> capabilities = new HashSet<Descriptor>();
+
+    for (String name : operationStatistics.keySet()) {
+      capabilities.add(new StatisticDescriptor(name, StatisticType.COUNTER));
+    }
 
     return capabilities;
   }
@@ -240,4 +267,73 @@ class EhcacheStatistics {
   public void dispose() {
     statisticsRegistry.clearRegistrations();
   }
+
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private ConcurrentMap<String, OperationStatistic<?>> discoverOperationObservers() {
+    ConcurrentHashMap<String, OperationStatistic<?>> result = new ConcurrentHashMap<String, OperationStatistic<?>>();
+
+    for (OperationType t : StandardOperationStatistic.class.getEnumConstants()) {
+      OperationStatistic statistic = findOperationObserver(t);
+      if (statistic == null) {
+        if (t.required()) {
+          throw new IllegalStateException("Required statistic " + t + " not found");
+        }
+      } else {
+        result.putIfAbsent(capitalize(t.operationName()) + "Counter", statistic);
+      }
+    }
+
+    return result;
+  }
+
+  private static String capitalize(String s) {
+    if (s.length() < 2) {
+      return s.toUpperCase();
+    } else {
+      return s.substring(0, 1).toUpperCase() + s.substring(1);
+    }
+  }
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private OperationStatistic findOperationObserver(OperationType statistic) {
+    Set<OperationStatistic<?>> results = findOperationObserver(statistic.context(), statistic.type(), statistic.operationName(), statistic.tags());
+    switch (results.size()) {
+      case 0:
+        return null;
+      case 1:
+        return (OperationStatistic) results.iterator().next();
+      default:
+        throw new IllegalStateException("Duplicate statistics found for " + statistic);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private Set<OperationStatistic<?>> findOperationObserver(Query contextQuery, Class<?> type, String name,
+                                                           final Set<String> tags) {
+    Query q = queryBuilder().chain(contextQuery)
+        .children().filter(context(identifier(subclassOf(OperationStatistic.class)))).build();
+
+    Set<TreeNode> operationStatisticNodes = q.execute(Collections.singleton(ContextManager.nodeFor(contextObject)));
+    Set<TreeNode> result = queryBuilder()
+        .filter(
+            context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("type", type),
+                hasAttribute("name", name), hasAttribute("tags", new Matcher<Set<String>>() {
+                  @Override
+                  protected boolean matchesSafely(Set<String> object) {
+                    return object.containsAll(tags);
+                  }
+                }))))).build().execute(operationStatisticNodes);
+
+    if (result.isEmpty()) {
+      return Collections.emptySet();
+    } else {
+      Set<OperationStatistic<?>> statistics = new HashSet<OperationStatistic<?>>();
+      for (TreeNode node : result) {
+        statistics.add((OperationStatistic<?>) node.getContext().attributes().get("this"));
+      }
+      return statistics;
+    }
+  }
+
 }
