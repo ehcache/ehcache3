@@ -17,10 +17,10 @@
 package org.ehcache.docs;
 
 import org.ehcache.PersistentUserManagedCache;
+import org.ehcache.UserManagedCache;
 import org.ehcache.UserManagedCacheBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.persistence.DefaultPersistenceConfiguration;
-import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.persistence.UserManagedPersistenceContext;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
@@ -40,24 +40,38 @@ import static org.junit.Assert.assertThat;
 public class UserManagedCaches {
 
   @Test
+  public void userManagedCacheExample() {
+    // tag::userManagedCacheExample[]
+    UserManagedCache<Long, String> userManagedCache =
+        UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
+            .build(false); // <1>
+    userManagedCache.init(); // <2>
+
+    userManagedCache.put(1L, "da one!"); // <3>
+
+    userManagedCache.close(); // <4>
+    // end::userManagedCacheExample[]
+  }
+
+  @Test
   public void userManagedDiskCache() throws Exception {
     // tag::persistentUserManagedCache[]
     LocalPersistenceService persistenceService = new DefaultLocalPersistenceService(
         new DefaultPersistenceConfiguration(new File(getStoragePath(), "myUserData"))); // <1>
 
     PersistentUserManagedCache<Long, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
-        .with(new UserManagedPersistenceContext<Long, String>("name", persistenceService)) // <3>
+        .with(new UserManagedPersistenceContext<Long, String>("cache-name", persistenceService)) // <2>
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
             .heap(10L, EntryUnit.ENTRIES)
-            .disk(10L, MemoryUnit.MB, true)) // <4>
+            .disk(10L, MemoryUnit.MB, true)) // <3>
         .build(true);
 
     // Work with the cache
     cache.put(42L, "The Answer!");
     assertThat(cache.get(42L), is("The Answer!"));
 
-    cache.close(); // <5>
-    cache.toMaintenance().destroy(); // <6>
+    cache.close(); // <4>
+    cache.toMaintenance().destroy(); // <5>
     // end::persistentUserManagedCache[]
   }
 

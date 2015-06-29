@@ -98,20 +98,6 @@ public class GettingStarted {
   }
 
   @Test
-  public void userManagedCacheExample() {
-    // tag::userManagedCacheExample[]
-    UserManagedCache<Long, String> userManagedCache =
-        UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
-            .build(false); // <1>
-    userManagedCache.init(); // <2>
-
-    userManagedCache.put(1L, "da one!"); // <3>
-
-    userManagedCache.close(); // <4>
-    // end::userManagedCacheExample[]
-  }
-
-  @Test
   public void persistentCacheManager() throws Exception {
     // tag::persistentCacheManager[]
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
