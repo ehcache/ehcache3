@@ -35,7 +35,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Test the {@link CachingTier#clear()} contract of the
+ * Test the {@link CachingTier#invalidate()} contract of the
  * {@link CachingTier CachingTier} interface.
  * <p/>
  *
@@ -89,13 +89,13 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
         keys.add(key);
       }
 
-      tier.clear();
+      tier.invalidate();
 
       final Store.ValueHolder<V> newValueHolder = mock(Store.ValueHolder.class);
       when(newValueHolder.value()).thenReturn(newValue);
 
       for (K key : keys) {
-        tier.remove(key);
+        tier.invalidate(key);
         Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, new Function() {
           @Override
           public Object apply(final Object o) {

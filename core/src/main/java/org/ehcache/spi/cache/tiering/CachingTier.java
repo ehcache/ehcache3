@@ -43,13 +43,13 @@ public interface CachingTier<K, V> {
    * @param key the key.
    * @throws CacheAccessException
    */
-  void remove(K key) throws CacheAccessException;
+  void invalidate(K key) throws CacheAccessException;
 
   /**
    * Empty out the caching store.
    * @throws CacheAccessException
    */
-  void clear() throws CacheAccessException;
+  void invalidate() throws CacheAccessException;
 
   /**
    * Set the caching tier's invalidation listener. The invalidation listener can only be set once.

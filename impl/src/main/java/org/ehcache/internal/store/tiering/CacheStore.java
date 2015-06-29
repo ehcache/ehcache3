@@ -22,9 +22,6 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
-import org.ehcache.internal.SystemTimeSource;
-import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
@@ -110,7 +107,7 @@ public class CacheStore<K, V> implements Store<K, V> {
     try {
       authoritativeTier.put(key, value);
     } finally {
-      cachingTier.remove(key);
+      cachingTier.invalidate(key);
     }
   }
 
@@ -121,7 +118,7 @@ public class CacheStore<K, V> implements Store<K, V> {
       previous = authoritativeTier.putIfAbsent(key, value);
     } finally {
       if (previous == null) {
-        cachingTier.remove(key);
+        cachingTier.invalidate(key);
       }
     }
     return previous;
@@ -132,7 +129,7 @@ public class CacheStore<K, V> implements Store<K, V> {
     try {
       authoritativeTier.remove(key);
     } finally {
-      cachingTier.remove(key);
+      cachingTier.invalidate(key);
     }
   }
 
@@ -144,7 +141,7 @@ public class CacheStore<K, V> implements Store<K, V> {
         return removed;
       } finally {
         if (removed) {
-          cachingTier.remove(key);
+          cachingTier.invalidate(key);
         }
       }
   }
@@ -158,7 +155,7 @@ public class CacheStore<K, V> implements Store<K, V> {
       exceptionThrown = false;
     } finally {
       if (exceptionThrown || previous != null) {
-        cachingTier.remove(key);
+        cachingTier.invalidate(key);
       }
     }
     return previous;
@@ -171,7 +168,7 @@ public class CacheStore<K, V> implements Store<K, V> {
       replaced = authoritativeTier.replace(key, oldValue, newValue);
     } finally {
       if (replaced) {
-        cachingTier.remove(key);
+        cachingTier.invalidate(key);
       }
     }
     return replaced;
@@ -182,7 +179,7 @@ public class CacheStore<K, V> implements Store<K, V> {
     try {
       authoritativeTier.clear();
     } finally {
-      cachingTier.clear();
+      cachingTier.invalidate();
     }
   }
 
@@ -206,7 +203,7 @@ public class CacheStore<K, V> implements Store<K, V> {
     try {
       return authoritativeTier.compute(key, mappingFunction);
     } finally {
-      cachingTier.remove(key);
+      cachingTier.invalidate(key);
     }
   }
 
@@ -215,7 +212,7 @@ public class CacheStore<K, V> implements Store<K, V> {
     try {
       return authoritativeTier.compute(key, mappingFunction, replaceEqual);
     } finally {
-      cachingTier.remove(key);
+      cachingTier.invalidate(key);
     }
   }
 
@@ -241,7 +238,7 @@ public class CacheStore<K, V> implements Store<K, V> {
     try {
       return authoritativeTier.computeIfPresent(key, remappingFunction);
     } finally {
-      cachingTier.remove(key);
+      cachingTier.invalidate(key);
     }
   }
 
@@ -250,7 +247,7 @@ public class CacheStore<K, V> implements Store<K, V> {
     try {
       return authoritativeTier.computeIfPresent(key, remappingFunction, replaceEqual);
     } finally {
-      cachingTier.remove(key);
+      cachingTier.invalidate(key);
     }
   }
 
@@ -260,7 +257,7 @@ public class CacheStore<K, V> implements Store<K, V> {
       return authoritativeTier.bulkCompute(keys, remappingFunction);
     } finally {
       for (K key : keys) {
-        cachingTier.remove(key);
+        cachingTier.invalidate(key);
       }
     }
   }
@@ -271,7 +268,7 @@ public class CacheStore<K, V> implements Store<K, V> {
       return authoritativeTier.bulkCompute(keys, remappingFunction, replaceEqual);
     } finally {
       for (K key : keys) {
-        cachingTier.remove(key);
+        cachingTier.invalidate(key);
       }
     }
   }
@@ -282,7 +279,7 @@ public class CacheStore<K, V> implements Store<K, V> {
       return authoritativeTier.bulkComputeIfAbsent(keys, mappingFunction);
     } finally {
       for (K key : keys) {
-        cachingTier.remove(key);
+        cachingTier.invalidate(key);
       }
     }
   }

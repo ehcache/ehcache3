@@ -121,7 +121,7 @@ public class CacheStoreTest {
 
     cacheStore.put(1, "one");
 
-    verify(cachingTier, times(1)).remove(eq(1));
+    verify(cachingTier, times(1)).invalidate(eq(1));
     verify(authoritativeTier, times(1)).put(eq(1), eq("one"));
   }
 
@@ -134,7 +134,7 @@ public class CacheStoreTest {
 
     assertThat(cacheStore.putIfAbsent(1, "one"), is(nullValue()));
 
-    verify(cachingTier, times(1)).remove(eq(1));
+    verify(cachingTier, times(1)).invalidate(eq(1));
     verify(authoritativeTier, times(1)).putIfAbsent(eq(1), eq("one"));
   }
 
@@ -149,7 +149,7 @@ public class CacheStoreTest {
 
     assertThat(cacheStore.putIfAbsent(1, "one").value(), Matchers.<CharSequence>equalTo("un"));
 
-    verify(cachingTier, times(0)).remove(any(Number.class));
+    verify(cachingTier, times(0)).invalidate(any(Number.class));
     verify(authoritativeTier, times(1)).putIfAbsent(eq(1), eq("one"));
   }
 
@@ -162,7 +162,7 @@ public class CacheStoreTest {
 
     cacheStore.remove(1);
 
-    verify(cachingTier, times(1)).remove(eq(1));
+    verify(cachingTier, times(1)).invalidate(eq(1));
     verify(authoritativeTier, times(1)).remove(eq(1));
   }
 
@@ -177,7 +177,7 @@ public class CacheStoreTest {
 
     assertThat(cacheStore.remove(1, "one"), is(true));
 
-    verify(cachingTier, times(1)).remove(eq(1));
+    verify(cachingTier, times(1)).invalidate(eq(1));
     verify(authoritativeTier, times(1)).remove(eq(1), eq("one"));
   }
 
@@ -192,7 +192,7 @@ public class CacheStoreTest {
 
     assertThat(cacheStore.remove(1, "one"), is(false));
 
-    verify(cachingTier, times(0)).remove(any(Number.class));
+    verify(cachingTier, times(0)).invalidate(any(Number.class));
     verify(authoritativeTier, times(1)).remove(eq(1), eq("one"));
   }
 
@@ -207,7 +207,7 @@ public class CacheStoreTest {
 
     assertThat(cacheStore.replace(1, "one").value(), Matchers.<CharSequence>equalTo("un"));
 
-    verify(cachingTier, times(1)).remove(eq(1));
+    verify(cachingTier, times(1)).invalidate(eq(1));
     verify(authoritativeTier, times(1)).replace(eq(1), eq("one"));
   }
 
@@ -222,7 +222,7 @@ public class CacheStoreTest {
 
     assertThat(cacheStore.replace(1, "one"), is(nullValue()));
 
-    verify(cachingTier, times(0)).remove(any(Number.class));
+    verify(cachingTier, times(0)).invalidate(any(Number.class));
     verify(authoritativeTier, times(1)).replace(eq(1), eq("one"));
   }
 
@@ -237,7 +237,7 @@ public class CacheStoreTest {
 
     assertThat(cacheStore.replace(1, "un", "one"), is(true));
 
-    verify(cachingTier, times(1)).remove(eq(1));
+    verify(cachingTier, times(1)).invalidate(eq(1));
     verify(authoritativeTier, times(1)).replace(eq(1), eq("un"), eq("one"));
   }
 
@@ -252,7 +252,7 @@ public class CacheStoreTest {
 
     assertThat(cacheStore.replace(1, "un", "one"), is(false));
 
-    verify(cachingTier, times(0)).remove(any(Number.class));
+    verify(cachingTier, times(0)).invalidate(any(Number.class));
     verify(authoritativeTier, times(1)).replace(eq(1), eq("un"), eq("one"));
   }
 
@@ -265,7 +265,7 @@ public class CacheStoreTest {
 
     cacheStore.clear();
 
-    verify(cachingTier, times(1)).clear();
+    verify(cachingTier, times(1)).invalidate();
     verify(authoritativeTier, times(1)).clear();
   }
 
@@ -292,7 +292,7 @@ public class CacheStoreTest {
       }
     }).value(), Matchers.<CharSequence>equalTo("one"));
 
-    verify(cachingTier, times(1)).remove(any(Number.class));
+    verify(cachingTier, times(1)).invalidate(any(Number.class));
     verify(authoritativeTier, times(1)).compute(eq(1), any(BiFunction.class));
   }
 
@@ -324,7 +324,7 @@ public class CacheStoreTest {
       }
     }).value(), Matchers.<CharSequence>equalTo("one"));
 
-    verify(cachingTier, times(1)).remove(any(Number.class));
+    verify(cachingTier, times(1)).invalidate(any(Number.class));
     verify(authoritativeTier, times(1)).compute(eq(1), any(BiFunction.class), any(NullaryFunction.class));
   }
 
@@ -412,7 +412,7 @@ public class CacheStoreTest {
       }
     }).value(), Matchers.<CharSequence>equalTo("one"));
 
-    verify(cachingTier, times(1)).remove(any(Number.class));
+    verify(cachingTier, times(1)).invalidate(any(Number.class));
     verify(authoritativeTier, times(1)).computeIfPresent(eq(1), any(BiFunction.class));
   }
 
@@ -444,7 +444,7 @@ public class CacheStoreTest {
       }
     }).value(), Matchers.<CharSequence>equalTo("one"));
 
-    verify(cachingTier, times(1)).remove(any(Number.class));
+    verify(cachingTier, times(1)).invalidate(any(Number.class));
     verify(authoritativeTier, times(1)).computeIfPresent(eq(1), any(BiFunction.class), any(NullaryFunction.class));
   }
 
@@ -489,9 +489,9 @@ public class CacheStoreTest {
     assertThat(result.get(2).value(), Matchers.<CharSequence>equalTo("two"));
     assertThat(result.get(3).value(), Matchers.<CharSequence>equalTo("three"));
 
-    verify(cachingTier, times(1)).remove(1);
-    verify(cachingTier, times(1)).remove(2);
-    verify(cachingTier, times(1)).remove(3);
+    verify(cachingTier, times(1)).invalidate(1);
+    verify(cachingTier, times(1)).invalidate(2);
+    verify(cachingTier, times(1)).invalidate(3);
     verify(authoritativeTier, times(1)).bulkCompute(any(Set.class), any(Function.class));
   }
 
@@ -541,9 +541,9 @@ public class CacheStoreTest {
     assertThat(result.get(2).value(), Matchers.<CharSequence>equalTo("two"));
     assertThat(result.get(3).value(), Matchers.<CharSequence>equalTo("three"));
 
-    verify(cachingTier, times(1)).remove(1);
-    verify(cachingTier, times(1)).remove(2);
-    verify(cachingTier, times(1)).remove(3);
+    verify(cachingTier, times(1)).invalidate(1);
+    verify(cachingTier, times(1)).invalidate(2);
+    verify(cachingTier, times(1)).invalidate(3);
     verify(authoritativeTier, times(1)).bulkCompute(any(Set.class), any(Function.class), any(NullaryFunction.class));
   }
 
@@ -589,9 +589,9 @@ public class CacheStoreTest {
     assertThat(result.get(2).value(), Matchers.<CharSequence>equalTo("two"));
     assertThat(result.get(3).value(), Matchers.<CharSequence>equalTo("three"));
 
-    verify(cachingTier, times(1)).remove(1);
-    verify(cachingTier, times(1)).remove(2);
-    verify(cachingTier, times(1)).remove(3);
+    verify(cachingTier, times(1)).invalidate(1);
+    verify(cachingTier, times(1)).invalidate(2);
+    verify(cachingTier, times(1)).invalidate(3);
     verify(authoritativeTier, times(1)).bulkComputeIfAbsent(any(Set.class), any(Function.class));
   }
 
