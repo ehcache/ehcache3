@@ -19,7 +19,6 @@ package org.ehcache.internal.store.offheap;
 import org.ehcache.Cache;
 import org.ehcache.CacheConfigurationChangeEvent;
 import org.ehcache.CacheConfigurationChangeListener;
-import org.ehcache.Status;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
@@ -90,8 +89,6 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   private final TimeSource timeSource;
 
   private final Expiry<? super K, ? super V> expiry;
-  private final AtomicReference<Status> status = new AtomicReference<Status>(Status.UNINITIALIZED);
-
 
   private final Predicate<Map.Entry<K, OffHeapValueHolder<V>>> evictionVeto;
   private final Serializer<K> keySerializer;
@@ -113,10 +110,6 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   };
 
   public OffHeapStore(final Configuration<K, V> config, Serializer<K> keySerializer, Serializer<V> valueSerializer, TimeSource timeSource, long sizeInBytes) {
-
-    if (!status.compareAndSet(Status.UNINITIALIZED, Status.AVAILABLE)) {
-      throw new AssertionError();
-    }
     keyType = config.getKeyType();
     valueType = config.getValueType();
     expiry = config.getExpiry();
@@ -584,6 +577,14 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     getOperationObserver.begin();
     checkKey(key);
     OffHeapValueHolder<V> mappedValue = map.getAndPin(key);
+
+    if(mappedValue != null && mappedValue.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
+      if(map.remove(key, mappedValue)) {
+        eventListener.onExpiration(key, mappedValue);
+      }
+      mappedValue = null;
+    }
+
     if (mappedValue == null) {
       getOperationObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
     } else {
@@ -598,12 +599,24 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public boolean flush(K key, ValueHolder<V> valueHolder) {
-    if (valueHolder instanceof OffHeapValueHolder) {
+  public boolean flush(K key, final ValueHolder<V> valueFlushed) {
+    if (valueFlushed instanceof OffHeapValueHolder) {
       throw new IllegalArgumentException("ValueHolder must come from the caching tier");
     }
     checkKey(key);
-    return map.unpin(key);
+    return map.computeIfPinnedAndUnpin(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+      @Override
+      public OffHeapValueHolder<V> apply(final K k, final OffHeapValueHolder<V> valuePresent) {
+        if (valuePresent.getId() == valueFlushed.getId()) {
+          if (valueFlushed.isExpired(timeSource.getTimeMillis(), OffHeapValueHolder.TIME_UNIT)) {
+            return null;
+          }
+          valuePresent.updateMetadata(valueFlushed);
+          valuePresent.writeBack();
+        }
+        return valuePresent;
+      }
+    });
   }
 
   //TODO wire that in if/when needed
@@ -634,11 +647,11 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     }
 
     if (duration == null) {
-      return new OffHeapValueHolder<V>(value, now, existing.expirationTime(OffHeapValueHolder.TIME_UNIT));
+      return new OffHeapValueHolder<V>(map.nextIdFor(key), value, now, existing.expirationTime(OffHeapValueHolder.TIME_UNIT));
     } else if (duration.isForever()) {
-      return new OffHeapValueHolder<V>(value, now, OffHeapValueHolder.NO_EXPIRE);
+      return new OffHeapValueHolder<V>(map.nextIdFor(key), value, now, OffHeapValueHolder.NO_EXPIRE);
     } else {
-      return new OffHeapValueHolder<V>(value, now, safeExpireTime(now, duration));
+      return new OffHeapValueHolder<V>(map.nextIdFor(key), value, now, safeExpireTime(now, duration));
     }
   }
 
@@ -649,9 +662,9 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     }
 
     if (duration.isForever()) {
-      return new OffHeapValueHolder<V>(value, now, OffHeapValueHolder.NO_EXPIRE);
+      return new OffHeapValueHolder<V>(map.nextIdFor(key), value, now, OffHeapValueHolder.NO_EXPIRE);
     } else {
-      return new OffHeapValueHolder<V>(value, now, safeExpireTime(now, duration));
+      return new OffHeapValueHolder<V>(map.nextIdFor(key), value, now, safeExpireTime(now, duration));
     }
   }
 
@@ -781,7 +794,8 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       }
       SerializationProvider serializationProvider = serviceProvider.findService(SerializationProvider.class);
       Serializer<K> keySerializer = serializationProvider.createKeySerializer(storeConfig.getKeyType(), storeConfig.getClassLoader(), serviceConfigs);
-      Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig.getClassLoader(), serviceConfigs);
+      Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig
+          .getClassLoader(), serviceConfigs);
 
       ResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
       if (!(offHeapPool.getUnit() instanceof MemoryUnit)) {

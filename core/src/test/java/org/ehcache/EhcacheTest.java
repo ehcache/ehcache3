@@ -286,6 +286,11 @@ public class EhcacheTest {
           public float hitRate(final TimeUnit unit) {
             throw new UnsupportedOperationException("Implement me!");
           }
+
+          @Override
+          public long getId() {
+            throw new UnsupportedOperationException("Implement me!");
+          }
         };
       }
     });

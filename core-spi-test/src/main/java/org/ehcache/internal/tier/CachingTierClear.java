@@ -24,7 +24,6 @@ import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.SPITest;
-import org.hamcrest.Matchers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,12 +31,11 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Test the {@link CachingTier#clear()} contract of the
+ * Test the {@link CachingTier#invalidate()} contract of the
  * {@link CachingTier CachingTier} interface.
  * <p/>
  *
@@ -91,13 +89,13 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
         keys.add(key);
       }
 
-      tier.clear();
+      tier.invalidate();
 
       final Store.ValueHolder<V> newValueHolder = mock(Store.ValueHolder.class);
       when(newValueHolder.value()).thenReturn(newValue);
 
       for (K key : keys) {
-        tier.remove(key);
+        tier.invalidate(key);
         Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, new Function() {
           @Override
           public Object apply(final Object o) {

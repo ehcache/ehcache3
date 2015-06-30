@@ -32,7 +32,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Test the {@link CachingTier#remove(Object)} contract of the
+ * Test the {@link CachingTier#invalidate(Object)} contract of the
  * {@link CachingTier CachingTier} interface.
  * <p/>
  *
@@ -80,7 +80,7 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
         }
       });
 
-      tier.remove(key);
+      tier.invalidate(key);
 
       final Store.ValueHolder<V> newValueHolder = mock(Store.ValueHolder.class);
       when(newValueHolder.value()).thenReturn(newValue);

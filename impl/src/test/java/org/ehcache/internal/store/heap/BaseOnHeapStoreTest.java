@@ -181,7 +181,7 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(store.get("key"), nullValue());
     store.put("key", "value");
     assertThat(store.get("key").value(), equalTo("value"));
-    store.remove("key");
+    store.invalidate("key");
     assertThat(store.get("key"), nullValue());
   }
 

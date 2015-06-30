@@ -32,7 +32,7 @@ class ByValueOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   }
 
   protected ByValueOnHeapValueHolder(V value, long creationTime, long expirationTime, Serializer<V> serializer) {
-    super(creationTime, expirationTime);
+    super(-1, creationTime, expirationTime);
     if (value == null) {
       throw new NullPointerException("null value");
     }

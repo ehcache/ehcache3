@@ -18,6 +18,7 @@ package org.ehcache.internal.store.offheap;
 
 import org.ehcache.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.spi.cache.AbstractValueHolder;
+import org.ehcache.spi.cache.Store;
 import org.terracotta.offheapstore.storage.portability.WriteContext;
 
 import java.util.concurrent.TimeUnit;
@@ -32,12 +33,12 @@ public final class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
   private final V value;
   private final WriteContext writeContext;
 
-  public OffHeapValueHolder(V value, long creationTime, long expireTime) {
-    this(value, creationTime, expireTime, 0, null);
+  public OffHeapValueHolder(long id, V value, long creationTime, long expireTime) {
+    this(id, value, creationTime, expireTime, 0, null);
   }
 
-  public OffHeapValueHolder(V value, long creationTime, long expireTime, long lastAccessTime, WriteContext writeContext) {
-    super(creationTime, expireTime);
+  public OffHeapValueHolder(long id, V value, long creationTime, long expireTime, long lastAccessTime, WriteContext writeContext) {
+    super(id, creationTime, expireTime);
     setLastAccessTime(lastAccessTime, TIME_UNIT);
     this.value = value;
     this.writeContext = writeContext;
@@ -77,5 +78,13 @@ public final class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
   void writeBack() {
     writeContext.setLong(OffHeapValueHolderPortability.ACCESS_TIME_OFFSET, lastAccessTime(TimeUnit.MILLISECONDS));
     writeContext.setLong(OffHeapValueHolderPortability.EXPIRE_TIME_OFFSET, expirationTime(TimeUnit.MILLISECONDS));
+  }
+
+  void updateMetadata(final Store.ValueHolder<V> valueFlushed) {
+    if(getId() != valueFlushed.getId()) {
+      throw new IllegalArgumentException("Wrong id passed in [this.id != id] : " + getId() + " != " + valueFlushed.getId());
+    }
+    this.setLastAccessTime(valueFlushed.lastAccessTime(OffHeapValueHolder.TIME_UNIT), OffHeapValueHolder.TIME_UNIT);
+    this.setExpirationTime(valueFlushed.expirationTime(OffHeapValueHolder.TIME_UNIT), OffHeapValueHolder.TIME_UNIT);
   }
 }

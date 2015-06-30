@@ -218,6 +218,7 @@ public class DiskStoreTest {
 
     Store.ValueHolder<CharSequence> heapValueHolder = mock(Store.ValueHolder.class);
     when(heapValueHolder.value()).thenReturn("computed-one");
+    when(heapValueHolder.getId()).thenReturn(-1L);
     when(heapValueHolder.expirationTime(any(TimeUnit.class))).thenReturn(5L);
 
     assertThat(diskStore.flush(1, heapValueHolder), is(true));
@@ -235,7 +236,6 @@ public class DiskStoreTest {
   }
 
   @Test
-  @Ignore
   public void testFlushingOfExpiredElementRemovesIt() throws Exception {
     Store.ValueHolder<CharSequence> valueHolder = diskStore.computeIfAbsentAndFault(1, new Function<Number, CharSequence>() {
       @Override
@@ -247,6 +247,7 @@ public class DiskStoreTest {
 
     Store.ValueHolder<CharSequence> heapValueHolder = mock(Store.ValueHolder.class);
     when(heapValueHolder.value()).thenReturn("computed-one");
+    when(heapValueHolder.getId()).thenReturn(-1L);
     when(heapValueHolder.isExpired(anyLong(), any(TimeUnit.class))).thenReturn(true);
     when(heapValueHolder.expirationTime(any(TimeUnit.class))).thenReturn(5L);
 
@@ -287,6 +288,7 @@ public class DiskStoreTest {
 
     Store.ValueHolder<CharSequence> heapValueHolder = mock(Store.ValueHolder.class);
     when(heapValueHolder.value()).thenReturn("computed-one");
+    when(heapValueHolder.getId()).thenReturn(-1L);
     when(heapValueHolder.expirationTime(any(TimeUnit.class))).thenReturn(15L);
 
     timeSource.advanceTime(10);

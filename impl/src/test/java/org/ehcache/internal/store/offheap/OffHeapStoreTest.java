@@ -26,6 +26,7 @@ import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.spi.cache.AbstractValueHolder;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
@@ -43,15 +44,8 @@ public class OffHeapStoreTest {
 
   @Test
   public void testWriteBackOfValueHolder() throws CacheAccessException {
-    SerializationProvider serializationProvider = new DefaultSerializationProvider();
-    serializationProvider.start(null, null);
-    ClassLoader classLoader = getClass().getClassLoader();
-    Serializer<String> serializer = serializationProvider.createValueSerializer(String.class, classLoader);
     TestTimeSource timeSource = new TestTimeSource();
-    Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS));
-    StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, null, classLoader, expiry, null);
-    OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(storeConfiguration, serializer, serializer, timeSource, MemoryUnit.MB.toBytes(1));
-    OffHeapStore.Provider.init(offHeapStore);
+    OffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
 
     offHeapStore.put("key1", "value1");
     timeSource.advanceTime(10);
@@ -100,6 +94,33 @@ public class OffHeapStoreTest {
 
   }
 
+  @Test
+  public void testFlushUpdatesAccessStats() throws CacheAccessException {
+    final TestTimeSource timeSource = new TestTimeSource();
+    final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS));
+    final OffHeapStore<String, String> store = createAndInitStore(timeSource, expiry);
+    final String key = "foo";
+    final String value = "bar";
+    store.put(key, value);
+    final Store.ValueHolder<String> valueHolder = store.getAndFault(key);
+    timeSource.advanceTime(10);
+    ((AbstractValueHolder)valueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, value));
+    store.flush(key, new DelegatingValueHolder<String>(valueHolder));
+    timeSource.advanceTime(10); // this should NOT affect
+    assertThat(store.getAndFault(key).lastAccessTime(TimeUnit.MILLISECONDS), is(valueHolder.creationTime(TimeUnit.MILLISECONDS) + 10));
+  }
+
+  private OffHeapStore<String, String> createAndInitStore(final TestTimeSource timeSource, final Expiry<Object, Object> expiry) {
+    SerializationProvider serializationProvider = new DefaultSerializationProvider();
+    serializationProvider.start(null, null);
+    ClassLoader classLoader = getClass().getClassLoader();
+    Serializer<String> serializer = serializationProvider.createValueSerializer(String.class, classLoader);
+    StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, null, classLoader, expiry, null);
+    OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(storeConfiguration, serializer, serializer, timeSource, MemoryUnit.MB.toBytes(1));
+    OffHeapStore.Provider.init(offHeapStore);
+    return offHeapStore;
+  }
+
   private static class TestStoreEventListener<K, V> implements StoreEventListener<K, V> {
 
     @Override
@@ -127,4 +148,47 @@ public class OffHeapStoreTest {
     }
   }
 
+  private static class DelegatingValueHolder<T> implements Store.ValueHolder<T> {
+
+    private final Store.ValueHolder<T> valueHolder;
+
+    public DelegatingValueHolder(final Store.ValueHolder<T> valueHolder) {
+      this.valueHolder = valueHolder;
+    }
+
+    @Override
+    public T value() {
+      return valueHolder.value();
+    }
+
+    @Override
+    public long creationTime(final TimeUnit unit) {
+      return valueHolder.creationTime(unit);
+    }
+
+    @Override
+    public long expirationTime(final TimeUnit unit) {
+      return valueHolder.expirationTime(unit);
+    }
+
+    @Override
+    public boolean isExpired(final long expirationTime, final TimeUnit unit) {
+      return valueHolder.isExpired(expirationTime, unit);
+    }
+
+    @Override
+    public long lastAccessTime(final TimeUnit unit) {
+      return valueHolder.lastAccessTime(unit);
+    }
+
+    @Override
+    public float hitRate(final TimeUnit unit) {
+      return valueHolder.hitRate(unit);
+    }
+
+    @Override
+    public long getId() {
+      return valueHolder.getId();
+    }
+  }
 }

@@ -95,6 +95,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   private final Expiry<? super K, ? super V> expiry;
   private final TimeSource timeSource;
   private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener();
+  private volatile InvalidationListener<K, V> invalidationListener;
+
   private CacheConfigurationChangeListener cacheConfigurationChangeListener = new CacheConfigurationChangeListener() {
     @Override
     public void cacheConfigurationChange(CacheConfigurationChangeEvent event) {
@@ -117,8 +119,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     public Boolean apply() {
       return Boolean.TRUE;
     }
-  }; 
- 
+  };
+
   public OnHeapStore(final Configuration<K, V> config, TimeSource timeSource, boolean storeByValue, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
     ResourcePool heapPool = config.getResourcePools().getPoolForResource(ResourceType.Core.HEAP);
     if (heapPool == null) {
@@ -356,6 +358,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     map.clear();
   }
 
+  @Override
+  public void invalidate() throws CacheAccessException {
+    map.clear();
+  }
+
   public void maintenance() {
     // Nothing we have to do here...
   }
@@ -468,11 +475,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
           } else {
             ValueHolder<V> p = getValue(backEnd.remove(key));
             if (p != null) {
+              notifyInvalidation(key, p);
               if (p.isExpired(now, TimeUnit.MILLISECONDS)) {
-                eventListener.onExpiration(key, p);
                 return null;
               } else {
-                eventListener.onEviction(key, p);
                 return p;
               }
             }
@@ -496,7 +502,26 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   }
 
   @Override
+  public void invalidate(final K key) throws CacheAccessException {
+    map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      @Override
+      public OnHeapValueHolder<V> apply(final K k, final OnHeapValueHolder<V> present) {
+        notifyInvalidation(key, present);
+        return null;
+      }
+    });
+  }
+
+  private void notifyInvalidation(final K key, final ValueHolder<V> p) {
+    final InvalidationListener<K, V> invalidationListener = this.invalidationListener;
+    if(invalidationListener != null) {
+      invalidationListener.onInvalidation(key, p);
+    }
+  }
+
+  @Override
   public void setInvalidationListener(final InvalidationListener<K, V> invalidationListener) {
+    this.invalidationListener = invalidationListener;
     this.eventListener = new StoreEventListener<K, V>() {
       @Override
       public void onEviction(final K key, final ValueHolder<V> valueHolder) {
@@ -531,7 +556,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     private boolean complete;
 
     public Fault(final NullaryFunction<ValueHolder<V>> source) {
-      super(0);
+      super(-1, 0);
       this.source = source;
     }
 

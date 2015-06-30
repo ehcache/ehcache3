@@ -21,7 +21,7 @@ class ByRefOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   private final V value;
 
   protected ByRefOnHeapValueHolder(V value, long createTime) {
-    super(createTime);
+    super(-1, createTime);
     if (value == null) {
       throw new NullPointerException("null value");
     }
@@ -29,7 +29,11 @@ class ByRefOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   }
 
   protected ByRefOnHeapValueHolder(V value, long creationTime, long expirationTime) {
-    super(creationTime, expirationTime);
+    this(-1, value, creationTime, expirationTime);
+  }
+
+  protected ByRefOnHeapValueHolder(long id, V value, long creationTime, long expirationTime) {
+    super(id, creationTime, expirationTime);
     if (value == null) {
       throw new NullPointerException("null value");
     }
@@ -37,7 +41,7 @@ class ByRefOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   }
 
   protected ByRefOnHeapValueHolder(Store.ValueHolder<V> valueHolder) {
-    this(valueHolder.value(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT));
+    this(valueHolder.getId(), valueHolder.value(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT));
     this.setLastAccessTime(valueHolder.lastAccessTime(TIME_UNIT), TIME_UNIT);
   }
 
