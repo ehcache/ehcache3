@@ -64,7 +64,7 @@ public class EhcacheEventsTestBase extends EhcacheBasicCrudBase {
     cacheEventNotificationService = new CacheEventNotificationServiceImpl<String, String>(orderedExecutor, unorderedExecutor, store);
     RuntimeConfiguration<String, String> runtimeConfiguration = new RuntimeConfiguration<String, String>(CACHE_CONFIGURATION, cacheEventNotificationService);
     final Ehcache<String, String> ehcache = new Ehcache<String, String>(runtimeConfiguration, this.store,
-        cacheLoaderWriter, cacheEventNotificationService, null,
+        cacheLoaderWriter, cacheEventNotificationService,
         LoggerFactory.getLogger(Ehcache.class + "-" + name));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), CoreMatchers.is(Status.AVAILABLE));

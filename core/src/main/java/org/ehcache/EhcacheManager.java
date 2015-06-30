@@ -30,34 +30,39 @@ import org.ehcache.events.CacheEventNotificationListenerServiceProvider;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.CacheManagerListener;
 import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.management.ManagementRegistry;
 import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.ThreadPoolsService;
 import org.ehcache.util.ClassLoading;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.context.annotations.ContextAttribute;
+import org.terracotta.statistics.StatisticsManager;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ScheduledExecutorService;
-
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
@@ -77,6 +82,8 @@ public class EhcacheManager implements PersistentCacheManager {
   private final ClassLoader cacheManagerClassLoader;
 
   private final CopyOnWriteArrayList<CacheManagerListener> listeners = new CopyOnWriteArrayList<CacheManagerListener>();
+  private final StatisticsManager statisticsManager = new StatisticsManager();
+  private final EhcacheManagerStatsSettings ehcacheManagerStatsSettings = new EhcacheManagerStatsSettings(Collections.<String, Object>singletonMap("Setting", "CacheManagerName"));
 
   public EhcacheManager(Configuration config) {
     this(config, new ServiceLocator(), true);
@@ -90,6 +97,11 @@ public class EhcacheManager implements PersistentCacheManager {
     this.useLoaderInAtomics = useLoaderInAtomics;
     this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
     this.configuration = config;
+    StatisticsManager.associate(ehcacheManagerStatsSettings).withParent(this);
+  }
+
+  public StatisticsManager getStatisticsManager() {
+    return statisticsManager;
   }
 
   @Override
@@ -297,13 +309,32 @@ public class EhcacheManager implements PersistentCacheManager {
       
     });
     
-    final ThreadPoolsService threadPoolsService = serviceLocator.findService(ThreadPoolsService.class);
-    final ScheduledExecutorService statisticsExecutor = (threadPoolsService == null) ? null : threadPoolsService.getStatisticsExecutor();
-
     RuntimeConfiguration<K, V> runtimeConfiguration = new RuntimeConfiguration<K, V>(config, evtService);
     runtimeConfiguration.addCacheConfigurationListener(store.getConfigurationChangeListeners());
-    Ehcache<K, V> ehCache = new Ehcache<K, V>(runtimeConfiguration, store, decorator, evtService, statisticsExecutor,
+    final Ehcache<K, V> ehCache = new Ehcache<K, V>(runtimeConfiguration, store, decorator, evtService,
         useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
+
+    final ManagementRegistry managementRegistry = serviceLocator.findService(ManagementRegistry.class);
+    final EhcacheStatsSettings ehcacheStatsSettings = new EhcacheStatsSettings(alias, Collections.<String, Object>singletonMap("Setting", "CacheName"));
+
+    lifeCycledList.add(new LifeCycled() {
+      @Override
+      public void init() throws Exception {
+        StatisticsManager.associate(ehCache).withParent(EhcacheManager.this);
+        StatisticsManager.associate(ehcacheStatsSettings).withParent(ehCache);
+        if (managementRegistry != null) {
+          managementRegistry.register(Ehcache.class, ehCache);
+        }
+      }
+
+      @Override
+      public void close() throws Exception {
+        if (managementRegistry != null) {
+          managementRegistry.unregister(Ehcache.class, ehCache);
+        }
+        StatisticsManager.dissociate(ehCache).fromParent(EhcacheManager.this);
+      }
+    });
 
     final CacheEventListenerProvider evntLsnrFactory = serviceLocator.findService(CacheEventListenerProvider.class);
     if (evntLsnrFactory != null) {
@@ -375,6 +406,13 @@ public class EhcacheManager implements PersistentCacheManager {
       } catch (Exception e) {
         st.failed(e);
       }
+
+      statisticsManager.root(this);
+      ManagementRegistry managementRegistry = serviceLocator.findService(ManagementRegistry.class);
+      if (managementRegistry != null) {
+        managementRegistry.register(EhcacheManager.class, this);
+      }
+
       Deque<String> initiatedCaches = new ArrayDeque<String>();
       try {
         for (Entry<String, CacheConfiguration<?, ?>> cacheConfigurationEntry : configuration.getCacheConfigurations()
@@ -408,6 +446,12 @@ public class EhcacheManager implements PersistentCacheManager {
   @Override
   public void close() {
     final StatusTransitioner.Transition st = statusTransitioner.close();
+
+    ManagementRegistry managementRegistry = serviceLocator.findService(ManagementRegistry.class);
+    if (managementRegistry != null) {
+      managementRegistry.unregister(EhcacheManager.class, this);
+    }
+    statisticsManager.uproot(this);
 
     Exception firstException = null;
     try {
@@ -543,4 +587,30 @@ public class EhcacheManager implements PersistentCacheManager {
       notifyAll();
     }
   }
+
+  private static final class EhcacheStatsSettings {
+    @ContextAttribute("CacheName")  private final String alias;
+    @ContextAttribute("properties") private final Map<String, Object> properties;
+    @ContextAttribute("tags") private final Set<String> tags = new HashSet<String>(Arrays.asList("cache", "exposed"));
+
+    EhcacheStatsSettings(String alias, Map<String, Object> properties) {
+      this.alias = alias;
+      this.properties = properties;
+    }
+  }
+
+  private static final class EhcacheManagerStatsSettings {
+    private static final AtomicInteger COUNTER = new AtomicInteger();
+
+    @ContextAttribute("CacheManagerName")  private final String name;
+    @ContextAttribute("properties") private final Map<String, Object> properties;
+    @ContextAttribute("tags") private final Set<String> tags = new HashSet<String>(Arrays.asList("cacheManager", "exposed"));
+
+    EhcacheManagerStatsSettings(Map<String, Object> properties) {
+      //TODO: improve cache manager naming
+      this.name = "cache-manager-" + COUNTER.getAndIncrement();
+      this.properties = properties;
+    }
+  }
+
 }

@@ -55,7 +55,6 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
   private EvictionVeto<? super K, ? super V> evictionVeto;
   private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private CacheLoaderWriter<? super K, V> cacheLoaderWriter;
-  private ScheduledExecutorService statisticsExecutor;
   private CacheEventNotificationService<K, V> cacheEventNotificationService;
   private ResourcePools resourcePools = newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
 
@@ -82,7 +81,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
 
     RuntimeConfiguration<K, V> runtimeConfiguration = new RuntimeConfiguration<K, V>(cacheConfig, cacheEventNotificationService);
 
-    final Ehcache<K, V> ehcache = new Ehcache<K, V>(runtimeConfiguration, store, cacheLoaderWriter, cacheEventNotificationService, statisticsExecutor,logger);
+    final Ehcache<K, V> ehcache = new Ehcache<K, V>(runtimeConfiguration, store, cacheLoaderWriter, cacheEventNotificationService, logger);
     ehcache.addHook(new LifeCycled() {
       @Override
       public void init() throws Exception {
@@ -144,11 +143,6 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     }
     
     this.expiry = expiry;
-    return this;
-  }
-
-  public final UserManagedCacheBuilder<K, V, T> withStatistics(ScheduledExecutorService statisticsExecutor) {
-    this.statisticsExecutor = statisticsExecutor;
     return this;
   }
 

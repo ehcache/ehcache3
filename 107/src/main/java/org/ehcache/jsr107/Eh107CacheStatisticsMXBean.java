@@ -15,179 +15,290 @@
  */
 package org.ehcache.jsr107;
 
-import java.util.EnumMap;
-import java.util.Map.Entry;
+import org.ehcache.Cache;
+import org.ehcache.Ehcache;
+import org.ehcache.EhcacheHackAccessor;
+import org.ehcache.management.ManagementRegistry;
+import org.ehcache.management.utils.ContextHelper;
+import org.ehcache.statistics.BulkOps;
+import org.ehcache.statistics.CacheOperationOutcomes;
+import org.ehcache.statistics.StoreOperationOutcomes;
+import org.terracotta.context.TreeNode;
+import org.terracotta.context.query.Matcher;
+import org.terracotta.context.query.Matchers;
+import org.terracotta.context.query.Query;
+import org.terracotta.management.stats.Sample;
+import org.terracotta.management.stats.sampled.SampledRatio;
+import org.terracotta.statistics.OperationStatistic;
+import org.terracotta.statistics.StatisticsManager;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.cache.management.CacheStatisticsMXBean;
-
-import org.ehcache.statistics.BulkOps;
-import org.ehcache.statistics.CacheStatistics;
+import static org.terracotta.context.query.Matchers.attributes;
+import static org.terracotta.context.query.Matchers.context;
+import static org.terracotta.context.query.Matchers.hasAttribute;
+import static org.terracotta.context.query.QueryBuilder.queryBuilder;
 
 /**
- * @author teck
+ * @author Ludovic Orban
  */
-class Eh107CacheStatisticsMXBean extends Eh107MXBean implements CacheStatisticsMXBean {
+public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.management.CacheStatisticsMXBean {
 
-  private final org.ehcache.statistics.CacheStatistics statistics;
-  private final ConcurrentMap<BulkOps, AtomicLong> bulkMethodCounts;
-  private final EnumMap<Stat, AtomicLong> baselines = new EnumMap<Stat, AtomicLong>(Stat.class);
+  private final CompensatingCounters compensatingCounters = new CompensatingCounters();
+  private final OperationStatistic<CacheOperationOutcomes.GetOutcome> get;
+  private final OperationStatistic<CacheOperationOutcomes.PutOutcome> put;
+  private final OperationStatistic<CacheOperationOutcomes.RemoveOutcome> remove;
+  private final OperationStatistic<CacheOperationOutcomes.PutIfAbsentOutcome> putIfAbsent;
+  private final OperationStatistic<CacheOperationOutcomes.ReplaceOutcome> replace;
+  private final OperationStatistic<CacheOperationOutcomes.ConditionalRemoveOutcome> conditionalRemove;
+  private final OperationStatistic<StoreOperationOutcomes.EvictionOutcome> authorityEviction;
+  private final ManagementRegistry managementRegistry;
+  private final Map<String, String> context;
+  private final ConcurrentMap<BulkOps, AtomicLong> bulkMethodEntries;
 
-  Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager,
-      org.ehcache.statistics.CacheStatistics statistics) {
+  Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager, Cache<?, ?> cache, ManagementRegistry managementRegistry) {
     super(cacheName, cacheManager, "CacheStatistics");
-    this.statistics = statistics;
-    bulkMethodCounts = statistics.getBulkMethodEntries();
+    this.managementRegistry = managementRegistry;
+    this.bulkMethodEntries = EhcacheHackAccessor.getBulkMethodEntries((Ehcache<?, ?>) cache);
+    String cacheManagerName = ContextHelper.findCacheManagerName((Ehcache<?, ?>) cache);
+    Map<String, String> context = new HashMap<String, String>();
+    context.put("cacheManagerName", cacheManagerName);
+    context.put("cacheName", cacheName);
+    this.context = Collections.unmodifiableMap(context);
+    StatisticsManager statisticsManager = cacheManager.getEhCacheManager().getStatisticsManager();
 
-    for (Stat s : Stat.values()) {
-      baselines.put(s, new AtomicLong());
-    }
+    get = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.GetOutcome.class, "get");
+    put = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.PutOutcome.class, "put");
+    remove = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.RemoveOutcome.class, "remove");
+    putIfAbsent = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.PutIfAbsentOutcome.class, "putIfAbsent");
+    replace = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.ReplaceOutcome.class, "replace");
+    conditionalRemove = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.ConditionalRemoveOutcome.class, "conditionalRemove");
+    authorityEviction = findAuthoritativeTierStatistic(cacheName, statisticsManager, StoreOperationOutcomes.EvictionOutcome.class, "eviction");
   }
 
   @Override
   public void clear() {
-    // snapshot all the counters
-    for (Entry<Stat, AtomicLong> entry : baselines.entrySet()) {
-      entry.getValue().set(entry.getKey().snapshot(statistics));
-    }
+    compensatingCounters.snapshot();
   }
 
   @Override
   public long getCacheHits() {
-    return minZero(statistics.getCacheHits() - baselineValue(Stat.GETS));
+    return normalize(getHits() - compensatingCounters.cacheHits);
   }
 
   @Override
   public float getCacheHitPercentage() {
-    return zeroForNaN(statistics.getCacheHitPercentage());
+    long cacheHits = getCacheHits();
+    return normalize((float) cacheHits / (cacheHits + getCacheMisses())) * 100.0f;
   }
 
   @Override
   public long getCacheMisses() {
-    return minZero(statistics.getCacheMisses() - baselineValue(Stat.MISSES));
+    return normalize(getMisses() - compensatingCounters.cacheMisses);
   }
 
   @Override
   public float getCacheMissPercentage() {
-    return zeroForNaN(statistics.getCacheMissPercentage());
+    long cacheMisses = getCacheMisses();
+    return normalize((float) cacheMisses / (getCacheHits() + cacheMisses)) * 100.0f;
   }
 
   @Override
   public long getCacheGets() {
-    return minZero((getBulkCount(BulkOps.GET_ALL) - baselineValue(Stat.BULK_GETS))
-        + (statistics.getCacheGets() - baselineValue(Stat.GETS)));
+    return normalize(getBulkCount(BulkOps.GET_ALL) - compensatingCounters.bulkGets +
+        getHits() + getMisses() - compensatingCounters.cacheGets);
   }
 
   @Override
   public long getCachePuts() {
-    return minZero((getBulkCount(BulkOps.PUT_ALL) - baselineValue(Stat.BULK_PUTS))
-        + (statistics.getCachePuts() - baselineValue(Stat.PUTS)));
+    return normalize(getBulkCount(BulkOps.PUT_ALL) - compensatingCounters.bulkPuts +
+        put.sum(EnumSet.of(CacheOperationOutcomes.PutOutcome.ADDED)) +
+        putIfAbsent.sum(EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.PUT)) +
+        replace.sum(EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT)) -
+        compensatingCounters.cachePuts);
   }
 
   @Override
   public long getCacheRemovals() {
-    return minZero((getBulkCount(BulkOps.REMOVE_ALL) - baselineValue(Stat.BULK_REMOVES))
-        + (statistics.getCacheRemovals() - baselineValue(Stat.REMOVALS)));
+    return normalize(getBulkCount(BulkOps.REMOVE_ALL) - compensatingCounters.bulkRemovals +
+        remove.sum(EnumSet.of(CacheOperationOutcomes.RemoveOutcome.SUCCESS)) +
+        conditionalRemove.sum(EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.SUCCESS)) -
+        compensatingCounters.cacheRemovals);
   }
 
   @Override
   public long getCacheEvictions() {
-    return minZero(statistics.getCacheEvictions() - baselineValue(Stat.EVICTIONS));
+    return normalize(authorityEviction.sum(EnumSet.of(StoreOperationOutcomes.EvictionOutcome.SUCCESS)) - compensatingCounters.cacheEvictions);
   }
 
   @Override
   public float getAverageGetTime() {
-    return zeroForNaN(statistics.getAverageGetTime());
+    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "org.ehcache.management.providers.statistics.EhcacheStatisticsProvider", "AllCacheGetLatencyAverage");
+    return getMostRecentNotClearedValue(statistics);
   }
 
   @Override
   public float getAveragePutTime() {
-    return zeroForNaN(statistics.getAveragePutTime());
+    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "org.ehcache.management.providers.statistics.EhcacheStatisticsProvider", "AllCachePutLatencyAverage");
+    return getMostRecentNotClearedValue(statistics);
   }
 
   @Override
   public float getAverageRemoveTime() {
-    return zeroForNaN(statistics.getAverageRemoveTime());
+    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "org.ehcache.management.providers.statistics.EhcacheStatisticsProvider", "AllCacheRemoveLatencyAverage");
+    return getMostRecentNotClearedValue(statistics);
   }
 
-  private long getBulkCount(BulkOps op) {
-    AtomicLong counter = bulkMethodCounts.get(op);
+  private float getMostRecentNotClearedValue(Collection<SampledRatio> statistics) {
+    List<Sample<Double>> samples = statistics.iterator().next().getValue();
+    for (int i=samples.size() - 1 ; i>=0 ; i--) {
+      Sample<Double> doubleSample = samples.get(i);
+      if (doubleSample.getTimestamp() >= compensatingCounters.timestamp) {
+        return (float) (doubleSample.getValue() / 1000.0);
+      }
+    }
+    return 0.0f;
+  }
+
+  private long getMisses() {
+    return get.sum(EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER, CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER)) +
+        putIfAbsent.sum(EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.PUT)) +
+        replace.sum(EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT)) +
+        conditionalRemove.sum(EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_MISSING));
+  }
+
+  private long getHits() {
+    return get.sum(EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER, CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER)) +
+        putIfAbsent.sum(EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.PUT)) +
+        replace.sum(EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT, CacheOperationOutcomes.ReplaceOutcome.MISS_PRESENT)) +
+        conditionalRemove.sum(EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.SUCCESS, CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_PRESENT));
+  }
+
+  private long getBulkCount(BulkOps bulkOps) {
+    AtomicLong counter = bulkMethodEntries.get(bulkOps);
     return counter == null ? 0L : counter.get();
   }
 
-  private long baselineValue(Stat stat) {
-    return baselines.get(stat).get();
-  }
-
-  private static long minZero(long value) {
+  private static long normalize(long value) {
     return Math.max(0, value);
   }
 
-  private static float zeroForNaN(float value) {
+  private static float normalize(float value) {
     if (Float.isNaN(value)) {
-      return 0F;
+      return 0.0f;
     }
-    return value;
+    return Math.min(1.0f, Math.max(0.0f, value));
   }
 
-  private enum Stat {
-    EVICTIONS {
-      @Override
-      long snapshot(CacheStatistics stats) {
-        return stats.getCacheEvictions();
-      }
-    },
-    GETS {
-      @Override
-      long snapshot(CacheStatistics stats) {
-        return stats.getCacheGets();
-      }
-    },
-    HITS {
-      @Override
-      long snapshot(CacheStatistics stats) {
-        return stats.getCacheHits();
-      }
-    },
-    MISSES {
-      @Override
-      long snapshot(CacheStatistics stats) {
-        return stats.getCacheMisses();
-      }
-    },
-    PUTS {
-      @Override
-      long snapshot(CacheStatistics stats) {
-        return stats.getCachePuts();
-      }
-    },
-    REMOVALS {
-      @Override
-      long snapshot(CacheStatistics stats) {
-        return stats.getCacheRemovals();
-      }
-    },
-    BULK_GETS {
-      @Override
-      long snapshot(CacheStatistics stats) {
-        return stats.getBulkMethodEntries().get(BulkOps.GET_ALL).get();
-      }
-    },
-    BULK_PUTS {
-      @Override
-      long snapshot(CacheStatistics stats) {
-        return stats.getBulkMethodEntries().get(BulkOps.PUT_ALL).get();
-      }
-    },
-    BULK_REMOVES {
-      @Override
-      long snapshot(CacheStatistics stats) {
-        return stats.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).get();
-      }
-    };
+  static <T extends Enum<T>> OperationStatistic<T> findCacheStatistic(StatisticsManager statisticsManager, String cacheName, Class<T> type, String statName) {
+    Query query = queryBuilder()
+        .descendants()
+        .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("tags", new Matcher<Set<String>>() {
+          @Override
+          protected boolean matchesSafely(Set<String> object) {
+            return object.containsAll(Arrays.asList("cache", "exposed"));
+          }
+        }), hasAttribute("CacheName", cacheName)))))
+        .parent()
+        .children()
+        .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
+            hasAttribute("tags", new Matcher<Set<String>>() {
+              @Override
+              protected boolean matchesSafely(Set<String> object) {
+                return object.containsAll(Collections.singleton("cache"));
+              }
+            }), hasAttribute("name", statName), hasAttribute("type", type)))))
+        .build();
 
-    abstract long snapshot(CacheStatistics stats);
+    Set<TreeNode> result = statisticsManager.query(query);
+    if (result.size() > 1) {
+      throw new RuntimeException("result must be unique");
+    }
+    if (result.isEmpty()) {
+      throw new RuntimeException("result must not be null");
+    }
+    return (OperationStatistic<T>) result.iterator().next().getContext().attributes().get("this");
+  }
+
+  <T extends Enum<T>> OperationStatistic<T> findAuthoritativeTierStatistic(String cacheName, StatisticsManager statisticsManager, Class<T> type, String statName) {
+    Query storeQuery = queryBuilder()
+        .descendants()
+        .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
+            hasAttribute("tags", new Matcher<Set<String>>() {
+              @Override
+              protected boolean matchesSafely(Set<String> object) {
+                return object.containsAll(Arrays.asList("cache", "exposed"));
+              }
+            }), hasAttribute("CacheName", cacheName)))))
+        .parent()
+        .children()
+        .children()
+        .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
+            hasAttribute("tags", new Matcher<Set<String>>() {
+              @Override
+              protected boolean matchesSafely(Set<String> object) {
+                return object.containsAll(Collections.singleton("store"));
+              }
+            })))))
+        .build();
+
+    Set<TreeNode> storeResult = statisticsManager.query(storeQuery);
+    if (storeResult.size() > 1) {
+      throw new RuntimeException("store result must be unique");
+    }
+    if (storeResult.isEmpty()) {
+      throw new RuntimeException("store result must not be null");
+    }
+    Object authoritativeTier = storeResult.iterator().next().getContext().attributes().get("authoritativeTier");
+
+    Query statQuery = queryBuilder().children()
+        .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("name", statName), hasAttribute("type", type)))))
+        .build();
+
+    Set<TreeNode> statResult = statQuery.execute(Collections.singleton(StatisticsManager.nodeFor(authoritativeTier)));
+    if (statResult.size() > 1) {
+      throw new RuntimeException("stat result must be unique");
+    }
+    if (statResult.isEmpty()) {
+      throw new RuntimeException("stat result must not be null");
+    }
+
+    return (OperationStatistic) statResult.iterator().next().getContext().attributes().get("this");
+  }
+
+  class CompensatingCounters {
+    volatile long cacheHits;
+    volatile long cacheMisses;
+    volatile long cacheGets;
+    volatile long bulkGets;
+    volatile long cachePuts;
+    volatile long bulkPuts;
+    volatile long cacheRemovals;
+    volatile long bulkRemovals;
+    volatile long cacheEvictions;
+    volatile long timestamp;
+
+    void snapshot() {
+      cacheHits += Eh107CacheStatisticsMXBean.this.getCacheHits();
+      cacheMisses += Eh107CacheStatisticsMXBean.this.getCacheMisses();
+      cacheGets += Eh107CacheStatisticsMXBean.this.getCacheGets();
+      bulkGets += Eh107CacheStatisticsMXBean.this.getBulkCount(BulkOps.GET_ALL);
+      cachePuts += Eh107CacheStatisticsMXBean.this.getCachePuts();
+      bulkPuts += Eh107CacheStatisticsMXBean.this.getBulkCount(BulkOps.PUT_ALL);
+      cacheRemovals += Eh107CacheStatisticsMXBean.this.getCacheRemovals();
+      bulkRemovals += Eh107CacheStatisticsMXBean.this.getBulkCount(BulkOps.REMOVE_ALL);
+      cacheEvictions += Eh107CacheStatisticsMXBean.this.getCacheEvictions();
+      timestamp = System.currentTimeMillis();
+    }
   }
 
 }

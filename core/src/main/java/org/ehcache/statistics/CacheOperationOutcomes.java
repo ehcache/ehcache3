@@ -70,16 +70,6 @@ public interface CacheOperationOutcomes {
   };
   
   /**
-   * The eviction outcomes.
-   */
-  enum EvictionOutcome implements CacheOperationOutcomes {
-    /** success. */
-    SUCCESS,
-    /** failure */
-    FAILURE
-  };
-  
-  /**
    * The cache loading outcomes.
    */
   enum CacheLoadingOutcome implements CacheOperationOutcomes {

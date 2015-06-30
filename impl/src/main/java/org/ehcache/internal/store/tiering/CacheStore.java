@@ -31,9 +31,13 @@ import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.context.annotations.ContextAttribute;
+import org.terracotta.statistics.StatisticsManager;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,6 +55,9 @@ public class CacheStore<K, V> implements Store<K, V> {
   private final CachingTier<K, V> cachingTier;
   private final AuthoritativeTier<K, V> authoritativeTier;
 
+  private final CacheStoreStatsSettings cacheStoreStatsSettings;
+
+
   public CacheStore(CachingTier<K, V> cachingTier, AuthoritativeTier<K, V> authoritativeTier) {
     this.cachingTier = cachingTier;
     this.authoritativeTier = authoritativeTier;
@@ -61,6 +68,11 @@ public class CacheStore<K, V> implements Store<K, V> {
         CacheStore.this.authoritativeTier.flush(key, valueHolder);
       }
     });
+
+    StatisticsManager.associate(cachingTier).withParent(this);
+    StatisticsManager.associate(authoritativeTier).withParent(this);
+    cacheStoreStatsSettings = new CacheStoreStatsSettings(cachingTier, authoritativeTier);
+    StatisticsManager.associate(cacheStoreStatsSettings).withParent(this);
   }
 
 
@@ -368,6 +380,17 @@ public class CacheStore<K, V> implements Store<K, V> {
     public void stop() {
       this.serviceProvider = null;
       providersMap.clear();
+    }
+  }
+
+  private static final class CacheStoreStatsSettings {
+    @ContextAttribute("tags") private final Set<String> tags = new HashSet<String>(Arrays.asList("store"));
+    @ContextAttribute("cachingTier") private final CachingTier<?, ?> cachingTier;
+    @ContextAttribute("authoritativeTier") private final AuthoritativeTier<?, ?> authoritativeTier;
+
+    CacheStoreStatsSettings(CachingTier<?, ?> cachingTier, AuthoritativeTier<?, ?> authoritativeTier) {
+      this.cachingTier = cachingTier;
+      this.authoritativeTier = authoritativeTier;
     }
   }
 
