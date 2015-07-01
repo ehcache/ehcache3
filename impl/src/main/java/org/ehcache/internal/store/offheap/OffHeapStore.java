@@ -606,9 +606,9 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       throw new IllegalArgumentException("ValueHolder must come from the caching tier");
     }
     checkKey(key);
-    return map.computeIfPinnedAndUnpin(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+    return map.computeIfPinned(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
       @Override
-      public OffHeapValueHolder<V> apply(final K k, final OffHeapValueHolder<V> valuePresent) {
+      public OffHeapValueHolder<V> apply(K k, OffHeapValueHolder<V> valuePresent) {
         if (valuePresent.getId() == valueFlushed.getId()) {
           if (valueFlushed.isExpired(timeSource.getTimeMillis(), OffHeapValueHolder.TIME_UNIT)) {
             return null;
@@ -617,6 +617,11 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
           valuePresent.writeBack();
         }
         return valuePresent;
+      }
+    }, new Function<OffHeapValueHolder<V>, Boolean>() {
+      @Override
+      public Boolean apply(OffHeapValueHolder<V> valuePresent) {
+        return valuePresent.getId() == valueFlushed.getId();
       }
     });
   }

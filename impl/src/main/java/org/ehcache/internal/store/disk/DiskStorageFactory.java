@@ -77,9 +77,9 @@ public class DiskStorageFactory<K, V> {
     private final K key;
     private transient boolean faulted;
 
-    public ElementImpl(K key, V value, long createTime, long expireTime) {
+    public ElementImpl(long id, K key, V value, long createTime, long expireTime) {
       this.key = key;
-      this.valueHolder = new DiskValueHolder<V>(value, createTime, expireTime);
+      this.valueHolder = new DiskValueHolder<V>(id, value, createTime, expireTime);
     }
 
     @Override
@@ -115,8 +115,8 @@ public class DiskStorageFactory<K, V> {
 
     private final V value;
 
-    public DiskValueHolder(V value, long createTime, long expireTime) {
-      super(-1, createTime, expireTime);
+    public DiskValueHolder(long id, V value, long createTime, long expireTime) {
+      super(id, createTime, expireTime);
       this.value = value;
     }
 

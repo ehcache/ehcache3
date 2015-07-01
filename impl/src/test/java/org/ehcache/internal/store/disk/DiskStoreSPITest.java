@@ -104,7 +104,7 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
 
       @Override
       public AuthoritativeTier.ValueHolder<String> newValueHolder(final String value) {
-        return new DiskStorageFactory.DiskValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), -1);
+        return new DiskStorageFactory.DiskValueHolder<String>(-1, value, SystemTimeSource.INSTANCE.getTimeMillis(), -1);
       }
 
       @Override

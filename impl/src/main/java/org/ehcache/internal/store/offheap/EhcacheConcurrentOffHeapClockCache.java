@@ -17,16 +17,13 @@
 package org.ehcache.internal.store.offheap;
 
 import org.ehcache.function.BiFunction;
+import org.ehcache.function.Function;
 import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory;
 
-import org.terracotta.offheapstore.Segment;
 import org.terracotta.offheapstore.concurrent.AbstractConcurrentOffHeapCache;
 import org.terracotta.offheapstore.pinning.PinnableSegment;
 import org.terracotta.offheapstore.util.Factory;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -64,9 +61,9 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
     return segment.computeIfPresent(key, mappingFunction);
   }
 
-  public boolean computeIfPinnedAndUnpin(final K key, final BiFunction<K, V, V> remappingFunction) {
+  public boolean computeIfPinned(final K key, final BiFunction<K,V,V> remappingFunction, final Function<V,Boolean> pinningFunction) {
     EhcacheSegmentFactory.EhcacheSegment<K, V> segment = (EhcacheSegmentFactory.EhcacheSegment) segmentFor(key);
-    return segment.computeIfPinnedAndUnpin(key, remappingFunction);
+    return segment.computeIfPinned(key, remappingFunction, pinningFunction);
   }
 
   public long nextIdFor(final K key) {
