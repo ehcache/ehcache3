@@ -70,6 +70,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
@@ -103,6 +104,8 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
   private final Predicate<DiskStorageFactory.DiskSubstitute<K, V>> evictionVeto;
   private final Comparator<DiskStorageFactory.DiskSubstitute<K, V>> evictionPrioritizer;
   private final Random random = new Random();
+
+  private final AtomicLong idSequence = new AtomicLong(Long.MIN_VALUE);
 
   private volatile DiskStorageFactory<K, V> diskStorageFactory;
   private volatile Segment<K, V>[] segments;
@@ -551,12 +554,12 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     }
 
     if (duration == null) {
-      return new DiskStorageFactory.ElementImpl<K, V>(key, newValue, now, oldValue.getValueHolder().expirationTime(DiskStorageFactory.DiskValueHolder.TIME_UNIT));
+      return new DiskStorageFactory.ElementImpl<K, V>(idSequence.getAndIncrement(), key, newValue, now, oldValue.getValueHolder().expirationTime(DiskStorageFactory.DiskValueHolder.TIME_UNIT));
     } else {
       if (duration.isForever()) {
-        return new DiskStorageFactory.ElementImpl<K, V>(key, newValue, now, DiskStorageFactory.DiskValueHolder.NO_EXPIRE);
+        return new DiskStorageFactory.ElementImpl<K, V>(idSequence.getAndIncrement(), key, newValue, now, DiskStorageFactory.DiskValueHolder.NO_EXPIRE);
       } else {
-        return new DiskStorageFactory.ElementImpl<K, V>(key, newValue, now, safeExpireTime(now, duration));
+        return new DiskStorageFactory.ElementImpl<K, V>(idSequence.getAndIncrement(), key, newValue, now, safeExpireTime(now, duration));
       }
     }
   }
@@ -572,9 +575,9 @@ public class DiskStore<K, V> implements AuthoritativeTier<K, V> {
     }
 
     if (duration.isForever()) {
-      return new DiskStorageFactory.ElementImpl<K, V>(key, value, now, DiskStorageFactory.DiskValueHolder.NO_EXPIRE);
+      return new DiskStorageFactory.ElementImpl<K, V>(idSequence.getAndIncrement(), key, value, now, DiskStorageFactory.DiskValueHolder.NO_EXPIRE);
     } else {
-      return new DiskStorageFactory.ElementImpl<K, V>(key, value, now, safeExpireTime(now, duration));
+      return new DiskStorageFactory.ElementImpl<K, V>(idSequence.getAndIncrement(), key, value, now, safeExpireTime(now, duration));
     }
   }
 

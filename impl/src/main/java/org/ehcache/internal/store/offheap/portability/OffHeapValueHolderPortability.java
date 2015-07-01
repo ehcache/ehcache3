@@ -30,11 +30,11 @@ import java.nio.ByteBuffer;
  */
 public class OffHeapValueHolderPortability<V> implements WriteBackPortability<OffHeapValueHolder<V>> {
 
-  public static final int ACCESS_TIME_OFFSET = 8;
-  public static final int EXPIRE_TIME_OFFSET = 16;
+  public static final int ACCESS_TIME_OFFSET = 16;
+  public static final int EXPIRE_TIME_OFFSET = 24;
 
-  // 3 longs: access, expire, creation time
-  private static final int FIELDS_OVERHEAD = 24;
+  // 4 longs: id, access, expire, creation time
+  private static final int FIELDS_OVERHEAD = 32;
 
   private final Serializer<V> serializer;
 
@@ -47,6 +47,7 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
     try {
       ByteBuffer serialized = serializer.serialize(valueHolder.value());
       ByteBuffer byteBuffer = ByteBuffer.allocate(serialized.remaining() + FIELDS_OVERHEAD);
+      byteBuffer.putLong(valueHolder.getId());
       byteBuffer.putLong(valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT));
       byteBuffer.putLong(valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT));
       byteBuffer.putLong(valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT));
@@ -71,10 +72,11 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
   @Override
   public OffHeapValueHolder<V> decode(ByteBuffer byteBuffer, WriteContext writeContext) {
     try {
+      long id = byteBuffer.getLong();
       long creationTime = byteBuffer.getLong();
       long lastAccessTime = byteBuffer.getLong();
       long expireTime = byteBuffer.getLong();
-      OffHeapValueHolder<V> valueHolder = new OffHeapValueHolder<V>(-1, serializer.read(byteBuffer), creationTime, expireTime, lastAccessTime, writeContext);
+      OffHeapValueHolder<V> valueHolder = new OffHeapValueHolder<V>(id, serializer.read(byteBuffer), creationTime, expireTime, lastAccessTime, writeContext);
       return valueHolder;
     } catch (IOException e) {
       // TODO find a proper exception type

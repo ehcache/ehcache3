@@ -513,7 +513,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(final K k, final OnHeapValueHolder<V> present) {
-        notifyInvalidation(key, present);
+        notifyInvalidation(key, getValue(present));
         return null;
       }
     });
@@ -587,6 +587,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       }
 
       return throwOrReturn();
+    }
+
+    @Override
+    public long getId() {
+      throw new UnsupportedOperationException("You should NOT call that?!");
     }
 
     private ValueHolder<V> throwOrReturn() {

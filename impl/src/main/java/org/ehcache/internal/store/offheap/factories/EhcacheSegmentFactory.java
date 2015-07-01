@@ -17,6 +17,7 @@
 package org.ehcache.internal.store.offheap.factories;
 
 import org.ehcache.function.BiFunction;
+import org.ehcache.function.Function;
 import org.ehcache.function.Predicate;
 
 import org.terracotta.offheapstore.Metadata;
@@ -28,7 +29,6 @@ import org.terracotta.offheapstore.util.Factory;
 
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * EhcacheSegmentFactory
@@ -176,11 +176,13 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
 
     /**
      * Computes a new value for the given key if a mapping is present and pinned, <code>BiFunction</code> is invoked under appropriate lock scope
+     * The pinning bit from the metadata, will be flipped (i.e. unset) if the <code>Function<V, Boolean></code> returns true
      * @param key the key of the mapping to compute the value for
      * @param remappingFunction the function used to compute
+     * @param flippingPinningBitFunction evaluated to see whether we want to unpin the mapping
      * @return true if transitioned to unpinned, false otherwise
      */
-    public boolean computeIfPinnedAndUnpin(final K key, final BiFunction<K, V, V> remappingFunction) {
+    public boolean computeIfPinned(final K key, final BiFunction<K, V, V> remappingFunction, final Function<V, Boolean> flippingPinningBitFunction) {
       final Lock lock = writeLock();
       lock.lock();
       try {
@@ -198,17 +200,17 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
               put(key, newValue);
             }
           }
-          if (newValue != null) {
+          if (flippingPinningBitFunction.apply(previousValue)) {
             setMetadata(key, Metadata.PINNED, 0);
+            return true;
           }
-          return true;
         }
         return false;
       } finally {
         lock.unlock();
       }
-
     }
+
 
     @Override
     public V put(K key, V value) {

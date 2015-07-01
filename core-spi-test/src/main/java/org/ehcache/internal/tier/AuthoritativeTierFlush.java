@@ -68,14 +68,14 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
     final V value = factory.createValue(1);
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
     when(valueHolder.expirationTime(any(TimeUnit.class))).thenReturn(1L);
-    when(valueHolder.getId()).thenReturn(-1L);
 
     tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         1L, null, null, Expirations.noExpiration()));
 
     try {
       tier.put(key, value);
-      tier.getAndFault(key);
+      final Store.ValueHolder<V> fault = tier.getAndFault(key);
+      when(valueHolder.getId()).thenReturn(fault.getId());
     } catch (CacheAccessException e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();

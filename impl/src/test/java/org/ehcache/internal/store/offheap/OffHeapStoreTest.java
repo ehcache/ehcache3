@@ -102,12 +102,17 @@ public class OffHeapStoreTest {
     final String key = "foo";
     final String value = "bar";
     store.put(key, value);
-    final Store.ValueHolder<String> valueHolder = store.getAndFault(key);
+    final Store.ValueHolder<String> firstValueHolder = store.getAndFault(key);
+    store.put(key, value);
+    final Store.ValueHolder<String> secondValueHolder = store.getAndFault(key);
     timeSource.advanceTime(10);
-    ((AbstractValueHolder)valueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, value));
-    store.flush(key, new DelegatingValueHolder<String>(valueHolder));
+    ((AbstractValueHolder)firstValueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, value));
+    timeSource.advanceTime(10);
+    ((AbstractValueHolder)secondValueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, value));
+    assertThat(store.flush(key, new DelegatingValueHolder<String>(firstValueHolder)), is(false));
+    assertThat(store.flush(key, new DelegatingValueHolder<String>(secondValueHolder)), is(true));
     timeSource.advanceTime(10); // this should NOT affect
-    assertThat(store.getAndFault(key).lastAccessTime(TimeUnit.MILLISECONDS), is(valueHolder.creationTime(TimeUnit.MILLISECONDS) + 10));
+    assertThat(store.getAndFault(key).lastAccessTime(TimeUnit.MILLISECONDS), is(secondValueHolder.creationTime(TimeUnit.MILLISECONDS) + 20));
   }
 
   private OffHeapStore<String, String> createAndInitStore(final TestTimeSource timeSource, final Expiry<Object, Object> expiry) {

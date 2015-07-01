@@ -33,7 +33,6 @@ import org.ehcache.spi.service.LocalPersistenceService;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -218,7 +217,7 @@ public class DiskStoreTest {
 
     Store.ValueHolder<CharSequence> heapValueHolder = mock(Store.ValueHolder.class);
     when(heapValueHolder.value()).thenReturn("computed-one");
-    when(heapValueHolder.getId()).thenReturn(-1L);
+    when(heapValueHolder.getId()).thenReturn(valueHolder.getId());
     when(heapValueHolder.expirationTime(any(TimeUnit.class))).thenReturn(5L);
 
     assertThat(diskStore.flush(1, heapValueHolder), is(true));
@@ -247,7 +246,7 @@ public class DiskStoreTest {
 
     Store.ValueHolder<CharSequence> heapValueHolder = mock(Store.ValueHolder.class);
     when(heapValueHolder.value()).thenReturn("computed-one");
-    when(heapValueHolder.getId()).thenReturn(-1L);
+    when(heapValueHolder.getId()).thenReturn(valueHolder.getId());
     when(heapValueHolder.isExpired(anyLong(), any(TimeUnit.class))).thenReturn(true);
     when(heapValueHolder.expirationTime(any(TimeUnit.class))).thenReturn(5L);
 
@@ -288,7 +287,7 @@ public class DiskStoreTest {
 
     Store.ValueHolder<CharSequence> heapValueHolder = mock(Store.ValueHolder.class);
     when(heapValueHolder.value()).thenReturn("computed-one");
-    when(heapValueHolder.getId()).thenReturn(-1L);
+    when(heapValueHolder.getId()).thenReturn(valueHolder.getId());
     when(heapValueHolder.expirationTime(any(TimeUnit.class))).thenReturn(15L);
 
     timeSource.advanceTime(10);
