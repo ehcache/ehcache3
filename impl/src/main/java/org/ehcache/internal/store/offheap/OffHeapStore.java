@@ -104,12 +104,6 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener();
   private BackingMapEvictionListener<K, V> mapEvictionListener;
   private volatile EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
-  private final CacheConfigurationChangeListener cacheConfigurationChangeListener = new CacheConfigurationChangeListener() {
-    @Override
-    public void cacheConfigurationChange(CacheConfigurationChangeEvent event) {
-      // noop
-    }
-  };
 
   public OffHeapStore(final Configuration<K, V> config, Serializer<K> keySerializer, Serializer<V> valueSerializer, TimeSource timeSource, long sizeInBytes) {
     keyType = config.getKeyType();
@@ -567,10 +561,7 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
-    List<CacheConfigurationChangeListener> configurationChangeListenerList
-        = new ArrayList<CacheConfigurationChangeListener>();
-    configurationChangeListenerList.add(this.cacheConfigurationChangeListener);
-    return configurationChangeListenerList;
+    return Collections.emptyList();
   }
 
   @Override
