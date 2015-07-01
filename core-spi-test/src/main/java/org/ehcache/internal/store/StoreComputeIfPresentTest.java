@@ -20,6 +20,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.After;
+import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 
@@ -81,8 +82,7 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     } catch (ClassCastException e) {
       // expected
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
@@ -118,8 +118,7 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     } catch (ClassCastException e) {
       // expected
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
@@ -142,8 +141,7 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
       });
       assertThat(kvStore.get(key), nullValue());
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
@@ -164,8 +162,7 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
       });
       assertThat(kvStore.get(key).value(), is(value2));
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
@@ -183,8 +180,7 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
         }
       });
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
@@ -207,8 +203,7 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     } catch (RuntimeException e) {
       assertThat(e, is(re));
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
     assertThat(kvStore.get(key).value(), is(value));

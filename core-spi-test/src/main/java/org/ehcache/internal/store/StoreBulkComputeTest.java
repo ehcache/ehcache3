@@ -21,6 +21,7 @@ import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
+import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 
@@ -90,8 +91,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
       );
       assertThat(mapFromRemappingFunction.keySet(), containsInAnyOrder((K[])inputKeys.toArray()));
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
@@ -120,8 +120,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     } catch (ClassCastException e) {
       // expected
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
@@ -152,8 +151,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
         assertThat(kvStore.get(key), is(nullValue()));
       }
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
@@ -192,8 +190,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
           }
       );
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
@@ -226,8 +223,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
         assertThat(kvStore.get(inputKey).value(), is(computedEntries.get(inputKey)));
       }
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
@@ -264,8 +260,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     } catch (ClassCastException cce) {
       //expected
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
@@ -302,8 +297,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     } catch (ClassCastException cce) {
       //expected
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 }

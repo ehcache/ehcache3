@@ -24,6 +24,7 @@ import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.Ignore;
+import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 import java.util.concurrent.TimeUnit;
@@ -86,7 +87,7 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
    * this one will verify that the eviction doesn't occur under the same condition after a call to getAndFault()
    */
   @SPITest
-  public void marksTheMappingAsNotEvictableAndReturnsValue() {
+  public void marksTheMappingAsNotEvictableAndReturnsValue() throws LegalSPITesterException {
     K key = factory.createKey(1);
     V value = factory.createValue(1);
 
@@ -102,14 +103,13 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
       assertThat(tier.get(key).value(), is(equalTo(value)));
 
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
   @Ignore
-  public void marksTheMappingAsNotExpirable() {
+  public void marksTheMappingAsNotExpirable() throws LegalSPITesterException {
     TestTimeSource timeSource = new TestTimeSource();
     tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
         null, null, null, Expirations.timeToIdleExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
@@ -125,8 +125,7 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
       assertThat(tier.get(key), is(not(nullValue())));
 
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
