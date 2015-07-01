@@ -17,7 +17,7 @@ package org.ehcache.internal.store;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
-import org.ehcache.internal.store.disk.DiskStore;
+import org.ehcache.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.offheap.OffHeapStore;
 import org.ehcache.internal.store.tiering.CacheStore;
@@ -62,7 +62,7 @@ public class DefaultStoreProvider implements Store.Provider {
       }
       provider = serviceProvider.findService(CacheStore.Provider.class);
       enhancedServiceConfigs.add(new CacheStoreServiceConfiguration().cachingTierProvider(OnHeapStore.Provider.class)
-          .authoritativeTierProvider(DiskStore.Provider.class));
+          .authoritativeTierProvider(OffHeapDiskStore.Provider.class));
     } else if (offHeapPool != null) {
       if (heapPool == null) {
         throw new IllegalArgumentException("Cannot store to offheap without heap resource");

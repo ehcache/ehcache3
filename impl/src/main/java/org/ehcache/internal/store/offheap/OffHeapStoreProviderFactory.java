@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store.offheap.factories;
+package org.ehcache.internal.store.offheap;
 
 import org.ehcache.internal.store.offheap.OffHeapStore;
 import org.ehcache.spi.ServiceLocator;

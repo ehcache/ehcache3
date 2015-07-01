@@ -16,21 +16,22 @@
 
 package org.ehcache.internal.store.disk;
 
-/**
- * Filter on Elements or ElementSubstitutes.
- * <p/>
- * This is used in particular when selecting random samples from the store.
- *
- * @author Chris Dennis
- * @author Ludovic Orban
- */
-public interface ElementSubstituteFilter {
+import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceFactory;
 
-  /**
-   * Returns <code>true</code> if this object passes the filter.
-   *
-   * @param object object to test
-   * @return <code>true</code> if passed
-   */
-  public boolean allows(Object object);
+/**
+ * @author Chris Dennis
+ */
+public class OffHeapDiskStoreProviderFactory implements ServiceFactory<OffHeapDiskStore.Provider> {
+
+  @Override
+  public OffHeapDiskStore.Provider create(ServiceConfiguration<OffHeapDiskStore.Provider> serviceConfiguration, ServiceLocator serviceLocator) {
+    return new OffHeapDiskStore.Provider();
+  }
+
+  @Override
+  public Class<OffHeapDiskStore.Provider> getServiceType() {
+    return OffHeapDiskStore.Provider.class;
+  }
 }

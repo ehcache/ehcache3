@@ -16,22 +16,15 @@
 
 package org.ehcache.internal.store.disk;
 
-import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.ServiceFactory;
 
 /**
- * @author Ludovic Orban
+ * @author Chris Dennis
  */
-public class DiskStoreProviderFactory implements ServiceFactory<DiskStore.Provider> {
+public class OffHeapDiskStoreServiceConfiguration implements ServiceConfiguration<OffHeapDiskStore.Provider> {
 
   @Override
-  public DiskStore.Provider create(ServiceConfiguration<DiskStore.Provider> serviceConfiguration, ServiceLocator serviceLocator) {
-    return new DiskStore.Provider();
-  }
-
-  @Override
-  public Class<DiskStore.Provider> getServiceType() {
-    return DiskStore.Provider.class;
+  public Class<OffHeapDiskStore.Provider> getServiceType() {
+    return OffHeapDiskStore.Provider.class;
   }
 }

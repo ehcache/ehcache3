@@ -17,34 +17,29 @@
 package org.ehcache;
 
 import org.ehcache.config.persistence.PersistenceConfiguration;
-import org.ehcache.exceptions.StateTransitionException;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.IOException;
 
 import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Alex Snaps
  */
 public class PersistentCacheManagerTest {
 
+  @Rule
+  public final TemporaryFolder folder = new TemporaryFolder();
+  
   @Test
-  public void testInitializesLocalPersistenceService() {
-    final File rootDirectory = mock(File.class);
-    when(rootDirectory.exists()).thenReturn(true);
-    when(rootDirectory.getAbsolutePath()).thenReturn("CRAP!");
-    try {
-      newCacheManagerBuilder().with(new PersistenceConfiguration(rootDirectory)).build(true);
-    } catch (Exception e) {
-      assertThat(e, instanceOf(StateTransitionException.class));
-      assertThat(e.getCause(), instanceOf(IllegalArgumentException.class));
-      assertThat(e.getCause().getMessage().endsWith("CRAP!"), is(true));
-    }
+  public void testInitializesLocalPersistenceService() throws IOException {
+    final File rootDirectory = folder.newFolder("testInitializesLocalPersistenceService");
+    assertTrue(rootDirectory.delete());
+    newCacheManagerBuilder().with(new PersistenceConfiguration(rootDirectory)).build(true);
+    assertTrue(rootDirectory.isDirectory());
   }
 }

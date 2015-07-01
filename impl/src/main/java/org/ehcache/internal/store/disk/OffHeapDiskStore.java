@@ -70,6 +70,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
+import org.ehcache.spi.service.SupplementaryService;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
@@ -517,7 +518,7 @@ public class OffHeapDiskStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
-    throw new UnsupportedOperationException("TODO Implement me!");
+    return Collections.emptyList();
   }
 
   @Override
@@ -702,6 +703,7 @@ public class OffHeapDiskStore<K, V> implements AuthoritativeTier<K, V> {
     }
   }
 
+  @SupplementaryService
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
     private volatile ServiceProvider serviceProvider;

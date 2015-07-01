@@ -37,7 +37,6 @@ import org.ehcache.internal.store.offheap.OffHeapValueHolder;
 import org.ehcache.internal.tier.AuthoritativeTierFactory;
 import org.ehcache.internal.tier.AuthoritativeTierSPITest;
 import org.ehcache.spi.ServiceLocator;
-import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.Serializer;
@@ -47,10 +46,11 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.test.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.internal.AssumptionViolatedException;
+import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -62,13 +62,16 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
 
   private AuthoritativeTierFactory<String, String> authoritativeTierFactory;
   private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<Store<String, String>, String>();
-  private LocalPersistenceService persistenceService;
+  private DefaultLocalPersistenceService persistenceService;
 
+  @Rule
+  public final TemporaryFolder folder = new TemporaryFolder();
+  
   @Before
   public void setUp() throws Exception {
-    persistenceService = new DefaultLocalPersistenceService(
-        new PersistenceConfiguration(new File(OffHeapDiskStoreSPITest.class.getClassLoader().getResource(".").toURI().getPath(), "disk-store-spi-test")));
-
+    persistenceService = new DefaultLocalPersistenceService(new PersistenceConfiguration(folder.newFolder()));
+    persistenceService.start(null, null);
+            
     authoritativeTierFactory = new AuthoritativeTierFactory<String, String>() {
 
       final AtomicInteger index = new AtomicInteger();
@@ -132,12 +135,15 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
       @Override
       public Store.Provider newProvider() {
         Store.Provider provider = new OffHeapDiskStore.Provider();
-        LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(
-            new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir"))));
-        ServiceLocator serviceProvider = getServiceProvider();
-        serviceProvider.addService(localPersistenceService);
-        provider.start(null, serviceProvider);
-        return provider;
+        try {
+          LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(new PersistenceConfiguration(folder.newFolder()));
+          ServiceLocator serviceProvider = getServiceProvider();
+          serviceProvider.addService(localPersistenceService);
+          provider.start(null, serviceProvider);
+          return provider;
+        } catch (IOException ex) {
+          throw new AssertionError(ex);
+        }
       }
 
       @Override
@@ -180,11 +186,8 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
       public void close(final Store<String, String> store) {
         String alias = createdStores.get(store);
         OffHeapDiskStore.Provider.close((OffHeapDiskStore)store);
-
         try {
           persistenceService.destroyPersistenceContext(alias);
-        } catch (CachePersistenceException e) {
-          // Not doing anything here
         } finally {
           createdStores.remove(store);
         }
@@ -194,10 +197,22 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
 
   @After
   public void tearDown() throws CachePersistenceException {
-    for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
-      DiskStore.Provider.close((DiskStore) entry.getKey());
-      persistenceService.destroyPersistenceContext(entry.getValue());
+    try {
+      for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
+        OffHeapDiskStore.Provider.close((OffHeapDiskStore) entry.getKey());
+        persistenceService.destroyPersistenceContext(entry.getValue());
+      }
+    } finally {
+      persistenceService.stop();
     }
+  }
+
+  public static void initStore(final OffHeapDiskStore<?, ?> diskStore) {
+    OffHeapDiskStore.Provider.init(diskStore);
+  }
+
+  public static void closeStore(final OffHeapDiskStore<?, ?> diskStore) {
+    OffHeapDiskStore.Provider.close(diskStore);
   }
 
   @Override

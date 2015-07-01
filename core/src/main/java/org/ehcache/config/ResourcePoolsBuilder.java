@@ -65,11 +65,11 @@ public class ResourcePoolsBuilder {
     return otherBuilder;
   }
 
-  public ResourcePoolsBuilder disk(long size, ResourceUnit unit) {
+  public ResourcePoolsBuilder disk(long size, MemoryUnit unit) {
     return disk(size, unit, false);
   }
 
-  public ResourcePoolsBuilder disk(long size, ResourceUnit unit, boolean persistent) {
+  public ResourcePoolsBuilder disk(long size, MemoryUnit unit, boolean persistent) {
     ResourcePoolsBuilder otherBuilder = new ResourcePoolsBuilder(this);
     otherBuilder.resourcePools.put(ResourceType.Core.DISK, new ResourcePoolImpl(ResourceType.Core.DISK, size, unit, persistent));
     return otherBuilder;

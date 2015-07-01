@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import org.ehcache.config.units.MemoryUnit;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -55,7 +56,7 @@ public class CacheConfigurationChangeListenerTest {
     this.eventNotifier = mock(CacheEventNotificationService.class);
     CacheLoaderWriter<Object, Object> loaderWriter = mock(CacheLoaderWriter.class);
     this.config = newCacheConfigurationBuilder()
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().disk(50L, EntryUnit.ENTRIES).heap(2L, EntryUnit.ENTRIES))
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10L, MemoryUnit.MB).heap(2L, EntryUnit.ENTRIES))
         .buildConfig(Object.class, Object.class);
     this.runtimeConfiguration = new RuntimeConfiguration<Object, Object>(this.config, this.eventNotifier);
     this.cache = new Ehcache<Object, Object>(runtimeConfiguration, store, loaderWriter, eventNotifier,

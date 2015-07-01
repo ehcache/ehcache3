@@ -17,7 +17,7 @@
 package org.ehcache.spi;
 
 import org.ehcache.internal.store.DefaultStoreProvider;
-import org.ehcache.internal.store.disk.DiskStore;
+import org.ehcache.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.offheap.OffHeapStore;
 import org.ehcache.spi.cache.Store;
@@ -43,7 +43,7 @@ public class ServiceProviderTest {
     DefaultStoreProvider storeProvider = new DefaultStoreProvider();
     OnHeapStore.Provider cachingTierProvider = new OnHeapStore.Provider();
     OffHeapStore.Provider authoritativeTierProvider = new OffHeapStore.Provider();
-    DiskStore.Provider diskStoreProvider = new DiskStore.Provider();
+    OffHeapDiskStore.Provider diskStoreProvider = new OffHeapDiskStore.Provider();
 
     serviceLocator.addService(storeProvider, true);
     serviceLocator.addService(cachingTierProvider, true);

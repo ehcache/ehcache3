@@ -20,7 +20,6 @@ import org.ehcache.Cache;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.persistence.PersistenceConfiguration;
-import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
@@ -29,14 +28,13 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
-import org.ehcache.internal.store.offheap.OffHeapStore;
 import org.ehcache.internal.store.offheap.OffHeapValueHolder;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.FileBasedPersistenceContext;
-import org.ehcache.spi.service.LocalPersistenceService;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -52,21 +50,27 @@ import static org.mockito.Mockito.mock;
 
 public class OffHeapDiskStoreTest {
 
+  private static DefaultLocalPersistenceService persistenceService;
   private static FileBasedPersistenceContext persistenceContext;
-
+  
   @BeforeClass
   public static void classSetUp() throws Exception {
-    LocalPersistenceService persistenceService = new DefaultLocalPersistenceService(
-        new PersistenceConfiguration(new File(OffHeapDiskStoreTest.class.getClassLoader()
-            .getResource(".")
-            .toURI()
-            .getPath(), "disk-store-spi-test")));
+    persistenceService = new DefaultLocalPersistenceService(new PersistenceConfiguration(
+            new File(OffHeapDiskStoreTest.class.getClassLoader().getResource(".").toURI().getPath(), "disk-store-spi-test")));
+    persistenceService.start(null, null);
     Store.PersistentStoreConfiguration persistentStoreConfiguration = mock(Store.PersistentStoreConfiguration.class);
     persistenceContext = persistenceService.createPersistenceContext("cache", persistentStoreConfiguration);
-    persistenceContext.getDataFile().deleteOnExit();
-    persistenceContext.getIndexFile().deleteOnExit();
   }
 
+  @AfterClass
+  public static void classTearDown() {
+    try {
+      persistenceService.destroyPersistenceContext("cache");
+    } finally {
+      persistenceService.stop();
+    }
+  }
+  
   @Test
   public void testWriteBackOfValueHolder() throws CacheAccessException {
     SerializationProvider serializationProvider = new DefaultSerializationProvider();

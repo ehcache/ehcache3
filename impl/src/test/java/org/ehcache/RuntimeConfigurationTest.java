@@ -26,6 +26,7 @@ import org.ehcache.config.units.EntryUnit;
 import org.junit.Test;
 
 import java.io.File;
+import org.ehcache.config.units.MemoryUnit;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -39,7 +40,7 @@ public class RuntimeConfigurationTest {
   public void testUpdateResources() {
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .heap(10L, EntryUnit.ENTRIES).disk(50, EntryUnit.ENTRIES).build()).buildConfig(Long.class, String.class);
+            .heap(10L, EntryUnit.ENTRIES).disk(10, MemoryUnit.MB).build()).buildConfig(Long.class, String.class);
 
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/myData")))
@@ -53,11 +54,11 @@ public class RuntimeConfigurationTest {
     cache.getRuntimeConfiguration().updateResourcePools(pools);
     assertThat(cache.getRuntimeConfiguration().getResourcePools()
         .getPoolForResource(ResourceType.Core.HEAP).getSize(), is(20L));
-    poolsBuilder = poolsBuilder.disk(100L, EntryUnit.ENTRIES);
+    poolsBuilder = poolsBuilder.disk(20L, MemoryUnit.MB);
     pools = poolsBuilder.build();
     cache.getRuntimeConfiguration().updateResourcePools(pools);
     assertThat(cache.getRuntimeConfiguration().getResourcePools()
-        .getPoolForResource(ResourceType.Core.DISK).getSize(), is(100L));
+        .getPoolForResource(ResourceType.Core.DISK).getSize(), is(20L));
     assertThat(cache.getRuntimeConfiguration().getResourcePools()
         .getPoolForResource(ResourceType.Core.HEAP).getSize(), is(20L));
     cacheManager.close();
@@ -75,7 +76,7 @@ public class RuntimeConfigurationTest {
     Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
 
     ResourcePoolsBuilder poolsBuilder = ResourcePoolsBuilder.newResourcePoolsBuilder();
-    poolsBuilder = poolsBuilder.heap(20L, EntryUnit.ENTRIES).disk(50, EntryUnit.ENTRIES);
+    poolsBuilder = poolsBuilder.heap(20L, EntryUnit.ENTRIES).disk(10, MemoryUnit.MB);
     ResourcePools pools = poolsBuilder.build();
     try {
       cache.getRuntimeConfiguration().updateResourcePools(pools);

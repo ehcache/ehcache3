@@ -18,7 +18,6 @@ package org.ehcache.internal.persistence;
 
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.internal.store.disk.DiskStorePathManager;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.FileBasedPersistenceContext;
@@ -32,18 +31,35 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileLock;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Alex Snaps
  */
 public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
+  private static final int DEL = 0x7F;
+  private static final char ESCAPE = '%';
+  private static final Set<Character> ILLEGALS = new HashSet<Character>();
+  static {
+    ILLEGALS.add('/');
+    ILLEGALS.add('\\');
+    ILLEGALS.add('<');
+    ILLEGALS.add('>');
+    ILLEGALS.add(':');
+    ILLEGALS.add('"');
+    ILLEGALS.add('|');
+    ILLEGALS.add('?');
+    ILLEGALS.add('*');
+    ILLEGALS.add('.');
+  }
+  
   private final Map<Object, FileBasedPersistenceContext> knownPersistenceContexts = new ConcurrentHashMap<Object, FileBasedPersistenceContext>();
   private final File rootDirectory;
-  private final DiskStorePathManager diskStorePathManager;
+  private final File lockFile;
   private FileLock lock;
-  private File lockFile;
 
   private RandomAccessFile rw;
 
@@ -57,7 +73,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     } else {
       throw new NullPointerException("PersistenceConfiguration cannot be null");
     }
-    diskStorePathManager = new DiskStorePathManager(rootDirectory.getAbsolutePath());
+    lockFile = new File(rootDirectory, ".lock");
   }
 
   @Override
@@ -65,7 +81,6 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     if (!started) {
       createLocationIfRequiredAndVerify(rootDirectory);
       try {
-        lockFile = new File(rootDirectory, ".lock");
         rw = new RandomAccessFile(lockFile, "rw");
         lock = rw.getChannel().lock();
       } catch (IOException e) {
@@ -112,8 +127,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   @Override
   public FileBasedPersistenceContext createPersistenceContext(Object identifier, Store.PersistentStoreConfiguration<?, ?, ?> storeConfiguration) throws CachePersistenceException {
-    DefaultFiledBasedPersistenceContext filedBased = new DefaultFiledBasedPersistenceContext(diskStorePathManager.getFile(identifier, ".data"),
-        diskStorePathManager.getFile(identifier, ".index"));
+    DefaultFiledBasedPersistenceContext filedBased = new DefaultFiledBasedPersistenceContext(getFile(identifier, ".data"), getFile(identifier, ".index"));
     knownPersistenceContexts.put(identifier, filedBased);
 
     if (!storeConfiguration.isPersistent()) {
@@ -140,12 +154,44 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
         knownPersistenceContexts.remove(identifier);
       }
     } else {
-      destroy(identifier, new DefaultFiledBasedPersistenceContext(diskStorePathManager.getFile(identifier, ".data"), diskStorePathManager.getFile(identifier, ".index")), true);
+      destroy(identifier, new DefaultFiledBasedPersistenceContext(getFile(identifier, ".data"), getFile(identifier, ".index")), true);
     }
   }
 
   File getLockFile() {
     return lockFile;
+  }
+
+  /**
+   * Get a file object for the given cache-name and suffix
+   *
+   * @param identifier Some stable identifier
+   * @param suffix    a file suffix
+   * @return a file object
+   */
+  public File getFile(Object identifier, String suffix) {
+    if(identifier instanceof String) {
+      return getFile(safeName(((String) identifier)) + suffix);
+    }
+    throw new IllegalArgumentException("Currently only String identifiers are supported");
+  }
+
+  /**
+   * Get a file object for the given name
+   *
+   * @param name the file name
+   * @return a file object
+   */
+  public File getFile(String name) {
+    File file = new File(rootDirectory, name);
+    
+    for (File parent = file.getParentFile(); parent != null; parent = parent.getParentFile()) {
+      if (rootDirectory.equals(parent)) {
+        return file;
+      }
+    }
+
+    throw new IllegalArgumentException("Attempted to access file outside the persistence path");
   }
 
 
@@ -200,6 +246,26 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
   }
 
+  /**
+   * sanitize a name for valid file or directory name
+   *
+   * @param name
+   * @return sanitized version of name
+   */
+  private static String safeName(String name) {
+    int len = name.length();
+    StringBuilder sb = new StringBuilder(len);
+    for (int i = 0; i < len; i++) {
+      char c = name.charAt(i);
+      if (c <= ' ' || c >= DEL || (c >= 'A' && c <= 'Z') || ILLEGALS.contains(c) || c == ESCAPE) {
+        sb.append(ESCAPE);
+        sb.append(String.format("%04x", (int) c));
+      } else {
+        sb.append(c);
+      }
+    }
+    return sb.toString();
+  }
 
   private static class DefaultFiledBasedPersistenceContext implements FileBasedPersistenceContext {
 

@@ -33,9 +33,6 @@ import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
-import org.ehcache.internal.store.disk.DiskStorageFactory;
-import org.ehcache.internal.store.disk.DiskStore;
-import org.ehcache.internal.store.disk.DiskStoreSPITest;
 import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.heap.OnHeapStoreByValueSPITest;
 import org.ehcache.spi.ServiceLocator;
@@ -43,23 +40,22 @@ import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.cache.tiering.CachingTier;
-import org.ehcache.spi.serialization.DefaultSerializationProvider;
-import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.FileBasedPersistenceContext;
-import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.internal.AssumptionViolatedException;
 
 import java.io.File;
-import java.io.Serializable;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.internal.store.disk.OffHeapDiskStore;
+import org.ehcache.internal.store.disk.OffHeapDiskStoreSPITest;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -74,7 +70,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
   private StoreFactory<String, String> storeFactory;
   private final CacheStore.Provider provider = new CacheStore.Provider();
   private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<Store<String, String>, String>();
-  final LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(
+  final DefaultLocalPersistenceService persistenceService = new DefaultLocalPersistenceService(
           new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir"), "cache-store-spi-test")));
 
 
@@ -98,16 +94,13 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
       public Store<String, String> newStore(Store.Configuration<String, String> config, TimeSource timeSource) {
         Serializer<String> keySerializer = new JavaSerializer<String>(config.getClassLoader());
         Serializer<String> valueSerializer = new JavaSerializer<String>(config.getClassLoader());
-        Serializer<DiskStorageFactory.Element> elementSerializer = new JavaSerializer<DiskStorageFactory.Element>(config.getClassLoader());
-        Serializer<Serializable> objectSerializer = new JavaSerializer<Serializable>(config.getClassLoader());
 
         OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, false, keySerializer, valueSerializer);
         Store.PersistentStoreConfiguration<String, String, String> persistentStoreConfiguration = (Store.PersistentStoreConfiguration) config;
         try {
-          FileBasedPersistenceContext persistenceContext = localPersistenceService.createPersistenceContext(persistentStoreConfiguration.getIdentifier(), persistentStoreConfiguration);
-          DiskStore<String, String> diskStore = new DiskStore<String, String>(config, persistenceContext,
-                  timeSource, elementSerializer, objectSerializer);
-
+          FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContext(persistentStoreConfiguration.getIdentifier(), persistentStoreConfiguration);
+          OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(persistenceContext, config,
+                  keySerializer, valueSerializer, SystemTimeSource.INSTANCE, MemoryUnit.MB.toBytes(1));
           CacheStore<String, String> cacheStore = new CacheStore<String, String>(onHeapStore, diskStore);
           provider.registerStore(cacheStore, new CachingTier.Provider() {
             @Override
@@ -142,12 +135,12 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
             @Override
             public void releaseAuthoritativeTier(final AuthoritativeTier<?, ?> resource) {
-              DiskStoreSPITest.closeStore((DiskStore<?, ?>)resource);
+              OffHeapDiskStoreSPITest.closeStore((OffHeapDiskStore<?, ?>)resource);
             }
 
             @Override
             public void initAuthoritativeTier(final AuthoritativeTier<?, ?> resource) {
-              DiskStoreSPITest.initStore((DiskStore<?, ?>)resource);
+              OffHeapDiskStoreSPITest.initStore((OffHeapDiskStore<?, ?>)resource);
             }
 
             @Override
@@ -262,11 +255,10 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
         String alias = createdStores.get(store);
         provider.releaseStore(store);
         try {
-          localPersistenceService.destroyPersistenceContext(alias);
-        } catch (CachePersistenceException e) {
-          // Nothing to do here
+          persistenceService.destroyPersistenceContext(alias);
+        } finally {
+          createdStores.remove(store);
         }
-        createdStores.remove(store);
       }
 
       @Override
@@ -281,17 +273,22 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
   @After
   public void tearDown() throws CachePersistenceException {
-    for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
-      provider.releaseStore(entry.getKey());
-      localPersistenceService.destroyPersistenceContext(entry.getValue());
+    try {
+      for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
+        provider.releaseStore(entry.getKey());
+        persistenceService.destroyPersistenceContext(entry.getValue());
+      }
+    } finally {
+      persistenceService.stop();
     }
   }
 
   private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
     if (capacityConstraint == null) {
-      return newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).disk(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
+      return newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).disk(Long.MAX_VALUE, MemoryUnit.B).build();
     } else {
-      return newResourcePoolsBuilder().heap((Long) capacityConstraint, EntryUnit.ENTRIES).disk((Long) capacityConstraint, EntryUnit.ENTRIES).build();
+      throw new AssertionError();
+      //return newResourcePoolsBuilder().heap((Long) capacityConstraint, EntryUnit.ENTRIES).disk((Long) capacityConstraint, EntryUnit.ENTRIES).build();
     }
   }
 
