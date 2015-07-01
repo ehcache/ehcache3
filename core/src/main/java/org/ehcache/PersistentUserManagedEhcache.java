@@ -43,7 +43,7 @@ public class PersistentUserManagedEhcache<K, V> extends Ehcache<K, V> implements
 
   @Override
   public Maintainable toMaintenance() {
-    final StatusTransitioner.Transition st = statusTransitioner.maintenance();
+    final StatusTransitioner.Transition st = internalToMaintenance();
     try {
       final Maintainable maintainable = new Maintainable() {
         @Override
@@ -58,7 +58,7 @@ public class PersistentUserManagedEhcache<K, V> extends Ehcache<K, V> implements
 
         @Override
         public void close() {
-          statusTransitioner.exitMaintenance().succeeded();
+          internalExitMaintenance().succeeded();
         }
       };
       st.succeeded();
@@ -70,7 +70,7 @@ public class PersistentUserManagedEhcache<K, V> extends Ehcache<K, V> implements
   }
 
   void create() {
-    statusTransitioner.checkMaintenance();
+    checkMaintenance();
     try {
       localPersistenceService.createPersistenceContext(id, storeConfig);
     } catch (CachePersistenceException e) {
@@ -79,7 +79,7 @@ public class PersistentUserManagedEhcache<K, V> extends Ehcache<K, V> implements
   }
 
   void destroy() {
-    statusTransitioner.checkMaintenance();
+    checkMaintenance();
     try {
       localPersistenceService.destroyPersistenceContext(id);
     } catch (CachePersistenceException e) {

@@ -79,7 +79,7 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
  */
 public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
 
-  protected final StatusTransitioner statusTransitioner;
+  private final StatusTransitioner statusTransitioner;
 
   private final Store<K, V> store;
   private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
@@ -1026,7 +1026,17 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     statusTransitioner.close().succeeded();
   }
 
-  void checkMaintenance() {statusTransitioner.checkMaintenance();}
+  void checkMaintenance() {
+    statusTransitioner.checkMaintenance();
+  }
+
+  StatusTransitioner.Transition internalToMaintenance() {
+    return statusTransitioner.maintenance();
+  }
+
+  StatusTransitioner.Transition internalExitMaintenance() {
+    return statusTransitioner.exitMaintenance();
+  }
 
   @Override
   public Status getStatus() {
