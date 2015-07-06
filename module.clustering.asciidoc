@@ -1,0 +1,66 @@
+= Terracotta's Clustering Module
+
+:toc:
+
+== Voltron
+
+What's Voltron?
+What services does it provide?
+Remoting?
+Provider of resources to `Entity` instances?
+Versioning?
+How is _persistence_ addressed?
+_Replication_?
+_HA_?
+
+=== Server-side entity
+
+ . Actual providers of functionality;
+ . Responsible for:
+ .. Maintaining their state?
+ .. Acquiring releasing of resources?
+ .. ... ?
+
+=== Client-side entity
+
+ . (Stateful)? Proxies to the server-side entities
+ . Rejoin?
+ . Reconnect?
+ . ... ?
+
+== Ehcache's clustering model
+
+Clusters an actual `CacheManager`? i.e. no `UserManagedCache` version for `ClusteredCache`?
+Only provides `ClusteredAuthoritativeTier` instances?
+What about "associated data-structures", i.e. write-behind queues?
+How's configuration handled? What's static? What's dynamic?
+
+=== The `ServerSideCacheManagerEntity`
+
+What is it? What are its responsibilities?
+
+==== Lifecycle
+
+How is it created? Destroyed?
+
+==== State
+
+What state does it require?
+
+==== State persistence
+
+How's that state _persisted_? _replicated_?
+
+=== The `ClientSideCacheManagerEntity` _[tbd]_
+
+==== `TerracottaClientService`
+
+==== Lifecycle
+
+===== `ClusteredCache` registery & lifecycling
+
+==== `ClusteredStore` instances
+
+==== `ClusteredWriteBehindManager` instance(s)?
+
+==== Configuration validation
