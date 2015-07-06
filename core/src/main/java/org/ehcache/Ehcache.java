@@ -1077,20 +1077,22 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
     statusTransitioner.removeHook(hook);
   }
 
+  private static void checkNonNull(Object thing) {
+    if(thing == null) {
+      throw new NullPointerException();
+    }
+  }
+
   private static void checkNonNull(Object... things) {
     for (Object thing : things) {
-      if(thing == null) {
-        throw new NullPointerException();
-      }
+      checkNonNull(thing);
     }
   }
   
   private void checkNonNullContent(Collection<?> collectionOfThings) {
     checkNonNull(collectionOfThings);
     for (Object thing : collectionOfThings) {
-      if (thing == null) {
-        throw new NullPointerException();
-      }
+      checkNonNull(thing);
     }
   }
 
