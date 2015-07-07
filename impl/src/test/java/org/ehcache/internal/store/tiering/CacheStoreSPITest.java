@@ -91,17 +91,22 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store<String, String> newStore(final Store.Configuration<String, String> config) {
+        return newStore(config, SystemTimeSource.INSTANCE);
+      }
+
+      @Override
+      public Store<String, String> newStore(Store.Configuration<String, String> config, TimeSource timeSource) {
         Serializer<String> keySerializer = new JavaSerializer<String>(config.getClassLoader());
         Serializer<String> valueSerializer = new JavaSerializer<String>(config.getClassLoader());
         Serializer<DiskStorageFactory.Element> elementSerializer = new JavaSerializer<DiskStorageFactory.Element>(config.getClassLoader());
         Serializer<Serializable> objectSerializer = new JavaSerializer<Serializable>(config.getClassLoader());
 
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false, keySerializer, valueSerializer);
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, false, keySerializer, valueSerializer);
         Store.PersistentStoreConfiguration<String, String, String> persistentStoreConfiguration = (Store.PersistentStoreConfiguration) config;
         try {
           FileBasedPersistenceContext persistenceContext = localPersistenceService.createPersistenceContext(persistentStoreConfiguration.getIdentifier(), persistentStoreConfiguration);
           DiskStore<String, String> diskStore = new DiskStore<String, String>(config, persistenceContext,
-                  SystemTimeSource.INSTANCE, elementSerializer, objectSerializer);
+                  timeSource, elementSerializer, objectSerializer);
 
           CacheStore<String, String> cacheStore = new CacheStore<String, String>(onHeapStore, diskStore);
           provider.registerStore(cacheStore, new CachingTier.Provider() {
@@ -164,30 +169,6 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
-      public Store<String, String> newStore(Store.Configuration<String, String> config, TimeSource timeSource) {
-        SerializationProvider serializationProvider = new DefaultSerializationProvider();
-        Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, config.getClassLoader());
-        Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, config.getClassLoader());
-        Serializer<DiskStorageFactory.Element> elementSerializer = serializationProvider.createValueSerializer(DiskStorageFactory.Element.class, config.getClassLoader());
-        Serializer<Serializable> objectSerializer = serializationProvider.createValueSerializer(Serializable.class, config.getClassLoader());
-
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false, keySerializer, valueSerializer);
-        Store.PersistentStoreConfiguration<String, String, String> persistentStoreConfiguration = (Store.PersistentStoreConfiguration) config;
-        try {
-          FileBasedPersistenceContext persistenceContext = localPersistenceService.createPersistenceContext(persistentStoreConfiguration.getIdentifier(), persistentStoreConfiguration);
-          DiskStore<String, String> diskStore = new DiskStore<String, String>(config, persistenceContext,
-                  SystemTimeSource.INSTANCE, elementSerializer, objectSerializer);
-
-          CacheStore<String, String> cacheStore = new CacheStore<String, String>(onHeapStore, diskStore);
-          provider.initStore(cacheStore);
-          createdStores.put(cacheStore, persistentStoreConfiguration.getIdentifier());
-          return cacheStore;
-        } catch (CachePersistenceException e) {
-          throw new RuntimeException("Error creating persistence context", e);
-        }
-      }
-
-      @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
         final long creationTime = SystemTimeSource.INSTANCE.getTimeMillis();
         return new Store.ValueHolder<String>() {
@@ -240,18 +221,15 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
-      public Store.Configuration<String, String> newConfiguration(
-          final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
-          final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
-        StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(keyType, valueType,
-                evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacityConstraint));
-        return new PersistentStoreConfigurationImpl<String, String>(storeConfiguration, "alias-" + aliasCounter.getAndIncrement());
+      public Store.Configuration<String, String> newConfiguration(Class<String> keyType, Class<String> valueType, Comparable<Long> capacityConstraint, EvictionVeto<? super String, ? super String> evictionVeto, EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
+        return newConfiguration(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer, Expirations.noExpiration());
       }
 
       @Override
       public Store.Configuration<String, String> newConfiguration(Class<String> keyType, Class<String> valueType, Comparable<Long> capacityConstraint, EvictionVeto<? super String, ? super String> evictionVeto, EvictionPrioritizer<? super String, ? super String> evictionPrioritizer, Expiry<? super String, ? super String> expiry) {
-        return new StoreConfigurationImpl<String, String>(keyType, valueType,
+        StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(keyType, valueType,
             evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, buildResourcePools(capacityConstraint));
+        return new PersistentStoreConfigurationImpl<String, String>(storeConfiguration, "alias-" + aliasCounter.getAndIncrement());
       }
 
       @Override
@@ -372,8 +350,12 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
   }
 
   @Override
-  public void testStoreEventListener() {
+  public void testStoreEvictionEventListener() {
     throw new AssumptionViolatedException("disabled - EventListeners not implemented yet see #273");
   }
 
+  @Override
+  public void testStoreExpiryEventListener() {
+    throw new AssumptionViolatedException("disabled - EventListeners not implemented yet see #273");
+  }
 }

@@ -201,9 +201,16 @@ public abstract class StoreSPITest<K, V> {
   }
 
   @Test
-  public void testStoreEventListener() throws Exception {
-    StoreEventListenerTest<K, V> testSuite =
-        new StoreEventListenerTest<K, V>(getStoreFactory());
+  public void testStoreEvictionEventListener() throws Exception {
+    StoreEvictionEventListenerTest<K, V> testSuite =
+        new StoreEvictionEventListenerTest<K, V>(getStoreFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
+  public void testStoreExpiryEventListener() throws Exception {
+    StoreExpiryEventListenerTest<K, V> testSuite =
+        new StoreExpiryEventListenerTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 }

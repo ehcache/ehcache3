@@ -222,7 +222,12 @@ public class DiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
   }
 
   @Override
-  public void testStoreEventListener() {
+  public void testStoreExpiryEventListener() throws Exception {
+    throw new AssumptionViolatedException("disabled - EventListeners not implemented yet see #273");
+  }
+
+  @Override
+  public void testStoreEvictionEventListener() throws Exception {
     throw new AssumptionViolatedException("disabled - EventListeners not implemented yet see #273");
   }
 }

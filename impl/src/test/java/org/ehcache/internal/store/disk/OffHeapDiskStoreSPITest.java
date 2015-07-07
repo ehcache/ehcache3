@@ -211,7 +211,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
   }
 
   @Override
-  public void testStoreEventListener() throws Exception {
+  public void testStoreEvictionEventListener() throws Exception {
     throw new AssumptionViolatedException("Not yet implemented");
   }
 }
