@@ -23,12 +23,9 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
+import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
-import org.hamcrest.CoreMatchers;
-import org.mockito.Matchers;
-import org.mockito.stubbing.OngoingStubbing;
 
-import java.sql.Time;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -69,7 +66,7 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
 
   @SPITest
   @SuppressWarnings("unchecked")
-  public void returnTheValueHolderNotInTheCachingTier() {
+  public void returnTheValueHolderNotInTheCachingTier() throws LegalSPITesterException {
     K key = factory.createKey(1);
     V value = factory.createValue(1);
 
@@ -89,14 +86,13 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
 
       assertThat(valueHolder.value(), is(equalTo(value)));
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
   @SuppressWarnings("unchecked")
-  public void returnTheValueHolderCurrentlyInTheCachingTier() {
+  public void returnTheValueHolderCurrentlyInTheCachingTier() throws LegalSPITesterException {
     K key = factory.createKey(1);
     V value = factory.createValue(1);
     final Store.ValueHolder<V> computedValueHolder = mock(Store.ValueHolder.class);
@@ -123,8 +119,7 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
 
       assertThat(valueHolder.value(), is(equalTo(value)));
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 

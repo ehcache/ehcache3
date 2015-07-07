@@ -20,6 +20,7 @@ import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.After;
+import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -56,7 +57,7 @@ public class StoreContainsKeyTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void storeContainsKey()
-      throws IllegalAccessException, InstantiationException, CacheAccessException {
+      throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
         .all(), null));
 
@@ -68,14 +69,13 @@ public class StoreContainsKeyTest<K, V> extends SPIStoreTester<K, V> {
     try {
       assertThat(kvStore.containsKey(key), is(true));
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
   public void nullKeyThrowsException()
-      throws IllegalAccessException, InstantiationException {
+      throws IllegalAccessException, InstantiationException, LegalSPITesterException {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
 
     K key = null;
@@ -86,15 +86,14 @@ public class StoreContainsKeyTest<K, V> extends SPIStoreTester<K, V> {
     } catch (NullPointerException e) {
       // expected
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public void wrongKeyTypeThrowsException()
-      throws IllegalAccessException, InstantiationException {
+      throws IllegalAccessException, InstantiationException, LegalSPITesterException {
     kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
 
     try {
@@ -107,8 +106,7 @@ public class StoreContainsKeyTest<K, V> extends SPIStoreTester<K, V> {
     } catch (ClassCastException e) {
       // expected
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 }

@@ -22,6 +22,7 @@ import org.ehcache.function.Function;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
+import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -85,7 +86,7 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
    * this one will verify that the eviction doesn't occur under the same condition after a call to computeIfAbsentAndFault()
    */
   @SPITest
-  public void marksTheMappingAsNotEvictableAndComputeValue() {
+  public void marksTheMappingAsNotEvictableAndComputeValue() throws LegalSPITesterException {
     K key = factory.createKey(1);
     V value = factory.createValue(1);
 
@@ -105,8 +106,7 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
       assertThat(tier.get(key).value(), is(equalTo(value)));
 
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 

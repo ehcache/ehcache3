@@ -23,6 +23,7 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
+import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -60,7 +61,7 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
 
   @SPITest
   @SuppressWarnings("unchecked")
-  public void removeMapping() {
+  public void removeMapping() throws LegalSPITesterException {
     K key = factory.createKey(1);
 
     V originalValue = factory.createValue(1);
@@ -93,8 +94,7 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
 
       assertThat(newReturnedValueHolder.value(), is(equalTo(newValueHolder.value())));
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 }

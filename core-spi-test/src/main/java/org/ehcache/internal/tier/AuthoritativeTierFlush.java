@@ -22,6 +22,7 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
+import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 import java.util.concurrent.TimeUnit;
@@ -63,7 +64,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
 
   @SPITest
   @SuppressWarnings("unchecked")
-  public void entryIsFlushed() {
+  public void entryIsFlushed() throws LegalSPITesterException {
     K key = factory.createKey(1);
     final V value = factory.createValue(1);
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
@@ -77,8 +78,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
       final Store.ValueHolder<V> fault = tier.getAndFault(key);
       when(valueHolder.getId()).thenReturn(fault.getId());
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
     assertThat(tier.flush(key, valueHolder), is(equalTo(true)));
@@ -86,7 +86,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
 
   @SPITest
   @SuppressWarnings("unchecked")
-  public void entryIsNotFlushed() {
+  public void entryIsNotFlushed() throws LegalSPITesterException {
     K key = factory.createKey(1);
     final V value = factory.createValue(1);
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
@@ -98,8 +98,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
     try {
       tier.put(key, value);
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
     assertThat(tier.flush(key, valueHolder), is(equalTo(false)));
@@ -120,7 +119,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
 
   @SPITest
   @SuppressWarnings("unchecked")
-  public void exceptionWhenValueHolderIsNotAnInstanceFromTheCachingTier() {
+  public void exceptionWhenValueHolderIsNotAnInstanceFromTheCachingTier() throws LegalSPITesterException {
     K key = factory.createKey(1);
     final V value = factory.createValue(1);
 
@@ -132,7 +131,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
       tier.put(key, value);
       valueHolder = tier.get(key);
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
     try {

@@ -21,6 +21,7 @@ import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.After;
+import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 
@@ -53,7 +54,7 @@ public class StoreIteratorHasNextTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void hasNext()
-      throws IllegalAccessException, InstantiationException, CacheAccessException {
+      throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
         .all(), null));
 
@@ -68,15 +69,14 @@ public class StoreIteratorHasNextTest<K, V> extends SPIStoreTester<K, V> {
       try {
         assertThat(iterator.hasNext(), is(true));
       } catch (CacheAccessException e) {
-        System.err.println("Warning, an exception is thrown due to the SPI test");
-        e.printStackTrace();
+        throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
       }
     }
   }
 
   @SPITest
   public void hasNextReturnsFalseIfNoElement()
-      throws IllegalAccessException, InstantiationException, CacheAccessException {
+      throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
     kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
 
     Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();
@@ -84,8 +84,7 @@ public class StoreIteratorHasNextTest<K, V> extends SPIStoreTester<K, V> {
     try {
       assertThat(iterator.hasNext(), is(false));
     } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 }
