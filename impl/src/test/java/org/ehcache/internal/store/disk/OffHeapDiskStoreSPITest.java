@@ -185,7 +185,11 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
       @Override
       public void close(final Store<String, String> store) {
         String alias = createdStores.get(store);
-        OffHeapDiskStore.Provider.close((OffHeapDiskStore)store);
+        try {
+          OffHeapDiskStore.Provider.close((OffHeapDiskStore)store);
+        } catch (IOException ex) {
+          throw new RuntimeException(ex);
+        }
         try {
           persistenceService.destroyPersistenceContext(alias);
         } finally {
@@ -196,7 +200,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
   }
 
   @After
-  public void tearDown() throws CachePersistenceException {
+  public void tearDown() throws CachePersistenceException, IOException {
     try {
       for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
         OffHeapDiskStore.Provider.close((OffHeapDiskStore) entry.getKey());
@@ -212,7 +216,11 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
   }
 
   public static void closeStore(final OffHeapDiskStore<?, ?> diskStore) {
-    OffHeapDiskStore.Provider.close(diskStore);
+    try {
+      OffHeapDiskStore.Provider.close(diskStore);
+    } catch (IOException ex) {
+      throw new RuntimeException(ex);
+    }
   }
 
   @Override

@@ -19,12 +19,11 @@ package org.ehcache.internal.store.disk;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.internal.store.disk.factories.EhcachePersistentSegmentFactory;
-import org.ehcache.internal.store.offheap.OffHeapValueHolder;
-import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.terracotta.offheapstore.Metadata;
 import org.terracotta.offheapstore.disk.persistent.AbstractPersistentConcurrentOffHeapMap;
-import org.terracotta.offheapstore.util.Factory;
 
+import java.io.IOException;
+import java.io.ObjectInput;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -35,6 +34,10 @@ public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends Abstract
 
   private final AtomicLong[] counters;
 
+  public EhcachePersistentConcurrentOffHeapClockCache(ObjectInput input, EhcachePersistentSegmentFactory<K, V> segmentFactory) throws IOException {
+    this(segmentFactory, readSegmentCount(input));
+  }
+  
   public EhcachePersistentConcurrentOffHeapClockCache(EhcachePersistentSegmentFactory<K, V> segmentFactory, int concurrency) {
     super(segmentFactory, concurrency, false);
     counters = new AtomicLong[segments.length];

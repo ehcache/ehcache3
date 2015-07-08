@@ -51,15 +51,29 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.statistics.StoreOperationOutcomes;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.disk.paging.MappedPageSource;
+import org.terracotta.offheapstore.disk.persistent.Persistent;
+import org.terracotta.offheapstore.disk.persistent.PersistentPortability;
 import org.terracotta.offheapstore.disk.storage.FileBackedStorageEngine;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
 import org.terracotta.statistics.observer.OperationObserver;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -70,7 +84,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
-import org.ehcache.spi.service.SupplementaryService;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
@@ -78,6 +91,8 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
  * @author Chris Dennis
  */
 public class OffHeapDiskStore<K, V> implements AuthoritativeTier<K, V> {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(OffHeapDiskStore.class);
 
   private final Class<K> keyType;
   private final Class<V> valueType;
@@ -96,9 +111,9 @@ public class OffHeapDiskStore<K, V> implements AuthoritativeTier<K, V> {
   private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener();
   private volatile EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
 
-  private OperationObserver<StoreOperationOutcomes.GetOutcome> getOperationObserver = operation(StoreOperationOutcomes.GetOutcome.class).of(this).named("get").tag("local-disk").build();
-  private OperationObserver<StoreOperationOutcomes.PutOutcome> putOperationObserver = operation(StoreOperationOutcomes.PutOutcome.class).of(this).named("put").tag("local-disk").build();
-  private OperationObserver<StoreOperationOutcomes.RemoveOutcome> removeOperationObserver = operation(StoreOperationOutcomes.RemoveOutcome.class).of(this).named("remove").tag("local-disk").build();
+  private final OperationObserver<StoreOperationOutcomes.GetOutcome> getOperationObserver = operation(StoreOperationOutcomes.GetOutcome.class).of(this).named("get").tag("local-disk").build();
+  private final OperationObserver<StoreOperationOutcomes.PutOutcome> putOperationObserver = operation(StoreOperationOutcomes.PutOutcome.class).of(this).named("put").tag("local-disk").build();
+  private final OperationObserver<StoreOperationOutcomes.RemoveOutcome> removeOperationObserver = operation(StoreOperationOutcomes.RemoveOutcome.class).of(this).named("remove").tag("local-disk").build();
   
   public OffHeapDiskStore(FileBasedPersistenceContext fileBasedPersistenceContext, final Configuration<K, V> config, Serializer<K> keySerializer, Serializer<V> valueSerializer, TimeSource timeSource, long sizeInBytes) {
     this.fileBasedPersistenceContext = fileBasedPersistenceContext;
@@ -640,6 +655,79 @@ public class OffHeapDiskStore<K, V> implements AuthoritativeTier<K, V> {
     return result;
   }
 
+  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> getBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, Predicate<Map.Entry<K, OffHeapValueHolder<V>>> evictionVeto) {
+    File dataFile = fileBasedPersistenceContext.getDataFile();
+    File indexFile = fileBasedPersistenceContext.getIndexFile();
+    
+    if (dataFile.isFile() && indexFile.isFile()) {
+      try {
+        return recoverBackingMap(size, keySerializer, valueSerializer, evictionVeto);
+      } catch (IOException ex) {
+        throw new RuntimeException(ex);
+      }
+    } else {
+      return createBackingMap(size, keySerializer, valueSerializer, evictionVeto);
+    }
+  }
+  
+  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> recoverBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, Predicate<Map.Entry<K, OffHeapValueHolder<V>>> evictionVeto) throws IOException {
+    File dataFile = fileBasedPersistenceContext.getDataFile();
+    File indexFile = fileBasedPersistenceContext.getIndexFile();
+    
+    FileInputStream fin = new FileInputStream(indexFile);
+    try {
+      ObjectInputStream input = new ObjectInputStream(fin);
+      long dataTimestampFromIndex = input.readLong();
+      long dataTimestampFromFile = dataFile.lastModified();
+      long delta = dataTimestampFromFile - dataTimestampFromIndex;
+      if (delta < 0) {
+        LOGGER.info("The index for data file {} is more recent than the data file itself by {}ms : this is harmless.",
+                    dataFile.getName(), -delta);
+      } else if (delta > TimeUnit.SECONDS.toMillis(1)) {
+        LOGGER.warn("The index for data file {} is out of date by {}ms, probably due to an unclean shutdown. Creating a new empty store.",
+                    dataFile.getName(), delta);
+        return createBackingMap(size, keySerializer, valueSerializer, evictionVeto);
+      } else if (delta > 0) {
+        LOGGER.info("The index for data file {} is out of date by {}ms, assuming this small delta is a result of the OS/filesystem.",
+                    dataFile.getName(), delta);
+      }
+
+      HeuristicConfiguration config = new HeuristicConfiguration(size);
+      MappedPageSource source = new MappedPageSource(dataFile, false, size);
+      try {
+        PersistentPortability<K> keyPortability = persistent(new SerializerPortability<K>(keySerializer));
+        PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<V>(valueSerializer));
+        DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool("identifier", config.getConcurrency());
+
+        Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source, config
+                .getSegmentDataPageSize(), keyPortability, elementPortability, writeWorkers, false);
+
+        EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>>(
+            source,
+            storageEngineFactory,
+            config.getInitialSegmentTableSize(),
+            evictionVeto,
+            mapEvictionListener, false);
+            EhcachePersistentConcurrentOffHeapClockCache m = new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(input, factory);
+
+
+
+
+        m.bootstrap(input);
+        return m;
+      } catch (IOException e) {
+        source.close();
+        throw e;
+      }
+    } catch (Exception e) {
+      LOGGER.info("Index file was corrupt. Deleting data file " + dataFile.getAbsolutePath() +". " + e.getMessage());
+      LOGGER.debug("Exception during recovery", e);
+      return createBackingMap(size, keySerializer, valueSerializer, evictionVeto);
+    } finally {
+      fin.close();
+    }
+  }
+  
   private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, Predicate<Map.Entry<K, OffHeapValueHolder<V>>> evictionVeto) {
     HeuristicConfiguration config = new HeuristicConfiguration(size);
     MappedPageSource source;
@@ -649,8 +737,8 @@ public class OffHeapDiskStore<K, V> implements AuthoritativeTier<K, V> {
       // TODO proper exception
       throw new RuntimeException(e);
     }
-    Portability<K> keyPortability = new SerializerPortability<K>(keySerializer);
-    Portability<OffHeapValueHolder<V>> elementPortability = new OffHeapValueHolderPortability<V>(valueSerializer);
+    PersistentPortability<K> keyPortability = persistent(new SerializerPortability<K>(keySerializer));
+    PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<V>(valueSerializer));
     DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool("identifier", config.getConcurrency());
 
     Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source, config
@@ -661,7 +749,7 @@ public class OffHeapDiskStore<K, V> implements AuthoritativeTier<K, V> {
         storageEngineFactory,
         config.getInitialSegmentTableSize(),
         evictionVeto,
-        mapEvictionListener);
+        mapEvictionListener, true);
     return new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(factory, config.getConcurrency());
 
   }
@@ -753,13 +841,25 @@ public class OffHeapDiskStore<K, V> implements AuthoritativeTier<K, V> {
       if (!createdStores.contains(resource)) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      close((OffHeapDiskStore)resource);
+      try {
+        close((OffHeapDiskStore)resource);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
 
-    static <K, V> void close(final OffHeapDiskStore<K, V> resource) {
+    static <K, V> void close(final OffHeapDiskStore<K, V> resource) throws IOException {
       EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> localMap = resource.map;
       if (localMap != null) {
         resource.map = null;
+        localMap.flush();
+        ObjectOutputStream output = new ObjectOutputStream(new FileOutputStream(resource.fileBasedPersistenceContext.getIndexFile()));
+        try {
+          output.writeLong(System.currentTimeMillis());
+          localMap.persist(output);
+        } finally {
+          output.close();
+        }
         localMap.destroy();
       }
     }
@@ -773,7 +873,7 @@ public class OffHeapDiskStore<K, V> implements AuthoritativeTier<K, V> {
     }
 
     static <K, V> void init(final OffHeapDiskStore<K, V> resource) {
-      resource.map = resource.createBackingMap(resource.sizeInBytes, resource.keySerializer, resource.valueSerializer, resource.evictionVeto);
+      resource.map = resource.getBackingMap(resource.sizeInBytes, resource.keySerializer, resource.valueSerializer, resource.evictionVeto);
     }
 
     @Override
@@ -866,4 +966,26 @@ public class OffHeapDiskStore<K, V> implements AuthoritativeTier<K, V> {
     }
   }
 
+  /*
+   * This is kind of a hack, but it's safe to use this if the regular portability 
+   * is stateless.
+   */
+  private static <T> PersistentPortability<T> persistent(final Portability<T> normal) {
+    final Class<?> normalKlazz = normal.getClass();
+    Class<?>[] delegateInterfaces = normalKlazz.getInterfaces();
+    Class<?>[] proxyInterfaces = Arrays.copyOf(delegateInterfaces, delegateInterfaces.length + 1);
+    proxyInterfaces[delegateInterfaces.length] = PersistentPortability.class;
+    
+    return (PersistentPortability<T>) Proxy.newProxyInstance(normal.getClass().getClassLoader(), proxyInterfaces, new InvocationHandler() {
+
+      @Override
+      public Object invoke(Object o, Method method, Object[] os) throws Throwable {
+        if (method.getDeclaringClass().equals(Persistent.class)) {
+          return null;
+        } else {
+          return method.invoke(normal, os);
+        }
+      }
+    });
+  }
 }

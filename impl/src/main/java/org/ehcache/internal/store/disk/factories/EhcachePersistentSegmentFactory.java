@@ -43,19 +43,21 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<Segment<K,
   private final Predicate<Map.Entry<K, V>> evictionVeto;
   private final EhcachePersistentSegment.EvictionListener<K, V> evictionListener;
 
+  private final boolean bootstrap;
   
-  public EhcachePersistentSegmentFactory(MappedPageSource source, Factory<? extends PersistentStorageEngine<? super K, ? super V>> storageEngineFactory, int initialTableSize, Predicate<Map.Entry<K, V>> evictionVeto, EhcachePersistentSegment.EvictionListener<K, V> evictionListener) {
+  public EhcachePersistentSegmentFactory(MappedPageSource source, Factory<? extends PersistentStorageEngine<? super K, ? super V>> storageEngineFactory, int initialTableSize, Predicate<Map.Entry<K, V>> evictionVeto, EhcachePersistentSegment.EvictionListener<K, V> evictionListener, boolean bootstrap) {
     this.storageEngineFactory = storageEngineFactory;
     this.tableSource = source;
     this.tableSize = initialTableSize;
     this.evictionVeto = evictionVeto;
     this.evictionListener = evictionListener;
+    this.bootstrap = bootstrap;
   }
 
   public EhcachePersistentSegment<K, V> newInstance() {
     PersistentStorageEngine<? super K, ? super V> storageEngine = storageEngineFactory.newInstance();
     try {
-      return new EhcachePersistentSegment<K, V>(tableSource, storageEngine, tableSize, true, evictionVeto, evictionListener);
+      return new EhcachePersistentSegment<K, V>(tableSource, storageEngine, tableSize, bootstrap, evictionVeto, evictionListener);
     } catch (RuntimeException e) {
       storageEngine.destroy();
       throw e;

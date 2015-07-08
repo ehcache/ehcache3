@@ -26,6 +26,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
 import org.ehcache.internal.store.offheap.OffHeapValueHolder;
@@ -40,8 +41,10 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.expiry.Expirations.noExpiration;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -131,6 +134,25 @@ public class OffHeapDiskStoreTest {
 
   }
 
+  @Test
+  public void testRecovery() throws CacheAccessException, IOException {
+    SerializationProvider serializationProvider = new DefaultSerializationProvider();
+    serializationProvider.start(null, null);
+    ClassLoader classLoader = getClass().getClassLoader();
+    Serializer<String> serializer = serializationProvider.createValueSerializer(String.class, classLoader);
+    StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, null, classLoader, noExpiration(), null);
+    OffHeapDiskStore<String, String> offHeapDiskStore = new OffHeapDiskStore<String, String>(persistenceContext, storeConfiguration, serializer, serializer, SystemTimeSource.INSTANCE, MemoryUnit.MB.toBytes(1));
+    OffHeapDiskStore.Provider.init(offHeapDiskStore);
+
+    offHeapDiskStore.put("key1", "value1");
+    assertThat(offHeapDiskStore.get("key1"), notNullValue());
+    
+    OffHeapDiskStore.Provider.close(offHeapDiskStore);
+    
+    OffHeapDiskStore.Provider.init(offHeapDiskStore);
+    assertThat(offHeapDiskStore.get("key1"), notNullValue());
+  }
+  
   private static class TestStoreEventListener<K, V> implements StoreEventListener<K, V> {
 
     @Override
