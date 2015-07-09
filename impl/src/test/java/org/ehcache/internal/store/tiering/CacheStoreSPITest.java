@@ -100,7 +100,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
         try {
           FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContext(persistentStoreConfiguration.getIdentifier(), persistentStoreConfiguration);
           OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(persistenceContext, config,
-                  keySerializer, valueSerializer, SystemTimeSource.INSTANCE, MemoryUnit.MB.toBytes(1));
+                  keySerializer, valueSerializer, timeSource, MemoryUnit.MB.toBytes(1));
           CacheStore<String, String> cacheStore = new CacheStore<String, String>(onHeapStore, diskStore);
           provider.registerStore(cacheStore, new CachingTier.Provider() {
             @Override
@@ -348,11 +348,6 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
   @Override
   public void testStoreEvictionEventListener() {
-    throw new AssumptionViolatedException("disabled - EventListeners not implemented yet see #273");
-  }
-
-  @Override
-  public void testStoreExpiryEventListener() {
     throw new AssumptionViolatedException("disabled - EventListeners not implemented yet see #273");
   }
 }

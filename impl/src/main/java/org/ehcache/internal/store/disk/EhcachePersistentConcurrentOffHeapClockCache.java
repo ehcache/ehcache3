@@ -25,12 +25,13 @@ import org.terracotta.offheapstore.disk.persistent.AbstractPersistentConcurrentO
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.util.concurrent.atomic.AtomicLong;
+import org.ehcache.internal.store.offheap.EhcacheOffHeapBackingMap;
 
 /**
  *
  * @author Chris Dennis
  */
-public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends AbstractPersistentConcurrentOffHeapMap<K, V> {
+public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends AbstractPersistentConcurrentOffHeapMap<K, V> implements EhcacheOffHeapBackingMap<K, V> {
 
   private final AtomicLong[] counters;
 
@@ -46,6 +47,7 @@ public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends Abstract
     }
   }
 
+  @Override
   public V getAndPin(final K key) {
     return segmentFor(key).getAndSetMetadata(key, Metadata.PINNED, Metadata.PINNED);
   }
@@ -55,22 +57,31 @@ public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends Abstract
     return segment.getSize() != 0 && ((EhcachePersistentSegmentFactory.EhcachePersistentSegment)segment).isPinned(key);
   }
 
+  @Override
   public V compute(K key, BiFunction<K, V, V> mappingFunction, boolean pin) {
     EhcachePersistentSegmentFactory.EhcachePersistentSegment<K, V> segment = (EhcachePersistentSegmentFactory.EhcachePersistentSegment) segmentFor(key);
     return segment.compute(key, mappingFunction, pin);
   }
 
+  @Override
   public V computeIfPresent(K key, BiFunction<K, V, V> mappingFunction) {
     EhcachePersistentSegmentFactory.EhcachePersistentSegment<K, V> segment = (EhcachePersistentSegmentFactory.EhcachePersistentSegment) segmentFor(key);
     return segment.computeIfPresent(key, mappingFunction);
   }
 
+  @Override
   public boolean computeIfPinned(final K key, final BiFunction<K,V,V> remappingFunction, final Function<V,Boolean> pinningFunction) {
     EhcachePersistentSegmentFactory.EhcachePersistentSegment<K, V> segment = (EhcachePersistentSegmentFactory.EhcachePersistentSegment) segmentFor(key);
     return segment.computeIfPinned(key, remappingFunction, pinningFunction);
   }
 
+  @Override
   public long nextIdFor(final K key) {
     return counters[getIndexFor(key.hashCode())].getAndIncrement();
+  }
+
+  @Override
+  public boolean shrinkOthers(int excludedHash) {
+    return false;
   }
 }

@@ -27,8 +27,9 @@ import org.terracotta.offheapstore.disk.persistent.PersistentStorageEngine;
 import org.terracotta.offheapstore.util.Factory;
 
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
+import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment;
+import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.EvictionListener;
 
 /**
  *
@@ -41,11 +42,11 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<Segment<K,
   private final int tableSize;
 
   private final Predicate<Map.Entry<K, V>> evictionVeto;
-  private final EhcachePersistentSegment.EvictionListener<K, V> evictionListener;
+  private final EhcacheSegment.EvictionListener<K, V> evictionListener;
 
   private final boolean bootstrap;
   
-  public EhcachePersistentSegmentFactory(MappedPageSource source, Factory<? extends PersistentStorageEngine<? super K, ? super V>> storageEngineFactory, int initialTableSize, Predicate<Map.Entry<K, V>> evictionVeto, EhcachePersistentSegment.EvictionListener<K, V> evictionListener, boolean bootstrap) {
+  public EhcachePersistentSegmentFactory(MappedPageSource source, Factory<? extends PersistentStorageEngine<? super K, ? super V>> storageEngineFactory, int initialTableSize, Predicate<Map.Entry<K, V>> evictionVeto, EhcacheSegment.EvictionListener<K, V> evictionListener, boolean bootstrap) {
     this.storageEngineFactory = storageEngineFactory;
     this.tableSource = source;
     this.tableSize = initialTableSize;
@@ -248,10 +249,5 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<Segment<K,
         lock.unlock();
       }
     }
-
-    public interface EvictionListener<K, V> {
-      void onEviction(K key, V value);
-    }
-
   }
 }
