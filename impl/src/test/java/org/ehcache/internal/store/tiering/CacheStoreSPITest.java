@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.store.tiering;
 
+import java.io.IOException;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
@@ -47,7 +48,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.internal.AssumptionViolatedException;
 
-import java.io.File;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -56,6 +56,8 @@ import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.internal.store.disk.OffHeapDiskStoreSPITest;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -70,18 +72,21 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
   private StoreFactory<String, String> storeFactory;
   private final CacheStore.Provider provider = new CacheStore.Provider();
   private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<Store<String, String>, String>();
-  final DefaultLocalPersistenceService persistenceService = new DefaultLocalPersistenceService(
-          new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir"), "cache-store-spi-test")));
+  private DefaultLocalPersistenceService persistenceService;
 
-
-
+  @Rule
+  public final TemporaryFolder folder = new TemporaryFolder();
+  
   @Override
   protected StoreFactory<String, String> getStoreFactory() {
     return storeFactory;
   }
 
   @Before
-  public void setUp() {
+  public void setUp() throws IOException {
+    persistenceService = new DefaultLocalPersistenceService(new PersistenceConfiguration(folder.newFolder()));
+    persistenceService.start(null, null);
+            
     storeFactory = new StoreFactory<String, String>() {
       final AtomicInteger aliasCounter = new AtomicInteger();
 
