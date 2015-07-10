@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
@@ -52,17 +53,22 @@ public class CacheStore<K, V> implements Store<K, V> {
 
   private static final Logger LOG = LoggerFactory.getLogger(CacheStore.class);
 
-  private final CachingTier<K, V> cachingTier;
+  private final AtomicReference<CachingTier<K, V>> cachingTierRef;
+  private final CachingTier<K, V> noopCachingTier;
+  private final CachingTier<K, V> realCachingTier;
   private final AuthoritativeTier<K, V> authoritativeTier;
 
   private final CacheStoreStatsSettings cacheStoreStatsSettings;
 
 
   public CacheStore(CachingTier<K, V> cachingTier, AuthoritativeTier<K, V> authoritativeTier) {
-    this.cachingTier = cachingTier;
+    this.cachingTierRef = new AtomicReference<CachingTier<K, V>>(cachingTier);
     this.authoritativeTier = authoritativeTier;
+    this.realCachingTier = cachingTier;
+    this.noopCachingTier = new NoopCachingTier<K, V>(authoritativeTier);
 
-    this.cachingTier.setInvalidationListener(new CachingTier.InvalidationListener<K, V>() {
+
+    this.realCachingTier.setInvalidationListener(new CachingTier.InvalidationListener<K, V>() {
       @Override
       public void onInvalidation(K key, ValueHolder<V> valueHolder) {
         CacheStore.this.authoritativeTier.flush(key, valueHolder);
@@ -79,7 +85,7 @@ public class CacheStore<K, V> implements Store<K, V> {
   @Override
   public ValueHolder<V> get(final K key) throws CacheAccessException {
     try {
-      return cachingTier.getOrComputeIfAbsent(key, new Function<K, ValueHolder<V>>() {
+      return cachingTier().getOrComputeIfAbsent(key, new Function<K, ValueHolder<V>>() {
         @Override
         public ValueHolder<V> apply(K key) {
           try {
@@ -119,7 +125,7 @@ public class CacheStore<K, V> implements Store<K, V> {
     try {
       authoritativeTier.put(key, value);
     } finally {
-      cachingTier.invalidate(key);
+      cachingTier().invalidate(key);
     }
   }
 
@@ -130,7 +136,7 @@ public class CacheStore<K, V> implements Store<K, V> {
       previous = authoritativeTier.putIfAbsent(key, value);
     } finally {
       if (previous == null) {
-        cachingTier.invalidate(key);
+        cachingTier().invalidate(key);
       }
     }
     return previous;
@@ -141,7 +147,7 @@ public class CacheStore<K, V> implements Store<K, V> {
     try {
       authoritativeTier.remove(key);
     } finally {
-      cachingTier.invalidate(key);
+      cachingTier().invalidate(key);
     }
   }
 
@@ -153,7 +159,7 @@ public class CacheStore<K, V> implements Store<K, V> {
         return removed;
       } finally {
         if (removed) {
-          cachingTier.invalidate(key);
+          cachingTier().invalidate(key);
         }
       }
   }
@@ -167,7 +173,7 @@ public class CacheStore<K, V> implements Store<K, V> {
       exceptionThrown = false;
     } finally {
       if (exceptionThrown || previous != null) {
-        cachingTier.invalidate(key);
+        cachingTier().invalidate(key);
       }
     }
     return previous;
@@ -180,7 +186,7 @@ public class CacheStore<K, V> implements Store<K, V> {
       replaced = authoritativeTier.replace(key, oldValue, newValue);
     } finally {
       if (replaced) {
-        cachingTier.invalidate(key);
+        cachingTier().invalidate(key);
       }
     }
     return replaced;
@@ -188,10 +194,34 @@ public class CacheStore<K, V> implements Store<K, V> {
 
   @Override
   public void clear() throws CacheAccessException {
+    boolean interrupted = false;
+    while(!cachingTierRef.compareAndSet(realCachingTier, noopCachingTier)) {
+      synchronized (noopCachingTier) {
+        if(cachingTierRef.get() == noopCachingTier) {
+          try {
+            noopCachingTier.wait();
+          } catch (InterruptedException e) {
+            interrupted = true;
+          }
+        }
+      }
+    }
+    if(interrupted) {
+      Thread.currentThread().interrupt();
+    }
     try {
       authoritativeTier.clear();
     } finally {
-      cachingTier.invalidate();
+      try {
+        realCachingTier.invalidate();
+      } finally {
+        if(!cachingTierRef.compareAndSet(noopCachingTier, realCachingTier)) {
+          throw new AssertionError("Something bad happened");
+        }
+        synchronized (noopCachingTier) {
+          noopCachingTier.notify();
+        }
+      }
     }
   }
 
@@ -215,7 +245,7 @@ public class CacheStore<K, V> implements Store<K, V> {
     try {
       return authoritativeTier.compute(key, mappingFunction);
     } finally {
-      cachingTier.invalidate(key);
+      cachingTier().invalidate(key);
     }
   }
 
@@ -224,13 +254,13 @@ public class CacheStore<K, V> implements Store<K, V> {
     try {
       return authoritativeTier.compute(key, mappingFunction, replaceEqual);
     } finally {
-      cachingTier.invalidate(key);
+      cachingTier().invalidate(key);
     }
   }
 
   public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
     try {
-      return cachingTier.getOrComputeIfAbsent(key, new Function<K, ValueHolder<V>>() {
+      return cachingTier().getOrComputeIfAbsent(key, new Function<K, ValueHolder<V>>() {
         @Override
         public ValueHolder<V> apply(K k) {
           try {
@@ -250,7 +280,7 @@ public class CacheStore<K, V> implements Store<K, V> {
     try {
       return authoritativeTier.computeIfPresent(key, remappingFunction);
     } finally {
-      cachingTier.invalidate(key);
+      cachingTier().invalidate(key);
     }
   }
 
@@ -259,7 +289,7 @@ public class CacheStore<K, V> implements Store<K, V> {
     try {
       return authoritativeTier.computeIfPresent(key, remappingFunction, replaceEqual);
     } finally {
-      cachingTier.invalidate(key);
+      cachingTier().invalidate(key);
     }
   }
 
@@ -269,7 +299,7 @@ public class CacheStore<K, V> implements Store<K, V> {
       return authoritativeTier.bulkCompute(keys, remappingFunction);
     } finally {
       for (K key : keys) {
-        cachingTier.invalidate(key);
+        cachingTier().invalidate(key);
       }
     }
   }
@@ -280,7 +310,7 @@ public class CacheStore<K, V> implements Store<K, V> {
       return authoritativeTier.bulkCompute(keys, remappingFunction, replaceEqual);
     } finally {
       for (K key : keys) {
-        cachingTier.invalidate(key);
+        cachingTier().invalidate(key);
       }
     }
   }
@@ -291,7 +321,7 @@ public class CacheStore<K, V> implements Store<K, V> {
       return authoritativeTier.bulkComputeIfAbsent(keys, mappingFunction);
     } finally {
       for (K key : keys) {
-        cachingTier.invalidate(key);
+        cachingTier().invalidate(key);
       }
     }
   }
@@ -300,9 +330,13 @@ public class CacheStore<K, V> implements Store<K, V> {
   public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
     List<CacheConfigurationChangeListener> configurationChangeListenerList
         = new ArrayList<CacheConfigurationChangeListener>();
-    configurationChangeListenerList.addAll(((Store)cachingTier).getConfigurationChangeListeners());
+    configurationChangeListenerList.addAll(((Store)realCachingTier).getConfigurationChangeListeners());
     configurationChangeListenerList.addAll(((Store)authoritativeTier).getConfigurationChangeListeners());
     return configurationChangeListenerList;
+  }
+
+  private CachingTier<K, V> cachingTier() {
+    return cachingTierRef.get();
   }
 
   @SupplementaryService
@@ -356,7 +390,7 @@ public class CacheStore<K, V> implements Store<K, V> {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
       CacheStore cacheStore = (CacheStore) resource;
-      entry.getKey().releaseCachingTier(cacheStore.cachingTier);
+      entry.getKey().releaseCachingTier(cacheStore.realCachingTier);
       entry.getValue().releaseAuthoritativeTier(cacheStore.authoritativeTier);
     }
 
@@ -367,7 +401,7 @@ public class CacheStore<K, V> implements Store<K, V> {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
       CacheStore cacheStore = (CacheStore) resource;
-      entry.getKey().initCachingTier(cacheStore.cachingTier);
+      entry.getKey().initCachingTier(cacheStore.realCachingTier);
       entry.getValue().initAuthoritativeTier(cacheStore.authoritativeTier);
     }
 
@@ -394,4 +428,39 @@ public class CacheStore<K, V> implements Store<K, V> {
     }
   }
 
+  private static class NoopCachingTier<K, V> implements CachingTier<K, V> {
+
+    private final AuthoritativeTier<K, V> authoritativeTier;
+
+    public NoopCachingTier(final AuthoritativeTier<K, V> authoritativeTier) {
+      this.authoritativeTier = authoritativeTier;
+    }
+
+    @Override
+    public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) throws CacheAccessException {
+      final ValueHolder<V> apply = source.apply(key);
+      authoritativeTier.flush(key, apply);
+      return apply;
+    }
+
+    @Override
+    public void invalidate(final K key) throws CacheAccessException {
+      // noop
+    }
+
+    @Override
+    public void invalidate() throws CacheAccessException {
+      // noop
+    }
+
+    @Override
+    public void setInvalidationListener(final InvalidationListener<K, V> invalidationListener) {
+      // noop
+    }
+
+    @Override
+    public void maintenance() {
+      // noop
+    }
+  }
 }

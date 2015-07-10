@@ -15,6 +15,7 @@
  */
 package org.ehcache.internal.store.tiering;
 
+import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
@@ -34,6 +35,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -41,7 +44,9 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -593,6 +598,45 @@ public class CacheStoreTest {
     verify(cachingTier, times(1)).invalidate(2);
     verify(cachingTier, times(1)).invalidate(3);
     verify(authoritativeTier, times(1)).bulkComputeIfAbsent(any(Set.class), any(Function.class));
+  }
+
+  @Test
+  public void CachingTierDoesNotSeeAnyOperationDuringClear() throws CacheAccessException, BrokenBarrierException, InterruptedException {
+
+
+    final CachingTier<String, String> cachingTier = mock(CachingTier.class);
+    final AuthoritativeTier<String, String> authoritativeTier = mock(AuthoritativeTier.class);
+
+    final CacheStore<String, String> cacheStore = new CacheStore<String, String>(cachingTier, authoritativeTier);
+
+    final CyclicBarrier barrier = new CyclicBarrier(2);
+
+    doAnswer(new Answer<Void>() {
+      @Override
+      public Void answer(final InvocationOnMock invocation) throws Throwable {
+        barrier.await();
+        barrier.await();
+        return null;
+      }
+    }).when(authoritativeTier).clear();
+    Thread t = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          cacheStore.clear();
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
+    });
+
+    t.start();
+    barrier.await();
+    cacheStore.get("foo");
+    barrier.await();
+    t.join();
+    verify(cachingTier, never()).getOrComputeIfAbsent(
+        org.mockito.Matchers.<String>any(), org.mockito.Matchers.<Function<String, Store.ValueHolder<String>>>anyObject());
   }
 
   public Map.Entry<? extends Number, ? extends CharSequence> newMapEntry(Number key, CharSequence value) {
