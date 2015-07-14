@@ -16,25 +16,41 @@
 
 package org.ehcache;
 
+import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.events.CacheEventNotificationService;
+import org.ehcache.exceptions.BulkCacheLoadingException;
+import org.ehcache.exceptions.BulkCacheWritingException;
+import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.exceptions.CacheWritingException;
+import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.LocalPersistenceService;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * PersistentUserManagedEhcache
  */
-public class PersistentUserManagedEhcache<K, V> extends Ehcache<K, V> implements PersistentUserManagedCache<K, V> {
+public class PersistentUserManagedEhcache<K, V> implements PersistentUserManagedCache<K, V> {
 
+  private final StatusTransitioner statusTransitioner;
+  private final Logger logger;
+  private final Ehcache<K,V> ehcache;
   private final Store.PersistentStoreConfiguration storeConfig;
   private final LocalPersistenceService localPersistenceService;
   private final String id;
 
   public PersistentUserManagedEhcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store, Store.PersistentStoreConfiguration storeConfig, LocalPersistenceService localPersistenceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventNotificationService<K, V> eventNotifier, String id) {
-    super(runtimeConfiguration, store, cacheLoaderWriter, eventNotifier, true, LoggerFactory.getLogger(PersistentUserManagedEhcache.class.getName() + "-" + id));
+    this.logger = LoggerFactory.getLogger(PersistentUserManagedEhcache.class.getName() + "-" + id);
+    this.statusTransitioner = new StatusTransitioner(logger);
+    this.ehcache = new Ehcache<K, V>(runtimeConfiguration, store, cacheLoaderWriter, eventNotifier, true, logger, statusTransitioner);
     this.storeConfig = storeConfig;
     this.localPersistenceService = localPersistenceService;
     this.id = id;
@@ -43,7 +59,7 @@ public class PersistentUserManagedEhcache<K, V> extends Ehcache<K, V> implements
 
   @Override
   public Maintainable toMaintenance() {
-    final StatusTransitioner.Transition st = internalToMaintenance();
+    final StatusTransitioner.Transition st = statusTransitioner.maintenance();
     try {
       final Maintainable maintainable = new Maintainable() {
         @Override
@@ -58,7 +74,7 @@ public class PersistentUserManagedEhcache<K, V> extends Ehcache<K, V> implements
 
         @Override
         public void close() {
-          internalExitMaintenance().succeeded();
+          statusTransitioner.exitMaintenance().succeeded();
         }
       };
       st.succeeded();
@@ -70,7 +86,7 @@ public class PersistentUserManagedEhcache<K, V> extends Ehcache<K, V> implements
   }
 
   void create() {
-    checkMaintenance();
+    statusTransitioner.checkMaintenance();
     try {
       localPersistenceService.createPersistenceContext(id, storeConfig);
     } catch (CachePersistenceException e) {
@@ -79,7 +95,7 @@ public class PersistentUserManagedEhcache<K, V> extends Ehcache<K, V> implements
   }
 
   void destroy() {
-    checkMaintenance();
+    statusTransitioner.checkMaintenance();
     try {
       localPersistenceService.destroyPersistenceContext(id);
     } catch (CachePersistenceException e) {
@@ -88,8 +104,13 @@ public class PersistentUserManagedEhcache<K, V> extends Ehcache<K, V> implements
   }
 
   @Override
+  public void init() {
+    ehcache.init();
+  }
+
+  @Override
   public void close() {
-    super.close();
+    ehcache.close();
     if (!getRuntimeConfiguration().getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
       try {
         localPersistenceService.destroyPersistenceContext(id);
@@ -97,5 +118,84 @@ public class PersistentUserManagedEhcache<K, V> extends Ehcache<K, V> implements
         logger.debug("Unable to clear persistent context", e);
       }
     }
+  }
+
+  @Override
+  public Status getStatus() {
+    return statusTransitioner.currentStatus();
+  }
+
+  @Override
+  public V get(K key) throws CacheLoadingException {
+    return ehcache.get(key);
+  }
+
+  @Override
+  public void put(K key, V value) throws CacheWritingException {
+    ehcache.put(key, value);
+  }
+
+  @Override
+  public boolean containsKey(K key) {
+    return ehcache.containsKey(key);
+  }
+
+  @Override
+  public void remove(K key) throws CacheWritingException {
+    ehcache.remove(key);
+  }
+
+  @Override
+  public Map<K, V> getAll(Set<? extends K> keys) throws BulkCacheLoadingException {
+    return ehcache.getAll(keys);
+  }
+
+  @Override
+  public void putAll(Map<? extends K, ? extends V> entries) throws BulkCacheWritingException {
+    ehcache.putAll(entries);
+  }
+
+  @Override
+  public void removeAll(Set<? extends K> keys) throws BulkCacheWritingException {
+    ehcache.removeAll(keys);
+  }
+
+  @Override
+  public void clear() {
+    ehcache.clear();
+  }
+
+  @Override
+  public V putIfAbsent(K key, V value) throws CacheLoadingException, CacheWritingException {
+    return ehcache.putIfAbsent(key, value);
+  }
+
+  @Override
+  public boolean remove(K key, V value) throws CacheWritingException {
+    return ehcache.remove(key, value);
+  }
+
+  @Override
+  public V replace(K key, V value) throws CacheLoadingException, CacheWritingException {
+    return ehcache.replace(key, value);
+  }
+
+  @Override
+  public boolean replace(K key, V oldValue, V newValue) throws CacheLoadingException, CacheWritingException {
+    return ehcache.replace(key, oldValue, newValue);
+  }
+
+  @Override
+  public CacheRuntimeConfiguration<K, V> getRuntimeConfiguration() {
+    return ehcache.getRuntimeConfiguration();
+  }
+
+  @Override
+  public Iterator<Entry<K, V>> iterator() {
+    return ehcache.iterator();
+  }
+
+  void addHook(LifeCycled lifeCycled) {
+    statusTransitioner.addHook(lifeCycled);
   }
 }

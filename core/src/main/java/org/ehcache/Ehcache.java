@@ -124,6 +124,12 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   Ehcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
           CacheLoaderWriter<? super K, V> cacheLoaderWriter,
           CacheEventNotificationService<K, V> eventNotifier, boolean useLoaderInAtomics, Logger logger) {
+    this(runtimeConfiguration, store, cacheLoaderWriter, eventNotifier, useLoaderInAtomics, logger, new StatusTransitioner(logger));
+  }
+
+  Ehcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
+            CacheLoaderWriter<? super K, V> cacheLoaderWriter,
+            CacheEventNotificationService<K, V> eventNotifier, boolean useLoaderInAtomics, Logger logger, StatusTransitioner statusTransitioner) {
     this.store = store;
     StatisticsManager.associate(store).withParent(this);
     this.cacheLoaderWriter = cacheLoaderWriter;
@@ -143,7 +149,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
 
     this.useLoaderInAtomics = useLoaderInAtomics;
     this.logger=logger;
-    this.statusTransitioner = new StatusTransitioner(logger);
+    this.statusTransitioner = statusTransitioner;
   }
 
   ConcurrentMap<BulkOps, AtomicLong> getBulkMethodEntries() {
@@ -1024,18 +1030,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   @Override
   public void close() {
     statusTransitioner.close().succeeded();
-  }
-
-  void checkMaintenance() {
-    statusTransitioner.checkMaintenance();
-  }
-
-  StatusTransitioner.Transition internalToMaintenance() {
-    return statusTransitioner.maintenance();
-  }
-
-  StatusTransitioner.Transition internalExitMaintenance() {
-    return statusTransitioner.exitMaintenance();
   }
 
   @Override

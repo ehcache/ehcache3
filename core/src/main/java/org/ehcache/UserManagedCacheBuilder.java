@@ -109,19 +109,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
 
     RuntimeConfiguration<K, V> runtimeConfiguration = new RuntimeConfiguration<K, V>(cacheConfig, cacheEventNotificationService);
 
-    final Ehcache<K, V> ehcache;
-    if (persistent) {
-      ehcache = new PersistentUserManagedEhcache<K, V>(runtimeConfiguration, store, (Store.PersistentStoreConfiguration)storeConfig, serviceLocator.findService(LocalPersistenceService.class), cacheLoaderWriter, cacheEventNotificationService, id);
-    } else {
-      String loggerName;
-      if (id != null) {
-        loggerName = Ehcache.class.getName() + "-" + id;
-      } else {
-        loggerName = Ehcache.class.getName() + "-UserManaged" + instanceId.incrementAndGet();
-      }
-      ehcache = new Ehcache<K, V>(runtimeConfiguration, store, cacheLoaderWriter, cacheEventNotificationService, LoggerFactory.getLogger(loggerName));
-    }
-    ehcache.addHook(new LifeCycled() {
+    LifeCycled lifeCycled = new LifeCycled() {
       @Override
       public void init() throws Exception {
         storeProvider.initStore(store);
@@ -131,14 +119,30 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
       public void close() throws Exception {
         storeProvider.releaseStore(store);
       }
-    });
+    };
+    if (persistent) {
+      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(runtimeConfiguration, store, (Store.PersistentStoreConfiguration) storeConfig, serviceLocator
+          .findService(LocalPersistenceService.class), cacheLoaderWriter, cacheEventNotificationService, id);
+      cache.addHook(lifeCycled);
+      return cast(cache);
+    } else {
+      String loggerName;
+      if (id != null) {
+        loggerName = Ehcache.class.getName() + "-" + id;
+      } else {
+        loggerName = Ehcache.class.getName() + "-UserManaged" + instanceId.incrementAndGet();
+      }
+      final Ehcache<K, V> ehcache;
+      ehcache = new Ehcache<K, V>(runtimeConfiguration, store, cacheLoaderWriter, cacheEventNotificationService, LoggerFactory.getLogger(loggerName));
+      ehcache.addHook(lifeCycled);
+      return cast(ehcache);
+    }
 
-    return cast(ehcache);
   }
   
   @SuppressWarnings("unchecked")
-  T cast(Ehcache<K, V> ehcache) {
-    return (T)ehcache;
+  T cast(UserManagedCache<K, V> cache) {
+    return (T)cache;
   }
 
   public final T build(final boolean init) throws IllegalStateException {
