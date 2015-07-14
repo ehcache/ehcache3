@@ -80,9 +80,8 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
       st.succeeded();
       return maintainable;
     } catch (RuntimeException e) {
-      st.failed(e); // this throws
+      throw st.failed(e);
     }
-    throw new AssertionError("Should not reach this line... ever!");
   }
 
   void create() {

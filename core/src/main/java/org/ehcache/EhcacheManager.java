@@ -404,7 +404,7 @@ public class EhcacheManager implements PersistentCacheManager {
       try {
         serviceLocator.startAllServices(serviceConfigs);
       } catch (Exception e) {
-        st.failed(e);
+        throw st.failed(e);
       }
 
       statisticsManager.root(this);
@@ -433,7 +433,7 @@ public class EhcacheManager implements PersistentCacheManager {
         throw e;
       }
     } catch (Exception e) {
-      st.failed(e);
+      throw st.failed(e);
     }
     st.succeeded();
   }
@@ -473,7 +473,7 @@ public class EhcacheManager implements PersistentCacheManager {
       }
     }
     if(firstException != null) {
-      st.failed(firstException);
+      throw st.failed(firstException);
     }
     st.succeeded();
   }
@@ -501,9 +501,8 @@ public class EhcacheManager implements PersistentCacheManager {
       st.succeeded();
       return maintainable;
     } catch (RuntimeException e) {
-      st.failed(e); // this throws
+      throw st.failed(e);
     }
-    throw new AssertionError("Shouldn't reach this line... ever!");
   }
 
   void create() {

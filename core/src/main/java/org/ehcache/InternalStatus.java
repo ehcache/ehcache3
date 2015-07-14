@@ -65,15 +65,15 @@ public enum InternalStatus {
   ;
 
   public Transition init() {
-    throw new IllegalStateException();
+    throw new IllegalStateException("Init not supported from " + name());
   }
 
   public Transition close() {
-    throw new IllegalStateException();
+    throw new IllegalStateException("Close not supported from " + name());
   }
 
   public Transition maintenance() {
-    throw new IllegalStateException();
+    throw new IllegalStateException("Maintenance not supported from " + name());
   }
 
   public abstract Status toPublicStatus();

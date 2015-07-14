@@ -41,11 +41,11 @@ public class StatusTransitionerTest {
   public void testTransitionsToLowestStateOnFailure() {
     StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
     assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
-    transitioner.init().failed(null);
+    transitioner.init().failed(new Throwable());
     assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
     transitioner.init().succeeded();
     assertThat(transitioner.currentStatus(), is(Status.AVAILABLE));
-    transitioner.close().failed(null);
+    transitioner.close().failed(new Throwable());
     assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
   }
 
