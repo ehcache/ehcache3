@@ -34,7 +34,6 @@ import org.ehcache.internal.store.offheap.OffHeapValueHolder;
 import org.ehcache.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.SerializationProvider;
@@ -116,8 +115,8 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   }
 
   private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> getBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, Predicate<Map.Entry<K, OffHeapValueHolder<V>>> evictionVeto) {
-    File dataFile = fileBasedPersistenceContext.getDataFile();
-    File indexFile = fileBasedPersistenceContext.getIndexFile();
+    File dataFile = getDataFile();
+    File indexFile = getIndexFile();
     
     if (dataFile.isFile() && indexFile.isFile()) {
       try {
@@ -131,8 +130,8 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   }
   
   private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> recoverBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, Predicate<Map.Entry<K, OffHeapValueHolder<V>>> evictionVeto) throws IOException {
-    File dataFile = fileBasedPersistenceContext.getDataFile();
-    File indexFile = fileBasedPersistenceContext.getIndexFile();
+    File dataFile = getDataFile();
+    File indexFile = getIndexFile();
     
     FileInputStream fin = new FileInputStream(indexFile);
     try {
@@ -192,7 +191,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     HeuristicConfiguration config = new HeuristicConfiguration(size);
     MappedPageSource source;
     try {
-      source = new MappedPageSource(fileBasedPersistenceContext.getDataFile(), size);
+      source = new MappedPageSource(getDataFile(), size);
     } catch (IOException e) {
       // TODO proper exception
       throw new RuntimeException(e);
@@ -217,6 +216,14 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   @Override
   protected EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> backingMap() {
     return map;
+  }
+
+  private File getDataFile() {
+    return new File(fileBasedPersistenceContext.getDirectory(), "ehcache-disk-store.data");
+  }
+
+  private File getIndexFile() {
+    return new File(fileBasedPersistenceContext.getDirectory(), "ehcache-disk-store.index");
   }
 
   @SupplementaryService
@@ -281,7 +288,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       if (localMap != null) {
         resource.map = null;
         localMap.flush();
-        ObjectOutputStream output = new ObjectOutputStream(new FileOutputStream(resource.fileBasedPersistenceContext.getIndexFile()));
+        ObjectOutputStream output = new ObjectOutputStream(new FileOutputStream(resource.getIndexFile()));
         try {
           output.writeLong(System.currentTimeMillis());
           localMap.persist(output);

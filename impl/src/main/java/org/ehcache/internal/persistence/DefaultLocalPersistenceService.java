@@ -31,15 +31,24 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileLock;
+import java.nio.charset.Charset;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
+import static java.lang.Integer.toHexString;
+import static java.nio.charset.Charset.forName;
 
 /**
  * @author Alex Snaps
  */
 public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
+  private static final Charset UTF8 = forName("UTF8");
   private static final int DEL = 0x7F;
   private static final char ESCAPE = '%';
   private static final Set<Character> ILLEGALS = new HashSet<Character>();
@@ -55,8 +64,8 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     ILLEGALS.add('*');
     ILLEGALS.add('.');
   }
-  
-  private final Map<Object, FileBasedPersistenceContext> knownPersistenceContexts = new ConcurrentHashMap<Object, FileBasedPersistenceContext>();
+
+  private final Map<String, FileBasedPersistenceContext> knownPersistenceContexts = new ConcurrentHashMap<String, FileBasedPersistenceContext>();
   private final File rootDirectory;
   private final File lockFile;
   private FileLock lock;
@@ -127,123 +136,110 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   @Override
   public FileBasedPersistenceContext createPersistenceContext(Object identifier, Store.PersistentStoreConfiguration<?, ?, ?> storeConfiguration) throws CachePersistenceException {
-    DefaultFiledBasedPersistenceContext filedBased = new DefaultFiledBasedPersistenceContext(getFile(identifier, ".data"), getFile(identifier, ".index"));
-    knownPersistenceContexts.put(identifier, filedBased);
+    String stringIdentifier = validateIdentifier(identifier);
+    DefaultFileBasedPersistenceContext context = new DefaultFileBasedPersistenceContext(getDirectoryFor(stringIdentifier));
+    knownPersistenceContexts.put(stringIdentifier, context);
 
     if (!storeConfiguration.isPersistent()) {
-      destroy(identifier, filedBased, false);
+      destroy(stringIdentifier, context, false);
     }
 
     try {
-      create(filedBased);
+      create(context);
     } catch (IOException e) {
-      knownPersistenceContexts.remove(identifier);
+      knownPersistenceContexts.remove(stringIdentifier);
       throw new CachePersistenceException("Unable to create persistence context for " + identifier, e);
     }
 
-    return filedBased;
+    return context;
   }
 
   @Override
   public void destroyPersistenceContext(Object identifier) {
-    FileBasedPersistenceContext persistenceContext = knownPersistenceContexts.get(identifier);
+    String stringIdentifier = validateIdentifier(identifier);
+    FileBasedPersistenceContext persistenceContext = knownPersistenceContexts.get(stringIdentifier);
     if (persistenceContext != null) {
       try {
-        destroy(identifier, persistenceContext, true);
+        destroy(stringIdentifier, persistenceContext, true);
       } finally {
-        knownPersistenceContexts.remove(identifier);
+        knownPersistenceContexts.remove(stringIdentifier);
       }
     } else {
-      destroy(identifier, new DefaultFiledBasedPersistenceContext(getFile(identifier, ".data"), getFile(identifier, ".index")), true);
+      destroy(stringIdentifier, new DefaultFileBasedPersistenceContext(getDirectoryFor(stringIdentifier)), true);
     }
   }
 
   File getLockFile() {
     return lockFile;
   }
-
-  /**
-   * Get a file object for the given cache-name and suffix
-   *
-   * @param identifier Some stable identifier
-   * @param suffix    a file suffix
-   * @return a file object
-   */
-  public File getFile(Object identifier, String suffix) {
-    if(identifier instanceof String) {
-      return getFile(safeName(((String) identifier)) + suffix);
-    }
-    throw new IllegalArgumentException("Currently only String identifiers are supported");
-  }
-
-  /**
-   * Get a file object for the given name
-   *
-   * @param name the file name
-   * @return a file object
-   */
-  public File getFile(String name) {
-    File file = new File(rootDirectory, name);
+  
+  public File getDirectoryFor(String identifier) {
+    File directory = new File(rootDirectory, safeIdentifier(identifier));
     
-    for (File parent = file.getParentFile(); parent != null; parent = parent.getParentFile()) {
+    for (File parent = directory.getParentFile(); parent != null; parent = parent.getParentFile()) {
       if (rootDirectory.equals(parent)) {
-        return file;
+        return directory;
       }
     }
 
     throw new IllegalArgumentException("Attempted to access file outside the persistence path");
   }
-
+  
+  private static String validateIdentifier(Object identifier) {
+    if (identifier instanceof String) {
+      return (String) identifier;
+    } else {
+      throw new IllegalArgumentException("Currently only String identifiers are supported");
+    }
+  }
 
   static void create(FileBasedPersistenceContext fileBasedPersistenceContext) throws IOException, CachePersistenceException {
-    boolean dataFileCreated = fileBasedPersistenceContext.getDataFile().createNewFile();
-    boolean indexFileCreated = fileBasedPersistenceContext.getIndexFile().createNewFile();
-
-    if (dataFileCreated && indexFileCreated) {
-      LOGGER.info("Created " + fileBasedPersistenceContext.getDataFile().getAbsolutePath() + " and " + fileBasedPersistenceContext
-          .getIndexFile()
-          .getAbsolutePath());
-    } else if (!dataFileCreated && !indexFileCreated) {
-      LOGGER.info("Reusing " + fileBasedPersistenceContext.getDataFile().getAbsolutePath() + " and " + fileBasedPersistenceContext
-          .getIndexFile().getAbsolutePath());
+    File persistenceDirectory = fileBasedPersistenceContext.getDirectory();
+    
+    if (persistenceDirectory.isDirectory()) {
+      LOGGER.info("Reusing " + persistenceDirectory.getAbsolutePath());
+    } else if (persistenceDirectory.mkdir()) {
+      LOGGER.info("Created " + persistenceDirectory.getAbsolutePath());
     } else {
-      if (indexFileCreated) {
-        if (fileBasedPersistenceContext.getDataFile().delete()) {
-          if (!fileBasedPersistenceContext.getDataFile().createNewFile()) {
-            throw new CachePersistenceException("Unable to create data file for persistence context");
-          }
-          LOGGER.warn("Index file " + fileBasedPersistenceContext.getIndexFile().getAbsolutePath() + " was missing, dropped previously persisted data");
-        } else {
-          throw new CachePersistenceException("Unable to clean up inconsistent persistence context state - no index file, old data file cannot be deleted");
-        }
-      }
-      if (dataFileCreated) {
-        if (fileBasedPersistenceContext.getIndexFile().delete()) {
-          if (!fileBasedPersistenceContext.getIndexFile().createNewFile()) {
-            throw new CachePersistenceException("Unable to create index file for persistence context");
-          }
-          LOGGER.warn("Data file " + fileBasedPersistenceContext.getDataFile().getAbsolutePath() + " was missing,  dropped previously persisted data");
-        } else {
-          throw new CachePersistenceException("Unable to clean up inconsistent persistence context state - no data file, old index file cannot be deleted");
-        }
+      throw new CachePersistenceException("Unable to create or reuse persistence context state: " + persistenceDirectory.getAbsolutePath());
+    }
+  }
+
+  static void destroy(String identifier, FileBasedPersistenceContext fileBasedPersistenceContext, boolean verbose) {
+    if (verbose) {
+      LOGGER.info("Destroying file based persistence context for {}", identifier);
+    }
+    if (fileBasedPersistenceContext.getDirectory().exists() && !recursiveDelete(fileBasedPersistenceContext.getDirectory())) {
+      if (verbose) {
+        LOGGER.warn("Could not delete directory for context {}", identifier);
       }
     }
   }
 
-  static void destroy(Object identifier, FileBasedPersistenceContext fileBasedPersistenceContext, boolean verbose) {
-    if (verbose) {
-      LOGGER.info("Destroying file based persistence context for {}", identifier);
-    }
-    if (fileBasedPersistenceContext.getDataFile().exists() && !fileBasedPersistenceContext.getDataFile().delete()) {
-      if (verbose) {
-        LOGGER.warn("Could not delete data file for context {}", identifier);
+  private static boolean recursiveDelete(File file) {
+    Deque<File> toDelete = new ArrayDeque<File>();
+    toDelete.push(file);
+    while (!toDelete.isEmpty()) {
+      File target = toDelete.pop();
+      if (target.isFile()) {
+        if (!target.delete()) {
+          return false;
+        }
+      } else if (target.isDirectory()) {
+        File[] contents = target.listFiles();
+        if (contents.length == 0) {
+          if (!target.delete()) {
+            return false;
+          }
+        } else {
+          toDelete.push(target);
+          for (File f : contents) {
+            toDelete.push(f);
+          }
+        }
       }
     }
-    if (fileBasedPersistenceContext.getIndexFile().exists() && !fileBasedPersistenceContext.getIndexFile().delete()) {
-      if (verbose) {
-        LOGGER.warn("Could not delete index file for context {}", identifier);
-      }
-    }
+    return true;
   }
 
   /**
@@ -252,39 +248,50 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    * @param name
    * @return sanitized version of name
    */
-  private static String safeName(String name) {
+  private static String safeIdentifier(String name) {
     int len = name.length();
     StringBuilder sb = new StringBuilder(len);
     for (int i = 0; i < len; i++) {
       char c = name.charAt(i);
-      if (c <= ' ' || c >= DEL || (c >= 'A' && c <= 'Z') || ILLEGALS.contains(c) || c == ESCAPE) {
+      if (c <= ' ' || c >= DEL || ILLEGALS.contains(c) || c == ESCAPE) {
         sb.append(ESCAPE);
         sb.append(String.format("%04x", (int) c));
       } else {
         sb.append(c);
       }
     }
+    sb.append("_").append(sha1(name));
     return sb.toString();
   }
 
-  private static class DefaultFiledBasedPersistenceContext implements FileBasedPersistenceContext {
+  private static String sha1(String input) {
+    StringBuilder sb = new StringBuilder();
+    for (byte b : getSha1Digest().digest(input.getBytes(UTF8))) {
+      sb.append(toHexString((b & 0xf0) >>> 4));
+      sb.append(toHexString((b & 0xf)));
+    }
+    return sb.toString();
+  }
+  
+  private static MessageDigest getSha1Digest() {
+    try {
+      return MessageDigest.getInstance("SHA-1");
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError("All JDKs must have SHA-1");
+    }
+  }
+  
+  private static class DefaultFileBasedPersistenceContext implements FileBasedPersistenceContext {
 
-    final File dataFile;
-    final File indexFile;
+    final File directory;
 
-    DefaultFiledBasedPersistenceContext(File dataFile, File indexFile) {
-      this.dataFile = dataFile;
-      this.indexFile = indexFile;
+    DefaultFileBasedPersistenceContext(File directory) {
+      this.directory = directory;
     }
 
     @Override
-    public File getDataFile() {
-      return dataFile;
-    }
-
-    @Override
-    public File getIndexFile() {
-      return indexFile;
+    public File getDirectory() {
+      return directory;
     }
   }
 }
