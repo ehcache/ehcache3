@@ -78,6 +78,7 @@ public final class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
   public void writeBack() {
     writeContext.setLong(OffHeapValueHolderPortability.ACCESS_TIME_OFFSET, lastAccessTime(TimeUnit.MILLISECONDS));
     writeContext.setLong(OffHeapValueHolderPortability.EXPIRE_TIME_OFFSET, expirationTime(TimeUnit.MILLISECONDS));
+    writeContext.flush();
   }
 
   public void updateMetadata(final Store.ValueHolder<V> valueFlushed) {
