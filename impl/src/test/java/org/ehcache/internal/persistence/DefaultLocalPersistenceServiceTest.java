@@ -17,7 +17,9 @@
 package org.ehcache.internal.persistence;
 
 import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,70 +27,59 @@ import java.io.IOException;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class DefaultLocalPersistenceServiceTest {
 
-  public static final String PATH = "foo://bar";
+  @Rule
+  public final TemporaryFolder folder = new TemporaryFolder();
 
   @Test
-  public void testFailsIfDirectoryExistsButNotWritable() {
-    File f = mock(File.class);
-    when(f.getAbsolutePath()).thenReturn(PATH);
-    when(f.exists()).thenReturn(true);
-    when(f.isDirectory()).thenReturn(true);
-    when(f.canWrite()).thenReturn(false);
-    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new PersistenceConfiguration(f));
+  public void testFailsIfDirectoryExistsButNotWritable() throws IOException {
+    File f = folder.newFolder("testFailsIfDirectoryExistsButNotWritable");
+    f.setWritable(false);
     try {
-      service.start(null, null);
-    } catch(IllegalArgumentException e) {
-      assertThat(e.getMessage(), equalTo("Location isn't writable: " + PATH));
+      final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new PersistenceConfiguration(f));
+      try {
+        service.start(null, null);
+      } catch(IllegalArgumentException e) {
+        assertThat(e.getMessage(), equalTo("Location isn't writable: " + f.getAbsolutePath()));
+      }
+    } finally {
+      f.setWritable(true);
     }
   }
 
   @Test
-  public void testFailsIfFileExistsButIsNotDirectory() {
-    File f = mock(File.class);
-    when(f.getAbsolutePath()).thenReturn(PATH);
-    when(f.exists()).thenReturn(true);
-    when(f.isDirectory()).thenReturn(false);
-    when(f.canWrite()).thenReturn(false);
+  public void testFailsIfFileExistsButIsNotDirectory() throws IOException {
+    File f = folder.newFile("testFailsIfFileExistsButIsNotDirectory");
     final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new PersistenceConfiguration(f));
     try {
       service.start(null, null);
     } catch(IllegalArgumentException e) {
-      assertThat(e.getMessage(), equalTo("Location is not a directory: " + PATH));
+      assertThat(e.getMessage(), equalTo("Location is not a directory: " + f.getAbsolutePath()));
     }
   }
 
   @Test
-  public void testFailsIfDirectoryDoesNotExistsAndIsNotCreated() {
-    File f = mock(File.class);
-    when(f.getAbsolutePath()).thenReturn(PATH);
-    when(f.exists()).thenReturn(false);
-    when(f.mkdirs()).thenReturn(false);
-    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new PersistenceConfiguration(f));
+  public void testFailsIfDirectoryDoesNotExistsAndIsNotCreated() throws IOException {
+    File fdr = folder.newFolder("testFailsIfDirectoryDoesNotExistsAndIsNotCreated");
+    fdr.setWritable(false);
     try {
-      service.start(null, null);
-    } catch(IllegalArgumentException e) {
-      assertThat(e.getMessage(), equalTo("Directory couldn't be created: " + PATH));
+      File f = new File(fdr, "notallowed");
+      final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new PersistenceConfiguration(f));
+      try {
+        service.start(null, null);
+      } catch(IllegalArgumentException e) {
+        assertThat(e.getMessage(), equalTo("Directory couldn't be created: " + f.getAbsolutePath()));
+      }
+    } finally {
+      fdr.setWritable(true);
     }
   }
 
   @Test
   public void testLocksDirectoryAndUnlocks() throws IOException {
-    final File f = File.createTempFile(this.getClass().getSimpleName(), ".tmp");
-
-    if(!(f.delete())) {
-      throw new IOException("Could not delete temp file: " + f.getAbsolutePath());
-    }
-
-    if(!(f.mkdir())) {
-      throw new IOException("Could not create temp directory: " + f.getAbsolutePath());
-    }
-    f.deleteOnExit();
-
+    final File f = folder.newFolder("testLocksDirectoryAndUnlocks");
     final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new PersistenceConfiguration(f));
     service.start(null, null);
     assertThat(service.getLockFile().exists(), is(true));

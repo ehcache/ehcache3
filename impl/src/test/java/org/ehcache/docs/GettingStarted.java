@@ -120,7 +120,7 @@ public class GettingStarted {
         .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder()
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
-                .disk(100, EntryUnit.ENTRIES, true)) // <2>
+                .disk(10L, MemoryUnit.MB, true)) // <2>
             .buildConfig(Long.class, String.class))
         .build(true);
 

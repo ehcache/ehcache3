@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * EhcacheConcurrentOffHeapClockCache
  */
-public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrentOffHeapCache<K, V> {
+public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrentOffHeapCache<K, V> implements EhcacheOffHeapBackingMap<K, V> {
 
   private final AtomicLong[] counters;
 
@@ -41,26 +41,19 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
     }
   }
 
-  public boolean remove(K key, V value, EhcacheSegmentFactory.ValueComparator<V> comparator) {
-    EhcacheSegmentFactory.EhcacheSegment<K, V> segment = (EhcacheSegmentFactory.EhcacheSegment) segmentFor(key);
-    return segment.remove(key, value, comparator);
-  }
-
-  public boolean replace(K key, V oldValue, V newValue, EhcacheSegmentFactory.ValueComparator<V> comparator) {
-    EhcacheSegmentFactory.EhcacheSegment<K, V> segment = (EhcacheSegmentFactory.EhcacheSegment) segmentFor(key);
-    return segment.replace(key, oldValue, newValue, comparator);
-  }
-
+  @Override
   public V compute(K key, BiFunction<K, V, V> mappingFunction, boolean pin) {
     EhcacheSegmentFactory.EhcacheSegment<K, V> segment = (EhcacheSegmentFactory.EhcacheSegment) segmentFor(key);
     return segment.compute(key, mappingFunction, pin);
   }
 
+  @Override
   public V computeIfPresent(K key, BiFunction<K, V, V> mappingFunction) {
     EhcacheSegmentFactory.EhcacheSegment<K, V> segment = (EhcacheSegmentFactory.EhcacheSegment) segmentFor(key);
     return segment.computeIfPresent(key, mappingFunction);
   }
 
+  @Override
   public boolean computeIfPinned(final K key, final BiFunction<K,V,V> remappingFunction, final Function<V,Boolean> pinningFunction) {
     EhcacheSegmentFactory.EhcacheSegment<K, V> segment = (EhcacheSegmentFactory.EhcacheSegment) segmentFor(key);
     return segment.computeIfPinned(key, remappingFunction, pinningFunction);

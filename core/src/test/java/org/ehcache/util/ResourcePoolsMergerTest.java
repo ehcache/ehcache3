@@ -35,7 +35,7 @@ public class ResourcePoolsMergerTest {
   @Test
   public void testAddingNewTierWhileUpdating() {
     ResourcePools existing = ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10L, EntryUnit.ENTRIES).build();
-    ResourcePools toBeUpdated = ResourcePoolsBuilder.newResourcePoolsBuilder().disk(50L, EntryUnit.ENTRIES).build();
+    ResourcePools toBeUpdated = ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10L, MemoryUnit.MB).build();
     ResourcePoolMerger merger = new ResourcePoolMerger();
     try {
       merger.validateAndMerge(existing, toBeUpdated);
@@ -59,7 +59,7 @@ public class ResourcePoolsMergerTest {
   @Test
   public void testUpdatingHeapSizeToLargerThanDisk() {
     ResourcePoolsBuilder existingPoolsBuilder = ResourcePoolsBuilder.newResourcePoolsBuilder();
-    existingPoolsBuilder = existingPoolsBuilder.heap(20L, EntryUnit.ENTRIES).disk(50, EntryUnit.ENTRIES);
+    existingPoolsBuilder = existingPoolsBuilder.heap(20L, EntryUnit.ENTRIES).disk(10L, MemoryUnit.MB);
     ResourcePools existing = existingPoolsBuilder.build();
 
     ResourcePoolsBuilder toBeUpdatedPoolsBuilder = ResourcePoolsBuilder.newResourcePoolsBuilder();
@@ -77,7 +77,7 @@ public class ResourcePoolsMergerTest {
   @Test
   public void testUpdateResourceUnit() {
     ResourcePoolsBuilder existingPoolsBuilder = ResourcePoolsBuilder.newResourcePoolsBuilder();
-    existingPoolsBuilder = existingPoolsBuilder.heap(20L, EntryUnit.ENTRIES).disk(500L, EntryUnit.ENTRIES);
+    existingPoolsBuilder = existingPoolsBuilder.heap(20L, EntryUnit.ENTRIES).disk(200L, MemoryUnit.MB);
     ResourcePools existing = existingPoolsBuilder.build();
 
     ResourcePoolsBuilder toBeUpdatedPoolsBuilder = ResourcePoolsBuilder.newResourcePoolsBuilder();
@@ -90,7 +90,7 @@ public class ResourcePoolsMergerTest {
     } catch (UnsupportedOperationException uoe) {
       assertThat(uoe.getMessage(), is("Updating ResourceUnit is not supported"));
     }
-    assertThat(existing.getPoolForResource(ResourceType.Core.DISK).getSize(), is(500L));
-    assertThat(existing.getPoolForResource(ResourceType.Core.DISK).getUnit(), Matchers.<ResourceUnit>is(EntryUnit.ENTRIES));
+    assertThat(existing.getPoolForResource(ResourceType.Core.DISK).getSize(), is(200L));
+    assertThat(existing.getPoolForResource(ResourceType.Core.DISK).getUnit(), Matchers.<ResourceUnit>is(MemoryUnit.MB));
   }
 }

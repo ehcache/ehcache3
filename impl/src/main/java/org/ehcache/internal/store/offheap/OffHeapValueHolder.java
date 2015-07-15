@@ -75,12 +75,12 @@ public final class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
     return result;
   }
 
-  void writeBack() {
+  public void writeBack() {
     writeContext.setLong(OffHeapValueHolderPortability.ACCESS_TIME_OFFSET, lastAccessTime(TimeUnit.MILLISECONDS));
     writeContext.setLong(OffHeapValueHolderPortability.EXPIRE_TIME_OFFSET, expirationTime(TimeUnit.MILLISECONDS));
   }
 
-  void updateMetadata(final Store.ValueHolder<V> valueFlushed) {
+  public void updateMetadata(final Store.ValueHolder<V> valueFlushed) {
     if(getId() != valueFlushed.getId()) {
       throw new IllegalArgumentException("Wrong id passed in [this.id != id] : " + getId() + " != " + valueFlushed.getId());
     }
