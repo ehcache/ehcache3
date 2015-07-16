@@ -22,7 +22,5 @@ import java.io.File;
  * FileBased
  */
 public interface FileBasedPersistenceContext {
-  File getDataFile();
-
-  File getIndexFile();
+  File getDirectory();
 }
