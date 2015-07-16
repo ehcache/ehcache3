@@ -25,7 +25,7 @@ import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
@@ -169,7 +169,7 @@ public class XmlConfiguration implements Configuration {
         }
         serviceConfigs.add(configuration);
       } else if (serviceType.getPersistence() != null) {
-        serviceConfigs.add(new PersistenceConfiguration(new File(serviceType.getPersistence().getDirectory())));
+        serviceConfigs.add(new CacheManagerPersistenceConfiguration(new File(serviceType.getPersistence().getDirectory())));
       } else {
         final ServiceConfiguration<?> serviceConfiguration1 = configurationParser.parseExtension((Element)serviceType.getAny());
         serviceConfigs.add(serviceConfiguration1);

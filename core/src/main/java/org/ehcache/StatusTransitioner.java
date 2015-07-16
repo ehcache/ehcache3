@@ -214,15 +214,13 @@ final class StatusTransitioner {
       }
     }
 
-    public void failed(Throwable t) {
+    public StateTransitionException failed(Throwable t) {
       st.failed();
       logger.error("{} failed.", action);
-      if (t != null) {
-        if(t instanceof StateTransitionException) {
-          throw (StateTransitionException) t;
-        }
-        throw new StateTransitionException(t);
+      if(t instanceof StateTransitionException) {
+        return (StateTransitionException) t;
       }
+      return new StateTransitionException(t);
     }
   }
 }

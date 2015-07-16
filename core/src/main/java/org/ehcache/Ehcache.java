@@ -77,7 +77,7 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
 /**
  * @author Alex Snaps
  */
-public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, PersistentUserManagedCache<K, V> {
+public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
 
   private final StatusTransitioner statusTransitioner;
 
@@ -88,7 +88,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
   private final CacheEventNotificationService<K, V> eventNotificationService;
   private final Jsr107CacheImpl jsr107Cache;
   private final boolean useLoaderInAtomics;
-  private final Logger logger;
+  protected final Logger logger;
   
   private final OperationObserver<GetOutcome> getObserver = operation(GetOutcome.class).named("get").of(this).tag("cache").build();
   private final OperationObserver<PutOutcome> putObserver = operation(PutOutcome.class).named("put").of(this).tag("cache").build();
@@ -124,6 +124,12 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
   Ehcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
           CacheLoaderWriter<? super K, V> cacheLoaderWriter,
           CacheEventNotificationService<K, V> eventNotifier, boolean useLoaderInAtomics, Logger logger) {
+    this(runtimeConfiguration, store, cacheLoaderWriter, eventNotifier, useLoaderInAtomics, logger, new StatusTransitioner(logger));
+  }
+
+  Ehcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
+            CacheLoaderWriter<? super K, V> cacheLoaderWriter,
+            CacheEventNotificationService<K, V> eventNotifier, boolean useLoaderInAtomics, Logger logger, StatusTransitioner statusTransitioner) {
     this.store = store;
     StatisticsManager.associate(store).withParent(this);
     this.cacheLoaderWriter = cacheLoaderWriter;
@@ -143,7 +149,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
 
     this.useLoaderInAtomics = useLoaderInAtomics;
     this.logger=logger;
-    this.statusTransitioner = new StatusTransitioner(logger);
+    this.statusTransitioner = statusTransitioner;
   }
 
   ConcurrentMap<BulkOps, AtomicLong> getBulkMethodEntries() {
@@ -1024,44 +1030,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Persi
   @Override
   public void close() {
     statusTransitioner.close().succeeded();
-  }
-
-  @Override
-  public Maintainable toMaintenance() {
-    final StatusTransitioner.Transition st = statusTransitioner.maintenance();
-    try {
-      final Maintainable maintainable = new Maintainable() {
-        @Override
-        public void create() {
-          Ehcache.this.create();
-        }
-
-        @Override
-        public void destroy() {
-          Ehcache.this.destroy();
-        }
-
-        @Override
-        public void close() {
-          statusTransitioner.exitMaintenance().succeeded();
-        }
-      };
-      st.succeeded();
-      return maintainable;
-    } catch (RuntimeException e) {
-      st.failed(e); // this throws
-    }
-    throw new AssertionError("Should not reach this line... ever!");
-  }
-  
-  void create() {
-    statusTransitioner.checkMaintenance();
-    // TODO figure out persistence and user managed caches
-  }
-
-  void destroy() {
-    statusTransitioner.checkMaintenance();
-    // TODO figure out persistence and user managed caches
   }
 
   @Override

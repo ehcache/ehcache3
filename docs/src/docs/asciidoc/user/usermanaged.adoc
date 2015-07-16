@@ -1,0 +1,65 @@
+include::common.adoc[]
+
+= User managed caches
+
+include::menu.adoc[]
+
+== What are user managed caches and what do they offer?
+
+User managed caches is a new concept introduced in Ehcache 3.
+It offers the ability to create caches that are not managed by a `CacheManager`.
+Hence the name of _user managed_ caches.
+
+The objective of this feature is to satisfy cache use cases where the added complexity of a cache manager is of no added value.
+Ideas are: method local caches, thread local caches or any other place where the lifecycle of the cache is shorter than the application lifecycle.
+
+=== Limitations
+
+As there is no longer a cache manager offering up services, the main limitation of user managed caches is that the user has to configure all required services by hand.
+Of course, if you find yourself requiring plenty of services, maybe the cache manager is a better option!
+
+=== API extensions
+
+While a `UserManagedCache` extends `Cache`, it offers additional methods:
+
+[source,java,indent=0]
+----
+include::{sourcedir}/api/src/main/java/org/ehcache/UserManagedCache.java[lines=17..-1]
+----
+
+As can be seen, these methods deal with the lifecycle of the cache and need to be called explicitly.
+
+There is also the following interface which comes into play when a user managed persistent cache is created:
+
+[source,java,indent=0]
+----
+include::{sourcedir}/api/src/main/java/org/ehcache/PersistentUserManagedCache.java[lines=17..-1]
+----
+
+
+== Getting started with user managed caches
+
+=== Basic example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCacheExample]
+----
+<1> Create a `UserManagedCache` instance, again you can either have the builder `init()` it for you, passing true or
+<2> pass false and it is up to you to `UserManagedCache.init()` them, prior to using them.
+<3> You can use the cache exactly as a managed cache
+<4> In the same vein, a `UserManagedCache` requires you to `UserManagedCache.close()` it explicitly. If you would also use
+    managed caches simultaneously, the `CacheManager.close()` operation would not impact the user managed cache(s).
+
+=== Disk persistent example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=persistentUserManagedCache]
+----
+<1> Create the persistence service to be used by the cache for storing data on disk
+<2> Pass the persistence service to the builder next to an id for the cache - note that this will make the builder produce a more specific type: `PersistentUserManagedCache`
+<3> As usual, indicate here if the data should outlive the cache
+<4> Closing the cache will not delete the data it saved on disk when marked as persistent.
+<5> To delete the data, the cache need to be put in maintenance mode and destroy has to be explicitly invoked.
+

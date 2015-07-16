@@ -20,6 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheManagerConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.DefaultConfiguration;
+import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.Service;
@@ -53,8 +54,7 @@ public class CacheManagerBuilder<T extends CacheManager> {
   }
 
   public static CacheManager newCacheManager(final Configuration configuration) {
-    final EhcacheManager ehcacheManager = new EhcacheManager(configuration);
-    return ehcacheManager;
+    return new EhcacheManager(configuration);
   }
 
   T newCacheManager(final ServiceLocator serviceLocator, final Configuration configuration) {
@@ -96,6 +96,6 @@ public class CacheManagerBuilder<T extends CacheManager> {
   }
 
   public static PersistenceConfiguration persistence(String location) {
-    return new PersistenceConfiguration(new File(location));
+    return new CacheManagerPersistenceConfiguration(new File(location));
   }
 }

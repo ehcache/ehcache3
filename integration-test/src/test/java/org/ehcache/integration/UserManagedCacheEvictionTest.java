@@ -15,14 +15,12 @@
  */
 package org.ehcache.integration;
 
-import org.ehcache.Ehcache;
 import org.ehcache.UserManagedCache;
 import org.ehcache.UserManagedCacheBuilder;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.EntryUnit;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -37,8 +35,7 @@ public class UserManagedCacheEvictionTest {
 
   @Test
   public void test_eviction_with_specific_eviction_prioritizer() throws Exception {
-    UserManagedCache<Number, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Number.class, String.class, LoggerFactory
-        .getLogger(Ehcache.class + "-" + "UserManagedCacheEvictionTest"))
+    UserManagedCache<Number, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Number.class, String.class)
         .withResourcePools(newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES))
         .prioritizeEviction(Eviction.Prioritizer.LRU)
         .build(true);
@@ -63,8 +60,7 @@ public class UserManagedCacheEvictionTest {
 
   @Test
   public void test_eviction_eviction_prioritizer_not_specified() throws Exception {
-    UserManagedCache<Number, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Number.class, String.class, LoggerFactory
-        .getLogger(Ehcache.class + "-" + "UserManagedCacheEvictionTest1"))
+    UserManagedCache<Number, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Number.class, String.class)
         .withResourcePools(newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES))
         .build(true);
     assertThat(cache.getRuntimeConfiguration().getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(),

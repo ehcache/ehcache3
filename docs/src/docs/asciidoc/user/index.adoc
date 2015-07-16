@@ -46,14 +46,17 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=userManagedCacheExample]
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCacheExample]
 ----
 
 <1> A new feature of Ehcache 3.0 is the ability to create `UserManagedCache` instances, i.e. ones not managed by a `CacheManager`, again you can either have the builder `init()` it for you, passing true or
 <2> pass false and it is up to you to `UserManagedCache.init()` them, prior to using them.
-<3> You can use the Standalone cache exactly as a managed cache
-<4> In the same vein, a `StandaloneCache` requires you to `UserManagedCache.close()` it explicitly. If you would also use
-    managed caches simultaneously, the `CacheManager.close()` operation would not impact the Standalone cache.
+<3> You can use the cache exactly as a managed cache
+<4> In the same vein, a `UserManagedCache` requires you to `UserManagedCache.close()` it explicitly. If you would also use
+    managed caches simultaneously, the `CacheManager.close()` operation would not impact the user managed cache(s).
+
+NOTE: See link:usermanaged{outfilesuffix}[the user managed cache documentation] for more information on this feature.
+
 
 ==== Off-heap
 

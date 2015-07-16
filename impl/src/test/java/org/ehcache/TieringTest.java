@@ -19,7 +19,7 @@ package org.ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
-import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.Test;
@@ -42,7 +42,7 @@ public class TieringTest {
         .buildConfig(Long.class, String.class);
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new PersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/tiered-cache-data")))
+        .with(new CacheManagerPersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/tiered-cache-data")))
         .withCache("tiered-cache", tieredCacheConfiguration).build(true);
 
     Cache<Long, String> tieredCache = cacheManager.getCache("tiered-cache", Long.class, String.class);
@@ -80,7 +80,7 @@ public class TieringTest {
         .buildConfig(Long.class, String.class);
 
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new PersistenceConfiguration(new File(getClass().getClassLoader().getResource(".").toURI().getPath() + "/../../persistent-cache-data")))
+        .with(new CacheManagerPersistenceConfiguration(new File(getClass().getClassLoader().getResource(".").toURI().getPath() + "/../../persistent-cache-data")))
         .withCache("persistent-cache", cacheConfiguration)
         .build(true);
 
