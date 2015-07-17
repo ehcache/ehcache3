@@ -86,6 +86,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
 
   private static final int ATTEMPT_RATIO = 4;
   private static final int EVICTION_RATIO = 2;
+  static final int SAMPLE_SIZE = 8;
   
   private final MapWrapper<K, V> map;
   private final Class<K> keyType;
@@ -926,14 +927,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   boolean evict() {
     evictionObserver.begin();
     final Random random = new Random();
-    final int sampleSize = 8;
 
     @SuppressWarnings("unchecked")
-    Set<Map.Entry<K, OnHeapValueHolder<V>>> values = map.getRandomValues(random, sampleSize, (Predicate<Map.Entry<K, OnHeapValueHolder<V>>>)evictionVeto);
+    Set<Map.Entry<K, OnHeapValueHolder<V>>> values = map.getRandomValues(random, SAMPLE_SIZE, (Predicate<Map.Entry<K, OnHeapValueHolder<V>>>)evictionVeto);
    
     if (values.isEmpty()) {
       // 2nd attempt without any veto
-      values = map.getRandomValues(random, sampleSize, Predicates.<Map.Entry<K, OnHeapValueHolder<V>>>none());
+      values = map.getRandomValues(random, SAMPLE_SIZE, Predicates.<Map.Entry<K, OnHeapValueHolder<V>>>none());
     }
 
     if (values.isEmpty()) {
