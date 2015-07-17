@@ -111,7 +111,7 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
   }
 
   private void fillTierOverCapacity(AuthoritativeTier<K, V> tier, AuthoritativeTierFactory<K, V> factory) throws CacheAccessException {
-    for (long seed = 2L; seed < 15000; seed++) {
+    for (long seed = 2L; seed < 10; seed++) {
       tier.put(factory.createKey(seed), factory.createValue(seed));
     }
   }
