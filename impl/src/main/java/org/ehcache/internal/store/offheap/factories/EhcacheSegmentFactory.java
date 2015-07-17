@@ -150,8 +150,7 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
       try {
         final V newValue;
         // can't be pinned if absent
-        Integer metadata = getMetadata(key, Metadata.PINNED);
-        if (metadata != null && metadata == Metadata.PINNED) {
+        if (isPinned(key)) {
 
           final V previousValue = get(key);
           newValue = remappingFunction.apply(key, previousValue);
