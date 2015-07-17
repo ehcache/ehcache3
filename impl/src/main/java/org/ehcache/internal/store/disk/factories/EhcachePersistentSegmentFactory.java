@@ -126,7 +126,8 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<Segment<K,
       try {
         final V newValue;
         // can't be pinned if absent
-        if ((getMetadata(key) & Metadata.PINNED) == Metadata.PINNED) {
+        Integer metadata = getMetadata(key, Metadata.PINNED);
+        if (metadata != null && metadata == Metadata.PINNED) {
 
           final V previousValue = get(key);
           newValue = remappingFunction.apply(key, previousValue);
@@ -139,7 +140,7 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<Segment<K,
             }
           }
           if (newValue != null) {
-            setMetadata(key, Metadata.PINNED, 0);
+            getAndSetMetadata(key, Metadata.PINNED, 0);
           }
           return true;
         }
@@ -227,7 +228,8 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<Segment<K,
       try {
         final V newValue;
         // can't be pinned if absent
-        if ((getMetadata(key) & Metadata.PINNED) == Metadata.PINNED) {
+        Integer metadata = getMetadata(key, Metadata.PINNED);
+        if (metadata != null && metadata == Metadata.PINNED) {
 
           final V previousValue = get(key);
           newValue = remappingFunction.apply(key, previousValue);
@@ -240,7 +242,7 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<Segment<K,
             }
           }
           if (flippingPinningBitFunction.apply(previousValue)) {
-            setMetadata(key, Metadata.PINNED, 0);
+            getAndSetMetadata(key, Metadata.PINNED, 0);
             return true;
           }
         }

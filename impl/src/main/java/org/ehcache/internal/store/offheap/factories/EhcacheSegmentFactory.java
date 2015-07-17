@@ -150,7 +150,8 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
       try {
         final V newValue;
         // can't be pinned if absent
-        if ((getMetadata(key) & Metadata.PINNED) == Metadata.PINNED) {
+        Integer metadata = getMetadata(key, Metadata.PINNED);
+        if (metadata != null && metadata == Metadata.PINNED) {
 
           final V previousValue = get(key);
           newValue = remappingFunction.apply(key, previousValue);
@@ -163,7 +164,7 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
             }
           }
           if (flippingPinningBitFunction.apply(previousValue)) {
-            setMetadata(key, Metadata.PINNED, 0);
+            getAndSetMetadata(key, Metadata.PINNED, 0);
             return true;
           }
         }

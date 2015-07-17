@@ -40,7 +40,7 @@ public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends Abstract
   }
   
   public EhcachePersistentConcurrentOffHeapClockCache(EhcachePersistentSegmentFactory<K, V> segmentFactory, int concurrency) {
-    super(segmentFactory, concurrency, false);
+    super(segmentFactory, concurrency);
     counters = new AtomicLong[segments.length];
     for(int i = 0; i < segments.length; i++) {
       counters[i] = new AtomicLong();
@@ -49,7 +49,7 @@ public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends Abstract
 
   @Override
   public V getAndPin(final K key) {
-    return segmentFor(key).getAndSetMetadata(key, Metadata.PINNED, Metadata.PINNED);
+    return segmentFor(key).getValueAndSetMetadata(key, Metadata.PINNED, Metadata.PINNED);
   }
 
   public boolean isPinned(final K key) {

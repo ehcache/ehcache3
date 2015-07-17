@@ -155,8 +155,8 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<V>(valueSerializer));
         DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool("identifier", config.getConcurrency());
 
-        Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source, config
-                .getSegmentDataPageSize(), keyPortability, elementPortability, writeWorkers, false);
+        Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
+                keyPortability, elementPortability, writeWorkers, false);
 
         EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>>(
             source,
@@ -197,8 +197,8 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<V>(valueSerializer));
     DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool("identifier", config.getConcurrency());
 
-    Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source, config
-        .getSegmentDataPageSize(), keyPortability, elementPortability, writeWorkers, true);
+    Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
+        keyPortability, elementPortability, writeWorkers, true);
 
     EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>>(
         source,

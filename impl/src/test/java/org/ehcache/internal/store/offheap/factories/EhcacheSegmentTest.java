@@ -244,7 +244,7 @@ public class EhcacheSegmentTest {
       }
     };
     segment.put("vetoed", "value");
-    assertThat(segment.getMetadata("vetoed") & EhcacheSegmentFactory.EhcacheSegment.VETOED, is(EhcacheSegmentFactory.EhcacheSegment.VETOED));
+    assertThat(segment.getMetadata("vetoed", EhcacheSegmentFactory.EhcacheSegment.VETOED), is(EhcacheSegmentFactory.EhcacheSegment.VETOED));
   }
 
   @Test
@@ -256,7 +256,7 @@ public class EhcacheSegmentTest {
       }
     };
     segment.putPinned("vetoed", "value");
-    assertThat(segment.getMetadata("vetoed") & EhcacheSegmentFactory.EhcacheSegment.VETOED, is(EhcacheSegmentFactory.EhcacheSegment.VETOED));
+    assertThat(segment.getMetadata("vetoed", EhcacheSegmentFactory.EhcacheSegment.VETOED), is(EhcacheSegmentFactory.EhcacheSegment.VETOED));
   }
 
   @Test
