@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.store.offheap;
 
+import java.util.Arrays;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
@@ -38,9 +39,10 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
-import org.junit.internal.AssumptionViolatedException;
 
 import java.util.Collections;
+import org.ehcache.config.ResourcePool;
+import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 
 /**
  * OffHeapStoreSPITest
@@ -61,21 +63,25 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
       public AuthoritativeTier<String, String> newStore(final AuthoritativeTier.Configuration<String, String> config, final TimeSource timeSource) {
         Serializer<String> keySerializer = new JavaSerializer<String>(config.getClassLoader());
         Serializer<String> valueSerializer = new JavaSerializer<String>(config.getClassLoader());
-        OffHeapStore<String, String> store = new OffHeapStore<String, String>(config, keySerializer, valueSerializer, timeSource, MemoryUnit.MB.toBytes(1));
+
+        ResourcePool pool = config.getResourcePools().getPoolForResource(OFFHEAP);
+        MemoryUnit unit = (MemoryUnit)pool.getUnit();
+
+        OffHeapStore<String, String> store = new OffHeapStore<String, String>(config, keySerializer, valueSerializer, timeSource, unit.toBytes(pool.getSize()));
         OffHeapStore.Provider.init(store);
         return store;
       }
 
       @Override
       public AuthoritativeTier.Configuration<String, String> newConfiguration(
-          final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
+          final Class<String> keyType, final Class<String> valueType, final Long capacityConstraint,
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
         return newConfiguration(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer, Expirations.noExpiration());
       }
 
       @Override
       public AuthoritativeTier.Configuration<String, String> newConfiguration(
-          final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
+          final Class<String> keyType, final Class<String> valueType, final Long capacityConstraint,
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer,
           final Expiry<? super String, ? super String> expiry) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType,
@@ -86,7 +92,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
 
       private ResourcePools getOffHeapResourcePool(Comparable<Long> capacityConstraint) {
         if (capacityConstraint == null) {
-          capacityConstraint = 1L;
+          capacityConstraint = 32L;
         }
         return ResourcePoolsBuilder.newResourcePoolsBuilder().offheap((Long)capacityConstraint, MemoryUnit.MB).build();
       }
@@ -136,7 +142,9 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
 
       @Override
       public String createValue(long seed) {
-        return Long.toString(seed);
+        char[] chars = new char[600 * 1024];
+        Arrays.fill(chars, (char) (0x1 + (seed & 0x7e)));
+        return new String(chars);
       }
 
       @Override
@@ -154,10 +162,5 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
   @Override
   protected StoreFactory<String, String> getStoreFactory() {
     return getAuthoritativeTierFactory();
-  }
-
-  @Override
-  public void testStoreEvictionEventListener() throws Exception {
-    throw new AssumptionViolatedException("Not yet implemented");
   }
 }

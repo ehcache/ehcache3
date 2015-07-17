@@ -38,11 +38,11 @@ public interface StoreFactory<K, V> {
   Store.Provider newProvider();
 
   Store.Configuration<K, V> newConfiguration(
-      Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
+      Class<K> keyType, Class<V> valueType, Long capacity,
       EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer);
 
   Store.Configuration<K, V> newConfiguration(
-      Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
+      Class<K> keyType, Class<V> valueType, Long capacity,
       EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
       Expiry<? super K, ? super V> expiry);
 

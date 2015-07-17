@@ -32,7 +32,6 @@ import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.FileBasedPersistenceContext;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -47,9 +46,6 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
 
   @Rule
   public final TestLocalPersistenceService persistenceService = new TestLocalPersistenceService();
-  
-  @Ignore
-  public void testEvictionVeto() {}
   
   @Test
   public void testRecovery() throws CacheAccessException, IOException {

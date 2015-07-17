@@ -18,6 +18,7 @@ package org.ehcache.internal.store.disk;
 
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.StoreConfigurationImpl;
@@ -31,6 +32,7 @@ import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
+import org.ehcache.internal.persistence.TestLocalPersistenceService;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.offheap.OffHeapValueHolder;
@@ -47,14 +49,15 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.test.After;
 import org.junit.Before;
 import org.junit.Rule;
-import org.junit.internal.AssumptionViolatedException;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.ehcache.internal.persistence.TestLocalPersistenceService;
-import org.junit.rules.TemporaryFolder;
+
+import static org.ehcache.config.ResourceType.Core.DISK;
 
 /**
  * OffHeapStoreSPITest
@@ -91,8 +94,10 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
           FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContext(persistentStoreConfiguration
               .getIdentifier(), persistentStoreConfiguration);
 
-          OffHeapDiskStore<String, String> store = new OffHeapDiskStore<String, String>(persistenceContext, config, keySerializer, valueSerializer, timeSource, MemoryUnit.MB
-              .toBytes(1));
+          ResourcePool pool = config.getResourcePools().getPoolForResource(DISK);
+          MemoryUnit unit = (MemoryUnit)pool.getUnit();
+
+          OffHeapDiskStore<String, String> store = new OffHeapDiskStore<String, String>(persistenceContext, config, keySerializer, valueSerializer, timeSource, unit.toBytes(pool.getSize()));
           OffHeapDiskStore.Provider.init(store);
           createdStores.put(store, persistentStoreConfiguration.getIdentifier());
           return store;
@@ -103,14 +108,14 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
 
       @Override
       public AuthoritativeTier.Configuration<String, String> newConfiguration(
-          final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
+          final Class<String> keyType, final Class<String> valueType, final Long capacityConstraint,
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
         return newConfiguration(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer, Expirations.noExpiration());
       }
 
       @Override
       public AuthoritativeTier.Configuration<String, String> newConfiguration(
-          final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
+          final Class<String> keyType, final Class<String> valueType, final Long capacityConstraint,
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer,
           final Expiry<? super String, ? super String> expiry) {
         StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(keyType, valueType,
@@ -122,7 +127,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
 
       private ResourcePools getDiskResourcePool(Comparable<Long> capacityConstraint) {
         if (capacityConstraint == null) {
-          capacityConstraint = 1L;
+          capacityConstraint = 32L;
         }
         return ResourcePoolsBuilder.newResourcePoolsBuilder().disk((Long) capacityConstraint, MemoryUnit.MB).build();
       }
@@ -179,7 +184,9 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
 
       @Override
       public String createValue(long seed) {
-        return Long.toString(seed);
+        char[] chars = new char[400 * 1024];
+        Arrays.fill(chars, (char) (0x1 + (seed & 0x7e)));
+        return new String(chars);
       }
 
       @Override
@@ -233,10 +240,5 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
   @Override
   protected StoreFactory<String, String> getStoreFactory() {
     return getAuthoritativeTierFactory();
-  }
-
-  @Override
-  public void testStoreEvictionEventListener() throws Exception {
-    throw new AssumptionViolatedException("Not yet implemented");
   }
 }
