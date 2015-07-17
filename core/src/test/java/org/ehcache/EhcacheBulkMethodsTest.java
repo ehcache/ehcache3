@@ -261,8 +261,13 @@ public class EhcacheBulkMethodsTest {
       }
 
       @Override
-      public float hitRate(TimeUnit unit) {
+      public float hitRate(long now, TimeUnit unit) {
         throw new AssertionError();
+      }
+
+      @Override
+      public long hits() {
+        throw new UnsupportedOperationException("Implement me!");
       }
 
       @Override

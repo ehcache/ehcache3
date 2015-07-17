@@ -70,7 +70,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     super(config, timeSource);
     EvictionVeto<? super K, ? super V> veto = config.getEvictionVeto();
     if (veto != null) {
-      evictionVeto = wrap(veto);
+      evictionVeto = wrap(veto, timeSource);
     } else {
       evictionVeto = Predicates.none();
     }

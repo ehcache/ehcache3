@@ -34,13 +34,14 @@ public final class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
   private final WriteContext writeContext;
 
   public OffHeapValueHolder(long id, V value, long creationTime, long expireTime) {
-    this(id, value, creationTime, expireTime, 0, null);
+    this(id, value, creationTime, expireTime, 0, 0, null);
   }
 
-  public OffHeapValueHolder(long id, V value, long creationTime, long expireTime, long lastAccessTime, WriteContext writeContext) {
+  public OffHeapValueHolder(long id, V value, long creationTime, long expireTime, long lastAccessTime, long hits, WriteContext writeContext) {
     super(id, creationTime, expireTime);
     setLastAccessTime(lastAccessTime, TIME_UNIT);
     this.value = value;
+    this.setHits(hits);
     this.writeContext = writeContext;
   }
 
@@ -78,6 +79,7 @@ public final class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
   public void writeBack() {
     writeContext.setLong(OffHeapValueHolderPortability.ACCESS_TIME_OFFSET, lastAccessTime(TimeUnit.MILLISECONDS));
     writeContext.setLong(OffHeapValueHolderPortability.EXPIRE_TIME_OFFSET, expirationTime(TimeUnit.MILLISECONDS));
+    writeContext.setLong(OffHeapValueHolderPortability.HITS_OFFSET, hits());
     writeContext.flush();
   }
 
@@ -87,5 +89,6 @@ public final class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
     }
     this.setLastAccessTime(valueFlushed.lastAccessTime(OffHeapValueHolder.TIME_UNIT), OffHeapValueHolder.TIME_UNIT);
     this.setExpirationTime(valueFlushed.expirationTime(OffHeapValueHolder.TIME_UNIT), OffHeapValueHolder.TIME_UNIT);
+    this.setHits(valueFlushed.hits());
   }
 }

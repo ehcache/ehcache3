@@ -197,8 +197,13 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
           }
 
           @Override
-          public float hitRate(TimeUnit unit) {
+          public float hitRate(long now, TimeUnit unit) {
             return 0;
+          }
+
+          @Override
+          public long hits() {
+            throw new UnsupportedOperationException("Implement me!");
           }
 
           @Override

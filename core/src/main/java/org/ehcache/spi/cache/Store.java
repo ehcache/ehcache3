@@ -402,10 +402,16 @@ public interface Store<K, V> {
     /**
      * Accessor to the hit rate of the Value held in this ValueHolder?
      *
-     * @param unit the timeUnit to return the rate in
+     * @param now the time in {@link TimeUnit#MILLISECONDS} upto which the rate needs to be calculated
+     * @param unit the {@link TimeUnit} in which the rate is to returned
      * @return the hit rate in the given unit
      */
-    float hitRate(TimeUnit unit);
+    float hitRate(long now, TimeUnit unit);
+
+    /**
+     * @return hit counter of the Value held in this ValueHolder
+     */
+    long hits();
 
     /**
      * The combination of this identifier and the <code>key</code> that ValueHolder is mapped to should to be

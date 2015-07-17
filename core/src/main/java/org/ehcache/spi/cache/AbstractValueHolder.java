@@ -19,16 +19,19 @@ import org.ehcache.expiry.Duration;
 
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 
 /**
  * @author Ludovic Orban
  */
 public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V>, Serializable {
 
+  private static final AtomicLongFieldUpdater<AbstractValueHolder> HITS_UPDATER = AtomicLongFieldUpdater.newUpdater(AbstractValueHolder.class, "hits");
   private final long id;
   private final long creationTime;
   private volatile long lastAccessTime;
   private volatile long expirationTime;
+  private volatile long hits;
 
   protected AbstractValueHolder(long id, long creationTime) {
     this(id, creationTime, NO_EXPIRE);
@@ -78,6 +81,7 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V>, Se
       }
     }
     setLastAccessTime(now, timeUnit);
+    HITS_UPDATER.getAndIncrement(this);
   }
 
   @Override
@@ -129,9 +133,20 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V>, Se
   }
 
   @Override
-  public float hitRate(TimeUnit unit) {
-    //XXX
-    return 0.0f;
+  public float hitRate(long now, TimeUnit unit) {
+    final long endTime = TimeUnit.NANOSECONDS.convert(now, TimeUnit.MILLISECONDS);
+    final long startTime = TimeUnit.NANOSECONDS.convert(creationTime, nativeTimeUnit());
+    float duration = (endTime - startTime)/(float)TimeUnit.NANOSECONDS.convert(1, unit);
+    return (hits/duration);
+  }
+
+  @Override
+  public long hits() {
+    return this.hits;
+  }
+
+  protected void setHits(long hits) {
+    HITS_UPDATER.set(this, hits);
   }
 
   @Override

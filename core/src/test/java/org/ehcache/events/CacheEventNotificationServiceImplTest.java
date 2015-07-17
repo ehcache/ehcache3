@@ -21,6 +21,8 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
+import org.ehcache.internal.SystemTimeSource;
+import org.ehcache.internal.TimeSource;
 import org.ehcache.spi.cache.Store;
 import org.junit.After;
 import org.junit.Before;
@@ -64,7 +66,8 @@ public class CacheEventNotificationServiceImplTest {
     orderedExecutor = Executors.newSingleThreadExecutor();
     unorderedExecutor = Executors.newCachedThreadPool();
     store = mock(Store.class);
-    eventService = new CacheEventNotificationServiceImpl<Number, String>(orderedExecutor, unorderedExecutor, store);
+    TimeSource timeSource = SystemTimeSource.INSTANCE;
+    eventService = new CacheEventNotificationServiceImpl<Number, String>(orderedExecutor, unorderedExecutor, store, timeSource);
     listener = mock(CacheEventListener.class);
   }
 
@@ -230,5 +233,4 @@ public class CacheEventNotificationServiceImplTest {
     when(event.getType()).thenReturn(type);
     return event;
   }
-
 }

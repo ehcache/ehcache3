@@ -295,7 +295,7 @@ public class EhcacheManager implements PersistentCacheManager {
     }
 
     final CacheEventNotificationListenerServiceProvider cenlProvider = serviceLocator.findService(CacheEventNotificationListenerServiceProvider.class);
-    final CacheEventNotificationService<K, V> evtService = cenlProvider.createCacheEventNotificationService(store);
+    final CacheEventNotificationService<K, V> evtService = cenlProvider.createCacheEventNotificationService(store, serviceConfigs);
     lifeCycledList.add(new LifeCycled() {
       @Override
       public void init() throws Exception {
