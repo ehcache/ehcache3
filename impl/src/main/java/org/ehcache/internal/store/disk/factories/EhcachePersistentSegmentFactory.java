@@ -20,10 +20,10 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.Predicate;
 import org.terracotta.offheapstore.Metadata;
-import org.terracotta.offheapstore.Segment;
 import org.terracotta.offheapstore.disk.paging.MappedPageSource;
 import org.terracotta.offheapstore.disk.persistent.PersistentReadWriteLockedOffHeapClockCache;
 import org.terracotta.offheapstore.disk.persistent.PersistentStorageEngine;
+import org.terracotta.offheapstore.pinning.PinnableSegment;
 import org.terracotta.offheapstore.util.Factory;
 
 import java.util.Map;
@@ -35,7 +35,7 @@ import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory.Ehcach
  *
  * @author Chris Dennis
  */
-public class EhcachePersistentSegmentFactory<K, V> implements Factory<Segment<K, V>> {
+public class EhcachePersistentSegmentFactory<K, V> implements Factory<PinnableSegment<K, V>> {
 
   private final Factory<? extends PersistentStorageEngine<? super K, ? super V>> storageEngineFactory;
   private final MappedPageSource tableSource;
