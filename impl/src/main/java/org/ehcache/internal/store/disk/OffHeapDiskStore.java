@@ -28,7 +28,6 @@ import org.ehcache.function.Predicates;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceService;
 import org.ehcache.internal.store.disk.factories.EhcachePersistentSegmentFactory;
-import org.ehcache.internal.store.offheap.HeuristicConfiguration;
 import org.ehcache.internal.store.offheap.OffHeapValueHolder;
 import org.ehcache.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.internal.store.offheap.portability.SerializerPortability;
@@ -148,12 +147,11 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
                     dataFile.getName(), delta);
       }
 
-      HeuristicConfiguration config = new HeuristicConfiguration(size);
       MappedPageSource source = new MappedPageSource(dataFile, false, size);
       try {
         PersistentPortability<K> keyPortability = persistent(new SerializerPortability<K>(keySerializer));
         PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<V>(valueSerializer));
-        DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool("identifier", config.getConcurrency());
+        DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool("identifier", 1);
 
         Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
                 keyPortability, elementPortability, writeWorkers, false);
@@ -161,7 +159,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>>(
             source,
             storageEngineFactory,
-            config.getInitialSegmentTableSize(),
+            64,
             evictionVeto,
             mapEvictionListener, false);
             EhcachePersistentConcurrentOffHeapClockCache m = new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(input, factory);
@@ -185,7 +183,6 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   }
   
   private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, Predicate<Map.Entry<K, OffHeapValueHolder<V>>> evictionVeto) {
-    HeuristicConfiguration config = new HeuristicConfiguration(size);
     MappedPageSource source;
     try {
       source = new MappedPageSource(getDataFile(), size);
@@ -195,7 +192,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
     PersistentPortability<K> keyPortability = persistent(new SerializerPortability<K>(keySerializer));
     PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<V>(valueSerializer));
-    DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool("identifier", config.getConcurrency());
+    DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool("identifier", 1);
 
     Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
         keyPortability, elementPortability, writeWorkers, true);
@@ -203,10 +200,10 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>>(
         source,
         storageEngineFactory,
-        config.getInitialSegmentTableSize(),
+        64,
         evictionVeto,
         mapEvictionListener, true);
-    return new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(factory, config.getConcurrency());
+    return new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(factory, 16);
 
   }
 
