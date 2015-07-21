@@ -390,12 +390,9 @@ public class EhcacheManager implements PersistentCacheManager {
     final StatusTransitioner.Transition st = statusTransitioner.init();
 
     try {
-      Map<Service, ServiceConfiguration<?>> serviceConfigs = new HashMap<Service, ServiceConfiguration<?>>();
-      for (ServiceConfiguration<?> serviceConfig : configuration.getServiceConfigurations()) {
-        Service service = serviceLocator.discoverService(serviceConfig);
-        if(service == null) {
-          service = serviceLocator.findService(serviceConfig.getServiceType());
-        }
+      Map<Service, ServiceConfiguration<? extends Service>> serviceConfigs = new HashMap<Service, ServiceConfiguration<? extends Service>>();
+      for (ServiceConfiguration<? extends Service> serviceConfig : configuration.getServiceConfigurations()) {
+        Service service = serviceLocator.findServiceFor(serviceConfig);
         if (service == null) {
           throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
         }

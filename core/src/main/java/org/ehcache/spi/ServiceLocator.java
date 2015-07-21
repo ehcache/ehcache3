@@ -64,11 +64,7 @@ public final class ServiceLocator implements ServiceProvider {
     }
   }
 
-  public <T extends Service> T discoverService(Class<T> serviceClass) {
-    return discoverService(serviceClass, null);
-  }
-
-  public <T extends Service> T discoverService(Class<T> serviceClass, ServiceConfiguration<T> config) {
+  private <T extends Service> T discoverService(Class<T> serviceClass, ServiceConfiguration<T> config) {
     // TODO Fix me!
     for (ServiceFactory<T> factory : ServiceLocator.<T> getServiceFactories(serviceFactory)) {
       if (serviceClass.isAssignableFrom(factory.getServiceType())) {
@@ -89,10 +85,6 @@ public final class ServiceLocator implements ServiceProvider {
     return list;
   }
 
-  public <T extends Service> T discoverService(ServiceConfiguration<T> config) {
-    return discoverService(config.getServiceType(), config);
-  }
-  
   public void addService(final Service service) {
     addService(service, false);
   }
