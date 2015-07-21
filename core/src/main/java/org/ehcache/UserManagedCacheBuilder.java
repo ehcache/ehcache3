@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.ehcache.config.BaseCacheConfiguration;
@@ -78,16 +77,13 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     try {
       Map<Service, ServiceConfiguration<?>> serviceConfigs = new HashMap<Service, ServiceConfiguration<?>>();
       for (ServiceConfiguration<?> serviceConfig : serviceCfgs) {
-        Service service = serviceLocator.discoverService(serviceConfig);
-        if(service == null) {
-          service = serviceLocator.findService(serviceConfig.getServiceType());
-        }
+        Service service = serviceLocator.findServiceFor(serviceConfig);
         if (service == null) {
           throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
         }
         serviceConfigs.put(service, serviceConfig);
       }
-      serviceLocator.startAllServices(new HashMap<Service, ServiceConfiguration<?>>());
+      serviceLocator.startAllServices(serviceConfigs);
     } catch (Exception e) {
       throw new IllegalStateException("UserManagedCacheBuilder failed to build.", e);
     }
