@@ -27,6 +27,8 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.SupplementaryService;
+import org.ehcache.spi.services.DefaultTestService;
+import org.ehcache.spi.services.TestService;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
@@ -97,7 +99,7 @@ public class ServiceLocatorTest {
     });
     
     ServiceLocator serviceLocator = new ServiceLocator();
-    serviceLocator.discoverService(Service.class);
+    serviceLocator.findService(TestService.class);
   }
 
   @Test
@@ -157,6 +159,17 @@ public class ServiceLocatorTest {
     locator.stopAllServices();
     verify(s1, times(1)).stop();
   }
+
+  @Test
+  public void testCanOverrideDefaultServiceFromServiceLoader() {
+    ServiceLocator locator = new ServiceLocator(new ExtendedTestService());
+    TestService testService = locator.findService(TestService.class);
+    assertThat(testService, instanceOf(ExtendedTestService.class));
+  }
+}
+
+class ExtendedTestService extends DefaultTestService {
+
 }
 
 interface FooProvider extends Service {
