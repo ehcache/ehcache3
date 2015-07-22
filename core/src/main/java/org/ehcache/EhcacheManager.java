@@ -341,7 +341,6 @@ public class EhcacheManager implements PersistentCacheManager {
       Collection<CacheEventListenerConfiguration> evtLsnrConfigs =
       ServiceLocator.findAmongst(CacheEventListenerConfiguration.class, config.getServiceConfigurations().toArray());
       for (CacheEventListenerConfiguration lsnrConfig: evtLsnrConfigs) {
-        // XXX this assumes a new instance returned for each call - yet args are always the same. Is this okay?
         final CacheEventListener<K, V> lsnr = evntLsnrFactory.createEventListener(alias, lsnrConfig);
         if (lsnr != null) {
           ehCache.getRuntimeConfiguration().registerCacheEventListener(lsnr, lsnrConfig.orderingMode(), lsnrConfig.firingMode(),
