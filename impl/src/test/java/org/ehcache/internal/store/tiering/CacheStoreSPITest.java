@@ -266,6 +266,8 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
         provider.releaseStore(store);
         try {
           persistenceService.destroyPersistenceContext(alias);
+        } catch (CachePersistenceException e) {
+          throw new AssertionError(e);
         } finally {
           createdStores.remove(store);
         }
