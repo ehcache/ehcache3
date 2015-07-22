@@ -15,12 +15,14 @@
  */
 package org.ehcache.spi.loaderwriter;
 
+import org.ehcache.spi.service.MandatoryService;
 import org.ehcache.spi.service.Service;
 
 /**
  * @author Abhilash
  *
  */
+@MandatoryService
 public interface WriteBehindDecoratorLoaderWriterProvider extends Service {
   
   /**

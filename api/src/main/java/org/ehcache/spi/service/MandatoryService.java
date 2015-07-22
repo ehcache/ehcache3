@@ -16,19 +16,16 @@
 
 package org.ehcache.spi.service;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * @author Ludovic Orban
+ * MandatoryService is a marker annotation indicating that a {@link Service} must be loaded even when no configuration
+ * for it has been provided.
  */
-@MandatoryService
-public interface ThreadPoolsService extends Service {
-
-  ScheduledExecutorService getStatisticsExecutor();
-
-  ExecutorService getEventsOrderedDeliveryExecutor();
-
-  ExecutorService getEventsUnorderedDeliveryExecutor();
-
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+public @interface MandatoryService {
 }

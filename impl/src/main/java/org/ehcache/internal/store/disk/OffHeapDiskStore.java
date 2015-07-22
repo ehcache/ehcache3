@@ -39,6 +39,7 @@ import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.LocalPersistenceService;
+import org.ehcache.spi.service.MandatoryService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
@@ -224,6 +225,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   }
 
   @SupplementaryService
+  @MandatoryService
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
     private volatile ServiceProvider serviceProvider;

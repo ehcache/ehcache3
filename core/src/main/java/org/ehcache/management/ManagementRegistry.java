@@ -15,6 +15,7 @@
  */
 package org.ehcache.management;
 
+import org.ehcache.spi.service.MandatoryService;
 import org.ehcache.spi.service.Service;
 
 import java.util.Collection;
@@ -26,6 +27,7 @@ import java.util.Map;
  *
  * @author Ludovic Orban
  */
+@MandatoryService
 public interface ManagementRegistry extends Service {
 
   /**

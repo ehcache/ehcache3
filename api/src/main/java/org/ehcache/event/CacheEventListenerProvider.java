@@ -16,12 +16,14 @@
 
 package org.ehcache.event;
 
+import org.ehcache.spi.service.MandatoryService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author Alex Snaps
  */
+@MandatoryService
 public interface CacheEventListenerProvider extends Service {
 
   /**
