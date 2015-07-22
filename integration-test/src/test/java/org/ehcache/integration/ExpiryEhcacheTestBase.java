@@ -50,10 +50,9 @@ public abstract class ExpiryEhcacheTestBase {
   @Before
   public void setUp() throws Exception {
     manualTimeSource.setTime(0L);
-    CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder();
+    CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder().using(new TimeSourceConfiguration(manualTimeSource));
     cacheManager = builder.build(true);
     CacheConfigurationBuilder<Object, Object> objectObjectCacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .add(new TimeSourceConfiguration(manualTimeSource))
         .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)));
     testCache = cacheManager.createCache("testCache", objectObjectCacheConfigurationBuilder.buildConfig(Number.class, CharSequence.class));
   }

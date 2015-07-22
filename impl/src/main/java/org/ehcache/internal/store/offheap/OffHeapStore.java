@@ -21,9 +21,8 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.function.Predicate;
-import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.TimeSourceConfiguration;
+import org.ehcache.internal.TimeSourceService;
 import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.ehcache.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.internal.store.offheap.portability.SerializerPortability;
@@ -50,8 +49,6 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.function.Predicates;
 
 import static org.ehcache.internal.store.offheap.OffHeapStoreUtils.getBufferSource;
-import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
-import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.statistics.StoreOperationOutcomes;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 import org.terracotta.statistics.observer.OperationObserver;
@@ -117,12 +114,11 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
     @Override
     public <K, V> OffHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[]) serviceConfigs);
-      TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
-
       if (serviceProvider == null) {
-        throw new RuntimeException("ServiceProvider is null.");
+        throw new NullPointerException("ServiceProvider is null in OffHeapStore.Provider.");
       }
+      TimeSource timeSource = serviceProvider.findService(TimeSourceService.class).getTimeSource();
+
       SerializationProvider serializationProvider = serviceProvider.findService(SerializationProvider.class);
       Serializer<K> keySerializer = serializationProvider.createKeySerializer(storeConfig.getKeyType(), storeConfig.getClassLoader(), serviceConfigs);
       Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig
