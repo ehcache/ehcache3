@@ -43,15 +43,18 @@ public abstract class AbstractOffHeapStoreTest {
   public void testWriteBackOfValueHolder() throws CacheAccessException {
     TestTimeSource timeSource = new TestTimeSource();
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
-
-    offHeapStore.put("key1", "value1");
-    timeSource.advanceTime(10);
-    OffHeapValueHolder<String> valueHolder = (OffHeapValueHolder<String>)offHeapStore.get("key1");
-    assertThat(valueHolder.lastAccessTime(TimeUnit.MILLISECONDS), is(10L));
-    timeSource.advanceTime(10);
-    assertThat(offHeapStore.get("key1"), notNullValue());
-    timeSource.advanceTime(16);
-    assertThat(offHeapStore.get("key1"), nullValue());
+    try {
+      offHeapStore.put("key1", "value1");
+      timeSource.advanceTime(10);
+      OffHeapValueHolder<String> valueHolder = (OffHeapValueHolder<String>)offHeapStore.get("key1");
+      assertThat(valueHolder.lastAccessTime(TimeUnit.MILLISECONDS), is(10L));
+      timeSource.advanceTime(10);
+      assertThat(offHeapStore.get("key1"), notNullValue());
+      timeSource.advanceTime(16);
+      assertThat(offHeapStore.get("key1"), nullValue());
+    } finally {
+      destroyStore(offHeapStore);
+    }
   }
 
   @Test
@@ -67,20 +70,24 @@ public abstract class AbstractOffHeapStoreTest {
       }
     };
     AbstractOffHeapStore<String, byte[]> offHeapStore = createAndInitStore(timeSource, expiry, evictionVeto);
-    offHeapStore.enableStoreEventNotifications(new TestStoreEventListener<String, byte[]>());
+    try {
+      offHeapStore.enableStoreEventNotifications(new TestStoreEventListener<String, byte[]>());
 
-    int valueLength = 200000;
-    byte[] value = new byte[valueLength];
-    value[0] = 1;
-    value[valueLength/2] = 1;
-    value[valueLength - 1] = 1;
-    offHeapStore.put("key1", value);
-    offHeapStore.put("key2", value);
-    offHeapStore.put("key3", value);
-    offHeapStore.put("key4", value);
-    offHeapStore.put("key5", value);
-    offHeapStore.put("key6", value);
-//    offHeapStore.put("key7", value);
+      int valueLength = 200000;
+      byte[] value = new byte[valueLength];
+      value[0] = 1;
+      value[valueLength/2] = 1;
+      value[valueLength - 1] = 1;
+      offHeapStore.put("key1", value);
+      offHeapStore.put("key2", value);
+      offHeapStore.put("key3", value);
+      offHeapStore.put("key4", value);
+      offHeapStore.put("key5", value);
+      offHeapStore.put("key6", value);
+      //offHeapStore.put("key7", value);
+    } finally {
+      destroyStore(offHeapStore);
+    }
 
   }
 
@@ -89,25 +96,31 @@ public abstract class AbstractOffHeapStoreTest {
     final TestTimeSource timeSource = new TestTimeSource();
     final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS));
     final AbstractOffHeapStore<String, String> store = createAndInitStore(timeSource, expiry);
-    final String key = "foo";
-    final String value = "bar";
-    store.put(key, value);
-    final Store.ValueHolder<String> firstValueHolder = store.getAndFault(key);
-    store.put(key, value);
-    final Store.ValueHolder<String> secondValueHolder = store.getAndFault(key);
-    timeSource.advanceTime(10);
-    ((AbstractValueHolder)firstValueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, value));
-    timeSource.advanceTime(10);
-    ((AbstractValueHolder)secondValueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, value));
-    assertThat(store.flush(key, new DelegatingValueHolder<String>(firstValueHolder)), is(false));
-    assertThat(store.flush(key, new DelegatingValueHolder<String>(secondValueHolder)), is(true));
-    timeSource.advanceTime(10); // this should NOT affect
-    assertThat(store.getAndFault(key).lastAccessTime(TimeUnit.MILLISECONDS), is(secondValueHolder.creationTime(TimeUnit.MILLISECONDS) + 20));
+    try {
+      final String key = "foo";
+      final String value = "bar";
+      store.put(key, value);
+      final Store.ValueHolder<String> firstValueHolder = store.getAndFault(key);
+      store.put(key, value);
+      final Store.ValueHolder<String> secondValueHolder = store.getAndFault(key);
+      timeSource.advanceTime(10);
+      ((AbstractValueHolder)firstValueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, value));
+      timeSource.advanceTime(10);
+      ((AbstractValueHolder)secondValueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, value));
+      assertThat(store.flush(key, new DelegatingValueHolder<String>(firstValueHolder)), is(false));
+      assertThat(store.flush(key, new DelegatingValueHolder<String>(secondValueHolder)), is(true));
+      timeSource.advanceTime(10); // this should NOT affect
+      assertThat(store.getAndFault(key).lastAccessTime(TimeUnit.MILLISECONDS), is(secondValueHolder.creationTime(TimeUnit.MILLISECONDS) + 20));
+    } finally {
+      destroyStore(store);
+    }
   }
 
   protected abstract AbstractOffHeapStore<String, String> createAndInitStore(final TimeSource timeSource, final Expiry<? super String, ? super String> expiry);
 
   protected abstract AbstractOffHeapStore<String, byte[]> createAndInitStore(final TimeSource timeSource, final Expiry<? super String, ? super byte[]> expiry, EvictionVeto<? super String, ? super byte[]> evictionVeto);
+
+  protected abstract void destroyStore(AbstractOffHeapStore<?, ?> store);
   
   private static class TestStoreEventListener<K, V> implements StoreEventListener<K, V> {
 

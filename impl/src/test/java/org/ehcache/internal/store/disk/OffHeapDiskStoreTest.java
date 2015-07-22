@@ -25,6 +25,7 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.persistence.TestLocalPersistenceService;
+import org.ehcache.internal.store.offheap.AbstractOffHeapStore;
 import org.ehcache.internal.store.offheap.AbstractOffHeapStoreTest;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
@@ -53,14 +54,17 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   @Test
   public void testRecovery() throws CacheAccessException, IOException {
     OffHeapDiskStore<String, String> offHeapDiskStore = createAndInitStore(SystemTimeSource.INSTANCE, noExpiration());
+    try {
+      offHeapDiskStore.put("key1", "value1");
+      assertThat(offHeapDiskStore.get("key1"), notNullValue());
 
-    offHeapDiskStore.put("key1", "value1");
-    assertThat(offHeapDiskStore.get("key1"), notNullValue());
-    
-    OffHeapDiskStore.Provider.close(offHeapDiskStore);
-    
-    OffHeapDiskStore.Provider.init(offHeapDiskStore);
-    assertThat(offHeapDiskStore.get("key1"), notNullValue());
+      OffHeapDiskStore.Provider.close(offHeapDiskStore);
+
+      OffHeapDiskStore.Provider.init(offHeapDiskStore);
+      assertThat(offHeapDiskStore.get("key1"), notNullValue());
+    } finally {
+      destroyStore(offHeapDiskStore);
+    }
   }
   
   @Override
@@ -86,6 +90,15 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<String, byte[]>(getPersistenceContext(), storeConfiguration, serializer, byteArraySerializer, timeSource, MemoryUnit.MB.toBytes(1));
     OffHeapDiskStore.Provider.init(offHeapStore);
     return offHeapStore;
+  }
+
+  @Override
+  protected void destroyStore(AbstractOffHeapStore<?, ?> store) {
+    try {
+      OffHeapDiskStore.Provider.close((OffHeapDiskStore<?, ?>) store);
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    }
   }
 
   private FileBasedPersistenceContext getPersistenceContext() {
