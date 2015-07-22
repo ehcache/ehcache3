@@ -4,6 +4,7 @@ org.ehcache.internal.store.offheap.OffHeapStoreProviderFactory
 org.ehcache.internal.store.disk.OffHeapDiskStoreProviderFactory
 org.ehcache.internal.store.tiering.CacheStoreProviderFactory
 
+org.ehcache.internal.TimeSourceServiceFactory
 org.ehcache.spi.serialization.DefaultSerializationProviderFactory
 org.ehcache.spi.loaderwriter.DefaultCacheLoaderWriterProviderFactory
 org.ehcache.spi.event.DefaultCacheEventListenerProviderFactory

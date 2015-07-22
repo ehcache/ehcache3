@@ -13,40 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.ehcache.internal;
 
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceFactory;
 
 /**
- * Configuration for the {@link TimeSourceService}
- *
- * This configuration has to be applied at the {@link org.ehcache.CacheManager} level.
+ * TimeSourceServiceFactory
  */
-public class TimeSourceConfiguration implements ServiceConfiguration<TimeSourceService> {
-
-  private final TimeSource timeSource;
-
-  /**
-   * Constructor for this configuration object which takes the {@link TimeSource} to use.
-   *
-   * @param timeSource the {@code TimeSource} to use
-   */
-  public TimeSourceConfiguration(TimeSource timeSource) {
-    this.timeSource = timeSource;
+public class TimeSourceServiceFactory implements ServiceFactory<TimeSourceService> {
+  @Override
+  public TimeSourceService create(ServiceConfiguration<TimeSourceService> serviceConfiguration, ServiceLocator serviceLocator) {
+    return new DefaultTimeSourceService((TimeSourceConfiguration)serviceConfiguration);
   }
-  
+
   @Override
   public Class<TimeSourceService> getServiceType() {
     return TimeSourceService.class;
   }
-
-  /**
-   * Exposes the {@link TimeSource} configured.
-   *
-   * @return the {@code TimeSource}
-   */
-  public TimeSource getTimeSource() {
-    return this.timeSource;
-  }
-
 }

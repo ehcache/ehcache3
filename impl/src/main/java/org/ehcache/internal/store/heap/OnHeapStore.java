@@ -36,9 +36,8 @@ import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.function.Predicate;
 import org.ehcache.function.Predicates;
-import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.TimeSourceConfiguration;
+import org.ehcache.internal.TimeSourceService;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.ehcache.spi.ServiceProvider;
@@ -985,8 +984,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       OnHeapStoreServiceConfiguration onHeapStoreServiceConfig = findSingletonAmongst(OnHeapStoreServiceConfiguration.class, (Object[])serviceConfigs);
       boolean storeByValue = onHeapStoreServiceConfig != null && onHeapStoreServiceConfig.storeByValue();
 
-      TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[])serviceConfigs);
-      TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
+      TimeSource timeSource = serviceProvider.findService(TimeSourceService.class).getTimeSource();
       Serializer<K> keySerializer = null;
       Serializer<V> valueSerializer = null;
       if (storeByValue) {
