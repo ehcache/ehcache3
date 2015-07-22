@@ -20,7 +20,6 @@ import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.actions.EhcacheActionProvider;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -47,20 +46,14 @@ public class DefaultManagementRegistry extends AbstractManagementRegistry {
   }
 
   @Override
-  public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+  public void start(ServiceProvider serviceProvider) {
     if (startedCounter.getAndIncrement() > 0) {
       return;
     }
 
-    StatisticsProviderConfiguration statisticsProviderConfiguration = null;
+    StatisticsProviderConfiguration statisticsProviderConfiguration;
     if (defaultManagementRegistryConfiguration == null) {
-      DefaultManagementRegistryConfiguration serviceConfiguration = (DefaultManagementRegistryConfiguration) config;
-      if (serviceConfiguration != null) {
-        statisticsProviderConfiguration = serviceConfiguration.getConfigurationFor(EhcacheStatisticsProvider.class);
-      }
-      if (statisticsProviderConfiguration == null) {
         statisticsProviderConfiguration = DEFAULT_EHCACHE_STATISTICS_PROVIDER_CONFIGURATION;
-      }
     } else {
       statisticsProviderConfiguration = defaultManagementRegistryConfiguration.getConfigurationFor(EhcacheStatisticsProvider.class);
     }
@@ -71,7 +64,7 @@ public class DefaultManagementRegistry extends AbstractManagementRegistry {
     addSupportFor(new EhcacheStatisticsProvider(statisticsProviderConfiguration, executor));
     addSupportFor(new EhcacheActionProvider());
 
-    super.start(config, serviceProvider);
+    super.start(serviceProvider);
   }
 
   @Override

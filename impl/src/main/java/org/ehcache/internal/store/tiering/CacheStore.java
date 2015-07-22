@@ -406,7 +406,7 @@ public class CacheStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+    public void start(ServiceProvider serviceProvider) {
       this.serviceProvider = serviceProvider;
     }
 

@@ -56,8 +56,8 @@ public class UserManagedCaches {
   @Test
   public void userManagedDiskCache() throws Exception {
     // tag::persistentUserManagedCache[]
-    LocalPersistenceService persistenceService = new DefaultLocalPersistenceService(
-        new DefaultPersistenceConfiguration(new File(getStoragePath(), "myUserData"))); // <1>
+    LocalPersistenceService persistenceService = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(new File(getStoragePath(), "myUserData"))); // <1>
+//    persistenceService.start(, null);
 
     PersistentUserManagedCache<Long, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
         .with(new UserManagedPersistenceContext<Long, String>("cache-name", persistenceService)) // <2>

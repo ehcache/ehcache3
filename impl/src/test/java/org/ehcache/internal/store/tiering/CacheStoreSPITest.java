@@ -85,8 +85,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
   @Before
   public void setUp() throws IOException {
     persistenceService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(folder.newFolder()));
-    persistenceService.start(null, null);
-            
+
     storeFactory = new StoreFactory<String, String>() {
       final AtomicInteger aliasCounter = new AtomicInteger();
 
@@ -124,7 +123,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
             }
 
             @Override
-            public void start(final ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
+            public void start(final ServiceProvider serviceProvider) {
               throw new UnsupportedOperationException("Implement me!");
             }
 
@@ -149,7 +148,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
             }
 
             @Override
-            public void start(final ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
+            public void start(final ServiceProvider serviceProvider) {
               throw new UnsupportedOperationException("Implement me!");
             }
 
@@ -219,7 +218,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
         ServiceLocator serviceLocator = new ServiceLocator();
         serviceLocator.addService(new FakeCachingTierProvider());
         serviceLocator.addService(new FakeAuthoritativeTierProvider());
-        provider.start(null, serviceLocator);
+        provider.start(serviceLocator);
         return provider;
       }
 
@@ -319,7 +318,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
     }
 
     @Override
-    public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+    public void start(ServiceProvider serviceProvider) {
       throw new UnsupportedOperationException();
     }
 
@@ -346,7 +345,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
     }
 
     @Override
-    public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+    public void start(ServiceProvider serviceProvider) {
       throw new UnsupportedOperationException();
     }
 

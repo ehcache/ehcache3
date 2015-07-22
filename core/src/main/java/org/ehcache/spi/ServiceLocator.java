@@ -32,7 +32,6 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -65,10 +64,9 @@ public final class ServiceLocator implements ServiceProvider {
   }
 
   private <T extends Service> T discoverService(Class<T> serviceClass, ServiceConfiguration<T> config) {
-    // TODO Fix me!
     for (ServiceFactory<T> factory : ServiceLocator.<T> getServiceFactories(serviceFactory)) {
       if (serviceClass.isAssignableFrom(factory.getServiceType())) {
-        T service = factory.create(config, this);
+        T service = factory.create(config);
         addService(service, true);
         return service;
       }
@@ -138,7 +136,7 @@ public final class ServiceLocator implements ServiceProvider {
       }
 
       if (running.get()) {
-        service.start(null, this);
+        service.start(this);
       }
     } finally {
       lock.unlock();
@@ -156,7 +154,6 @@ public final class ServiceLocator implements ServiceProvider {
     return interfaces;
   }
 
-  @Override
   public <T extends Service> T findServiceFor(ServiceConfiguration<T> config) {
     return findService(config.getServiceType(), config);
   }
@@ -174,7 +171,7 @@ public final class ServiceLocator implements ServiceProvider {
       return service;
     }
   }
-  
+
   public static <T> Collection<T> findAmongst(Class<T> clazz, Object ... instances) {
     Collection<T> matches = new ArrayList<T>();
     for (Object instance : instances) {
@@ -196,7 +193,7 @@ public final class ServiceLocator implements ServiceProvider {
     }
   }
 
-  public void startAllServices(final Map<Service, ServiceConfiguration<?>> serviceConfigs) throws Exception {
+  public void startAllServices() throws Exception {
     Deque<Service> started = new ArrayDeque<Service>();
     final Lock lock = runningLock.writeLock();
     lock.lock();
@@ -206,7 +203,7 @@ public final class ServiceLocator implements ServiceProvider {
       }
       for (Service service : services.values()) {
         if (!started.contains(service)) {
-          service.start(serviceConfigs.get(service), this);
+          service.start(this);
           started.push(service);
         }
       }

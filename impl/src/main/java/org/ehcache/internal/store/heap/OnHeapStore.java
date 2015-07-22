@@ -1023,7 +1023,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
 
     @Override
-    public void start(ServiceConfiguration<?> cfg, final ServiceProvider serviceProvider) {
+    public void start(final ServiceProvider serviceProvider) {
       this.serviceProvider = serviceProvider;
     }
 

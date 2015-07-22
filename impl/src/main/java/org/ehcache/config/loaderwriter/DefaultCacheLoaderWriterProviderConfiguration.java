@@ -17,18 +17,18 @@
 package org.ehcache.config.loaderwriter;
 
 import org.ehcache.internal.classes.ClassInstanceProviderConfiguration;
-import org.ehcache.spi.loaderwriter.DefaultCacheLoaderWriterProvider;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author Alex Snaps
  */
-public class DefaultCacheLoaderWriterProviderConfiguration extends ClassInstanceProviderConfiguration<CacheLoaderWriter<?, ?>> implements ServiceConfiguration<DefaultCacheLoaderWriterProvider> {
+public class DefaultCacheLoaderWriterProviderConfiguration extends ClassInstanceProviderConfiguration<CacheLoaderWriter<?, ?>> implements ServiceConfiguration<CacheLoaderWriterProvider> {
 
   @Override
-  public Class<DefaultCacheLoaderWriterProvider> getServiceType() {
-    return DefaultCacheLoaderWriterProvider.class;
+  public Class<CacheLoaderWriterProvider> getServiceType() {
+    return CacheLoaderWriterProvider.class;
   }
 
   public DefaultCacheLoaderWriterProviderConfiguration addLoaderFor(String alias, final Class<? extends CacheLoaderWriter<?, ?>> clazz) {

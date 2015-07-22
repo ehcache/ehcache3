@@ -101,7 +101,7 @@ public class DefaultStoreProvider implements Store.Provider {
   }
 
   @Override
-  public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+  public void start(ServiceProvider serviceProvider) {
     this.serviceProvider = serviceProvider;
   }
 

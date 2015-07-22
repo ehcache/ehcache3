@@ -15,10 +15,12 @@
  */
 package org.ehcache.spi.serialization;
 
+import org.ehcache.config.SerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.internal.classes.ClassInstanceProvider;
 import org.ehcache.internal.serialization.JavaSerializer;
+import org.hamcrest.core.Is;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -39,9 +41,9 @@ public class DefaultSerializationProviderTest {
 
   @Test
   public void testCreateSerializerNoConfig() throws Exception {
-    DefaultSerializationProvider dsp = new DefaultSerializationProvider();
     DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
-    dsp.start(dspfConfig, null);
+    DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
+    dsp.start(null);
 
     assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader()), instanceOf(JavaSerializer.class));
     try {
@@ -53,10 +55,22 @@ public class DefaultSerializationProviderTest {
   }
 
   @Test
+  public void testRefusesSerializerConfigAtCreation() {
+    DefaultSerializationProviderFactory factory = new DefaultSerializationProviderFactory();
+
+    try {
+      factory.create(new DefaultSerializerConfiguration<String>((Class)JavaSerializer.class, SerializerConfiguration.Type.KEY));
+      fail("Expected IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), Is.is("DefaultCacheLoaderWriterConfiguration must not be provided at CacheManager level"));
+    }
+  }
+
+  @Test
   public void testCreateSerializerWithConfig() throws Exception {
-    DefaultSerializationProvider dsp = new DefaultSerializationProvider();
     DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
-    dsp.start(dspfConfig, null);
+    DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
+    dsp.start(null);
 
     DefaultSerializerConfiguration dspConfig = new DefaultSerializerConfiguration((Class) TestSerializer.class, DefaultSerializerConfiguration.Type.VALUE);
 
@@ -66,10 +80,10 @@ public class DefaultSerializationProviderTest {
 
   @Test
   public void testCreateSerializerWithFactoryConfig() throws Exception {
-    DefaultSerializationProvider dsp = new DefaultSerializationProvider();
     DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
     dspfConfig.addSerializerFor(Number.class, (Class) TestSerializer.class);
-    dsp.start(dspfConfig, null);
+    DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
+    dsp.start(null);
 
     assertThat(dsp.createValueSerializer(Long.class, ClassLoader.getSystemClassLoader()), instanceOf(TestSerializer.class));
     assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader()), instanceOf(JavaSerializer.class));
@@ -77,11 +91,11 @@ public class DefaultSerializationProviderTest {
 
   @Test
   public void testGetPreconfigured() throws Exception {
-    DefaultSerializationProvider dsp = new DefaultSerializationProvider();
-
     DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
     dspfConfig.addSerializerFor(String.class, (Class) TestSerializer.class);
-    dsp.start(dspfConfig, null);
+
+    DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
+    dsp.start(null);
 
     ClassInstanceProvider.ConstructorArgument arg = new ClassInstanceProvider.ConstructorArgument<ClassLoader>(ClassLoader.class, ClassLoader.getSystemClassLoader());
 
@@ -93,11 +107,11 @@ public class DefaultSerializationProviderTest {
 
   @Test
   public void testGetPreconfiguredWithOverriddenSerializableType() throws Exception {
-    DefaultSerializationProvider dsp = new DefaultSerializationProvider();
-
     DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
     dspfConfig.addSerializerFor(Serializable.class, (Class) TestSerializer.class);
-    dsp.start(dspfConfig, null);
+
+    DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
+    dsp.start(null);
 
     ClassInstanceProvider.ConstructorArgument arg = new ClassInstanceProvider.ConstructorArgument<ClassLoader>(ClassLoader.class, ClassLoader.getSystemClassLoader());
 

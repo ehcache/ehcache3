@@ -15,7 +15,6 @@
  */
 package org.ehcache.loaderwriter.writebehind;
 
-import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
@@ -30,20 +29,21 @@ import org.ehcache.spi.service.ServiceFactory;
 public class WriteBehindDecoratorLoaderWriterProviderFactory implements ServiceFactory<WriteBehindDecoratorLoaderWriterProvider> {
   
   @Override
-  public WriteBehindDecoratorLoaderWriterProvider create(ServiceConfiguration<WriteBehindDecoratorLoaderWriterProvider> serviceConfiguration, ServiceLocator serviceLocator) {
+  public WriteBehindDecoratorLoaderWriterProvider create(ServiceConfiguration<WriteBehindDecoratorLoaderWriterProvider> configuration) {
+    if (configuration != null) {
+      throw new IllegalArgumentException("WriteBehind configuration must not be provided at CacheManager level");
+    }
     return new WriteBehindDecoratorLoaderWriterProvider() {
       
       @Override
       public void stop() {
-        // no op
+        // no-op
         
       }
       
       @Override
-      public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
-        if (config != null) {
-          throw new IllegalArgumentException("WriteBehind configuration must not be provided at CacheManager level");
-        }
+      public void start(ServiceProvider serviceProvider) {
+        // no-op
       }
       
       @Override

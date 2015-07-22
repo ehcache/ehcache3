@@ -53,7 +53,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -390,16 +389,14 @@ public class EhcacheManager implements PersistentCacheManager {
     final StatusTransitioner.Transition st = statusTransitioner.init();
 
     try {
-      Map<Service, ServiceConfiguration<? extends Service>> serviceConfigs = new HashMap<Service, ServiceConfiguration<? extends Service>>();
       for (ServiceConfiguration<? extends Service> serviceConfig : configuration.getServiceConfigurations()) {
         Service service = serviceLocator.findServiceFor(serviceConfig);
         if (service == null) {
           throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
         }
-        serviceConfigs.put(service, serviceConfig);
       }
       try {
-        serviceLocator.startAllServices(serviceConfigs);
+        serviceLocator.startAllServices();
       } catch (Exception e) {
         throw st.failed(e);
       }

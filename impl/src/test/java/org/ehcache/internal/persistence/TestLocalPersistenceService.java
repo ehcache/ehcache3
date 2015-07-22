@@ -23,7 +23,6 @@ import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.LocalPersistenceService;
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
 
@@ -49,7 +48,7 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
   protected void before() throws Throwable {
     folder.create();
     persistenceService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(folder.newFolder()));
-    persistenceService.start(null, null);
+    persistenceService.start(null);
   }
   
   
@@ -75,7 +74,7 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
   }
 
   @Override
-  public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+  public void start(ServiceProvider serviceProvider) {
     throw new UnsupportedOperationException("The TestLocalPersistenceService is lifecycled automatically");
   }
 

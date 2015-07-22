@@ -69,8 +69,8 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   
   @Override
   protected OffHeapDiskStore<String, String> createAndInitStore(final TimeSource timeSource, final Expiry<? super String, ? super String> expiry) {
-    SerializationProvider serializationProvider = new DefaultSerializationProvider();
-    serializationProvider.start(null, null);
+    SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
+    serializationProvider.start(null);
     ClassLoader classLoader = getClass().getClassLoader();
     Serializer<String> serializer = serializationProvider.createValueSerializer(String.class, classLoader);
     StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, null, classLoader, expiry, null);
@@ -81,8 +81,8 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
 
   @Override
   protected OffHeapDiskStore<String, byte[]> createAndInitStore(TimeSource timeSource, Expiry<? super String, ? super byte[]> expiry, EvictionVeto<? super String, ? super byte[]> evictionVeto) {
-    SerializationProvider serializationProvider = new DefaultSerializationProvider();
-    serializationProvider.start(null, null);
+    SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
+    serializationProvider.start(null);
     ClassLoader classLoader = getClass().getClassLoader();
     Serializer<String> serializer = serializationProvider.createValueSerializer(String.class, classLoader);
     Serializer<byte[]> byteArraySerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);

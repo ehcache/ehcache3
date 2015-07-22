@@ -94,7 +94,7 @@ public class WriteBehindDecoratorLoaderWriterProviderFactoryTest {
     expectedEx.expectMessage("WriteBehind requires non null CacheLoaderWriter");
 
     WriteBehindDecoratorLoaderWriterProviderFactory factory = new WriteBehindDecoratorLoaderWriterProviderFactory();
-    factory.create(null, null).createWriteBehindDecoratorLoaderWriter(null, null);
+    factory.create(null).createWriteBehindDecoratorLoaderWriter(null, null);
   }
 
   public static class SampleLoaderWriter<K, V> implements CacheLoaderWriter<K, V> {

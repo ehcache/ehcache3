@@ -23,7 +23,6 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.exceptions.CachePersistenceException;
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,7 +85,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   }
 
   @Override
-  public synchronized void start(final ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
+  public synchronized void start(final ServiceProvider serviceProvider) {
     if (!started) {
       createLocationIfRequiredAndVerify(rootDirectory);
       try {

@@ -26,8 +26,6 @@ import org.ehcache.spi.cache.tiering.CachingTier;
 import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
-import java.util.Collections;
-
 import static org.junit.Assert.assertThat;
 
 /**
@@ -50,7 +48,7 @@ public class ServiceProviderTest {
     serviceLocator.addService(authoritativeTierProvider, true);
     serviceLocator.addService(diskStoreProvider, true);
 
-    serviceLocator.startAllServices(Collections.EMPTY_MAP);
+    serviceLocator.startAllServices();
 
     assertThat(serviceLocator.findService(Store.Provider.class),
         IsSame.<Store.Provider>sameInstance(storeProvider));
