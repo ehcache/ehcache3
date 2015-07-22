@@ -252,6 +252,9 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       MemoryUnit unit = (MemoryUnit)offHeapPool.getUnit();
 
       LocalPersistenceService localPersistenceService = serviceProvider.getService(LocalPersistenceService.class);
+      if (localPersistenceService == null) {
+        throw new IllegalStateException("No LocalPersistenceService could be found - did you configure it at the CacheManager level?");
+      }
 
       try {
         FileBasedPersistenceContext persistenceContext = localPersistenceService.createPersistenceContext(persistentStoreConfiguration

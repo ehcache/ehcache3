@@ -113,8 +113,13 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
       }
     };
     if (persistent) {
-      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(runtimeConfiguration, store, (Store.PersistentStoreConfiguration) storeConfig, serviceLocator
-          .getService(LocalPersistenceService.class), cacheLoaderWriter, cacheEventNotificationService, id);
+      LocalPersistenceService persistenceService = serviceLocator
+          .getService(LocalPersistenceService.class);
+      if (persistenceService == null) {
+        throw new IllegalStateException("No LocalPersistenceService could be found - did you configure one?");
+      }
+
+      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(runtimeConfiguration, store, (Store.PersistentStoreConfiguration) storeConfig, persistenceService, cacheLoaderWriter, cacheEventNotificationService, id);
       cache.addHook(lifeCycled);
       return cast(cache);
     } else {
