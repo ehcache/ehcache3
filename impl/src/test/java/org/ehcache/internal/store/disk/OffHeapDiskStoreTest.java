@@ -17,6 +17,7 @@
 package org.ehcache.internal.store.disk;
 
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.CacheAccessException;
@@ -27,6 +28,7 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.persistence.TestLocalPersistenceService;
 import org.ehcache.internal.store.offheap.AbstractOffHeapStore;
 import org.ehcache.internal.store.offheap.AbstractOffHeapStoreTest;
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
@@ -38,9 +40,12 @@ import org.junit.Test;
 import java.io.IOException;
 
 import static org.ehcache.expiry.Expirations.noExpiration;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
 
@@ -95,6 +100,27 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     } catch (IOException e) {
       throw new AssertionError(e);
     }
+  }
+
+  @Test
+  public void testStoreInitFailsWithoutLocalPersistenceService() throws Exception {
+    OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
+    ServiceLocator serviceLocator = new ServiceLocator();
+    serviceLocator.addService(provider);
+    serviceLocator.startAllServices();
+    Store.PersistentStoreConfiguration<String, String, String> storeConfig = mock(Store.PersistentStoreConfiguration.class);
+    when(storeConfig.getKeyType()).thenReturn(String.class);
+    when(storeConfig.getValueType()).thenReturn(String.class);
+    when(storeConfig.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
+        .disk(10, MemoryUnit.MB)
+        .build());
+    try {
+      provider.createStore(storeConfig);
+      fail("IllegalStateException expected");
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage(), containsString("No LocalPersistenceService could be found - did you configure it at the CacheManager level?"));
+    }
+
   }
 
   private FileBasedPersistenceContext getPersistenceContext() {
