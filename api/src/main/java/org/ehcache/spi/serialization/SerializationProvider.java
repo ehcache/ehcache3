@@ -15,6 +15,7 @@
  */
 package org.ehcache.spi.serialization;
 
+import org.ehcache.spi.service.MandatoryService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -23,6 +24,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
  *
  * @author cdennis
  */
+@MandatoryService
 public interface SerializationProvider extends Service {
 
   /**

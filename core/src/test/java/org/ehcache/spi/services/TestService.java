@@ -14,21 +14,12 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.service;
+package org.ehcache.spi.services;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
+import org.ehcache.spi.service.Service;
 
 /**
- * @author Ludovic Orban
+ * TestService
  */
-@MandatoryService
-public interface ThreadPoolsService extends Service {
-
-  ScheduledExecutorService getStatisticsExecutor();
-
-  ExecutorService getEventsOrderedDeliveryExecutor();
-
-  ExecutorService getEventsUnorderedDeliveryExecutor();
-
+public interface TestService extends Service {
 }

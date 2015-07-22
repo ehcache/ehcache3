@@ -17,6 +17,7 @@
 package org.ehcache.spi.loaderwriter;
 
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.spi.service.MandatoryService;
 import org.ehcache.spi.service.Service;
 
 /**
@@ -32,6 +33,7 @@ import org.ehcache.spi.service.Service;
  *
  * @author Alex Snaps
  */
+@MandatoryService
 public interface CacheLoaderWriterProvider extends Service {
 
   /**

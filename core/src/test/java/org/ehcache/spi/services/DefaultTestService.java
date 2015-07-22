@@ -14,21 +14,22 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.service;
+package org.ehcache.spi.services;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
+import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * @author Ludovic Orban
+ * DefaultTestService
  */
-@MandatoryService
-public interface ThreadPoolsService extends Service {
+public class DefaultTestService implements TestService {
+  @Override
+  public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+    throw new UnsupportedOperationException("TODO Implement me!");
+  }
 
-  ScheduledExecutorService getStatisticsExecutor();
-
-  ExecutorService getEventsOrderedDeliveryExecutor();
-
-  ExecutorService getEventsUnorderedDeliveryExecutor();
-
+  @Override
+  public void stop() {
+    throw new UnsupportedOperationException("TODO Implement me!");
+  }
 }

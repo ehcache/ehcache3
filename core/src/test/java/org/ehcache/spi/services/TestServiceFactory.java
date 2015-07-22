@@ -14,21 +14,23 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.service;
+package org.ehcache.spi.services;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
+import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceFactory;
 
 /**
- * @author Ludovic Orban
+ * TestServiceFactory
  */
-@MandatoryService
-public interface ThreadPoolsService extends Service {
+public class TestServiceFactory implements ServiceFactory<TestService> {
+  @Override
+  public TestService create(ServiceConfiguration<TestService> serviceConfiguration, ServiceLocator serviceLocator) {
+    return new DefaultTestService();
+  }
 
-  ScheduledExecutorService getStatisticsExecutor();
-
-  ExecutorService getEventsOrderedDeliveryExecutor();
-
-  ExecutorService getEventsUnorderedDeliveryExecutor();
-
+  @Override
+  public Class<TestService> getServiceType() {
+    return TestService.class;
+  }
 }

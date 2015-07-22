@@ -78,16 +78,13 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     try {
       Map<Service, ServiceConfiguration<?>> serviceConfigs = new HashMap<Service, ServiceConfiguration<?>>();
       for (ServiceConfiguration<?> serviceConfig : serviceCfgs) {
-        Service service = serviceLocator.discoverService(serviceConfig);
-        if(service == null) {
-          service = serviceLocator.findService(serviceConfig.getServiceType());
-        }
+        Service service = serviceLocator.findServiceFor(serviceConfig);
         if (service == null) {
           throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
         }
         serviceConfigs.put(service, serviceConfig);
       }
-      serviceLocator.startAllServices(new HashMap<Service, ServiceConfiguration<?>>());
+      serviceLocator.startAllServices(serviceConfigs);
     } catch (Exception e) {
       throw new IllegalStateException("UserManagedCacheBuilder failed to build.", e);
     }
@@ -121,8 +118,13 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
       }
     };
     if (persistent) {
-      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(runtimeConfiguration, store, (Store.PersistentStoreConfiguration) storeConfig, serviceLocator
-          .findService(LocalPersistenceService.class), cacheLoaderWriter, cacheEventNotificationService, id);
+      LocalPersistenceService persistenceService = serviceLocator
+          .findService(LocalPersistenceService.class);
+      if (persistenceService == null) {
+        throw new IllegalStateException("No LocalPersistenceService could be found - did you configure one?");
+      }
+
+      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(runtimeConfiguration, store, (Store.PersistentStoreConfiguration) storeConfig, persistenceService, cacheLoaderWriter, cacheEventNotificationService, id);
       cache.addHook(lifeCycled);
       return cast(cache);
     } else {

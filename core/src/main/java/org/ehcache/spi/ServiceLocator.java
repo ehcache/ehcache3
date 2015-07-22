@@ -16,6 +16,7 @@
 
 package org.ehcache.spi;
 
+import org.ehcache.spi.service.MandatoryService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
@@ -64,11 +65,7 @@ public final class ServiceLocator implements ServiceProvider {
     }
   }
 
-  public <T extends Service> T discoverService(Class<T> serviceClass) {
-    return discoverService(serviceClass, null);
-  }
-
-  public <T extends Service> T discoverService(Class<T> serviceClass, ServiceConfiguration<T> config) {
+  private <T extends Service> T discoverService(Class<T> serviceClass, ServiceConfiguration<T> config) {
     // TODO Fix me!
     for (ServiceFactory<T> factory : ServiceLocator.<T> getServiceFactories(serviceFactory)) {
       if (serviceClass.isAssignableFrom(factory.getServiceType())) {
@@ -89,10 +86,6 @@ public final class ServiceLocator implements ServiceProvider {
     return list;
   }
 
-  public <T extends Service> T discoverService(ServiceConfiguration<T> config) {
-    return discoverService(config.getServiceType(), config);
-  }
-  
   public void addService(final Service service) {
     addService(service, false);
   }
@@ -164,7 +157,6 @@ public final class ServiceLocator implements ServiceProvider {
     return interfaces;
   }
 
-  @Override
   public <T extends Service> T findServiceFor(ServiceConfiguration<T> config) {
     return findService(config.getServiceType(), config);
   }
@@ -176,13 +168,17 @@ public final class ServiceLocator implements ServiceProvider {
 
   public <T extends Service> T findService(Class<T> serviceType, ServiceConfiguration<T> config) {
     T service = serviceType.cast(services.get(serviceType));
-    if (service == null) {
+    if (service == null && (config != null || isMandatoryService(serviceType))) {
       return discoverService(serviceType, config);
     } else {
       return service;
     }
   }
-  
+
+  private <T extends Service> boolean isMandatoryService(Class<T> serviceType) {
+    return serviceType.isAnnotationPresent(MandatoryService.class);
+  }
+
   public static <T> Collection<T> findAmongst(Class<T> clazz, Object ... instances) {
     Collection<T> matches = new ArrayList<T>();
     for (Object instance : instances) {

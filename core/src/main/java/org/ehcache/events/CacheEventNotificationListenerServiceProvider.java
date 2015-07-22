@@ -17,6 +17,7 @@ package org.ehcache.events;
 
 import org.ehcache.CacheManager;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.service.MandatoryService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.event.CacheEventListener;
 
@@ -26,6 +27,7 @@ import org.ehcache.event.CacheEventListener;
  * @author palmanojkumar
  *
  */
+@MandatoryService
 public interface CacheEventNotificationListenerServiceProvider extends Service {
 
   /**

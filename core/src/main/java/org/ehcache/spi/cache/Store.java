@@ -27,6 +27,7 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
+import org.ehcache.spi.service.MandatoryService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -422,6 +423,7 @@ public interface Store<K, V> {
    * The Service used to create Stores.
    * Implementation of {@link Provider} have be thread-safe.
    */
+  @MandatoryService
   interface Provider extends Service {
 
     /**
