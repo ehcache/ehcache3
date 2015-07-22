@@ -16,9 +16,7 @@
 
 package org.ehcache;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -75,15 +73,13 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
 
   T build(ServiceLocator serviceLocator) throws IllegalStateException {
     try {
-      Map<Service, ServiceConfiguration<?>> serviceConfigs = new HashMap<Service, ServiceConfiguration<?>>();
       for (ServiceConfiguration<?> serviceConfig : serviceCfgs) {
         Service service = serviceLocator.findServiceFor(serviceConfig);
         if (service == null) {
           throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
         }
-        serviceConfigs.put(service, serviceConfig);
       }
-      serviceLocator.startAllServices(serviceConfigs);
+      serviceLocator.startAllServices();
     } catch (Exception e) {
       throw new IllegalStateException("UserManagedCacheBuilder failed to build.", e);
     }

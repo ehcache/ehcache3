@@ -38,7 +38,7 @@ public class CacheEventNotificationListenerServiceProviderImpl implements CacheE
   private volatile ServiceProvider serviceProvider;
 
   @Override
-  public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+  public void start(ServiceProvider serviceProvider) {
     this.serviceProvider = serviceProvider;
   }
 

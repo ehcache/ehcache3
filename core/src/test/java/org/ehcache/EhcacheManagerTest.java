@@ -28,7 +28,6 @@ import org.ehcache.events.CacheEventNotificationServiceImpl;
 import org.ehcache.events.CacheManagerListener;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.config.ConfigurationBuilder;
-import org.ehcache.config.writebehind.DefaultWriteBehindConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
@@ -477,7 +476,7 @@ public class EhcacheManagerTest {
       }
 
       @Override
-      public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+      public void start(ServiceProvider serviceProvider) {
       }
 
       @Override
@@ -498,8 +497,7 @@ public class EhcacheManagerTest {
     
     final CacheEventNotificationListenerServiceProvider cenlProvider = spy(new CacheEventNotificationListenerServiceProvider() {
       @Override
-      public void start(ServiceConfiguration<?> config,
-          ServiceProvider serviceProvider) {
+      public void start(ServiceProvider serviceProvider) {
       }
 
       @Override
@@ -542,7 +540,7 @@ public class EhcacheManagerTest {
   static class NoSuchService implements Service {
 
     @Override
-    public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
+    public void start(final ServiceProvider serviceProvider) {
       throw new UnsupportedOperationException("Implement me!");
     }
 

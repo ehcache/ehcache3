@@ -17,7 +17,6 @@
 package org.ehcache.internal;
 
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * DefaultTimeSourceService
@@ -26,9 +25,9 @@ public class DefaultTimeSourceService implements TimeSourceService {
 
   private final TimeSource timeSource;
 
-  public DefaultTimeSourceService(TimeSourceConfiguration serviceConfiguration) {
-    if (serviceConfiguration != null && serviceConfiguration.getTimeSource() != null) {
-      timeSource = serviceConfiguration.getTimeSource();
+  public DefaultTimeSourceService(TimeSourceConfiguration config) {
+    if (config != null) {
+      timeSource = config.getTimeSource();
     } else {
       timeSource = SystemTimeSource.INSTANCE;
     }
@@ -40,12 +39,8 @@ public class DefaultTimeSourceService implements TimeSourceService {
   }
 
   @Override
-  public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
-    if (config != null) {
-      if (((TimeSourceConfiguration)config).getTimeSource() != timeSource) {
-        throw new IllegalArgumentException("Got a different configuration on start than on create");
-      }
-    }
+  public void start(ServiceProvider serviceProvider) {
+    // no-op
   }
 
   @Override

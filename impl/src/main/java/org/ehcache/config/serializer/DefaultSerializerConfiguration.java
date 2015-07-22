@@ -18,13 +18,13 @@ package org.ehcache.config.serializer;
 
 import org.ehcache.config.SerializerConfiguration;
 import org.ehcache.internal.classes.ClassInstanceConfiguration;
-import org.ehcache.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 
 /**
  * @author Ludovic Orban
  */
-public class DefaultSerializerConfiguration<T> extends ClassInstanceConfiguration<Serializer<T>> implements SerializerConfiguration<DefaultSerializationProvider> {
+public class DefaultSerializerConfiguration<T> extends ClassInstanceConfiguration<Serializer<T>> implements SerializerConfiguration<SerializationProvider> {
 
   private final Type type;
 
@@ -34,8 +34,8 @@ public class DefaultSerializerConfiguration<T> extends ClassInstanceConfiguratio
   }
 
   @Override
-  public Class<DefaultSerializationProvider> getServiceType() {
-    return DefaultSerializationProvider.class;
+  public Class<SerializationProvider> getServiceType() {
+    return SerializationProvider.class;
   }
 
   public Type getType() {

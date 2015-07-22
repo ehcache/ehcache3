@@ -21,7 +21,6 @@ import org.ehcache.management.providers.CapabilityContextProvider;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
 import org.ehcache.management.providers.ManagementProvider;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.management.capabilities.ActionsCapability;
@@ -202,7 +201,7 @@ public abstract class AbstractManagementRegistry implements ManagementRegistry {
   }
 
   @Override
-  public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+  public void start(ServiceProvider serviceProvider) {
     Lock lock = this.lock.writeLock();
     lock.lock();
     try {

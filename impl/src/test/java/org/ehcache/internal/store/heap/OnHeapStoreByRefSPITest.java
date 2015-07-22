@@ -73,7 +73,7 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
       @Override
       public Store.Provider newProvider() {
         OnHeapStore.Provider service = new OnHeapStore.Provider();
-        service.start(null, getServiceProvider());
+        service.start(getServiceProvider());
         return service;
       }
 

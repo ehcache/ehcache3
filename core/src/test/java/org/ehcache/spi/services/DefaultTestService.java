@@ -17,14 +17,13 @@
 package org.ehcache.spi.services;
 
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * DefaultTestService
  */
 public class DefaultTestService implements TestService {
   @Override
-  public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+  public void start(ServiceProvider serviceProvider) {
     throw new UnsupportedOperationException("TODO Implement me!");
   }
 

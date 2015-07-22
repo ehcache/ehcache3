@@ -17,15 +17,15 @@
 package org.ehcache.config.serializer;
 
 import org.ehcache.internal.classes.ClassInstanceProviderConfiguration;
-import org.ehcache.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 
-public class DefaultSerializationProviderConfiguration extends ClassInstanceProviderConfiguration<Serializer<?>> implements ServiceConfiguration<DefaultSerializationProvider> {
+public class DefaultSerializationProviderConfiguration extends ClassInstanceProviderConfiguration<Serializer<?>> implements ServiceConfiguration<SerializationProvider> {
 
   @Override
-  public Class<DefaultSerializationProvider> getServiceType() {
-    return DefaultSerializationProvider.class;
+  public Class<SerializationProvider> getServiceType() {
+    return SerializationProvider.class;
   }
 
   public <T> DefaultSerializationProviderConfiguration addSerializerFor(Class<T> serializableClass, Class<? extends Serializer<T>> serializerClass) {
