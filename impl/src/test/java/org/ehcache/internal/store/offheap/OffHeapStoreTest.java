@@ -51,4 +51,9 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
     OffHeapStore.Provider.init(offHeapStore);
     return offHeapStore;
   }
+
+  @Override
+  protected void destroyStore(AbstractOffHeapStore<?, ?> store) {
+    OffHeapStore.Provider.close((OffHeapStore<?, ?>) store);
+  }
 }
