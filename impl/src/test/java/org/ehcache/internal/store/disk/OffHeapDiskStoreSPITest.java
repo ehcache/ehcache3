@@ -49,12 +49,13 @@ import org.ehcache.spi.test.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.internal.AssumptionViolatedException;
-import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.ehcache.internal.persistence.TestLocalPersistenceService;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * OffHeapStoreSPITest
@@ -63,16 +64,15 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
 
   private AuthoritativeTierFactory<String, String> authoritativeTierFactory;
   private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<Store<String, String>, String>();
-  private DefaultLocalPersistenceService persistenceService;
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
   
+  @Rule
+  public final TestLocalPersistenceService persistenceService = new TestLocalPersistenceService();
+  
   @Before
   public void setUp() throws Exception {
-    persistenceService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(folder.newFolder()));
-    persistenceService.start(null, null);
-            
     authoritativeTierFactory = new AuthoritativeTierFactory<String, String>() {
 
       final AtomicInteger index = new AtomicInteger();
@@ -193,6 +193,8 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
         }
         try {
           persistenceService.destroyPersistenceContext(alias);
+        } catch (CachePersistenceException ex) {
+          throw new AssertionError(ex);
         } finally {
           createdStores.remove(store);
         }

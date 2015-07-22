@@ -18,25 +18,23 @@ package org.ehcache.internal.store.disk;
 
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.StoreConfigurationImpl;
-import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
+import org.ehcache.internal.persistence.TestLocalPersistenceService;
 import org.ehcache.internal.store.offheap.AbstractOffHeapStoreTest;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.FileBasedPersistenceContext;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 
-import java.io.File;
 import java.io.IOException;
 
 import static org.ehcache.expiry.Expirations.noExpiration;
@@ -46,26 +44,8 @@ import static org.mockito.Mockito.mock;
 
 public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
 
-  private static DefaultLocalPersistenceService persistenceService;
-  private static FileBasedPersistenceContext persistenceContext;
-  
-  @BeforeClass
-  public static void classSetUp() throws Exception {
-    persistenceService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(
-            new File(OffHeapDiskStoreTest.class.getClassLoader().getResource(".").toURI().getPath(), "disk-store-spi-test")));
-    persistenceService.start(null, null);
-    Store.PersistentStoreConfiguration persistentStoreConfiguration = mock(Store.PersistentStoreConfiguration.class);
-    persistenceContext = persistenceService.createPersistenceContext("cache", persistentStoreConfiguration);
-  }
-
-  @AfterClass
-  public static void classTearDown() {
-    try {
-      persistenceService.destroyPersistenceContext("cache");
-    } finally {
-      persistenceService.stop();
-    }
-  }
+  @Rule
+  public final TestLocalPersistenceService persistenceService = new TestLocalPersistenceService();
   
   @Ignore
   public void testEvictionVeto() {}
@@ -90,7 +70,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     ClassLoader classLoader = getClass().getClassLoader();
     Serializer<String> serializer = serializationProvider.createValueSerializer(String.class, classLoader);
     StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, null, classLoader, expiry, null);
-    OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<String, String>(persistenceContext, storeConfiguration, serializer, serializer, timeSource, MemoryUnit.MB.toBytes(1));
+    OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<String, String>(getPersistenceContext(), storeConfiguration, serializer, serializer, timeSource, MemoryUnit.MB.toBytes(1));
     OffHeapDiskStore.Provider.init(offHeapStore);
     return offHeapStore;
   }
@@ -103,9 +83,17 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     Serializer<String> serializer = serializationProvider.createValueSerializer(String.class, classLoader);
     Serializer<byte[]> byteArraySerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
     StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class, evictionVeto, null, getClass().getClassLoader(), expiry, null);
-    OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<String, byte[]>(persistenceContext, storeConfiguration, serializer, byteArraySerializer, timeSource, MemoryUnit.MB.toBytes(1));
+    OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<String, byte[]>(getPersistenceContext(), storeConfiguration, serializer, byteArraySerializer, timeSource, MemoryUnit.MB.toBytes(1));
     OffHeapDiskStore.Provider.init(offHeapStore);
     return offHeapStore;
+  }
+
+  private FileBasedPersistenceContext getPersistenceContext() {
+    try {
+      return persistenceService.createPersistenceContext("cache", mock(Store.PersistentStoreConfiguration.class));
+    } catch (CachePersistenceException e) {
+      throw new AssertionError(e);
+    }
   }
 
 }
