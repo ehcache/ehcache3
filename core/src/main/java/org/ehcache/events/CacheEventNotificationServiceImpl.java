@@ -24,6 +24,7 @@ import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
+import org.ehcache.internal.TimeSource;
 import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
 import org.slf4j.Logger;
@@ -57,11 +58,13 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
   private static final Logger LOGGER = LoggerFactory.getLogger(CacheEventNotificationServiceImpl.class);
   private final StoreListener<K, V> storeListener = new StoreListener<K, V>();
   private final Store<K, V> store;
+  private final TimeSource timeSource;
 
-  public CacheEventNotificationServiceImpl(ExecutorService orderedDelivery, ExecutorService unorderedDelivery, Store<K, V> store) {
+  public CacheEventNotificationServiceImpl(ExecutorService orderedDelivery, ExecutorService unorderedDelivery, Store<K, V> store, TimeSource timeSource) {
     this.orderedDelivery = orderedDelivery;
     this.unorderedDelivery = unorderedDelivery;
     this.store = store;
+    this.timeSource = timeSource;
     storeListener.setEventNotificationService(this);
   }
 
@@ -232,12 +235,12 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
 
     @Override
     public void onEviction(final K key, final Store.ValueHolder<V> valueHolder) {
-      eventNotificationService.onEvent(CacheEvents.eviction(CacheStoreHelper.cacheEntry(key, valueHolder), this.source));
+      eventNotificationService.onEvent(CacheEvents.eviction(CacheStoreHelper.cacheEntry(key, valueHolder, timeSource), this.source));
     }
 
     @Override
     public void onExpiration(final K key, final Store.ValueHolder<V> valueHolder) {
-      eventNotificationService.onEvent(CacheEvents.expiry(CacheStoreHelper.cacheEntry(key, valueHolder), this.source));
+      eventNotificationService.onEvent(CacheEvents.expiry(CacheStoreHelper.cacheEntry(key, valueHolder, timeSource), this.source));
     }
 
     public void setEventNotificationService(CacheEventNotificationService<K, V> eventNotificationService) {

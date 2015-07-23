@@ -139,12 +139,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     if(prioritizer == null) {
       prioritizer = Eviction.Prioritizer.LRU;
     }
-    this.evictionVeto = wrap(config.getEvictionVeto());
-    this.evictionPrioritizer = wrap(prioritizer);
+    this.timeSource = timeSource;
+    this.evictionVeto = wrap(config.getEvictionVeto(), timeSource);
+    this.evictionPrioritizer = wrap(prioritizer, timeSource);
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
     this.expiry = config.getExpiry();
-    this.timeSource = timeSource;
     if (storeByValue) {
       this.valueSerializer = valueSerializer;
       this.keySerializer = keySerializer;
@@ -438,7 +438,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
 
           @Override
           public float getHitRate(TimeUnit unit) {
-            return thisEntry.getValue().hitRate(unit);
+            final long now = timeSource.getTimeMillis();
+            return thisEntry.getValue().hitRate(now, unit);
           }
         };
       }
@@ -1048,30 +1049,30 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
   }
 
-  private static <K, V> Predicate<Map.Entry<K, OnHeapValueHolder<V>>> wrap(final Predicate<Cache.Entry<K, V>> predicate) {
+  private static <K, V> Predicate<Map.Entry<K, OnHeapValueHolder<V>>> wrap(final Predicate<Cache.Entry<K, V>> predicate, final TimeSource timeSource) {
     if (predicate == null) {
       return Predicates.none();
     } else {
       return new Predicate<Map.Entry<K, OnHeapValueHolder<V>>>() {
         @Override
         public boolean test(final Map.Entry<K, OnHeapValueHolder<V>> argument) {
-          return predicate.test(wrap(argument));
+          return predicate.test(wrap(argument, timeSource));
         }
       };
     }
   }
 
-  private static <K, V> Comparator<Map.Entry<K, OnHeapValueHolder<V>>> wrap(final Comparator<Cache.Entry<K, V>> comparator) {
+  private static <K, V> Comparator<Map.Entry<K, OnHeapValueHolder<V>>> wrap(final Comparator<Cache.Entry<K, V>> comparator, final TimeSource timeSource) {
     return new Comparator<Map.Entry<K, OnHeapValueHolder<V>>>() {
       @Override
       public int compare(Map.Entry<K, OnHeapValueHolder<V>> t, Map.Entry<K, OnHeapValueHolder<V>> u) {
-        return comparator.compare(wrap(t), wrap(u));
+        return comparator.compare(wrap(t, timeSource), wrap(u, timeSource));
       }
     };
   }
 
-  private static <K, V> Cache.Entry<K, V> wrap(final Map.Entry<K, OnHeapValueHolder<V>> value) {
-    return CacheStoreHelper.cacheEntry(value.getKey(), value.getValue());
+  private static <K, V> Cache.Entry<K, V> wrap(final Map.Entry<K, OnHeapValueHolder<V>> value, final TimeSource timeSource) {
+    return CacheStoreHelper.cacheEntry(value.getKey(), value.getValue(), timeSource);
   }
 
   // The idea of this wrapper is to let all the other code deal in terms of <K> and hide

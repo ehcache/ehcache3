@@ -426,7 +426,7 @@ public abstract class EhcacheBasicCrudBase {
 
             @Override
             public float getHitRate(final TimeUnit unit) {
-              return cacheEntry.getValue().hitRate(unit);
+              return cacheEntry.getValue().hitRate(System.currentTimeMillis(), unit);
             }
           };
         }
@@ -670,7 +670,12 @@ public abstract class EhcacheBasicCrudBase {
       }
 
       @Override
-      public float hitRate(final TimeUnit unit) {
+      public float hitRate(long now, final TimeUnit unit) {
+        return 0;
+      }
+
+      @Override
+      public long hits() {
         return 0;
       }
 

@@ -37,12 +37,10 @@ import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.function.Predicate;
 import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
-import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.statistics.StoreOperationOutcomes;
 import org.terracotta.offheapstore.Segment;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
@@ -688,22 +686,24 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   protected abstract EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> backingMap();
   
-  protected static <K, V> Predicate<Map.Entry<K, OffHeapValueHolder<V>>> wrap(EvictionVeto<? super K, ? super V> delegate) {
-    return new OffHeapEvictionVetoWrapper<K, V>(delegate);
+  protected static <K, V> Predicate<Map.Entry<K, OffHeapValueHolder<V>>> wrap(EvictionVeto<? super K, ? super V> delegate, TimeSource timeSource) {
+    return new OffHeapEvictionVetoWrapper<K, V>(delegate, timeSource);
   }
 
   private static class OffHeapEvictionVetoWrapper<K, V> implements Predicate<Map.Entry<K, OffHeapValueHolder<V>>> {
 
     private final EvictionVeto<K, V> delegate;
+    private final TimeSource timeSource;
 
-    private OffHeapEvictionVetoWrapper(EvictionVeto<? super K, ? super V> delegate) {
+    private OffHeapEvictionVetoWrapper(EvictionVeto<? super K, ? super V> delegate, TimeSource timeSource) {
       // TODO fix this cast
       this.delegate = (EvictionVeto<K, V>)delegate;
+      this.timeSource = timeSource;
     }
 
     @Override
     public boolean test(Map.Entry<K, OffHeapValueHolder<V>> argument) {
-      return delegate.test(CacheStoreHelper.cacheEntry(argument.getKey(), argument.getValue()));
+      return delegate.test(CacheStoreHelper.cacheEntry(argument.getKey(), argument.getValue(), timeSource));
     }
   }
 
@@ -745,7 +745,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
         @Override
         public float getHitRate(TimeUnit unit) {
-          return next.getValue().hitRate(unit);
+          final long now = timeSource.getTimeMillis();
+          return next.getValue().hitRate(now, unit);
         }
       };
     }

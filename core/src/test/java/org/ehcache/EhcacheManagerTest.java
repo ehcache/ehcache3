@@ -507,7 +507,7 @@ public class EhcacheManagerTest {
       }
 
       @Override
-      public <K, V> CacheEventNotificationService<K, V> createCacheEventNotificationService(Store<K, V> store) {
+      public <K, V> CacheEventNotificationService<K, V> createCacheEventNotificationService(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs) {
         return null;
       }
 

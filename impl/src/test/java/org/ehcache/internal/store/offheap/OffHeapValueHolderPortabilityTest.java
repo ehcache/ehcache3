@@ -17,12 +17,15 @@
 package org.ehcache.internal.store.offheap;
 
 import org.ehcache.internal.store.offheap.portability.OffHeapValueHolderPortability;
+import org.ehcache.spi.cache.AbstractValueHolder;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.terracotta.offheapstore.storage.portability.WriteContext;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
@@ -43,7 +46,7 @@ public class OffHeapValueHolderPortabilityTest {
     valueHolderPortability = new OffHeapValueHolderPortability<String>(provider
         .createValueSerializer(String.class, getClass().getClassLoader()));
 
-    originalValue = new OffHeapValueHolder<String>(-1, "aValue", 1L, 2L, 3L, null);
+    originalValue = new OffHeapValueHolder<String>(-1, "aValue", 1L, 2L, 3L, 0, null);
 
   }
 
@@ -56,16 +59,23 @@ public class OffHeapValueHolderPortabilityTest {
   }
 
   @Test
-  public void testWriteBackSupport() {
+  public void testWriteBackSupport() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
     ByteBuffer encoded = valueHolderPortability.encode(originalValue);
     WriteContext writeContext = mock(WriteContext.class);
     OffHeapValueHolder<String> decoded = valueHolderPortability.decode(encoded, writeContext);
 
+    Class<?> abstractValueHolder = AbstractValueHolder.class;
+    Method setHits = abstractValueHolder.getDeclaredMethod("setHits", long.class);
+    setHits.setAccessible(true);
+    
     decoded.setExpirationTime(4L, TimeUnit.MILLISECONDS);
     decoded.setLastAccessTime(6L, TimeUnit.MILLISECONDS);
+    setHits.invoke(decoded, 8L);
+    
     decoded.writeBack();
     verify(writeContext).setLong(OffHeapValueHolderPortability.ACCESS_TIME_OFFSET, 6L);
     verify(writeContext).setLong(OffHeapValueHolderPortability.EXPIRE_TIME_OFFSET, 4L);
+    verify(writeContext).setLong(OffHeapValueHolderPortability.HITS_OFFSET, 8L);
   }
 
 }

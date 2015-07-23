@@ -93,7 +93,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     this.fileBasedPersistenceContext = fileBasedPersistenceContext;
     EvictionVeto<? super K, ? super V> veto = config.getEvictionVeto();
     if (veto != null) {
-      evictionVeto = wrap(veto);
+      evictionVeto = wrap(veto, timeSource);
     } else {
       evictionVeto = Predicates.none();
     }

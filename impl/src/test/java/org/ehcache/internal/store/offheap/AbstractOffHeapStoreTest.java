@@ -116,6 +116,22 @@ public abstract class AbstractOffHeapStoreTest {
     }
   }
 
+  @Test
+  public void testFlushUpdatesHits() throws CacheAccessException {
+    final TestTimeSource timeSource = new TestTimeSource();
+    final AbstractOffHeapStore<String, String> store = createAndInitStore(timeSource, Expirations.noExpiration());
+    final String key = "foo1";
+    final String value = "bar1";
+    store.put(key, value);
+    for(int i = 0; i < 5; i++) {
+      final Store.ValueHolder<String> valueHolder = store.getAndFault(key);
+      timeSource.advanceTime(1);
+      ((AbstractValueHolder)valueHolder).accessed(timeSource.getTimeMillis(), new Duration(1L, TimeUnit.MILLISECONDS));
+      assertThat(store.flush(key, new DelegatingValueHolder<String>(valueHolder)), is(true));
+    }
+    assertThat(store.getAndFault(key).hits(), is(5l));
+  }
+
   protected abstract AbstractOffHeapStore<String, String> createAndInitStore(final TimeSource timeSource, final Expiry<? super String, ? super String> expiry);
 
   protected abstract AbstractOffHeapStore<String, byte[]> createAndInitStore(final TimeSource timeSource, final Expiry<? super String, ? super byte[]> expiry, EvictionVeto<? super String, ? super byte[]> evictionVeto);
@@ -183,8 +199,13 @@ public abstract class AbstractOffHeapStoreTest {
     }
 
     @Override
-    public float hitRate(final TimeUnit unit) {
-      return valueHolder.hitRate(unit);
+    public float hitRate(final long now, final TimeUnit unit) {
+      return valueHolder.hitRate(now, unit);
+    }
+
+    @Override
+    public long hits() {
+      return valueHolder.hits();
     }
 
     @Override

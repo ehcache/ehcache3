@@ -19,10 +19,15 @@ import org.ehcache.events.CacheEventNotificationListenerServiceProvider;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.CacheEventNotificationServiceImpl;
 import org.ehcache.events.DisabledCacheEventNotificationService;
+import org.ehcache.internal.SystemTimeSource;
+import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ThreadPoolsService;
+
+import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * @author palmanojkumar
@@ -42,11 +47,13 @@ public class CacheEventNotificationListenerServiceProviderImpl implements CacheE
     this.serviceProvider = null;
   }
 
-  public <K, V> CacheEventNotificationService<K, V> createCacheEventNotificationService(Store<K, V> store) {
+  public <K, V> CacheEventNotificationService<K, V> createCacheEventNotificationService(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs) {
     ThreadPoolsService threadPoolsService = serviceProvider.findService(ThreadPoolsService.class);
+    TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[]) serviceConfigs);
+    TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
     if (threadPoolsService != null) {
       return new CacheEventNotificationServiceImpl<K, V>(threadPoolsService.getEventsOrderedDeliveryExecutor(),
-                                                         threadPoolsService.getEventsUnorderedDeliveryExecutor(), store);
+                                                         threadPoolsService.getEventsUnorderedDeliveryExecutor(), store, timeSource);
     } else {
       return new DisabledCacheEventNotificationService<K, V>();
     }

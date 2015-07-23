@@ -276,7 +276,12 @@ public class EhcacheTest {
           }
 
           @Override
-          public float hitRate(final TimeUnit unit) {
+          public float hitRate(final long now, final TimeUnit unit) {
+            throw new UnsupportedOperationException("Implement me!");
+          }
+
+          @Override
+          public long hits() {
             throw new UnsupportedOperationException("Implement me!");
           }
 

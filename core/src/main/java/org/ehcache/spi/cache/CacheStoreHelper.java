@@ -17,6 +17,7 @@
 package org.ehcache.spi.cache;
 
 import org.ehcache.Cache;
+import org.ehcache.internal.TimeSource;
 
 import java.util.concurrent.TimeUnit;
 
@@ -29,7 +30,7 @@ public final class CacheStoreHelper {
     // thou shalt not instantiate me
   }
 
-  public static <K, V> Cache.Entry<K, V> cacheEntry(final K key, final Store.ValueHolder<V> mappedValue) {
+  public static <K, V> Cache.Entry<K, V> cacheEntry(final K key, final Store.ValueHolder<V> mappedValue, final TimeSource timeSource) {
     return new Cache.Entry<K, V>() {
 
       @Override
@@ -54,7 +55,7 @@ public final class CacheStoreHelper {
 
       @Override
       public float getHitRate(TimeUnit unit) {
-        return mappedValue.hitRate(unit);
+        return mappedValue.hitRate(timeSource.getTimeMillis(), unit);
       }
     };
   }

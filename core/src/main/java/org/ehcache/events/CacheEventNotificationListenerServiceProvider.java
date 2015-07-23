@@ -19,6 +19,7 @@ import org.ehcache.CacheManager;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.Service;
 import org.ehcache.event.CacheEventListener;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * A provider {@link org.ehcache.spi.service.Service} that will facilitate {@link CacheEventNotificationService} instance
@@ -33,7 +34,7 @@ public interface CacheEventNotificationListenerServiceProvider extends Service {
    * 
    * @return the {@link CacheEventNotificationService} 
    */
-  <K, V> CacheEventNotificationService<K, V> createCacheEventNotificationService(Store<K, V> store);
+  <K, V> CacheEventNotificationService<K, V> createCacheEventNotificationService(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs);
   
   
   /**

@@ -15,6 +15,8 @@
  */
 package org.ehcache.spi.cache;
 
+import org.ehcache.expiry.Duration;
+import org.ehcache.internal.TimeSource;
 import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
@@ -201,6 +203,27 @@ public class AbstractValueHolderTest {
     }), is(false));
   }
 
+  @Test
+  public void testAbstractValueHolderHitRate() {
+    TestTimeSource timeSource = new TestTimeSource();
+    timeSource.advanceTime(1);
+    AbstractValueHolder<String> valueHolder = new AbstractValueHolder<String>(-1, timeSource.getTimeMillis()) {
+      @Override
+      protected TimeUnit nativeTimeUnit() {
+        return TimeUnit.MILLISECONDS;
+      }
+
+      @Override
+      public String value() {
+        return "abc";
+      }
+    };
+    valueHolder.accessed((timeSource.getTimeMillis()), new Duration(1L, TimeUnit.MILLISECONDS));
+    timeSource.advanceTime(1000);
+    assertThat(valueHolder.hitRate(timeSource.getTimeMillis(),
+        TimeUnit.SECONDS), is(1.0f));
+  }
+
 
   private AbstractValueHolder<String> newAbstractValueHolder(final TimeUnit timeUnit, long creationTime) {
     return new AbstractValueHolder<String>(-1, creationTime) {
@@ -240,6 +263,20 @@ public class AbstractValueHolderTest {
     };
     abstractValueHolder.setLastAccessTime(lastAccessTime, timeUnit);
     return abstractValueHolder;
+  }
+
+  private static class TestTimeSource implements TimeSource {
+
+    private long time = 0;
+
+    @Override
+    public long getTimeMillis() {
+      return time;
+    }
+
+    public void advanceTime(long step) {
+      time += step;
+    }
   }
 
 }
