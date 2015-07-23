@@ -61,6 +61,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.never;
 
 /**
  * Provides testing of basic REMOVE_ALL operations on an {@code Ehcache}.
@@ -149,38 +150,10 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
     final Ehcache<String, String> ehcache = this.getEhcache(null);
     ehcache.removeAll(Collections.<String>emptySet());
-
-    verify(this.store).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
+    
+    verify(this.store, never()).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
-
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
-  }
-
-  /**
-   * Tests {@link Ehcache#removeAll(Set)} for
-   * <ul>
-   *    <li>empty request set</li>
-   *    <li>populated {@code Store} (keys not relevant)</li>
-   *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>no {@code CacheLoaderWriter}</li>
-   * </ul>
-   */
-  @Test
-  public void testRemoveAllEmptyRequestCacheAccessExceptionBeforeNoWriter() throws Exception {
-    final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
-    final FakeStore fakeStore = new FakeStore(originalStoreContent);
-    this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
-        .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
-
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
-    ehcache.removeAll(Collections.<String>emptySet());
-
-    verify(this.store).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
-    // ResilienceStrategy invoked; no assertions about Store content
-    verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(Collections.<String>emptySet()), any(CacheAccessException.class));
+    verify(this.spiedResilienceStrategy, never()).removeAllFailure(eq(Collections.<String>emptySet()), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
   }
@@ -194,7 +167,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * </ul>
    */
   @Test
-  public void testRemoveAllEmptyRequestWriterNoneFail() throws Exception {
+  public void testRemoveAllEmptyRequestWithWriter() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
@@ -205,105 +178,13 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
     ehcache.removeAll(Collections.<String>emptySet());
 
-    verify(this.store).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
+    verify(this.store, never()).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(originalStoreContent));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verify(this.cacheLoaderWriter, never()).deleteAll(eq(Collections.<String>emptySet()));
+    verify(this.spiedResilienceStrategy, never()).removeAllFailure(eq(Collections.<String>emptySet()), any(CacheAccessException.class));
 
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
-  }
-
-  /**
-   * Tests {@link Ehcache#removeAll(Set)} for
-   * <ul>
-   *    <li>empty request set</li>
-   *    <li>populated {@code Store} (keys not relevant)</li>
-   *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheLoaderWriter} (keys not relevant)</li>
-   * </ul>
-   */
-  @Test
-  public void testRemoveAllEmptyRequestCacheAccessExceptionBeforeWriterNoneFail() throws Exception {
-    final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
-    final FakeStore fakeStore = new FakeStore(originalStoreContent);
-    this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
-        .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
-
-    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalStoreContent);
-    this.cacheLoaderWriter = spy(fakeLoaderWriter);
-
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
-    ehcache.removeAll(Collections.<String>emptySet());
-
-    verify(this.store).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
-    // ResilienceStrategy invoked; no assertions about Store content
-    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(originalStoreContent));
-    verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(Collections.<String>emptySet()), any(CacheAccessException.class));
-
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
-  }
-
-  /**
-   * Tests {@link Ehcache#removeAll(Set)} for
-   * <ul>
-   *    <li>empty request set</li>
-   *    <li>populated {@code Store} (keys not relevant)</li>
-   *    <li>populated {@code CacheLoaderWriter} (keys not relevant)</li>
-   *    <li>all {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
-   * </ul>
-   */
-  @Test
-  public void testRemoveAllEmptyRequestWriterAllFail() throws Exception {
-    final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
-    final FakeStore fakeStore = new FakeStore(originalStoreContent);
-    this.store = spy(fakeStore);
-
-    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalStoreContent);
-    this.cacheLoaderWriter = spy(fakeLoaderWriter);
-    doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
-
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
-    ehcache.removeAll(Collections.<String>emptySet());
-
-    verify(this.store).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
-    assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
-
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
-  }
-
-  /**
-   * Tests {@link Ehcache#removeAll(Set)} for
-   * <ul>
-   *    <li>empty request set</li>
-   *    <li>populated {@code Store} (keys not relevant)</li>
-   *    <li>{@link Store#bulkCompute} throws before accessing writer</li>
-   *    <li>populated {@code CacheLoaderWriter} (keys not relevant)</li>
-   *    <li>all {@link CacheLoaderWriter#deleteAll(Iterable)} calls fail</li>
-   * </ul>
-   */
-  @Test
-  public void testRemoveAllEmptyRequestCacheAccessExceptionBeforeWriterAllFail() throws Exception {
-    final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
-    final FakeStore fakeStore = new FakeStore(originalStoreContent);
-    this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
-        .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
-
-    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalStoreContent);
-    this.cacheLoaderWriter = spy(fakeLoaderWriter);
-    doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
-
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
-    ehcache.removeAll(Collections.<String>emptySet());
-
-    verify(this.store).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
-    // ResilienceStrategy invoked; no assertions about Store content
-    verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(Collections.<String>emptySet()), any(CacheAccessException.class));
-
+    
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
   }
 
