@@ -372,7 +372,9 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   private Map<K, V> getAllInternal(Set<? extends K> keys, boolean includeNulls) throws BulkCacheLoadingException {
     statusTransitioner.checkAvailable();
     checkNonNullContent(keys);
-
+    if(keys.isEmpty()) {
+      return Collections.emptyMap();
+    }
     final Map<K, V> successes;
     final Map<K, Exception> failures;
     if (cacheLoaderWriter != null) {
@@ -473,6 +475,9 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   public void putAll(final Map<? extends K, ? extends V> entries) throws BulkCacheWritingException {
     statusTransitioner.checkAvailable();
     checkNonNull(entries);
+    if(entries.isEmpty()) {
+      return;
+    }
     final Set<K> successes;
     final Map<K, Exception> failures;
     if (cacheLoaderWriter != null) {
@@ -613,6 +618,9 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   public void removeAll(final Set<? extends K> keys) throws BulkCacheWritingException {
     statusTransitioner.checkAvailable();
     checkNonNull(keys);
+    if(keys.isEmpty()) {
+      return;
+    }
     final Set<K> successes;
     final Map<K, Exception> failures;
     if (cacheLoaderWriter != null) {
@@ -1117,6 +1125,9 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   private final class Jsr107CacheImpl implements Jsr107Cache<K, V> {
     @Override
     public void loadAll(Set<? extends K> keys, boolean replaceExistingValues, Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
+      if(keys.isEmpty()) {
+        return ;
+      }
       if (replaceExistingValues) {
         loadAllReplace(keys, loadFunction);
       } else {

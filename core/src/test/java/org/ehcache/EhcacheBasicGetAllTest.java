@@ -22,7 +22,6 @@ import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.hamcrest.Matchers;
-
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -132,26 +131,22 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>empty request key set</li>
-   *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testGetAllEmptyRequestCacheAccessExceptionBeforeNoLoader() throws Exception {
+  public void testGetAllEmptyRequestNoLoader() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
-        .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
     final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     final Map<String, String> actual = ehcache.getAll(Collections.<String>emptySet());
     assertThat(actual, is(notNullValue()));
     assertThat(actual.isEmpty(), is(true));
-
-    verify(this.store).bulkComputeIfAbsent(eq(Collections.<String>emptySet()), getAnyIterableFunction());
-    verify(this.spiedResilienceStrategy)
-        .getAllFailure(eq(Collections.<String>emptySet()), any(CacheAccessException.class));
+    
+    verify(this.store, never()).bulkComputeIfAbsent(eq(Collections.<String>emptySet()), getAnyIterableFunction());
+    verify(this.spiedResilienceStrategy, never()).getAllFailure(eq(Collections.<String>emptySet()), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -161,16 +156,13 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>empty request key set</li>
-   *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
    * </ul>
    */
   @Test
-  public void testGetAllEmptyRequestCacheAccessExceptionBeforeWithLoader() throws Exception {
+  public void testGetAllEmptyRequestWithLoader() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
-        .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(TEST_ENTRIES);
     this.loaderWriter = spy(fakeLoaderWriter);
@@ -181,51 +173,14 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final Map<String, String> expected = Collections.emptyMap();
     assertThat(actual, equalTo(expected));
 
-    final InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
-    verify(this.store).bulkComputeIfAbsent(eq(Collections.<String>emptySet()), getAnyIterableFunction());
-    ordered.verify(this.loaderWriter).loadAll(Collections.<String>emptySet());
-    ordered.verify(this.spiedResilienceStrategy)
-        .getAllFailure(eq(Collections.<String>emptySet()), eq(expected), any(CacheAccessException.class));
-
+    verify(this.store, never()).bulkComputeIfAbsent(eq(Collections.<String>emptySet()), getAnyIterableFunction());
+    verify(this.spiedResilienceStrategy, never()).getAllFailure(eq(Collections.<String>emptySet()), any(CacheAccessException.class));
+    verify(this.loaderWriter, never()).loadAll(eq(Collections.<String>emptySet()));
+    
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
   }
 
-  /**
-   * Tests {@link Ehcache#getAll(Set)} for
-   * <ul>
-   *    <li>empty request key set</li>
-   *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
-   *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
-   *    <li>all {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
-   * </ul>
-   */
-  @Test
-  public void testGetAllEmptyRequestCacheAccessExceptionBeforeLoaderAllFail() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
-    this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
-        .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
-
-    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(TEST_ENTRIES);
-    this.loaderWriter = spy(fakeLoaderWriter);
-    doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
-
-    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
-
-    final Map<String, String> actual = ehcache.getAll(Collections.<String>emptySet());
-    final Map<String, String> expected = Collections.emptyMap();
-    assertThat(actual, equalTo(expected));
-
-    final InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
-    verify(this.store).bulkComputeIfAbsent(eq(Collections.<String>emptySet()), getAnyIterableFunction());
-    ordered.verify(this.loaderWriter).loadAll(Collections.<String>emptySet());
-    ordered.verify(this.spiedResilienceStrategy)
-        .getAllFailure(eq(Collections.<String>emptySet()), eq(expected), any(CacheAccessException.class));
-
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
-  }
 
   /**
    * Tests {@link Ehcache#getAll(Set)} for
