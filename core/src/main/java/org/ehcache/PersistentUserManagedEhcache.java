@@ -196,6 +196,11 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
   }
 
   @Override
+  public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) {
+    return ehcache.computeIfPresent(key, mappingFunction);
+  }
+
+  @Override
   public CacheRuntimeConfiguration<K, V> getRuntimeConfiguration() {
     return ehcache.getRuntimeConfiguration();
   }

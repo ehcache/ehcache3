@@ -144,6 +144,11 @@ public class UserManagedCacheBuilderTest {
     }
 
     @Override
+    public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
     public CacheRuntimeConfiguration<K, V> getRuntimeConfiguration() {
       throw new UnsupportedOperationException("Implement me!");
     }

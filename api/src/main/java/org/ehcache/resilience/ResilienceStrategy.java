@@ -453,4 +453,36 @@ public interface ResilienceStrategy<K, V> {
    * @return the value to return from the operation
    */
   V computeIfAbsentFailure(K key, CacheAccessException e, CacheWritingException f);
+
+  /**
+   * Called when a {@link Cache#computeIfPresent(Object, BiFunction)} fails
+   * due to an underlying store failure.
+   *
+   * @param key the key being computed
+   * @param e the cache failure
+   * @return the value to return from the operation
+   */
+  V computeIfPresentFailure(K key, CacheAccessException e);
+
+  /**
+   * Called when a {@link Cache#computeIfPresent(Object, BiFunction)} fails
+   * due to an underlying store failure, and the associated cache load
+   * operation also failed.
+   *
+   * @param key the key being computed
+   * @param e the cache failure
+   * @return the value to return from the operation
+   */
+  V computeIfPresentFailure(K key, CacheAccessException e, CacheLoadingException f);
+
+  /**
+   * Called when a {@link Cache#computeIfPresent(Object, BiFunction)} fails
+   * due to an underlying store failure, and the associated cache write
+   * operation also failed.
+   *
+   * @param key the key being computed
+   * @param e the cache failure
+   * @return the value to return from the operation
+   */
+  V computeIfPresentFailure(K key, CacheAccessException e, CacheWritingException f);
 }
