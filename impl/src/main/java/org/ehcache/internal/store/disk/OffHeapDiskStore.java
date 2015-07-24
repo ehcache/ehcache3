@@ -334,7 +334,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
    * This is kind of a hack, but it's safe to use this if the regular portability 
    * is stateless.
    */
-  private static <T> PersistentPortability<T> persistent(final Portability<T> normal) {
+  public static <T> PersistentPortability<T> persistent(final Portability<T> normal) {
     final Class<?> normalKlazz = normal.getClass();
     Class<?>[] delegateInterfaces = normalKlazz.getInterfaces();
     Class<?>[] proxyInterfaces = Arrays.copyOf(delegateInterfaces, delegateInterfaces.length + 1);

@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store.offheap.factories;
+package org.ehcache.internal.store.disk.factories;
 
+import java.io.IOException;
+import org.ehcache.internal.store.offheap.factories.*;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Predicate;
 import org.ehcache.function.Predicates;
@@ -24,53 +26,60 @@ import org.ehcache.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+
+import org.junit.Rule;
 import org.junit.Test;
-import org.terracotta.offheapstore.paging.PageSource;
-import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
-import org.terracotta.offheapstore.storage.OffHeapBufferStorageEngine;
-import org.terracotta.offheapstore.storage.PointerSize;
-import org.terracotta.offheapstore.storage.portability.Portability;
+import org.junit.rules.TemporaryFolder;
+
 import org.terracotta.offheapstore.util.Factory;
 
 import java.util.Map;
+import org.ehcache.internal.store.disk.factories.EhcachePersistentSegmentFactory.EhcachePersistentSegment;
 
-import static org.ehcache.internal.store.offheap.OffHeapStoreUtils.getBufferSource;
+import static org.ehcache.internal.store.disk.OffHeapDiskStore.persistent;
+import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.EvictionListener;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import org.terracotta.offheapstore.disk.paging.MappedPageSource;
+import org.terracotta.offheapstore.disk.persistent.PersistentPortability;
+import org.terracotta.offheapstore.disk.storage.FileBackedStorageEngine;
 
-public class EhcacheSegmentTest {
+public class EhcachePersistentSegmentTest {
 
-  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment() {
-    return createTestSegment(Predicates.<Map.Entry<String, String>>none(), mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
+  @Rule
+  public final TemporaryFolder folder = new TemporaryFolder();
+  
+  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment() throws IOException {
+    return createTestSegment(Predicates.<Map.Entry<String, String>>none(), mock(EvictionListener.class));
   }
   
-  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(Predicate<Map.Entry<String, String>> evictionPredicate) {
-    return createTestSegment(evictionPredicate, mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
+  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(Predicate<Map.Entry<String, String>> evictionPredicate) throws IOException {
+    return createTestSegment(evictionPredicate, mock(EvictionListener.class));
   }
   
-  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
+  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionListener<String, String> evictionListener) throws IOException {
     return createTestSegment(Predicates.<Map.Entry<String, String>>none(), evictionListener);
   }
   
-  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(Predicate<Map.Entry<String, String>> evictionPredicate, EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
+  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(Predicate<Map.Entry<String, String>> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
     HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
     SerializationProvider serializationProvider = new DefaultSerializationProvider();
     serializationProvider.start(null, null);
-    PageSource pageSource = new UpfrontAllocatingPageSource(getBufferSource(), configuration.getMaximumSize(), configuration.getMaximumChunkSize(), configuration.getMinimumChunkSize());
-    Serializer<String> stringSerializer = serializationProvider.createValueSerializer(String.class, EhcacheSegmentTest.class.getClassLoader());
-    Portability<String> keyPortability = new SerializerPortability<String>(stringSerializer);
-    Portability<String> elementPortability = new SerializerPortability<String>(stringSerializer);
-    Factory<OffHeapBufferStorageEngine<String, String>> storageEngineFactory = OffHeapBufferStorageEngine.createFactory(PointerSize.INT, pageSource, configuration.getInitialSegmentTableSize(), keyPortability, elementPortability, false, true);
-    return new EhcacheSegmentFactory.EhcacheSegment<String, String>(pageSource, storageEngineFactory.newInstance(), 1, evictionPredicate, evictionListener);
+    MappedPageSource pageSource = new MappedPageSource(folder.newFile(), true, configuration.getMaximumSize());
+    Serializer<String> stringSerializer = serializationProvider.createValueSerializer(String.class, EhcachePersistentSegmentTest.class.getClassLoader());
+    PersistentPortability<String> keyPortability = persistent(new SerializerPortability<String>(stringSerializer));
+    PersistentPortability<String> elementPortability = persistent(new SerializerPortability<String>(stringSerializer));
+    Factory<FileBackedStorageEngine<String, String>> storageEngineFactory = FileBackedStorageEngine.createFactory(pageSource, keyPortability, elementPortability);
+    return new EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String>(pageSource, storageEngineFactory.newInstance(), 1, true, evictionPredicate, evictionListener);
   }
 
   @Test
-  public void testComputeFunctionCalledWhenNoMapping() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment();
+  public void testComputeFunctionCalledWhenNoMapping() throws IOException {
+    EhcachePersistentSegment<String, String> segment = createTestSegment();
     try {
       String value = segment.compute("key", new BiFunction<String, String, String>() {
         @Override
@@ -86,8 +95,8 @@ public class EhcacheSegmentTest {
   }
 
   @Test
-  public void testComputeFunctionReturnsSameNoPin() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment();
+  public void testComputeFunctionReturnsSameNoPin() throws IOException {
+    EhcachePersistentSegment<String, String> segment = createTestSegment();
     try {
       segment.put("key", "value");
       String value = segment.compute("key", new BiFunction<String, String, String>() {
@@ -104,8 +113,8 @@ public class EhcacheSegmentTest {
   }
 
   @Test
-  public void testComputeFunctionReturnsSamePins() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment();
+  public void testComputeFunctionReturnsSamePins() throws IOException {
+    EhcachePersistentSegment<String, String> segment = createTestSegment();
     try {
       segment.put("key", "value");
       String value = segment.compute("key", new BiFunction<String, String, String>() {
@@ -122,8 +131,8 @@ public class EhcacheSegmentTest {
   }
 
   @Test
-  public void testComputeFunctionReturnsSamePreservesPinWhenNoPin() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment();
+  public void testComputeFunctionReturnsSamePreservesPinWhenNoPin() throws IOException {
+    EhcachePersistentSegment<String, String> segment = createTestSegment();
     try {
       segment.putPinned("key", "value");
       String value = segment.compute("key", new BiFunction<String, String, String>() {
@@ -140,8 +149,8 @@ public class EhcacheSegmentTest {
   }
 
   @Test
-  public void testComputeFunctionReturnsDifferentNoPin() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment();
+  public void testComputeFunctionReturnsDifferentNoPin() throws IOException {
+    EhcachePersistentSegment<String, String> segment = createTestSegment();
     try {
       segment.put("key", "value");
       String value = segment.compute("key", new BiFunction<String, String, String>() {
@@ -158,8 +167,8 @@ public class EhcacheSegmentTest {
   }
 
   @Test
-  public void testComputeFunctionReturnsDifferentPins() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment();
+  public void testComputeFunctionReturnsDifferentPins() throws IOException {
+    EhcachePersistentSegment<String, String> segment = createTestSegment();
     try {
       segment.put("key", "value");
       String value = segment.compute("key", new BiFunction<String, String, String>() {
@@ -176,8 +185,8 @@ public class EhcacheSegmentTest {
   }
 
   @Test
-  public void testComputeFunctionReturnsDifferentClearsPin() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment();
+  public void testComputeFunctionReturnsDifferentClearsPin() throws IOException {
+    EhcachePersistentSegment<String, String> segment = createTestSegment();
     try {
       segment.putPinned("key", "value");
       String value = segment.compute("key", new BiFunction<String, String, String>() {
@@ -194,8 +203,8 @@ public class EhcacheSegmentTest {
   }
 
   @Test
-  public void testComputeFunctionReturnsNullRemoves() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment();
+  public void testComputeFunctionReturnsNullRemoves() throws IOException {
+    EhcachePersistentSegment<String, String> segment = createTestSegment();
     try {
       segment.putPinned("key", "value");
       String value = segment.compute("key", new BiFunction<String, String, String>() {
@@ -212,8 +221,8 @@ public class EhcacheSegmentTest {
   }
 
   @Test
-  public void testComputeIfPresentNotCalledOnNotContainedKey() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment();
+  public void testComputeIfPresentNotCalledOnNotContainedKey() throws IOException {
+    EhcachePersistentSegment<String, String> segment = createTestSegment();
     try {
       try {
         segment.computeIfPresent("key", new BiFunction<String, String, String>() {
@@ -231,8 +240,8 @@ public class EhcacheSegmentTest {
   }
 
   @Test
-  public void testComputeIfPresentReturnsSameValue() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment();
+  public void testComputeIfPresentReturnsSameValue() throws IOException {
+    EhcachePersistentSegment<String, String> segment = createTestSegment();
     try {
       segment.put("key", "value");
       String value = segment.computeIfPresent("key", new BiFunction<String, String, String>() {
@@ -248,8 +257,8 @@ public class EhcacheSegmentTest {
   }
 
   @Test
-  public void testComputeIfPresentReturnsDifferentValue() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment();
+  public void testComputeIfPresentReturnsDifferentValue() throws IOException {
+    EhcachePersistentSegment<String, String> segment = createTestSegment();
     try {
       segment.put("key", "value");
       String value = segment.computeIfPresent("key", new BiFunction<String, String, String>() {
@@ -265,8 +274,8 @@ public class EhcacheSegmentTest {
   }
 
   @Test
-  public void testComputeIfPresentReturnsNullRemovesMapping() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment();
+  public void testComputeIfPresentReturnsNullRemovesMapping() throws IOException {
+    EhcachePersistentSegment<String, String> segment = createTestSegment();
     try {
       segment.put("key", "value");
       String value = segment.computeIfPresent("key", new BiFunction<String, String, String>() {
@@ -282,8 +291,8 @@ public class EhcacheSegmentTest {
   }
 
   @Test
-  public void testPutVetoedComputesMetadata() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment(new Predicate<Map.Entry<String, String>>() {
+  public void testPutVetoedComputesMetadata() throws IOException {
+    EhcachePersistentSegment<String, String> segment = createTestSegment(new Predicate<Map.Entry<String, String>>() {
       @Override
       public boolean test(Map.Entry<String, String> argument) {
         return "vetoed".equals(argument.getKey());
@@ -298,8 +307,8 @@ public class EhcacheSegmentTest {
   }
 
   @Test
-  public void testPutPinnedVetoedComputesMetadata() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment(new Predicate<Map.Entry<String, String>>() {
+  public void testPutPinnedVetoedComputesMetadata() throws IOException {
+    EhcachePersistentSegment<String, String> segment = createTestSegment(new Predicate<Map.Entry<String, String>>() {
       @Override
       public boolean test(Map.Entry<String, String> argument) {
         return "vetoed".equals(argument.getKey());
@@ -314,8 +323,8 @@ public class EhcacheSegmentTest {
   }
 
   @Test
-  public void testVetoedPreventsEviction() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment();
+  public void testVetoedPreventsEviction() throws IOException {
+    EhcachePersistentSegment<String, String> segment = createTestSegment();
     try {
       assertThat(segment.evictable(1), is(true));
       assertThat(segment.evictable(EhcacheSegmentFactory.EhcacheSegment.VETOED | 1), is(false));
@@ -325,9 +334,9 @@ public class EhcacheSegmentTest {
   }
 
   @Test
-  public void testEvictionFiresEvent() {
-    EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener = mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class);
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment(evictionListener);
+  public void testEvictionFiresEvent() throws IOException {
+    EvictionListener<String, String> evictionListener = mock(EvictionListener.class);
+    EhcachePersistentSegment<String, String> segment = createTestSegment(evictionListener);
     try {
       segment.put("key", "value");
       segment.evict(segment.getEvictionIndex(), false);
