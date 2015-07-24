@@ -191,6 +191,11 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
   }
 
   @Override
+  public V computeIfAbsent(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheLoadingException, CacheWritingException {
+    return ehcache.computeIfAbsent(key, mappingFunction);
+  }
+
+  @Override
   public CacheRuntimeConfiguration<K, V> getRuntimeConfiguration() {
     return ehcache.getRuntimeConfiguration();
   }

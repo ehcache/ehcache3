@@ -1100,6 +1100,83 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   }
 
   @Override
+  public V computeIfAbsent(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) {
+    statusTransitioner.checkAvailable();
+    checkNonNull(key, mappingFunction);
+    computeObserver.begin();
+
+    final AtomicBoolean wasPresent = new AtomicBoolean(false);
+
+    BiFunction<? super K, ? super V, ? extends V> remappingFunction = memoize(new BiFunction<K, V, V>() {
+      @Override
+      public V apply(K k, V inCache) {
+        if (inCache == null && cacheLoaderWriter != null) {
+          try {
+            inCache = cacheLoaderWriter.load(k);
+          } catch (Exception e) {
+            throw newCacheLoadingException(e);
+          }
+        }
+        wasPresent.set(inCache != null);
+        if (inCache != null) {
+          // returning inCache here either keeps the store intact or fills it up
+          return inCache;
+        }
+
+        V newValue = mappingFunction.apply(k, null);
+
+        if (newValueAlreadyExpired(key, null, newValue)) {
+          return null;
+        }
+
+        if (cacheLoaderWriter != null) {
+          try {
+            if (newValue != null) {
+              cacheLoaderWriter.write(key, newValue);
+            } else {
+              cacheLoaderWriter.delete(key);
+            }
+          } catch (Exception e) {
+            throw newCacheWritingException(e);
+          }
+        }
+
+        return newValue;
+      }
+    });
+
+    try {
+      ValueHolder<V> computed = store.compute(key, remappingFunction);
+      V value = computed == null ? null : computed.value();
+      if (wasPresent.get()) {
+        computeObserver.end(ComputeOutcome.PRESENT_NOOP);
+      } else if (value == null) {
+        computeObserver.end(ComputeOutcome.NOT_PRESENT_NOOP);
+      } else {
+        computeObserver.end(ComputeOutcome.NOT_PRESENT_ADDED);
+      }
+      return wasPresent.get() ? null : value;
+    } catch (CacheAccessException e) {
+      try {
+        if (cacheLoaderWriter == null) {
+          return resilienceStrategy.computeIfAbsentFailure(key, e);
+        } else {
+          try {
+            remappingFunction.apply(key, null);
+          } catch (CacheLoadingException f) {
+            return resilienceStrategy.computeIfAbsentFailure(key, e, f);
+          } catch (CacheWritingException f) {
+            return resilienceStrategy.computeIfAbsentFailure(key, e, f);
+          }
+          return resilienceStrategy.computeIfAbsentFailure(key, e);
+        }
+      } finally {
+        computeObserver.end(ComputeOutcome.FAILURE);
+      }
+    }
+  }
+
+  @Override
   public CacheRuntimeConfiguration<K, V> getRuntimeConfiguration() {
     return runtimeConfiguration;
   }

@@ -225,6 +225,32 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
   V compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheLoadingException, CacheWritingException;
 
   /**
+   * Compute the value for the given key (only if absent or expired) by invoking the given function to produce the value.
+   *
+   * This is equivalent to:
+   * <pre><code>
+   * if (cache.get(key) == null) {
+   *   V newValue = mappingFunction.apply(key);
+   *   if (newValue != null)
+   *     cache.put(key, newValue);
+   * }
+   * </code></pre>
+   * except that the entire operation is performed atomically.
+   *
+   * @param key the key to be associated with
+   * @param mappingFunction the function that produces the value
+   * @return the value produced by the mappingFunction, or null if the key was present
+   * @throws NullPointerException if any of the mappingFunction, or the key is null
+   * @throws CacheLoadingException if the {@link CacheLoaderWriter}
+   * associated with this cache was invoked and threw an {@link Exception} while loading
+   * the value for the key
+   * @throws CacheWritingException if the {@link CacheLoaderWriter}
+   * associated with this cache was invoked and threw an {@link Exception}
+   * while inserting, updating or deleting value for given key on underlying system of record.
+   */
+  V computeIfAbsent(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheLoadingException, CacheWritingException;
+
+  /**
    * Exposes the {@link org.ehcache.config.CacheRuntimeConfiguration} associated with this Cache instance.
    *
    * @return the configuration currently in use

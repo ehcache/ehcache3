@@ -139,6 +139,11 @@ public class UserManagedCacheBuilderTest {
     }
 
     @Override
+    public V computeIfAbsent(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheLoadingException, CacheWritingException {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
     public CacheRuntimeConfiguration<K, V> getRuntimeConfiguration() {
       throw new UnsupportedOperationException("Implement me!");
     }
