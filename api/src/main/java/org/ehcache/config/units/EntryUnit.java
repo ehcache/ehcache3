@@ -26,5 +26,19 @@ public enum EntryUnit implements ResourceUnit {
   /**
    * The only possible value of {@link EntryUnit}
    */
-  ENTRIES,
+  ENTRIES {
+    @Override
+    public String toString() {
+      return "entries";
+    }
+
+    @Override
+    public int compareTo(long thisSize, long thatSize, ResourceUnit thatUnit) throws IllegalArgumentException {
+      if (equals(thatUnit)) {
+        return Long.signum(thisSize - thatSize);
+      } else {
+        throw new IllegalArgumentException();
+      }
+    }
+  },
 }

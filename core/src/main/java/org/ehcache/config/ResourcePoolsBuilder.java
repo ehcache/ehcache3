@@ -17,21 +17,27 @@ package org.ehcache.config;
 
 import org.ehcache.config.units.MemoryUnit;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
+
+import static java.util.Collections.unmodifiableMap;
+import java.util.HashMap;
+import static org.ehcache.config.ResourcePoolsImpl.validateResourcePools;
 
 /**
  * @author Ludovic Orban
  */
 public class ResourcePoolsBuilder {
 
-  private final Map<ResourceType, ResourcePool> resourcePools = new HashMap<ResourceType, ResourcePool>();
+  private final Map<ResourceType, ResourcePool> resourcePools;
 
   private ResourcePoolsBuilder() {
+    this(Collections.<ResourceType, ResourcePool>emptyMap());
   }
 
-  private ResourcePoolsBuilder(ResourcePoolsBuilder resourcePoolsBuilder) {
-    resourcePools.putAll(resourcePoolsBuilder.resourcePools);
+  private ResourcePoolsBuilder(Map<ResourceType, ResourcePool> resourcePools) {
+    validateResourcePools(resourcePools.values());
+    this.resourcePools = unmodifiableMap(resourcePools);
   }
 
   public static ResourcePoolsBuilder newResourcePoolsBuilder() {
@@ -48,21 +54,17 @@ public class ResourcePoolsBuilder {
   }
 
   public ResourcePoolsBuilder with(ResourceType type, long size, ResourceUnit unit, boolean persistent) {
-    ResourcePoolsBuilder otherBuilder = new ResourcePoolsBuilder(this);
-    otherBuilder.resourcePools.put(type, new ResourcePoolImpl(type, size, unit, persistent));
-    return otherBuilder;
+    Map<ResourceType, ResourcePool> newPools = new HashMap<ResourceType, ResourcePool>(resourcePools);
+    newPools.put(type, new ResourcePoolImpl(type, size, unit, persistent));
+    return new ResourcePoolsBuilder(newPools);
   }
 
   public ResourcePoolsBuilder heap(long size, ResourceUnit unit) {
-    ResourcePoolsBuilder otherBuilder = new ResourcePoolsBuilder(this);
-    otherBuilder.resourcePools.put(ResourceType.Core.HEAP, new ResourcePoolImpl(ResourceType.Core.HEAP, size, unit, false));
-    return otherBuilder;
+    return with(ResourceType.Core.HEAP, size, unit, false);
   }
 
   public ResourcePoolsBuilder offheap(long size, MemoryUnit unit) {
-    ResourcePoolsBuilder otherBuilder = new ResourcePoolsBuilder(this);
-    otherBuilder.resourcePools.put(ResourceType.Core.OFFHEAP, new ResourcePoolImpl(ResourceType.Core.OFFHEAP, size, unit, false));
-    return otherBuilder;
+    return with(ResourceType.Core.OFFHEAP, size, unit, false);
   }
 
   public ResourcePoolsBuilder disk(long size, MemoryUnit unit) {
@@ -70,9 +72,7 @@ public class ResourcePoolsBuilder {
   }
 
   public ResourcePoolsBuilder disk(long size, MemoryUnit unit, boolean persistent) {
-    ResourcePoolsBuilder otherBuilder = new ResourcePoolsBuilder(this);
-    otherBuilder.resourcePools.put(ResourceType.Core.DISK, new ResourcePoolImpl(ResourceType.Core.DISK, size, unit, persistent));
-    return otherBuilder;
+    return with(ResourceType.Core.DISK, size, unit, persistent);
   }
 
   public ResourcePools build() {
