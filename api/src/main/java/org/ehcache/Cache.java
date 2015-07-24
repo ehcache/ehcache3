@@ -20,6 +20,7 @@ import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CacheWritingException;
+import org.ehcache.function.BiFunction;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import java.util.Map;
@@ -188,6 +189,40 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * while replacing value for given key on underlying system of record.
   */
   boolean replace(K key, V oldValue, V newValue) throws CacheLoadingException, CacheWritingException;
+
+  /**
+   * Compute the value for the given key by invoking the given function to produce the value.
+   *
+   * This is equivalent to:
+   * <pre><code>
+   * V oldValue = cache.get(key);
+   * V newValue = remappingFunction.apply(key, oldValue);
+   * if (oldValue != null ) {
+   *   if (newValue != null)
+   *     cache.put(key, newValue);
+   *   else
+   *     cache.remove(key);
+   * } else {
+   *   if (newValue != null)
+   *     cache.put(key, newValue);
+   *   else
+   *     return null;
+   * }
+   * </code></pre>
+   * except that the entire operation is performed atomically.
+   *
+   * @param key the key to be associated with
+   * @param mappingFunction the function that produces the value
+   * @return the value produced by the mappingFunction
+   * @throws NullPointerException if any of the mappingFunction, or the key is null
+   * @throws CacheLoadingException if the {@link CacheLoaderWriter}
+   * associated with this cache was invoked and threw an {@link Exception} while loading
+   * the value for the key
+   * @throws CacheWritingException if the {@link CacheLoaderWriter}
+   * associated with this cache was invoked and threw an {@link Exception}
+   * while inserting, updating or deleting value for given key on underlying system of record.
+   */
+  V compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheLoadingException, CacheWritingException;
 
   /**
    * Exposes the {@link org.ehcache.config.CacheRuntimeConfiguration} associated with this Cache instance.

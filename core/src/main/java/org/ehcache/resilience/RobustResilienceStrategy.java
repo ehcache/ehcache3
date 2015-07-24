@@ -210,6 +210,24 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
     throw f;
   }
 
+  @Override
+  public V computeFailure(K key, CacheAccessException e) {
+    cleanup(key, e);
+    return null;
+  }
+
+  @Override
+  public V computeFailure(K key, CacheAccessException e, CacheLoadingException f) {
+    cleanup(key, e);
+    throw f;
+  }
+
+  @Override
+  public V computeFailure(K key, CacheAccessException e, CacheWritingException f) {
+    cleanup(key, e);
+    throw f;
+  }
+
   private void cleanup(CacheAccessException from) {
     try {
       cache.obliterate();

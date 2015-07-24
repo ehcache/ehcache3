@@ -96,5 +96,17 @@ public interface CacheOperationOutcomes {
     MISS_PRESENT,
     MISS_NOT_PRESENT,
     FAILURE
-  };  
+  };
+
+  /**
+   * The compute outcomes.
+   */
+  enum ComputeOutcome implements CacheOperationOutcomes {
+    PRESENT_UPDATED,
+    PRESENT_REMOVED,
+    PRESENT_NOOP,
+    NOT_PRESENT_ADDED,
+    NOT_PRESENT_NOOP,
+    FAILURE
+  };
 }

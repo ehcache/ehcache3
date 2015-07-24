@@ -39,6 +39,7 @@ import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.BulkOps;
 import org.ehcache.statistics.CacheOperationOutcomes.CacheLoadingOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.ComputeOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
@@ -97,6 +98,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   private final OperationObserver<CacheLoadingOutcome> cacheLoadingObserver = operation(CacheLoadingOutcome.class).named("cacheLoading").of(this).tag("cache").build();
   private final OperationObserver<PutIfAbsentOutcome> putIfAbsentObserver = operation(PutIfAbsentOutcome.class).named("putIfAbsent").of(this).tag("cache").build();
   private final OperationObserver<ReplaceOutcome> replaceObserver = operation(ReplaceOutcome.class).named("replace").of(this).tag("cache").build();  
+  private final OperationObserver<ComputeOutcome> computeObserver = operation(ComputeOutcome.class).named("compute").of(this).tag("cache").build();
   private final ConcurrentMap<BulkOps, AtomicLong> bulkMethodEntries = new ConcurrentHashMap<BulkOps, AtomicLong>();
 
   private static final NullaryFunction<Boolean> REPLACE_FALSE = new NullaryFunction<Boolean>() {
@@ -1019,6 +1021,81 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } finally {
         replaceObserver.end(ReplaceOutcome.FAILURE);
       }        
+    }
+  }
+
+  @Override
+  public V compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) {
+    statusTransitioner.checkAvailable();
+    checkNonNull(key, mappingFunction);
+    computeObserver.begin();
+
+    final AtomicBoolean wasPresent = new AtomicBoolean(false);
+
+    BiFunction<? super K, ? super V, ? extends V> remappingFunction = memoize(new BiFunction<K, V, V>() {
+      @Override
+      public V apply(K k, V inCache) {
+        if (inCache == null && cacheLoaderWriter != null) {
+          try {
+            inCache = cacheLoaderWriter.load(k);
+          } catch (Exception e) {
+            throw newCacheLoadingException(e);
+          }
+        }
+        wasPresent.set(inCache != null);
+
+        V newValue = mappingFunction.apply(k, inCache);
+
+        if (newValueAlreadyExpired(key, inCache, newValue)) {
+          return null;
+        }
+
+        if (cacheLoaderWriter != null) {
+          try {
+            if (newValue != null) {
+              cacheLoaderWriter.write(key, newValue);
+            } else {
+              cacheLoaderWriter.delete(key);
+            }
+          } catch (Exception e) {
+            throw newCacheWritingException(e);
+          }
+        }
+
+        return newValue;
+      }
+    });
+
+    try {
+      ValueHolder<V> computed = store.compute(key, remappingFunction);
+      V value = computed == null ? null : computed.value();
+      if (!wasPresent.get() && value == null) {
+        computeObserver.end(ComputeOutcome.NOT_PRESENT_NOOP);
+      } else if (!wasPresent.get() && value != null) {
+        computeObserver.end(ComputeOutcome.NOT_PRESENT_ADDED);
+      } else if (wasPresent.get() && value == null) {
+        computeObserver.end(ComputeOutcome.PRESENT_REMOVED);
+      } else if (wasPresent.get() && value != null) {
+        computeObserver.end(ComputeOutcome.PRESENT_UPDATED);
+      }
+      return value;
+    } catch (CacheAccessException e) {
+      try {
+        if (cacheLoaderWriter == null) {
+          return resilienceStrategy.computeFailure(key, e);
+        } else {
+          try {
+            remappingFunction.apply(key, null);
+          } catch (CacheLoadingException f) {
+            return resilienceStrategy.computeFailure(key, e, f);
+          } catch (CacheWritingException f) {
+            return resilienceStrategy.computeFailure(key, e, f);
+          }
+          return resilienceStrategy.computeFailure(key, e);
+        }
+      } finally {
+        computeObserver.end(ComputeOutcome.FAILURE);
+      }
     }
   }
 
