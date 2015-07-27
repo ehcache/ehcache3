@@ -29,8 +29,6 @@ import org.ehcache.spi.service.ServiceFactory;
  */
 public class WriteBehindDecoratorLoaderWriterProviderFactory implements ServiceFactory<WriteBehindDecoratorLoaderWriterProvider> {
   
-  private volatile WriteBehindDecoratorLoaderWriter<?, ?> loaderWriter = null;
-
   @Override
   public WriteBehindDecoratorLoaderWriterProvider create(ServiceConfiguration<WriteBehindDecoratorLoaderWriterProvider> serviceConfiguration, ServiceLocator serviceLocator) {
     return new WriteBehindDecoratorLoaderWriterProvider() {
@@ -53,13 +51,14 @@ public class WriteBehindDecoratorLoaderWriterProviderFactory implements ServiceF
         if (cacheLoaderWriter == null) {
           throw new NullPointerException("WriteBehind requires non null CacheLoaderWriter.");
         }
-        loaderWriter = new WriteBehindDecoratorLoaderWriter<K, V>(cacheLoaderWriter, configuration);
-        return (WriteBehindDecoratorLoaderWriter<K, V>)loaderWriter;
+        return new WriteBehindDecoratorLoaderWriter<K, V>(cacheLoaderWriter, configuration);
       }
 
       @Override
       public void releaseWriteBehindDecoratorCacheLoaderWriter(CacheLoaderWriter<?, ?> cacheLoaderWriter) {
-        if(loaderWriter != null) loaderWriter.getWriteBehindQueue().stop();
+        if(cacheLoaderWriter != null) {
+          ((WriteBehindDecoratorLoaderWriter)cacheLoaderWriter).getWriteBehindQueue().stop();
+        }
       }
     };
   }
