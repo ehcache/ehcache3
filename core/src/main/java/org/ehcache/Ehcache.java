@@ -232,6 +232,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         }
         
         if (newValueAlreadyExpired(key, previousValue, value)) {
+          eventNotificationService.onEvent(CacheEvents.expiry(newCacheEntry(key, value), Ehcache.this));
           return null;
         }
         
