@@ -45,6 +45,8 @@ public interface CacheOperationOutcomes {
   enum PutOutcome implements CacheOperationOutcomes {
     /** added. */
     ADDED,
+    /** no op. */
+    NOOP,
     /** failure */
     FAILURE
   };
@@ -55,6 +57,8 @@ public interface CacheOperationOutcomes {
   enum RemoveOutcome implements CacheOperationOutcomes {
     /** success. */
     SUCCESS,
+    /** no op. */
+    NOOP,
     /** failure */
     FAILURE
   };

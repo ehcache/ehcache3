@@ -232,6 +232,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         }
         
         if (newValueAlreadyExpired(key, previousValue, value)) {
+          eventNotificationService.onEvent(CacheEvents.expiry(newCacheEntry(key, value), Ehcache.this));
           return null;
         }
         
@@ -248,7 +249,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       if (computed != null) {
         putObserver.end(PutOutcome.ADDED);
       } else {
-        // XXX: is there an outcome we want here?
+        putObserver.end(PutOutcome.NOOP);
       }
     } catch (CacheAccessException e) {
       try {
@@ -330,7 +331,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       if (modified.get()) {
         removeObserver.end(RemoveOutcome.SUCCESS);
       } else {
-        // XXX: Is there an outcome we want here?
+        removeObserver.end(RemoveOutcome.NOOP);
       }
     } catch (CacheAccessException e) {
       try {
