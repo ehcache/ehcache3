@@ -35,6 +35,8 @@ import org.ehcache.event.EventType;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheWritingException;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
@@ -83,6 +85,29 @@ public class EhcacheEventTest {
   public void tearDown() {
     // Make sure no more events have been sent
     verify(eventNotifier, new NoMoreInteractions()).onEvent(any(CacheEvent.class));
+  }
+
+  @Test
+  public void testImmediatelyExpiringEntry() throws Exception {
+    RuntimeConfiguration<Number, String> runtimeConfiguration = new RuntimeConfiguration<Number, String>(newCacheConfigurationBuilder()
+        .withExpiry(Expirations.timeToLiveExpiration(Duration.ZERO))
+        .buildConfig(Number.class, String.class), eventNotifier);
+    Ehcache<Number, String> cache = new Ehcache<Number, String>(
+        runtimeConfiguration, store, null, eventNotifier, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheEventTest-testImmediatelyExpiringEntry"));
+    cache.init();
+
+    Number key = 1;
+    String value = "one";
+    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        BiFunction<Number, String, String> function = asBiFunction(invocation);
+        function.apply((Number)invocation.getArguments()[0], null);
+        return null;
+      }
+    });
+    cache.put(key, value);
+    verify(eventNotifier).onEvent(eventMatching(EventType.EXPIRED, key, value, value));
   }
 
   @Test
@@ -457,7 +482,7 @@ public class EhcacheEventTest {
       public boolean matches(Object argument) {
         CacheEvent<K, V> event = (CacheEvent<K, V>)argument;
         Cache.Entry<K, V> entry = event.getEntry();
-        return type == event.getType() && entry.getKey().equals(key) && entry.getValue().equals(value) && (event.getPreviousValue() == null ? oldValue == null : 
+        return type == event.getType() && entry.getKey().equals(key) && entry.getValue().equals(value) && (event.getPreviousValue() == null ? oldValue == null :
           event.getPreviousValue().equals(oldValue));
       }
       
