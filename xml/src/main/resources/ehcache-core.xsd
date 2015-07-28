@@ -68,7 +68,7 @@
       <xs:element name="serializer" maxOccurs="unbounded" minOccurs="0">
         <xs:complexType>
           <xs:simpleContent>
-            <xs:extension base="xs:string">
+            <xs:extension base="ehcache:fully-qualified-class-name-type">
               <xs:attribute type="xs:string" name="type" use="required"/>
             </xs:extension>
           </xs:simpleContent>
@@ -137,7 +137,7 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element name="eviction-veto" type="xs:string" minOccurs="0" maxOccurs="1">
+      <xs:element name="eviction-veto" type="ehcache:fully-qualified-class-name-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
             A fully qualified class name to a concrete type that implements
@@ -145,7 +145,7 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element name="eviction-prioritizer" type="xs:string" minOccurs="0" maxOccurs="1">
+      <xs:element name="eviction-prioritizer" type="ehcache:fully-qualified-class-name-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
             A fully qualified class name to a concrete type that implements
@@ -192,7 +192,7 @@
       <xs:element name="loaderwriter" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:sequence>
-            <xs:element name="class" type="xs:string" minOccurs="1" maxOccurs="1">
+            <xs:element name="class" type="ehcache:fully-qualified-class-name-type" minOccurs="1" maxOccurs="1">
               <xs:annotation>
                 <xs:documentation xml:lang="en">
                   A fully qualified class name to a concrete type that implements
@@ -238,7 +238,7 @@
       <xs:element name="listener" minOccurs="0" maxOccurs="unbounded">
         <xs:complexType>
           <xs:sequence>
-            <xs:element name="class" type="xs:string" minOccurs="1" maxOccurs="1">
+            <xs:element name="class" type="ehcache:fully-qualified-class-name-type" minOccurs="1" maxOccurs="1">
               <xs:annotation>
                 <xs:documentation xml:lang="en">
                   A fully qualified class name to a concrete type that implements
@@ -277,8 +277,8 @@
 
   <xs:complexType name="cache-entry-type">
     <xs:simpleContent>
-      <xs:extension base="xs:string">
-        <xs:attribute name="serializer" type="xs:string">
+      <xs:extension base="ehcache:fully-qualified-class-name-type">
+        <xs:attribute name="serializer" type="ehcache:fully-qualified-class-name-type">
           <xs:annotation>
             <xs:documentation xml:lang="en">
               A fully qualified class name of the type's serializer class.
@@ -291,7 +291,7 @@
 
   <xs:complexType name="expiry-type">
     <xs:choice>
-      <xs:element name="class" type="xs:string">
+      <xs:element name="class" type="ehcache:fully-qualified-class-name-type">
         <xs:annotation>
           <xs:documentation xml:lang="en">
             A fully qualified class name to a concrete type that implements
@@ -402,5 +402,10 @@
       <xs:enumeration value="CREATED" />
       <xs:enumeration value="UPDATED" />
     </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="fully-qualified-class-name-type">
+  	<xs:restriction base="xs:string">
+  	  <xs:whiteSpace value="collapse"></xs:whiteSpace>
+  	</xs:restriction>
   </xs:simpleType>
 </xs:schema>
