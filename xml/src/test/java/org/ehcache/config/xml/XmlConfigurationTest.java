@@ -20,6 +20,7 @@ import com.pany.ehcache.serializer.TestSerializer;
 import com.pany.ehcache.serializer.TestSerializer2;
 import com.pany.ehcache.serializer.TestSerializer3;
 import com.pany.ehcache.serializer.TestSerializer4;
+
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
@@ -45,6 +46,8 @@ import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
@@ -61,11 +64,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.StringContains.containsString;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsSame.sameInstance;
@@ -487,6 +494,40 @@ public class XmlConfigurationTest {
 
     CacheConfigurationBuilder<Object, Object> templateConfig = xmlConfig.newCacheConfigurationBuilderFromTemplate("example");
     assertThat(templateConfig.getExistingServiceConfiguration(DefaultCacheEventListenerConfiguration.class), notNullValue());
+  }
+  
+  @Test
+  public void testDefaulSerializerXmlsSerializersValueHasWhitespaces() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/default-serializer.xml");
+    DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+    DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+    Document doc = dBuilder.parse(new File(resource.toURI()));
+
+    NodeList nList = doc.getElementsByTagName("ehcache:serializer");
+   
+    assertThat(nList.item(2).getFirstChild().getNodeValue(), containsString(" "));
+    assertThat(nList.item(2).getFirstChild().getNodeValue(), containsString("\n"));
+    
+    assertThat(nList.item(3).getFirstChild().getNodeValue(), containsString(" "));
+    assertThat(nList.item(3).getFirstChild().getNodeValue(), containsString("\n"));
+    
+    
+    nList = doc.getElementsByTagName("ehcache:key-type");
+    
+    assertThat(nList.item(0).getFirstChild().getNodeValue(), containsString(" "));
+    assertThat(nList.item(0).getFirstChild().getNodeValue(), containsString("\n"));
+    
+    assertThat(nList.item(1).getFirstChild().getNodeValue(), containsString(" "));
+    assertThat(nList.item(1).getFirstChild().getNodeValue(), containsString("\n"));
+    
+    nList = doc.getElementsByTagName("ehcache:value-type");
+    assertThat(nList.item(0).getFirstChild().getNodeValue(), containsString(" "));
+    assertThat(nList.item(0).getFirstChild().getNodeValue(), containsString("\n"));
+    
+    assertThat(nList.item(1).getFirstChild().getNodeValue(), containsString(" "));
+    assertThat(nList.item(1).getFirstChild().getNodeValue(), containsString("\n"));
+    
+
   }
 
   private void checkListenerConfigurationExists(Collection<?> configuration) {
