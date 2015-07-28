@@ -31,6 +31,7 @@ import org.ehcache.EhcacheManager;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.DefaultConfiguration;
 import org.ehcache.config.Jsr107Configuration;
+import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.management.ManagementRegistry;
 import org.ehcache.spi.ServiceLocator;
@@ -101,7 +102,9 @@ public class EhcacheCachingProvider implements CachingProvider {
         ServiceLocator serviceLocator = new ServiceLocator();
         serviceLocator.addService(cacheLoaderWriterFactory);
         serviceLocator.addService(jsr107Service);
-        serviceLocator.addService(new DefaultJsr107SerializationProvider());
+        if(ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, config.getServiceConfigurations().toArray()) == null) {
+          serviceLocator.addService(new DefaultJsr107SerializationProvider());
+        }
         serviceLocator.addService(managementRegistryCollectorService);
        
         EhcacheManager ehcacheManager = new EhcacheManager(config, serviceLocator, !jsr107Service.jsr107CompliantAtomics());
