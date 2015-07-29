@@ -19,9 +19,11 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -44,6 +46,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -80,8 +83,9 @@ public class CacheStoreTest {
     when(cachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
       public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
-        Number key = (Number) invocation.getArguments()[0];
-        Function<Number, Store.ValueHolder<CharSequence>> function = (Function<Number, Store.ValueHolder<CharSequence>>) invocation.getArguments()[1];
+        Number key = (Number)invocation.getArguments()[0];
+        Function<Number, Store.ValueHolder<CharSequence>> function = (Function<Number, Store.ValueHolder<CharSequence>>)invocation
+            .getArguments()[1];
         return function.apply(key);
       }
     });
@@ -270,7 +274,7 @@ public class CacheStoreTest {
 
     cacheStore.clear();
 
-    verify(cachingTier, times(1)).invalidate();
+    verify(cachingTier, times(1)).clear();
     verify(authoritativeTier, times(1)).clear();
   }
 
@@ -349,8 +353,8 @@ public class CacheStoreTest {
     when(authoritativeTier.computeIfAbsentAndFault(any(Number.class), any(Function.class))).thenAnswer(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
       public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
-        Number key = (Number) invocation.getArguments()[0];
-        Function<Number, CharSequence> function = (Function<Number, CharSequence>) invocation.getArguments()[1];
+        Number key = (Number)invocation.getArguments()[0];
+        Function<Number, CharSequence> function = (Function<Number, CharSequence>)invocation.getArguments()[1];
         return newValueHolder(function.apply(key));
       }
     });
@@ -402,8 +406,9 @@ public class CacheStoreTest {
     when(authoritativeTier.computeIfPresent(any(Number.class), any(BiFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
       public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
-        Number key = (Number) invocation.getArguments()[0];
-        BiFunction<Number, CharSequence, CharSequence> function = (BiFunction<Number, CharSequence, CharSequence>) invocation.getArguments()[1];
+        Number key = (Number)invocation.getArguments()[0];
+        BiFunction<Number, CharSequence, CharSequence> function = (BiFunction<Number, CharSequence, CharSequence>)invocation
+            .getArguments()[1];
         return newValueHolder(function.apply(key, null));
       }
     });
@@ -637,6 +642,43 @@ public class CacheStoreTest {
     t.join();
     verify(cachingTier, never()).getOrComputeIfAbsent(
         org.mockito.Matchers.<String>any(), org.mockito.Matchers.<Function<String, Store.ValueHolder<String>>>anyObject());
+  }
+
+  @Test
+  public void testReleaseStoreFlushes () throws CacheAccessException {
+    final CachingTier<String, String> cachingTier = mock(CachingTier.class);
+    final AuthoritativeTier<String, String> authoritativeTier = mock(AuthoritativeTier.class);
+
+    CacheStore.Provider cacheStoreProvider = new CacheStore.Provider();
+    final CachingTier.Provider cachingTierProvider = mock(CachingTier.Provider.class);
+    final AuthoritativeTier.Provider authoritativeTierProvider = mock(AuthoritativeTier.Provider.class);
+    when(cachingTierProvider.createCachingTier(any(Store.Configuration.class), any(ServiceConfiguration.class))).thenReturn(cachingTier);
+    when(authoritativeTierProvider.createAuthoritativeTier(any(Store.Configuration.class), any(ServiceConfiguration.class))).thenReturn(authoritativeTier);
+
+    Store.Configuration<String, String> configuration = mock(Store.Configuration.class);
+    CacheStoreServiceConfiguration serviceConfiguration = mock(CacheStoreServiceConfiguration.class);
+    when(serviceConfiguration.cachingTierProvider()).thenAnswer(new Answer<Class<? extends CachingTier.Provider>>() {
+
+      @Override
+      public Class<? extends CachingTier.Provider> answer(final InvocationOnMock invocation) throws Throwable {
+        return cachingTierProvider.getClass();
+      }
+    });
+    when(serviceConfiguration.authoritativeTierProvider()).thenAnswer(new Answer<Class<? extends AuthoritativeTier.Provider>>() {
+      @Override
+      public Class<? extends AuthoritativeTier.Provider> answer(final InvocationOnMock invocation) throws Throwable {
+        return authoritativeTierProvider.getClass();
+      }
+    });
+    ServiceLocator serviceLocator = new ServiceLocator();
+    serviceLocator.addService(cachingTierProvider);
+    serviceLocator.addService(authoritativeTierProvider);
+    cacheStoreProvider.start(serviceLocator);
+
+    final Store<String, String> cacheStore = cacheStoreProvider.createStore(configuration, serviceConfiguration);
+    cacheStoreProvider.initStore(cacheStore);
+    cacheStoreProvider.releaseStore(cacheStore);
+    verify(cachingTierProvider, times(1)).releaseCachingTier(any(CachingTier.class));
   }
 
   public Map.Entry<? extends Number, ? extends CharSequence> newMapEntry(Number key, CharSequence value) {

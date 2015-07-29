@@ -366,8 +366,25 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     map.clear();
   }
 
-  @Override
-  public void invalidate() throws CacheAccessException {
+  private void invalidate() {
+    if(map.map != null) {
+      for (K k : map.map.keySet()) {
+        try {
+          invalidate(k);
+        } catch (CacheAccessException cae) {
+          LOG.warn("Failed to invalidate mapping for key {}", k, cae);
+        }
+      }
+    }
+    if(map.keyCopyMap != null) {
+      for(OnHeapKey<K> key : map.keyCopyMap.keySet()) {
+        try {
+          invalidate(key.getActualKeyObject());
+        } catch (CacheAccessException cae) {
+          LOG.warn("Failed to invalidate mapping for key {}", key, cae);
+        }
+      }
+    }
     map.clear();
   }
 
@@ -503,6 +520,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       return null;
     }
 
+    setAccessTimeAndExpiry(key, cachedValue, now);
     return getValue(cachedValue);
   }
 
@@ -1057,6 +1075,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
 
     @Override
     public void releaseCachingTier(CachingTier<?, ?> resource) {
+      ((OnHeapStore)resource).invalidate();
       releaseStore((Store<?, ?>) resource);
     }
 

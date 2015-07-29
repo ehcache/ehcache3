@@ -154,11 +154,11 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   }
 
   @Override
-  public void invalidate() throws CacheAccessException {
+  public void clear() throws CacheAccessException {
     try {
-      higher.invalidate();
+      higher.clear();
     } finally {
-      lower.invalidate();
+      lower.clear();
     }
   }
 

@@ -43,6 +43,7 @@ class ByRefOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   protected ByRefOnHeapValueHolder(Store.ValueHolder<V> valueHolder) {
     this(valueHolder.getId(), valueHolder.value(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT));
     this.setLastAccessTime(valueHolder.lastAccessTime(TIME_UNIT), TIME_UNIT);
+    this.setHits(valueHolder.hits());
   }
 
   @Override
