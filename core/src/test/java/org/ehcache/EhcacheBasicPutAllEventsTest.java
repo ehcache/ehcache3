@@ -38,10 +38,15 @@ import java.util.Set;
 
 import org.ehcache.event.CacheEvent;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.function.Function;
 import org.ehcache.util.IsCreatedOrUpdated;
 import org.junit.Test;
 import org.mockito.Matchers;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 /**
  * Provides events based testing for PUT_ALL operations
@@ -127,6 +132,30 @@ public class EhcacheBasicPutAllEventsTest extends EhcacheEventsTestBase {
     verify(cacheEventListener, never()).onEvent(Matchers.<CacheEvent<String, String>>any());
   }
 
+  @Test
+  public void testPutNewImmediatelyExpiringValue() throws Exception {
+    buildStore(Collections.<String, String>emptyMap());
+    
+    Expiry<String, String> expiry = mock(Expiry.class);
+    when(expiry.getExpiryForCreation(any(String.class), any(String.class))).thenReturn(Duration.ZERO);
+    final Ehcache<String, String> ehcache = getEhcache(expiry, "testPutNewImmediatelyExpiringValue");
+    
+    ehcache.putAll(getEntryMap(KEY_SET_A));
+    verifyZeroInteractions(cacheEventListener);
+  }
+  
+  @Test
+  public void testPutUpdatedImmediatelyExpiringValue() throws Exception {
+    buildStore(getEntryMap(KEY_SET_A));
+    
+    Expiry<String, String> expiry = mock(Expiry.class);
+    when(expiry.getExpiryForUpdate(any(String.class), any(String.class), any(String.class))).thenReturn(Duration.ZERO);
+    final Ehcache<String, String> ehcache = getEhcache(expiry, "testPutUpdatedImmediatelyExpiringValue");
+    
+    ehcache.putAll(getAltEntryMap("new_", KEY_SET_A));
+    verifyZeroInteractions(cacheEventListener);
+  }
+  
   /**
    * Returns a Mockito {@code any} Matcher for {@code java.util.Set<String>}.
    *
