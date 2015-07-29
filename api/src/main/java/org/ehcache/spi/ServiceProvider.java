@@ -28,14 +28,23 @@ import org.ehcache.spi.service.Service;
 public interface ServiceProvider {
 
   /**
-   * Will look up the {@link Service} of the {@code serviceType} type.
-   * If no matching {@link Service} can be found, this method will only try to resolve one if it carries the
-   * {@link org.ehcache.spi.service.MandatoryService} annotation.
+   * Will look up the {@link Service} of the {@code serviceType} type and return it if it can be found.
    * The returned service will be started or not depending on the started state of the {@code ServiceProvider}.
    *
    * @param serviceType the {@code class} of the service being looked up
    * @param <T> The actual {@link Service} type
-   * @return the service instance for {@code T} type, or {@code null} if it couldn't be located
+   * @return the service instance for {@code T} type, or {@code null} if there was no such service
    */
-  <T extends Service> T findService(Class<T> serviceType);
+  <T extends Service> T getService(Class<T> serviceType);
+
+  /**
+   * Will look up the {@link Service} of the {@code serviceType} type. In case the service was not known already, attempts
+   * will be made to locate it.
+   * The returned service will be started or not depending on the started state of the {@code ServiceProvider}.
+   *
+   * @param serviceType the {@code class} of the service being looked up
+   * @param <T> The actual {@link Service} type
+   * @return the service instance for {@code T} type, or {@code null} if there was no such service
+   */
+  <T extends Service> T getOrCreateService(Class<T> serviceType);
 }

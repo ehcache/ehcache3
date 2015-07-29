@@ -50,13 +50,13 @@ public class ServiceProviderTest {
 
     serviceLocator.startAllServices();
 
-    assertThat(serviceLocator.findService(Store.Provider.class),
+    assertThat(serviceLocator.getService(Store.Provider.class),
         IsSame.<Store.Provider>sameInstance(storeProvider));
-    assertThat(serviceLocator.findService(CachingTier.Provider.class),
+    assertThat(serviceLocator.getService(CachingTier.Provider.class),
         IsSame.<CachingTier.Provider>sameInstance(cachingTierProvider));
-    assertThat(serviceLocator.findService(AuthoritativeTier.Provider.class),
+    assertThat(serviceLocator.getService(AuthoritativeTier.Provider.class),
         IsSame.<AuthoritativeTier.Provider>sameInstance(authoritativeTierProvider));
-    assertThat(serviceLocator.findService(diskStoreProvider.getClass()),
+    assertThat(serviceLocator.getService(diskStoreProvider.getClass()),
         IsSame.sameInstance(diskStoreProvider));
   }
 }

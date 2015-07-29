@@ -123,7 +123,7 @@ public class EhcacheCachingProvider implements CachingProvider {
 
     @Override
     public void start(ServiceProvider serviceProvider) {
-      managementRegistry = serviceProvider.findService(ManagementRegistry.class);
+      managementRegistry = serviceProvider.getOrCreateService(ManagementRegistry.class);
     }
 
     @Override

@@ -79,7 +79,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     if(persistenceConfiguration != null) {
       rootDirectory = persistenceConfiguration.getRootDirectory();
     } else {
-      throw new NullPointerException("PersistenceConfiguration cannot be null");
+      throw new NullPointerException("PersistenceConfiguration cannot be null - did you configure it?");
     }
     lockFile = new File(rootDirectory, ".lock");
   }

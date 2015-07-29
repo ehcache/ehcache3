@@ -31,7 +31,7 @@ public class DefaultTimeSourceServiceTest {
   @Test
   public void testResolvesDefaultTimeSource() {
     ServiceLocator serviceLocator = new ServiceLocator();
-    assertThat(serviceLocator.findService(TimeSourceService.class).getTimeSource(),
+    assertThat(serviceLocator.getOrCreateService(TimeSourceService.class).getTimeSource(),
         sameInstance(SystemTimeSource.INSTANCE));
   }
 
@@ -39,7 +39,7 @@ public class DefaultTimeSourceServiceTest {
   public void testCanConfigureAlternateTimeSource() {
     TimeSource timeSource = mock(TimeSource.class);
     ServiceLocator serviceLocator = new ServiceLocator();
-    TimeSourceService timeSourceService = serviceLocator.findService(TimeSourceService.class, new TimeSourceConfiguration(timeSource));
+    TimeSourceService timeSourceService = serviceLocator.findServiceFor(new TimeSourceConfiguration(timeSource));
     assertThat(timeSourceService.getTimeSource(), sameInstance(timeSource));
   }
 

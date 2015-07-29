@@ -53,10 +53,10 @@ public class ServiceLocatorTest {
     ServiceLocator provider = new ServiceLocator();
     final Service service = new ChildTestService();
     provider.addService(service);
-    assertThat(provider.findService(FooProvider.class), sameInstance(service));
+    assertThat(provider.getService(FooProvider.class), sameInstance(service));
     final Service fancyCacheProvider = new FancyCacheProvider();
     provider.addService(fancyCacheProvider);
-    assertThat(provider.findService(CacheProvider.class), sameInstance(fancyCacheProvider));
+    assertThat(provider.getService(CacheProvider.class), sameInstance(fancyCacheProvider));
   }
 
   @Test
@@ -69,9 +69,9 @@ public class ServiceLocatorTest {
     serviceLocator.addService(fancyCacheProvider);
     serviceLocator.addService(dullCacheProvider);
 
-    assertThat(serviceLocator.findService(FooProvider.class), nullValue());
-    assertThat(serviceLocator.findService(CacheProvider.class), sameInstance(fancyCacheProvider));
-    assertThat(serviceLocator.findService(DullCacheProvider.class), sameInstance(dullCacheProvider));
+    assertThat(serviceLocator.getService(FooProvider.class), nullValue());
+    assertThat(serviceLocator.getService(CacheProvider.class), sameInstance(fancyCacheProvider));
+    assertThat(serviceLocator.getService(DullCacheProvider.class), sameInstance(dullCacheProvider));
   }
   
   @Test
@@ -82,9 +82,9 @@ public class ServiceLocatorTest {
 
     serviceLocator.addService(dullCacheProvider);
 
-    assertThat(serviceLocator.findService(FooProvider.class), nullValue());
-    assertThat(serviceLocator.findService(CacheProvider.class), nullValue());
-    assertThat(serviceLocator.findService(DullCacheProvider.class), sameInstance(dullCacheProvider));
+    assertThat(serviceLocator.getService(FooProvider.class), nullValue());
+    assertThat(serviceLocator.getService(CacheProvider.class), nullValue());
+    assertThat(serviceLocator.getService(DullCacheProvider.class), sameInstance(dullCacheProvider));
   }
 
 
@@ -98,7 +98,7 @@ public class ServiceLocatorTest {
     });
     
     ServiceLocator serviceLocator = new ServiceLocator();
-    serviceLocator.findService(TestService.class);
+    serviceLocator.getService(TestService.class);
   }
 
   @Test
@@ -162,7 +162,7 @@ public class ServiceLocatorTest {
   @Test
   public void testCanOverrideDefaultServiceFromServiceLoader() {
     ServiceLocator locator = new ServiceLocator(new ExtendedTestService());
-    TestService testService = locator.findService(TestService.class);
+    TestService testService = locator.getService(TestService.class);
     assertThat(testService, instanceOf(ExtendedTestService.class));
   }
 }

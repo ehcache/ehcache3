@@ -155,17 +155,22 @@ public final class ServiceLocator implements ServiceProvider {
   }
 
   public <T extends Service> T findServiceFor(ServiceConfiguration<T> config) {
-    return findService(config.getServiceType(), config);
+    return internalFindService(config.getServiceType(), config, true);
   }
 
   @Override
-  public <T extends Service> T findService(Class<T> serviceType) {
-    return findService(serviceType, null);
+  public <T extends Service> T getService(Class<T> serviceType) {
+    return internalFindService(serviceType, null, false);
   }
 
-  public <T extends Service> T findService(Class<T> serviceType, ServiceConfiguration<T> config) {
+  @Override
+  public <T extends Service> T getOrCreateService(Class<T> serviceType) {
+    return internalFindService(serviceType, null, true);
+  }
+
+  private <T extends Service> T internalFindService(Class<T> serviceType, ServiceConfiguration<T> config, boolean create) {
     T service = serviceType.cast(services.get(serviceType));
-    if (service == null) {
+    if (service == null && create) {
       return discoverService(serviceType, config);
     } else {
       return service;

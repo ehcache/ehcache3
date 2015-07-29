@@ -228,7 +228,7 @@ public class EhcacheManager implements PersistentCacheManager {
 
     List<LifeCycled> lifeCycledList = new ArrayList<LifeCycled>();
 
-    final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
+    final Store.Provider storeProvider = serviceLocator.getOrCreateService(Store.Provider.class);
     Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<K, V>(config);
     if (config.getResourcePools().getResourceTypeSet().contains(ResourceType.Core.DISK)) {
       storeConfiguration = new PersistentStoreConfigurationImpl<K, V>(storeConfiguration, alias);
@@ -247,14 +247,14 @@ public class EhcacheManager implements PersistentCacheManager {
       }
     });
 
-    final CacheLoaderWriterProvider cacheLoaderWriterProvider = serviceLocator.findService(CacheLoaderWriterProvider.class);
+    final CacheLoaderWriterProvider cacheLoaderWriterProvider = serviceLocator.getOrCreateService(CacheLoaderWriterProvider.class);
     final CacheLoaderWriter<? super K, V> loaderWriter;
     final CacheLoaderWriter<? super K, V> decorator ;
     if(cacheLoaderWriterProvider != null) {
       loaderWriter = cacheLoaderWriterProvider.createCacheLoaderWriter(alias, config);
       WriteBehindConfiguration writeBehindConfiguration = ServiceLocator.findSingletonAmongst(WriteBehindConfiguration.class, config.getServiceConfigurations().toArray());
       if(writeBehindConfiguration != null) {
-        final WriteBehindDecoratorLoaderWriterProvider factory = serviceLocator.findService(WriteBehindDecoratorLoaderWriterProvider.class);
+        final WriteBehindDecoratorLoaderWriterProvider factory = serviceLocator.getOrCreateService(WriteBehindDecoratorLoaderWriterProvider.class);
         decorator = factory.createWriteBehindDecoratorLoaderWriter((CacheLoaderWriter<K, V>)loaderWriter, writeBehindConfiguration);
         if(decorator != null) {
           lifeCycledList.add(new LifeCycled() {
@@ -293,7 +293,7 @@ public class EhcacheManager implements PersistentCacheManager {
       decorator = null;
     }
 
-    final CacheEventNotificationListenerServiceProvider cenlProvider = serviceLocator.findService(CacheEventNotificationListenerServiceProvider.class);
+    final CacheEventNotificationListenerServiceProvider cenlProvider = serviceLocator.getOrCreateService(CacheEventNotificationListenerServiceProvider.class);
     final CacheEventNotificationService<K, V> evtService = cenlProvider.createCacheEventNotificationService(store, serviceConfigs);
     lifeCycledList.add(new LifeCycled() {
       @Override
@@ -313,7 +313,7 @@ public class EhcacheManager implements PersistentCacheManager {
     final Ehcache<K, V> ehCache = new Ehcache<K, V>(runtimeConfiguration, store, decorator, evtService,
         useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
 
-    final ManagementRegistry managementRegistry = serviceLocator.findService(ManagementRegistry.class);
+    final ManagementRegistry managementRegistry = serviceLocator.getOrCreateService(ManagementRegistry.class);
     final EhcacheStatsSettings ehcacheStatsSettings = new EhcacheStatsSettings(alias, Collections.<String, Object>singletonMap("Setting", "CacheName"));
 
     lifeCycledList.add(new LifeCycled() {
@@ -335,7 +335,7 @@ public class EhcacheManager implements PersistentCacheManager {
       }
     });
 
-    final CacheEventListenerProvider evntLsnrFactory = serviceLocator.findService(CacheEventListenerProvider.class);
+    final CacheEventListenerProvider evntLsnrFactory = serviceLocator.getOrCreateService(CacheEventListenerProvider.class);
     if (evntLsnrFactory != null) {
       Collection<CacheEventListenerConfiguration> evtLsnrConfigs =
       ServiceLocator.findAmongst(CacheEventListenerConfiguration.class, config.getServiceConfigurations().toArray());
@@ -402,7 +402,7 @@ public class EhcacheManager implements PersistentCacheManager {
       }
 
       statisticsManager.root(this);
-      ManagementRegistry managementRegistry = serviceLocator.findService(ManagementRegistry.class);
+      ManagementRegistry managementRegistry = serviceLocator.getOrCreateService(ManagementRegistry.class);
       if (managementRegistry != null) {
         managementRegistry.register(EhcacheManager.class, this);
       }
@@ -441,7 +441,7 @@ public class EhcacheManager implements PersistentCacheManager {
   public void close() {
     final StatusTransitioner.Transition st = statusTransitioner.close();
 
-    ManagementRegistry managementRegistry = serviceLocator.findService(ManagementRegistry.class);
+    ManagementRegistry managementRegistry = serviceLocator.getService(ManagementRegistry.class);
     if (managementRegistry != null) {
       managementRegistry.unregister(EhcacheManager.class, this);
     }
@@ -522,7 +522,7 @@ public class EhcacheManager implements PersistentCacheManager {
   }
 
   private void destroyPersistenceContext(String alias) throws CachePersistenceException {
-    LocalPersistenceService persistenceService = serviceLocator.findService(LocalPersistenceService.class);
+    LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
     persistenceService.destroyPersistenceContext(alias);
   }
 
