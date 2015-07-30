@@ -87,7 +87,7 @@ public class EhcacheCachingProvider implements CachingProvider {
         Configuration config;
         try {
           if (URI_DEFAULT.equals(uri)) {
-            config = new DefaultConfiguration();
+            config = new DefaultConfiguration(classLoader);
           } else {
             config = new XmlConfiguration(uri.toURL(), classLoader);
           }
