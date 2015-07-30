@@ -56,6 +56,11 @@ public interface ResourceType {
     public boolean isPersistable() {
       return persistable;
     }
+    
+    @Override
+    public String toString() {
+      return name().toLowerCase();
+    }
   }
 
 }

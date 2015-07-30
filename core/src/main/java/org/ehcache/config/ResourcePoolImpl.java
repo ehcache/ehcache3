@@ -52,4 +52,10 @@ class ResourcePoolImpl implements ResourcePool {
     return persistent;
   }
 
+  @Override
+  public String toString() {
+    return "Pool {" + getSize() + " " + getUnit() + " " + getType() + (isPersistent() ? "(persistent)}" : "}");
+  }
+
+  
 }
