@@ -24,6 +24,7 @@ import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.exceptions.CacheWritingException;
+import org.ehcache.function.BiFunction;
 import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -182,6 +183,21 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
   @Override
   public boolean replace(K key, V oldValue, V newValue) throws CacheLoadingException, CacheWritingException {
     return ehcache.replace(key, oldValue, newValue);
+  }
+
+  @Override
+  public V compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheLoadingException, CacheWritingException {
+    return ehcache.compute(key, mappingFunction);
+  }
+
+  @Override
+  public V computeIfAbsent(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheLoadingException, CacheWritingException {
+    return ehcache.computeIfAbsent(key, mappingFunction);
+  }
+
+  @Override
+  public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) {
+    return ehcache.computeIfPresent(key, mappingFunction);
   }
 
   @Override

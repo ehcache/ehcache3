@@ -24,6 +24,7 @@ import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CacheWritingException;
+import org.ehcache.function.BiFunction;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
@@ -388,4 +389,100 @@ public interface ResilienceStrategy<K, V> {
    * @return the value to return from the operation
    */
   Map<K, V> removeAllFailure(Iterable<? extends K> keys, CacheAccessException e, BulkCacheWritingException f);
+
+  /**
+   * Called when a {@link Cache#compute(Object, BiFunction)} fails
+   * due to an underlying store failure.
+   *
+   * @param key the key being computed
+   * @param e the cache failure
+   * @return the value to return from the operation
+   */
+  V computeFailure(K key, CacheAccessException e);
+
+  /**
+   * Called when a {@link Cache#compute(Object, BiFunction)} fails
+   * due to an underlying store failure, and the associated cache load
+   * operation also failed.
+   *
+   * @param key the key being computed
+   * @param e the cache failure
+   * @return the value to return from the operation
+   */
+  V computeFailure(K key, CacheAccessException e, CacheLoadingException f);
+
+  /**
+   * Called when a {@link Cache#compute(Object, BiFunction)} fails
+   * due to an underlying store failure, and the associated cache write
+   * operation also failed.
+   *
+   * @param key the key being computed
+   * @param e the cache failure
+   * @return the value to return from the operation
+   */
+  V computeFailure(K key, CacheAccessException e, CacheWritingException f);
+
+  /**
+   * Called when a {@link Cache#computeIfAbsent(Object, BiFunction)} fails
+   * due to an underlying store failure.
+   *
+   * @param key the key being computed
+   * @param e the cache failure
+   * @return the value to return from the operation
+   */
+  V computeIfAbsentFailure(K key, CacheAccessException e);
+
+  /**
+   * Called when a {@link Cache#computeIfAbsent(Object, BiFunction)} fails
+   * due to an underlying store failure, and the associated cache load
+   * operation also failed.
+   *
+   * @param key the key being computed
+   * @param e the cache failure
+   * @return the value to return from the operation
+   */
+  V computeIfAbsentFailure(K key, CacheAccessException e, CacheLoadingException f);
+
+  /**
+   * Called when a {@link Cache#computeIfAbsent(Object, BiFunction)} fails
+   * due to an underlying store failure, and the associated cache write
+   * operation also failed.
+   *
+   * @param key the key being computed
+   * @param e the cache failure
+   * @return the value to return from the operation
+   */
+  V computeIfAbsentFailure(K key, CacheAccessException e, CacheWritingException f);
+
+  /**
+   * Called when a {@link Cache#computeIfPresent(Object, BiFunction)} fails
+   * due to an underlying store failure.
+   *
+   * @param key the key being computed
+   * @param e the cache failure
+   * @return the value to return from the operation
+   */
+  V computeIfPresentFailure(K key, CacheAccessException e);
+
+  /**
+   * Called when a {@link Cache#computeIfPresent(Object, BiFunction)} fails
+   * due to an underlying store failure, and the associated cache load
+   * operation also failed.
+   *
+   * @param key the key being computed
+   * @param e the cache failure
+   * @return the value to return from the operation
+   */
+  V computeIfPresentFailure(K key, CacheAccessException e, CacheLoadingException f);
+
+  /**
+   * Called when a {@link Cache#computeIfPresent(Object, BiFunction)} fails
+   * due to an underlying store failure, and the associated cache write
+   * operation also failed.
+   *
+   * @param key the key being computed
+   * @param e the cache failure
+   * @return the value to return from the operation
+   */
+  V computeIfPresentFailure(K key, CacheAccessException e, CacheWritingException f);
 }

@@ -19,9 +19,11 @@ package org.ehcache;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.UserManagedCacheConfiguration;
 import org.ehcache.exceptions.BulkCacheWritingException;
+import org.ehcache.exceptions.CacheLoadingException;
+import org.ehcache.exceptions.CacheWritingException;
+import org.ehcache.function.BiFunction;
 import org.ehcache.spi.ServiceLocator;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -128,6 +130,21 @@ public class UserManagedCacheBuilderTest {
 
     @Override
     public boolean replace(K key, V oldValue, V newValue) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public V compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheLoadingException, CacheWritingException {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public V computeIfAbsent(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheLoadingException, CacheWritingException {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
