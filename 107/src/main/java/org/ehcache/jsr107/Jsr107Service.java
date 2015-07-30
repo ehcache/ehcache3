@@ -16,19 +16,12 @@
 
 package org.ehcache.jsr107;
 
-import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author Alex Snaps
  */
 public interface Jsr107Service extends Service {
-  @Override
-  void start(ServiceConfiguration<?> serviceConfiguration, final ServiceProvider serviceProvider);
-
-  @Override
-  void stop();
 
   String getTemplateNameForCache(String name);
 

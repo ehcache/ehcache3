@@ -38,7 +38,7 @@ public class CacheEventNotificationListenerServiceProviderImpl implements CacheE
   private volatile ServiceProvider serviceProvider;
 
   @Override
-  public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+  public void start(ServiceProvider serviceProvider) {
     this.serviceProvider = serviceProvider;
   }
 
@@ -48,7 +48,7 @@ public class CacheEventNotificationListenerServiceProviderImpl implements CacheE
   }
 
   public <K, V> CacheEventNotificationService<K, V> createCacheEventNotificationService(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs) {
-    ThreadPoolsService threadPoolsService = serviceProvider.findService(ThreadPoolsService.class);
+    ThreadPoolsService threadPoolsService = serviceProvider.getOrCreateService(ThreadPoolsService.class);
     TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[]) serviceConfigs);
     TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
     if (threadPoolsService != null) {

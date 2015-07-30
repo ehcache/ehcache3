@@ -16,7 +16,6 @@
 
 package org.ehcache.internal;
 
-import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
@@ -25,8 +24,8 @@ import org.ehcache.spi.service.ServiceFactory;
  */
 public class TimeSourceServiceFactory implements ServiceFactory<TimeSourceService> {
   @Override
-  public TimeSourceService create(ServiceConfiguration<TimeSourceService> serviceConfiguration, ServiceLocator serviceLocator) {
-    return new DefaultTimeSourceService((TimeSourceConfiguration)serviceConfiguration);
+  public TimeSourceService create(ServiceConfiguration<TimeSourceService> configuration) {
+    return new DefaultTimeSourceService((TimeSourceConfiguration) configuration);
   }
 
   @Override

@@ -18,7 +18,6 @@ package org.ehcache.jsr107;
 
 import org.ehcache.config.Jsr107Configuration;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author Alex Snaps
@@ -32,14 +31,8 @@ public class DefaultJsr107Service implements Jsr107Service {
   }
 
   @Override
-  public void start(final ServiceConfiguration<?> serviceConfiguration, final ServiceProvider serviceProvider) {
-    if (configuration != null) {
-      if (!configuration.equals(serviceConfiguration)) {
-        throw new IllegalStateException("Trying to start service with different configuration");
-      }
-    } else {
-      configuration = (Jsr107Configuration)serviceConfiguration;
-    }
+  public void start(final ServiceProvider serviceProvider) {
+    // no-op
   }
 
   @Override

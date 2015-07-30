@@ -985,14 +985,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       OnHeapStoreServiceConfiguration onHeapStoreServiceConfig = findSingletonAmongst(OnHeapStoreServiceConfiguration.class, (Object[])serviceConfigs);
       boolean storeByValue = onHeapStoreServiceConfig != null && onHeapStoreServiceConfig.storeByValue();
 
-      TimeSource timeSource = serviceProvider.findService(TimeSourceService.class).getTimeSource();
+      TimeSource timeSource = serviceProvider.getOrCreateService(TimeSourceService.class).getTimeSource();
       Serializer<K> keySerializer = null;
       Serializer<V> valueSerializer = null;
       if (storeByValue) {
-        if (serviceProvider == null) {
-          throw new RuntimeException("ServiceProvider is null.");
-        }
-        SerializationProvider serializationProvider = serviceProvider.findService(SerializationProvider.class);
+        SerializationProvider serializationProvider = serviceProvider.getOrCreateService(SerializationProvider.class);
         keySerializer = serializationProvider.createKeySerializer(storeConfig.getKeyType(), storeConfig.getClassLoader(), serviceConfigs);
         valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig.getClassLoader(), serviceConfigs);
       }
@@ -1023,7 +1020,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
 
     @Override
-    public void start(ServiceConfiguration<?> cfg, final ServiceProvider serviceProvider) {
+    public void start(final ServiceProvider serviceProvider) {
       this.serviceProvider = serviceProvider;
     }
 

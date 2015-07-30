@@ -43,6 +43,7 @@ public class StringSerializer implements Serializer<String> {
   public String read(ByteBuffer binary) throws IOException, ClassNotFoundException {
     byte[] bytes = new byte[binary.remaining()];
     binary.get(bytes);
+    binary.flip();
     return new String(bytes, CHARSET);
   }
 

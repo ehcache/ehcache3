@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.service;
+package org.ehcache.spi.services;
+
+import org.ehcache.spi.service.Service;
 
 /**
- * @author Alex Snaps
+ * TestService
  */
-public interface ServiceFactory<T extends Service> {
-
-  T create(ServiceConfiguration<T> configuration);
-  
-  Class<T> getServiceType();
+public interface TestService extends Service {
 }

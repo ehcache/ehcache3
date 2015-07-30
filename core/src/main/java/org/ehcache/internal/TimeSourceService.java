@@ -21,7 +21,6 @@ import org.ehcache.spi.service.Service;
 /**
  * Service that offers a {@link TimeSource} to other services needing one.
  */
-// TODO @MandatoryService
 public interface TimeSourceService extends Service {
 
   /**

@@ -41,8 +41,8 @@ public class OffHeapValueHolderPortabilityTest {
 
   @Before
   public void setup() {
-    SerializationProvider provider = new DefaultSerializationProvider();
-    provider.start(null, null);
+    SerializationProvider provider = new DefaultSerializationProvider(null);
+    provider.start(null);
     valueHolderPortability = new OffHeapValueHolderPortability<String>(provider
         .createValueSerializer(String.class, getClass().getClassLoader()));
 

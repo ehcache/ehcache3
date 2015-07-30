@@ -234,8 +234,8 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       if (serviceProvider == null) {
         throw new NullPointerException("ServiceProvider is null in OffHeapDiskStore.Provider.");
       }
-      TimeSource timeSource = serviceProvider.findService(TimeSourceService.class).getTimeSource();
-      SerializationProvider serializationProvider = serviceProvider.findService(SerializationProvider.class);
+      TimeSource timeSource = serviceProvider.getOrCreateService(TimeSourceService.class).getTimeSource();
+      SerializationProvider serializationProvider = serviceProvider.getOrCreateService(SerializationProvider.class);
       Serializer<K> keySerializer = serializationProvider.createKeySerializer(storeConfig.getKeyType(), storeConfig.getClassLoader(), serviceConfigs);
       Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig
           .getClassLoader(), serviceConfigs);
@@ -251,7 +251,10 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       }
       MemoryUnit unit = (MemoryUnit)offHeapPool.getUnit();
 
-      LocalPersistenceService localPersistenceService = serviceProvider.findService(LocalPersistenceService.class);
+      LocalPersistenceService localPersistenceService = serviceProvider.getService(LocalPersistenceService.class);
+      if (localPersistenceService == null) {
+        throw new IllegalStateException("No LocalPersistenceService could be found - did you configure it at the CacheManager level?");
+      }
 
       try {
         FileBasedPersistenceContext persistenceContext = localPersistenceService.createPersistenceContext(persistentStoreConfiguration
@@ -307,7 +310,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
 
     @Override
-    public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+    public void start(ServiceProvider serviceProvider) {
       this.serviceProvider = serviceProvider;
     }
 

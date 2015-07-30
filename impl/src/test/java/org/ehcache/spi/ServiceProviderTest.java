@@ -26,8 +26,6 @@ import org.ehcache.spi.cache.tiering.CachingTier;
 import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
-import java.util.Collections;
-
 import static org.junit.Assert.assertThat;
 
 /**
@@ -50,15 +48,15 @@ public class ServiceProviderTest {
     serviceLocator.addService(authoritativeTierProvider, true);
     serviceLocator.addService(diskStoreProvider, true);
 
-    serviceLocator.startAllServices(Collections.EMPTY_MAP);
+    serviceLocator.startAllServices();
 
-    assertThat(serviceLocator.findService(Store.Provider.class),
+    assertThat(serviceLocator.getService(Store.Provider.class),
         IsSame.<Store.Provider>sameInstance(storeProvider));
-    assertThat(serviceLocator.findService(CachingTier.Provider.class),
+    assertThat(serviceLocator.getService(CachingTier.Provider.class),
         IsSame.<CachingTier.Provider>sameInstance(cachingTierProvider));
-    assertThat(serviceLocator.findService(AuthoritativeTier.Provider.class),
+    assertThat(serviceLocator.getService(AuthoritativeTier.Provider.class),
         IsSame.<AuthoritativeTier.Provider>sameInstance(authoritativeTierProvider));
-    assertThat(serviceLocator.findService(diskStoreProvider.getClass()),
+    assertThat(serviceLocator.getService(diskStoreProvider.getClass()),
         IsSame.sameInstance(diskStoreProvider));
   }
 }

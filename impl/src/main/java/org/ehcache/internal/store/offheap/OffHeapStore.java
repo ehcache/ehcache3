@@ -117,9 +117,9 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       if (serviceProvider == null) {
         throw new NullPointerException("ServiceProvider is null in OffHeapStore.Provider.");
       }
-      TimeSource timeSource = serviceProvider.findService(TimeSourceService.class).getTimeSource();
+      TimeSource timeSource = serviceProvider.getOrCreateService(TimeSourceService.class).getTimeSource();
 
-      SerializationProvider serializationProvider = serviceProvider.findService(SerializationProvider.class);
+      SerializationProvider serializationProvider = serviceProvider.getOrCreateService(SerializationProvider.class);
       Serializer<K> keySerializer = serializationProvider.createKeySerializer(storeConfig.getKeyType(), storeConfig.getClassLoader(), serviceConfigs);
       Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig
           .getClassLoader(), serviceConfigs);
@@ -164,7 +164,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     @Override
-    public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+    public void start(ServiceProvider serviceProvider) {
       this.serviceProvider = serviceProvider;
     }
 

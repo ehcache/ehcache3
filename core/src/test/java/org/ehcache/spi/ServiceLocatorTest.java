@@ -18,7 +18,6 @@ package org.ehcache.spi;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.Collections;
 import java.util.Enumeration;
 
 import org.ehcache.Ehcache;
@@ -27,6 +26,8 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.SupplementaryService;
+import org.ehcache.spi.services.DefaultTestService;
+import org.ehcache.spi.services.TestService;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
@@ -52,10 +53,10 @@ public class ServiceLocatorTest {
     ServiceLocator provider = new ServiceLocator();
     final Service service = new ChildTestService();
     provider.addService(service);
-    assertThat(provider.findService(FooProvider.class), sameInstance(service));
+    assertThat(provider.getService(FooProvider.class), sameInstance(service));
     final Service fancyCacheProvider = new FancyCacheProvider();
     provider.addService(fancyCacheProvider);
-    assertThat(provider.findService(CacheProvider.class), sameInstance(fancyCacheProvider));
+    assertThat(provider.getService(CacheProvider.class), sameInstance(fancyCacheProvider));
   }
 
   @Test
@@ -68,9 +69,9 @@ public class ServiceLocatorTest {
     serviceLocator.addService(fancyCacheProvider);
     serviceLocator.addService(dullCacheProvider);
 
-    assertThat(serviceLocator.findService(FooProvider.class), nullValue());
-    assertThat(serviceLocator.findService(CacheProvider.class), sameInstance(fancyCacheProvider));
-    assertThat(serviceLocator.findService(DullCacheProvider.class), sameInstance(dullCacheProvider));
+    assertThat(serviceLocator.getService(FooProvider.class), nullValue());
+    assertThat(serviceLocator.getService(CacheProvider.class), sameInstance(fancyCacheProvider));
+    assertThat(serviceLocator.getService(DullCacheProvider.class), sameInstance(dullCacheProvider));
   }
   
   @Test
@@ -81,9 +82,9 @@ public class ServiceLocatorTest {
 
     serviceLocator.addService(dullCacheProvider);
 
-    assertThat(serviceLocator.findService(FooProvider.class), nullValue());
-    assertThat(serviceLocator.findService(CacheProvider.class), nullValue());
-    assertThat(serviceLocator.findService(DullCacheProvider.class), sameInstance(dullCacheProvider));
+    assertThat(serviceLocator.getService(FooProvider.class), nullValue());
+    assertThat(serviceLocator.getService(CacheProvider.class), nullValue());
+    assertThat(serviceLocator.getService(DullCacheProvider.class), sameInstance(dullCacheProvider));
   }
 
 
@@ -97,7 +98,7 @@ public class ServiceLocatorTest {
     });
     
     ServiceLocator serviceLocator = new ServiceLocator();
-    serviceLocator.discoverService(Service.class);
+    serviceLocator.getService(TestService.class);
   }
 
   @Test
@@ -107,7 +108,7 @@ public class ServiceLocatorTest {
 
     ServiceLocator locator = new ServiceLocator(s1, s2);
     try {
-      locator.startAllServices(Collections.<Service, ServiceConfiguration<?>>emptyMap());
+      locator.startAllServices();
       fail();
     } catch (Exception e) {
       // see org.ehcache.spi.ParentTestService.start()
@@ -125,7 +126,7 @@ public class ServiceLocatorTest {
 
     ServiceLocator locator = new ServiceLocator(s1, s2, s3);
     try {
-      locator.startAllServices(Collections.<Service, ServiceConfiguration<?>>emptyMap());
+      locator.startAllServices();
     } catch (Exception e) {
       fail();
     }
@@ -149,7 +150,7 @@ public class ServiceLocatorTest {
 
     ServiceLocator locator = new ServiceLocator(s1);
     try {
-      locator.startAllServices(Collections.<Service, ServiceConfiguration<?>>emptyMap());
+      locator.startAllServices();
     } catch (Exception e) {
       fail();
     }
@@ -157,6 +158,17 @@ public class ServiceLocatorTest {
     locator.stopAllServices();
     verify(s1, times(1)).stop();
   }
+
+  @Test
+  public void testCanOverrideDefaultServiceFromServiceLoader() {
+    ServiceLocator locator = new ServiceLocator(new ExtendedTestService());
+    TestService testService = locator.getService(TestService.class);
+    assertThat(testService, instanceOf(ExtendedTestService.class));
+  }
+}
+
+class ExtendedTestService extends DefaultTestService {
+
 }
 
 interface FooProvider extends Service {
@@ -168,7 +180,7 @@ interface FooProvider extends Service {
 class ParentTestService implements FooProvider {
 
   @Override
-  public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
+  public void start(final ServiceProvider serviceProvider) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
@@ -180,7 +192,7 @@ class ParentTestService implements FooProvider {
 class ChildTestService extends ParentTestService {
 
   @Override
-  public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
+  public void start(final ServiceProvider serviceProvider) {
     throw new UnsupportedOperationException("Implement me!");
   }
 }
@@ -200,7 +212,7 @@ class FancyCacheProvider implements CacheProvider {
   }
 
   @Override
-  public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
+  public void start(final ServiceProvider serviceProvider) {
     ++startStopCounter;
   }
 
@@ -223,7 +235,7 @@ class DullCacheProvider implements CacheProvider {
   }
 
   @Override
-  public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
+  public void start(final ServiceProvider serviceProvider) {
     throw new UnsupportedOperationException("Implement me!");
   }
 

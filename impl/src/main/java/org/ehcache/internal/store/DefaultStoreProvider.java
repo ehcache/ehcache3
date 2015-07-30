@@ -60,19 +60,19 @@ public class DefaultStoreProvider implements Store.Provider {
       if (heapPool == null) {
         throw new IllegalArgumentException("Cannot store to disk without heap resource");
       }
-      provider = serviceProvider.findService(CacheStore.Provider.class);
+      provider = serviceProvider.getOrCreateService(CacheStore.Provider.class);
       enhancedServiceConfigs.add(new CacheStoreServiceConfiguration().cachingTierProvider(OnHeapStore.Provider.class)
           .authoritativeTierProvider(OffHeapDiskStore.Provider.class));
     } else if (offHeapPool != null) {
       if (heapPool == null) {
         throw new IllegalArgumentException("Cannot store to offheap without heap resource");
       }
-      provider = serviceProvider.findService(CacheStore.Provider.class);
+      provider = serviceProvider.getOrCreateService(CacheStore.Provider.class);
       enhancedServiceConfigs.add(new CacheStoreServiceConfiguration().cachingTierProvider(OnHeapStore.Provider.class)
           .authoritativeTierProvider(OffHeapStore.Provider.class));
     } else {
       // default to on-heap cache
-      provider = serviceProvider.findService(OnHeapStore.Provider.class);
+      provider = serviceProvider.getOrCreateService(OnHeapStore.Provider.class);
     }
 
     Store<K, V> store = provider.createStore(storeConfig, enhancedServiceConfigs.toArray(new ServiceConfiguration<?>[0]));
@@ -101,7 +101,7 @@ public class DefaultStoreProvider implements Store.Provider {
   }
 
   @Override
-  public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+  public void start(ServiceProvider serviceProvider) {
     this.serviceProvider = serviceProvider;
   }
 

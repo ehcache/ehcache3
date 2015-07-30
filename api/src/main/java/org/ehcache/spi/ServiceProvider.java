@@ -17,36 +17,34 @@
 package org.ehcache.spi;
 
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  *
- * This acts as a repository for {@link Service} instances, that can be use to
- * look them up by type, or their {@link ServiceConfiguration} type.
+ * This acts as a repository for {@link Service} instances, that can be used to
+ * look them up by type.
  *
  * @author Alex Snaps
  */
 public interface ServiceProvider {
 
   /**
-   * Will look up the {@link Service} configured by the {@code config} type. Should the {@link Service} not yet started,
-   * it will be started, passed that {@link ServiceConfiguration} instance. Otherwise it is only used to find the
-   * matching {@link Service} instance.
+   * Will look up the {@link Service} of the {@code serviceType} type and return it if it can be found.
+   * The returned service will be started or not depending on the started state of the {@code ServiceProvider}.
    *
-   * @param config The type configuring the Service being looked up
-   * @param <T> The actual {@link Service} implementation
-   * @return the service instance for {@code T} type, or null if it couldn't be located
+   * @param serviceType the {@code class} of the service being looked up
+   * @param <T> The actual {@link Service} type
+   * @return the service instance for {@code T} type, or {@code null} if there was no such service
    */
-  <T extends Service> T findServiceFor(ServiceConfiguration<T> config);
+  <T extends Service> T getService(Class<T> serviceType);
 
   /**
-   * Will look up the {@link Service} of the {@code serviceType} type. Should the {@link Service} not yet started,
-   * it will be started with a {@code null} {@link ServiceConfiguration} passed to its
-   * {@link Service#start(org.ehcache.spi.service.ServiceConfiguration, ServiceProvider)} method.
+   * Will look up the {@link Service} of the {@code serviceType} type. In case the service was not known already, attempts
+   * will be made to locate it.
+   * The returned service will be started or not depending on the started state of the {@code ServiceProvider}.
    *
-   * @param serviceType the Class of the instance being looked up
-   * @param <T> The actual {@link Service} implementation
-   * @return the service instance for {@code T} type, or null if it couldn't be located
+   * @param serviceType the {@code class} of the service being looked up
+   * @param <T> The actual {@link Service} type
+   * @return the service instance for {@code T} type, or {@code null} if there was no such service
    */
-  <T extends Service> T findService(Class<T> serviceType);
+  <T extends Service> T getOrCreateService(Class<T> serviceType);
 }

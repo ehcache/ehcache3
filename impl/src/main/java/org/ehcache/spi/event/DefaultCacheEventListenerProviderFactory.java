@@ -16,22 +16,27 @@
 
 package org.ehcache.spi.event;
 
-import org.ehcache.spi.ServiceLocator;
+import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
+import org.ehcache.config.event.DefaultCacheEventListenerProviderConfiguration;
+import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
 /**
  * @author rism
  */
-public class DefaultCacheEventListenerProviderFactory implements ServiceFactory<DefaultCacheEventListenerProvider> {
+public class DefaultCacheEventListenerProviderFactory implements ServiceFactory<CacheEventListenerProvider> {
 
   @Override
-  public DefaultCacheEventListenerProvider create(ServiceConfiguration<DefaultCacheEventListenerProvider> serviceConfiguration, final ServiceLocator serviceLocator) {
-    return new DefaultCacheEventListenerProvider();
+  public DefaultCacheEventListenerProvider create(ServiceConfiguration<CacheEventListenerProvider> configuration) {
+    if (configuration instanceof DefaultCacheEventListenerConfiguration) {
+      throw new IllegalArgumentException("DefaultCacheEventListenerConfiguration must not be provided at CacheManager level");
+    }
+    return new DefaultCacheEventListenerProvider((DefaultCacheEventListenerProviderConfiguration) configuration);
   }
 
   @Override
-  public Class<DefaultCacheEventListenerProvider> getServiceType() {
-    return DefaultCacheEventListenerProvider.class;
+  public Class<CacheEventListenerProvider> getServiceType() {
+    return CacheEventListenerProvider.class;
   }
 }

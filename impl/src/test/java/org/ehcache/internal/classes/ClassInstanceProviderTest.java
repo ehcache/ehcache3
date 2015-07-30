@@ -32,7 +32,7 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testNewInstanceUsingAliasAndNoArgs() throws Exception {
-    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>((Class)ClassInstanceProviderConfiguration.class, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>(null, (Class)ClassInstanceConfiguration.class);
 
     classInstanceProvider.preconfiguredLoaders.put("test stuff", TestService.class);
     TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration) null);
@@ -42,7 +42,7 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testNewInstanceUsingAliasAndArg() throws Exception {
-    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>((Class)ClassInstanceProviderConfiguration.class, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>(null, (Class)ClassInstanceConfiguration.class);
 
     classInstanceProvider.preconfiguredLoaders.put("test stuff", TestService.class);
     TestService obj = classInstanceProvider.newInstance("test stuff", null, new ClassInstanceProvider.ConstructorArgument<String>(String.class, "test string"));
@@ -52,7 +52,7 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testNewInstanceUsingServiceConfig() throws Exception {
-    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>((Class)ClassInstanceProviderConfiguration.class, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>(null, (Class)ClassInstanceConfiguration.class);
 
     TestServiceConfiguration config = new TestServiceConfiguration();
     TestService obj = classInstanceProvider.newInstance("test stuff", config);
@@ -62,28 +62,16 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testNewInstanceUsingServiceConfigFactory() throws Exception {
-    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>((Class)ClassInstanceProviderConfiguration.class, (Class)ClassInstanceConfiguration.class);
-
     TestServiceProviderConfiguration factoryConfig = new TestServiceProviderConfiguration();
     factoryConfig.getDefaults().put("test stuff", TestService.class);
 
-    classInstanceProvider.start(factoryConfig, null);
+    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>(factoryConfig, (Class)ClassInstanceConfiguration.class);
+    classInstanceProvider.start(null);
 
     TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration) null);
     assertThat(obj.theString, is(nullValue()));
   }
   
-  @Test
-  public void testAddingCacheLevelConfigurationAtCacheManagerLevel() {
-    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>((Class)ClassInstanceProviderConfiguration.class, (Class)ClassInstanceConfiguration.class);
-    TestServiceProviderConfiguration cacheLevelConfig = new TestServiceProviderConfiguration();
-    try {
-      classInstanceProvider.start(cacheLevelConfig, null);
-    } catch (IllegalArgumentException iae) {
-      assertThat(iae.getMessage(), is("ClassInstanceProviderConfiguration must not be provided at CacheManager level"));
-    }
-  }
-
   public static class TestService implements Service {
     public final String theString;
 
@@ -96,7 +84,7 @@ public class ClassInstanceProviderTest {
     }
 
     @Override
-    public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+    public void start(ServiceProvider serviceProvider) {
     }
 
     @Override

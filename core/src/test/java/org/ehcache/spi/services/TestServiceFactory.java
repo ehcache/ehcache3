@@ -14,37 +14,22 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal;
+package org.ehcache.spi.services;
 
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceFactory;
 
 /**
- * DefaultTimeSourceService
+ * TestServiceFactory
  */
-public class DefaultTimeSourceService implements TimeSourceService {
-
-  private final TimeSource timeSource;
-
-  public DefaultTimeSourceService(TimeSourceConfiguration config) {
-    if (config != null) {
-      timeSource = config.getTimeSource();
-    } else {
-      timeSource = SystemTimeSource.INSTANCE;
-    }
+public class TestServiceFactory implements ServiceFactory<TestService> {
+  @Override
+  public TestService create(ServiceConfiguration<TestService> configuration) {
+    return new DefaultTestService();
   }
 
   @Override
-  public TimeSource getTimeSource() {
-    return timeSource;
-  }
-
-  @Override
-  public void start(ServiceProvider serviceProvider) {
-    // no-op
-  }
-
-  @Override
-  public void stop() {
-    // no-op
+  public Class<TestService> getServiceType() {
+    return TestService.class;
   }
 }
