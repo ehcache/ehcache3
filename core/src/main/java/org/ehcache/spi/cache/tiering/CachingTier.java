@@ -17,6 +17,7 @@ package org.ehcache.spi.cache.tiering;
 
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
+import org.ehcache.spi.cache.ConfigurationChangeSupport;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -26,7 +27,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
  *
  * @author Ludovic Orban
  */
-public interface CachingTier<K, V> {
+public interface CachingTier<K, V> extends ConfigurationChangeSupport {
 
   /**
    * Either return the value holder currently in the caching tier, or compute and store it when it isn't present.
