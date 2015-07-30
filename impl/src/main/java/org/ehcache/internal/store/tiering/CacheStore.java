@@ -23,6 +23,7 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.cache.ConfigurationChangeSupport;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.cache.tiering.CachingTier;
@@ -330,8 +331,8 @@ public class CacheStore<K, V> implements Store<K, V> {
   public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
     List<CacheConfigurationChangeListener> configurationChangeListenerList
         = new ArrayList<CacheConfigurationChangeListener>();
-    configurationChangeListenerList.addAll(((Store)realCachingTier).getConfigurationChangeListeners());
-    configurationChangeListenerList.addAll(((Store)authoritativeTier).getConfigurationChangeListeners());
+    configurationChangeListenerList.addAll(((ConfigurationChangeSupport)realCachingTier).getConfigurationChangeListeners());
+    configurationChangeListenerList.addAll(((ConfigurationChangeSupport)authoritativeTier).getConfigurationChangeListeners());
     return configurationChangeListenerList;
   }
 
@@ -461,6 +462,11 @@ public class CacheStore<K, V> implements Store<K, V> {
     @Override
     public void maintenance() {
       // noop
+    }
+
+    @Override
+    public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
+      return null;
     }
   }
 }
