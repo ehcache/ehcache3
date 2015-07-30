@@ -37,11 +37,11 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 import static java.lang.Integer.toHexString;
 import static java.nio.charset.Charset.forName;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * @author Alex Snaps
@@ -65,7 +65,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     ILLEGALS.add('.');
   }
 
-  private final Map<String, FileBasedPersistenceContext> knownPersistenceContexts = new ConcurrentHashMap<String, FileBasedPersistenceContext>();
+  private final ConcurrentMap<String, FileBasedPersistenceContext> knownPersistenceContexts = new ConcurrentHashMap<String, FileBasedPersistenceContext>();
   private final File rootDirectory;
   private final File lockFile;
   private FileLock lock;
@@ -138,34 +138,32 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   public FileBasedPersistenceContext createPersistenceContext(Object identifier, Store.PersistentStoreConfiguration<?, ?, ?> storeConfiguration) throws CachePersistenceException {
     String stringIdentifier = validateIdentifier(identifier);
     DefaultFileBasedPersistenceContext context = new DefaultFileBasedPersistenceContext(getDirectoryFor(stringIdentifier));
-    knownPersistenceContexts.put(stringIdentifier, context);
+    if (knownPersistenceContexts.putIfAbsent(stringIdentifier, context) == null) {
+      if (!storeConfiguration.isPersistent()) {
+        destroy(stringIdentifier, context, false);
+      }
 
-    if (!storeConfiguration.isPersistent()) {
-      destroy(stringIdentifier, context, false);
+      try {
+        create(context);
+      } catch (IOException e) {
+        knownPersistenceContexts.remove(stringIdentifier, context);
+        throw new CachePersistenceException("Unable to create persistence context for " + identifier, e);
+      }
+
+      return context;
+    } else {
+      throw new CachePersistenceException("Identifier '" + identifier + "' already created by this persistence service");
     }
-
-    try {
-      create(context);
-    } catch (IOException e) {
-      knownPersistenceContexts.remove(stringIdentifier);
-      throw new CachePersistenceException("Unable to create persistence context for " + identifier, e);
-    }
-
-    return context;
   }
 
   @Override
-  public void destroyPersistenceContext(Object identifier) {
+  public void destroyPersistenceContext(Object identifier) throws CachePersistenceException {
     String stringIdentifier = validateIdentifier(identifier);
-    FileBasedPersistenceContext persistenceContext = knownPersistenceContexts.get(stringIdentifier);
-    if (persistenceContext != null) {
-      try {
-        destroy(stringIdentifier, persistenceContext, true);
-      } finally {
-        knownPersistenceContexts.remove(stringIdentifier);
-      }
-    } else {
+    FileBasedPersistenceContext persistenceContext = knownPersistenceContexts.remove(stringIdentifier);
+    if (persistenceContext == null) {
       destroy(stringIdentifier, new DefaultFileBasedPersistenceContext(getDirectoryFor(stringIdentifier)), true);
+    } else {
+      destroy(stringIdentifier, persistenceContext, true);
     }
   }
 

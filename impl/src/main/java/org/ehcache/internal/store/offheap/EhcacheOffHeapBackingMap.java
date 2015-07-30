@@ -35,7 +35,7 @@ public interface EhcacheOffHeapBackingMap<K, V> extends ConcurrentMap<K, V> {
 
   V getAndPin(K key);
 
-  boolean updateMetadata(K key, int mask, int metadata);
+  Integer getAndSetMetadata(K key, int mask, int metadata);
 
   List<Segment<K, V>> getSegments();
   

@@ -36,12 +36,12 @@ public interface AuthoritativeTierFactory<K, V> extends StoreFactory<K,V> {
 
   @Override
   AuthoritativeTier.Configuration<K, V> newConfiguration(
-      Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
+      Class<K> keyType, Class<V> valueType, Long capacityConstraint,
       EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer);
 
   @Override
   AuthoritativeTier.Configuration<K, V> newConfiguration(
-      Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
+      Class<K> keyType, Class<V> valueType, Long capacityConstraint,
       EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
       Expiry<? super K, ? super V> expiry);
 

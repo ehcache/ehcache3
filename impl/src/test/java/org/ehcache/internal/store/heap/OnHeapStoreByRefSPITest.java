@@ -78,14 +78,14 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
-      public Store.Configuration<String, String> newConfiguration(final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint, final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
+      public Store.Configuration<String, String> newConfiguration(final Class<String> keyType, final Class<String> valueType, final Long capacityConstraint, final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType,
             evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacityConstraint));
       }
 
       @Override
       public Store.Configuration<String, String> newConfiguration(
-          final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
+          final Class<String> keyType, final Class<String> valueType, final Long capacityConstraint,
           final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer,
           final Expiry<? super String, ? super String> expiry) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType,

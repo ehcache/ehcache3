@@ -142,7 +142,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
     final K key = factory.createKey(151);
     final V value = factory.createValue(1525);
-    final V value2 = factory.createValue(System.nanoTime());
+    final V value2 = factory.createValue(1526);
 
     assertThat(value2, not(equalTo(value)));
 

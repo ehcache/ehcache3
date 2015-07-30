@@ -19,8 +19,7 @@ package org.ehcache.internal.store.disk;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.internal.store.disk.factories.EhcachePersistentSegmentFactory;
-import org.terracotta.offheapstore.Metadata;
-import org.terracotta.offheapstore.disk.persistent.AbstractPersistentConcurrentOffHeapMap;
+import org.terracotta.offheapstore.disk.persistent.AbstractPersistentConcurrentOffHeapCache;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -31,7 +30,7 @@ import org.ehcache.internal.store.offheap.EhcacheOffHeapBackingMap;
  *
  * @author Chris Dennis
  */
-public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends AbstractPersistentConcurrentOffHeapMap<K, V> implements EhcacheOffHeapBackingMap<K, V> {
+public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends AbstractPersistentConcurrentOffHeapCache<K, V> implements EhcacheOffHeapBackingMap<K, V> {
 
   private final AtomicLong[] counters;
 
@@ -40,21 +39,11 @@ public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends Abstract
   }
   
   public EhcachePersistentConcurrentOffHeapClockCache(EhcachePersistentSegmentFactory<K, V> segmentFactory, int concurrency) {
-    super(segmentFactory, concurrency, false);
+    super(segmentFactory, concurrency);
     counters = new AtomicLong[segments.length];
     for(int i = 0; i < segments.length; i++) {
       counters[i] = new AtomicLong();
     }
-  }
-
-  @Override
-  public V getAndPin(final K key) {
-    return segmentFor(key).getAndSetMetadata(key, Metadata.PINNED, Metadata.PINNED);
-  }
-
-  public boolean isPinned(final K key) {
-    final org.terracotta.offheapstore.Segment<K, V> segment = segmentFor(key);
-    return segment.getSize() != 0 && ((EhcachePersistentSegmentFactory.EhcachePersistentSegment)segment).isPinned(key);
   }
 
   @Override
@@ -78,10 +67,5 @@ public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends Abstract
   @Override
   public long nextIdFor(final K key) {
     return counters[getIndexFor(key.hashCode())].getAndIncrement();
-  }
-
-  @Override
-  public boolean shrinkOthers(int excludedHash) {
-    return false;
   }
 }

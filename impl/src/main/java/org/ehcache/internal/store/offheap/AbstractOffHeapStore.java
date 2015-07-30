@@ -622,7 +622,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           lock.lock();
           try {
             for (K keyToEvict : segment.keySet()) {
-              if (backingMap().updateMetadata(keyToEvict, EhcacheSegmentFactory.EhcacheSegment.VETOED, 0)) {
+              if (backingMap().getAndSetMetadata(keyToEvict, EhcacheSegmentFactory.EhcacheSegment.VETOED, 0) == EhcacheSegmentFactory.EhcacheSegment.VETOED) {
                 return;
               }
             }

@@ -20,22 +20,23 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.Predicate;
 import org.terracotta.offheapstore.Metadata;
-import org.terracotta.offheapstore.Segment;
 import org.terracotta.offheapstore.disk.paging.MappedPageSource;
 import org.terracotta.offheapstore.disk.persistent.PersistentReadWriteLockedOffHeapClockCache;
 import org.terracotta.offheapstore.disk.persistent.PersistentStorageEngine;
+import org.terracotta.offheapstore.pinning.PinnableSegment;
 import org.terracotta.offheapstore.util.Factory;
 
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment;
 import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.EvictionListener;
+import static org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.VETOED;
 
 /**
  *
  * @author Chris Dennis
  */
-public class EhcachePersistentSegmentFactory<K, V> implements Factory<Segment<K, V>> {
+public class EhcachePersistentSegmentFactory<K, V> implements Factory<PinnableSegment<K, V>> {
 
   private final Factory<? extends PersistentStorageEngine<? super K, ? super V>> storageEngineFactory;
   private final MappedPageSource tableSource;
@@ -74,79 +75,6 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<Segment<K,
       super(source, storageEngine, tableSize, bootstrap);
       this.evictionVeto = evictionVeto;
       this.evictionListener = evictionListener;
-    }
-
-    @Override
-    public boolean evict(int index, boolean shrink) {
-      Lock l = writeLock();
-      l.lock();
-      try {
-        Entry<K, V> entry = getEntryAtTableOffset(index);
-        boolean evicted = super.evict(index, shrink);
-        if (evicted) {
-          evictionListener.onEviction(entry.getKey(), entry.getValue());
-        }
-        return evicted;
-      } finally {
-        l.unlock();
-      }
-    }
-
-    @Override
-    public V put(K key, V value, int metadata) {
-      Lock lock = writeLock();
-      lock.lock();
-      try {
-        return super.put(key, value, metadata);
-      } finally {
-        lock.unlock();
-      }
-    }
-
-    @Override
-    public V remove(Object key) {
-      Lock lock = writeLock();
-      lock.lock();
-      try {
-        return super.remove(key);
-      } finally {
-        lock.unlock();
-      }
-    }
-
-    /**
-     * Computes a new value for the given key if a mapping is present and pinned, <code>BiFunction</code> is invoked under appropriate lock scope
-     * @param key the key of the mapping to compute the value for
-     * @param remappingFunction the function used to compute
-     * @return true if transitioned to unpinned, false otherwise
-     */
-    public boolean computeIfPinnedAndUnpin(final K key, final BiFunction<K, V, V> remappingFunction) {
-      final Lock lock = writeLock();
-      lock.lock();
-      try {
-        final V newValue;
-        // can't be pinned if absent
-        if ((getMetadata(key) & Metadata.PINNED) == Metadata.PINNED) {
-
-          final V previousValue = get(key);
-          newValue = remappingFunction.apply(key, previousValue);
-
-          if(newValue != previousValue) {
-            if(newValue == null) {
-              remove(key);
-            } else {
-              put(key, newValue);
-            }
-          }
-          if (newValue != null) {
-            setMetadata(key, Metadata.PINNED, 0);
-          }
-          return true;
-        }
-        return false;
-      } finally {
-        lock.unlock();
-      }
     }
 
     /**
@@ -227,7 +155,7 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<Segment<K,
       try {
         final V newValue;
         // can't be pinned if absent
-        if ((getMetadata(key) & Metadata.PINNED) == Metadata.PINNED) {
+        if (isPinned(key)) {
 
           final V previousValue = get(key);
           newValue = remappingFunction.apply(key, previousValue);
@@ -240,11 +168,48 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<Segment<K,
             }
           }
           if (flippingPinningBitFunction.apply(previousValue)) {
-            setMetadata(key, Metadata.PINNED, 0);
+            getAndSetMetadata(key, Metadata.PINNED, 0);
             return true;
           }
         }
         return false;
+      } finally {
+        lock.unlock();
+      }
+    }
+
+    @Override
+    public V put(K key, V value) {
+      int metadata = getVetoedStatus(key, value);
+      return put(key, value, metadata);
+    }
+
+    private int getVetoedStatus(final K key, final V value) {
+      return evictionVeto.test(new SimpleImmutableEntry<K, V>(key, value)) ? VETOED : 0;
+    }
+
+    @Override
+    public V putPinned(K key, V value) {
+      int metadata = getVetoedStatus(key, value) | Metadata.PINNED;
+      return put(key, value, metadata);
+    }
+
+    @Override
+    protected boolean evictable(int status) {
+      return super.evictable(status) && ((status & VETOED) == 0);
+    }
+
+    @Override
+    public boolean evict(int index, boolean shrink) {
+      Lock lock = writeLock();
+      lock.lock();
+      try {
+        Entry<K, V> entry = getEntryAtTableOffset(index);
+        boolean evicted = super.evict(index, shrink);
+        if (evicted) {
+          evictionListener.onEviction(entry.getKey(), entry.getValue());
+        }
+        return evicted;
       } finally {
         lock.unlock();
       }
