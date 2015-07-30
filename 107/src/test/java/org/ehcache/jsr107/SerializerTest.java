@@ -35,11 +35,10 @@ import static org.junit.Assert.assertThat;
 
 public class SerializerTest {
   private CacheManager cacheManager;
-  private CachingProvider cachingProvider;
 
   @Before
   public void setUp() throws Exception {
-    cachingProvider = Caching.getCachingProvider();
+    CachingProvider cachingProvider = Caching.getCachingProvider();
     cacheManager = cachingProvider.getCacheManager(getClass().getResource("/ehcache-107-serializer.xml")
         .toURI(), cachingProvider.getDefaultClassLoader());
   }
@@ -52,14 +51,14 @@ public class SerializerTest {
   @Test
   public void testJSR107DefaultSerializer() throws URISyntaxException {
     Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
-    cache.put(19l, "foo");
-    assertThat(cache.get(19l), equalTo("foo"));
+    cache.put(19L, "foo");
+    assertThat(cache.get(19L), equalTo("foo"));
   }
 
   @Test
   public void testJSR107Serializer() {
     Cache<Long, String> cache1 = cacheManager.getCache("cache1", Long.class, String.class);
-    cache1.put(17l, "foo");
-    assertThat(cache1.get(17l), equalTo("foo"));
+    cache1.put(17L, "foo");
+    assertThat(cache1.get(17L), equalTo("foo"));
   }
 }
