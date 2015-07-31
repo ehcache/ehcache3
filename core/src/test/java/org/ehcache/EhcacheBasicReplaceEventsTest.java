@@ -30,11 +30,16 @@ import java.util.Collections;
 
 import org.ehcache.event.CacheEvent;
 import org.ehcache.exceptions.CacheWritingException;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.util.IsUpdated;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mock;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 /**
  * This class provides testing of events for basic REPLACE operations.
@@ -108,6 +113,18 @@ public class EhcacheBasicReplaceEventsTest extends EhcacheEventsTestBase {
     verify(cacheEventListener, never()).onEvent(Matchers.<CacheEvent<String, String>>any());
   }
 
+  @Test
+  public void testReplaceWithImmediatelyExpiringValue() throws Exception {
+    buildStore(Collections.<String, String>singletonMap("key", "value"));
+    
+    Expiry<String, String> expiry = mock(Expiry.class);
+    when(expiry.getExpiryForUpdate("key", "value", "new-value")).thenReturn(Duration.ZERO);
+    final Ehcache<String, String> ehcache = getEhcache(expiry, "testReplaceWithImmediatelyExpiringValue");
+    
+    ehcache.replace("key", "new-value");
+    verifyZeroInteractions(cacheEventListener);
+  }
+  
   private Ehcache<String, String> getEhcache() {
     return getEhcache("EhcacheBasicReplaceEventsTest");
   }

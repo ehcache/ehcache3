@@ -904,11 +904,12 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
           }
         }
         
+        old.set(inCache);
+
         if (newValueAlreadyExpired(key, inCache, value)) {
           return null;
         }
         
-        old.set(inCache);
         eventNotificationService.onEvent(CacheEvents.update(newCacheEntry(k, inCache),
             newCacheEntry(k, value), Ehcache.this));
         return value;

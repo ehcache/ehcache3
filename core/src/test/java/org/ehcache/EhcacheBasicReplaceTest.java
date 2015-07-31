@@ -18,6 +18,8 @@ package org.ehcache;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CacheWritingException;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.junit.Test;
@@ -27,6 +29,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.EnumSet;
+import org.ehcache.config.CacheConfiguration;
+import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import org.ehcache.expiry.Expirations;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -38,11 +43,13 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 /**
  * Provides testing of basic REPLACE(key, value) operations on an {@code Ehcache}.
@@ -506,6 +513,26 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
   
+  @Test
+  public void testReplaceWithImmediatelyExpiredEntry() throws Exception {
+    final FakeStore fakeStore = new FakeStore(Collections.<String, String>singletonMap("key", "old-value"));
+    this.store = spy(fakeStore);
+
+    final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.<String, String>singletonMap("key", "old-value"));
+    
+    final Expiry<String, String> expiry = mock(Expiry.class);
+    when(expiry.getExpiryForUpdate("key", "old-value", "value")).thenReturn(Duration.ZERO);
+    
+    final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter, expiry);
+
+    ehcache.replace("key", "value");
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verifyZeroInteractions(this.spiedResilienceStrategy);
+    assertThat(fakeStore.getEntryMap().get("key"), nullValue());
+    assertThat(fakeWriter.getEntryMap().get("key"), equalTo("value"));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT));
+  }
+
   /**
    * Gets an initialized {@link Ehcache Ehcache} instance using the
    * {@link CacheLoaderWriter} provided.
@@ -515,7 +542,12 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
-    RuntimeConfiguration<String, String> runtimeConfiguration = new RuntimeConfiguration<String, String>(CACHE_CONFIGURATION, null);
+    return getEhcache(cacheLoaderWriter, Expirations.noExpiration());
+  }
+
+  private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<? super String, ? super String> expiry) {
+    CacheConfiguration<String, String> config = newCacheConfigurationBuilder().withExpiry(expiry).buildConfig(String.class, String.class);
+    RuntimeConfiguration<String, String> runtimeConfiguration = new RuntimeConfiguration<String, String>(config, null);
     final Ehcache<String, String> ehcache
         = new Ehcache<String, String>(runtimeConfiguration, this.store, cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicReplaceTest"));
     ehcache.init();
