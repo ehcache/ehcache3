@@ -769,7 +769,10 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         putIfAbsentObserver.end(PutIfAbsentOutcome.PUT);
         return null;
       } else if (inCache == null) {
-        //dubious - it's a 'hit' in the SoR, but a 'miss' in the cache
+        /*
+         * XXX : This needs reassessing - this means different things whether
+         * there is a loader/writer or not.
+         */
         putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
         return null;
       } else {
