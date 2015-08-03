@@ -331,8 +331,8 @@ public class CacheStore<K, V> implements Store<K, V> {
   public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
     List<CacheConfigurationChangeListener> configurationChangeListenerList
         = new ArrayList<CacheConfigurationChangeListener>();
-    configurationChangeListenerList.addAll(((ConfigurationChangeSupport)realCachingTier).getConfigurationChangeListeners());
-    configurationChangeListenerList.addAll(((ConfigurationChangeSupport)authoritativeTier).getConfigurationChangeListeners());
+    configurationChangeListenerList.addAll(realCachingTier.getConfigurationChangeListeners());
+    configurationChangeListenerList.addAll(authoritativeTier.getConfigurationChangeListeners());
     return configurationChangeListenerList;
   }
 
