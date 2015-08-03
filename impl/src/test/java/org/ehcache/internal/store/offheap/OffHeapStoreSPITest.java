@@ -103,7 +103,8 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
       @Override
       public Store.Provider newProvider() {
         Store.Provider provider = new OffHeapStore.Provider();
-        provider.start(getServiceProvider());
+        ServiceLocator locator = getServiceProvider();
+        locator.addService(provider);
         return provider;
       }
 
@@ -123,7 +124,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
       }
 
       @Override
-      public ServiceProvider getServiceProvider() {
+      public ServiceLocator getServiceProvider() {
         ServiceLocator serviceLocator = new ServiceLocator();
         try {
           serviceLocator.startAllServices();

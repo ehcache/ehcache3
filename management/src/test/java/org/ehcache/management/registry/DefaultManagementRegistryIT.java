@@ -71,7 +71,7 @@ public class DefaultManagementRegistryIT {
 
     @Override
     public void start(ServiceProvider serviceProvider) {
-      managementRegistry = serviceProvider.findService(ManagementRegistry.class);
+      managementRegistry = serviceProvider.getService(ManagementRegistry.class);
     }
 
     @Override

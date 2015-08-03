@@ -16,11 +16,9 @@
 
 package org.ehcache.spi;
 
-import org.ehcache.internal.store.DefaultStoreProvider;
 import org.ehcache.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.offheap.OffHeapStore;
-import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.hamcrest.core.IsSame;
@@ -38,25 +36,21 @@ public class ServiceProviderTest {
 
     ServiceLocator serviceLocator = new ServiceLocator();
 
-    DefaultStoreProvider storeProvider = new DefaultStoreProvider();
     OnHeapStore.Provider cachingTierProvider = new OnHeapStore.Provider();
     OffHeapStore.Provider authoritativeTierProvider = new OffHeapStore.Provider();
     OffHeapDiskStore.Provider diskStoreProvider = new OffHeapDiskStore.Provider();
 
-    serviceLocator.addService(storeProvider, true);
     serviceLocator.addService(cachingTierProvider, true);
     serviceLocator.addService(authoritativeTierProvider, true);
     serviceLocator.addService(diskStoreProvider, true);
 
     serviceLocator.startAllServices();
 
-    assertThat(serviceLocator.findService(Store.Provider.class),
-        IsSame.<Store.Provider>sameInstance(storeProvider));
-    assertThat(serviceLocator.findService(CachingTier.Provider.class),
+    assertThat(serviceLocator.getService(CachingTier.Provider.class),
         IsSame.<CachingTier.Provider>sameInstance(cachingTierProvider));
-    assertThat(serviceLocator.findService(AuthoritativeTier.Provider.class),
+    assertThat(serviceLocator.getService(AuthoritativeTier.Provider.class),
         IsSame.<AuthoritativeTier.Provider>sameInstance(authoritativeTierProvider));
-    assertThat(serviceLocator.findService(diskStoreProvider.getClass()),
+    assertThat(serviceLocator.getService(diskStoreProvider.getClass()),
         IsSame.sameInstance(diskStoreProvider));
   }
 }

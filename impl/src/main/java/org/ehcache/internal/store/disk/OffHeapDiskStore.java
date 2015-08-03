@@ -39,6 +39,7 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceDependency;
 import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
@@ -221,6 +222,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   }
 
   @SupplementaryService
+  @ServiceDependency(services = {TimeSourceService.class, SerializationProvider.class})
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
     private volatile ServiceProvider serviceProvider;
@@ -231,8 +233,8 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       if (serviceProvider == null) {
         throw new NullPointerException("ServiceProvider is null in OffHeapDiskStore.Provider.");
       }
-      TimeSource timeSource = serviceProvider.findService(TimeSourceService.class).getTimeSource();
-      SerializationProvider serializationProvider = serviceProvider.findService(SerializationProvider.class);
+      TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
+      SerializationProvider serializationProvider = serviceProvider.getService(SerializationProvider.class);
       Serializer<K> keySerializer = serializationProvider.createKeySerializer(storeConfig.getKeyType(), storeConfig.getClassLoader(), serviceConfigs);
       Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig
           .getClassLoader(), serviceConfigs);
@@ -248,7 +250,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       }
       MemoryUnit unit = (MemoryUnit)offHeapPool.getUnit();
 
-      LocalPersistenceService localPersistenceService = serviceProvider.findService(LocalPersistenceService.class);
+      LocalPersistenceService localPersistenceService = serviceProvider.getService(LocalPersistenceService.class);
 
       try {
         FileBasedPersistenceContext persistenceContext = localPersistenceService.createPersistenceContext(persistentStoreConfiguration

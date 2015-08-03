@@ -143,7 +143,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
           localPersistenceService.start(null);
           ServiceLocator serviceProvider = getServiceProvider();
           serviceProvider.addService(localPersistenceService);
-          provider.start(serviceProvider);
+          serviceProvider.addService(provider);
           return provider;
         } catch (IOException ex) {
           throw new AssertionError(ex);

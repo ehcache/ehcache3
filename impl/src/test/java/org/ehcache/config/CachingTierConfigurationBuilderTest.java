@@ -47,7 +47,7 @@ public class CachingTierConfigurationBuilderTest {
     serviceLocator.startAllServices();
     
     final CacheConfiguration<String, String> config = newCacheConfigurationBuilder().buildConfig(String.class, String.class);
-    final Store.Provider service = serviceLocator.findService(Store.Provider.class);
+    final Store.Provider service = serviceLocator.getOrCreateService(Store.Provider.class);
     Collection<ServiceConfiguration<?>> serviceConfigs = config.getServiceConfigurations();
     ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
     final Store<String, String> store = service.createStore(new StoreConfigurationImpl<String, String>(config), serviceConfigArray);

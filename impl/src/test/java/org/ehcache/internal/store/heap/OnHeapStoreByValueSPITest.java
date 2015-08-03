@@ -76,7 +76,8 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
       @Override
       public Store.Provider newProvider() {
         Store.Provider service = new OnHeapStore.Provider();
-        service.start(getServiceProvider());
+        ServiceLocator locator = getServiceProvider();
+        locator.addService(service);
         return service;
       }
 
@@ -136,7 +137,7 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
-      public ServiceProvider getServiceProvider() {
+      public ServiceLocator getServiceProvider() {
         ServiceLocator serviceLocator = new ServiceLocator();
         try {
           serviceLocator.startAllServices();

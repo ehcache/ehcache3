@@ -74,7 +74,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
   T build(ServiceLocator serviceLocator) throws IllegalStateException {
     try {
       for (ServiceConfiguration<?> serviceConfig : serviceCfgs) {
-        Service service = serviceLocator.findServiceFor(serviceConfig);
+        Service service = serviceLocator.getOrCreateServiceFor(serviceConfig);
         if (service == null) {
           throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
         }
@@ -83,7 +83,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     } catch (Exception e) {
       throw new IllegalStateException("UserManagedCacheBuilder failed to build.", e);
     }
-    final Store.Provider storeProvider = serviceLocator.findService(Store.Provider.class);
+    final Store.Provider storeProvider = serviceLocator.getOrCreateService(Store.Provider.class);
 
     Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType,
         evictionVeto, evictionPrioritizer, classLoader, expiry, resourcePools);
@@ -114,7 +114,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     };
     if (persistent) {
       PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(runtimeConfiguration, store, (Store.PersistentStoreConfiguration) storeConfig, serviceLocator
-          .findService(LocalPersistenceService.class), cacheLoaderWriter, cacheEventNotificationService, id);
+          .getService(LocalPersistenceService.class), cacheLoaderWriter, cacheEventNotificationService, id);
       cache.addHook(lifeCycled);
       return cast(cache);
     } else {

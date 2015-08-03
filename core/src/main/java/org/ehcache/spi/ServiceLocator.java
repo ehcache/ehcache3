@@ -18,6 +18,7 @@ package org.ehcache.spi;
 
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceDependency;
 import org.ehcache.spi.service.ServiceFactory;
 import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.util.ClassLoading;
@@ -135,6 +136,15 @@ public final class ServiceLocator implements ServiceProvider {
         }
       }
 
+      if (service.getClass().isAnnotationPresent(ServiceDependency.class)) {
+        ServiceDependency annotation = service.getClass().getAnnotation(ServiceDependency.class);
+        for (Class aClass : annotation.services()) {
+          if (getOrCreateService(aClass) == null) {
+            throw new IllegalStateException("Unable to resolve dependent service: " + aClass.getSimpleName());
+          }
+        }
+      }
+
       if (running.get()) {
         service.start(this);
       }
@@ -154,18 +164,22 @@ public final class ServiceLocator implements ServiceProvider {
     return interfaces;
   }
 
-  public <T extends Service> T findServiceFor(ServiceConfiguration<T> config) {
-    return findService(config.getServiceType(), config);
+  public <T extends Service> T getOrCreateServiceFor(ServiceConfiguration<T> config) {
+    return findService(config.getServiceType(), config, true);
   }
 
   @Override
-  public <T extends Service> T findService(Class<T> serviceType) {
-    return findService(serviceType, null);
+  public <T extends Service> T getService(Class<T> serviceType) {
+    return findService(serviceType, null, false);
   }
 
-  public <T extends Service> T findService(Class<T> serviceType, ServiceConfiguration<T> config) {
+  public <T extends Service> T getOrCreateService(Class<T> serviceType) {
+    return findService(serviceType, null, true);
+  }
+
+  private <T extends Service> T findService(Class<T> serviceType, ServiceConfiguration<T> config, boolean shouldCreate) {
     T service = serviceType.cast(services.get(serviceType));
-    if (service == null) {
+    if (service == null && shouldCreate) {
       return discoverService(serviceType, config);
     } else {
       return service;

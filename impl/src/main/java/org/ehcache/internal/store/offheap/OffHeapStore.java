@@ -32,6 +32,7 @@ import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceDependency;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
@@ -107,6 +108,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     return map;
   }
 
+  @ServiceDependency(services = {TimeSourceService.class, SerializationProvider.class})
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
     private volatile ServiceProvider serviceProvider;
@@ -117,9 +119,9 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       if (serviceProvider == null) {
         throw new NullPointerException("ServiceProvider is null in OffHeapStore.Provider.");
       }
-      TimeSource timeSource = serviceProvider.findService(TimeSourceService.class).getTimeSource();
+      TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
 
-      SerializationProvider serializationProvider = serviceProvider.findService(SerializationProvider.class);
+      SerializationProvider serializationProvider = serviceProvider.getService(SerializationProvider.class);
       Serializer<K> keySerializer = serializationProvider.createKeySerializer(storeConfig.getKeyType(), storeConfig.getClassLoader(), serviceConfigs);
       Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig
           .getClassLoader(), serviceConfigs);

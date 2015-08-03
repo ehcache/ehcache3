@@ -25,6 +25,7 @@ import org.ehcache.internal.store.tiering.CacheStoreServiceConfiguration;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceDependency;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +38,8 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * @author Ludovic Orban
  */
+@ServiceDependency(services = {CacheStore.Provider.class, OnHeapStore.Provider.class,
+    OffHeapStore.Provider.class, OffHeapDiskStore.Provider.class})
 public class DefaultStoreProvider implements Store.Provider {
   private static final Logger LOG = LoggerFactory.getLogger(DefaultStoreProvider.class);
 
@@ -60,19 +63,19 @@ public class DefaultStoreProvider implements Store.Provider {
       if (heapPool == null) {
         throw new IllegalArgumentException("Cannot store to disk without heap resource");
       }
-      provider = serviceProvider.findService(CacheStore.Provider.class);
+      provider = serviceProvider.getService(CacheStore.Provider.class);
       enhancedServiceConfigs.add(new CacheStoreServiceConfiguration().cachingTierProvider(OnHeapStore.Provider.class)
           .authoritativeTierProvider(OffHeapDiskStore.Provider.class));
     } else if (offHeapPool != null) {
       if (heapPool == null) {
         throw new IllegalArgumentException("Cannot store to offheap without heap resource");
       }
-      provider = serviceProvider.findService(CacheStore.Provider.class);
+      provider = serviceProvider.getService(CacheStore.Provider.class);
       enhancedServiceConfigs.add(new CacheStoreServiceConfiguration().cachingTierProvider(OnHeapStore.Provider.class)
           .authoritativeTierProvider(OffHeapStore.Provider.class));
     } else {
       // default to on-heap cache
-      provider = serviceProvider.findService(OnHeapStore.Provider.class);
+      provider = serviceProvider.getService(OnHeapStore.Provider.class);
     }
 
     Store<K, V> store = provider.createStore(storeConfig, enhancedServiceConfigs.toArray(new ServiceConfiguration<?>[0]));

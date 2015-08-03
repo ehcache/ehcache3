@@ -22,9 +22,11 @@ import org.ehcache.events.DisabledCacheEventNotificationService;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
+import org.ehcache.internal.TimeSourceService;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceDependency;
 import org.ehcache.spi.service.ThreadPoolsService;
 
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
@@ -33,6 +35,7 @@ import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
  * @author palmanojkumar
  *
  */
+@ServiceDependency(services = { TimeSourceService.class, ThreadPoolsService.class })
 public class CacheEventNotificationListenerServiceProviderImpl implements CacheEventNotificationListenerServiceProvider {
 
   private volatile ServiceProvider serviceProvider;
@@ -48,7 +51,7 @@ public class CacheEventNotificationListenerServiceProviderImpl implements CacheE
   }
 
   public <K, V> CacheEventNotificationService<K, V> createCacheEventNotificationService(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs) {
-    ThreadPoolsService threadPoolsService = serviceProvider.findService(ThreadPoolsService.class);
+    ThreadPoolsService threadPoolsService = serviceProvider.getService(ThreadPoolsService.class);
     TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[]) serviceConfigs);
     TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
     if (threadPoolsService != null) {

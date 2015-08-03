@@ -35,5 +35,5 @@ public interface ServiceProvider {
    * @param <T> The actual {@link Service} type
    * @return the service instance for {@code T} type, or {@code null} if it couldn't be located
    */
-  <T extends Service> T findService(Class<T> serviceType);
+  <T extends Service> T getService(Class<T> serviceType);
 }
