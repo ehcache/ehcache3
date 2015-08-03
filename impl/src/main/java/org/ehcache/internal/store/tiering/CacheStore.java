@@ -460,11 +460,6 @@ public class CacheStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public void maintenance() {
-      // noop
-    }
-
-    @Override
     public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
       return null;
     }

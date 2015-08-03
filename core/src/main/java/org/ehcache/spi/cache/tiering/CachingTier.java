@@ -75,10 +75,6 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
 
   }
 
-  /* lifecycle methods */
-
-  void maintenance();
-
   interface Provider extends Service {
     <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
 
