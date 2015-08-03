@@ -46,7 +46,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -83,9 +82,8 @@ public class CacheStoreTest {
     when(cachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
       public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
-        Number key = (Number)invocation.getArguments()[0];
-        Function<Number, Store.ValueHolder<CharSequence>> function = (Function<Number, Store.ValueHolder<CharSequence>>)invocation
-            .getArguments()[1];
+        Number key = (Number) invocation.getArguments()[0];
+        Function<Number, Store.ValueHolder<CharSequence>> function = (Function<Number, Store.ValueHolder<CharSequence>>) invocation.getArguments()[1];
         return function.apply(key);
       }
     });
@@ -353,8 +351,8 @@ public class CacheStoreTest {
     when(authoritativeTier.computeIfAbsentAndFault(any(Number.class), any(Function.class))).thenAnswer(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
       public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
-        Number key = (Number)invocation.getArguments()[0];
-        Function<Number, CharSequence> function = (Function<Number, CharSequence>)invocation.getArguments()[1];
+        Number key = (Number) invocation.getArguments()[0];
+        Function<Number, CharSequence> function = (Function<Number, CharSequence>) invocation.getArguments()[1];
         return newValueHolder(function.apply(key));
       }
     });
@@ -406,9 +404,8 @@ public class CacheStoreTest {
     when(authoritativeTier.computeIfPresent(any(Number.class), any(BiFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
       public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
-        Number key = (Number)invocation.getArguments()[0];
-        BiFunction<Number, CharSequence, CharSequence> function = (BiFunction<Number, CharSequence, CharSequence>)invocation
-            .getArguments()[1];
+        Number key = (Number) invocation.getArguments()[0];
+        BiFunction<Number, CharSequence, CharSequence> function = (BiFunction<Number, CharSequence, CharSequence>) invocation.getArguments()[1];
         return newValueHolder(function.apply(key, null));
       }
     });
