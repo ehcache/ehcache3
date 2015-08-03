@@ -60,6 +60,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class EhcacheEventTest {
@@ -107,7 +108,7 @@ public class EhcacheEventTest {
       }
     });
     cache.put(key, value);
-    verify(eventNotifier).onEvent(eventMatching(EventType.EXPIRED, key, value, value));
+    verifyZeroInteractions(eventNotifier);
   }
 
   @Test

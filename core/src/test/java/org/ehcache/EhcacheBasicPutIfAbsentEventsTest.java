@@ -28,11 +28,16 @@ import java.util.Collections;
 
 import org.ehcache.event.CacheEvent;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.util.IsCreated;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mock;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 /**
  * Provides events testing for basic PUT_IF_ABSENT operations on an {@code Ehcache}.
@@ -109,6 +114,18 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheEventsTestBase {
     final Ehcache<String, String> ehcache = getEhcache(cacheLoaderWriter, "EhcacheBasicPutIfAbsentEventsTest");
     ehcache.putIfAbsent("key", "value");
     verify(cacheEventListener, times(1)).onEvent(argThat(isCreated));
+  }
+
+  @Test
+  public void testPutIfAbsentNewImmediatelyExpiringValue() throws Exception {
+    buildStore(Collections.<String, String>emptyMap());
+    
+    Expiry<String, String> expiry = mock(Expiry.class);
+    when(expiry.getExpiryForCreation("key", "value")).thenReturn(Duration.ZERO);
+    final Ehcache<String, String> ehcache = getEhcache(expiry, "testPutIfAbsentNewImmediatelyExpiringValue");
+    
+    ehcache.putIfAbsent("key", "value");
+    verifyZeroInteractions(cacheEventListener);
   }
 
   private Ehcache<String, String> getEhcache() {

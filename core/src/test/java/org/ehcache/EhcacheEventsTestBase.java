@@ -16,6 +16,7 @@
 
 package org.ehcache;
 
+import java.util.EnumSet;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
@@ -34,6 +35,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.spy;
@@ -49,23 +54,28 @@ public class EhcacheEventsTestBase extends EhcacheBasicCrudBase {
   protected CacheEventNotificationService<String, String> cacheEventNotificationService;
 
   protected <K, V> void registerCacheEventListener(Cache<K, V> ehcache, CacheEventListener<? super K, ? super V> cacheEventListener) {
-    Set<EventType> eventTypes = new HashSet<EventType>();
-    eventTypes.add(EventType.CREATED);
-    eventTypes.add(EventType.REMOVED);
-    eventTypes.add(EventType.UPDATED);
-    ehcache.getRuntimeConfiguration().registerCacheEventListener(cacheEventListener, EventOrdering.ORDERED, EventFiring.SYNCHRONOUS, eventTypes);
+    ehcache.getRuntimeConfiguration().registerCacheEventListener(cacheEventListener, EventOrdering.ORDERED, EventFiring.SYNCHRONOUS, EnumSet.allOf(EventType.class));
   }
 
   protected Ehcache<String, String> getEhcache(String name) {
-    return getEhcache(null, name);
+    return getEhcache(null, Expirations.noExpiration(), name);
   }
 
-  protected Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, String name) {
+  protected Ehcache<String, String> getEhcache(Expiry<? super String, ? super String> expiry, String name) {
+    return getEhcache(null, expiry, name);
+  }
+  
+  protected Ehcache<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter, String name) {
+    return getEhcache(cacheLoaderWriter, Expirations.noExpiration(), name);
+  }
+  
+  protected Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<? super String, ? super String> expiry, String name) {
+    CacheConfiguration<String, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder().withExpiry(expiry).buildConfig(String.class, String.class);
     ExecutorService orderedExecutor = Executors.newSingleThreadExecutor();
     ExecutorService unorderedExecutor = Executors.newCachedThreadPool();
     TimeSource timeSource = SystemTimeSource.INSTANCE;
     cacheEventNotificationService = new CacheEventNotificationServiceImpl<String, String>(orderedExecutor, unorderedExecutor, store, timeSource);
-    RuntimeConfiguration<String, String> runtimeConfiguration = new RuntimeConfiguration<String, String>(CACHE_CONFIGURATION, cacheEventNotificationService);
+    RuntimeConfiguration<String, String> runtimeConfiguration = new RuntimeConfiguration<String, String>(config, cacheEventNotificationService);
     final Ehcache<String, String> ehcache = new Ehcache<String, String>(runtimeConfiguration, this.store,
         cacheLoaderWriter, cacheEventNotificationService,
         LoggerFactory.getLogger(Ehcache.class + "-" + name));

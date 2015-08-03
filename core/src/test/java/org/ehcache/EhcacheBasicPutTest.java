@@ -26,18 +26,26 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.EnumSet;
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.CacheConfigurationBuilder;
+import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 /**
  * Provides testing of basic PUT operations on an {@code Ehcache}.
@@ -500,6 +508,61 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
+    
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key not present in {@code Store}</li>
+   *   <li>key not present via {@code CacheLoaderWriter}</li>
+   * </ul>
+   */
+  @Test
+  public void testPutNoStoreEntryImmediatelyExpiredEntry() throws Exception {
+    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    this.store = spy(fakeStore);
+
+    final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.<String, String>emptyMap());
+    
+    final Expiry<String, String> expiry = mock(Expiry.class);
+    when(expiry.getExpiryForCreation("key", "value")).thenReturn(Duration.ZERO);
+    
+    final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter, expiry);
+
+    ehcache.put("key", "value");
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verifyZeroInteractions(this.spiedResilienceStrategy);
+    assertThat(fakeStore.getEntryMap().get("key"), nullValue());
+    assertThat(fakeWriter.getEntryMap().get("key"), equalTo("value"));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.NOOP));
+  }  
+    
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key not present in {@code Store}</li>
+   *   <li>key not present via {@code CacheLoaderWriter}</li>
+   * </ul>
+   */
+  @Test
+  public void testPutOverExistingEntryImmediatelyExpiredEntry() throws Exception {
+    final FakeStore fakeStore = new FakeStore(Collections.<String, String>singletonMap("key", "old-value"));
+    this.store = spy(fakeStore);
+
+    final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.<String, String>singletonMap("key", "old-value"));
+    
+    final Expiry<String, String> expiry = mock(Expiry.class);
+    when(expiry.getExpiryForUpdate("key", "old-value", "value")).thenReturn(Duration.ZERO);
+    
+    final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter, expiry);
+
+    ehcache.put("key", "value");
+    verify(this.store).compute(eq("key"), getAnyBiFunction());
+    verifyZeroInteractions(this.spiedResilienceStrategy);
+    assertThat(fakeStore.getEntryMap().get("key"), nullValue());
+    assertThat(fakeWriter.getEntryMap().get("key"), equalTo("value"));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.NOOP));
+  }
+
   /**
    * Gets an initialized {@link Ehcache Ehcache} instance using the
    * {@link org.ehcache.spi.writer.CacheLoaderWriter CacheLoaderWriter} provided.
@@ -510,7 +573,15 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
-    RuntimeConfiguration<String, String> runtimeConfiguration = new RuntimeConfiguration<String, String>(CACHE_CONFIGURATION, null);
+    return getEhcache(cacheLoaderWriter, CACHE_CONFIGURATION);
+  }
+
+  private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<String, String> expiry) {
+    return getEhcache(cacheLoaderWriter, newCacheConfigurationBuilder().withExpiry(expiry).buildConfig(String.class, String.class));
+  }
+  
+  private Ehcache<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter, CacheConfiguration<String, String> config) {
+    RuntimeConfiguration<String, String> runtimeConfiguration = new RuntimeConfiguration<String, String>(config, null);
     final Ehcache<String, String> ehcache = new Ehcache<String, String>(runtimeConfiguration, this.store, cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));

@@ -27,7 +27,12 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.EnumSet;
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 
+import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -37,9 +42,11 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 /**
  * Provides testing of basic PUT_IF_ABSENT operations on an {@code Ehcache}.
@@ -504,6 +511,26 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));
   }
 
+  @Test
+  public void testPutIfAbsentImmediatelyExpiredEntry() throws Exception {
+    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    this.store = spy(fakeStore);
+
+    final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.<String, String>emptyMap());
+    
+    final Expiry<String, String> expiry = mock(Expiry.class);
+    when(expiry.getExpiryForCreation("key", "value")).thenReturn(Duration.ZERO);
+    
+    final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter, expiry);
+
+    assertThat(ehcache.putIfAbsent("key", "value"), nullValue());
+    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
+    verifyZeroInteractions(this.spiedResilienceStrategy);
+    assertThat(fakeStore.getEntryMap().get("key"), nullValue());
+    assertThat(fakeWriter.getEntryMap().get("key"), equalTo("value"));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.HIT));
+  }  
+    
   /**
    * Gets an initialized {@link Ehcache Ehcache} instance using the
    * {@link org.ehcache.spi.loaderwriter.CacheLoaderWriter CacheLoaderWriter} provided.
@@ -514,7 +541,12 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
-    RuntimeConfiguration<String, String> runtimeConfiguration = new RuntimeConfiguration<String, String>(CACHE_CONFIGURATION, null);
+    return getEhcache(cacheLoaderWriter, Expirations.noExpiration());
+  }
+
+  private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<? super String, ? super String> expiry) {
+    CacheConfiguration<String, String> config = newCacheConfigurationBuilder().withExpiry(expiry).buildConfig(String.class, String.class);
+    RuntimeConfiguration<String, String> runtimeConfiguration = new RuntimeConfiguration<String, String>(config, null);
     final Ehcache<String, String> ehcache = new Ehcache<String, String>(runtimeConfiguration, this.store, cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutIfAbsentTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));

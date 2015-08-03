@@ -367,7 +367,7 @@ public abstract class EhcacheBasicCrudBase {
 
     @Override
     public void enableStoreEventNotifications(final StoreEventListener<String, String> listener) {
-      throw new UnsupportedOperationException();
+      //no-op
     }
 
     @Override

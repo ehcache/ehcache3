@@ -232,7 +232,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         }
         
         if (newValueAlreadyExpired(key, previousValue, value)) {
-          eventNotificationService.onEvent(CacheEvents.expiry(newCacheEntry(key, value), Ehcache.this));
           return null;
         }
         
@@ -770,7 +769,10 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         putIfAbsentObserver.end(PutIfAbsentOutcome.PUT);
         return null;
       } else if (inCache == null) {
-        //dubious - it's a 'hit' in the SoR, but a 'miss' in the cache
+        /*
+         * XXX : This needs reassessing - this means different things whether
+         * there is a loader/writer or not.
+         */
         putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
         return null;
       } else {
@@ -902,11 +904,12 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
           }
         }
         
+        old.set(inCache);
+
         if (newValueAlreadyExpired(key, inCache, value)) {
           return null;
         }
         
-        old.set(inCache);
         eventNotificationService.onEvent(CacheEvents.update(newCacheEntry(k, inCache),
             newCacheEntry(k, value), Ehcache.this));
         return value;
@@ -949,46 +952,41 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
       @Override
       public V apply(final K k, V inCache) {
-        try {
-          if (inCache == null) {
-            if (useLoaderInAtomics && cacheLoaderWriter != null) {
-              try {
-                inCache = cacheLoaderWriter.load(key);
-                if (inCache == null) {
-                  return null;
-                }
-              } catch (Exception e) {
-                throw newCacheLoadingException(e);
+        if (inCache == null) {
+          if (useLoaderInAtomics && cacheLoaderWriter != null) {
+            try {
+              inCache = cacheLoaderWriter.load(key);
+              if (inCache == null) {
+                return null;
               }
-            } else {
-              return null;
+            } catch (Exception e) {
+              throw newCacheLoadingException(e);
             }
-          }
-
-          hit.set(true);
-          if (oldValue.equals(inCache)) {
-            if (cacheLoaderWriter != null) {
-              try {
-                cacheLoaderWriter.write(key, newValue);
-              } catch (Exception e) {
-                throw newCacheWritingException(e);
-              }
-            }
-
-            if (newValueAlreadyExpired(key, oldValue, newValue)) {
-              return null;
-            }
-
-            success.set(true);
-            return newValue;
-          }
-          return inCache;
-        } finally {
-          if (success.get()) {
-            eventNotificationService.onEvent(CacheEvents.update(newCacheEntry(key, oldValue),
-                newCacheEntry(key, newValue), Ehcache.this));
+          } else {
+            return null;
           }
         }
+
+        hit.set(true);
+        if (oldValue.equals(inCache)) {
+          if (cacheLoaderWriter != null) {
+            try {
+              cacheLoaderWriter.write(key, newValue);
+            } catch (Exception e) {
+              throw newCacheWritingException(e);
+            }
+          }
+
+          success.set(true);
+
+          if (newValueAlreadyExpired(key, oldValue, newValue)) {
+            return null;
+          }
+
+          eventNotificationService.onEvent(CacheEvents.update(newCacheEntry(key, oldValue), newCacheEntry(key, newValue), Ehcache.this));
+          return newValue;
+        }
+        return inCache;
       }
     });
     try {

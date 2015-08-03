@@ -44,10 +44,15 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import static org.ehcache.EhcacheBasicBulkUtil.*;
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
 
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
+import static org.ehcache.EhcacheBasicBulkUtil.*;
+import static org.ehcache.EhcacheBasicCrudBase.CACHE_CONFIGURATION;
+import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
@@ -60,10 +65,12 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.when;
 
 /**
  * Provides testing of basic PUT_ALL operations on an {@code Ehcache}.
@@ -1975,6 +1982,62 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
   }
 
+  @Test
+  public void testPutAllPartialIntersectionsImmediatelyExpiredCreatedEntries() throws Exception {
+    final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
+    final FakeStore fakeStore = new FakeStore(originalStoreContent);
+    this.store = spy(fakeStore);
+
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    
+    final Expiry<String, String> expiry = mock(Expiry.class);
+    when(expiry.getExpiryForCreation(any(String.class), any(String.class))).thenReturn(Duration.ZERO);
+    
+    final Ehcache<String, String> ehcache = this.getEhcache(cacheLoaderWriter, expiry);
+    
+    final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
+    ehcache.putAll(contentUpdates);
+
+    verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
+    assertThat(this.getBulkComputeArgs(), equalTo(contentUpdates.keySet()));
+    assertThat(fakeStore.getEntryMap(), equalTo(union(getAltEntryMap("new_", KEY_SET_A), getEntryMap(KEY_SET_B))));
+    verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
+    verifyZeroInteractions(this.spiedResilienceStrategy);
+
+    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+  }  
+
+  @Test
+  public void testPutAllPartialIntersectionsImmediatelyExpiredUpdatedEntries() throws Exception {
+    final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
+    final FakeStore fakeStore = new FakeStore(originalStoreContent);
+    this.store = spy(fakeStore);
+
+    final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
+    this.cacheLoaderWriter = spy(fakeLoaderWriter);
+    
+    final Expiry<String, String> expiry = mock(Expiry.class);
+    when(expiry.getExpiryForUpdate(any(String.class), any(String.class), any(String.class))).thenReturn(Duration.ZERO);
+    
+    final Ehcache<String, String> ehcache = this.getEhcache(cacheLoaderWriter, expiry);
+    
+    final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
+    ehcache.putAll(contentUpdates);
+
+    verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
+    assertThat(this.getBulkComputeArgs(), equalTo(contentUpdates.keySet()));
+    assertThat(fakeStore.getEntryMap(), equalTo(union(getEntryMap(KEY_SET_B), getAltEntryMap("new_", union(KEY_SET_C, KEY_SET_D)))));
+    verify(this.cacheLoaderWriter, atLeast(1)).writeAll(getAnyEntryIterable());
+    assertThat(fakeLoaderWriter.getEntryMap(), equalTo(union(originalWriterContent, contentUpdates)));
+    verifyZeroInteractions(this.spiedResilienceStrategy);
+
+    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+  }  
+
   private void assertThatAllStoreEntriesWithoutFailuresMatchWriterState(FakeStore fakeStore, FakeCacheLoaderWriter fakeLoaderWriter, Map<String, Exception> bcweFailures) {
     assertThat(copyWithout(fakeStore.getEntryMap(), bcweFailures.keySet()).entrySet(), everyItem(isIn(fakeLoaderWriter.getEntryMap()
         .entrySet())));
@@ -1990,7 +2053,15 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
-    RuntimeConfiguration<String, String> runtimeConfiguration = new RuntimeConfiguration<String, String>(CACHE_CONFIGURATION, null);
+    return getEhcache(cacheLoaderWriter, CACHE_CONFIGURATION);
+  }
+
+  private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<String, String> expiry) {
+    return getEhcache(cacheLoaderWriter, newCacheConfigurationBuilder().withExpiry(expiry).buildConfig(String.class, String.class));
+  }
+  
+  private Ehcache<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter, CacheConfiguration<String, String> config) {
+    RuntimeConfiguration<String, String> runtimeConfiguration = new RuntimeConfiguration<String, String>(config, null);
     final Ehcache<String, String> ehcache = new Ehcache<String, String>(runtimeConfiguration, this.store, cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));

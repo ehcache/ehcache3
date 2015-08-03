@@ -20,15 +20,20 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 
 import org.ehcache.event.CacheEvent;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheWritingException;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.util.IsCreated;
 import org.junit.Test;
@@ -133,6 +138,30 @@ public class EhcacheBasicPutEventsTest extends EhcacheEventsTestBase {
     verify(cacheEventListener, never()).onEvent(Matchers.<CacheEvent<String, String>>any());
   }
 
+  @Test
+  public void testPutNewImmediatelyExpiringValue() throws Exception {
+    buildStore(Collections.<String, String>emptyMap());
+    
+    Expiry<String, String> expiry = mock(Expiry.class);
+    when(expiry.getExpiryForCreation("key", "value")).thenReturn(Duration.ZERO);
+    final Ehcache<String, String> ehcache = getEhcache(expiry, "testPutNewImmediatelyExpiringValue");
+    
+    ehcache.put("key", "value");
+    verifyZeroInteractions(cacheEventListener);
+  }
+  
+  @Test
+  public void testPutUpdatedImmediatelyExpiringValue() throws Exception {
+    buildStore(Collections.<String, String>singletonMap("key", "value"));
+    
+    Expiry<String, String> expiry = mock(Expiry.class);
+    when(expiry.getExpiryForUpdate("key", "value", "new-value")).thenReturn(Duration.ZERO);
+    final Ehcache<String, String> ehcache = getEhcache(expiry, "testPutUpdatedImmediatelyExpiringValue");
+    
+    ehcache.put("key", "new-value");
+    verifyZeroInteractions(cacheEventListener);
+  }
+  
   private Ehcache<String, String> getEhcache() {
     return getEhcache("EhcacheBasicPutEventsTest");
   }
