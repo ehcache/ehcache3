@@ -19,16 +19,22 @@ package org.ehcache.internal.store.heap;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.spi.cache.Store.ValueHolder;
+import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.util.concurrent.Exchanger;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * @author vfunshteyn
@@ -72,6 +78,56 @@ public class ByValueOnHeapValueHolderTest {
   @Test(expected=NullPointerException.class)
   public void testNullValue() {
     newValueHolder(null);
+  }
+
+  @Test
+  public void testSerializerGetsDifferentByteBufferOnRead() {
+    final Exchanger<ByteBuffer> exchanger = new Exchanger<ByteBuffer>();
+    final ReadExchangeSerializer serializer = new ReadExchangeSerializer(exchanger);
+    final ByValueOnHeapValueHolder<String> valueHolder = new ByValueOnHeapValueHolder<String>("test it!", System
+        .currentTimeMillis(), serializer);
+
+    new Thread(new Runnable() {
+      @Override
+      public void run() {
+        valueHolder.value();
+      }
+    }).start();
+
+    valueHolder.value();
+  }
+
+  private static class ReadExchangeSerializer implements Serializer<String> {
+
+    private final Exchanger<ByteBuffer> exchanger;
+    private final Serializer<String> delegate = new JavaSerializer<String>(ByValueOnHeapValueHolderTest.class.getClassLoader());
+
+    private ReadExchangeSerializer(Exchanger<ByteBuffer> exchanger) {
+      this.exchanger = exchanger;
+    }
+
+    @Override
+    public ByteBuffer serialize(String object) throws IOException {
+      return delegate.serialize(object);
+    }
+
+    @Override
+    public String read(ByteBuffer binary) throws IOException, ClassNotFoundException {
+      ByteBuffer received = binary;
+      ByteBuffer exchanged = null;
+      try {
+        exchanged = exchanger.exchange(received);
+      } catch (InterruptedException e) {
+        fail("Received InterruptedException");
+      }
+      assertNotSame(exchanged, received);
+      return delegate.read(received);
+    }
+
+    @Override
+    public boolean equals(String object, ByteBuffer binary) throws IOException, ClassNotFoundException {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
   }
 
   private static <V extends Serializable> ValueHolder<V> newValueHolder(V value) {

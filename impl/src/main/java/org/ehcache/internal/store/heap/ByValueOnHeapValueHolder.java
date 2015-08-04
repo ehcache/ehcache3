@@ -42,7 +42,7 @@ class ByValueOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
     this.serializer = serializer;
     this.hash = value.hashCode();
     try {
-      this.buffer = serializer.serialize(value);
+      this.buffer = serializer.serialize(value).asReadOnlyBuffer();
     } catch (IOException ioe) {
       throw new SerializerException(ioe);
     }
@@ -56,7 +56,7 @@ class ByValueOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   @Override
   public final V value() {
     try {
-      return serializer.read(buffer);
+      return serializer.read(buffer.duplicate());
     } catch (IOException ioe) {
       throw new SerializerException(ioe);
     } catch (ClassNotFoundException cnfe) {
