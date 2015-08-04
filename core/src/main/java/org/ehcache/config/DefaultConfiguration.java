@@ -36,10 +36,10 @@ public final class DefaultConfiguration implements Configuration {
   private final Collection<ServiceConfiguration<?>> services;
   private final ClassLoader classLoader;
   
-  public DefaultConfiguration() {
-    this(emptyCacheMap(), ClassLoading.getDefaultClassLoader());
+  public DefaultConfiguration(ClassLoader classLoader) {
+    this(emptyCacheMap(), classLoader);
   }
-  
+
   public DefaultConfiguration(Map<String, CacheConfiguration<?, ?>> caches, ClassLoader classLoader, ServiceConfiguration<?>... services) {
     this.services = unmodifiableCollection(Arrays.asList(services));
     this.caches = unmodifiableMap(new HashMap<String,CacheConfiguration<?, ?>>(caches));
