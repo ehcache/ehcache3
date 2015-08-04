@@ -18,7 +18,7 @@ package org.ehcache.spi;
 
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.ServiceDependency;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceFactory;
 import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.util.ClassLoading;
@@ -136,14 +136,7 @@ public final class ServiceLocator implements ServiceProvider {
         }
       }
 
-      if (service.getClass().isAnnotationPresent(ServiceDependency.class)) {
-        ServiceDependency annotation = service.getClass().getAnnotation(ServiceDependency.class);
-        for (Class aClass : annotation.services()) {
-          if (getOrCreateService(aClass) == null) {
-            throw new IllegalStateException("Unable to resolve dependent service: " + aClass.getSimpleName());
-          }
-        }
-      }
+      loadDependenciesOf(service.getClass());
 
       if (running.get()) {
         service.start(this);
@@ -171,10 +164,6 @@ public final class ServiceLocator implements ServiceProvider {
   @Override
   public <T extends Service> T getService(Class<T> serviceType) {
     return findService(serviceType, null, false);
-  }
-
-  public <T extends Service> T getOrCreateService(Class<T> serviceType) {
-    return findService(serviceType, null, true);
   }
 
   private <T extends Service> T findService(Class<T> serviceType, ServiceConfiguration<T> config, boolean shouldCreate) {
@@ -266,6 +255,17 @@ public final class ServiceLocator implements ServiceProvider {
     }
     if(firstException != null) {
       throw firstException;
+    }
+  }
+
+  public void loadDependenciesOf(Class<?> clazz) {
+    ServiceDependencies annotation = clazz.getAnnotation(ServiceDependencies.class);
+    if (annotation != null) {
+      for (Class aClass : annotation.value()) {
+        if (findService(aClass, null, true) == null) {
+          throw new IllegalStateException("Unable to resolve dependent service: " + aClass.getSimpleName());
+        }
+      }
     }
   }
 }

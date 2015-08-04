@@ -41,6 +41,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.util.ClassLoading;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +51,13 @@ import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
  * @author Alex Snaps
  */
 public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
+
+  @ServiceDependencies(Store.Provider.class)
+  private static class ServiceDeps {
+    private ServiceDeps() {
+      throw new UnsupportedOperationException("This is an annotation placeholder, not to be instantiated");
+    }
+  }
 
   private static final AtomicLong instanceId = new AtomicLong(0L);
 
@@ -79,11 +87,12 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
           throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
         }
       }
+      serviceLocator.loadDependenciesOf(ServiceDeps.class);
       serviceLocator.startAllServices();
     } catch (Exception e) {
       throw new IllegalStateException("UserManagedCacheBuilder failed to build.", e);
     }
-    final Store.Provider storeProvider = serviceLocator.getOrCreateService(Store.Provider.class);
+    final Store.Provider storeProvider = serviceLocator.getService(Store.Provider.class);
 
     Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType,
         evictionVeto, evictionPrioritizer, classLoader, expiry, resourcePools);

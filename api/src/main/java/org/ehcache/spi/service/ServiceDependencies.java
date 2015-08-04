@@ -26,10 +26,10 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface ServiceDependency {
+public @interface ServiceDependencies {
 
   /**
    * Array of {@link Service} classes the annotated type requires in order to function.
    */
-  Class[] services();
+  Class[] value();
 }

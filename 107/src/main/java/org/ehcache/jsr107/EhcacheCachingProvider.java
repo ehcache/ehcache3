@@ -37,7 +37,7 @@ import org.ehcache.management.ManagementRegistry;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceDependency;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.util.ClassLoading;
 
 /**
@@ -118,7 +118,7 @@ public class EhcacheCachingProvider implements CachingProvider {
     return cacheManager;
   }
 
-  @ServiceDependency(services = ManagementRegistry.class)
+  @ServiceDependencies(ManagementRegistry.class)
   static class ManagementRegistryCollectorService implements Service {
 
     public volatile ManagementRegistry managementRegistry;

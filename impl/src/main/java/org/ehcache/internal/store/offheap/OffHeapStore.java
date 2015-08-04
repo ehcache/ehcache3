@@ -32,7 +32,7 @@ import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.ServiceDependency;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
@@ -108,7 +108,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     return map;
   }
 
-  @ServiceDependency(services = {TimeSourceService.class, SerializationProvider.class})
+  @ServiceDependencies({TimeSourceService.class, SerializationProvider.class})
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
     private volatile ServiceProvider serviceProvider;

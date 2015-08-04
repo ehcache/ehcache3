@@ -41,6 +41,7 @@ import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.util.ClassLoading;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +69,17 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Alex Snaps
  */
 public class EhcacheManager implements PersistentCacheManager {
+
+  @ServiceDependencies({ Store.Provider.class,
+      CacheLoaderWriterProvider.class,
+      WriteBehindDecoratorLoaderWriterProvider.class,
+      CacheEventNotificationListenerServiceProvider.class,
+      CacheEventListenerProvider.class })
+  private static class ServiceDeps {
+    private ServiceDeps() {
+      throw new UnsupportedOperationException("This is an annotation placeholder, not to be instantiated");
+    }
+  }
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheManager.class);
 
@@ -394,7 +406,7 @@ public class EhcacheManager implements PersistentCacheManager {
           throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
         }
       }
-      loadRemainingMandatoryServices();
+      serviceLocator.loadDependenciesOf(ServiceDeps.class);
       try {
         serviceLocator.startAllServices();
       } catch (Exception e) {
@@ -604,13 +616,5 @@ public class EhcacheManager implements PersistentCacheManager {
       this.name = "cache-manager-" + COUNTER.getAndIncrement();
       this.properties = properties;
     }
-  }
-
-  private void loadRemainingMandatoryServices() {
-    serviceLocator.getOrCreateService(Store.Provider.class);
-    serviceLocator.getOrCreateService(CacheLoaderWriterProvider.class);
-    serviceLocator.getOrCreateService(WriteBehindDecoratorLoaderWriterProvider.class);
-    serviceLocator.getOrCreateService(CacheEventNotificationListenerServiceProvider.class);
-    serviceLocator.getOrCreateService(CacheEventListenerProvider.class);
   }
 }

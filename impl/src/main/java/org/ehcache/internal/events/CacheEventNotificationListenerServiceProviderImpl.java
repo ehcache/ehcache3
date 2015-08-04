@@ -26,7 +26,7 @@ import org.ehcache.internal.TimeSourceService;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.ServiceDependency;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ThreadPoolsService;
 
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
@@ -35,7 +35,7 @@ import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
  * @author palmanojkumar
  *
  */
-@ServiceDependency(services = { TimeSourceService.class, ThreadPoolsService.class })
+@ServiceDependencies({ TimeSourceService.class, ThreadPoolsService.class })
 public class CacheEventNotificationListenerServiceProviderImpl implements CacheEventNotificationListenerServiceProvider {
 
   private volatile ServiceProvider serviceProvider;

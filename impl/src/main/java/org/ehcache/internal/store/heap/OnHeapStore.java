@@ -47,7 +47,7 @@ import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.ServiceDependency;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.statistics.StoreOperationOutcomes;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
@@ -976,7 +976,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     return (o1 == o2) || (o1 != null && o1.equals(o2));
   }
 
-  @ServiceDependency(services = {TimeSourceService.class, SerializationProvider.class})
+  @ServiceDependencies({TimeSourceService.class, SerializationProvider.class})
   public static class Provider implements Store.Provider, CachingTier.Provider {
     
     private volatile ServiceProvider serviceProvider;
