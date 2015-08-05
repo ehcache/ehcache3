@@ -109,6 +109,25 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 <5> And on update
 <6> But not on removal
 
+Created, updated, and removed events are triggered by user execution of mutative methods as outlined in the table below.
+Eviction and expiration events can be triggered by both internal processes and by user execution of methods targeting both related and unrelated keys within the cache.
+
+.Cache entry event firing behaviors for mutative methods
+[frame="topbot",cols="^1m,<4m,^1m,<4m",options="header"]
+|=================================================================================================
+| input   | operation                                | output  | event {key, old-value, new-value} 
+| {}      | put(K, V)                                | {K, V}  | created {K, null, V}
+| {K, V1} | put(K, V2)                               | {K, V2} | updated {K, V1, V2}
+| {}      | put(K, V) [immediately expired]          | {}      | none
+| {K, V1} | put(K, V2) [immediately expired]         | {}      | none
+|{}       | putIfAbsent(K, V)                        | {K, V}  | created {K, null, V}
+|{}       | putIfAbsent(K, V) [immediately expired]  | {}      | none
+|{K, V1}  | replace(K, V2)                           | {K, V2} | updated {K, V1, V2}
+|{K, V1}  | replace(K, V2) [immediately expired]     | {}      | none
+|{K, V1}  | replace(K, V1, V2)                       | {K, V2} | updated {K, V1, V2}
+|{K, V1}  | replace(K, V1, V2) [immediately expired] | {}      | no events
+|{K, V}   | remove(K)                                | {}      | removed {K, V, null}
+|=================================================================================================
 
 ==== Write-Through Cache
 
