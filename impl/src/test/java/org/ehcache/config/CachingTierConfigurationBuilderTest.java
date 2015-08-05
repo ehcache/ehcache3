@@ -21,13 +21,12 @@ import org.ehcache.RuntimeConfiguration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
-import java.util.HashMap;
 
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.internal.util.Matchers.hasKey;
@@ -40,16 +39,18 @@ import static org.mockito.Mockito.when;
  * @author Alex Snaps
  */
 @SuppressWarnings("deprecation")
+@ServiceDependencies(Store.Provider.class)
 public class CachingTierConfigurationBuilderTest {
 
   @Test
   public void testNothing() throws Exception {
 
     final ServiceLocator serviceLocator = new ServiceLocator();
-    serviceLocator.startAllServices(new HashMap<Service, ServiceConfiguration<?>>());
+    serviceLocator.loadDependenciesOf(this.getClass());
+    serviceLocator.startAllServices();
     
     final CacheConfiguration<String, String> config = newCacheConfigurationBuilder().buildConfig(String.class, String.class);
-    final Store.Provider service = serviceLocator.findService(Store.Provider.class);
+    final Store.Provider service = serviceLocator.getService(Store.Provider.class);
     Collection<ServiceConfiguration<?>> serviceConfigs = config.getServiceConfigurations();
     ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
     final Store<String, String> store = service.createStore(new StoreConfigurationImpl<String, String>(config), serviceConfigArray);

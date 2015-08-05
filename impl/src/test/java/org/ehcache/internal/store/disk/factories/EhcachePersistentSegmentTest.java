@@ -67,8 +67,8 @@ public class EhcachePersistentSegmentTest {
   
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(Predicate<Map.Entry<String, String>> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
     HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
-    SerializationProvider serializationProvider = new DefaultSerializationProvider();
-    serializationProvider.start(null, null);
+    SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
+    serializationProvider.start(null);
     MappedPageSource pageSource = new MappedPageSource(folder.newFile(), true, configuration.getMaximumSize());
     Serializer<String> stringSerializer = serializationProvider.createValueSerializer(String.class, EhcachePersistentSegmentTest.class.getClassLoader());
     PersistentPortability<String> keyPortability = persistent(new SerializerPortability<String>(stringSerializer));

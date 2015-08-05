@@ -36,11 +36,9 @@ import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 
-import java.util.Collections;
 import org.ehcache.config.ResourcePool;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 
@@ -105,7 +103,8 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
       @Override
       public Store.Provider newProvider() {
         Store.Provider provider = new OffHeapStore.Provider();
-        provider.start(null, getServiceProvider());
+        ServiceLocator locator = getServiceProvider();
+        locator.addService(provider);
         return provider;
       }
 
@@ -125,10 +124,10 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
       }
 
       @Override
-      public ServiceProvider getServiceProvider() {
+      public ServiceLocator getServiceProvider() {
         ServiceLocator serviceLocator = new ServiceLocator();
         try {
-          serviceLocator.startAllServices(Collections.<Service, ServiceConfiguration<?>>emptyMap());
+          serviceLocator.startAllServices();
         } catch (Exception e) {
           throw new RuntimeException(e);
         }

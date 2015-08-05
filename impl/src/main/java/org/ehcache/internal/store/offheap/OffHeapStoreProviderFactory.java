@@ -16,8 +16,6 @@
 
 package org.ehcache.internal.store.offheap;
 
-import org.ehcache.internal.store.offheap.OffHeapStore;
-import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
@@ -27,7 +25,7 @@ import org.ehcache.spi.service.ServiceFactory;
 public class OffHeapStoreProviderFactory implements ServiceFactory<OffHeapStore.Provider> {
 
   @Override
-  public OffHeapStore.Provider create(ServiceConfiguration<OffHeapStore.Provider> serviceConfiguration, ServiceLocator serviceLocator) {
+  public OffHeapStore.Provider create(ServiceConfiguration<OffHeapStore.Provider> configuration) {
     return new OffHeapStore.Provider();
   }
 

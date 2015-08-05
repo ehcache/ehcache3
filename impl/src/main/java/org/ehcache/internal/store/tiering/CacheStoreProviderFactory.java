@@ -16,7 +16,6 @@
 
 package org.ehcache.internal.store.tiering;
 
-import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
@@ -26,7 +25,7 @@ import org.ehcache.spi.service.ServiceFactory;
 public class CacheStoreProviderFactory implements ServiceFactory<CacheStore.Provider> {
 
   @Override
-  public CacheStore.Provider create(ServiceConfiguration<CacheStore.Provider> serviceConfiguration, ServiceLocator serviceLocator) {
+  public CacheStore.Provider create(ServiceConfiguration<CacheStore.Provider> configuration) {
     return new CacheStore.Provider();
   }
 

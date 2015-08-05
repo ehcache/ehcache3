@@ -26,8 +26,8 @@ import org.ehcache.internal.classes.ClassInstanceProvider;
  */
 public class DefaultCacheLoaderWriterProvider extends ClassInstanceProvider<CacheLoaderWriter<?, ?>> implements CacheLoaderWriterProvider {
 
-  public DefaultCacheLoaderWriterProvider() {
-    super(DefaultCacheLoaderWriterProviderConfiguration.class, DefaultCacheLoaderWriterConfiguration.class);
+  public DefaultCacheLoaderWriterProvider(DefaultCacheLoaderWriterProviderConfiguration configuration) {
+    super(configuration, DefaultCacheLoaderWriterConfiguration.class);
   }
 
   @SuppressWarnings("unchecked")

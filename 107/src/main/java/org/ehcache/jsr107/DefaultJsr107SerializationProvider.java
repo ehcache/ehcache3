@@ -23,6 +23,10 @@ import org.ehcache.spi.serialization.DefaultSerializationProvider;
  */
 public class DefaultJsr107SerializationProvider extends DefaultSerializationProvider {
 
+  public DefaultJsr107SerializationProvider() {
+    super(null);
+  }
+
   @Override
   protected void addDefaultSerializer() {
     // add java.lang.Object at the end of the map if it wasn't already there

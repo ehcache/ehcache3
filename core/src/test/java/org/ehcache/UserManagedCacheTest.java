@@ -87,7 +87,7 @@ public class UserManagedCacheTest {
     }
     
     @Override
-    public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+    public void start(ServiceProvider serviceProvider) {
     }
 
     @Override

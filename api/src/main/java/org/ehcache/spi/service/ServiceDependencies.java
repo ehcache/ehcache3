@@ -16,12 +16,20 @@
 
 package org.ehcache.spi.service;
 
-/**
- * @author Alex Snaps
- */
-public interface ServiceFactory<T extends Service> {
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-  T create(ServiceConfiguration<T> configuration);
-  
-  Class<T> getServiceType();
+/**
+ * Annotation that enables a {@link Service} implementation to declare a dependency on other {@code Service}s.
+ */
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+public @interface ServiceDependencies {
+
+  /**
+   * Array of {@link Service} classes the annotated type requires in order to function.
+   */
+  Class[] value();
 }

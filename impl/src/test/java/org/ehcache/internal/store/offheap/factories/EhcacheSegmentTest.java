@@ -58,8 +58,8 @@ public class EhcacheSegmentTest {
   
   private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(Predicate<Map.Entry<String, String>> evictionPredicate, EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
     HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
-    SerializationProvider serializationProvider = new DefaultSerializationProvider();
-    serializationProvider.start(null, null);
+    SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
+    serializationProvider.start(null);
     PageSource pageSource = new UpfrontAllocatingPageSource(getBufferSource(), configuration.getMaximumSize(), configuration.getMaximumChunkSize(), configuration.getMinimumChunkSize());
     Serializer<String> stringSerializer = serializationProvider.createValueSerializer(String.class, EhcacheSegmentTest.class.getClassLoader());
     Portability<String> keyPortability = new SerializerPortability<String>(stringSerializer);

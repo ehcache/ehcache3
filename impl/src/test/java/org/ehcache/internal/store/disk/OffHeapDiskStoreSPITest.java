@@ -44,7 +44,6 @@ import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.LocalPersistenceService;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.test.After;
 import org.junit.Before;
@@ -53,7 +52,6 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -142,9 +140,10 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
         Store.Provider provider = new OffHeapDiskStore.Provider();
         try {
           LocalPersistenceService localPersistenceService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(folder.newFolder()));
+          localPersistenceService.start(null);
           ServiceLocator serviceProvider = getServiceProvider();
           serviceProvider.addService(localPersistenceService);
-          provider.start(null, serviceProvider);
+          serviceProvider.addService(provider);
           return provider;
         } catch (IOException ex) {
           throw new AssertionError(ex);
@@ -170,7 +169,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
       public ServiceLocator getServiceProvider() {
         ServiceLocator serviceLocator = new ServiceLocator();
         try {
-          serviceLocator.startAllServices(Collections.<Service, ServiceConfiguration<?>>emptyMap());
+          serviceLocator.startAllServices();
         } catch (Exception e) {
           throw new RuntimeException(e);
         }

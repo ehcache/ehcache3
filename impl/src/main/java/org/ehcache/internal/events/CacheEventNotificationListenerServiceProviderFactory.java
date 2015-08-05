@@ -16,7 +16,6 @@
 package org.ehcache.internal.events;
 
 import org.ehcache.events.CacheEventNotificationListenerServiceProvider;
-import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
@@ -27,9 +26,7 @@ import org.ehcache.spi.service.ServiceFactory;
 public class CacheEventNotificationListenerServiceProviderFactory implements ServiceFactory<CacheEventNotificationListenerServiceProvider> {
 
   @Override
-  public CacheEventNotificationListenerServiceProvider create(ServiceConfiguration<CacheEventNotificationListenerServiceProvider> serviceConfiguration,
-                                                                  ServiceLocator serviceLocator) {
-    
+  public CacheEventNotificationListenerServiceProvider create(ServiceConfiguration<CacheEventNotificationListenerServiceProvider> configuration) {
     return new CacheEventNotificationListenerServiceProviderImpl();
   }
 

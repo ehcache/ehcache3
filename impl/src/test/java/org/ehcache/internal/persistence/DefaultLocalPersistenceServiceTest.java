@@ -41,9 +41,10 @@ public class DefaultLocalPersistenceServiceTest {
     File f = folder.newFolder("testFailsIfDirectoryExistsButNotWritable");
     f.setWritable(false);
     try {
-      final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
       try {
-        service.start(null, null);
+        final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
+        service.start(null);
+        fail("Expected IllegalArgumentException");
       } catch(IllegalArgumentException e) {
         assertThat(e.getMessage(), equalTo("Location isn't writable: " + f.getAbsolutePath()));
       }
@@ -55,9 +56,10 @@ public class DefaultLocalPersistenceServiceTest {
   @Test
   public void testFailsIfFileExistsButIsNotDirectory() throws IOException {
     File f = folder.newFile("testFailsIfFileExistsButIsNotDirectory");
-    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
     try {
-      service.start(null, null);
+      final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
+      service.start(null);
+      fail("Expected IllegalArgumentException");
     } catch(IllegalArgumentException e) {
       assertThat(e.getMessage(), equalTo("Location is not a directory: " + f.getAbsolutePath()));
     }
@@ -69,9 +71,10 @@ public class DefaultLocalPersistenceServiceTest {
     fdr.setWritable(false);
     try {
       File f = new File(fdr, "notallowed");
-      final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
       try {
-        service.start(null, null);
+        final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
+        service.start(null);
+        fail("Expected IllegalArgumentException");
       } catch(IllegalArgumentException e) {
         assertThat(e.getMessage(), equalTo("Directory couldn't be created: " + f.getAbsolutePath()));
       }
@@ -84,7 +87,7 @@ public class DefaultLocalPersistenceServiceTest {
   public void testLocksDirectoryAndUnlocks() throws IOException {
     final File f = folder.newFolder("testLocksDirectoryAndUnlocks");
     final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
-    service.start(null, null);
+    service.start(null);
     assertThat(service.getLockFile().exists(), is(true));
     service.stop();
     assertThat(service.getLockFile().exists(), is(false));
@@ -95,7 +98,7 @@ public class DefaultLocalPersistenceServiceTest {
     Store.PersistentStoreConfiguration<?, ?, ?> config = mock(Store.PersistentStoreConfiguration.class);
     File f = folder.newFolder("testRefusesToCreateDuplicateContexts");
     DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
-    service.start(null, null);
+    service.start(null);
     try {
       service.createPersistenceContext("context", config);
       try {

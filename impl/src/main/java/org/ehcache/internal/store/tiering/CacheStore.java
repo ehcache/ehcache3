@@ -357,7 +357,7 @@ public class CacheStore<K, V> implements Store<K, V> {
       if (cachingTierProviderClass == null) {
         throw new IllegalArgumentException("Caching tier provider must be specified");
       }
-      CachingTier.Provider cachingTierProvider = serviceProvider.findService(cachingTierProviderClass);
+      CachingTier.Provider cachingTierProvider = serviceProvider.getService(cachingTierProviderClass);
       if (cachingTierProvider == null) {
         throw new IllegalArgumentException("No registered service for caching tier provider " + cachingTierProviderClass.getName());
       }
@@ -365,7 +365,7 @@ public class CacheStore<K, V> implements Store<K, V> {
       if (authoritativeTierProviderClass == null) {
         throw new IllegalArgumentException("Authoritative tier provider must be specified");
       }
-      AuthoritativeTier.Provider authoritativeTierProvider = serviceProvider.findService(authoritativeTierProviderClass);
+      AuthoritativeTier.Provider authoritativeTierProvider = serviceProvider.getService(authoritativeTierProviderClass);
       if (authoritativeTierProvider == null) {
         throw new IllegalArgumentException("No registered service for authoritative tier provider " + authoritativeTierProviderClass.getName());
       }
@@ -407,7 +407,7 @@ public class CacheStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider) {
+    public void start(ServiceProvider serviceProvider) {
       this.serviceProvider = serviceProvider;
     }
 

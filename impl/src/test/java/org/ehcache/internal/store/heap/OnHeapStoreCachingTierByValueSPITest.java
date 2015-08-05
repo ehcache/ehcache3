@@ -77,7 +77,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
       @Override
       public Store.Provider newProvider() {
         Store.Provider service = new OnHeapStore.Provider();
-        service.start(null, new ServiceLocator());
+        service.start(new ServiceLocator());
         return service;
       }
 

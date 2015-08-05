@@ -18,6 +18,7 @@ package org.ehcache.spi;
 
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceFactory;
 import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.util.ClassLoading;
@@ -32,7 +33,6 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -64,15 +64,10 @@ public final class ServiceLocator implements ServiceProvider {
     }
   }
 
-  public <T extends Service> T discoverService(Class<T> serviceClass) {
-    return discoverService(serviceClass, null);
-  }
-
-  public <T extends Service> T discoverService(Class<T> serviceClass, ServiceConfiguration<T> config) {
-    // TODO Fix me!
+  private <T extends Service> T discoverService(Class<T> serviceClass, ServiceConfiguration<T> config) {
     for (ServiceFactory<T> factory : ServiceLocator.<T> getServiceFactories(serviceFactory)) {
       if (serviceClass.isAssignableFrom(factory.getServiceType())) {
-        T service = factory.create(config, this);
+        T service = factory.create(config);
         addService(service, true);
         return service;
       }
@@ -89,10 +84,6 @@ public final class ServiceLocator implements ServiceProvider {
     return list;
   }
 
-  public <T extends Service> T discoverService(ServiceConfiguration<T> config) {
-    return discoverService(config.getServiceType(), config);
-  }
-  
   public void addService(final Service service) {
     addService(service, false);
   }
@@ -145,8 +136,10 @@ public final class ServiceLocator implements ServiceProvider {
         }
       }
 
+      loadDependenciesOf(service.getClass());
+
       if (running.get()) {
-        service.start(null, this);
+        service.start(this);
       }
     } finally {
       lock.unlock();
@@ -164,25 +157,24 @@ public final class ServiceLocator implements ServiceProvider {
     return interfaces;
   }
 
-  @Override
-  public <T extends Service> T findServiceFor(ServiceConfiguration<T> config) {
-    return findService(config.getServiceType(), config);
+  public <T extends Service> T getOrCreateServiceFor(ServiceConfiguration<T> config) {
+    return findService(config.getServiceType(), config, true);
   }
 
   @Override
-  public <T extends Service> T findService(Class<T> serviceType) {
-    return findService(serviceType, null);
+  public <T extends Service> T getService(Class<T> serviceType) {
+    return findService(serviceType, null, false);
   }
 
-  public <T extends Service> T findService(Class<T> serviceType, ServiceConfiguration<T> config) {
+  private <T extends Service> T findService(Class<T> serviceType, ServiceConfiguration<T> config, boolean shouldCreate) {
     T service = serviceType.cast(services.get(serviceType));
-    if (service == null) {
+    if (service == null && shouldCreate) {
       return discoverService(serviceType, config);
     } else {
       return service;
     }
   }
-  
+
   public static <T> Collection<T> findAmongst(Class<T> clazz, Object ... instances) {
     Collection<T> matches = new ArrayList<T>();
     for (Object instance : instances) {
@@ -204,7 +196,7 @@ public final class ServiceLocator implements ServiceProvider {
     }
   }
 
-  public void startAllServices(final Map<Service, ServiceConfiguration<?>> serviceConfigs) throws Exception {
+  public void startAllServices() throws Exception {
     Deque<Service> started = new ArrayDeque<Service>();
     final Lock lock = runningLock.writeLock();
     lock.lock();
@@ -214,7 +206,7 @@ public final class ServiceLocator implements ServiceProvider {
       }
       for (Service service : services.values()) {
         if (!started.contains(service)) {
-          service.start(serviceConfigs.get(service), this);
+          service.start(this);
           started.push(service);
         }
       }
@@ -263,6 +255,17 @@ public final class ServiceLocator implements ServiceProvider {
     }
     if(firstException != null) {
       throw firstException;
+    }
+  }
+
+  public void loadDependenciesOf(Class<?> clazz) {
+    ServiceDependencies annotation = clazz.getAnnotation(ServiceDependencies.class);
+    if (annotation != null) {
+      for (Class aClass : annotation.value()) {
+        if (findService(aClass, null, true) == null) {
+          throw new IllegalStateException("Unable to resolve dependent service: " + aClass.getSimpleName());
+        }
+      }
     }
   }
 }

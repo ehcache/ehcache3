@@ -14,37 +14,21 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal;
+package org.ehcache.spi.services;
 
 import org.ehcache.spi.ServiceProvider;
 
 /**
- * DefaultTimeSourceService
+ * DefaultTestService
  */
-public class DefaultTimeSourceService implements TimeSourceService {
-
-  private final TimeSource timeSource;
-
-  public DefaultTimeSourceService(TimeSourceConfiguration config) {
-    if (config != null) {
-      timeSource = config.getTimeSource();
-    } else {
-      timeSource = SystemTimeSource.INSTANCE;
-    }
-  }
-
-  @Override
-  public TimeSource getTimeSource() {
-    return timeSource;
-  }
-
+public class DefaultTestService implements TestService {
   @Override
   public void start(ServiceProvider serviceProvider) {
-    // no-op
+    throw new UnsupportedOperationException("TODO Implement me!");
   }
 
   @Override
   public void stop() {
-    // no-op
+    throw new UnsupportedOperationException("TODO Implement me!");
   }
 }

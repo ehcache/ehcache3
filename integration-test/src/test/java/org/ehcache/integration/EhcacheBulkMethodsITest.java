@@ -34,13 +34,11 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
 import org.mockito.Matchers;
 
 import java.util.AbstractMap;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -504,13 +502,13 @@ public class EhcacheBulkMethodsITest {
   private static class CustomStoreProvider implements Store.Provider {
     @Override
     public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      ServiceLocator serviceLocator = new ServiceLocator(new DefaultSerializationProvider());
+      ServiceLocator serviceLocator = new ServiceLocator(new DefaultSerializationProvider(null));
       try {
-        serviceLocator.startAllServices(Collections.<Service, ServiceConfiguration<?>>emptyMap());
+        serviceLocator.startAllServices();
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-      SerializationProvider serializationProvider = serviceLocator.findService(SerializationProvider.class);
+      SerializationProvider serializationProvider = serviceLocator.getService(SerializationProvider.class);
       Serializer<K> keySerializer = serializationProvider.createKeySerializer(storeConfig.getKeyType(), storeConfig.getClassLoader());
       Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig.getClassLoader());
       return new OnHeapStore<K, V>(storeConfig, SystemTimeSource.INSTANCE, false, keySerializer, valueSerializer) {
@@ -537,7 +535,7 @@ public class EhcacheBulkMethodsITest {
     }
 
     @Override
-    public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
+    public void start(final ServiceProvider serviceProvider) {
 
     }
 

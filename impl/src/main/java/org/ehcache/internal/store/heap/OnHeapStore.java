@@ -47,6 +47,7 @@ import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.statistics.StoreOperationOutcomes;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
@@ -975,6 +976,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     return (o1 == o2) || (o1 != null && o1.equals(o2));
   }
 
+  @ServiceDependencies({TimeSourceService.class, SerializationProvider.class})
   public static class Provider implements Store.Provider, CachingTier.Provider {
     
     private volatile ServiceProvider serviceProvider;
@@ -985,14 +987,14 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       OnHeapStoreServiceConfiguration onHeapStoreServiceConfig = findSingletonAmongst(OnHeapStoreServiceConfiguration.class, (Object[])serviceConfigs);
       boolean storeByValue = onHeapStoreServiceConfig != null && onHeapStoreServiceConfig.storeByValue();
 
-      TimeSource timeSource = serviceProvider.findService(TimeSourceService.class).getTimeSource();
+      TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
       Serializer<K> keySerializer = null;
       Serializer<V> valueSerializer = null;
       if (storeByValue) {
         if (serviceProvider == null) {
           throw new RuntimeException("ServiceProvider is null.");
         }
-        SerializationProvider serializationProvider = serviceProvider.findService(SerializationProvider.class);
+        SerializationProvider serializationProvider = serviceProvider.getService(SerializationProvider.class);
         keySerializer = serializationProvider.createKeySerializer(storeConfig.getKeyType(), storeConfig.getClassLoader(), serviceConfigs);
         valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig.getClassLoader(), serviceConfigs);
       }
@@ -1023,7 +1025,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
 
     @Override
-    public void start(ServiceConfiguration<?> cfg, final ServiceProvider serviceProvider) {
+    public void start(final ServiceProvider serviceProvider) {
       this.serviceProvider = serviceProvider;
     }
 

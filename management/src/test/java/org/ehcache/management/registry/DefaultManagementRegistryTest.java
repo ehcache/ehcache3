@@ -35,7 +35,7 @@ public class DefaultManagementRegistryTest {
       // expected
     }
 
-    defaultManagementRegistry.start(null, null);
+    defaultManagementRegistry.start(null);
 
     defaultManagementRegistry.register(Object.class, new Object());
 
@@ -60,9 +60,9 @@ public class DefaultManagementRegistryTest {
       // expected
     }
 
-    defaultManagementRegistry.start(null, null);
-    defaultManagementRegistry.start(null, null);
-    defaultManagementRegistry.start(null, null);
+    defaultManagementRegistry.start(null);
+    defaultManagementRegistry.start(null);
+    defaultManagementRegistry.start(null);
 
     defaultManagementRegistry.register(Object.class, new Object());
 
@@ -84,7 +84,7 @@ public class DefaultManagementRegistryTest {
     defaultManagementRegistry.stop();
     defaultManagementRegistry.stop();
 
-    defaultManagementRegistry.start(null, null);
+    defaultManagementRegistry.start(null);
     defaultManagementRegistry.register(Object.class, new Object());
     defaultManagementRegistry.stop();
 
@@ -94,7 +94,7 @@ public class DefaultManagementRegistryTest {
   public void testRestartingAfterStops() throws Exception {
     DefaultManagementRegistry defaultManagementRegistry = new DefaultManagementRegistry();
 
-    defaultManagementRegistry.start(null, null);
+    defaultManagementRegistry.start(null);
 
     defaultManagementRegistry.register(Object.class, new Object());
 
@@ -109,7 +109,7 @@ public class DefaultManagementRegistryTest {
       // expected
     }
 
-    defaultManagementRegistry.start(null, null);
+    defaultManagementRegistry.start(null);
     defaultManagementRegistry.register(Object.class, new Object());
     defaultManagementRegistry.stop();
   }
