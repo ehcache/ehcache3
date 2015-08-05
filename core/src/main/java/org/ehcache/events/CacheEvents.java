@@ -25,25 +25,24 @@ import org.ehcache.spi.cache.Store;
 public final class CacheEvents {
   private CacheEvents() { }
   
-  public static <K, V> CacheEvent<K, V> expiry(Cache.Entry<K, V> entry, Cache<K, V> source) {
-    return new ExpiryEvent<K, V>(entry, source);
+  public static <K, V> CacheEvent<K, V> expiry(K expiredKey, V expiredValue, Cache<K, V> source) {
+    return new ExpiryEvent<K, V>(expiredKey, expiredValue, source);
   }
   
-  public static <K, V> CacheEvent<K, V> eviction(Cache.Entry<K, V> entry, Cache<K, V> source) {
-    return new EvictionEvent<K, V>(entry, source);
+  public static <K, V> CacheEvent<K, V> eviction(K evictedKey, V evictedValue, Cache<K, V> source) {
+    return new EvictionEvent<K, V>(evictedKey, evictedValue, source);
   }
   
-  public static <K, V> CacheEvent<K, V> creation(Cache.Entry<K, V> entry, Cache<K, V> source) {
-    return new CreationEvent<K, V>(entry, source);
+  public static <K, V> CacheEvent<K, V> creation(K newKey, V newValue, Cache<K, V> source) {
+    return new CreationEvent<K, V>(newKey, newValue, source);
   }
   
-  public static <K, V> CacheEvent<K, V> removal(Cache.Entry<K, V> entry, Cache<K, V> source) {
-    return new RemovalEvent<K, V>(entry, source);
+  public static <K, V> CacheEvent<K, V> removal(K removedKey, V removedValue, Cache<K, V> source) {
+    return new RemovalEvent<K, V>(removedKey, removedValue, source);
   }
   
-  public static <K, V> CacheEvent<K, V> update(Cache.Entry<K, V> oldEntry, Cache.Entry<K, V> newEntry, 
-      Cache<K, V> source) {
-    return new UpdateEvent<K, V>(oldEntry, newEntry, source);
+  public static <K, V> CacheEvent<K, V> update(K key, V oldValue, V newValue, Cache<K, V> source) {
+    return new UpdateEvent<K, V>(key, oldValue, newValue, source);
   }
 
   public static <K, V> StoreEventListener<K, V> nullStoreEventListener() {
@@ -59,19 +58,19 @@ public final class CacheEvents {
   }
   
   private static abstract class BaseCacheEvent<K, V> implements CacheEvent<K, V> {
-    final Cache.Entry<K, V> entry;
+    final K key;
     final Cache<K, V> src;
     
-    protected BaseCacheEvent(Cache.Entry<K, V> entry, Cache<K, V> from) {
-      this.entry = entry;
+    protected BaseCacheEvent(K key, Cache<K, V> from) {
+      this.key = key;
       this.src = from;
     }
     
     @Override
-    public Entry<K, V> getEntry() {
-      return entry;
+    public K getKey() {
+      return key;
     }
-
+    
     @Override
     @Deprecated
     public Cache<K, V> getSource() {
@@ -81,8 +80,11 @@ public final class CacheEvents {
   }
   
   private final static class ExpiryEvent<K, V> extends BaseCacheEvent<K, V> {
-    ExpiryEvent(Cache.Entry<K, V> expiredEntry, Cache<K, V> src) {
-      super(expiredEntry, src);
+    final V expiredValue;
+    
+    ExpiryEvent(K expiredKey, V expiredValue, Cache<K, V> src) {
+      super(expiredKey, src);
+      this.expiredValue = expiredValue;
     }
     
     @Override
@@ -91,15 +93,22 @@ public final class CacheEvents {
     }
 
     @Override
-    public V getPreviousValue() {
-      return this.entry.getValue();
+    public V getNewValue() {
+      return null;
     }
-    
+
+    @Override
+    public V getOldValue() {
+      return expiredValue;
+    }
   }
   
   private final static class EvictionEvent<K, V> extends BaseCacheEvent<K, V> {
-    EvictionEvent(Cache.Entry<K, V> evictedEntry, Cache<K, V> src) {
-      super(evictedEntry, src);
+    final V evictedValue;
+    
+    EvictionEvent(K evictedKey, V evictedValue, Cache<K, V> src) {
+      super(evictedKey, src);
+      this.evictedValue = evictedValue;
     }
     
     @Override
@@ -108,15 +117,22 @@ public final class CacheEvents {
     }
 
     @Override
-    public V getPreviousValue() {
-      return this.entry.getValue();
+    public V getNewValue() {
+      return null;
     }
-    
+
+    @Override
+    public V getOldValue() {
+      return evictedValue;
+    }
   }
 
   private final static class CreationEvent<K, V> extends BaseCacheEvent<K, V> {
-    CreationEvent(Cache.Entry<K, V> newEntry, Cache<K, V> src) {
-      super(newEntry, src);
+    final V newValue;
+    
+    CreationEvent(K newKey, V newValue, Cache<K, V> src) {
+      super(newKey, src);
+      this.newValue = newValue;
     }
 
     @Override
@@ -125,14 +141,22 @@ public final class CacheEvents {
     }
 
     @Override
-    public V getPreviousValue() {
+    public V getNewValue() {
+      return newValue;
+    }
+
+    @Override
+    public V getOldValue() {
       return null;
     }
   }
   
   private final static class RemovalEvent<K, V> extends BaseCacheEvent<K, V> {
-    RemovalEvent(Cache.Entry<K, V> newEntry, Cache<K, V> src) {
-      super(newEntry, src);
+    final V removedValue;
+    
+    RemovalEvent(K removedKey, V removedValue, Cache<K, V> src) {
+      super(removedKey, src);
+      this.removedValue = removedValue;
     }
 
     @Override
@@ -141,16 +165,23 @@ public final class CacheEvents {
     }
 
     @Override
-    public V getPreviousValue() {
-      return this.entry.getValue();
+    public V getNewValue() {
+      return null;
+    }
+
+    @Override
+    public V getOldValue() {
+      return removedValue;
     }
   }
 
   private final static class UpdateEvent<K, V> extends BaseCacheEvent<K, V> {
-    final Cache.Entry<K, V> previous;
-    UpdateEvent(Cache.Entry<K, V> prevEntry, Cache.Entry<K, V> newEntry, Cache<K, V> src) {
-      super(newEntry, src);
-      this.previous = prevEntry;
+    final V oldValue;
+    final V newValue;
+    UpdateEvent(K key, V oldValue, V newValue, Cache<K, V> src) {
+      super(key, src);
+      this.oldValue = oldValue;
+      this.newValue = newValue;
     }
 
     @Override
@@ -159,8 +190,13 @@ public final class CacheEvents {
     }
 
     @Override
-    public V getPreviousValue() {
-      return previous.getValue();
+    public V getNewValue() {
+      return newValue;
+    }
+
+    @Override
+    public V getOldValue() {
+      return oldValue;
     }
   }
 

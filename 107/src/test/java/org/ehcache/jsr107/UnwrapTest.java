@@ -74,9 +74,9 @@ public class UnwrapTest {
     configuration.setTypes(String.class, String.class);
     Cache<String, String> cache = cacheManager.createCache("cache", configuration);
     org.ehcache.event.CacheEvent<String, String> ehEvent = new EhEvent();
-    Eh107CacheEntryEvent<String, String> cacheEntryEvent = new Eh107CacheEntryEvent<String, String>(cache, EventType.CREATED, ehEvent, false);
+    Eh107CacheEntryEvent<String, String> cacheEntryEvent = new Eh107CacheEntryEvent.NormalEvent<String, String>(cache, EventType.CREATED, ehEvent, false);
     assertThat(cacheEntryEvent.unwrap(org.ehcache.event.CacheEvent.class), is(instanceOf(CacheEvent.class)));
-    assertThat(cacheEntryEvent.unwrap(cacheEntryEvent.getClass()), is(instanceOf(Eh107CacheEntryEvent.class)));
+    assertThat(cacheEntryEvent.unwrap(cacheEntryEvent.getClass()), is(instanceOf(Eh107CacheEntryEvent.NormalEvent.class)));
   }
 
   @SuppressWarnings("unchecked")
@@ -87,15 +87,20 @@ public class UnwrapTest {
     }
 
     @Override
-    public org.ehcache.Cache.Entry getEntry() {
+    public String getKey() {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public String getPreviousValue() {
+    public String getNewValue() {
       throw new UnsupportedOperationException("Implement me!");
     }
 
+    @Override
+    public String getOldValue() {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+    
     @Override
     public org.ehcache.Cache getSource() {
       throw new UnsupportedOperationException("Implement me!");

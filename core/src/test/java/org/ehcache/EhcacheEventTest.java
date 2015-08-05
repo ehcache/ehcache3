@@ -182,7 +182,7 @@ public class EhcacheEventTest {
       }
     });
     cache.remove(key);
-    verify(eventNotifier).onEvent(eventMatching(EventType.REMOVED, key, value, value));
+    verify(eventNotifier).onEvent(eventMatching(EventType.REMOVED, key, null, value));
   }
   
   @Test(expected=CacheWritingException.class)
@@ -351,7 +351,7 @@ public class EhcacheEventTest {
     });
     Number key = 1;
     assertThat(cache.remove(key, cachedValue), is(true));
-    verify(eventNotifier).onEvent(eventMatching(EventType.REMOVED, key, cachedValue, cachedValue));
+    verify(eventNotifier).onEvent(eventMatching(EventType.REMOVED, key, null, cachedValue));
   }
   
   @Test
@@ -449,10 +449,9 @@ public class EhcacheEventTest {
         @Override
         public boolean matches(Object argument) {
           CacheEvent<Number, String> event = (CacheEvent<Number, String>)argument;
-          Cache.Entry<Number, String> entry = event.getEntry();
-          return entry.getKey().equals(key) && (oldValue == null ? event.getType() == EventType.CREATED 
-              && event.getPreviousValue() == null : event.getType() == EventType.UPDATED &&
-            event.getPreviousValue().equals(oldValue));
+          return event.getKey().equals(key) && (oldValue == null ? event.getType() == EventType.CREATED 
+              && event.getOldValue()== null : event.getType() == EventType.UPDATED &&
+            event.getOldValue().equals(oldValue));
         }
         
       }));
@@ -476,15 +475,15 @@ public class EhcacheEventTest {
     return (Function<A, T>)in.getArguments()[1];
   }
 
-  private static <K, V> CacheEvent<K, V> eventMatching(final EventType type, final K key, final V value, final V oldValue) {
+  private static <K, V> CacheEvent<K, V> eventMatching(final EventType type, final K key, final V newValue, final V oldValue) {
     return argThat(new ArgumentMatcher<CacheEvent<K, V>>() {
 
       @Override
       public boolean matches(Object argument) {
         CacheEvent<K, V> event = (CacheEvent<K, V>)argument;
-        Cache.Entry<K, V> entry = event.getEntry();
-        return type == event.getType() && entry.getKey().equals(key) && entry.getValue().equals(value) && (event.getPreviousValue() == null ? oldValue == null : 
-          event.getPreviousValue().equals(oldValue));
+        return type == event.getType() && event.getKey().equals(key) && 
+                (event.getNewValue() == null ? newValue == null : event.getNewValue().equals(newValue)) && 
+                (event.getOldValue() == null ? oldValue == null : event.getOldValue().equals(oldValue));
       }
       
     });
