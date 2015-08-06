@@ -51,5 +51,14 @@ public interface LocalPersistenceService extends Service {
    * @throws CachePersistenceException if the persistence context cannot be destroyed
    */
   void destroyPersistenceContext(Object identifier) throws CachePersistenceException;
+  
+  /**
+   * Destroys all persistence context
+   * 
+   * Note that this method can be called without creating the persistence context beforehand in the same JVM.
+   * It will nonetheless try to delete any persistent data associated with the root directory provided
+   * in the service.
+   */
+  void destroyAllPersistenceContext();
 
 }

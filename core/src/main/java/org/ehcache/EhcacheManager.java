@@ -487,8 +487,11 @@ public class EhcacheManager implements PersistentCacheManager {
   @Override
   public Maintainable toMaintenance() {
     final StatusTransitioner.Transition st = statusTransitioner.maintenance();
+    startPersistenceService();
     try {
       final Maintainable maintainable = new Maintainable() {
+        private LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
+
         @Override
         public void create() {
           EhcacheManager.this.create();
@@ -497,10 +500,12 @@ public class EhcacheManager implements PersistentCacheManager {
         @Override
         public void destroy() {
           EhcacheManager.this.destroy();
+          persistenceService.destroyAllPersistenceContext();
         }
 
         @Override
         public void close() {
+          persistenceService.stop();
           statusTransitioner.exitMaintenance();
         }
       };
@@ -509,6 +514,12 @@ public class EhcacheManager implements PersistentCacheManager {
     } catch (RuntimeException e) {
       throw st.failed(e);
     }
+  }
+
+  private LocalPersistenceService startPersistenceService() {
+    LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
+    persistenceService.start(serviceLocator);
+    return persistenceService;
   }
 
   void create() {
