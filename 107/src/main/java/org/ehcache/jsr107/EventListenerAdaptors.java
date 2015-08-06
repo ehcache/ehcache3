@@ -96,7 +96,7 @@ class EventListenerAdaptors {
     @SuppressWarnings("unchecked")
     @Override
     public void onEvent(org.ehcache.event.CacheEvent<K, V> ehEvent) {
-      Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent<K, V>(source, EventType.UPDATED, ehEvent, requestsOld);
+      Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent.NormalEvent<K, V>(source, EventType.UPDATED, ehEvent, requestsOld);
       if (filter.evaluate(event)) {
         Set<?> events = Collections.singleton(event);
         listener.onUpdated((Iterable<CacheEntryEvent<? extends K, ? extends V>>) events);
@@ -122,7 +122,7 @@ class EventListenerAdaptors {
     @SuppressWarnings("unchecked")
     @Override
     public void onEvent(org.ehcache.event.CacheEvent<K, V> ehEvent) {
-      Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent<K, V>(source, EventType.REMOVED, ehEvent, requestsOld);
+      Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent.RemovingEvent<K, V>(source, EventType.REMOVED, ehEvent, requestsOld);
       if (filter.evaluate(event)) {
         Set<?> events = Collections.singleton(event);
         listener.onRemoved((Iterable<CacheEntryEvent<? extends K, ? extends V>>) events);
@@ -148,7 +148,7 @@ class EventListenerAdaptors {
     @SuppressWarnings("unchecked")
     @Override
     public void onEvent(org.ehcache.event.CacheEvent<K, V> ehEvent) {
-      Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent<K, V>(source, EventType.EXPIRED, ehEvent, requestsOld);
+      Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent.RemovingEvent<K, V>(source, EventType.EXPIRED, ehEvent, requestsOld);
       if (filter.evaluate(event)) {
         Set<?> events = Collections.singleton(event);
         listener.onExpired((Iterable<CacheEntryEvent<? extends K, ? extends V>>) events);
@@ -174,7 +174,7 @@ class EventListenerAdaptors {
     @SuppressWarnings("unchecked")
     @Override
     public void onEvent(org.ehcache.event.CacheEvent<K, V> ehEvent) {
-      Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent<K, V>(source, EventType.CREATED, ehEvent, requestsOld);
+      Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent.NormalEvent<K, V>(source, EventType.CREATED, ehEvent, requestsOld);
       if (filter.evaluate(event)) {
         Set<?> events = Collections.singleton(event);
         listener.onCreated((Iterable<CacheEntryEvent<? extends K, ? extends V>>) events);

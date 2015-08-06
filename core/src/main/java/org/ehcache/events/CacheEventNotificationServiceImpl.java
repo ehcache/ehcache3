@@ -235,12 +235,12 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
 
     @Override
     public void onEviction(final K key, final Store.ValueHolder<V> valueHolder) {
-      eventNotificationService.onEvent(CacheEvents.eviction(CacheStoreHelper.cacheEntry(key, valueHolder, timeSource), this.source));
+      eventNotificationService.onEvent(CacheEvents.eviction(key, valueHolder.value(), this.source));
     }
 
     @Override
     public void onExpiration(final K key, final Store.ValueHolder<V> valueHolder) {
-      eventNotificationService.onEvent(CacheEvents.expiry(CacheStoreHelper.cacheEntry(key, valueHolder, timeSource), this.source));
+      eventNotificationService.onEvent(CacheEvents.expiry(key, valueHolder.value(), this.source));
     }
 
     public void setEventNotificationService(CacheEventNotificationService<K, V> eventNotificationService) {

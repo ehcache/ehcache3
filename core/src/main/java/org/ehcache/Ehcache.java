@@ -235,10 +235,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
           return null;
         }
         
-        Cache.Entry<K, V> entry = newCacheEntry(key, value);
         eventNotificationService.onEvent(previousValue == null ? 
-            CacheEvents.creation(entry, Ehcache.this) : CacheEvents.update(newCacheEntry(key, previousValue), 
-                entry, Ehcache.this));
+            CacheEvents.creation(key, value, Ehcache.this) : CacheEvents.update(key, previousValue, value, Ehcache.this));
         return value;
       }
     });
@@ -320,7 +318,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         } catch (Exception e) {
           throw newCacheWritingException(e);
         }
-        eventNotificationService.onEvent(CacheEvents.removal(newCacheEntry(key, previousValue), Ehcache.this));
+        eventNotificationService.onEvent(CacheEvents.removal(key, previousValue, Ehcache.this));
         return null;
       }
     });
@@ -523,10 +521,9 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
             actualPutCount.incrementAndGet();
             mutations.put(key, newValue);
           
-            Cache.Entry<K, V> newEntry = newCacheEntry(key, newValue);
             eventNotificationService.onEvent(existingValue == null ? 
-              CacheEvents.creation(newEntry, Ehcache.this) : CacheEvents.update( 
-                  newCacheEntry(key, existingValue), newEntry, Ehcache.this));
+              CacheEvents.creation(key, newValue, Ehcache.this) : CacheEvents.update( 
+                  key, existingValue, newValue, Ehcache.this));
           } else {
             mutations.put(key, existingValue);
           }
@@ -659,7 +656,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
               }
               results.put(key, null);
               entriesToRemove.remove(key);
-              eventNotificationService.onEvent(CacheEvents.removal(newCacheEntry(key, existingValue), Ehcache.this));
+              eventNotificationService.onEvent(CacheEvents.removal(key, existingValue, Ehcache.this));
             } else {
               if (unknowns.contains(key)) {
                 results.put(key, null);
@@ -757,7 +754,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
           return value;
         } finally {
           if (installed.get()) {
-            eventNotificationService.onEvent(CacheEvents.creation(newCacheEntry(k, value), Ehcache.this));
+            eventNotificationService.onEvent(CacheEvents.creation(k, value, Ehcache.this));
           }
         }
       }
@@ -833,7 +830,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
               throw newCacheWritingException(e);
             }
           }
-          eventNotificationService.onEvent(CacheEvents.removal(newCacheEntry(k, value), Ehcache.this));
+          eventNotificationService.onEvent(CacheEvents.removal(k, value, Ehcache.this));
           removed.set(true);
           return null;
         }
@@ -910,8 +907,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
           return null;
         }
         
-        eventNotificationService.onEvent(CacheEvents.update(newCacheEntry(k, inCache),
-            newCacheEntry(k, value), Ehcache.this));
+        eventNotificationService.onEvent(CacheEvents.update(k, inCache, value, Ehcache.this));
         return value;
       }
     });
@@ -983,7 +979,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
             return null;
           }
 
-          eventNotificationService.onEvent(CacheEvents.update(newCacheEntry(key, oldValue), newCacheEntry(key, newValue), Ehcache.this));
+          eventNotificationService.onEvent(CacheEvents.update(key, oldValue, newValue, Ehcache.this));
           return newValue;
         }
         return inCache;
@@ -1230,13 +1226,13 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
               final CacheEvent<K, V> event;
               if (newValue == null) {
                 removeObserver.end(RemoveOutcome.SUCCESS);
-                event = CacheEvents.removal(newCacheEntry(mappedKey, mappedValue), Ehcache.this);
+                event = CacheEvents.removal(mappedKey, mappedValue, Ehcache.this);
               } else {
                 putObserver.end(PutOutcome.ADDED);
                 if (mappedValue == null) {
-                  event = CacheEvents.creation(newCacheEntry(mappedKey, newValue), Ehcache.this);
+                  event = CacheEvents.creation(mappedKey, newValue, Ehcache.this);
                 } else {
-                  event = CacheEvents.update(newCacheEntry(mappedKey, mappedValue), newCacheEntry(mappedKey, newValue), Ehcache.this);
+                  event = CacheEvents.update(mappedKey, mappedValue, newValue, Ehcache.this);
                 }
               }
               eventNotificationService.onEvent(event);
@@ -1274,7 +1270,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
               }
             }
 
-            eventNotificationService.onEvent(CacheEvents.removal(newCacheEntry(mappedKey, mappedValue), Ehcache.this));
+            eventNotificationService.onEvent(CacheEvents.removal(mappedKey, mappedValue, Ehcache.this));
             return null;
           }
         });
@@ -1319,11 +1315,10 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
               return null;
             }
             
-            Cache.Entry<K, V> entry = newCacheEntry(mappedKey, value);
             if (mappedValue != null) {
-              eventNotificationService.onEvent(CacheEvents.update(newCacheEntry(mappedKey, mappedValue), entry, Ehcache.this)); 
+              eventNotificationService.onEvent(CacheEvents.update(mappedKey, mappedValue, value, Ehcache.this)); 
             } else {
-              eventNotificationService.onEvent(CacheEvents.creation(entry, Ehcache.this));
+              eventNotificationService.onEvent(CacheEvents.creation(mappedKey, value, Ehcache.this));
             }
             
             return value;
