@@ -517,6 +517,20 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     });
   }
 
+  @Override
+  public void invalidate(K key, final NullaryFunction<K> function) throws CacheAccessException {
+    map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      @Override
+      public OnHeapValueHolder<V> apply(K k, OnHeapValueHolder<V> onHeapValueHolder) {
+        if (onHeapValueHolder != null) {
+          notifyInvalidation(k, onHeapValueHolder);
+        }
+        function.apply();
+        return null;
+      }
+    });
+  }
+
   private void notifyInvalidation(final K key, final ValueHolder<V> p) {
     final InvalidationListener<K, V> invalidationListener = this.invalidationListener;
     if(invalidationListener != null) {
