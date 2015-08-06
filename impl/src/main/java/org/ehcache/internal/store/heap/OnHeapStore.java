@@ -645,6 +645,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     public void setLastAccessTime(long lastAccessTime, TimeUnit unit) {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public String toString() {
+      return "[Fault : " + (complete ? (throwable == null ? value.toString() : throwable.getMessage()) : "???") + "]";
+    }
   }
 
   @Override
