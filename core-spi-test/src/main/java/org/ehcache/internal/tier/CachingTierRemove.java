@@ -54,7 +54,7 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
   @After
   public void tearDown() {
     if (tier != null) {
-//      tier.close();
+      factory.disposeOf(tier);
       tier = null;
     }
   }

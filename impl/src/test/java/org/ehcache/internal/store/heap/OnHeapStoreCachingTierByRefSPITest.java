@@ -123,6 +123,10 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
       }
 
       @Override
+      public void disposeOf(CachingTier tier) {
+      }
+
+      @Override
       public ServiceProvider getServiceProvider() {
         return new ServiceLocator();
       }
