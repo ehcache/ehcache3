@@ -29,6 +29,7 @@ import org.ehcache.spi.cache.Store;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.mock;
 
 public class DefaultLocalPersistenceServiceTest {
@@ -39,7 +40,7 @@ public class DefaultLocalPersistenceServiceTest {
   @Test
   public void testFailsIfDirectoryExistsButNotWritable() throws IOException {
     File f = folder.newFolder("testFailsIfDirectoryExistsButNotWritable");
-    f.setWritable(false);
+    assumeTrue(f.setWritable(false));
     try {
       try {
         final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
@@ -68,7 +69,7 @@ public class DefaultLocalPersistenceServiceTest {
   @Test
   public void testFailsIfDirectoryDoesNotExistsAndIsNotCreated() throws IOException {
     File fdr = folder.newFolder("testFailsIfDirectoryDoesNotExistsAndIsNotCreated");
-    fdr.setWritable(false);
+    assumeTrue(fdr.setWritable(false));
     try {
       File f = new File(fdr, "notallowed");
       try {
