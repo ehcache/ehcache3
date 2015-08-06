@@ -19,14 +19,23 @@ import org.ehcache.CacheConfigurationChangeListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.cache.tiering.LowerCachingTier;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.SupplementaryService;
+import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
+
+import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * @author Ludovic Orban
@@ -165,6 +174,70 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
     listeners.addAll(higher.getConfigurationChangeListeners());
     listeners.addAll(lower.getConfigurationChangeListeners());
     return listeners;
+  }
+
+
+  @SupplementaryService
+  public static class Provider implements CachingTier.Provider {
+    private volatile ServiceProvider serviceProvider;
+    private final ConcurrentMap<CachingTier<?, ?>, Map.Entry<CachingTier.Provider, LowerCachingTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<CachingTier<?, ?>, Map.Entry<CachingTier.Provider, LowerCachingTier.Provider>>();
+
+    @Override
+    public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      if (serviceProvider == null) {
+        throw new RuntimeException("ServiceProvider is null.");
+      }
+
+      CompoundCachingTierServiceConfiguration compoundCachingTierServiceConfiguration = findSingletonAmongst(CompoundCachingTierServiceConfiguration.class, (Object[])serviceConfigs);
+      if (compoundCachingTierServiceConfiguration == null) {
+        throw new IllegalArgumentException("Compound caching tier cannot be configured without explicit config");
+      }
+
+      CachingTier.Provider higherProvider = serviceProvider.getService(compoundCachingTierServiceConfiguration.higherProvider());
+      CachingTier<K, V> higherCachingTier = higherProvider.createCachingTier(storeConfig);
+
+      LowerCachingTier.Provider lowerProvider = serviceProvider.getService(compoundCachingTierServiceConfiguration.lowerProvider());
+      LowerCachingTier<K, V> lowerCachingTier = lowerProvider.createCachingTier(storeConfig);
+
+      CompoundCachingTier<K, V> compoundCachingTier = new CompoundCachingTier<K, V>(higherCachingTier, lowerCachingTier);
+      providersMap.put(compoundCachingTier, new AbstractMap.SimpleEntry<CachingTier.Provider, LowerCachingTier.Provider>(higherProvider, lowerProvider));
+      return compoundCachingTier;
+    }
+
+    @Override
+    public void releaseCachingTier(CachingTier<?, ?> resource) {
+      if (!providersMap.containsKey(resource)) {
+        throw new IllegalArgumentException("Given caching tier is not managed by this provider : " + resource);
+      }
+      CompoundCachingTier compoundCachingTier = (CompoundCachingTier) resource;
+      Map.Entry<CachingTier.Provider, LowerCachingTier.Provider> entry = providersMap.get(resource);
+
+      entry.getKey().releaseCachingTier(compoundCachingTier.higher);
+      entry.getValue().releaseCachingTier(compoundCachingTier.lower);
+    }
+
+    @Override
+    public void initCachingTier(CachingTier<?, ?> resource) {
+      if (!providersMap.containsKey(resource)) {
+        throw new IllegalArgumentException("Given caching tier is not managed by this provider : " + resource);
+      }
+      CompoundCachingTier compoundCachingTier = (CompoundCachingTier) resource;
+      Map.Entry<CachingTier.Provider, LowerCachingTier.Provider> entry = providersMap.get(resource);
+
+      entry.getValue().initCachingTier(compoundCachingTier.lower);
+      entry.getKey().initCachingTier(compoundCachingTier.higher);
+    }
+
+    @Override
+    public void start(ServiceProvider serviceProvider) {
+      this.serviceProvider = serviceProvider;
+    }
+
+    @Override
+    public void stop() {
+      this.serviceProvider = null;
+      this.providersMap.clear();
+    }
   }
 
 }

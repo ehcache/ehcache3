@@ -22,6 +22,8 @@ import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.offheap.OffHeapStore;
 import org.ehcache.internal.store.tiering.CacheStore;
 import org.ehcache.internal.store.tiering.CacheStoreServiceConfiguration;
+import org.ehcache.internal.store.tiering.CompoundCachingTier;
+import org.ehcache.internal.store.tiering.CompoundCachingTierServiceConfiguration;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -38,8 +40,8 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * @author Ludovic Orban
  */
-@ServiceDependencies({CacheStore.Provider.class, OnHeapStore.Provider.class,
-    OffHeapStore.Provider.class, OffHeapDiskStore.Provider.class})
+@ServiceDependencies({CacheStore.Provider.class, CompoundCachingTier.Provider.class,
+    OnHeapStore.Provider.class, OffHeapStore.Provider.class, OffHeapDiskStore.Provider.class})
 public class DefaultStoreProvider implements Store.Provider {
   private static final Logger LOG = LoggerFactory.getLogger(DefaultStoreProvider.class);
 
@@ -57,15 +59,19 @@ public class DefaultStoreProvider implements Store.Provider {
     Store.Provider provider;
 
     if (diskPool != null) {
-      if (offHeapPool != null) {
-        throw new IllegalArgumentException("Cannot combine offheap and disk stores");
-      }
       if (heapPool == null) {
         throw new IllegalArgumentException("Cannot store to disk without heap resource");
       }
       provider = serviceProvider.getService(CacheStore.Provider.class);
-      enhancedServiceConfigs.add(new CacheStoreServiceConfiguration().cachingTierProvider(OnHeapStore.Provider.class)
-          .authoritativeTierProvider(OffHeapDiskStore.Provider.class));
+      if (offHeapPool != null) {
+        enhancedServiceConfigs.add(new CompoundCachingTierServiceConfiguration().higherProvider(OnHeapStore.Provider.class)
+            .lowerProvider(OffHeapStore.Provider.class));
+        enhancedServiceConfigs.add(new CacheStoreServiceConfiguration().cachingTierProvider(CompoundCachingTier.Provider.class)
+            .authoritativeTierProvider(OffHeapDiskStore.Provider.class));
+      } else {
+        enhancedServiceConfigs.add(new CacheStoreServiceConfiguration().cachingTierProvider(OnHeapStore.Provider.class)
+            .authoritativeTierProvider(OffHeapDiskStore.Provider.class));
+      }
     } else if (offHeapPool != null) {
       if (heapPool == null) {
         throw new IllegalArgumentException("Cannot store to offheap without heap resource");

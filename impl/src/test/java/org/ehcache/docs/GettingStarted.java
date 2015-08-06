@@ -21,8 +21,6 @@ import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.Ehcache;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.UserManagedCache;
-import org.ehcache.UserManagedCacheBuilder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePools;
@@ -32,8 +30,8 @@ import org.ehcache.config.SerializerConfiguration;
 import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
-import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
@@ -125,6 +123,24 @@ public class GettingStarted {
 
     cacheManager.close();
     // end::offheapCacheManager[]
+  }
+
+  @Test
+  public void threeTiersCacheManager() throws Exception {
+    // tag::threeTiersCacheManager[]
+    PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "myData"))) // <1>
+        .withCache("threeTieredCache",
+            CacheConfigurationBuilder.newCacheConfigurationBuilder()
+                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+                        .heap(10, EntryUnit.ENTRIES) // <2>
+                        .offheap(1, MemoryUnit.MB) // <3>
+                        .disk(20, MemoryUnit.MB) // <4>
+                )
+                .buildConfig(Long.class, String.class)).build(true);
+
+    persistentCacheManager.close();
+    // end::threeTiersCacheManager[]
   }
 
   @Test
