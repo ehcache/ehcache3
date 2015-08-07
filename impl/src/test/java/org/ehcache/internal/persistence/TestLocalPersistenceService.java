@@ -74,6 +74,11 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
   }
 
   @Override
+  public void destroyAllPersistenceContext() {
+    persistenceService.destroyAllPersistenceContext();
+  }
+
+  @Override
   public void start(ServiceProvider serviceProvider) {
     throw new UnsupportedOperationException("The TestLocalPersistenceService is lifecycled automatically");
   }

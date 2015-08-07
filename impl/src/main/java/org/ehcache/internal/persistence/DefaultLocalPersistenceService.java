@@ -166,6 +166,15 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
   }
 
+  @Override
+  public void destroyAllPersistenceContext() {
+    if(recursiveDeleteDirectoryContent(rootDirectory)){
+      LOGGER.info("Destroyed all file based persistence context");
+    } else {
+      LOGGER.warn("Could not delete all file based persistence context");
+    }
+  }
+
   File getLockFile() {
     return lockFile;
   }
@@ -211,6 +220,21 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
         LOGGER.warn("Could not delete directory for context {}", identifier);
       }
     }
+  }
+
+  private static boolean recursiveDeleteDirectoryContent(File file) {
+    Boolean deleteSuccessful = true;
+    if (file.isDirectory()) {
+      File[] contents = file.listFiles();
+      if (contents.length > 0) {
+        for (File f : contents) {
+          if(!recursiveDelete(f)) {
+            deleteSuccessful = false;
+          }
+        }
+      }
+    }
+    return deleteSuccessful;
   }
 
   private static boolean recursiveDelete(File file) {
