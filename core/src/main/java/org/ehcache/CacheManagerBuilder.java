@@ -19,7 +19,7 @@ package org.ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheManagerConfiguration;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.DefaultConfiguration;
+import org.ehcache.config.ConfigurationBuilder;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.spi.ServiceLocator;
@@ -27,30 +27,43 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.io.File;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
+
+import static java.util.Collections.emptySet;
+import static java.util.Collections.unmodifiableSet;
+import static org.ehcache.config.ConfigurationBuilder.newConfigurationBuilder;
 
 /**
  * @author Alex Snaps
  */
 public class CacheManagerBuilder<T extends CacheManager> {
 
-  private final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
-  private final Set<Service> services = new HashSet<Service>();
-  private final Set<ServiceConfiguration<?>> serviceCfgs = new HashSet<ServiceConfiguration<?>>();
-  private ClassLoader classLoader = null;
+  private final ConfigurationBuilder configBuilder;
+  private final Set<Service> services;
 
   public T build(final boolean init) {
     ServiceLocator serviceLocator = new ServiceLocator(services.toArray(new Service[services.size()]));
-    Configuration configuration = new DefaultConfiguration(caches, classLoader,
-        serviceCfgs.toArray(new ServiceConfiguration[serviceCfgs.size()]));
-    final T cacheManager = newCacheManager(serviceLocator, configuration);
+    final T cacheManager = newCacheManager(serviceLocator, configBuilder.build());
     if(init) {
       cacheManager.init();
     }
     return cacheManager;
+  }
+
+  private CacheManagerBuilder() {
+    this.configBuilder = newConfigurationBuilder();
+    this.services = emptySet();
+  }
+  
+  private CacheManagerBuilder(CacheManagerBuilder<T> builder, Set<Service> services) {
+    this.configBuilder = builder.configBuilder;
+    this.services = unmodifiableSet(services);
+  }
+
+  private CacheManagerBuilder(CacheManagerBuilder<T> builder, ConfigurationBuilder configBuilder) {
+    this.configBuilder = configBuilder;
+    this.services = builder.services;
   }
 
   public static CacheManager newCacheManager(final Configuration configuration) {
@@ -68,8 +81,7 @@ public class CacheManagerBuilder<T extends CacheManager> {
   }
   
   public <K, V> CacheManagerBuilder<T> withCache(String alias, CacheConfiguration<K, V> configuration) {
-    caches.put(alias, configuration);
-    return this;
+    return new CacheManagerBuilder<T>(this, configBuilder.addCache(alias, configuration));
   }
 
   public <N extends T> CacheManagerBuilder<N> with(CacheManagerConfiguration<N> cfg) {
@@ -77,18 +89,17 @@ public class CacheManagerBuilder<T extends CacheManager> {
   }
 
   public CacheManagerBuilder<T> using(Service service) {
-    services.add(service);
-    return this;
+    Set<Service> newServices = new HashSet<Service>(services);
+    newServices.add(service);
+    return new CacheManagerBuilder<T>(this, newServices);
   }
   
   public CacheManagerBuilder<T> using(ServiceConfiguration<?> service) {
-    serviceCfgs.add(service);
-    return this;
+    return new CacheManagerBuilder<T>(this, configBuilder.addService(service));
   }
 
   public CacheManagerBuilder<T> withClassLoader(ClassLoader classLoader) {
-    this.classLoader = classLoader;
-    return this;
+    return new CacheManagerBuilder<T>(this, configBuilder.withClassLoader(classLoader));
   }
 
   public static CacheManagerBuilder<CacheManager> newCacheManagerBuilder() {

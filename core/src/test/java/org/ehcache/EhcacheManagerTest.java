@@ -90,8 +90,7 @@ public class EhcacheManagerTest {
   
   @Test
   public void testNoClassLoaderSpecified() {
-    ConfigurationBuilder builder = newConfigurationBuilder();
-    builder.addCache("foo", newCacheConfigurationBuilder().buildConfig(Object.class, Object.class));
+    ConfigurationBuilder builder = newConfigurationBuilder().addCache("foo", newCacheConfigurationBuilder().buildConfig(Object.class, Object.class));
     final Store.Provider storeProvider = mock(Store.Provider.class);
     final Store mock = mock(Store.class);
     
@@ -108,9 +107,7 @@ public class EhcacheManagerTest {
     assertSame(cacheManager.getClassLoader(), cacheManager.getCache("foo", Object.class, Object.class).getRuntimeConfiguration().getClassLoader());
     
     // explicit null
-    builder = newConfigurationBuilder();
-    builder.withClassLoader(null);
-    builder.addCache("foo", newCacheConfigurationBuilder().buildConfig(Object.class, Object.class));
+    builder = newConfigurationBuilder().withClassLoader(null).addCache("foo", newCacheConfigurationBuilder().buildConfig(Object.class, Object.class));
     cacheManager = new EhcacheManager(builder.build(), getServiceLocator(storeProvider, cenlProvider));
     cacheManager.init();
     assertSame(ClassLoading.getDefaultClassLoader(), cacheManager.getClassLoader());
@@ -130,16 +127,12 @@ public class EhcacheManagerTest {
     assertNotSame(cl1, cl2);
     assertNotSame(cl1.getClass(), cl2.getClass());
     
-    ConfigurationBuilder builder = newConfigurationBuilder().withClassLoader(cl1);
-    
-    // these caches should inherit the cache manager classloader
-    builder.addCache("foo1", newCacheConfigurationBuilder().buildConfig(Object.class, Object.class));
-    builder.addCache("foo2", newCacheConfigurationBuilder().withClassLoader(null)
-        .buildConfig(Object.class, Object.class));
-    
-    // this cache specifies its own unique classloader
-    builder.addCache("foo3", newCacheConfigurationBuilder().withClassLoader(cl2)
-        .buildConfig(Object.class, Object.class));
+    ConfigurationBuilder builder = newConfigurationBuilder().withClassLoader(cl1)
+            // these caches should inherit the cache manager classloader
+            .addCache("foo1", newCacheConfigurationBuilder().buildConfig(Object.class, Object.class))
+            .addCache("foo2", newCacheConfigurationBuilder().withClassLoader(null).buildConfig(Object.class, Object.class))
+            // this cache specifies its own unique classloader
+            .addCache("foo3", newCacheConfigurationBuilder().withClassLoader(cl2).buildConfig(Object.class, Object.class));
 
     final Store.Provider storeProvider = mock(Store.Provider.class);
     final Store mock = mock(Store.class);

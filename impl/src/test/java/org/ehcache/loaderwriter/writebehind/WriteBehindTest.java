@@ -15,6 +15,7 @@
  */
 package org.ehcache.loaderwriter.writebehind;
 
+import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -22,8 +23,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.concurrent.TimeUnit;
 
-import org.ehcache.CacheManager;
-import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
@@ -43,7 +42,6 @@ public class WriteBehindTest extends AbstractWriteBehindTestBase {
 
   @Before
   public void setUp(){
-    CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder();
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     
     when(cacheLoaderWriterProvider.createCacheLoaderWriter(anyString(), (CacheConfiguration<String, String>)anyObject())).thenReturn((CacheLoaderWriter)loaderWriter);
@@ -52,9 +50,8 @@ public class WriteBehindTest extends AbstractWriteBehindTestBase {
     WriteBehindConfiguration writeBehindConfiguration = writeBehindConfigurationBuilder.concurrencyLevel(3).batchSize(4)
                                                                                         .queueSize(10)
                                                                                         .build();
-    builder.using(cacheLoaderWriterProvider);
     
-    cacheManager = builder.build(true);
+    cacheManager = newCacheManagerBuilder().using(cacheLoaderWriterProvider).build(true);
     testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder()
         .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)))
         .add(writeBehindConfiguration)

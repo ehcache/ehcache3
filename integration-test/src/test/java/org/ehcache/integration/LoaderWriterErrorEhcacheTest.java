@@ -40,6 +40,7 @@ import java.util.Set;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheWritingException;
 
+import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
@@ -68,12 +69,10 @@ public class LoaderWriterErrorEhcacheTest {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @Before
   public void setUp() throws Exception {
-    CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder();
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     cacheLoaderWriter = mock(CacheLoaderWriter.class);
     when(cacheLoaderWriterProvider.createCacheLoaderWriter(anyString(), (CacheConfiguration<Number, CharSequence>) anyObject())).thenReturn((CacheLoaderWriter) cacheLoaderWriter);
-    builder.using(cacheLoaderWriterProvider);
-    cacheManager = builder.build(true);
+    cacheManager = newCacheManagerBuilder().using(cacheLoaderWriterProvider).build(true);
     testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
   }
 
