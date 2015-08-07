@@ -50,9 +50,6 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.function.Predicates;
 
 import static org.ehcache.internal.store.offheap.OffHeapStoreUtils.getBufferSource;
-import org.ehcache.statistics.StoreOperationOutcomes;
-import static org.terracotta.statistics.StatisticBuilder.operation;
-import org.terracotta.statistics.observer.OperationObserver;
 
 /**
  * OffHeapStore
@@ -65,10 +62,9 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
   private final long sizeInBytes;
 
   private volatile EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
-  private final OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver = operation(StoreOperationOutcomes.EvictionOutcome.class).named("eviction").of(this).tag("local-offheap").build();
 
   public OffHeapStore(final Configuration<K, V> config, Serializer<K> keySerializer, Serializer<V> valueSerializer, TimeSource timeSource, long sizeInBytes) {
-    super(config, timeSource);
+    super("local-offheap", config, timeSource);
     EvictionVeto<? super K, ? super V> veto = config.getEvictionVeto();
     if (veto != null) {
       evictionVeto = wrap(veto, timeSource);

@@ -9,9 +9,23 @@
     <jsr107:defaults>
       <jsr107:cache name="heap" template="heapCache"/>
       <jsr107:cache name="offheap" template="offheapCache"/>
+      <jsr107:cache name="disk" template="diskCache"/>
     </jsr107:defaults>
   </service>
 
+  <service>
+    <persistence>
+      <directory>build/ehcache-107-stats</directory>
+    </persistence>
+  </service>
+  
+  <cache-template name="diskCache">
+    <resources>
+      <heap size="10" unit="entries"/>
+      <disk size="10" unit="mb"/>
+    </resources>
+  </cache-template>
+  
   <cache-template name="offheapCache">
     <resources>
       <heap size="10" unit="entries"/>
