@@ -553,6 +553,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       public OffHeapValueHolder<V> apply(K k, OffHeapValueHolder<V> valuePresent) {
         if (valuePresent.getId() == valueFlushed.getId()) {
           if (valueFlushed.isExpired(timeSource.getTimeMillis(), OffHeapValueHolder.TIME_UNIT)) {
+            eventListener.onExpiration(k, valuePresent);
             return null;
           }
           valuePresent.updateMetadata(valueFlushed);
