@@ -15,6 +15,7 @@
  */
 package org.ehcache.loaderwriter.writebehind;
 
+import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
@@ -23,8 +24,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.concurrent.TimeUnit;
 
-import org.ehcache.CacheManager;
-import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
@@ -45,7 +44,6 @@ public class WriteBehindEvictionTest extends AbstractWriteBehindTestBase {
 
   @Before
   public void setUp(){
-    CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder();
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     
     when(cacheLoaderWriterProvider.createCacheLoaderWriter(anyString(), (CacheConfiguration<String, String>)anyObject())).thenReturn((CacheLoaderWriter)loaderWriter);
@@ -55,11 +53,10 @@ public class WriteBehindEvictionTest extends AbstractWriteBehindTestBase {
                                                                                         .queueSize(10)
                                                                                         .build();
     
-    builder.using(cacheLoaderWriterProvider);
     ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder()
         .with(org.ehcache.config.ResourceType.Core.HEAP, 10, EntryUnit.ENTRIES, false);
    
-    cacheManager = builder.build(true);
+    cacheManager = newCacheManagerBuilder().using(cacheLoaderWriterProvider).build(true);
     testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder()
         .withExpiry(Expirations.timeToLiveExpiration(new Duration(100, TimeUnit.MILLISECONDS)))
         .withResourcePools(resourcePoolsBuilder)

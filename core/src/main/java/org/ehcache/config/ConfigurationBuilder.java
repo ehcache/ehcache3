@@ -23,48 +23,77 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableList;
+import static java.util.Collections.unmodifiableMap;
+
 /**
  * @author Alex Snaps
  */
 public class ConfigurationBuilder {
 
-  private final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
-  private final List<ServiceConfiguration<?>> serviceConfigurations = new ArrayList<ServiceConfiguration<?>>();
-  private ClassLoader classLoader = null;
+  private final Map<String, CacheConfiguration<?, ?>> caches;
+  private final List<ServiceConfiguration<?>> serviceConfigurations;
+  private final ClassLoader classLoader;
 
   public static ConfigurationBuilder newConfigurationBuilder() {
     return new ConfigurationBuilder();
   }
 
-  public ConfigurationBuilder() {
+  private ConfigurationBuilder() {
+    this.caches = emptyMap();
+    this.serviceConfigurations = emptyList();
+    this.classLoader = null;
   }
 
+  private ConfigurationBuilder(ConfigurationBuilder builder, Map<String, CacheConfiguration<?, ?>> caches) {
+    this.caches = unmodifiableMap(caches);
+    this.serviceConfigurations = builder.serviceConfigurations;
+    this.classLoader = builder.classLoader;
+  }
+
+  private ConfigurationBuilder(ConfigurationBuilder builder, List<ServiceConfiguration<?>> serviceConfigurations) {
+    this.caches = builder.caches;
+    this.serviceConfigurations = unmodifiableList(serviceConfigurations);
+    this.classLoader = builder.classLoader;
+  }
+
+  private ConfigurationBuilder(ConfigurationBuilder builder, ClassLoader classLoader) {
+    this.caches = builder.caches;
+    this.serviceConfigurations = builder.serviceConfigurations;
+    this.classLoader = classLoader;
+  }
+  
   public Configuration build() {
     return new DefaultConfiguration(caches, classLoader, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
   public ConfigurationBuilder addCache(String alias, CacheConfiguration<?, ?> config) {
-    caches.put(alias, config);
-    return this;
+    Map<String, CacheConfiguration<?, ?>> newCaches = new HashMap<String, CacheConfiguration<?, ?>>(caches);
+    newCaches.put(alias, config);
+    return new ConfigurationBuilder(this, newCaches);
   }
 
   public ConfigurationBuilder removeCache(String alias) {
-    caches.remove(alias);
-    return this;
+    Map<String, CacheConfiguration<?, ?>> newCaches = new HashMap<String, CacheConfiguration<?, ?>>(caches);
+    newCaches.remove(alias);
+    return new ConfigurationBuilder(this, newCaches);
   }
 
   public ConfigurationBuilder addService(ServiceConfiguration<?> serviceConfiguration) {
-    serviceConfigurations.add(serviceConfiguration);
-    return this;
+    List<ServiceConfiguration<?>> newServiceConfigurations = new ArrayList<ServiceConfiguration<?>>(serviceConfigurations);
+    newServiceConfigurations.add(serviceConfiguration);
+    return new ConfigurationBuilder(this, newServiceConfigurations);
   }
 
   public ConfigurationBuilder removeService(ServiceConfiguration<?> serviceConfiguration) {
-    serviceConfigurations.remove(serviceConfiguration);
-    return this;
+    List<ServiceConfiguration<?>> newServiceConfigurations = new ArrayList<ServiceConfiguration<?>>(serviceConfigurations);
+    newServiceConfigurations.remove(serviceConfiguration);
+    return new ConfigurationBuilder(this, newServiceConfigurations);
   }
   
   public ConfigurationBuilder withClassLoader(ClassLoader classLoader) {
-    this.classLoader = classLoader;
-    return this;
+    return new ConfigurationBuilder(this, classLoader);
   }
 }
