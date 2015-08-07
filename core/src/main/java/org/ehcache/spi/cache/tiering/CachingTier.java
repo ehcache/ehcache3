@@ -31,7 +31,7 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
 
   /**
    * Either return the value holder currently in the caching tier, or compute and store it when it isn't present.
-   * Note that expired value holders will be returned to give the caller of the caching tier a chance to flush it.
+   * Note that in case of expired value holders null will be returned and the mapping will be invalidated.
    * @param key the key.
    * @param source the function that computes the value.
    * @return the value holder, or null.
