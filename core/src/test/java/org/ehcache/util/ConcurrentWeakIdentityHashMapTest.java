@@ -113,7 +113,6 @@ public class ConcurrentWeakIdentityHashMapTest {
     }
     assertThat(i, not(is(0)));
     assertThat(size, not(is(0)));
-    assertThat(i, is(10240 - size));
   }
 
   <V> Object addToMap(final ConcurrentMap<Object, V> map, final V v) {
