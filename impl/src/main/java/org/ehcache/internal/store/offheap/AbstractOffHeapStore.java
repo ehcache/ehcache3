@@ -41,14 +41,16 @@ import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.spi.cache.tiering.LowerCachingTier;
 import org.ehcache.statistics.StoreOperationOutcomes;
 import org.terracotta.offheapstore.Segment;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 import org.terracotta.statistics.observer.OperationObserver;
 
-public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K, V> {
-  
+public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K, V>, LowerCachingTier<K, V> {
+
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final TimeSource timeSource;
@@ -63,12 +65,13 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   private volatile Callable<Void> valve;
   private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener();
   protected BackingMapEvictionListener<K, V> mapEvictionListener;
-  
+  private volatile CachingTier.InvalidationListener<K, V> invalidationListener;
+
   public AbstractOffHeapStore(String statisticsTag, Configuration<K, V> config, TimeSource timeSource) {
     keyType = config.getKeyType();
     valueType = config.getValueType();
     expiry = config.getExpiry();
-    
+
     this.timeSource = timeSource;
 
     this.getOperationObserver = operation(StoreOperationOutcomes.GetOutcome.class).of(this).named("get").tag(statisticsTag).build();
@@ -78,7 +81,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
     this.mapEvictionListener = new BackingMapEvictionListener<K, V>(evictionObserver);
   }
-  
+
   @Override
   public Store.ValueHolder<V> get(K key) {
     checkKey(key);
@@ -544,9 +547,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   @Override
   public boolean flush(K key, final ValueHolder<V> valueFlushed) {
-    if (valueFlushed instanceof OffHeapValueHolder) {
-      throw new IllegalArgumentException("ValueHolder must come from the caching tier");
-    }
     checkKey(key);
     return backingMap().computeIfPinned(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
       @Override
@@ -566,6 +566,113 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         return valuePresent.getId() == valueFlushed.getId();
       }
     });
+  }
+
+  @Override
+  public void setInvalidationListener(CachingTier.InvalidationListener<K, V> invalidationListener) {
+    this.invalidationListener = invalidationListener;
+    this.eventListener = new StoreEventListener<K, V>() {
+      @Override
+      public void onEviction(final K key, final ValueHolder<V> valueHolder) {
+        AbstractOffHeapStore.this.invalidationListener.onInvalidation(key, valueHolder);
+      }
+
+      @Override
+      public void onExpiration(final K key, final ValueHolder<V> valueHolder) {
+        AbstractOffHeapStore.this.invalidationListener.onInvalidation(key, valueHolder);
+      }
+    };
+  }
+
+  @Override
+  public void invalidate() throws CacheAccessException {
+    clear();
+  }
+
+  @Override
+  public void invalidate(final K key) throws CacheAccessException {
+    backingMap().computeIfPresent(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+      @Override
+      public OffHeapValueHolder<V> apply(final K k, final OffHeapValueHolder<V> present) {
+        notifyInvalidation(key, present);
+        return null;
+      }
+    });
+  }
+
+  @Override
+  public void invalidate(K key, final NullaryFunction<K> function) throws CacheAccessException {
+    backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+      @Override
+      public OffHeapValueHolder<V> apply(K k, OffHeapValueHolder<V> offHeapValueHolder) {
+        if (offHeapValueHolder != null) {
+          notifyInvalidation(k, offHeapValueHolder);
+        }
+        function.apply();
+        return null;
+      }
+    }, false);
+  }
+
+  private void notifyInvalidation(final K key, final ValueHolder<V> p) {
+    final CachingTier.InvalidationListener<K, V> invalidationListener = this.invalidationListener;
+    if (invalidationListener != null) {
+      invalidationListener.onInvalidation(key, p);
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   * Note that this implementation is atomic.
+   */
+  @Override
+  public ValueHolder<V> getAndRemove(final K key) throws CacheAccessException {
+    checkKey(key);
+
+    final AtomicReference<ValueHolder<V>> valueHolderAtomicReference = new AtomicReference<ValueHolder<V>>();
+    BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+      @Override
+      public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
+        long now = timeSource.getTimeMillis();
+        if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+          if (mappedValue != null) {
+            eventListener.onExpiration(mappedKey, mappedValue);
+          }
+          mappedValue = null;
+        }
+        valueHolderAtomicReference.set(mappedValue);
+        return null;
+      }
+    };
+
+    backingMap().compute(key, computeFunction, false);
+    return valueHolderAtomicReference.get();
+  }
+
+  /**
+   * {@inheritDoc}
+   * Note that this implementation is only valid for a lower caching tier.
+   */
+  @Override
+  public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) throws CacheAccessException {
+    return backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+      @Override
+      public OffHeapValueHolder<V> apply(K k, OffHeapValueHolder<V> offHeapValueHolder) {
+        if (offHeapValueHolder != null) {
+          throw new AssertionError();
+        }
+        ValueHolder<V> valueHolder = source.apply(k);
+        if (valueHolder != null) {
+          if (valueHolder.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
+            eventListener.onExpiration(key, valueHolder);
+            return null;
+          } else {
+            return newTransferValueHolder(valueHolder);
+          }
+        }
+        return null;
+      }
+    }, false);
   }
 
   //TODO wire that in if/when needed
@@ -615,6 +722,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     } else {
       return new OffHeapValueHolder<V>(backingMap().nextIdFor(key), value, now, safeExpireTime(now, duration));
     }
+  }
+
+  private OffHeapValueHolder<V> newTransferValueHolder(ValueHolder<V> valueHolder) {
+    return new OffHeapValueHolder<V>(valueHolder.getId(), valueHolder.value(), valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT),
+        valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT), valueHolder.hits(), null);
   }
 
   public void handleOversizeMappingException(K key, OversizeMappingException cause) throws CacheAccessException {
@@ -692,7 +804,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   protected abstract EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> backingMap();
-  
+
   protected static <K, V> Predicate<Map.Entry<K, OffHeapValueHolder<V>>> wrap(EvictionVeto<? super K, ? super V> delegate, TimeSource timeSource) {
     return new OffHeapEvictionVetoWrapper<K, V>(delegate, timeSource);
   }

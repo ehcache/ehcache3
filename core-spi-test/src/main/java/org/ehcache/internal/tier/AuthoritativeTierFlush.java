@@ -117,28 +117,4 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
     assertThat(tier.flush(key, valueHolder), is(equalTo(false)));
   }
 
-  @SPITest
-  @SuppressWarnings("unchecked")
-  public void exceptionWhenValueHolderIsNotAnInstanceFromTheCachingTier() throws LegalSPITesterException {
-    K key = factory.createKey(1);
-    final V value = factory.createValue(1);
-
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
-
-    Store.ValueHolder<V> valueHolder = null;
-    try {
-      tier.put(key, value);
-      valueHolder = tier.get(key);
-    } catch (CacheAccessException e) {
-      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
-    }
-
-    try {
-      tier.flush(key, valueHolder);
-      throw new AssertionError();
-    } catch (IllegalArgumentException e) {
-      // expected
-    }
-  }
 }

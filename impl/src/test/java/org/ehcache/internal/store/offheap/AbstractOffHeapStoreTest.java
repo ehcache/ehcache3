@@ -17,6 +17,8 @@
 package org.ehcache.internal.store.offheap;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.ehcache.Cache;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.events.StoreEventListener;
@@ -24,13 +26,19 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.function.Function;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.spi.cache.AbstractValueHolder;
 import org.ehcache.spi.cache.Store;
+
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+
+import org.ehcache.spi.cache.tiering.CachingTier;
 import org.junit.Test;
 
 /**
@@ -38,7 +46,132 @@ import org.junit.Test;
  * @author cdennis
  */
 public abstract class AbstractOffHeapStoreTest {
-  
+
+  @Test
+  public void testGetAndRemove() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
+
+    try {
+      assertThat(offHeapStore.getAndRemove("1"), is(nullValue()));
+
+      offHeapStore.put("1", "one");
+
+      assertThat(offHeapStore.getAndRemove("1").value(), equalTo("one"));
+      assertThat(offHeapStore.getAndRemove("1"), is(nullValue()));
+
+      offHeapStore.put("1", "one");
+      timeSource.advanceTime(20);
+      assertThat(offHeapStore.getAndRemove("1"), is(nullValue()));
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
+
+  @Test
+  public void testGetAndRemoveExpiredElementReturnsNull() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
+
+    try {
+      assertThat(offHeapStore.getAndRemove("1"), is(nullValue()));
+
+      offHeapStore.put("1", "one");
+
+      final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
+      offHeapStore.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
+        @Override
+        public void onInvalidation(String key, Store.ValueHolder<String> valueHolder) {
+          invalidated.set(valueHolder);
+        }
+      });
+
+      timeSource.advanceTime(20);
+      assertThat(offHeapStore.getAndRemove("1"), is(nullValue()));
+      assertThat(invalidated.get().value(), equalTo("one"));
+      assertThat(invalidated.get().isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS), is(true));
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
+
+  @Test
+  public void testGetOrComputeIfAbsent() throws Exception {
+    final TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
+
+    try {
+      assertThat(offHeapStore.getOrComputeIfAbsent("1", new Function<String, Store.ValueHolder<String>>() {
+        @Override
+        public Store.ValueHolder<String> apply(String key) {
+          return new SimpleValueHolder<String>("one", timeSource.getTimeMillis(), 15);
+        }
+      }).value(), equalTo("one"));
+
+      timeSource.advanceTime(20);
+
+      try {
+        offHeapStore.getOrComputeIfAbsent("1", new Function<String, Store.ValueHolder<String>>() {
+          @Override
+          public Store.ValueHolder<String> apply(String key) {
+            return new SimpleValueHolder<String>("un", timeSource.getTimeMillis(), 15);
+          }
+        });
+        fail("expected AssertionError");
+      } catch (AssertionError ae) {
+        // expected
+      }
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
+
+  @Test
+  public void testInvalidateKey() throws Exception {
+    final TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
+
+    try {
+      final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
+      offHeapStore.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
+        @Override
+        public void onInvalidation(String key, Store.ValueHolder<String> valueHolder) {
+          invalidated.set(valueHolder);
+        }
+      });
+
+      offHeapStore.invalidate("1");
+      assertThat(invalidated.get(), is(nullValue()));
+
+      offHeapStore.put("1", "one");
+      offHeapStore.invalidate("1");
+      assertThat(invalidated.get().value(), equalTo("one"));
+
+      assertThat(offHeapStore.get("1"), is(nullValue()));
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
+
+  @Test
+  public void testInvalidateAll() throws Exception {
+    final TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
+
+    try {
+      offHeapStore.put("1", "one");
+      offHeapStore.put("2", "two");
+      offHeapStore.put("3", "three");
+      offHeapStore.invalidate();
+
+      assertThat(offHeapStore.get("1"), is(nullValue()));
+      assertThat(offHeapStore.get("2"), is(nullValue()));
+      assertThat(offHeapStore.get("3"), is(nullValue()));
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
+
   @Test
   public void testWriteBackOfValueHolder() throws CacheAccessException {
     TestTimeSource timeSource = new TestTimeSource();
@@ -211,6 +344,61 @@ public abstract class AbstractOffHeapStoreTest {
     @Override
     public long getId() {
       return valueHolder.getId();
+    }
+  }
+
+  static class SimpleValueHolder<T> extends AbstractValueHolder<T> {
+
+    private final T value;
+
+    public SimpleValueHolder(T v, long creationTime, long expirationTime) {
+      super(-1, creationTime, expirationTime);
+      this.value = v;
+    }
+
+    @Override
+    protected TimeUnit nativeTimeUnit() {
+      return TimeUnit.MILLISECONDS;
+    }
+
+    @Override
+    public T value() {
+      return value;
+    }
+
+    @Override
+    public long creationTime(TimeUnit unit) {
+      return 0;
+    }
+
+    @Override
+    public long expirationTime(TimeUnit unit) {
+      return 0;
+    }
+
+    @Override
+    public boolean isExpired(long expirationTime, TimeUnit unit) {
+      return false;
+    }
+
+    @Override
+    public long lastAccessTime(TimeUnit unit) {
+      return 0;
+    }
+
+    @Override
+    public float hitRate(long now, TimeUnit unit) {
+      return 0;
+    }
+
+    @Override
+    public long hits() {
+      return 0;
+    }
+
+    @Override
+    public long getId() {
+      return 0;
     }
   }
 }

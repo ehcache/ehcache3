@@ -20,6 +20,7 @@ import org.ehcache.CacheConfigurationChangeListener;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Predicate;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceService;
@@ -29,11 +30,14 @@ import org.ehcache.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.spi.cache.tiering.LowerCachingTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
 import org.terracotta.offheapstore.pinning.PinnableSegment;
@@ -105,7 +109,9 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
   }
 
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class})
-  public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
+  public static class Provider implements Store.Provider, AuthoritativeTier.Provider, LowerCachingTier.Provider {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Provider.class);
 
     private volatile ServiceProvider serviceProvider;
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
@@ -185,6 +191,48 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     @Override
     public void initAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
       initStore(resource);
+    }
+
+    @Override
+    public <K, V> LowerCachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      return createStore(storeConfig, serviceConfigs);
+    }
+
+    @Override
+    public void releaseCachingTier(LowerCachingTier<?, ?> resource) {
+      if (!createdStores.contains(resource)) {
+        throw new IllegalArgumentException("Given caching tier is not managed by this provider : " + resource);
+      }
+      flushToLowerTier((OffHeapStore<Object, ?>) resource);
+      releaseStore((Store<?, ?>) resource);
+    }
+
+    private void flushToLowerTier(OffHeapStore<Object, ?> resource) {
+      CacheAccessException lastFailure = null;
+      int failureCount = 0;
+      OffHeapStore<Object, ?> offheapStore = resource;
+      Set<Object> keys = offheapStore.backingMap().keySet();
+      for (Object key : keys) {
+        try {
+          offheapStore.invalidate(key);
+        } catch (CacheAccessException cae) {
+          lastFailure = cae;
+          failureCount++;
+          LOGGER.warn("Error flushing '{}' to lower tier", key, cae);
+        }
+      }
+      if (lastFailure != null) {
+        throw new RuntimeException("Failed to flush some mappings to lower tier, " +
+            failureCount + " could not be flushed. This error represents the last failure.", lastFailure);
+      }
+    }
+
+    @Override
+    public void initCachingTier(LowerCachingTier<?, ?> resource) {
+      if (!createdStores.contains(resource)) {
+        throw new IllegalArgumentException("Given caching tier is not managed by this provider : " + resource);
+      }
+      initStore((Store<?, ?>) resource);
     }
   }
 }

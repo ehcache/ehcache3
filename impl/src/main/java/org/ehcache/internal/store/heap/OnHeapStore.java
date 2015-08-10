@@ -371,10 +371,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     map.clear();
   }
 
-  public void maintenance() {
-    // Nothing we have to do here...
-  }
-
   @Override
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() throws CacheAccessException {
     final java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>> it = map.entrySetIterator();
@@ -521,6 +517,20 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     });
   }
 
+  @Override
+  public void invalidate(K key, final NullaryFunction<K> function) throws CacheAccessException {
+    map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      @Override
+      public OnHeapValueHolder<V> apply(K k, OnHeapValueHolder<V> onHeapValueHolder) {
+        if (onHeapValueHolder != null) {
+          notifyInvalidation(k, onHeapValueHolder);
+        }
+        function.apply();
+        return null;
+      }
+    });
+  }
+
   private void notifyInvalidation(final K key, final ValueHolder<V> p) {
     final InvalidationListener<K, V> invalidationListener = this.invalidationListener;
     if(invalidationListener != null) {
@@ -648,6 +658,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     @Override
     public void setLastAccessTime(long lastAccessTime, TimeUnit unit) {
       throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String toString() {
+      return "[Fault : " + (complete ? (throwable == null ? value.toString() : throwable.getMessage()) : "???") + "]";
     }
   }
 

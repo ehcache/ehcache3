@@ -59,7 +59,7 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
   @After
   public void tearDown() {
     if (tier != null) {
-//      tier.close();
+      factory.disposeOf(tier);
       tier = null;
     }
   }

@@ -16,9 +16,9 @@
 
 package org.ehcache.internal.store.offheap;
 
-import java.util.Arrays;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.StoreConfigurationImpl;
@@ -32,14 +32,14 @@ import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.tier.AuthoritativeTierFactory;
 import org.ehcache.internal.tier.AuthoritativeTierSPITest;
 import org.ehcache.spi.ServiceLocator;
-import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 
-import org.ehcache.config.ResourcePool;
+import java.util.Arrays;
+
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 
 /**
@@ -162,4 +162,13 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
   protected StoreFactory<String, String> getStoreFactory() {
     return getAuthoritativeTierFactory();
   }
+
+  public static void initStore(OffHeapStore<?, ?> offHeapStore) {
+    OffHeapStore.Provider.init(offHeapStore);
+  }
+
+  public static void closeStore(OffHeapStore<?, ?> offHeapStore) {
+    OffHeapStore.Provider.close(offHeapStore);
+  }
+
 }

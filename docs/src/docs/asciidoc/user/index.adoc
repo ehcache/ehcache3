@@ -81,6 +81,20 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
     data should be stored on disk to the `CacheManagerBuilder.persistence(String)` static method.
 <2> You define a resource pool for the disk.
 
+==== Three tiers
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=threeTiersCacheManager]
+----
+
+<1> If you wish to use disk storage (like for persistent `Cache` instances), you'll have to register a
+    `LocalPersistenceService` with your `CacheManager`, which you can do by providing the location where
+    data should be stored on disk to the `CacheManagerBuilder.persistence(String)` static method.
+<2> You define a resource pool for the heap.
+<3> You define a resource pool for the off-heap.
+<4> You define a resource pool for the disk.
+
 ==== Update ResourcePools
 
 [source,java,indent=0]

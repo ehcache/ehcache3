@@ -24,11 +24,11 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * Caching tier, according to Montreal design.
+ * Lower caching tier, according to Montreal design.
  *
  * @author Ludovic Orban
  */
-public interface CachingTier<K, V> extends ConfigurationChangeSupport {
+public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
 
   /**
    * Either return the value holder currently in the caching tier, or compute and store it when it isn't present.
@@ -39,6 +39,14 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
    * @throws CacheAccessException
    */
   Store.ValueHolder<V> getOrComputeIfAbsent(K key, Function<K, Store.ValueHolder<V>> source) throws CacheAccessException;
+
+  /**
+   * Return the value holder currently in the caching tier and remove it.
+   * @param key the key.
+   * @return the value holder, or null.
+   * @throws CacheAccessException
+   */
+  Store.ValueHolder<V> getAndRemove(K key) throws CacheAccessException;
 
   /**
    * Remove a mapping.
@@ -66,30 +74,14 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
    * @param invalidationListener the listener.
    * @throws IllegalStateException if the invalidation listener is already set.
    */
-  void setInvalidationListener(InvalidationListener<K, V> invalidationListener);
-
-  /**
-   * Caching tier invalidation listener.
-   * @param <K>
-   * @param <V>
-   */
-  interface InvalidationListener<K, V> {
-
-    /**
-     * Notification that a mapping was evicted or has expired.
-     * @param key the mapping's key.
-     * @param valueHolder the invalidated mapping's value holder.
-     */
-    void onInvalidation(K key, Store.ValueHolder<V> valueHolder);
-
-  }
+  void setInvalidationListener(CachingTier.InvalidationListener<K, V> invalidationListener);
 
   interface Provider extends Service {
-    <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
+    <K, V> LowerCachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
 
-    void releaseCachingTier(CachingTier<?, ?> resource);
+    void releaseCachingTier(LowerCachingTier<?, ?> resource);
 
-    void initCachingTier(CachingTier<?, ?> resource);
+    void initCachingTier(LowerCachingTier<?, ?> resource);
   }
 
 }

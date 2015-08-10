@@ -23,7 +23,6 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.ConfigurationChangeSupport;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.cache.tiering.CachingTier;
@@ -450,17 +449,17 @@ public class CacheStore<K, V> implements Store<K, V> {
     }
 
     @Override
+    public void invalidate(K key, NullaryFunction<K> function) throws CacheAccessException {
+      function.apply();
+    }
+
+    @Override
     public void invalidate() throws CacheAccessException {
       // noop
     }
 
     @Override
     public void setInvalidationListener(final InvalidationListener<K, V> invalidationListener) {
-      // noop
-    }
-
-    @Override
-    public void maintenance() {
       // noop
     }
 

@@ -14,19 +14,22 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store.heap;
+package org.ehcache.internal.store.tiering;
 
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.serialization.JavaSerializer;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
+import org.ehcache.internal.store.heap.OnHeapStore;
+import org.ehcache.internal.store.offheap.OffHeapStore;
+import org.ehcache.internal.store.offheap.OffHeapStoreLifecycleHelper;
 import org.ehcache.internal.tier.CachingTierFactory;
 import org.ehcache.internal.tier.CachingTierSPITest;
 import org.ehcache.spi.ServiceLocator;
@@ -36,16 +39,20 @@ import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 
+import java.util.IdentityHashMap;
+import java.util.Map;
+
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 /**
  * This factory instantiates a CachingTier
  *
- * @author Aurelien Broszniowski
+ * @author Ludovic Orban
  */
-public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<String, String> {
+public class CompoundCachingTierSPITest extends CachingTierSPITest<String, String> {
 
   private CachingTierFactory<String, String> cachingTierFactory;
+  private Map<CompoundCachingTier<?, ?>, OffHeapStore<?, ?>> map = new IdentityHashMap<CompoundCachingTier<?, ?>, OffHeapStore<?, ?>>();
 
   @Override
   protected CachingTierFactory<String, String> getCachingTierFactory() {
@@ -58,33 +65,36 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       @Override
       public CachingTier<String, String> newCachingTier(final Store.Configuration<String, String> config) {
-        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, true,
-            new JavaSerializer<String>(getClass().getClassLoader()), new JavaSerializer<String>(getClass().getClassLoader()));
+        OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, new JavaSerializer<String>(ClassLoader.getSystemClassLoader()), new JavaSerializer<String>(ClassLoader.getSystemClassLoader()), SystemTimeSource.INSTANCE, 10 * 1024 * 1024);
+        OffHeapStoreLifecycleHelper.init(offHeapStore);
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false, null, null);
+        CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(onHeapStore, offHeapStore);
+        map.put(compoundCachingTier, offHeapStore);
+        return compoundCachingTier;
       }
 
       @Override
       public CachingTier<String, String> newCachingTier(final Store.Configuration<String, String> config, TimeSource timeSource) {
-        return new OnHeapStore<String, String>(config, timeSource, true, new JavaSerializer<String>(getClass().getClassLoader()),
-            new JavaSerializer<String>(getClass().getClassLoader()));
+        OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, new JavaSerializer<String>(ClassLoader.getSystemClassLoader()), new JavaSerializer<String>(ClassLoader.getSystemClassLoader()), timeSource, 10 * 1024 * 1024);
+        OffHeapStoreLifecycleHelper.init(offHeapStore);
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, false, null, null);
+        CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(onHeapStore, offHeapStore);
+        map.put(compoundCachingTier, offHeapStore);
+        return compoundCachingTier;
       }
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new ByValueOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), new JavaSerializer<String>(getClass()
-            .getClassLoader()));
+        throw new UnsupportedOperationException();
       }
 
       @Override
       public Store.Provider newProvider() {
-        Store.Provider service = new OnHeapStore.Provider();
-        service.start(new ServiceLocator());
-        return service;
+        return new OnHeapStore.Provider();
       }
 
       @Override
-      public Store.Configuration<String, String> newConfiguration(
-          final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
-          final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
+      public Store.Configuration<String, String> newConfiguration(final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint, final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
         return new StoreConfigurationImpl<String, String>(keyType, valueType,
             evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacityConstraint));
       }
@@ -100,9 +110,9 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
         if (capacityConstraint == null) {
-          return newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
+          return newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB).build();
         } else {
-          return newResourcePoolsBuilder().heap((Long)capacityConstraint, EntryUnit.ENTRIES).build();
+          return newResourcePoolsBuilder().heap((Long)capacityConstraint, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB).build();
         }
       }
 
@@ -118,7 +128,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[] { new OnHeapStoreServiceConfiguration().storeByValue(true) };
+        return new ServiceConfiguration[0];
       }
 
       @Override
@@ -133,6 +143,8 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       @Override
       public void disposeOf(CachingTier tier) {
+        OffHeapStore<?, ?> offHeapStore = map.remove(tier);
+        OffHeapStoreLifecycleHelper.close(offHeapStore);
       }
 
       @Override
