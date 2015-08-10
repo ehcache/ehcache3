@@ -1,0 +1,51 @@
+= Ehcache Tiering Model
+
+:toc:
+
+The `Store` in Ehcache is designed to hold data in multi-tiered model. Broadly, a cache
+can have two major tiers - `CachingTier` and `AuthoritativeTier`.
+`CacheStore` wires both the tier's for the Cache and provides a unified view of
+the `Store`. We can break the tiers further and introduce additional layers like
+2-Tier `CachingTier`.
+
+. What is CachingTier ?
+
+- In a multi-tiered cache, this tier holds the most recently used data. Conceptually
+the cost of getting a value from the Caching Tier is low compared to other lower
+tiers. All the data that is present in CachingTier, has to be present in AuthoritativeTier.
+The authority will not evict the entry which is present in CachingTier. CachingTier is
+always the subset of authority.
+
+. What is AuthoritativeTier ?
+
+- This tier is the ultimate source of truth for the cache data, thus the authority.
+All the mutations for an entry are done at authority tier first. Afterwards the
+returning thread uninstalls the stale entry from the caching tier.
+
+. How are they wired ?
+
+- All Multi-tiered Caches have only one store i.e. `CacheStore` which wires the
+ logic between a CachingTier and an AuthoritativeTier. All the mutative operations
+ are written in a way that the mutating thread uninstalls the entry from CachingTier
+ after the mutation is complete in authority. The Store has an invalidation listener
+ through which authority listens on all the invalidations done in caching tier.
+
+. Faulting
+
+- Whenever an entry is not found in CachingTier it is faulted from AuthoritativeTier.
+Even if there are multiple threads trying to get a value, all the threads will fight
+the race for the lock and the winning thread will install a fault for that key and wait
+for value to be fetched from the authority by the fault. All other
+threads will read the most recently fetched value installed in CachingTier.
+The important point is that whenever an entry is faulted from authority, the contract
+ensures that till the entry resides in caching tier , it will not be removed/evicted
+from authority.
+
+. Invalidations and Flushing
+
+- In situations when caching tier decides that an entry needs to be evicted/expired,
+it has to inform authority that it can now evict that entry. Therefore, whenever an
+entry is expired/evicted from caching tier, it flushes that information to authority
+using invalidation listener. All the flushed entries are now marked as evictable in
+authority.
+
