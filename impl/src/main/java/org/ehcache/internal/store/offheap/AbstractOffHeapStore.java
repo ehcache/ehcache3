@@ -55,21 +55,28 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   private final Expiry<? super K, ? super V> expiry;
 
-  private final OperationObserver<StoreOperationOutcomes.GetOutcome> getOperationObserver = operation(StoreOperationOutcomes.GetOutcome.class).of(this).named("get").tag("local-offheap").build();
-  private final OperationObserver<StoreOperationOutcomes.PutOutcome> putOperationObserver = operation(StoreOperationOutcomes.PutOutcome.class).of(this).named("put").tag("local-offheap").build();
-  private final OperationObserver<StoreOperationOutcomes.RemoveOutcome> removeOperationObserver = operation(StoreOperationOutcomes.RemoveOutcome.class).of(this).named("remove").tag("local-offheap").build();
+  private final OperationObserver<StoreOperationOutcomes.GetOutcome> getOperationObserver;
+  private final OperationObserver<StoreOperationOutcomes.PutOutcome> putOperationObserver;
+  private final OperationObserver<StoreOperationOutcomes.RemoveOutcome> removeOperationObserver;
+  private final OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver;
 
   private volatile Callable<Void> valve;
   private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener();
   protected BackingMapEvictionListener<K, V> mapEvictionListener;
   
-  public AbstractOffHeapStore(final Configuration<K, V> config, TimeSource timeSource) {
+  public AbstractOffHeapStore(String statisticsTag, Configuration<K, V> config, TimeSource timeSource) {
     keyType = config.getKeyType();
     valueType = config.getValueType();
     expiry = config.getExpiry();
     
     this.timeSource = timeSource;
-    mapEvictionListener = new BackingMapEvictionListener<K, V>();
+
+    this.getOperationObserver = operation(StoreOperationOutcomes.GetOutcome.class).of(this).named("get").tag(statisticsTag).build();
+    this.putOperationObserver = operation(StoreOperationOutcomes.PutOutcome.class).of(this).named("put").tag(statisticsTag).build();
+    this.removeOperationObserver = operation(StoreOperationOutcomes.RemoveOutcome.class).of(this).named("remove").tag(statisticsTag).build();
+    this.evictionObserver = operation(StoreOperationOutcomes.EvictionOutcome.class).of(this).named("eviction").tag(statisticsTag).build();
+
+    this.mapEvictionListener = new BackingMapEvictionListener<K, V>(evictionObserver);
   }
   
   @Override
@@ -754,9 +761,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   static class BackingMapEvictionListener<K, V> implements EhcacheSegmentFactory.EhcacheSegment.EvictionListener<K, OffHeapValueHolder<V>> {
 
+    private final OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver;
     private StoreEventListener<K, V> storeEventListener;
 
-    private BackingMapEvictionListener() {
+    private BackingMapEvictionListener(OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver) {
+      this.evictionObserver = evictionObserver;
       this.storeEventListener = CacheEvents.nullStoreEventListener();
     }
 
@@ -767,6 +776,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
     @Override
     public void onEviction(K key, OffHeapValueHolder<V> value) {
+      evictionObserver.begin();
+      evictionObserver.end(StoreOperationOutcomes.EvictionOutcome.SUCCESS);
       storeEventListener.onEviction(key, value);
     }
   }
