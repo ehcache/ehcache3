@@ -16,6 +16,8 @@
 
 package org.ehcache.internal.store.offheap;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -35,9 +37,11 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import org.hamcrest.MatcherAssert;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.junit.Test;
 
@@ -263,6 +267,40 @@ public abstract class AbstractOffHeapStoreTest {
       assertThat(store.flush(key, new DelegatingValueHolder<String>(valueHolder)), is(true));
     }
     assertThat(store.getAndFault(key).hits(), is(5l));
+  }
+
+  @Test
+  public void testExpiryEventFiredOnExpiredCachedEntry() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
+    try {
+      final List<String> expiredKeys = new ArrayList<String>();
+      offHeapStore.enableStoreEventNotifications(new StoreEventListener<String, String>() {
+
+        @Override
+        public void onEviction(final String key, final Store.ValueHolder<String> valueHolder) {
+          throw new AssertionError("This should not have happened.");
+        }
+
+        @Override
+        public void onExpiration(final String key, final Store.ValueHolder<String> valueHolder) {
+          expiredKeys.add(key);
+        }
+      });
+
+      offHeapStore.put("key1", "value1");
+      offHeapStore.put("key2", "value2");
+
+      offHeapStore.get("key1");   // Bring the entry to the caching tier
+
+      timeSource.advanceTime(11);   // Expire the elements
+
+      offHeapStore.get("key1");
+      offHeapStore.get("key2");
+      MatcherAssert.assertThat(expiredKeys, containsInAnyOrder("key1", "key2"));
+    } finally {
+      destroyStore(offHeapStore);
+    }
   }
 
   protected abstract AbstractOffHeapStore<String, String> createAndInitStore(final TimeSource timeSource, final Expiry<? super String, ? super String> expiry);
