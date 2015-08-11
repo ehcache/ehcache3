@@ -50,17 +50,18 @@ public class CacheManagerDestroyRemovesPersistenceTest {
     persistentCacheManager.close();
     Maintainable maintainable = persistentCacheManager.toMaintenance();
     maintainable.destroy();
+    maintainable.close();
 
     assertThat(file.list().length, is(0));
   }
 
   public void initCacheManager() throws URISyntaxException {
     persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "myData"))) // <1>
+        .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "myData"))) 
         .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder()
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
-                .disk(10L, MemoryUnit.MB, true)) // <2>
+                .disk(10L, MemoryUnit.MB, true)) 
             .buildConfig(Long.class, String.class))
         .build(true);
   }
