@@ -292,7 +292,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         } finally {
           output.close();
         }
-        localMap.destroy();
+        localMap.close();
       }
     }
 

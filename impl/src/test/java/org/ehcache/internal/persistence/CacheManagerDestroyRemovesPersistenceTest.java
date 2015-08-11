@@ -43,24 +43,35 @@ public class CacheManagerDestroyRemovesPersistenceTest {
   @Test
   public void testDestroyRemovesPersistenceData () throws URISyntaxException, CachePersistenceException {
     File file = new File(getStoragePath(), "myData");
-    initCacheManager();
+    initCacheManager(file);
     putValuesInCacheAndCloseCacheManager();
 
-    initCacheManager();
+    initCacheManager(file);
     persistentCacheManager.close();
     Maintainable maintainable = persistentCacheManager.toMaintenance();
     maintainable.destroy();
+    maintainable.close();
 
     assertThat(file.list().length, is(0));
   }
+  
+  @Test
+  public void testDestroyCacheDestroysPersistenceContext() throws URISyntaxException, CachePersistenceException {
+    File file = new File(getStoragePath(), "testDestory");
+    initCacheManager(file);
+    
+    persistentCacheManager.destroyCache("persistent-cache");
+    
+    assertThat(file.list().length, is(1));
+  }
 
-  public void initCacheManager() throws URISyntaxException {
+  public void initCacheManager(File file) throws URISyntaxException {
     persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "myData"))) // <1>
+        .with(new CacheManagerPersistenceConfiguration(file)) 
         .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder()
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
-                .disk(10L, MemoryUnit.MB, true)) // <2>
+                .disk(10L, MemoryUnit.MB, true)) 
             .buildConfig(Long.class, String.class))
         .build(true);
   }
