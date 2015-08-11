@@ -40,6 +40,7 @@ import java.util.Set;
 
 import static java.lang.Integer.toHexString;
 import static java.nio.charset.Charset.forName;
+
 import java.util.concurrent.ConcurrentMap;
 
 /**
@@ -215,7 +216,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     if (verbose) {
       LOGGER.info("Destroying file based persistence context for {}", identifier);
     }
-    if (fileBasedPersistenceContext.getDirectory().exists() && !recursiveDelete(fileBasedPersistenceContext.getDirectory())) {
+    if (fileBasedPersistenceContext.getDirectory().exists() && !tryRecursiveDelete(fileBasedPersistenceContext.getDirectory())) {
       if (verbose) {
         LOGGER.warn("Could not delete directory for context {}", identifier);
       }
@@ -228,7 +229,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       File[] contents = file.listFiles();
       if (contents.length > 0) {
         for (File f : contents) {
-          if(!recursiveDelete(f)) {
+          if (!tryRecursiveDelete(f)) {
             deleteSuccessful = false;
           }
         }
@@ -262,7 +263,27 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
     return true;
   }
+  
+  private static boolean tryRecursiveDelete(File file) {
+    boolean success = true;
+    for (int i = 0; i < 5; i++) {
+      success = recursiveDelete(file);
+      if (success) {
+        break;
+      } else {
+        System.gc();
+        System.runFinalization();
 
+        try {
+          Thread.sleep(50);
+        } catch (InterruptedException e) {
+          // do nothing ?
+        }
+      }
+    }
+    return success;
+  }
+  
   /**
    * sanitize a name for valid file or directory name
    *
