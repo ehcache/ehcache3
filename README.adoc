@@ -12,16 +12,15 @@ For samples, documentation, and usage information, please see http://ehcache.git
 
 == Current release
 
-We released the Milestone 1 on March 24, 2015. In addition to the JSR-107 compatibility,
-it introduces tiering and offers an offheap option based on the recently https://github.com/Terracotta-OSS/offheap-store[open sourced library] from Terracotta.
+We released the Milestone 2 on August 11, 2015. In addition to the JSR-107 compatibility,
+it introduces up to 3 level tiering, offering offheap as well as a new disk persistence option; write-behind, ...
 
-The https://github.com/ehcache/ehcache3/releases/tag/v3.0.0.m1[release notes] contain the links to the documentation
+The https://github.com/ehcache/ehcache3/releases/tag/v3.0.0.m2[release notes] contain the links to the documentation
 to help you get started
 
 == Current development & next release
 
 We are now working on the next milestone :
-All the work to get all the features we want to port from the existing Ehcache 2.x line, exposed using the new API.
-This includes things not covered by the 107 spec, such as _WriteBehind_, _EvictionListener_ et al.
+All missing features from the existing Ehcache 2.x line, exposed using the new API, but Automatic Resource Control (planned for M4).
 
 See the https://github.com/ehcache/ehcache3/milestones[milestones on GitHub] for more details on the current status.
