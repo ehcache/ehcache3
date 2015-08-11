@@ -56,10 +56,9 @@ public class CacheManagerDestroyRemovesPersistenceTest {
   }
   
   @Test
-  public void testDestoryCacheDestroysPersistenceContext() throws URISyntaxException, CachePersistenceException {
+  public void testDestroyCacheDestroysPersistenceContext() throws URISyntaxException, CachePersistenceException {
     File file = new File(getStoragePath(), "testDestory");
     initCacheManager(file);
-    
     
     persistentCacheManager.destroyCache("persistent-cache");
     

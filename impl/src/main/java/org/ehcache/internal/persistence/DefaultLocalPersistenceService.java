@@ -36,6 +36,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 import static java.lang.Integer.toHexString;
@@ -265,23 +266,32 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   }
   
   private static boolean tryRecursiveDelete(File file) {
-    boolean success = true;
-    for (int i = 0; i < 5; i++) {
-      success = recursiveDelete(file);
-      if (success) {
-        break;
-      } else {
-        System.gc();
-        System.runFinalization();
+    boolean interrupted = false;
+    try {
+      for (int i = 0; i < 5; i++) {
+        if (recursiveDelete(file) || !isWindows()) {
+          return true;
+        } else {
+          System.gc();
+          System.runFinalization();
 
-        try {
-          Thread.sleep(50);
-        } catch (InterruptedException e) {
-          // do nothing ?
+          try {
+            Thread.sleep(50);
+          } catch (InterruptedException e) {
+            interrupted = true;
+          }
         }
       }
+    } finally {
+      if (interrupted) {
+        Thread.currentThread().interrupt();
+      }
     }
-    return success;
+    return false;
+ }
+  
+  private static boolean isWindows() {
+    return System.getProperty("os.name").toLowerCase(Locale.ENGLISH).contains("windows");
   }
   
   /**
