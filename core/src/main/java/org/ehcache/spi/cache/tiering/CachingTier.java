@@ -59,7 +59,7 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
    * Empty out the caching store.
    * @throws CacheAccessException
    */
-  void invalidate() throws CacheAccessException;
+  void clear() throws CacheAccessException;
 
   /**
    * Set the caching tier's invalidation listener. The invalidation listener can only be set once.

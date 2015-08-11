@@ -51,6 +51,7 @@ class ByValueOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   protected ByValueOnHeapValueHolder(Store.ValueHolder<V> valueHolder, Serializer<V> serializer) {
     this(valueHolder.value(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), serializer);
     this.setLastAccessTime(valueHolder.lastAccessTime(TIME_UNIT), TIME_UNIT);
+    this.setHits(valueHolder.hits());
   }
 
   @Override

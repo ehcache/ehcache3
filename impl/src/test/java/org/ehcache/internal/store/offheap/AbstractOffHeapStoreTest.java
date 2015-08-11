@@ -162,7 +162,7 @@ public abstract class AbstractOffHeapStoreTest {
       offHeapStore.put("1", "one");
       offHeapStore.put("2", "two");
       offHeapStore.put("3", "three");
-      offHeapStore.invalidate();
+      offHeapStore.clear();
 
       assertThat(offHeapStore.get("1"), is(nullValue()));
       assertThat(offHeapStore.get("2"), is(nullValue()));

@@ -186,9 +186,9 @@ public class CompoundCachingTierTest {
 
     CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
 
-    compoundCachingTier.invalidate();
-    verify(higherTier, times(1)).invalidate();
-    verify(lowerTier, times(1)).invalidate();
+    compoundCachingTier.clear();
+    verify(higherTier, times(1)).clear();
+    verify(lowerTier, times(1)).clear();
   }
 
   @Test

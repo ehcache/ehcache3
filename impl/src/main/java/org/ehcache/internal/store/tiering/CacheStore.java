@@ -213,7 +213,7 @@ public class CacheStore<K, V> implements Store<K, V> {
       authoritativeTier.clear();
     } finally {
       try {
-        realCachingTier.invalidate();
+        realCachingTier.clear();
       } finally {
         if(!cachingTierRef.compareAndSet(noopCachingTier, realCachingTier)) {
           throw new AssertionError("Something bad happened");
@@ -454,7 +454,7 @@ public class CacheStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public void invalidate() throws CacheAccessException {
+    public void clear() throws CacheAccessException {
       // noop
     }
 

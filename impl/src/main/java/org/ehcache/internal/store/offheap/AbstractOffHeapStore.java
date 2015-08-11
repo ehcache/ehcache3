@@ -585,11 +585,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public void invalidate() throws CacheAccessException {
-    clear();
-  }
-
-  @Override
   public void invalidate(final K key) throws CacheAccessException {
     backingMap().computeIfPresent(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
       @Override
