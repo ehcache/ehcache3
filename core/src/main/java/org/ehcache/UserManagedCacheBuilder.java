@@ -16,6 +16,7 @@
 
 package org.ehcache;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -28,7 +29,6 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.StoreConfigurationImpl;
-import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.UserManagedCacheConfiguration;
 import org.ehcache.events.CacheEventNotificationService;
@@ -46,6 +46,7 @@ import org.ehcache.util.ClassLoading;
 import org.slf4j.LoggerFactory;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import org.ehcache.exceptions.CachePersistenceException;
 
 /**
  * @author Alex Snaps
@@ -97,13 +98,28 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType,
         evictionVeto, evictionPrioritizer, classLoader, expiry, resourcePools);
     boolean persistent = resourcePools.getResourceTypeSet().contains(ResourceType.Core.DISK);
+    final Store<K, V> store;
     if (persistent) {
       if (id == null) {
         throw new IllegalStateException("Persistent user managed caches must have an id set");
       }
-      storeConfig = new PersistentStoreConfigurationImpl<K, V>(storeConfig, id);
+      LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
+      if (!resourcePools.getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
+        try {
+          persistenceService.destroyPersistenceSpace(id);
+        } catch (CachePersistenceException cpex) {
+          throw new RuntimeException("Unable to clean-up persistence space for non-restartable cache " + id, cpex);
+        }
+      }
+      try {
+        LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(id);
+        store = storeProvider.createStore(storeConfig, space);
+      } catch (CachePersistenceException cpex) {
+        throw new RuntimeException("Unable to create persistence space for cache " + id, cpex);
+      }
+    } else {
+      store = storeProvider.createStore(storeConfig);
     }
-    final Store<K, V> store = storeProvider.createStore(storeConfig);
 
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionVeto,
         evictionPrioritizer, classLoader, expiry, resourcePools);
@@ -128,7 +144,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
         throw new IllegalStateException("No LocalPersistenceService could be found - did you configure one?");
       }
 
-      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(runtimeConfiguration, store, (Store.PersistentStoreConfiguration) storeConfig, persistenceService, cacheLoaderWriter, cacheEventNotificationService, id);
+      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(runtimeConfiguration, store, storeConfig, persistenceService, cacheLoaderWriter, cacheEventNotificationService, id);
       cache.addHook(lifeCycled);
       return cast(cache);
     } else {

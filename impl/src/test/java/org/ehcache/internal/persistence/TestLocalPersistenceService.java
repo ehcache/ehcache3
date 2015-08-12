@@ -20,7 +20,6 @@ import java.io.File;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.junit.rules.ExternalResource;
@@ -64,27 +63,32 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
   }
 
   @Override
-  public FileBasedPersistenceContext createPersistenceContext(Object identifier, Store.PersistentStoreConfiguration<?, ?, ?> storeConfiguration) throws CachePersistenceException {
-    return persistenceService.createPersistenceContext(identifier, storeConfiguration);
+  public PersistenceSpaceIdentifier getOrCreatePersistenceSpace(String name) throws CachePersistenceException {
+    return persistenceService.getOrCreatePersistenceSpace(name);
   }
 
   @Override
-  public void destroyPersistenceContext(Object identifier) throws CachePersistenceException {
-    persistenceService.destroyPersistenceContext(identifier);
+  public void destroyPersistenceSpace(String name) throws CachePersistenceException {
+    persistenceService.destroyPersistenceSpace(name);
   }
 
   @Override
-  public void destroyAllPersistenceContext() {
-    persistenceService.destroyAllPersistenceContext();
+  public FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier space, String name) throws CachePersistenceException {
+    return persistenceService.createPersistenceContextWithin(space, name);
+  }
+
+  @Override
+  public void destroyAllPersistenceSpaces() {
+    persistenceService.destroyAllPersistenceSpaces();
   }
 
   @Override
   public void start(ServiceProvider serviceProvider) {
-    throw new UnsupportedOperationException("The TestLocalPersistenceService is lifecycled automatically");
+    //ignore
   }
 
   @Override
   public void stop() {
-    throw new UnsupportedOperationException("The TestLocalPersistenceService is lifecycled automatically");
+    //ignore
   }
 }

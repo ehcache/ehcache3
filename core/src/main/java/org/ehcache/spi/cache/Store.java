@@ -505,14 +505,6 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
     ResourcePools getResourcePools();
   }
 
-  interface PersistentStoreConfiguration<K, V, T> extends Configuration<K, V> {
-
-    T getIdentifier();
-
-    boolean isPersistent();
-
-  }
-
   /**
    * An iterator over a Store.
    * @param <T> the type of the elements iterated over

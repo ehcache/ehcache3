@@ -69,6 +69,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.ehcache.internal.store.offheap.AbstractOffHeapStore;
 import org.ehcache.internal.store.offheap.EhcacheOffHeapBackingMap;
+import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
+import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 
 /**
  *
@@ -239,11 +241,6 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig
           .getClassLoader(), serviceConfigs);
 
-      if(!(storeConfig instanceof PersistentStoreConfiguration)) {
-        throw new IllegalArgumentException("Store.Configuration for OffHeapDiskStore should implement Store.PersistentStoreConfiguration");
-      }
-      PersistentStoreConfiguration persistentStoreConfiguration = (PersistentStoreConfiguration) storeConfig;
-
       ResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
       if (!(offHeapPool.getUnit() instanceof MemoryUnit)) {
         throw new IllegalArgumentException("OffHeapDiskStore only supports resources configuration expressed in \"memory\" unit");
@@ -255,16 +252,16 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         throw new IllegalStateException("No LocalPersistenceService could be found - did you configure it at the CacheManager level?");
       }
 
+      PersistenceSpaceIdentifier space = findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) serviceConfigs);
       try {
-        FileBasedPersistenceContext persistenceContext = localPersistenceService.createPersistenceContext(persistentStoreConfiguration
-            .getIdentifier(), persistentStoreConfiguration);
+        FileBasedPersistenceContext persistenceContext = localPersistenceService.createPersistenceContextWithin(space , "offheap-disk-store");
 
         OffHeapDiskStore<K, V> offHeapStore = new OffHeapDiskStore<K, V>(persistenceContext, storeConfig, keySerializer, valueSerializer, timeSource, unit
             .toBytes(offHeapPool.getSize()));
         createdStores.add(offHeapStore);
         return offHeapStore;
       } catch (CachePersistenceException cpex) {
-        throw new RuntimeException("Unable to create persistence context for " + persistentStoreConfiguration.getIdentifier(), cpex);
+        throw new RuntimeException("Unable to create persistence context in " + space, cpex);
       }
     }
 

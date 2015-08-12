@@ -24,7 +24,6 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
-import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.expiry.Expirations;
@@ -58,6 +57,7 @@ import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.internal.store.disk.OffHeapDiskStoreSPITest;
+import org.ehcache.spi.service.LocalPersistenceService;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import static org.mockito.Mockito.mock;
@@ -74,7 +74,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
   private StoreFactory<String, String> storeFactory;
   private final CacheStore.Provider provider = new CacheStore.Provider();
   private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<Store<String, String>, String>();
-  private DefaultLocalPersistenceService persistenceService;
+  private LocalPersistenceService persistenceService;
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
@@ -102,10 +102,10 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
         Serializer<String> valueSerializer = new JavaSerializer<String>(config.getClassLoader());
 
         OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, false, keySerializer, valueSerializer);
-        Store.PersistentStoreConfiguration<String, String, String> persistentStoreConfiguration = (Store.PersistentStoreConfiguration) config;
         try {
-          FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContext(persistentStoreConfiguration
-              .getIdentifier(), persistentStoreConfiguration);
+          String spaceName = "alias-" + aliasCounter.getAndIncrement();
+          LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);
+          FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContextWithin(space, "store");
 
           ResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
           MemoryUnit unit = (MemoryUnit) diskPool.getUnit();
@@ -166,7 +166,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
             }
           });
           provider.initStore(cacheStore);
-          createdStores.put(cacheStore, persistentStoreConfiguration.getIdentifier());
+          createdStores.put(cacheStore, spaceName);
           return cacheStore;
         } catch (CachePersistenceException e) {
           throw new RuntimeException("Error creation persistence context", e);
@@ -237,9 +237,8 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store.Configuration<String, String> newConfiguration(Class<String> keyType, Class<String> valueType, Long capacityConstraint, EvictionVeto<? super String, ? super String> evictionVeto, EvictionPrioritizer<? super String, ? super String> evictionPrioritizer, Expiry<? super String, ? super String> expiry) {
-        StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(keyType, valueType,
+        return new StoreConfigurationImpl<String, String>(keyType, valueType,
             evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, buildResourcePools(capacityConstraint));
-        return new PersistentStoreConfigurationImpl<String, String>(storeConfiguration, "alias-" + aliasCounter.getAndIncrement());
       }
 
       @Override
@@ -271,10 +270,10 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public void close(final Store<String, String> store) {
-        String alias = createdStores.get(store);
+        String spaceName = createdStores.get(store);
         provider.releaseStore(store);
         try {
-          persistenceService.destroyPersistenceContext(alias);
+          persistenceService.destroyPersistenceSpace(spaceName);
         } catch (CachePersistenceException e) {
           throw new AssertionError(e);
         } finally {
@@ -297,7 +296,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
     try {
       for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
         provider.releaseStore(entry.getKey());
-        persistenceService.destroyPersistenceContext(entry.getValue());
+        persistenceService.destroyPersistenceSpace(entry.getValue());
       }
     } finally {
       persistenceService.stop();

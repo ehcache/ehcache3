@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 
 /**
  * PersistentUserManagedEhcache
@@ -43,18 +44,15 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
   private final StatusTransitioner statusTransitioner;
   private final Logger logger;
   private final Ehcache<K,V> ehcache;
-  private final Store.PersistentStoreConfiguration storeConfig;
   private final LocalPersistenceService localPersistenceService;
   private final String id;
 
-  public PersistentUserManagedEhcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store, Store.PersistentStoreConfiguration storeConfig, LocalPersistenceService localPersistenceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventNotificationService<K, V> eventNotifier, String id) {
+  public PersistentUserManagedEhcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store, Store.Configuration<K, V> storeConfig, LocalPersistenceService localPersistenceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventNotificationService<K, V> eventNotifier, String id) {
     this.logger = LoggerFactory.getLogger(PersistentUserManagedEhcache.class.getName() + "-" + id);
     this.statusTransitioner = new StatusTransitioner(logger);
     this.ehcache = new Ehcache<K, V>(runtimeConfiguration, store, cacheLoaderWriter, eventNotifier, true, logger, statusTransitioner);
-    this.storeConfig = storeConfig;
     this.localPersistenceService = localPersistenceService;
     this.id = id;
-
   }
 
   @Override
@@ -87,18 +85,21 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
   void create() {
     statusTransitioner.checkMaintenance();
     try {
-      localPersistenceService.createPersistenceContext(id, storeConfig);
+      if (!getRuntimeConfiguration().getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
+        destroy();
+      }
+      localPersistenceService.getOrCreatePersistenceSpace(id);
     } catch (CachePersistenceException e) {
-      throw new RuntimeException("Unable to create persistence context for user managed cache " + id, e);
+      throw new RuntimeException("Unable to create persistence space for user managed cache " + id, e);
     }
   }
 
   void destroy() {
     statusTransitioner.checkMaintenance();
     try {
-      localPersistenceService.destroyPersistenceContext(id);
+      localPersistenceService.destroyPersistenceSpace(id);
     } catch (CachePersistenceException e) {
-      throw new RuntimeException("Could not destroy persistent storage for user managed cache " + id, e);
+      throw new RuntimeException("Could not destroy persistence space for user managed cache " + id, e);
     }
   }
 
@@ -112,9 +113,9 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
     ehcache.close();
     if (!getRuntimeConfiguration().getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
       try {
-        localPersistenceService.destroyPersistenceContext(id);
+        localPersistenceService.destroyPersistenceSpace(id);
       } catch (CachePersistenceException e) {
-        logger.debug("Unable to clear persistent context", e);
+        logger.debug("Unable to clear persistence space for user managed cache " + id, e);
       }
     }
   }

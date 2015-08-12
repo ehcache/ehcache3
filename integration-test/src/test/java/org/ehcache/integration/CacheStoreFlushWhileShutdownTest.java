@@ -38,6 +38,9 @@ import java.io.File;
 import java.io.Serializable;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import org.ehcache.spi.service.LocalPersistenceService;
+import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
+import org.ehcache.spi.service.ServiceConfiguration;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -48,16 +51,7 @@ public class CacheStoreFlushWhileShutdownTest {
   @Test
   public void testCacheStoreReleaseFlushesEntries() throws Exception {
 
-    Store.Configuration<Number, String> configuration = new Store.PersistentStoreConfiguration<Number, String, String>() {
-      @Override
-      public String getIdentifier() {
-        return "Cache";
-      }
-
-      @Override
-      public boolean isPersistent() {
-        return true;
-      }
+    Store.Configuration<Number, String> configuration = new Store.Configuration<Number, String>() {
 
       @Override
       public Class getKeyType() {
@@ -91,7 +85,7 @@ public class CacheStoreFlushWhileShutdownTest {
 
       @Override
       public ResourcePools getResourcePools() {
-        return newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(10, MemoryUnit.MB).build();
+        return newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(10, MemoryUnit.MB, true).build();
       }
     };
 
@@ -104,7 +98,10 @@ public class CacheStoreFlushWhileShutdownTest {
     CacheStore.Provider cacheStoreProvider = new CacheStore.Provider();
 
     cacheStoreProvider.start(serviceLocator);
-    Store<Number, String> cacheStore = cacheStoreProvider.createStore(configuration, serviceConfiguration);
+
+    LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
+    PersistenceSpaceIdentifier persistenceSpace = persistenceService.getOrCreatePersistenceSpace("CacheStoreFlushWhileShutdownTest");
+    Store<Number, String> cacheStore = cacheStoreProvider.createStore(configuration, new ServiceConfiguration[] {serviceConfiguration, persistenceSpace});
     cacheStoreProvider.initStore(cacheStore);
     for (int i = 0; i < 100; i++) {
       cacheStore.put(i, "hello");
@@ -124,7 +121,10 @@ public class CacheStoreFlushWhileShutdownTest {
     ServiceLocator serviceLocator1 = getServiceLocator();
     serviceLocator1.startAllServices();
     cacheStoreProvider.start(serviceLocator1);
-    cacheStore = cacheStoreProvider.createStore(configuration, serviceConfiguration);
+    
+    LocalPersistenceService persistenceService1 = serviceLocator1.getService(LocalPersistenceService.class);
+    PersistenceSpaceIdentifier persistenceSpace1 = persistenceService1.getOrCreatePersistenceSpace("CacheStoreFlushWhileShutdownTest");
+    cacheStore = cacheStoreProvider.createStore(configuration, new ServiceConfiguration[] {serviceConfiguration, persistenceSpace1});
     cacheStoreProvider.initStore(cacheStore);
 
     for(int i = 0; i < 20; i++) {

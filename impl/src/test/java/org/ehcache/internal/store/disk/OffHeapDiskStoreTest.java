@@ -40,6 +40,7 @@ import org.junit.Test;
 import java.io.IOException;
 
 import static org.ehcache.expiry.Expirations.noExpiration;
+import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
@@ -108,7 +109,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     ServiceLocator serviceLocator = new ServiceLocator();
     serviceLocator.addService(provider);
     serviceLocator.startAllServices();
-    Store.PersistentStoreConfiguration<String, String, String> storeConfig = mock(Store.PersistentStoreConfiguration.class);
+    Store.Configuration<String, String> storeConfig = mock(Store.Configuration.class);
     when(storeConfig.getKeyType()).thenReturn(String.class);
     when(storeConfig.getValueType()).thenReturn(String.class);
     when(storeConfig.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -125,7 +126,8 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
 
   private FileBasedPersistenceContext getPersistenceContext() {
     try {
-      return persistenceService.createPersistenceContext("cache", mock(Store.PersistentStoreConfiguration.class));
+      PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace("cache");
+      return persistenceService.createPersistenceContextWithin(space, "store");
     } catch (CachePersistenceException e) {
       throw new AssertionError(e);
     }

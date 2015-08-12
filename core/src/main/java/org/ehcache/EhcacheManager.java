@@ -22,7 +22,6 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.StoreConfigurationImpl;
-import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
@@ -64,6 +63,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 
 
 /**
@@ -154,9 +154,9 @@ public class EhcacheManager implements PersistentCacheManager {
     ehcache.close();
     if (diskTransient) {
       try {
-        destroyPersistenceContext(alias);
+        destroyPersistenceSpace(alias);
       } catch (CachePersistenceException e) {
-        LOGGER.debug("Unable to clear persistent context for cache {}", alias, e);
+        LOGGER.debug("Unable to clear persistence space for cache {}", alias, e);
       }
     }
     LOGGER.info("Cache '{}' is closed from EhcacheManager.", alias);
@@ -244,7 +244,22 @@ public class EhcacheManager implements PersistentCacheManager {
     final Store.Provider storeProvider = serviceLocator.getService(Store.Provider.class);
     Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<K, V>(config);
     if (config.getResourcePools().getResourceTypeSet().contains(ResourceType.Core.DISK)) {
-      storeConfiguration = new PersistentStoreConfigurationImpl<K, V>(storeConfiguration, alias);
+      LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
+      
+      if (!config.getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
+        try {
+          persistenceService.destroyPersistenceSpace(alias);
+        } catch (CachePersistenceException cpex) {
+          throw new RuntimeException("Unable to clean-up persistence space for non-restartable cache " + alias, cpex);
+        }
+      }
+      try {
+        PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(alias);
+        serviceConfigs = Arrays.copyOf(serviceConfigs, serviceConfigs.length + 1);
+        serviceConfigs[serviceConfigs.length - 1] = space;
+      } catch (CachePersistenceException cpex) {
+        throw new RuntimeException("Unable to create persistence space for cache " + alias, cpex);
+      }
     }
     final Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigs);
 
@@ -501,7 +516,7 @@ public class EhcacheManager implements PersistentCacheManager {
         @Override
         public void destroy() {
           EhcacheManager.this.destroy();
-          persistenceService.destroyAllPersistenceContext();
+          persistenceService.destroyAllPersistenceSpaces();
         }
 
         @Override
@@ -541,13 +556,13 @@ public class EhcacheManager implements PersistentCacheManager {
         ehcache.close();
       }
     }
-    destroyPersistenceContext(alias);
+    destroyPersistenceSpace(alias);
     LOGGER.info("Cache '{}' is successfully destroyed in EhcacheManager.", alias);
   }
 
-  private void destroyPersistenceContext(String alias) throws CachePersistenceException {
+  private void destroyPersistenceSpace(String alias) throws CachePersistenceException {
     LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
-    persistenceService.destroyPersistenceContext(alias);
+    persistenceService.destroyPersistenceSpace(alias);
   }
 
   // for tests at the moment
