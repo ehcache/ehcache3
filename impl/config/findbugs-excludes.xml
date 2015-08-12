@@ -1,5 +1,10 @@
 <FindBugsFilter>
   <Match>
+    <Class name="org.ehcache.internal.persistence.DefaultLocalPersistenceService"/>
+    <Method name="tryRecursiveDelete"/>
+    <Bug pattern="DM_GC"/>
+  </Match>
+  <Match>
     <Class name="org.ehcache.internal.concurrent.ConcurrentHashMap"/>
     <Method name="getRandomValues"/>
     <Bug pattern="SA_FIELD_SELF_COMPARISON"/>
