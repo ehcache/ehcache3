@@ -1,6 +1,0 @@
-<FindBugsFilter>
-  <Match>
-    <Class name="org.ehcache.jsr107.Eh107CacheEntryEvent"/>
-    <Bug pattern="SE_BAD_FIELD"/>
-  </Match>
-</FindBugsFilter>

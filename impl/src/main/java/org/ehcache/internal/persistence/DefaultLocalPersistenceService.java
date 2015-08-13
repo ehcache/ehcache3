@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.persistence;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.ServiceProvider;
@@ -225,18 +226,16 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   }
 
   private static boolean recursiveDeleteDirectoryContent(File file) {
-    Boolean deleteSuccessful = true;
-    if (file.isDirectory()) {
-      File[] contents = file.listFiles();
-      if (contents.length > 0) {
-        for (File f : contents) {
-          if (!tryRecursiveDelete(f)) {
-            deleteSuccessful = false;
-          }
-        }
+    File[] contents = file.listFiles();
+    if (contents == null) {
+      throw new IllegalArgumentException("File " + file.getAbsolutePath() + " is not a directory");
+    } else {
+      boolean deleteSuccessful = true;
+      for (File f : contents) {
+        deleteSuccessful |= tryRecursiveDelete(f);
       }
+      return deleteSuccessful;
     }
-    return deleteSuccessful;
   }
 
   private static boolean recursiveDelete(File file) {
@@ -244,27 +243,22 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     toDelete.push(file);
     while (!toDelete.isEmpty()) {
       File target = toDelete.pop();
-      if (target.isFile()) {
-        if (!target.delete()) {
+      File[] contents = target.listFiles();
+      if (contents == null || contents.length == 0) {
+        if (target.exists() && !target.delete()) {
           return false;
         }
-      } else if (target.isDirectory()) {
-        File[] contents = target.listFiles();
-        if (contents.length == 0) {
-          if (!target.delete()) {
-            return false;
-          }
-        } else {
-          toDelete.push(target);
-          for (File f : contents) {
-            toDelete.push(f);
-          }
+      } else {
+        toDelete.push(target);
+        for (File f : contents) {
+          toDelete.push(f);
         }
       }
     }
     return true;
   }
   
+  @SuppressFBWarnings("DM_GC")
   private static boolean tryRecursiveDelete(File file) {
     boolean interrupted = false;
     try {
