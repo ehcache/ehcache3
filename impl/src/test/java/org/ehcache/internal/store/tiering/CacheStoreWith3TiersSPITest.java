@@ -18,7 +18,9 @@ package org.ehcache.internal.store.tiering;
 
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.ResourceType;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
@@ -51,10 +53,10 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
-import org.junit.internal.AssumptionViolatedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -104,20 +106,24 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
         final OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, false, keySerializer, valueSerializer);
         Store.PersistentStoreConfiguration<String, String, String> persistentStoreConfiguration = (Store.PersistentStoreConfiguration) config;
 
-        final OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, keySerializer, valueSerializer, timeSource, MemoryUnit.MB.toBytes(1));
+        ResourcePool offheapPool = config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
+        long offheapSize = ((MemoryUnit) offheapPool.getUnit()).toBytes(offheapPool.getSize());
+
+        final OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, keySerializer, valueSerializer, timeSource, offheapSize);
 
         try {
           FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContext(persistentStoreConfiguration.getIdentifier(), persistentStoreConfiguration);
+
+          ResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
+          long diskSize = ((MemoryUnit) diskPool.getUnit()).toBytes(diskPool.getSize());
+
           OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(persistenceContext, config,
-                  keySerializer, valueSerializer, timeSource, MemoryUnit.MB.toBytes(2));
+                  keySerializer, valueSerializer, timeSource, diskSize);
 
           CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(onHeapStore, offHeapStore);
 
 
           CacheStore<String, String> cacheStore = new CacheStore<String, String>(compoundCachingTier, diskStore);
-
-
-
 
           provider.registerStore(cacheStore, new CachingTier.Provider() {
             @Override
@@ -266,12 +272,14 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
 
       @Override
       public String createKey(long seed) {
-        return new String("" + seed);
+        return Long.toString(seed);
       }
 
       @Override
       public String createValue(long seed) {
-        return new String("" + seed);
+        char[] chars = new char[800 * 1024];
+        Arrays.fill(chars, (char) (0x1 + (seed & 0x7e)));
+        return new String(chars);
       }
 
       @Override
@@ -309,13 +317,19 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
     }
   }
 
-  private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
+  private ResourcePools buildResourcePools(Long capacityConstraint) {
     if (capacityConstraint == null) {
-      return newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).offheap(Integer.MAX_VALUE, MemoryUnit.B).disk(Long.MAX_VALUE, MemoryUnit.B).build();
+      capacityConstraint = 16L;
     } else {
-      throw new AssertionError();
-      //return newResourcePoolsBuilder().heap((Long) capacityConstraint, EntryUnit.ENTRIES).disk((Long) capacityConstraint, EntryUnit.ENTRIES).build();
+      capacityConstraint = capacityConstraint * 2;
     }
+    long offheapSize;
+    if (capacityConstraint <= 2L) {
+      offheapSize = MemoryUnit.KB.convert(1L, MemoryUnit.MB);
+    } else {
+      offheapSize = MemoryUnit.KB.convert(capacityConstraint, MemoryUnit.MB) / 2;
+    }
+    return newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES).offheap(offheapSize, MemoryUnit.KB).disk((Long) capacityConstraint, MemoryUnit.MB).build();
   }
 
   public static class FakeCachingTierProvider implements CachingTier.Provider {
@@ -370,10 +384,5 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
     public void stop() {
       throw new UnsupportedOperationException();
     }
-  }
-
-  @Override
-  public void testStoreEvictionEventListener() {
-    throw new AssumptionViolatedException("disabled - EventListeners not implemented yet see #273");
   }
 }
