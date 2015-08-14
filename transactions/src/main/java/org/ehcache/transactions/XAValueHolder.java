@@ -13,6 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.transactions;
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "integration-test", "dist", "demos/00-NoCache", "demos/01-CacheAside", "docs"
+import org.ehcache.spi.cache.AbstractValueHolder;
+
+import java.util.concurrent.TimeUnit;
+
+/**
+ * @author Ludovic Orban
+ */
+public class XAValueHolder<V> extends AbstractValueHolder<V> {
+  private final V value;
+
+  public XAValueHolder(long id, long creationTime, V value) {
+    super(id, creationTime);
+    this.value = value;
+  }
+
+  @Override
+  protected TimeUnit nativeTimeUnit() {
+    return TimeUnit.MILLISECONDS;
+  }
+
+  @Override
+  public V value() {
+    return value;
+  }
+}
