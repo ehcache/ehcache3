@@ -24,7 +24,6 @@ import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.spi.cache.AbstractValueHolder;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.transactions.commands.StorePutCommand;
 import org.ehcache.transactions.commands.StoreRemoveCommand;
@@ -36,7 +35,6 @@ import javax.transaction.TransactionManager;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -44,15 +42,21 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class XAStore<K, V> implements Store<K, V> {
 
-  private final Store<K, SoftLock<K, V>> underlyingStore;
+  private final Store<K, SoftLock<V>> underlyingStore;
   private final TransactionManager transactionManager;
   private final Map<Transaction, EhcacheXAResource<K, V>> xaResources = new ConcurrentHashMap<Transaction, EhcacheXAResource<K, V>>();
   private final TimeSource timeSource;
+  private final XaTransactionStateStore stateStore;
 
-  public XAStore(Store<K, SoftLock<K, V>> underlyingStore, TransactionManager transactionManager, TimeSource timeSource) {
+  public XAStore(Store<K, SoftLock<V>> underlyingStore, TransactionManager transactionManager, TimeSource timeSource, XaTransactionStateStore stateStore) {
     this.underlyingStore = underlyingStore;
     this.transactionManager = transactionManager;
     this.timeSource = timeSource;
+    this.stateStore = stateStore;
+  }
+
+  private boolean isInDoubt(SoftLock<V> softLock) {
+    return stateStore.getState(softLock.getTransactionId()) == XAState.IN_DOUBT;
   }
 
   @Override
@@ -68,13 +72,13 @@ public class XAStore<K, V> implements Store<K, V> {
       return newValueHolder;
     }
 
-    ValueHolder<SoftLock<K, V>> softLockValueHolder = underlyingStore.get(key);
+    ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(key);
     if (softLockValueHolder == null) {
       return null;
     }
 
-    SoftLock<K, V> softLock = softLockValueHolder.value();
-    if (softLock.isRunning2PC()) {
+    SoftLock<V> softLock = softLockValueHolder.value();
+    if (isInDoubt(softLock)) {
       return null;
     }
 
@@ -94,7 +98,7 @@ public class XAStore<K, V> implements Store<K, V> {
       }
       EhcacheXAResource<K, V> xaResource = xaResources.get(transaction);
       if (xaResource == null) {
-        xaResource = new EhcacheXAResource<K, V>(underlyingStore);
+        xaResource = new EhcacheXAResource<K, V>(underlyingStore, stateStore);
         transactionManager.getTransaction().enlistResource(xaResource);
         xaResources.put(transaction, xaResource);
       }
@@ -115,21 +119,24 @@ public class XAStore<K, V> implements Store<K, V> {
       return;
     }
 
-    ValueHolder<SoftLock<K, V>> softLockValueHolder = underlyingStore.get(key);
+    ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(key);
     if (softLockValueHolder != null) {
-      SoftLock<K, V> softLock = softLockValueHolder.value();
-      if (softLock.isRunning2PC()) {
+      SoftLock<V> softLock = softLockValueHolder.value();
+      if (isInDoubt(softLock)) {
         /*
         There are 3 things we can do here:
          - lock and wait until 2PC is done
-         - drop the put
+         - evict
          - gamble: there are different bets we can take:
            # assume the other transaction will commit
            # assume the other transaction will rollback
+           Note that to take a gamble, you'd better know if the mapping is in an active 2PC
+           or waiting to be recovered. In the latter case, a different behavior might be advisable.
          */
 
-        // assume the other transaction will commit
-        currentContext.addCommand(key, new StorePutCommand<V>(newValueHolder(value), softLock.getNewValueHolder()));
+        // evict
+        underlyingStore.remove(key);
+        return;
       } else {
         currentContext.addCommand(key, new StorePutCommand<V>(newValueHolder(value), softLock.getOldValueHolder()));
       }
@@ -158,21 +165,24 @@ public class XAStore<K, V> implements Store<K, V> {
       return;
     }
 
-    ValueHolder<SoftLock<K, V>> softLockValueHolder = underlyingStore.get(key);
+    ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(key);
     if (softLockValueHolder != null) {
-      SoftLock<K, V> softLock = softLockValueHolder.value();
-      if (softLock.isRunning2PC()) {
+      SoftLock<V> softLock = softLockValueHolder.value();
+      if (isInDoubt(softLock)) {
         /*
         There are 3 things we can do here:
          - lock and wait until 2PC is done
-         - drop the put
+         - evict
          - gamble: there are different bets we can take:
            # assume the other transaction will commit
            # assume the other transaction will rollback
+           Note that to take a gamble, you'd better know if the mapping is in an active 2PC
+           or waiting to be recovered. In the latter case, a different behavior might be advisable.
          */
 
-        // assume the other transaction will commit
-        currentContext.addCommand(key, new StoreRemoveCommand<V>(softLock.getNewValueHolder()));
+        // evict
+        underlyingStore.remove(key);
+        return;
       } else {
         currentContext.addCommand(key, new StoreRemoveCommand<V>(softLock.getOldValueHolder()));
       }

@@ -56,10 +56,11 @@ public class XAStoreTest {
     TestTimeSource testTimeSource = new TestTimeSource();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
     Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
-    OnHeapStore<Long, SoftLock<Long, String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, true, keySerializer, valueSerializer);
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, true, keySerializer, valueSerializer);
     TestTransactionManager testTransactionManager = new TestTransactionManager();
+    XaTransactionStateStore stateStore = new TransientXaTransactionStateStore();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, testTransactionManager, testTimeSource);
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, testTransactionManager, testTimeSource, stateStore);
 
     testTransactionManager.begin();
     {

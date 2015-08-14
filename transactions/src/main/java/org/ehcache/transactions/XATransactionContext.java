@@ -22,7 +22,6 @@ import org.ehcache.transactions.commands.Command;
 import org.ehcache.transactions.commands.StorePutCommand;
 import org.ehcache.transactions.commands.StoreRemoveCommand;
 
-import javax.transaction.xa.XAException;
 import java.util.Map;
 
 /**
@@ -31,10 +30,14 @@ import java.util.Map;
 public class XATransactionContext<K, V> {
 
   private final ConcurrentHashMap<K, Command<V>> commands = new ConcurrentHashMap<K, Command<V>>();
-  private final Store<K, SoftLock<K, V>> underlyingStore;
+  private final TransactionId transactionId;
+  private final Store<K, SoftLock<V>> underlyingStore;
+  private final XaTransactionStateStore stateStore;
 
-  public XATransactionContext(Store<K, SoftLock<K, V>> underlyingStore) {
+  public XATransactionContext(TransactionId transactionId, Store<K, SoftLock<V>> underlyingStore, XaTransactionStateStore stateStore) {
+    this.transactionId = transactionId;
     this.underlyingStore = underlyingStore;
+    this.stateStore = stateStore;
   }
 
   public void addCommand(K key, StorePutCommand<V> command) {
@@ -65,17 +68,18 @@ public class XATransactionContext<K, V> {
   }
 
   public int prepare() throws CacheAccessException {
+    stateStore.save(transactionId, XAState.IN_DOUBT);
     for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
       if (entry.getValue().getOldValueHolder() != null) {
-        SoftLock<K, V> oldSoftLock = new SoftLock<K, V>(entry.getValue().getOldValueHolder(), null, false);
-        SoftLock<K, V> newSoftLock = new SoftLock<K, V>(entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder(), true);
+        SoftLock<V> oldSoftLock = new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), null);
+        SoftLock<V> newSoftLock = new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder());
         boolean replaced = underlyingStore.replace(entry.getKey(), oldSoftLock, newSoftLock);
         if (!replaced) {
           throw new AssertionError("TODO: handle this case");
         }
       } else {
-        SoftLock<K, V> newSoftLock = new SoftLock<K, V>(entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder(), true);
-        Store.ValueHolder<SoftLock<K, V>> existing = underlyingStore.putIfAbsent(entry.getKey(), newSoftLock);
+        SoftLock<V> newSoftLock = new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder());
+        Store.ValueHolder<SoftLock<V>> existing = underlyingStore.putIfAbsent(entry.getKey(), newSoftLock);
         if (existing != null) {
           throw new AssertionError("TODO: handle this case");
         }
@@ -85,9 +89,10 @@ public class XATransactionContext<K, V> {
   }
 
   public void commit() throws CacheAccessException {
+    stateStore.save(transactionId, XAState.COMMITTED);
     for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
-      SoftLock<K, V> preparedSoftLock = new SoftLock<K, V>(entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder(), true);
-      SoftLock<K, V> definitiveSoftLock = new SoftLock<K, V>(entry.getValue().getNewValueHolder(), null, false);
+      SoftLock<V> preparedSoftLock = new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder());
+      SoftLock<V> definitiveSoftLock = new SoftLock<V>(transactionId, entry.getValue().getNewValueHolder(), null);
       boolean replaced = underlyingStore.replace(entry.getKey(), preparedSoftLock, definitiveSoftLock);
       if (!replaced) {
         throw new AssertionError("TODO: handle this case");

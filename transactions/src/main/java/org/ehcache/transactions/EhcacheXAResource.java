@@ -30,24 +30,30 @@ import java.util.Map;
 public class EhcacheXAResource<K, V> implements XAResource {
 
   private final Map<Xid, XATransactionContext<K, V>> transactionContexts = new ConcurrentHashMap<Xid, XATransactionContext<K, V>>();
-  private final Store<K, SoftLock<K, V>> underlyingStore;
+  private final Store<K, SoftLock<V>> underlyingStore;
+  private final XaTransactionStateStore stateStore;
   private volatile Xid currentXid;
 
-  public EhcacheXAResource(Store<K, SoftLock<K, V>> underlyingStore) {
+  public EhcacheXAResource(Store<K, SoftLock<V>> underlyingStore, XaTransactionStateStore stateStore) {
     this.underlyingStore = underlyingStore;
+    this.stateStore = stateStore;
   }
 
   @Override
   public void commit(Xid xid, boolean onePhase) throws XAException {
-    XATransactionContext<K, V> transactionContext = transactionContexts.get(xid);
-    if (transactionContext == null) {
-      throw new EhcacheXAException("Cannot commit unknown XID : " + xid, XAException.XAER_PROTO);
-    }
-
     try {
-      transactionContext.commit();
-    } catch (CacheAccessException cae) {
-      throw new EhcacheXAException("Cannot prepare XID : " + xid, XAException.XAER_RMERR, cae);
+      XATransactionContext<K, V> transactionContext = transactionContexts.get(xid);
+      if (transactionContext == null) {
+        throw new EhcacheXAException("Cannot commit unknown XID : " + xid, XAException.XAER_PROTO);
+      }
+
+      try {
+        transactionContext.commit();
+      } catch (CacheAccessException cae) {
+        throw new EhcacheXAException("Cannot prepare XID : " + xid, XAException.XAER_RMERR, cae);
+      }
+    } finally {
+      transactionContexts.remove(xid);
     }
   }
 
@@ -99,7 +105,14 @@ public class EhcacheXAResource<K, V> implements XAResource {
 
   @Override
   public void rollback(Xid xid) throws XAException {
-
+    try {
+      XATransactionContext<K, V> transactionContext = transactionContexts.get(xid);
+      if (transactionContext == null) {
+        throw new EhcacheXAException("Cannot rollback unknown XID : " + xid, XAException.XAER_PROTO);
+      }
+    } finally {
+      transactionContexts.remove(xid);
+    }
   }
 
   @Override
@@ -118,7 +131,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
 
     currentXid = xid;
     if (!transactionContexts.containsKey(xid)) {
-      transactionContexts.put(xid, new XATransactionContext<K, V>(underlyingStore));
+      transactionContexts.put(xid, new XATransactionContext<K, V>(new TransactionId(currentXid), underlyingStore, stateStore));
     }
   }
 

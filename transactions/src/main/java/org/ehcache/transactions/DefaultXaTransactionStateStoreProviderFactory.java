@@ -15,33 +15,20 @@
  */
 package org.ehcache.transactions;
 
-import javax.transaction.xa.Xid;
-import java.io.Serializable;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceFactory;
 
 /**
  * @author Ludovic Orban
  */
-public class TransactionId implements Serializable {
-
-  private final SerializableXid serializableXid;
-
-  public TransactionId(Xid xid) {
-    this.serializableXid = new SerializableXid(xid);
+public class DefaultXaTransactionStateStoreProviderFactory implements ServiceFactory<XaTransactionStateStoreProvider> {
+  @Override
+  public XaTransactionStateStoreProvider create(ServiceConfiguration<XaTransactionStateStoreProvider> configuration) {
+    return new DefaultXaTransactionStateStoreProvider();
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-
-    TransactionId that = (TransactionId) o;
-
-    return serializableXid.equals(that.serializableXid);
-
-  }
-
-  @Override
-  public int hashCode() {
-    return serializableXid.hashCode();
+  public Class<XaTransactionStateStoreProvider> getServiceType() {
+    return XaTransactionStateStoreProvider.class;
   }
 }

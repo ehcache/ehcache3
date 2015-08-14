@@ -15,33 +15,25 @@
  */
 package org.ehcache.transactions;
 
-import javax.transaction.xa.Xid;
-import java.io.Serializable;
+import org.ehcache.internal.concurrent.ConcurrentHashMap;
 
 /**
  * @author Ludovic Orban
  */
-public class TransactionId implements Serializable {
+public class TransientXaTransactionStateStore implements XaTransactionStateStore {
+  private final ConcurrentHashMap<TransactionId, XAState> states = new ConcurrentHashMap<TransactionId, XAState>();
 
-  private final SerializableXid serializableXid;
-
-  public TransactionId(Xid xid) {
-    this.serializableXid = new SerializableXid(xid);
+  @Override
+  public void save(TransactionId transactionId, XAState xaState) {
+    if (xaState == XAState.IN_DOUBT) {
+      states.put(transactionId, xaState);
+    } else {
+      states.remove(transactionId);
+    }
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-
-    TransactionId that = (TransactionId) o;
-
-    return serializableXid.equals(that.serializableXid);
-
-  }
-
-  @Override
-  public int hashCode() {
-    return serializableXid.hashCode();
+  public XAState getState(TransactionId transactionId) {
+    return states.get(transactionId);
   }
 }

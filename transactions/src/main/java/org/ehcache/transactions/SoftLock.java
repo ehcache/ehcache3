@@ -22,20 +22,16 @@ import java.io.Serializable;
 /**
  * @author Ludovic Orban
  */
-public class SoftLock<K, V> implements Serializable {
+public class SoftLock<V> implements Serializable {
 
+  private final TransactionId transactionId;
   private final Store.ValueHolder<V> oldValueHolder;
   private final Store.ValueHolder<V> newValueHolder;
-  private final boolean running2PC;
 
-  public SoftLock(Store.ValueHolder<V> oldValueHolder, Store.ValueHolder<V> newValueHolder, boolean running2PC) {
+  public SoftLock(TransactionId transactionId, Store.ValueHolder<V> oldValueHolder, Store.ValueHolder<V> newValueHolder) {
+    this.transactionId = transactionId;
     this.oldValueHolder = oldValueHolder;
     this.newValueHolder = newValueHolder;
-    this.running2PC = running2PC;
-  }
-
-  public boolean isRunning2PC() {
-    return running2PC;
   }
 
   public Store.ValueHolder<V> getOldValueHolder() {
@@ -45,14 +41,18 @@ public class SoftLock<K, V> implements Serializable {
     return newValueHolder;
   }
 
+  public TransactionId getTransactionId() {
+    return transactionId;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
 
-    SoftLock<?, ?> softLock = (SoftLock<?, ?>) o;
+    SoftLock<?> softLock = (SoftLock<?>) o;
 
-    if (running2PC != softLock.running2PC) return false;
+    if (!transactionId.equals(softLock.transactionId)) return false;
     if (oldValueHolder != null ? !oldValueHolder.equals(softLock.oldValueHolder) : softLock.oldValueHolder != null)
       return false;
     return !(newValueHolder != null ? !newValueHolder.equals(softLock.newValueHolder) : softLock.newValueHolder != null);
@@ -61,9 +61,9 @@ public class SoftLock<K, V> implements Serializable {
 
   @Override
   public int hashCode() {
-    int result = oldValueHolder != null ? oldValueHolder.hashCode() : 0;
+    int result = transactionId.hashCode();
+    result = 31 * result + (oldValueHolder != null ? oldValueHolder.hashCode() : 0);
     result = 31 * result + (newValueHolder != null ? newValueHolder.hashCode() : 0);
-    result = 31 * result + (running2PC ? 1 : 0);
     return result;
   }
 }
