@@ -20,6 +20,7 @@ import org.ehcache.config.Jsr107Configuration;
 import org.ehcache.config.xml.XmlConfigurationParser;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import java.io.IOException;
@@ -58,8 +59,11 @@ public class ServiceConfigurationParser implements XmlConfigurationParser<Jsr107
     final HashMap<String, String> templates = new HashMap<String, String>();
     final NodeList childNodes = fragment.getChildNodes();
     for (int i = 0; i < childNodes.getLength(); i++) {
-      final Element item = (Element)childNodes.item(i);
-      templates.put(item.getAttribute("name"), item.getAttribute("template"));
+      final Node node = childNodes.item(i);
+      if (node.getNodeType() == Node.ELEMENT_NODE) {
+        final Element item = (Element)node;
+        templates.put(item.getAttribute("name"), item.getAttribute("template"));
+      }
     }
 
     return new Jsr107Configuration(defaultTemplate, templates, jsr107CompliantAtomics);
