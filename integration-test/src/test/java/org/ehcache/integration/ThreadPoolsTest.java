@@ -18,7 +18,7 @@ package org.ehcache.integration;
 import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfigurationBuilder;
-import org.ehcache.config.event.CacheEventDispatcherFactoryConfiguration;
+import org.ehcache.config.event.EventDispatcherFactoryConfiguration;
 import org.ehcache.config.executor.PooledExecutionServiceConfiguration;
 import org.junit.Test;
 
@@ -54,7 +54,7 @@ public class ThreadPoolsTest {
     PooledExecutionServiceConfiguration executionServiceConfiguration = new PooledExecutionServiceConfiguration();
     executionServiceConfiguration.addPool("foo", 2, 4);
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .using(new CacheEventDispatcherFactoryConfiguration("foo"))
+        .using(new EventDispatcherFactoryConfiguration("foo"))
         .using(executionServiceConfiguration)
         .build(true);
 
@@ -85,7 +85,7 @@ public class ThreadPoolsTest {
     PooledExecutionServiceConfiguration executionServiceConfiguration = new PooledExecutionServiceConfiguration();
     executionServiceConfiguration.addDefaultPool("dflt", 2, 4);
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .using(new CacheEventDispatcherFactoryConfiguration("foo"))
+        .using(new EventDispatcherFactoryConfiguration("foo"))
         .using(executionServiceConfiguration)
         .build(true);
 

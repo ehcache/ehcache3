@@ -23,6 +23,8 @@ import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.events.CacheEventDispatcherImpl;
+import org.ehcache.events.OrderedEventDispatcher;
+import org.ehcache.events.UnorderedEventDispatcher;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.CoreMatchers;
 import org.mockito.Mock;
@@ -70,8 +72,11 @@ public class EhcacheEventsTestBase extends EhcacheBasicCrudBase {
     CacheConfiguration<String, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder().withExpiry(expiry).buildConfig(String.class, String.class);
     ExecutorService orderedExecutor = Executors.newSingleThreadExecutor();
     ExecutorService unorderedExecutor = Executors.newCachedThreadPool();
-    cacheEventNotificationService = new CacheEventDispatcherImpl<String, String>(orderedExecutor, unorderedExecutor, store);
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(config, this.store,
+    cacheEventNotificationService = new CacheEventDispatcherImpl<String, String>(store, new OrderedEventDispatcher<String, String>(orderedExecutor),
+        new UnorderedEventDispatcher<String, String>(unorderedExecutor));
+    EhcacheRuntimeConfiguration<String, String> runtimeConfiguration = new EhcacheRuntimeConfiguration<String, String>(config, cacheEventNotificationService);
+    runtimeConfiguration.addCacheConfigurationListener(cacheEventNotificationService.getConfigurationChangeListeners());
+    final Ehcache<String, String> ehcache = new Ehcache<String, String>(runtimeConfiguration, this.store,
         cacheLoaderWriter, cacheEventNotificationService,
         LoggerFactory.getLogger(Ehcache.class + "-" + name));
     ehcache.init();

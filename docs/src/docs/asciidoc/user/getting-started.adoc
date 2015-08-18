@@ -153,6 +153,17 @@ Eviction and expiration events can be triggered by both internal processes and b
 |{K, V}   | remove(K)                                | {}      | removed {K, V, null}
 |=================================================================================================
 
+==== Event Processing Queues
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=configuringEventProcessingQueues]
+----
+
+<1> Create a `CacheEventNotificationServiceConfiguration` using a builder indication the number of 
+    event processing queues.
+<2> Pass this configuration to the cache configuration   
+
 ==== Write-Through Cache
 
 [source,java,indent=0]

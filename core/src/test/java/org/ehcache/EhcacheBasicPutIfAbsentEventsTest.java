@@ -21,7 +21,6 @@ import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.util.Collections;
@@ -41,8 +40,6 @@ import static org.mockito.Mockito.when;
 
 /**
  * Provides events testing for basic PUT_IF_ABSENT operations on an {@code Ehcache}.
- *
- *
  */
 public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheEventsTestBase {
 
@@ -95,7 +92,7 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheEventsTestBase {
     doThrow(new CacheAccessException("")).when(store).computeIfAbsent(eq("key"), getAnyFunction());
     final Ehcache<String, String> ehcache = getEhcache(cacheLoaderWriter, "EhcacheBasicPutIfAbsentEventsTest");
     ehcache.putIfAbsent("key", "value");
-    verify(cacheEventListener, times(1)).onEvent(argThat(isCreated));
+    verify(cacheEventListener, never()).onEvent(argThat(isCreated));
   }
 
   @Test
@@ -113,7 +110,7 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheEventsTestBase {
     doThrow(new CacheAccessException("")).when(store).computeIfAbsent(eq("key"), getAnyFunction());
     final Ehcache<String, String> ehcache = getEhcache(cacheLoaderWriter, "EhcacheBasicPutIfAbsentEventsTest");
     ehcache.putIfAbsent("key", "value");
-    verify(cacheEventListener, times(1)).onEvent(argThat(isCreated));
+    verify(cacheEventListener, never()).onEvent(argThat(isCreated));
   }
 
   @Test
