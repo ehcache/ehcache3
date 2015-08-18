@@ -15,3 +15,4 @@ org.ehcache.loaderwriter.writebehind.WriteBehindProviderFactory
 org.ehcache.internal.events.CacheEventNotificationListenerServiceProviderFactory
 org.ehcache.spi.copy.DefaultCopyProviderFactory
 org.ehcache.internal.sizeof.DefaultSizeOfEngineProviderFactory
+org.ehcache.internal.events.EventDispatchProviderFactory

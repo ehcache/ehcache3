@@ -14,21 +14,19 @@
  * limitations under the License.
  */
 
-package org.ehcache;
+package org.ehcache.events;
 
-public enum CacheConfigurationProperty {
-  /**
-   * used to update size of ResourcePool in RuntimeConfig
-   */
-  UPDATESIZE,
+import java.util.List;
 
-  /**
-   * used to register new {@link org.ehcache.event.CacheEventListener}
-   */
-  ADDLISTENER,
+public interface EventThreadLocal {
 
-  /**
-   * used to remove {@link org.ehcache.event.CacheEventListener}
-   */
-  REMOVELISTENER
+  List<CacheEventWrapper> get();
+
+  void addToEventList(CacheEventWrapper eventWrapper);
+
+  void verifyOrderedDispatch(boolean ordered);
+
+  boolean isOrdered();
+
+  void cleanUp();
 }

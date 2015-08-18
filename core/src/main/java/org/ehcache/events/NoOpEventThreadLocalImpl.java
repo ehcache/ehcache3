@@ -13,21 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.internal.events;
 
-import org.ehcache.events.CacheEventDispatcherFactory;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceFactory;
+package org.ehcache.events;
 
-public class CacheEventNotificationListenerServiceProviderFactory implements ServiceFactory<CacheEventDispatcherFactory> {
+import java.util.Collections;
+import java.util.List;
+
+public class NoOpEventThreadLocalImpl implements EventThreadLocal {
 
   @Override
-  public CacheEventDispatcherFactory create(ServiceCreationConfiguration<CacheEventDispatcherFactory> configuration) {
-    return new CacheEventDispatcherFactoryImpl();
+  public List<CacheEventWrapper> get() {
+    return Collections.emptyList();
   }
 
   @Override
-  public Class<CacheEventDispatcherFactory> getServiceType() {
-    return CacheEventDispatcherFactory.class;
+  public void addToEventList(CacheEventWrapper eventWrapper) {
+    //no-op
+  }
+
+  @Override
+  public void verifyOrderedDispatch(boolean ordered) {
+    //no-op
+  }
+
+  @Override
+  public boolean isOrdered() {
+    return false;
+  }
+
+  @Override
+  public void cleanUp() {
+    //no-op
   }
 }

@@ -13,22 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.events;
 
-package org.ehcache;
+import org.ehcache.spi.service.Service;
 
-public enum CacheConfigurationProperty {
-  /**
-   * used to update size of ResourcePool in RuntimeConfig
-   */
-  UPDATESIZE,
+public interface EventDispatchProvider<K, V> extends Service {
+  OrderedEventDispatcher<K, V> getOrderedEventDispatcher();
 
-  /**
-   * used to register new {@link org.ehcache.event.CacheEventListener}
-   */
-  ADDLISTENER,
-
-  /**
-   * used to remove {@link org.ehcache.event.CacheEventListener}
-   */
-  REMOVELISTENER
+  UnorderedEventDispatcher<K, V> getUnorderedEventDispatcher();
 }

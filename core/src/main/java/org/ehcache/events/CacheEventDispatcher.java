@@ -22,13 +22,11 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
+import org.ehcache.spi.cache.ConfigurationChangeSupport;
 
 import java.util.EnumSet;
 
-/**
- * @author Ludovic Orban
- */
-public interface CacheEventDispatcher<K, V> {
+public interface CacheEventDispatcher<K, V> extends ConfigurationChangeSupport {
 
   void onEvent(CacheEvent<K, V> kvCacheEvent);
 
@@ -41,4 +39,8 @@ public interface CacheEventDispatcher<K, V> {
   void releaseAllListeners();
 
   void setStoreListenerSource(Cache<K, V> source);
+
+  void fireAllEvents();
+
+  void processAndFireRemainingEvents();
 }

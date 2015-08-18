@@ -21,7 +21,6 @@ import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.util.Collections;
@@ -63,7 +62,7 @@ public class EhcacheBasicRemoveEventsTest extends EhcacheEventsTestBase {
     doThrow(new CacheAccessException("")).when(store).compute(eq("key"), any(BiFunction.class));
     final Ehcache<String, String> ehcache = getEhcache(cacheLoaderWriter, "EhcacheBasicRemoveEventsTest");
     ehcache.remove("key");
-    verify(cacheEventListener, times(1)).onEvent(argThat(isRemoved));
+    verify(cacheEventListener, never()).onEvent(argThat(isRemoved));
   }
 
   @Test
