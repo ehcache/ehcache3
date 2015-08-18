@@ -17,5 +17,5 @@
 dependencies {
   compile project(':api'), project(':core')
   compile group: 'org.terracotta', name: 'offheap-store', version: parent.offHeapVersion
-  testCompile project(path: ':core-spi-test')
+  testCompile project(path: ':core-spi-test'), 'org.ow2.asm:asm-all:5.0.4'
 }
