@@ -19,7 +19,9 @@ package org.ehcache.internal.store.tiering;
 import java.io.IOException;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.ResourceType;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
@@ -46,8 +48,8 @@ import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.internal.AssumptionViolatedException;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -102,9 +104,15 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
         OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, false, keySerializer, valueSerializer);
         Store.PersistentStoreConfiguration<String, String, String> persistentStoreConfiguration = (Store.PersistentStoreConfiguration) config;
         try {
-          FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContext(persistentStoreConfiguration.getIdentifier(), persistentStoreConfiguration);
+          FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContext(persistentStoreConfiguration
+              .getIdentifier(), persistentStoreConfiguration);
+
+          ResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
+          MemoryUnit unit = (MemoryUnit) diskPool.getUnit();
+
+          long sizeInBytes = unit.toBytes(diskPool.getSize());
           OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(persistenceContext, config,
-                  keySerializer, valueSerializer, timeSource, MemoryUnit.MB.toBytes(1));
+                  keySerializer, valueSerializer, timeSource, sizeInBytes);
           CacheStore<String, String> cacheStore = new CacheStore<String, String>(onHeapStore, diskStore);
           provider.registerStore(cacheStore, new CachingTier.Provider() {
             @Override
@@ -251,12 +259,14 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public String createKey(long seed) {
-        return new String("" + seed);
+        return Long.toString(seed);
       }
 
       @Override
       public String createValue(long seed) {
-        return new String("" + seed);
+        char[] chars = new char[400 * 1024];
+        Arrays.fill(chars, (char) (0x1 + (seed & 0x7e)));
+        return new String(chars);
       }
 
       @Override
@@ -296,11 +306,9 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
   private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
     if (capacityConstraint == null) {
-      return newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).disk(Long.MAX_VALUE, MemoryUnit.B).build();
-    } else {
-      throw new AssertionError();
-      //return newResourcePoolsBuilder().heap((Long) capacityConstraint, EntryUnit.ENTRIES).disk((Long) capacityConstraint, EntryUnit.ENTRIES).build();
+      capacityConstraint = 16L;
     }
+    return newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES).disk((Long)capacityConstraint, MemoryUnit.MB).build();
   }
 
   public static class FakeCachingTierProvider implements CachingTier.Provider {
@@ -355,10 +363,5 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
     public void stop() {
       throw new UnsupportedOperationException();
     }
-  }
-
-  @Override
-  public void testStoreEvictionEventListener() {
-    throw new AssumptionViolatedException("disabled - EventListeners not implemented yet see #273");
   }
 }
