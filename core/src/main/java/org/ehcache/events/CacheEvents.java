@@ -17,10 +17,14 @@
 package org.ehcache.events;
 
 import org.ehcache.Cache;
-import org.ehcache.Cache.Entry;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.EventType;
 import org.ehcache.spi.cache.Store;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public final class CacheEvents {
   private CacheEvents() { }
@@ -58,8 +62,15 @@ public final class CacheEvents {
   }
   
   private static abstract class BaseCacheEvent<K, V> implements CacheEvent<K, V> {
+    Lock lock = new ReentrantLock();
+    Condition fireableCondition  = lock.newCondition();
+    Condition processedCondition = lock.newCondition();
+
     final K key;
     final Cache<K, V> src;
+    AtomicBoolean fireable = new AtomicBoolean(false);
+    AtomicBoolean failed = new AtomicBoolean(false);
+    AtomicBoolean processed = new AtomicBoolean(false);
     
     protected BaseCacheEvent(K key, Cache<K, V> from) {
       this.key = key;
@@ -82,6 +93,7 @@ public final class CacheEvents {
   private final static class ExpiryEvent<K, V> extends BaseCacheEvent<K, V> {
     final V expiredValue;
     
+
     ExpiryEvent(K expiredKey, V expiredValue, Cache<K, V> src) {
       super(expiredKey, src);
       this.expiredValue = expiredValue;
@@ -100,6 +112,77 @@ public final class CacheEvents {
     @Override
     public V getOldValue() {
       return expiredValue;
+    }
+
+    @Override
+    public void markFireable() {
+      lockEvent();
+      try {
+        while (!isProcessed()) {
+          fireable.set(true);
+          signalFireableCondition();
+          awaitProcessedCondition();
+        }
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      } finally {
+        unlockEvent();
+      }
+    }
+
+    @Override
+    public Boolean isFireable() {
+      return this.fireable.get();
+    }
+
+    @Override
+    public void markFailed() {
+      this.failed.set(true);
+    }
+
+    @Override
+    public Boolean hasFailed() {
+      return this.failed.get();
+    }
+
+    @Override
+    public void markProcessed() {
+      this.processed.set(true);
+    }
+
+    @Override
+    public Boolean isProcessed() {
+      return processed.get();
+    }
+
+    @Override
+    public void lockEvent() {
+      lock.lock();
+    }
+
+    @Override
+    public void unlockEvent() {
+      lock.unlock();
+    }
+
+    @Override
+    public void awaitFireableCondition() throws InterruptedException {
+      fireableCondition.await();
+    }
+
+    @Override
+    public void signalFireableCondition() {
+      fireableCondition.signal();
+    }
+
+    @Override
+    public void awaitProcessedCondition() throws InterruptedException {
+      processedCondition.await();
+    }
+
+    @Override
+    public void signalProcessedCondition() {
+      processedCondition.signal();
     }
   }
   
@@ -125,6 +208,77 @@ public final class CacheEvents {
     public V getOldValue() {
       return evictedValue;
     }
+
+    @Override
+    public void markFireable() {
+      lockEvent();
+      try {
+        while (!isProcessed()) {
+          fireable.set(true);
+          signalFireableCondition();
+          awaitProcessedCondition();
+        }
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      } finally {
+        unlockEvent();
+      }
+    }
+
+    @Override
+    public Boolean isFireable() {
+      return this.fireable.get();
+    }
+
+    @Override
+    public void markFailed() {
+      this.failed.set(true);
+    }
+
+    @Override
+    public Boolean hasFailed() {
+      return this.failed.get();
+    }
+
+    @Override
+    public void markProcessed() {
+      this.processed.set(true);
+    }
+
+    @Override
+    public Boolean isProcessed() {
+      return processed.get();
+    }
+
+    @Override
+    public void lockEvent() {
+      lock.lock();
+    }
+
+    @Override
+    public void unlockEvent() {
+      lock.unlock();
+    }
+
+    @Override
+    public void awaitFireableCondition() throws InterruptedException {
+      fireableCondition.await();
+    }
+
+    @Override
+    public void signalFireableCondition() {
+      fireableCondition.signal();
+    }
+
+    @Override
+    public void awaitProcessedCondition() throws InterruptedException {
+      processedCondition.await();
+    }
+
+    @Override
+    public void signalProcessedCondition() {
+      processedCondition.signal();
+    }
   }
 
   private final static class CreationEvent<K, V> extends BaseCacheEvent<K, V> {
@@ -148,6 +302,77 @@ public final class CacheEvents {
     @Override
     public V getOldValue() {
       return null;
+    }
+
+    @Override
+    public void markFireable() {
+      lockEvent();
+      try {
+        while (!isProcessed()) {
+          fireable.set(true);
+          signalFireableCondition();
+          awaitProcessedCondition();
+        }
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      } finally {
+        unlockEvent();
+      }
+    }
+
+    @Override
+    public Boolean isFireable() {
+      return this.fireable.get();
+    }
+
+    @Override
+    public void markFailed() {
+      this.failed.set(true);
+    }
+
+    @Override
+    public Boolean hasFailed() {
+      return this.failed.get();
+    }
+
+    @Override
+    public void markProcessed() {
+      this.processed.set(true);
+    }
+
+    @Override
+    public Boolean isProcessed() {
+      return processed.get();
+    }
+
+    @Override
+    public void lockEvent() {
+      lock.lock();
+    }
+
+    @Override
+    public void unlockEvent() {
+      lock.unlock();
+    }
+
+    @Override
+    public void awaitFireableCondition() throws InterruptedException {
+      fireableCondition.await();
+    }
+
+    @Override
+    public void signalFireableCondition() {
+      fireableCondition.signal();
+    }
+
+    @Override
+    public void awaitProcessedCondition() throws InterruptedException {
+      processedCondition.await();
+    }
+
+    @Override
+    public void signalProcessedCondition() {
+      processedCondition.signal();
     }
   }
   
@@ -173,6 +398,77 @@ public final class CacheEvents {
     public V getOldValue() {
       return removedValue;
     }
+
+    @Override
+    public void markFireable() {
+      lockEvent();
+      try {
+        while (!isProcessed()) {
+          fireable.set(true);
+          signalFireableCondition();
+          awaitProcessedCondition();
+        }
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      } finally {
+        unlockEvent();
+      }
+    }
+
+    @Override
+    public Boolean isFireable() {
+      return this.fireable.get();
+    }
+
+    @Override
+    public void markFailed() {
+      this.failed.set(true);
+    }
+
+    @Override
+    public Boolean hasFailed() {
+      return this.failed.get();
+    }
+
+    @Override
+    public void markProcessed() {
+      this.processed.set(true);
+    }
+
+    @Override
+    public Boolean isProcessed() {
+      return processed.get();
+    }
+
+    @Override
+    public void lockEvent() {
+      lock.lock();
+    }
+
+    @Override
+    public void unlockEvent() {
+      lock.unlock();
+    }
+
+    @Override
+    public void awaitFireableCondition() throws InterruptedException {
+      fireableCondition.await();
+    }
+
+    @Override
+    public void signalFireableCondition() {
+      fireableCondition.signal();
+    }
+
+    @Override
+    public void awaitProcessedCondition() throws InterruptedException {
+      processedCondition.await();
+    }
+
+    @Override
+    public void signalProcessedCondition() {
+      processedCondition.signal();
+    }
   }
 
   private final static class UpdateEvent<K, V> extends BaseCacheEvent<K, V> {
@@ -197,6 +493,81 @@ public final class CacheEvents {
     @Override
     public V getOldValue() {
       return oldValue;
+    }
+
+    @Override
+    public void markFireable() {
+      lockEvent();
+      try {
+        while (!isProcessed()) {
+          System.out.println("Marking " + getType() + "Fireable");
+          fireable.set(true);
+          signalFireableCondition();
+          
+          awaitProcessedCondition();
+        }
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      } finally {
+        unlockEvent();
+      }
+    }
+
+    @Override
+    public Boolean isFireable() {
+      return this.fireable.get();
+    }
+
+    @Override
+    public void markFailed() {
+      this.failed.set(true);
+    }
+
+    @Override
+    public Boolean hasFailed() {
+      return this.failed.get();
+    }
+
+    @Override
+    public void markProcessed() {
+      this.processed.set(true);
+    }
+
+    @Override
+    public Boolean isProcessed() {
+      return processed.get();
+    }
+
+    @Override
+    public void lockEvent() {
+      lock.lock();
+    }
+
+    @Override
+    public void unlockEvent() {
+      lock.unlock();
+    }
+
+    @Override
+    public void awaitFireableCondition() throws InterruptedException {
+      fireableCondition.await();
+    }
+
+    @Override
+    public void signalFireableCondition() {
+      System.out.println("Signalled  " + getType() + "fireable");
+      fireableCondition.signal();
+    }
+
+    @Override
+    public void awaitProcessedCondition() throws InterruptedException {
+      System.out.println("Waiting for  " + getType() + "to get processed");
+      processedCondition.await();
+    }
+
+    @Override
+    public void signalProcessedCondition() {
+      processedCondition.signal();
     }
   }
 

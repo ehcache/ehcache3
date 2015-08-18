@@ -54,4 +54,9 @@ public class DisabledCacheEventNotificationService<K, V> implements CacheEventNo
   @Override
   public void setStoreListenerSource(Cache<K, V> source) {
   }
+
+  @Override
+  public void stopEventService() {
+    
+  }
 }

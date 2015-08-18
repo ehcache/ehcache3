@@ -69,4 +69,72 @@ public interface CacheEvent<K, V> {
    */
   @Deprecated
   Cache<K, V> getSource();
+
+  /**
+   * This marks events fireable atomically
+   */
+  void markFireable();
+
+  /**
+   * Check if the event is marked fireable
+   * 
+   * @return {@code true} if marked fireable
+   */
+  Boolean isFireable();
+
+  /**
+   * This marks events as failed atomically
+   */
+  void markFailed();
+
+  /**
+   * Check if the event is marked failed
+   * 
+   * @return {@code true} if marked failed
+   */
+  Boolean hasFailed();
+
+  /**
+   * This marks events as processed atomically
+   */
+  void markProcessed();
+  
+  /**
+   * This marks events as processed atomically
+   */
+  Boolean isProcessed();
+
+  /**
+   * Locks the event so it can be marked
+   */
+  void lockEvent();
+
+  /**
+   * Unlocks locked Events
+   */
+  void unlockEvent();
+
+  /**
+   * Wait for the event to be marked fireable
+   * 
+   * @throws InterruptedException
+   */
+  void awaitFireableCondition() throws InterruptedException;
+
+  /**
+   * Signal that event is now marked fireable
+   */
+  void signalFireableCondition();
+
+  /**
+   * Wait for the event to be marked processed
+   *
+   * @throws InterruptedException
+   */
+  void awaitProcessedCondition() throws InterruptedException;
+
+  /**
+   * Signal that event is now marked processed
+   */
+  void signalProcessedCondition();
 }

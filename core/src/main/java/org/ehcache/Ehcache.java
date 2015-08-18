@@ -22,6 +22,7 @@ import org.ehcache.event.CacheEvent;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.CacheEvents;
 import org.ehcache.events.DisabledCacheEventNotificationService;
+import org.ehcache.events.EventThreadLocal;
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
@@ -255,6 +256,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       ValueHolder<V> computed = store.compute(key, remappingFunction);
       if (computed != null) {
         putObserver.end(PutOutcome.ADDED);
+        markAllCacheEventsFireable();
       } else {
         putObserver.end(PutOutcome.NOOP);
       }
@@ -273,6 +275,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         }
       } finally {
         putObserver.end(PutOutcome.FAILURE);
+        markAllCacheEventsFailed();
       }
     }
   }
@@ -337,6 +340,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       store.compute(key, remappingFunction);
       if (modified.get()) {
         removeObserver.end(RemoveOutcome.SUCCESS);
+        markAllCacheEventsFireable();
       } else {
         removeObserver.end(RemoveOutcome.NOOP);
       }
@@ -350,6 +354,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         resilienceStrategy.removeFailure(key, e);
       } finally {
         removeObserver.end(RemoveOutcome.FAILURE);
+        markAllCacheEventsFailed();
       }
     }
     
@@ -568,6 +573,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         putAllObserver.end(PutAllOutcome.FAILURE);
         throw cacheWritingException;
       }
+      markAllCacheEventsFireable();
     } catch (CacheAccessException e) {
       try {
         if (cacheLoaderWriter == null) {
@@ -586,6 +592,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } finally {
         putAllObserver.end(PutAllOutcome.FAILURE);
       }
+      markAllCacheEventsFailed();
     }
   }
 
@@ -711,6 +718,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         removeAllObserver.end(RemoveAllOutcome.FAILURE);
         throw new BulkCacheWritingException(failures, successes);
       }
+      markAllCacheEventsFireable();
     } catch (CacheAccessException e) {
       try {
         if (cacheLoaderWriter == null) {
@@ -729,6 +737,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } finally {
         removeAllObserver.end(RemoveAllOutcome.FAILURE);
       }
+      markAllCacheEventsFailed();
     }
   }
 
@@ -803,6 +812,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       ValueHolder<V> inCache = store.computeIfAbsent(key, mappingFunction);
       if (installed.get()) {
         putIfAbsentObserver.end(PutIfAbsentOutcome.PUT);
+        markAllCacheEventsFireable();
         return null;
       } else if (inCache == null) {
         /*
@@ -831,6 +841,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         }
       } finally {
         putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
+        markAllCacheEventsFailed();
       }
     }
   }
@@ -880,6 +891,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       store.compute(key, remappingFunction, REPLACE_FALSE);
       if (removed.get()) {
         conditionalRemoveObserver.end(ConditionalRemoveOutcome.SUCCESS);
+        markAllCacheEventsFireable();
       } else {
         if (hit.get()) {
           conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_PRESENT);
@@ -903,6 +915,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         }
       } finally {
         conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE);
+        markAllCacheEventsFailed();
       }
     }
     return removed.get();
@@ -955,6 +968,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       store.compute(key, remappingFunction);
       if (old.get() != null) {
         replaceObserver.end(ReplaceOutcome.HIT);
+        markAllCacheEventsFireable();
       } else {
         replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
       }
@@ -971,6 +985,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         return resilienceStrategy.replaceFailure(key, value, e);
       } finally {
         replaceObserver.end(ReplaceOutcome.FAILURE);
+        markAllCacheEventsFailed();
       }
     }
   }
@@ -1028,6 +1043,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       store.compute(key, remappingFunction, REPLACE_FALSE);
       if (success.get()) {
         replaceObserver.end(ReplaceOutcome.HIT);
+        markAllCacheEventsFireable();
       } else {
         if (hit.get()) {
           replaceObserver.end(ReplaceOutcome.MISS_PRESENT);
@@ -1052,6 +1068,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         }
       } finally {
         replaceObserver.end(ReplaceOutcome.FAILURE);
+        markAllCacheEventsFailed();
       }        
     }
   }
@@ -1071,6 +1088,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
 
   @Override
   public void close() {
+    eventNotificationService.stopEventService();
     statusTransitioner.close().succeeded();
   }
 
@@ -1274,8 +1292,10 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         };
 
         ValueHolder<V> valueHolder = store.compute(key, fn, replaceEqual);
+        markAllCacheEventsFireable();
         return valueHolder == null ? null : valueHolder.value();
       } catch (CacheAccessException e) {
+        markAllCacheEventsFailed();
         // XXX:
         throw new RuntimeException(e);
       }
@@ -1308,6 +1328,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } catch (CacheAccessException e) {
         getObserver.end(GetOutcome.FAILURE);
         removeObserver.end(RemoveOutcome.FAILURE);
+        markAllCacheEventsFireable();
         // XXX:
         throw new RuntimeException(e);
       }
@@ -1316,6 +1337,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       if (returnValue != null) {
         getObserver.end(GetOutcome.HIT_NO_LOADER);
         removeObserver.end(RemoveOutcome.SUCCESS);
+        markAllCacheEventsFailed();
       } else {
         getObserver.end(GetOutcome.MISS_NO_LOADER);          
       }
@@ -1358,6 +1380,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } catch (CacheAccessException e) {
         getObserver.end(GetOutcome.FAILURE);
         putObserver.end(PutOutcome.FAILURE);
+        markAllCacheEventsFireable();
         // XXX:
         throw new RuntimeException(e);
       }
@@ -1369,6 +1392,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         getObserver.end(GetOutcome.MISS_NO_LOADER);          
       }
       putObserver.end(PutOutcome.ADDED);
+      markAllCacheEventsFailed();
       return returnValue;
     }
 
@@ -1383,6 +1407,18 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         K key = iter.next().getKey();
         remove(key);
       }
+    }
+  }
+  
+  private void markAllCacheEventsFireable() {
+    while (!EventThreadLocal.get().isEmpty()) {
+      EventThreadLocal.get().remove().markFireable();
+    }
+  }
+
+  private void markAllCacheEventsFailed() {
+    while (!EventThreadLocal.get().isEmpty()) {
+      EventThreadLocal.get().remove().markFailed();
     }
   }
   

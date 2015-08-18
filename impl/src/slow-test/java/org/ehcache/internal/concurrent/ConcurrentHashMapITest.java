@@ -148,6 +148,7 @@ public class ConcurrentHashMapITest {
         assertThat(map.size(), is(ENTRIES));
 
         for(int i = 0; i < 100; i ++) {
+          System.out.println("i : "+ i);
             final HashSet randomValues = new HashSet(getRandomValues(map, ENTRIES));
             assertThat(randomValues.size(), is(ENTRIES));
             for (Object randomValue : randomValues) {
