@@ -110,15 +110,15 @@ public class DefaultSerializationProviderTest {
     public TestSerializer(ClassLoader classLoader) {
     }
     @Override
-    public ByteBuffer serialize(T object) throws IOException {
+    public ByteBuffer serialize(T object) {
       return null;
     }
     @Override
-    public T read(ByteBuffer binary) throws IOException, ClassNotFoundException {
+    public T read(ByteBuffer binary) {
       return null;
     }
     @Override
-    public boolean equals(T object, ByteBuffer binary) throws IOException, ClassNotFoundException {
+    public boolean equals(T object, ByteBuffer binary) {
       return false;
     }
   }

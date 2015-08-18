@@ -25,6 +25,9 @@ import java.lang.reflect.Proxy;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.ehcache.exceptions.SerializerException;
 
 import org.ehcache.internal.util.ByteBufferInputStream;
 import org.ehcache.spi.serialization.Serializer;
@@ -42,38 +45,47 @@ public class JavaSerializer<T> implements Serializer<T> {
   }
 
   @Override
-  public ByteBuffer serialize(T object) throws IOException {
+  public ByteBuffer serialize(T object) {
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
     try {
       ObjectOutputStream oout = new ObjectOutputStream(bout);
       oout.writeObject(object);
+    } catch (IOException e) {
+      throw new SerializerException(e);
     } finally {
-      bout.close();
+      try {
+        bout.close();
+      } catch (IOException e) {
+        throw new AssertionError(e);
+      }
     }
     return ByteBuffer.wrap(bout.toByteArray());
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public T read(ByteBuffer entry) throws IOException, ClassNotFoundException {
-    ByteBufferInputStream bin = null;
+  public T read(ByteBuffer entry) throws SerializerException, ClassNotFoundException {
+    ByteBufferInputStream bin = new ByteBufferInputStream(entry);
     try {
-      bin = new ByteBufferInputStream(entry);
       OIS ois = new OIS(bin, classLoader);
       try {
         return (T) ois.readObject();
       } finally {
         ois.close();
       }
+    } catch (IOException e) {
+      throw new SerializerException(e);
     } finally {
-      if (bin != null) {
+      try {
         bin.close();
+      } catch (IOException e) {
+        throw new AssertionError(e);
       }
     }
   }
 
   @Override
-  public boolean equals(T object, ByteBuffer binary) throws IOException, ClassNotFoundException {
+  public boolean equals(T object, ByteBuffer binary) throws SerializerException, ClassNotFoundException {
     return object.equals(read(binary));
   }
 

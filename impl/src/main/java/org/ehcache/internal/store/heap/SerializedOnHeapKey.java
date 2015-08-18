@@ -29,12 +29,7 @@ class SerializedOnHeapKey<K> extends BaseOnHeapKey<K> {
 
   SerializedOnHeapKey(K actualKeyObject, Serializer<K> serializer) {
     super(actualKeyObject.hashCode());
-    try {
-      this.keyAsStored = serializer.serialize(actualKeyObject);
-    } catch (IOException e) {
-      throw new SerializerException(e);
-    }
-
+    this.keyAsStored = serializer.serialize(actualKeyObject);
     this.serializer = serializer;
   }
 
@@ -43,8 +38,6 @@ class SerializedOnHeapKey<K> extends BaseOnHeapKey<K> {
     try {
       return serializer.read(keyAsStored);
     } catch (ClassNotFoundException e) {
-      throw new SerializerException(e);
-    } catch (IOException e) {
       throw new SerializerException(e);
     }
   }

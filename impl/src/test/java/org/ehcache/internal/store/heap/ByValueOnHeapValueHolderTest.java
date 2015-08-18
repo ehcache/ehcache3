@@ -107,12 +107,12 @@ public class ByValueOnHeapValueHolderTest {
     }
 
     @Override
-    public ByteBuffer serialize(String object) throws IOException {
+    public ByteBuffer serialize(String object) {
       return delegate.serialize(object);
     }
 
     @Override
-    public String read(ByteBuffer binary) throws IOException, ClassNotFoundException {
+    public String read(ByteBuffer binary) throws ClassNotFoundException {
       ByteBuffer received = binary;
       ByteBuffer exchanged = null;
       try {
@@ -125,7 +125,7 @@ public class ByValueOnHeapValueHolderTest {
     }
 
     @Override
-    public boolean equals(String object, ByteBuffer binary) throws IOException, ClassNotFoundException {
+    public boolean equals(String object, ByteBuffer binary) throws ClassNotFoundException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
   }

@@ -18,7 +18,6 @@ package org.ehcache.jsr107;
 
 import org.ehcache.spi.serialization.Serializer;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
@@ -32,7 +31,7 @@ public class StringSerializer implements Serializer<String> {
   }
 
   @Override
-  public ByteBuffer serialize(String object) throws IOException {
+  public ByteBuffer serialize(String object) {
     ByteBuffer byteBuffer = ByteBuffer.allocate(object.length());
     byteBuffer.put(object.getBytes(CHARSET));
     byteBuffer.flip();
@@ -40,14 +39,14 @@ public class StringSerializer implements Serializer<String> {
   }
 
   @Override
-  public String read(ByteBuffer binary) throws IOException, ClassNotFoundException {
+  public String read(ByteBuffer binary) {
     byte[] bytes = new byte[binary.remaining()];
     binary.get(bytes);
     return new String(bytes, CHARSET);
   }
 
   @Override
-  public boolean equals(String object, ByteBuffer binary) throws IOException, ClassNotFoundException {
+  public boolean equals(String object, ByteBuffer binary) {
     return object.equals(read(binary));
   }
 }

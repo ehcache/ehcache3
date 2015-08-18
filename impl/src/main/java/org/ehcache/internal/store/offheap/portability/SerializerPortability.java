@@ -16,11 +16,11 @@
 
 package org.ehcache.internal.store.offheap.portability;
 
+import org.ehcache.exceptions.SerializerException;
 import org.ehcache.spi.serialization.Serializer;
 
 import org.terracotta.offheapstore.storage.portability.Portability;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
@@ -36,24 +36,15 @@ public class SerializerPortability<T> implements Portability<T> {
 
   @Override
   public ByteBuffer encode(T t) {
-    try {
-      return serializer.serialize(t);
-    } catch (IOException e) {
-      // TODO: find adequate exception
-      throw new RuntimeException(e);
-    }
+    return serializer.serialize(t);
   }
 
   @Override
   public T decode(ByteBuffer byteBuffer) {
     try {
       return serializer.read(byteBuffer);
-    } catch (IOException e) {
-      // TODO: find adequate exception
-      throw new RuntimeException(e);
     } catch (ClassNotFoundException e) {
-      // TODO: find adequate exception
-      throw new RuntimeException(e);
+      throw new SerializerException(e);
     }
   }
 
@@ -62,12 +53,8 @@ public class SerializerPortability<T> implements Portability<T> {
     try {
       // TODO can we get rid of blind cast?
       return serializer.equals((T)o, byteBuffer);
-    } catch (IOException e) {
-      // TODO: find adequate exception
-      throw new RuntimeException(e);
     } catch (ClassNotFoundException e) {
-      // TODO: find adequate exception
-      throw new RuntimeException(e);
+      throw new SerializerException(e);
     }
   }
 }

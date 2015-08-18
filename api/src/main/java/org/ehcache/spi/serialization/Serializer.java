@@ -17,6 +17,7 @@ package org.ehcache.spi.serialization;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import org.ehcache.exceptions.SerializerException;
 
 /**
  * Interface defining the contract used to transform types in a serial form.
@@ -33,19 +34,19 @@ public interface Serializer<T> {
    *
    * @param object the instance to serialize
    * @return the binary representation of the serial form
-   * @throws IOException if serialization fails
+   * @throws SerializerException if serialization fails
    */
-  ByteBuffer serialize(T object) throws IOException;
+  ByteBuffer serialize(T object) throws SerializerException;
 
   /**
    * Reconstructs an instance from the given serial form.
    *
    * @param binary the binary representation of the serial form
    * @return the de-serialized instance
-   * @throws IOException if reading the byte buffer fails
+   * @throws SerializerException if reading the byte buffer fails
    * @throws ClassNotFoundException if the type to de-serialize to cannot be found
    */
-  T read(ByteBuffer binary) throws IOException, ClassNotFoundException;
+  T read(ByteBuffer binary) throws ClassNotFoundException, SerializerException;
 
   /**
    * Checks if the given instance and serial form are representations of the same instance.
@@ -53,9 +54,9 @@ public interface Serializer<T> {
    * @param object the instance to check
    * @param binary the serial form to check
    * @return {@code true} if both parameters represent the same instance, {@code false} otherwise
-   * @throws IOException if reading the byte buffer fails
+   * @throws SerializerException if reading the byte buffer fails
    * @throws ClassNotFoundException if the type to de-serialize to cannot be found
    */
-  boolean equals(T object, ByteBuffer binary) throws IOException, ClassNotFoundException;
+  boolean equals(T object, ByteBuffer binary) throws ClassNotFoundException, SerializerException;
 
 }
