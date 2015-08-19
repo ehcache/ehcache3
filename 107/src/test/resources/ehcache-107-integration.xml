@@ -9,8 +9,7 @@
     </jcache:defaults>
   </ehcache:service>
 
-  <ehcache:cache alias="productCache"
-                 storeByValueOnHeap="true"> <!-- OPTIONAL: storing by value on heap, will result in keys and values being copied in and out of the Cache -->
+  <ehcache:cache alias="productCache">
 
     <ehcache:key-type>java.lang.Long</ehcache:key-type>
 
@@ -50,7 +49,7 @@
     <ehcache:heap size="200" unit="entries"/>
   </ehcache:cache-template>
 
-  <ehcache:cache-template storeByValueOnHeap="false" name="myDefaultTemplate">
+  <ehcache:cache-template name="myDefaultTemplate">
     <ehcache:expiry>
       <ehcache:none/>
     </ehcache:expiry>

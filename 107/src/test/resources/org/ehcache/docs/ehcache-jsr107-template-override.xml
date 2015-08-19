@@ -9,7 +9,7 @@
     </jsr107:defaults>
   </service>
 
-  <cache-template name="stringCache" storeByValueOnHeap="true">
+  <cache-template name="stringCache">
     <key-type>java.lang.String</key-type>
     <value-type>java.lang.String</value-type>
     <expiry>

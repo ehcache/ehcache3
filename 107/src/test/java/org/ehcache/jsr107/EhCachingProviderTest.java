@@ -31,6 +31,7 @@ import javax.cache.Caching;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.spi.CachingProvider;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.pany.domain.Customer;
@@ -57,6 +58,7 @@ public class EhCachingProviderTest {
     Caching.getCachingProvider().close();
   }
 
+  @Ignore
   @Test
   public void testCacheUsesCacheManagerClassLoaderForDefaultURI() {
     CachingProvider cachingProvider = Caching.getCachingProvider();
@@ -64,7 +66,7 @@ public class EhCachingProviderTest {
 
     CacheManager cacheManager = cachingProvider.getCacheManager(cachingProvider.getDefaultURI(), limitedClassLoader);
 
-    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();
+    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>().setStoreByValue(true);
     Cache<Object, Object> cache = cacheManager.createCache("test", configuration);
 
     cache.put(1L, new Customer(1L));

@@ -25,7 +25,9 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.copy.Copier;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -126,8 +128,11 @@ public class OnHeapStoreEvictionTest {
   }
 
   static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
+
+    private static final Copier DEFAULT_COPIER = new IdentityCopier();
+
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
-      super(config, timeSource, false);
+      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER);
     }
 
     private boolean enforceCapacityWasCalled = false;

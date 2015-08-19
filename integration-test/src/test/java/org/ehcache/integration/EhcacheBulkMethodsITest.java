@@ -25,15 +25,15 @@ import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.internal.SystemTimeSource;
+import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
-import org.ehcache.spi.serialization.SerializationProvider;
-import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
 import org.mockito.Matchers;
@@ -508,7 +508,8 @@ public class EhcacheBulkMethodsITest {
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-      return new OnHeapStore<K, V>(storeConfig, SystemTimeSource.INSTANCE, false) {
+      final Copier defaultCopier = new IdentityCopier();
+      return new OnHeapStore<K, V>(storeConfig, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier) {
         @Override
         public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
           throw new CacheAccessException("Problem trying to bulk compute");

@@ -40,7 +40,7 @@ import static org.junit.Assert.fail;
  * @author vfunshteyn
  *
  */
-public class ByValueOnHeapValueHolderTest {
+public class SerializedOnHeapValueHolderTest {
 
   @Test
   public void testValue() {
@@ -84,7 +84,7 @@ public class ByValueOnHeapValueHolderTest {
   public void testSerializerGetsDifferentByteBufferOnRead() {
     final Exchanger<ByteBuffer> exchanger = new Exchanger<ByteBuffer>();
     final ReadExchangeSerializer serializer = new ReadExchangeSerializer(exchanger);
-    final ByValueOnHeapValueHolder<String> valueHolder = new ByValueOnHeapValueHolder<String>("test it!", System
+    final SerializedOnHeapValueHolder<String> valueHolder = new SerializedOnHeapValueHolder<String>("test it!", System
         .currentTimeMillis(), serializer);
 
     new Thread(new Runnable() {
@@ -100,7 +100,7 @@ public class ByValueOnHeapValueHolderTest {
   private static class ReadExchangeSerializer implements Serializer<String> {
 
     private final Exchanger<ByteBuffer> exchanger;
-    private final Serializer<String> delegate = new JavaSerializer<String>(ByValueOnHeapValueHolderTest.class.getClassLoader());
+    private final Serializer<String> delegate = new JavaSerializer<String>(SerializedOnHeapValueHolderTest.class.getClassLoader());
 
     private ReadExchangeSerializer(Exchanger<ByteBuffer> exchanger) {
       this.exchanger = exchanger;
@@ -136,7 +136,7 @@ public class ByValueOnHeapValueHolderTest {
   }
 
   private static <V extends Serializable> ValueHolder<V> newValueHolder(V value) {
-    return new ByValueOnHeapValueHolder<V>(value, TestTimeSource.INSTANCE.getTimeMillis(), new JavaSerializer<V>(ByValueOnHeapValueHolderTest.class.getClassLoader()));
+    return new SerializedOnHeapValueHolder<V>(value, TestTimeSource.INSTANCE.getTimeMillis(), new JavaSerializer<V>(SerializedOnHeapValueHolderTest.class.getClassLoader()));
   }
 
   private static class TestTimeSource implements TimeSource {

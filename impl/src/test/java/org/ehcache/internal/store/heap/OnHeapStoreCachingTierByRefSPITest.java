@@ -20,12 +20,14 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.internal.SystemTimeSource;
+import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.tier.CachingTierFactory;
 import org.ehcache.internal.tier.CachingTierSPITest;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 
@@ -49,6 +51,8 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
   public void setUp() {
     cachingTierFactory = new CachingTierFactory<String, String>() {
 
+      private final Copier DEFAULT_COPIER = new IdentityCopier();
+
       @Override
       public CachingTier<String, String> newCachingTier() {
         return newCachingTier(null);
@@ -63,12 +67,12 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null, null,
                 ClassLoader.getSystemClassLoader(), null, buildResourcePools(capacity), null, null);
         
-        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false);
+        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER);
       }
       
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new ByRefOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis());
+        return new CopiedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), DEFAULT_COPIER);
       }
 
       @Override

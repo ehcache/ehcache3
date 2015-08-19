@@ -19,20 +19,19 @@
     OPTIONAL
       A <cache> element defines a cache, identified by the mandatory 'alias' attribute, to be managed by the CacheManager
   -->
-  <ehcache:cache alias="productCache"
-                 storeByValueOnHeap="true"> <!-- OPTIONAL: storing by value on heap, will result in keys and values being copied in and out of the Cache -->
+  <ehcache:cache alias="productCache">
 
     <!--
       OPTIONAL, defaults to java.lang.Object
         The FQCN of the type of keys K we'll use with the Cache<K, V>
     -->
-    <ehcache:key-type>java.lang.Long</ehcache:key-type>
+    <ehcache:key-type copier="org.ehcache.internal.copy.SerializingCopier">java.lang.Long</ehcache:key-type>
 
     <!--
       OPTIONAL, defaults to java.lang.Object
         The FQCN of the type of values V we'll use with the Cache<K, V>
     -->
-    <ehcache:value-type>com.pany.domain.Product</ehcache:value-type>
+    <ehcache:value-type copier="org.ehcache.internal.copy.SerializingCopier">com.pany.domain.Product</ehcache:value-type>
 
     <!--
       OPTIONAL, defaults to no expiry
@@ -98,7 +97,7 @@
       A <cache-template> defines a named template that can be used be <cache> definitions in this same file
       They have all the same property as the <cache> elements above
   -->
-  <ehcache:cache-template storeByValueOnHeap="false" name="myDefaultTemplate">
+  <ehcache:cache-template name="myDefaultTemplate">
     <ehcache:expiry>
       <ehcache:none/>
     </ehcache:expiry>

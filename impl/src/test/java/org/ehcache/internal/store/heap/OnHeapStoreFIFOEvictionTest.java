@@ -26,7 +26,9 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.copy.Copier;
 import org.hamcrest.core.Is;
 import org.junit.Test;
 
@@ -153,8 +155,11 @@ public class OnHeapStoreFIFOEvictionTest {
   }
 
   static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
+
+    private static final Copier DEFAULT_COPIER = new IdentityCopier();
+
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
-      super(config, timeSource, false);
+      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER);
     }
   }
 }

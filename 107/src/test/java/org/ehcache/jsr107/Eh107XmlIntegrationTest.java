@@ -179,7 +179,6 @@ public class Eh107XmlIntegrationTest {
     Eh107ReverseConfiguration<Long, Product> eh107ReverseConfiguration = productCache.getConfiguration(Eh107ReverseConfiguration.class);
     assertThat(eh107ReverseConfiguration.isReadThrough(), is(true));
     assertThat(eh107ReverseConfiguration.isWriteThrough(), is(true));
-    assertThat(eh107ReverseConfiguration.isStoreByValue(), is(true));
 
     Product product = new Product(1L);
     productCache.put(1L, product);

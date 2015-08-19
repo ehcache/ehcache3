@@ -24,16 +24,19 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsBuilder;
+import org.ehcache.config.copy.CopierConfiguration;
+import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.exceptions.SerializerException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.internal.serialization.JavaSerializer;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
+import org.ehcache.spi.copy.Copier;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -99,7 +102,7 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
     key.add("key");
     String value = "value";
     
-    store.put((Serializable) key, value);
+    store.put((Serializable)key, value);
     
     // mutate the key -- should not affect cache
     key.clear();
@@ -115,18 +118,21 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(false);
     cacheManager.init();
 
+    DefaultCopierConfiguration copierConfiguration = new DefaultCopierConfiguration(
+        SerializingCopier.class, CopierConfiguration.Type.VALUE);
     final Cache<Long, String> cache1 = cacheManager.createCache("cache1",
         CacheConfigurationBuilder.newCacheConfigurationBuilder().withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES))
             .buildConfig(Long.class, String.class));
     performAssertions(cache1, true);
 
     final Cache<Long, String> cache2 = cacheManager.createCache("cache2",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder().add(new OnHeapStoreServiceConfiguration().storeByValue(true))
+        CacheConfigurationBuilder.newCacheConfigurationBuilder()
+            .add(copierConfiguration)
             .buildConfig(Long.class, String.class));
     performAssertions(cache2, false);
 
     final Cache<Long, String> cache3 = cacheManager.createCache("cache3",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder().add(new OnHeapStoreServiceConfiguration().storeByValue(false))
+        CacheConfigurationBuilder.newCacheConfigurationBuilder()
             .buildConfig(Long.class, String.class));
     performAssertions(cache3, true);
 
@@ -151,6 +157,9 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
   @Override
   protected <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
       final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto) {
+
+    final Copier copier = new SerializingCopier(new JavaSerializer<K>(getClass().getClassLoader()));
+
     return new OnHeapStore<K, V>(new Store.Configuration<K, V>() {
       
       @SuppressWarnings("unchecked")
@@ -199,7 +208,7 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
       public Serializer<V> getValueSerializer() {
         return new JavaSerializer<V>(getClass().getClassLoader());
       }
-    }, timeSource, true);
+    }, timeSource, copier, copier);
   }
 
   private void performAssertions(Cache<Long, String> cache, boolean same) {

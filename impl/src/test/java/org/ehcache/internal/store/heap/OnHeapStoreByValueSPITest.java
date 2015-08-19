@@ -23,12 +23,14 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 
@@ -57,6 +59,9 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
     
     storeFactory = new StoreFactory<String, String>() {
 
+      final Serializer<String> defaultSerializer = new JavaSerializer<String>(getClass().getClassLoader());
+      final Copier<String> defaultCopier = new SerializingCopier<String>(defaultSerializer);
+
       @Override
       public Store<String, String> newStore() {
         return newStore(null, null, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
@@ -80,12 +85,12 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
       private Store<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         ResourcePools resourcePools = buildResourcePools(capacity);
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, null, getClass().getClassLoader(), expiry, resourcePools, new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
-        return new OnHeapStore<String, String>(config, timeSource, true);
+        return new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier);
       }
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new ByValueOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), new JavaSerializer<String>(getClass().getClassLoader()));
+        return new SerializedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), defaultSerializer);
       }
 
       private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
@@ -108,7 +113,7 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[] { new OnHeapStoreServiceConfiguration().storeByValue(true)};
+        return new ServiceConfiguration[0];
       }
 
       @Override

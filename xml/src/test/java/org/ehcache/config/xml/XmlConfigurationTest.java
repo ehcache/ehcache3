@@ -16,6 +16,9 @@
 
 package org.ehcache.config.xml;
 
+import com.pany.ehcache.copier.AnotherPersonCopier;
+import com.pany.ehcache.copier.DescriptionCopier;
+import com.pany.ehcache.copier.PersonCopier;
 import com.pany.ehcache.serializer.TestSerializer;
 import com.pany.ehcache.serializer.TestSerializer2;
 import com.pany.ehcache.serializer.TestSerializer3;
@@ -28,6 +31,9 @@ import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
+import org.ehcache.config.copy.CopierConfiguration;
+import org.ehcache.config.copy.DefaultCopierConfiguration;
+import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
@@ -37,7 +43,8 @@ import org.ehcache.config.writebehind.DefaultWriteBehindConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
+import org.ehcache.internal.copy.SerializingCopier;
+import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -77,6 +84,7 @@ import static org.hamcrest.core.StringContains.containsString;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsSame.sameInstance;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -190,34 +198,6 @@ public class XmlConfigurationTest {
     }
 
     assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("bar"), nullValue());
-  }
-
-  @Test
-  public void testStoreByValueDefaultsToFalse() throws Exception {
-    Boolean storeByValueOnHeap = null;
-    final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
-    for (ServiceConfiguration<?> serviceConfiguration : xmlConfiguration.getCacheConfigurations()
-        .get("bar")
-        .getServiceConfigurations()) {
-      if(serviceConfiguration instanceof OnHeapStoreServiceConfiguration) {
-        storeByValueOnHeap = ((OnHeapStoreServiceConfiguration)serviceConfiguration).storeByValue();
-      }
-    }
-    assertThat(storeByValueOnHeap, is(false));
-  }
-  
-  @Test
-  public void testStoreByValueIsParsed() throws Exception {
-    Boolean storeByValueOnHeap = null;
-    final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/byValue-cache.xml"));
-    for (ServiceConfiguration<?> serviceConfiguration : xmlConfiguration.getCacheConfigurations()
-        .get("bar")
-        .getServiceConfigurations()) {
-      if(serviceConfiguration instanceof OnHeapStoreServiceConfiguration) {
-        storeByValueOnHeap = ((OnHeapStoreServiceConfiguration)serviceConfiguration).storeByValue();
-      }
-    }
-    assertThat(storeByValueOnHeap, is(true));
   }
 
   @SuppressWarnings("rawtypes")
@@ -431,6 +411,54 @@ public class XmlConfigurationTest {
 
   public static <T> Matcher<T> isIn(T... elements) {
     return org.hamcrest.collection.IsIn.isIn(elements);
+  }
+
+  @Test
+  public void testCacheCopierConfiguration() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/cache-copiers.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+
+    assertThat(xmlConfig.getServiceCreationConfigurations().size(), is(1));
+
+    ServiceCreationConfiguration configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+
+    assertThat(configuration, instanceOf(DefaultCopyProviderConfiguration.class));
+
+    DefaultCopyProviderConfiguration factoryConfiguration = (DefaultCopyProviderConfiguration) configuration;
+    assertThat(factoryConfiguration.getDefaults().size(), is(2));
+    assertThat(factoryConfiguration.getDefaults().get("com.pany.ehcache.copier.Description"),
+        Matchers.<Class<? extends Copier>>equalTo(DescriptionCopier.class));
+    assertThat(factoryConfiguration.getDefaults().get("com.pany.ehcache.copier.Person"),
+        Matchers.<Class<? extends Copier>>equalTo(PersonCopier.class));
+
+
+    Collection<ServiceConfiguration<?>> configs = xmlConfig.getCacheConfigurations().get("baz").getServiceConfigurations();
+    for(ServiceConfiguration<?> config: configs) {
+      if(config instanceof DefaultCopierConfiguration) {
+        DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration) config;
+        if(copierConfig.getType() == CopierConfiguration.Type.KEY) {
+          assertEquals(SerializingCopier.class, copierConfig.getClazz());
+        } else {
+          assertEquals(AnotherPersonCopier.class, copierConfig.getClazz());
+        }
+      } else {
+        continue;
+      }
+    }
+
+    configs = xmlConfig.getCacheConfigurations().get("bak").getServiceConfigurations();
+    for(ServiceConfiguration<?> config: configs) {
+      if(config instanceof DefaultCopierConfiguration) {
+        DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration) config;
+        if(copierConfig.getType() == CopierConfiguration.Type.KEY) {
+          assertEquals(SerializingCopier.class, copierConfig.getClazz());
+        } else {
+          assertEquals(AnotherPersonCopier.class, copierConfig.getClazz());
+        }
+      } else {
+        continue;
+      }
+    }
   }
 
   @Test

@@ -16,12 +16,12 @@
 
 package org.ehcache.jsr107;
 
+import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
@@ -89,8 +89,9 @@ public class ConfigurationMergerTest {
     boolean storeByValue = false;
     Collection<ServiceConfiguration<?>> serviceConfigurations = configHolder.cacheConfiguration.getServiceConfigurations();
     for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
-      if (serviceConfiguration instanceof OnHeapStoreServiceConfiguration) {
-        storeByValue = ((OnHeapStoreServiceConfiguration) serviceConfiguration).storeByValue();
+      if (serviceConfiguration instanceof CopierConfiguration) {
+        storeByValue = true;
+        break;
       }
     }
     assertThat(storeByValue, is(true));
@@ -195,7 +196,7 @@ public class ConfigurationMergerTest {
   public void jsr107StoreByValueGetsOverriddenByTemplate() throws Exception {
     when(jsr107Service.getTemplateNameForCache("cache")).thenReturn("cacheTemplate");
     when(xmlConfiguration.newCacheConfigurationBuilderFromTemplate("cacheTemplate", Object.class, Object.class)).thenReturn(
-        newCacheConfigurationBuilder().add(new OnHeapStoreServiceConfiguration().storeByValue(false))
+        newCacheConfigurationBuilder()
     );
 
     MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();
@@ -205,8 +206,9 @@ public class ConfigurationMergerTest {
     boolean storeByValue = true;
     Collection<ServiceConfiguration<?>> serviceConfigurations = configHolder.cacheConfiguration.getServiceConfigurations();
     for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
-      if (serviceConfiguration instanceof OnHeapStoreServiceConfiguration) {
-        storeByValue = ((OnHeapStoreServiceConfiguration) serviceConfiguration).storeByValue();
+      if (serviceConfiguration instanceof CopierConfiguration) {
+        storeByValue = false;
+        break;
       }
     }
     assertThat(storeByValue, is(false));

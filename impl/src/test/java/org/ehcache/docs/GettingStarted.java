@@ -27,6 +27,9 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.SerializerConfiguration;
+import org.ehcache.config.copy.CopierConfiguration;
+import org.ehcache.config.copy.DefaultCopierConfiguration;
+import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
@@ -39,9 +42,11 @@ import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
 import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
+import org.ehcache.internal.copy.ReadWriteCopier;
+import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -147,16 +152,16 @@ public class GettingStarted {
   public void defaultSerializers() throws Exception {
     // tag::defaultSerializers[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .add(new OnHeapStoreServiceConfiguration().storeByValue(true)) // <1>
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .withResourcePools(ResourcePoolsBuilder
+            .newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB).build())
         .buildConfig(Long.class, String.class);
 
     DefaultSerializationProviderConfiguration defaultSerializationProviderFactoryConfiguration =
         new DefaultSerializationProviderConfiguration()
-            .addSerializerFor(String.class, StringSerializer.class); //// <2>
+            .addSerializerFor(String.class, StringSerializer.class);  // <1>
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("cache", cacheConfiguration)
-        .using(defaultSerializationProviderFactoryConfiguration) // <3>
+        .using(defaultSerializationProviderFactoryConfiguration) // <2>
         .build(true);
 
     Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
@@ -172,12 +177,11 @@ public class GettingStarted {
   public void cacheSerializers() throws Exception {
     // tag::cacheSerializers[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .add(new OnHeapStoreServiceConfiguration().storeByValue(true)) // <1>
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .add(new DefaultSerializerConfiguration<Long>(LongSerializer.class,
-            SerializerConfiguration.Type.KEY)) //// <2>
+            SerializerConfiguration.Type.KEY))  // <1>
         .add(new DefaultSerializerConfiguration<CharSequence>(CharSequenceSerializer.class,
-            SerializerConfiguration.Type.VALUE)) //// <3>
+            SerializerConfiguration.Type.VALUE))  // <2>
         .buildConfig(Long.class, String.class);
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -304,6 +308,178 @@ public class GettingStarted {
     cacheManager.close();
   }
 
+  @Test
+  public void cacheCopiers() throws Exception {
+    // tag::cacheCopiers[]
+    CacheConfiguration<Description, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .add(new DefaultCopierConfiguration<Description>(DescriptionCopier.class,
+            CopierConfiguration.Type.KEY))  // <1>
+        .add(new DefaultCopierConfiguration<Person>(PersonCopier.class,
+            CopierConfiguration.Type.VALUE))  // <2>
+        .buildConfig(Description.class, Person.class);
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("cache", cacheConfiguration)
+        .build(true);
+
+    Cache<Description, Person> cache = cacheManager.getCache("cache", Description.class, Person.class);
+
+    Description desc = new Description(1234, "foo");
+    Person person = new Person("Bar", 24);
+    cache.put(desc, person);
+    assertThat(cache.get(desc), equalTo(person));
+
+    cacheManager.close();
+    // end::cacheCopiers[]
+  }
+
+  @Ignore
+  @Test
+  public void cacheSerializingCopiers() throws Exception {
+    // tag::cacheSerializingCopiers[]
+    CacheConfiguration<Long, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .add(new DefaultCopierConfiguration<Long>((Class)SerializingCopier.class,   //<1>
+            CopierConfiguration.Type.KEY))
+        .buildConfig(Long.class, Person.class);
+    // end::cacheSerializingCopiers[]
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("cache", cacheConfiguration)
+        .build(true);
+
+    Cache<Long, Person> cache = cacheManager.getCache("cache", Long.class, Person.class);
+
+    Description desc = new Description(1234, "foo");
+    Person person = new Person("Bar", 24);
+    cache.put(1l, person);
+    assertThat(cache.get(1l), equalTo(person));
+
+    cacheManager.close();
+  }
+
+  @Test
+  public void defaultCopiers() throws Exception {
+    // tag::defaultCopiers[]
+    CacheConfiguration<Description, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .buildConfig(Description.class, Person.class);
+
+    CacheConfiguration<Long, Person> anotherCacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .buildConfig(Long.class, Person.class);
+
+    DefaultCopyProviderConfiguration defaultCopierConfig = new DefaultCopyProviderConfiguration()
+        .addCopierFor(Description.class, DescriptionCopier.class)   //<1>
+        .addCopierFor(Person.class, PersonCopier.class);
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .using(defaultCopierConfig)   //<2>
+        .withCache("cache", cacheConfiguration)   //<3>
+        .withCache("anotherCache", anotherCacheConfiguration)   //<4>
+        .build(true);
+
+    Cache<Description, Person> cache = cacheManager.getCache("cache", Description.class, Person.class);
+    Cache<Long, Person> anotherCache = cacheManager.getCache("anotherCache", Long.class, Person.class);
+
+    Description desc = new Description(1234, "foo");
+    Person person = new Person("Bar", 24);
+    cache.put(desc, person);
+    assertThat(cache.get(desc), equalTo(person));
+
+    anotherCache.put(1l, person);
+    assertThat(anotherCache.get(1l), equalTo(person));
+
+    cacheManager.close();
+    // end::defaultCopiers[]
+  }
+
+  private static class Description {
+    int id;
+    String alias;
+
+    Description(Description other) {
+      this.id = other.id;
+      this.alias = other.alias;
+    }
+
+    Description(int id, String alias) {
+      this.id = id;
+      this.alias = alias;
+    }
+
+    @Override
+    public boolean equals(final Object other) {
+      if(this == other) return true;
+      if(other == null || this.getClass() != other.getClass()) return false;
+
+      Description that = (Description)other;
+      if(id != that.id) return false;
+      if ((alias == null) ? (alias != null) : !alias.equals(that.alias)) return false;
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int result = 1;
+      result = 31 * result + id;
+      result = 31 * result + (alias == null ? 0 : alias.hashCode());
+      return result;
+    }
+  }
+
+  private static class Person {
+    String name;
+    int age;
+
+    Person(Person other) {
+      this.name = other.name;
+      this.age = other.age;
+    }
+
+    Person(String name, int age) {
+      this.name = name;
+      this.age = age;
+    }
+
+    @Override
+    public boolean equals(final Object other) {
+      if(this == other) return true;
+      if(other == null || this.getClass() != other.getClass()) return false;
+
+      Person that = (Person)other;
+      if(age != that.age) return false;
+      if((name == null) ? (that.name != null) : !name.equals(that.name)) return false;
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int result = 1;
+      result = 31 * result + age;
+      result = 31 * result + (name == null ? 0 : name.hashCode());
+      return result;
+    }
+  }
+
+  public static class DescriptionCopier extends ReadWriteCopier<Description> {
+
+    @Override
+    public Description copy(final Description obj) {
+      return new Description(obj);
+    }
+  }
+
+  public static class PersonCopier extends ReadWriteCopier<Person> {
+
+    @Override
+    public Person copy(final Person obj) {
+      return new Person(obj);
+    }
+  }
+
   private String getStoragePath() throws URISyntaxException {
     return getClass().getClassLoader().getResource(".").toURI().getPath();
   }
@@ -411,13 +587,13 @@ public class GettingStarted {
     public ByteBuffer serialize(String object) {
       LOG.info("serializing {}", object);
       ByteBuffer byteBuffer = ByteBuffer.allocate(object.length());
-      byteBuffer.put(object.getBytes(CHARSET));
+      byteBuffer.put(object.getBytes(CHARSET)).flip();
       return byteBuffer;
     }
 
     @Override
     public String read(ByteBuffer binary) throws ClassNotFoundException {
-      byte[] bytes = new byte[binary.flip().remaining()];
+      byte[] bytes = new byte[binary.remaining()];
       binary.get(bytes);
       String s = new String(bytes, CHARSET);
       LOG.info("deserialized {}", s);
@@ -447,13 +623,12 @@ public class GettingStarted {
     public ByteBuffer serialize(Long object) {
       LOG.info("serializing {}", object);
       ByteBuffer byteBuffer = ByteBuffer.allocate(8);
-      byteBuffer.putLong(object);
+      byteBuffer.putLong(object).flip();
       return byteBuffer;
     }
 
     @Override
     public Long read(ByteBuffer binary) throws ClassNotFoundException {
-      binary.flip();
       long l = binary.getLong();
       LOG.info("deserialized {}", l);
       return l;
@@ -482,13 +657,13 @@ public class GettingStarted {
     public ByteBuffer serialize(CharSequence object) {
       LOG.info("serializing {}", object);
       ByteBuffer byteBuffer = ByteBuffer.allocate(object.length());
-      byteBuffer.put(object.toString().getBytes(CHARSET));
+      byteBuffer.put(object.toString().getBytes(CHARSET)).flip();
       return byteBuffer;
     }
 
     @Override
     public CharSequence read(ByteBuffer binary) throws ClassNotFoundException {
-      byte[] bytes = new byte[binary.flip().remaining()];
+      byte[] bytes = new byte[binary.remaining()];
       binary.get(bytes);
       String s = new String(bytes, CHARSET);
       LOG.info("deserialized {}", s);

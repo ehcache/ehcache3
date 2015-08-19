@@ -176,8 +176,16 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 <8> Control maximum number of updates allowed per second.
 <9> Configure maximum and minimum number of seconds to wait before writing to the underlying resource.
 
-==== Serializers
+=== Serializers
 
+Serialization is primarily used in ehcache to store the data in the non-heap tiers. So whenever the user uses a
+multi-tiered cache, serialization and deserialization happens when the data is moved between the tiers. Ehcache provides
+a serializer that can serialize any `Serializable` type. So if you are using standard `Serializable` types as your keys
+and values, no extra serializers need to be configured as the inbuilt serializer would handle those cases. But if you
+use your own custom types in ehcache that are not serializable, the stock serializer won't be able to perform the
+serialization/deserialization on its own. So you need to provide the serialization logic as well. Inorder to do this you
+can register your own custom serializers to the cache/cache manager. So if you register a serializer for some type of
+data, that serializer would be used to perform all the serialization/deserialization for that type.
 You can configure a set of serializers on the cache manager:
 
 [source,java,indent=0]
@@ -185,14 +193,12 @@ You can configure a set of serializers on the cache manager:
 include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=defaultSerializers]
 ----
 
-<1> By default, objects stored on-heap are stored by reference. If you wish to store them by value (which requires copying them
-    with a serializer) then you have to set storeByValue to true.
-<2> Configure a global set of serializers. Each serializer is mapped to a type and the cache's declared key and value
+<1> Configure a global set of serializers. Each serializer is mapped to a type and the cache's declared key and value
     types are used to select the best serializer from the list. Each cache will pick a serializer for both key and value
     during initialization. If none is found, an error will be thrown. The serializer is chosen according to two rules:
     either there is one configured for the exact declared type, or the first type-compatible one from the list is chosen.
     By default, there is a serializer already configured for type `java.io.Serializable`.
-<3> Don't forget to set the serializers' config on the `CacheManagerBuilder`.
+<2> Don't forget to set the serializers' config on the `CacheManagerBuilder`.
 
 Or you can configure specific serializers on the cache itself:
 
@@ -201,9 +207,56 @@ Or you can configure specific serializers on the cache itself:
 include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheSerializers]
 ----
 
-<1> As above, you must configure the on-heap store to store objects by value.
-<2> Configure the key's serializer.
-<3> Configure the value's serializer.
+<1> Configure the key's serializer.
+<2> Configure the value's serializer.
+
+=== Store-By-Value Caches with Copiers
+
+JSR-107 mandates that the caches should support a store-by-value mechanism that makes a copy of the keys and values
+before storing them in the cache. Ehcache supports store-by-reference by default and the user needs to configure the
+cache explicitly to use store-by-value. The user can specify custom `Copiers` for keys and values to be used for
+copying. The user can create a copier by implementing the Copier<T> interface directly if he has separate copying logic
+for reads and writes or implement the helper class `ReadWriteCopier` that just has a_copy(T obj)_ method that needs to be
+overridden with the generic copying logic for both reads and writes for the type used. If no copiers are provided, the
+cache will be a store-by-reference cache.
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheCopiers]
+----
+
+<1> Configure the copier to be used for keys. *DescriptionCopier* in this case  as the keys are *Description* objects.
+<2> Configure the copier to be used for values. *PersonCopier* in this case as the values are *Person* objects.
+
+Now, if the user does not want to create his own custom copiers and still wants to have a store-by-value cache, ehcache
+provides a `SerializingCopier` that the user can directly use. `SerializingCopier` internally uses serialization to
+perform the copying. For serialization the serializers configured for the keys/values are used. You can configure the
+cache as follows to use serializing copier:
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheSerializingCopiers]
+----
+
+<1> Provide the `SerializingCopier` just like any other custom copier in the copier configuration and that is all you
+    have to do. It is that simple.
+
+If you look at the cache configuration in the above example, there are no copiers configured for the values, and that is
+fine in ehcache. If a copier is not configured, we fall back to store-by-reference. So with the above configuration, you
+get a cache that stores keys by-value and values by-reference.
+
+You can also have default copiers configured at the cache manager level so that you don't have to configure the same
+copiers again and again for multiple caches managed by the same cache manager. This is how you can do that:
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=defaultCopiers]
+----
+
+<1> Create a `DefaultCopyProviderConfiguration` and add all the required default copiers.
+<2> Use the same configuration in the `CacheManagerBuilder`.
+<3> The `DescriptionCopier` and `PersonCopier` configured at the cache manager level will be used for this cache.
+<4> The `PersonCopier` configured at the cache manager level will be used for this cache.
 
 === It wouldn't be Java without _some_ XML
 

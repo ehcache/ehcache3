@@ -38,7 +38,7 @@ import org.ehcache.Ehcache;
 import org.ehcache.EhcacheHackAccessor;
 import org.ehcache.EhcacheManager;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
+import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.management.ManagementRegistry;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -103,9 +103,9 @@ class Eh107CacheManager implements CacheManager {
 
     boolean storeByValueOnHeap = false;
     for (ServiceConfiguration<?> serviceConfiguration : cache.getRuntimeConfiguration().getServiceConfigurations()) {
-      if (serviceConfiguration instanceof OnHeapStoreServiceConfiguration) {
-        OnHeapStoreServiceConfiguration onHeapStoreServiceConfig = (OnHeapStoreServiceConfiguration)serviceConfiguration;
-        storeByValueOnHeap = onHeapStoreServiceConfig.storeByValue();
+      if (serviceConfiguration instanceof CopierConfiguration) {
+        storeByValueOnHeap = true;
+        break;
       }
     }
     Eh107Configuration<K, V> config = new Eh107ReverseConfiguration<K, V>(cache, cacheLoaderWriter != null, cacheLoaderWriter != null, storeByValueOnHeap);

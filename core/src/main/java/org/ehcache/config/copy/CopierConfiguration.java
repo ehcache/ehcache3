@@ -14,29 +14,29 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store.heap.service;
+package org.ehcache.config.copy;
 
-import org.ehcache.internal.store.heap.OnHeapStore;
+import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * @author Ludovic Orban
+ * @author Albin Suresh
  */
-public class OnHeapStoreServiceConfiguration implements ServiceConfiguration<OnHeapStore.Provider> {
+public interface CopierConfiguration extends ServiceConfiguration<CopyProvider> {
 
-    private boolean storeByValue = false;
+  /**
+   * Get the type of the copier configured
+   *
+   * @return the type
+   */
+  Type getType();
 
-    public boolean storeByValue() {
-        return storeByValue;
-    }
+  /**
+   * Copy provider types
+   */
+  enum Type {
+    KEY,
+    VALUE,
+  }
 
-    public OnHeapStoreServiceConfiguration storeByValue(boolean storeByValue) {
-        this.storeByValue = storeByValue;
-        return this;
-    }
-
-    @Override
-    public Class<OnHeapStore.Provider> getServiceType() {
-        return OnHeapStore.Provider.class;
-    }
 }
