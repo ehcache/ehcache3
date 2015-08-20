@@ -15,14 +15,14 @@
  */
 package org.ehcache.internal;
 
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 /**
  * Configuration for the {@link TimeSourceService}
  *
  * This configuration has to be applied at the {@link org.ehcache.CacheManager} level.
  */
-public class TimeSourceConfiguration implements ServiceConfiguration<TimeSourceService> {
+public class TimeSourceConfiguration implements ServiceCreationConfiguration<TimeSourceService> {
 
   private final TimeSource timeSource;
 

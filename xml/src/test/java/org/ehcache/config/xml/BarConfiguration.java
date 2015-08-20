@@ -17,12 +17,12 @@
 package org.ehcache.config.xml;
 
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 /**
  * BarConfiguration
  */
-public class BarConfiguration implements ServiceConfiguration<Service> {
+public class BarConfiguration implements ServiceCreationConfiguration<Service> {
   @Override
   public Class<Service> getServiceType() {
     return Service.class;

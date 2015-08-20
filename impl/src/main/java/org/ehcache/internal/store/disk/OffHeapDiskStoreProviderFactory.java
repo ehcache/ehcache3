@@ -16,7 +16,7 @@
 
 package org.ehcache.internal.store.disk;
 
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
 /**
@@ -25,7 +25,7 @@ import org.ehcache.spi.service.ServiceFactory;
 public class OffHeapDiskStoreProviderFactory implements ServiceFactory<OffHeapDiskStore.Provider> {
 
   @Override
-  public OffHeapDiskStore.Provider create(ServiceConfiguration<OffHeapDiskStore.Provider> configuration) {
+  public OffHeapDiskStore.Provider create(ServiceCreationConfiguration<OffHeapDiskStore.Provider> configuration) {
     return new OffHeapDiskStore.Provider();
   }
 

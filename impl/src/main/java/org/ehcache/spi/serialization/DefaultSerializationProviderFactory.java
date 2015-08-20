@@ -18,7 +18,7 @@ package org.ehcache.spi.serialization;
 
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
 /**
@@ -27,7 +27,7 @@ import org.ehcache.spi.service.ServiceFactory;
 public class DefaultSerializationProviderFactory implements ServiceFactory<SerializationProvider> {
 
   @Override
-  public DefaultSerializationProvider create(ServiceConfiguration<SerializationProvider> configuration) {
+  public DefaultSerializationProvider create(ServiceCreationConfiguration<SerializationProvider> configuration) {
     if (configuration instanceof DefaultSerializerConfiguration) {
       throw new IllegalArgumentException("DefaultCacheLoaderWriterConfiguration must not be provided at CacheManager level");
     }

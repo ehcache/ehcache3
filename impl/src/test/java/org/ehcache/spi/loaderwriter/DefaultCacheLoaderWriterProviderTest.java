@@ -26,9 +26,7 @@ import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterProviderConfiguration;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.service.ServiceUseConfiguration;
-import org.hamcrest.core.Is;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 
@@ -83,25 +81,6 @@ public class DefaultCacheLoaderWriterProviderTest {
     manager.init();
     final Object foo = manager.getCache("foo", Object.class, Object.class).get(new Object());
     assertThat(foo, is(MyOtherLoader.object));
-  }
-
-  @SuppressWarnings("unchecked")
-  @Test
-  public void testAddingCacheLoaderWriterConfigurationAtManagerLevelThrows() {
-    CacheManagerBuilder<CacheManager> cacheManagerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
-    Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) (Class) (MyLoader.class);
-    cacheManagerBuilder.using(new DefaultCacheLoaderWriterConfiguration(klazz));
-    CacheManager cacheManager = null;
-    try {
-      cacheManager = cacheManagerBuilder.build(true);
-    } catch (StateTransitionException ste) {
-      // expected
-      assertThat(ste.getMessage(), Is.is("DefaultCacheLoaderWriterConfiguration must not be provided at CacheManager level"));
-    } finally {
-      if(cacheManager != null) {
-        cacheManager.close();
-      }
-    }
   }
 
   @SuppressWarnings("unchecked")

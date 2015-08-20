@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.util.ClassLoading;
 
 import static java.util.Collections.*;
@@ -33,14 +34,14 @@ import static java.util.Collections.*;
 public final class DefaultConfiguration implements Configuration {
 
   private final Map<String,CacheConfiguration<?, ?>> caches;
-  private final Collection<ServiceConfiguration<?>> services;
+  private final Collection<ServiceCreationConfiguration<?>> services;
   private final ClassLoader classLoader;
   
   public DefaultConfiguration(ClassLoader classLoader) {
     this(emptyCacheMap(), classLoader);
   }
 
-  public DefaultConfiguration(Map<String, CacheConfiguration<?, ?>> caches, ClassLoader classLoader, ServiceConfiguration<?>... services) {
+  public DefaultConfiguration(Map<String, CacheConfiguration<?, ?>> caches, ClassLoader classLoader, ServiceCreationConfiguration<?>... services) {
     this.services = unmodifiableCollection(Arrays.asList(services));
     this.caches = unmodifiableMap(new HashMap<String,CacheConfiguration<?, ?>>(caches));
     this.classLoader = classLoader;
@@ -52,7 +53,7 @@ public final class DefaultConfiguration implements Configuration {
   }
 
   @Override
-  public Collection<ServiceConfiguration<?>> getServiceConfigurations() {
+  public Collection<ServiceCreationConfiguration<?>> getServiceConfigurations() {
     return services;
   }
   

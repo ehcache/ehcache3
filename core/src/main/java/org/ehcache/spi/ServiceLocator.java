@@ -18,6 +18,7 @@ package org.ehcache.spi;
 
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceFactory;
 import org.ehcache.spi.service.SupplementaryService;
@@ -64,7 +65,7 @@ public final class ServiceLocator implements ServiceProvider {
     }
   }
 
-  private <T extends Service> T discoverService(Class<T> serviceClass, ServiceConfiguration<T> config) {
+  private <T extends Service> T discoverService(Class<T> serviceClass, ServiceCreationConfiguration<T> config) {
     for (ServiceFactory<T> factory : ServiceLocator.<T> getServiceFactories(serviceFactory)) {
       if (serviceClass.isAssignableFrom(factory.getServiceType())) {
         T service = factory.create(config);
@@ -157,7 +158,7 @@ public final class ServiceLocator implements ServiceProvider {
     return interfaces;
   }
 
-  public <T extends Service> T getOrCreateServiceFor(ServiceConfiguration<T> config) {
+  public <T extends Service> T getOrCreateServiceFor(ServiceCreationConfiguration<T> config) {
     return findService(config.getServiceType(), config, true);
   }
 
@@ -166,7 +167,7 @@ public final class ServiceLocator implements ServiceProvider {
     return findService(serviceType, null, false);
   }
 
-  private <T extends Service> T findService(Class<T> serviceType, ServiceConfiguration<T> config, boolean shouldCreate) {
+  private <T extends Service> T findService(Class<T> serviceType, ServiceCreationConfiguration<T> config, boolean shouldCreate) {
     T service = serviceType.cast(services.get(serviceType));
     if (service == null && shouldCreate) {
       return discoverService(serviceType, config);

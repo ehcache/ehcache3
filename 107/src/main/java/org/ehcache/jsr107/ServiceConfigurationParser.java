@@ -18,7 +18,7 @@ package org.ehcache.jsr107;
 
 import org.ehcache.config.Jsr107Configuration;
 import org.ehcache.config.xml.XmlConfigurationParser;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -50,7 +50,7 @@ public class ServiceConfigurationParser implements XmlConfigurationParser<Jsr107
   }
 
   @Override
-  public ServiceConfiguration<Jsr107Service> parse(final Element fragment) {
+  public ServiceCreationConfiguration<Jsr107Service> parse(final Element fragment) {
     boolean jsr107CompliantAtomics = true;
     if (fragment.hasAttribute("jsr107CompliantAtomics")) {
       jsr107CompliantAtomics = Boolean.parseBoolean(fragment.getAttribute("jsr107CompliantAtomics"));

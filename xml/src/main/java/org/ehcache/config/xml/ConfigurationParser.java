@@ -37,6 +37,7 @@ import org.ehcache.config.xml.model.ServiceType;
 import org.ehcache.config.xml.model.TimeType;
 import org.ehcache.spi.service.ServiceUseConfiguration;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.util.ClassLoading;
 import org.w3c.dom.Element;
 import org.xml.sax.ErrorHandler;
@@ -543,7 +544,7 @@ class ConfigurationParser {
     }
   }
 
-  ServiceConfiguration<?> parseExtension(final Element element) {
+  ServiceCreationConfiguration<?> parseExtension(final Element element) {
     URI namespace = URI.create(element.getNamespaceURI());
     final XmlConfigurationParser<?> xmlConfigurationParser = xmlParsers.get(namespace);
     if(xmlConfigurationParser == null) {

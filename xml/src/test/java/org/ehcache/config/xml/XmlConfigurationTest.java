@@ -42,6 +42,7 @@ import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceUseConfiguration;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -145,7 +146,7 @@ public class XmlConfigurationTest {
   public void testOneServiceConfig() throws Exception {
     Configuration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-service.xml"));
 
-    assertThat(config.getServiceConfigurations(), IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(BarConfiguration.class)));
+    assertThat(config.getServiceConfigurations(), IsCollectionContaining.<ServiceCreationConfiguration<?>>hasItem(instanceOf(BarConfiguration.class)));
     assertThat(config.getCacheConfigurations().keySet(), hasSize(0));
   }
 

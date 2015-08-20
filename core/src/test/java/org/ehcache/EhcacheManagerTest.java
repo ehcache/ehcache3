@@ -37,6 +37,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.hamcrest.CoreMatchers;
 import org.ehcache.util.ClassLoading;
 import org.junit.Test;
@@ -72,7 +73,7 @@ public class EhcacheManagerTest {
 
   @Test
   public void testInitThrowsWhenNotBeingToResolveService() {
-    final Configuration config = newConfigurationBuilder().addService(new ServiceConfiguration<NoSuchService>() {
+    final Configuration config = newConfigurationBuilder().addService(new ServiceCreationConfiguration<NoSuchService>() {
       @Override
       public Class<NoSuchService> getServiceType() {
         return NoSuchService.class;

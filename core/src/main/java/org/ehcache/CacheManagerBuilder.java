@@ -24,7 +24,7 @@ import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.io.File;
 import java.util.HashSet;
@@ -94,7 +94,7 @@ public class CacheManagerBuilder<T extends CacheManager> {
     return new CacheManagerBuilder<T>(this, newServices);
   }
   
-  public CacheManagerBuilder<T> using(ServiceConfiguration<?> service) {
+  public CacheManagerBuilder<T> using(ServiceCreationConfiguration<?> service) {
     return new CacheManagerBuilder<T>(this, configBuilder.addService(service));
   }
 

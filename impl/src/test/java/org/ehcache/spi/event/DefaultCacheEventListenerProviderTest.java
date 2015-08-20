@@ -28,9 +28,7 @@ import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.EventType;
-import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.service.ServiceUseConfiguration;
-import org.hamcrest.core.Is;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 
@@ -62,25 +60,6 @@ public class DefaultCacheEventListenerProviderTest {
                 .buildConfig(Object.class, Object.class)).build(true);
     final Collection<?> bar = manager.getCache("foo", Object.class, Object.class).getRuntimeConfiguration().getServiceConfigurations();
     assertThat(bar.iterator().next().getClass().toString(), is(ListenerObject.object.toString()));
-  }
-
-  @Test
-  public void testAddingCacheEventListenerConfigurationAtManagerLevelThrows() {
-    CacheManagerBuilder<CacheManager> cacheManagerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
-    CacheEventListenerConfiguration cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
-        .newEventListenerConfiguration(ListenerObject.class, EventType.CREATED).unordered().asynchronous().build();
-    cacheManagerBuilder.using(cacheEventListenerConfiguration);
-    CacheManager cacheManager = null;
-    try {
-      cacheManager = cacheManagerBuilder.build(true);
-    } catch (StateTransitionException ste) {
-      // expected
-      assertThat(ste.getMessage(), Is.is("DefaultCacheEventListenerConfiguration must not be provided at CacheManager level"));
-    } finally {
-      if(cacheManager != null) {
-        cacheManager.close();
-      }
-    }
   }
 
   @Test

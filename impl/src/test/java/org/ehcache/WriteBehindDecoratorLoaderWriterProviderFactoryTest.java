@@ -45,26 +45,6 @@ public class WriteBehindDecoratorLoaderWriterProviderFactoryTest {
   @Rule
   public ExpectedException expectedEx = ExpectedException.none();
   
-  @Test
-  public void testAddingWriteBehindConfigurationAtManagerLevelThrows() {
-    CacheManagerBuilder<CacheManager> cacheManagerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
-    WriteBehindConfiguration writeBehindConfiguration = WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
-        .concurrencyLevel(3).batchSize(1)
-        .queueSize(10)
-        .build();
-    cacheManagerBuilder.using(writeBehindConfiguration);
-    CacheManager cacheManager = null;
-    try {
-      cacheManager = cacheManagerBuilder.build(true);
-    } catch (StateTransitionException ste) {
-      assertThat(ste.getMessage(), is("WriteBehind configuration must not be provided at CacheManager level"));
-    } finally {
-      if(cacheManager != null) {
-        cacheManager.close();
-      }
-    }
-  }
-
   @SuppressWarnings("unchecked")
   @Test
   public void testAddingWriteBehindConfigurationAtCacheLevel() {

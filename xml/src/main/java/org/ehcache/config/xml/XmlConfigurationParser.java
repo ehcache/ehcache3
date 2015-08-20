@@ -19,7 +19,7 @@ import java.io.IOException;
 import java.net.URI;
 import javax.xml.transform.Source;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.w3c.dom.Element;
 
 /**
@@ -32,5 +32,5 @@ public interface XmlConfigurationParser<T extends Service> {
   
   URI getNamespace();
   
-  ServiceConfiguration<T> parse(Element fragment);
+  ServiceCreationConfiguration<T> parse(Element fragment);
 }

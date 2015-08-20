@@ -17,11 +17,7 @@
 package org.ehcache.spi.service;
 
 /**
- * @author Alex Snaps
+ * Marker interface to identify {@link Service} configurations that are used when creating a {@code Service}.
  */
-public interface ServiceFactory<T extends Service> {
-
-  T create(ServiceCreationConfiguration<T> configuration);
-  
-  Class<T> getServiceType();
+public interface ServiceCreationConfiguration<T extends Service> extends ServiceConfiguration<T> {
 }

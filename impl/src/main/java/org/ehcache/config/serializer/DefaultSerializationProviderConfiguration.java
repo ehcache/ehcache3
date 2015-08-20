@@ -19,9 +19,9 @@ package org.ehcache.config.serializer;
 import org.ehcache.internal.classes.ClassInstanceProviderConfiguration;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 
-public class DefaultSerializationProviderConfiguration extends ClassInstanceProviderConfiguration<Serializer<?>> implements ServiceConfiguration<SerializationProvider> {
+public class DefaultSerializationProviderConfiguration extends ClassInstanceProviderConfiguration<Serializer<?>> implements ServiceCreationConfiguration<SerializationProvider> {
 
   @Override
   public Class<SerializationProvider> getServiceType() {

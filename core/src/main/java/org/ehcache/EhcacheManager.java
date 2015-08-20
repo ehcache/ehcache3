@@ -42,6 +42,7 @@ import org.ehcache.spi.service.ServiceUseConfiguration;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.util.ClassLoading;
 import org.slf4j.Logger;
@@ -401,7 +402,7 @@ public class EhcacheManager implements PersistentCacheManager {
     final StatusTransitioner.Transition st = statusTransitioner.init();
 
     try {
-      for (ServiceConfiguration<? extends Service> serviceConfig : configuration.getServiceConfigurations()) {
+      for (ServiceCreationConfiguration<? extends Service> serviceConfig : configuration.getServiceConfigurations()) {
         Service service = serviceLocator.getOrCreateServiceFor(serviceConfig);
         if (service == null) {
           throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());

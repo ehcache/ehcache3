@@ -18,6 +18,7 @@ package org.ehcache.config.xml;
 
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.w3c.dom.Element;
 
 import java.io.IOException;
@@ -46,7 +47,7 @@ public class BarParser implements XmlConfigurationParser<Service> {
   }
 
   @Override
-  public ServiceConfiguration<Service> parse(Element fragment) {
+  public ServiceCreationConfiguration<Service> parse(Element fragment) {
     return new BarConfiguration();
   }
 }
