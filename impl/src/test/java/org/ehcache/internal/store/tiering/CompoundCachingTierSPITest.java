@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.store.tiering;
 
+import static java.lang.ClassLoader.getSystemClassLoader;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
@@ -64,20 +65,22 @@ public class CompoundCachingTierSPITest extends CachingTierSPITest<String, Strin
     cachingTierFactory = new CachingTierFactory<String, String>() {
 
       @Override
-      public CachingTier<String, String> newCachingTier(final Store.Configuration<String, String> config) {
-        OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, new JavaSerializer<String>(ClassLoader.getSystemClassLoader()), new JavaSerializer<String>(ClassLoader.getSystemClassLoader()), SystemTimeSource.INSTANCE, 10 * 1024 * 1024);
-        OffHeapStoreLifecycleHelper.init(offHeapStore);
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false, null, null);
-        CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(onHeapStore, offHeapStore);
-        map.put(compoundCachingTier, offHeapStore);
-        return compoundCachingTier;
+      public CachingTier<String, String> newCachingTier() {
+        return newCachingTier(null);
       }
 
       @Override
-      public CachingTier<String, String> newCachingTier(final Store.Configuration<String, String> config, TimeSource timeSource) {
-        OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, new JavaSerializer<String>(ClassLoader.getSystemClassLoader()), new JavaSerializer<String>(ClassLoader.getSystemClassLoader()), timeSource, 10 * 1024 * 1024);
+      public CachingTier<String, String> newCachingTier(long capacity) {
+        return newCachingTier((Long) capacity);
+      }
+
+      private CachingTier<String, String> newCachingTier(Long capacity) {
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null, null,
+                ClassLoader.getSystemClassLoader(), null, buildResourcePools(capacity), new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
+        
+        OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, SystemTimeSource.INSTANCE, 10 * 1024 * 1024);
         OffHeapStoreLifecycleHelper.init(offHeapStore);
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, false, null, null);
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false);
         CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(onHeapStore, offHeapStore);
         map.put(compoundCachingTier, offHeapStore);
         return compoundCachingTier;
@@ -91,21 +94,6 @@ public class CompoundCachingTierSPITest extends CachingTierSPITest<String, Strin
       @Override
       public Store.Provider newProvider() {
         return new OnHeapStore.Provider();
-      }
-
-      @Override
-      public Store.Configuration<String, String> newConfiguration(final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint, final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
-        return new StoreConfigurationImpl<String, String>(keyType, valueType,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacityConstraint));
-      }
-
-      @Override
-      public Store.Configuration<String, String> newConfiguration(
-          final Class<String> keyType, final Class<String> valueType, final Comparable<Long> capacityConstraint,
-          final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer,
-          final Expiry<? super String, ? super String> expiry) {
-        return new StoreConfigurationImpl<String, String>(keyType, valueType,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, buildResourcePools(capacityConstraint));
       }
 
       private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {

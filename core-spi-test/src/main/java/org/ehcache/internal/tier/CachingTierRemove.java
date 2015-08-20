@@ -70,8 +70,7 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
     final Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
     when(valueHolder.value()).thenReturn(originalValue);
 
-    tier = factory.newCachingTier(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+    tier = factory.newCachingTier(1L);
 
     try {
       tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {

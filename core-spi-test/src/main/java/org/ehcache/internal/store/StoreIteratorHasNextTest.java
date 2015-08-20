@@ -55,8 +55,7 @@ public class StoreIteratorHasNextTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void hasNext()
       throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
-        .all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
 
     int nbElements = 3;
     for (int i = 0; i < nbElements; i++) {
@@ -77,7 +76,7 @@ public class StoreIteratorHasNextTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void hasNextReturnsFalseIfNoElement()
       throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
 
     Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();
 

@@ -67,7 +67,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
   private volatile EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
 
-  public OffHeapStore(final Configuration<K, V> config, Serializer<K> keySerializer, Serializer<V> valueSerializer, TimeSource timeSource, long sizeInBytes) {
+  public OffHeapStore(final Configuration<K, V> config, TimeSource timeSource, long sizeInBytes) {
     super("local-offheap", config, timeSource);
     EvictionVeto<? super K, ? super V> veto = config.getEvictionVeto();
     if (veto != null) {
@@ -75,8 +75,8 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     } else {
       evictionVeto = Predicates.none();
     }
-    this.keySerializer = keySerializer;
-    this.valueSerializer = valueSerializer;
+    this.keySerializer = config.getKeySerializer();
+    this.valueSerializer = config.getValueSerializer();
     this.sizeInBytes = sizeInBytes;
   }
 
@@ -123,11 +123,6 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       }
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
 
-      SerializationProvider serializationProvider = serviceProvider.getService(SerializationProvider.class);
-      Serializer<K> keySerializer = serializationProvider.createKeySerializer(storeConfig.getKeyType(), storeConfig.getClassLoader(), serviceConfigs);
-      Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig
-          .getClassLoader(), serviceConfigs);
-
       ResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
       if (!(offHeapPool.getUnit() instanceof MemoryUnit)) {
         throw new IllegalArgumentException("OffHeapStore only supports resources with memory unit");
@@ -135,7 +130,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       MemoryUnit unit = (MemoryUnit)offHeapPool.getUnit();
 
 
-      OffHeapStore<K, V> offHeapStore = new OffHeapStore<K, V>(storeConfig, keySerializer, valueSerializer, timeSource, unit.toBytes(offHeapPool.getSize()));
+      OffHeapStore<K, V> offHeapStore = new OffHeapStore<K, V>(storeConfig, timeSource, unit.toBytes(offHeapPool.getSize()));
       createdStores.add(offHeapStore);
       return offHeapStore;
     }

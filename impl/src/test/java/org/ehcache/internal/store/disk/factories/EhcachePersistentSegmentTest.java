@@ -70,9 +70,10 @@ public class EhcachePersistentSegmentTest {
     SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
     serializationProvider.start(null);
     MappedPageSource pageSource = new MappedPageSource(folder.newFile(), true, configuration.getMaximumSize());
-    Serializer<String> stringSerializer = serializationProvider.createValueSerializer(String.class, EhcachePersistentSegmentTest.class.getClassLoader());
-    PersistentPortability<String> keyPortability = persistent(new SerializerPortability<String>(stringSerializer));
-    PersistentPortability<String> elementPortability = persistent(new SerializerPortability<String>(stringSerializer));
+    Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, EhcachePersistentSegmentTest.class.getClassLoader());
+    Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, EhcachePersistentSegmentTest.class.getClassLoader());
+    PersistentPortability<String> keyPortability = persistent(new SerializerPortability<String>(keySerializer));
+    PersistentPortability<String> elementPortability = persistent(new SerializerPortability<String>(valueSerializer));
     Factory<FileBackedStorageEngine<String, String>> storageEngineFactory = FileBackedStorageEngine.createFactory(pageSource, keyPortability, elementPortability);
     return new EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String>(pageSource, storageEngineFactory.newInstance(), 1, true, evictionPredicate, evictionListener);
   }

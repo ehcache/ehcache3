@@ -55,41 +55,34 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
     storeFactory = new StoreFactory<String, String>() {
 
       @Override
-      public Store<String, String> newStore(final Store.Configuration<String, String> config) {
-        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, false, null, null);
+      public Store<String, String> newStore() {
+        return newStore(null, null, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
       @Override
-      public Store<String, String> newStore(final Store.Configuration<String, String> config, TimeSource timeSource) {
-        return new OnHeapStore<String, String>(config, timeSource, false, null, null);
+      public Store<String, String> newStoreWithCapacity(long capacity) {
+        return newStore(capacity, null, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+      }
+
+      @Override
+      public Store<String, String> newStoreWithExpiry(Expiry<String, String> expiry, TimeSource timeSource) {
+        return newStore(null, null, expiry, timeSource);
+      }
+
+      @Override
+      public Store<String, String> newStoreWithEvictionVeto(EvictionVeto<String, String> evictionVeto) {
+        return newStore(null, evictionVeto, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+      }
+      
+      private Store<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
+        ResourcePools resourcePools = buildResourcePools(capacity);
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, null, getClass().getClassLoader(), expiry, resourcePools, null, null);
+        return new OnHeapStore<String, String>(config, timeSource, false);
       }
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
         return new ByRefOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis());
-      }
-
-      @Override
-      public Store.Provider newProvider() {
-        OnHeapStore.Provider service = new OnHeapStore.Provider();
-        ServiceLocator locator = getServiceProvider();
-        locator.addService(service);
-        return service;
-      }
-
-      @Override
-      public Store.Configuration<String, String> newConfiguration(final Class<String> keyType, final Class<String> valueType, final Long capacityConstraint, final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
-        return new StoreConfigurationImpl<String, String>(keyType, valueType,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacityConstraint));
-      }
-
-      @Override
-      public Store.Configuration<String, String> newConfiguration(
-          final Class<String> keyType, final Class<String> valueType, final Long capacityConstraint,
-          final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer,
-          final Expiry<? super String, ? super String> expiry) {
-        return new StoreConfigurationImpl<String, String>(keyType, valueType,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, buildResourcePools(capacityConstraint));
       }
 
       private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {

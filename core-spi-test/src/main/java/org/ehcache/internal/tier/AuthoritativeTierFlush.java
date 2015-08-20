@@ -70,8 +70,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
     when(valueHolder.expirationTime(any(TimeUnit.class))).thenReturn(1L);
 
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+    tier = factory.newStoreWithCapacity(1L);
 
     try {
       tier.put(key, value);
@@ -92,8 +91,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
     when(valueHolder.expirationTime(any(TimeUnit.class))).thenReturn(1L);
 
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+    tier = factory.newStoreWithCapacity(1L);
 
     try {
       tier.put(key, value);
@@ -111,8 +109,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
     when(valueHolder.expirationTime(any(TimeUnit.class))).thenReturn(1L);
 
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+    tier = factory.newStoreWithCapacity(1L);
 
     assertThat(tier.flush(key, valueHolder), is(equalTo(false)));
   }

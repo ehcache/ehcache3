@@ -66,8 +66,7 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
   public void nonMarkedMappingIsEvictable() throws CacheAccessException {
     K key = factory.createKey(1);
 
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+    tier = factory.newStoreWithCapacity(1L);
 
     tier.computeIfAbsent(key, new Function<K, V>() {
       @Override
@@ -90,8 +89,7 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
     K key = factory.createKey(1);
     V value = factory.createValue(1);
 
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+    tier = factory.newStoreWithCapacity(1L);
 
     try {
       assertThat(tier.get(key), is(nullValue()));

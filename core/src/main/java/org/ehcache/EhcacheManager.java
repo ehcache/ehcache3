@@ -63,6 +63,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.ehcache.spi.serialization.SerializationProvider;
+import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 
 
@@ -242,7 +244,6 @@ public class EhcacheManager implements PersistentCacheManager {
     List<LifeCycled> lifeCycledList = new ArrayList<LifeCycled>();
 
     final Store.Provider storeProvider = serviceLocator.getService(Store.Provider.class);
-    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<K, V>(config);
     if (config.getResourcePools().getResourceTypeSet().contains(ResourceType.Core.DISK)) {
       LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
       
@@ -261,6 +262,19 @@ public class EhcacheManager implements PersistentCacheManager {
         throw new RuntimeException("Unable to create persistence space for cache " + alias, cpex);
       }
     }
+    Serializer<K> keySerializer = null;
+    Serializer<V> valueSerializer = null;
+    SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
+    if (serialization != null) {
+      try {
+        keySerializer = serialization.createKeySerializer(keyType, config.getClassLoader(), serviceConfigs);
+        valueSerializer = serialization.createValueSerializer(valueType, config.getClassLoader(), serviceConfigs);
+      } catch (Throwable t) {
+        //TODO SerializationProvider doesn't require any exception behavior...
+        LOGGER.info("Could not create serializers for " + alias, t);
+      }
+    }
+    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<K, V>(config, keySerializer, valueSerializer);
     final Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigs);
 
     lifeCycledList.add(new LifeCycled() {

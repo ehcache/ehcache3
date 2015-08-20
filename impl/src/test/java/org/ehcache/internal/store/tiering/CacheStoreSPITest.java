@@ -54,6 +54,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.ResourceType.Core.DISK;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.internal.store.disk.OffHeapDiskStoreSPITest;
@@ -92,16 +93,31 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
       final AtomicInteger aliasCounter = new AtomicInteger();
 
       @Override
-      public Store<String, String> newStore(final Store.Configuration<String, String> config) {
-        return newStore(config, SystemTimeSource.INSTANCE);
+      public Store<String, String> newStore() {
+        return newStore(null, null, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
       @Override
-      public Store<String, String> newStore(Store.Configuration<String, String> config, TimeSource timeSource) {
-        Serializer<String> keySerializer = new JavaSerializer<String>(config.getClassLoader());
-        Serializer<String> valueSerializer = new JavaSerializer<String>(config.getClassLoader());
+      public Store<String, String> newStoreWithCapacity(long capacity) {
+        return newStore(capacity, null, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+      }
 
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, false, keySerializer, valueSerializer);
+      @Override
+      public Store<String, String> newStoreWithExpiry(Expiry<String, String> expiry, TimeSource timeSource) {
+        return newStore(null, null, expiry, timeSource);
+      }
+
+      @Override
+      public Store<String, String> newStoreWithEvictionVeto(EvictionVeto<String, String> evictionVeto) {
+        return newStore(null, evictionVeto, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+      }
+      
+      private Store<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
+        Serializer<String> keySerializer = new JavaSerializer<String>(getClass().getClassLoader());
+        Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, null, getClass().getClassLoader(), expiry, buildResourcePools(capacity), keySerializer, valueSerializer);
+
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, false);
         try {
           String spaceName = "alias-" + aliasCounter.getAndIncrement();
           LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);
@@ -111,8 +127,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
           MemoryUnit unit = (MemoryUnit) diskPool.getUnit();
 
           long sizeInBytes = unit.toBytes(diskPool.getSize());
-          OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(persistenceContext, config,
-                  keySerializer, valueSerializer, timeSource, sizeInBytes);
+          OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(persistenceContext, config, timeSource, sizeInBytes);
           CacheStore<String, String> cacheStore = new CacheStore<String, String>(onHeapStore, diskStore);
           provider.registerStore(cacheStore, new CachingTier.Provider() {
             @Override
@@ -218,27 +233,6 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
             throw new UnsupportedOperationException("Implement me!");
           }
         };
-      }
-
-      @Override
-      public Store.Provider newProvider() {
-        Store.Provider provider = new CacheStore.Provider();
-        ServiceLocator serviceLocator = new ServiceLocator();
-        serviceLocator.addService(new FakeCachingTierProvider());
-        serviceLocator.addService(new FakeAuthoritativeTierProvider());
-        provider.start(serviceLocator);
-        return provider;
-      }
-
-      @Override
-      public Store.Configuration<String, String> newConfiguration(Class<String> keyType, Class<String> valueType, Long capacityConstraint, EvictionVeto<? super String, ? super String> evictionVeto, EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
-        return newConfiguration(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer, Expirations.noExpiration());
-      }
-
-      @Override
-      public Store.Configuration<String, String> newConfiguration(Class<String> keyType, Class<String> valueType, Long capacityConstraint, EvictionVeto<? super String, ? super String> evictionVeto, EvictionPrioritizer<? super String, ? super String> evictionPrioritizer, Expiry<? super String, ? super String> expiry) {
-        return new StoreConfigurationImpl<String, String>(keyType, valueType,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, buildResourcePools(capacityConstraint));
       }
 
       @Override

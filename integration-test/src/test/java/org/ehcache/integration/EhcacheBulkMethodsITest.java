@@ -508,10 +508,7 @@ public class EhcacheBulkMethodsITest {
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-      SerializationProvider serializationProvider = serviceLocator.getService(SerializationProvider.class);
-      Serializer<K> keySerializer = serializationProvider.createKeySerializer(storeConfig.getKeyType(), storeConfig.getClassLoader());
-      Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig.getClassLoader());
-      return new OnHeapStore<K, V>(storeConfig, SystemTimeSource.INSTANCE, false, keySerializer, valueSerializer) {
+      return new OnHeapStore<K, V>(storeConfig, SystemTimeSource.INSTANCE, false) {
         @Override
         public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
           throw new CacheAccessException("Problem trying to bulk compute");

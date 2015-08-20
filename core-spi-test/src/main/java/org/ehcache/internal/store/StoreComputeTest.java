@@ -28,6 +28,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import org.junit.Assert;
 
 public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
@@ -53,12 +54,10 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongReturnValueType() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
-        .all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
 
     if (factory.getValueType() == Object.class) {
-      System.err.println("Warning, store uses Object as value type, cannot verify in this configuration");
-      return;
+      Assert.fail("Warning, store uses Object as value type, cannot verify in this configuration");
     }
     
     final Object value;
@@ -87,7 +86,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongKeyType() throws Exception {
-    kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore2 = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
 
     if (factory.getKeyType() == Object.class) {
       System.err.println("Warning, store uses Object as key type, cannot verify in this configuration");
@@ -118,7 +117,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testComputePutsValueInStore() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
 
     final K key = factory.createKey(14);
     final V value = factory.createValue(153);
@@ -138,7 +137,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testOverwriteExitingValue() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
 
     final K key = factory.createKey(151);
     final V value = factory.createValue(1525);
@@ -162,7 +161,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testNullReturnRemovesEntry() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
 
     final K key = factory.createKey(1535603985);
     final V value = factory.createValue(15920835);
@@ -183,7 +182,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testException() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
 
     final K key = factory.createKey(520928098);
     final V value = factory.createValue(15098209865L);

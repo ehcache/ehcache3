@@ -27,6 +27,7 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.spi.cache.Store;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import org.ehcache.spi.serialization.Serializer;
 
 public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
 
@@ -85,7 +86,17 @@ public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
       public ResourcePools getResourcePools() {
         return newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES).build();
       }
-    }, timeSource, false, null, null);
+
+      @Override
+      public Serializer<K> getKeySerializer() {
+        throw new AssertionError("By-ref heap store using serializers!");
+      }
+
+      @Override
+      public Serializer<V> getValueSerializer() {
+        throw new AssertionError("By-ref heap store using serializers!");
+      }
+    }, timeSource, false);
   }
 
 }

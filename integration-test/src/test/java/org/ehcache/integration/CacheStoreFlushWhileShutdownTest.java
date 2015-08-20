@@ -38,6 +38,8 @@ import java.io.File;
 import java.io.Serializable;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import org.ehcache.internal.serialization.JavaSerializer;
+import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -86,6 +88,16 @@ public class CacheStoreFlushWhileShutdownTest {
       @Override
       public ResourcePools getResourcePools() {
         return newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(10, MemoryUnit.MB, true).build();
+      }
+
+      @Override
+      public Serializer<Number> getKeySerializer() {
+        return new JavaSerializer<Number>(getClassLoader());
+      }
+
+      @Override
+      public Serializer<String> getValueSerializer() {
+        return new JavaSerializer<String>(getClassLoader());
       }
     };
 

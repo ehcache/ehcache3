@@ -41,6 +41,7 @@ import java.io.IOException;
 
 import static org.ehcache.expiry.Expirations.noExpiration;
 import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
+import org.ehcache.spi.service.ServiceConfiguration;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
@@ -74,9 +75,10 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
     serializationProvider.start(null);
     ClassLoader classLoader = getClass().getClassLoader();
-    Serializer<String> serializer = serializationProvider.createValueSerializer(String.class, classLoader);
-    StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, null, classLoader, expiry, null);
-    OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<String, String>(getPersistenceContext(), storeConfiguration, serializer, serializer, timeSource, MemoryUnit.MB.toBytes(1));
+    Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
+    Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
+    StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, null, classLoader, expiry, null, keySerializer, valueSerializer);
+    OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<String, String>(getPersistenceContext(), storeConfiguration, timeSource, MemoryUnit.MB.toBytes(1));
     OffHeapDiskStore.Provider.init(offHeapStore);
     return offHeapStore;
   }
@@ -86,10 +88,10 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
     serializationProvider.start(null);
     ClassLoader classLoader = getClass().getClassLoader();
-    Serializer<String> serializer = serializationProvider.createValueSerializer(String.class, classLoader);
-    Serializer<byte[]> byteArraySerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
-    StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class, evictionVeto, null, getClass().getClassLoader(), expiry, null);
-    OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<String, byte[]>(getPersistenceContext(), storeConfiguration, serializer, byteArraySerializer, timeSource, MemoryUnit.MB.toBytes(1));
+    Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
+    Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
+    StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class, evictionVeto, null, getClass().getClassLoader(), expiry, null, keySerializer, valueSerializer);
+    OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<String, byte[]>(getPersistenceContext(), storeConfiguration, timeSource, MemoryUnit.MB.toBytes(1));
     OffHeapDiskStore.Provider.init(offHeapStore);
     return offHeapStore;
   }

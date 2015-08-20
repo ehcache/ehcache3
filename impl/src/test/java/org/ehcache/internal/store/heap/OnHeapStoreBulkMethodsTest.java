@@ -67,7 +67,7 @@ public class OnHeapStoreBulkMethodsTest {
     when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build());
     Store.Configuration<Number, Number> configuration = config;
 
-    OnHeapStore<Number, Number> store = new OnHeapStore<Number, Number>(configuration, SystemTimeSource.INSTANCE, false, null, null);
+    OnHeapStore<Number, Number> store = new OnHeapStore<Number, Number>(configuration, SystemTimeSource.INSTANCE, false);
     store.put(1, 2);
     store.put(2, 3);
     store.put(3, 4);
@@ -123,7 +123,7 @@ public class OnHeapStoreBulkMethodsTest {
   public void testBulkComputeHappyPath() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
 
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, false, null, null);
+    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, false);
     store.put(1, "one");
 
     Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2)), new Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
@@ -153,7 +153,7 @@ public class OnHeapStoreBulkMethodsTest {
   public void testBulkComputeStoreRemovesValueWhenFunctionReturnsNullMappings() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
 
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, false, null, null);
+    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, false);
     store.put(1, "one");
     store.put(2, "two");
     store.put(3, "three");
@@ -181,7 +181,7 @@ public class OnHeapStoreBulkMethodsTest {
   public void testBulkComputeRemoveNullValueEntriesFromFunctionReturn() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
 
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, false, null, null);
+    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, false);
     store.put(1, "one");
     store.put(2, "two");
     store.put(3, "three");
@@ -218,7 +218,7 @@ public class OnHeapStoreBulkMethodsTest {
   public void testBulkComputeIfAbsentFunctionDoesNotGetPresentKeys() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
 
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, false, null, null);
+    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, false);
     store.put(1, "one");
     store.put(2, "two");
     store.put(3, "three");
@@ -265,7 +265,7 @@ public class OnHeapStoreBulkMethodsTest {
   public void testBulkComputeIfAbsentDoesNotOverridePresentKeys() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
 
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, false, null, null);
+    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, false);
     store.put(1, "one");
     store.put(2, "two");
     store.put(3, "three");
@@ -307,7 +307,7 @@ public class OnHeapStoreBulkMethodsTest {
   public void testBulkComputeIfAbsentDoNothingOnNullValues() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
 
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, false, null, null);
+    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, false);
     store.put(1, "one");
     store.put(2, "two");
     store.put(3, "three");

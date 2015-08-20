@@ -16,7 +16,6 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.TimeSource;
@@ -29,22 +28,15 @@ import org.ehcache.spi.service.ServiceConfiguration;
  */
 public interface StoreFactory<K, V> {
 
-  Store<K, V> newStore(Store.Configuration<K, V> config);
+  Store<K, V> newStore();
 
-  Store<K, V> newStore(Store.Configuration<K, V> config, TimeSource timeSource);
+  Store<K, V> newStoreWithCapacity(long capacity);
+  
+  Store<K, V> newStoreWithEvictionVeto(EvictionVeto<K, V> evictionVeto);
+  
+  Store<K, V> newStoreWithExpiry(Expiry<K, V> expiry, TimeSource timeSource);
 
   Store.ValueHolder<V> newValueHolder(V value);
-
-  Store.Provider newProvider();
-
-  Store.Configuration<K, V> newConfiguration(
-      Class<K> keyType, Class<V> valueType, Long capacity,
-      EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer);
-
-  Store.Configuration<K, V> newConfiguration(
-      Class<K> keyType, Class<V> valueType, Long capacity,
-      EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
-      Expiry<? super K, ? super V> expiry);
 
   Class<K> getKeyType();
 

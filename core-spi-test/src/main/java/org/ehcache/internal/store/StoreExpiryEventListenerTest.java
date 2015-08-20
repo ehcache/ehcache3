@@ -29,7 +29,6 @@ import org.ehcache.spi.test.SPITest;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import org.ehcache.config.Eviction;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -68,8 +67,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testGetOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        null, null, null, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
+    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
@@ -81,8 +79,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testContainsKeyOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        null, null, null, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
+    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
@@ -94,8 +91,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testPutIfAbsentOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        null, null, null, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
+    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
@@ -108,8 +104,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testRemoveOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        null, null, null, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
+    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
@@ -121,8 +116,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testReplaceTwoArgsOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        null, null, null, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
+    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
@@ -134,8 +128,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testReplaceThreeArgsOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        null, null, null, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
+    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
@@ -147,8 +140,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testComputeOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        null, null, null, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
+    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
@@ -166,8 +158,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testComputeIfAbsentOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        null, null, null, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
+    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
@@ -186,8 +177,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testComputeIfPresentOnExpiration() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        null, null, null, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
+    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);

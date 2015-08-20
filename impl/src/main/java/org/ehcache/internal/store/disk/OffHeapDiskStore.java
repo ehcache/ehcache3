@@ -90,7 +90,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
   private volatile EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
 
-  public OffHeapDiskStore(FileBasedPersistenceContext fileBasedPersistenceContext, final Configuration<K, V> config, Serializer<K> keySerializer, Serializer<V> valueSerializer, TimeSource timeSource, long sizeInBytes) {
+  public OffHeapDiskStore(FileBasedPersistenceContext fileBasedPersistenceContext, final Configuration<K, V> config, TimeSource timeSource, long sizeInBytes) {
     super("local-disk", config, timeSource);
     this.fileBasedPersistenceContext = fileBasedPersistenceContext;
     EvictionVeto<? super K, ? super V> veto = config.getEvictionVeto();
@@ -99,8 +99,8 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     } else {
       evictionVeto = Predicates.none();
     }
-    this.keySerializer = keySerializer;
-    this.valueSerializer = valueSerializer;
+    this.keySerializer = config.getKeySerializer();
+    this.valueSerializer = config.getValueSerializer();
     this.sizeInBytes = sizeInBytes;
 
     if (!status.compareAndSet(Status.UNINITIALIZED, Status.AVAILABLE)) {
@@ -236,10 +236,6 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         throw new NullPointerException("ServiceProvider is null in OffHeapDiskStore.Provider.");
       }
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
-      SerializationProvider serializationProvider = serviceProvider.getService(SerializationProvider.class);
-      Serializer<K> keySerializer = serializationProvider.createKeySerializer(storeConfig.getKeyType(), storeConfig.getClassLoader(), serviceConfigs);
-      Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig
-          .getClassLoader(), serviceConfigs);
 
       ResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
       if (!(offHeapPool.getUnit() instanceof MemoryUnit)) {
@@ -256,7 +252,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       try {
         FileBasedPersistenceContext persistenceContext = localPersistenceService.createPersistenceContextWithin(space , "offheap-disk-store");
 
-        OffHeapDiskStore<K, V> offHeapStore = new OffHeapDiskStore<K, V>(persistenceContext, storeConfig, keySerializer, valueSerializer, timeSource, unit
+        OffHeapDiskStore<K, V> offHeapStore = new OffHeapDiskStore<K, V>(persistenceContext, storeConfig, timeSource, unit
             .toBytes(offHeapPool.getSize()));
         createdStores.add(offHeapStore);
         return offHeapStore;

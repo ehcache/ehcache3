@@ -32,9 +32,10 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
     SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
     serializationProvider.start(null);
     ClassLoader classLoader = getClass().getClassLoader();
-    Serializer<String> serializer = serializationProvider.createValueSerializer(String.class, classLoader);
-    StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, null, classLoader, expiry, null);
-    OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(storeConfiguration, serializer, serializer, timeSource, MemoryUnit.MB.toBytes(1));
+    Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
+    Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
+    StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, null, classLoader, expiry, null, keySerializer, valueSerializer);
+    OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(storeConfiguration, timeSource, MemoryUnit.MB.toBytes(1));
     OffHeapStore.Provider.init(offHeapStore);
     return offHeapStore;
   }
@@ -44,10 +45,10 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
     SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
     serializationProvider.start(null);
     ClassLoader classLoader = getClass().getClassLoader();
-    Serializer<String> serializer = serializationProvider.createValueSerializer(String.class, classLoader);
-    Serializer<byte[]> byteArraySerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
-    StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class, evictionVeto, null, getClass().getClassLoader(), expiry, null);
-    OffHeapStore<String, byte[]> offHeapStore = new OffHeapStore<String, byte[]>(storeConfiguration, serializer, byteArraySerializer, timeSource, MemoryUnit.MB.toBytes(1));
+    Serializer<String> keySerializer = serializationProvider.createValueSerializer(String.class, classLoader);
+    Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
+    StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class, evictionVeto, null, getClass().getClassLoader(), expiry, null, keySerializer, valueSerializer);
+    OffHeapStore<String, byte[]> offHeapStore = new OffHeapStore<String, byte[]>(storeConfiguration, timeSource, MemoryUnit.MB.toBytes(1));
     OffHeapStore.Provider.init(offHeapStore);
     return offHeapStore;
   }
