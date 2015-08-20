@@ -18,7 +18,7 @@ package org.ehcache.config;
 
 import org.ehcache.Cache;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceUseConfiguration;
 
 import java.util.Collection;
 
@@ -37,7 +37,7 @@ public interface CacheConfiguration<K, V> {
    *
    * @return unmodifiable collection of service configuration related to the cache
    */
-  Collection<ServiceConfiguration<?>> getServiceConfigurations();
+  Collection<ServiceUseConfiguration<?>> getServiceConfigurations();
 
   /**
    * The type of the key for the cache.

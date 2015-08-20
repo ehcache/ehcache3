@@ -17,16 +17,14 @@
 package org.ehcache.config;
 
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.spi.service.ServiceUseConfiguration;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Set;
 
-import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 
-import static java.util.Collections.emptySet;
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 /**
@@ -34,7 +32,7 @@ import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
  */
 public class CacheConfigurationBuilder<K, V> {
 
-  private final Collection<ServiceConfiguration<?>> serviceConfigurations = new HashSet<ServiceConfiguration<?>>();
+  private final Collection<ServiceUseConfiguration<?>> serviceConfigurations = new HashSet<ServiceUseConfiguration<?>>();
   private Expiry<? super K, ? super V> expiry;
   private ClassLoader classLoader = null;
   private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
@@ -58,13 +56,13 @@ public class CacheConfigurationBuilder<K, V> {
 
   }
 
-  public CacheConfigurationBuilder<K, V> add(ServiceConfiguration<?> configuration) {
+  public CacheConfigurationBuilder<K, V> add(ServiceUseConfiguration<?> configuration) {
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
     otherBuilder.serviceConfigurations.add(configuration);
     return otherBuilder;
   }
 
-  public CacheConfigurationBuilder<K, V> add(Builder<? extends ServiceConfiguration<?>> configurationBuilder) {
+  public CacheConfigurationBuilder<K, V> add(Builder<? extends ServiceUseConfiguration<?>> configurationBuilder) {
     return add(configurationBuilder.build());
   }
 
@@ -92,7 +90,7 @@ public class CacheConfigurationBuilder<K, V> {
     return otherBuilder;
   }
 
-  public <T extends ServiceConfiguration<?>> T getExistingServiceConfiguration(Class<T> clazz) {
+  public <T extends ServiceUseConfiguration<?>> T getExistingServiceConfiguration(Class<T> clazz) {
     for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
       if (clazz.equals(serviceConfiguration.getClass())) {
         return clazz.cast(serviceConfiguration);
@@ -104,7 +102,7 @@ public class CacheConfigurationBuilder<K, V> {
   public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType) {
     return new BaseCacheConfiguration<CK, CV>(keyType, valueType, evictionVeto,
         evictionPrioritizer, classLoader, expiry, resourcePools,
-        serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
+        serviceConfigurations.toArray(new ServiceUseConfiguration<?>[serviceConfigurations.size()]));
   }
 
   public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType,
@@ -112,7 +110,7 @@ public class CacheConfigurationBuilder<K, V> {
                                                      EvictionPrioritizer<? super CK, ? super CV> evictionPrioritizer) {
     return new BaseCacheConfiguration<CK, CV>(keyType, valueType, evictionVeto, evictionPrioritizer,
         classLoader, expiry, resourcePools,
-        serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
+        serviceConfigurations.toArray(new ServiceUseConfiguration<?>[serviceConfigurations.size()]));
   }
   
   public CacheConfigurationBuilder<K, V> withClassLoader(ClassLoader classLoader) {

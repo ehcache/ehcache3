@@ -42,6 +42,7 @@ import org.ehcache.event.EventOrdering;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.ServiceUseConfiguration;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ClassLoading;
 import org.slf4j.Logger;
@@ -218,7 +219,7 @@ public class XmlConfiguration implements Configuration {
         resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool.getType(), resourcePool.getSize(), resourcePool.getUnit(), resourcePool.isPersistent());
       }
       builder = builder.withResourcePools(resourcePoolsBuilder);
-      for (ServiceConfiguration<?> serviceConfig : cacheDefinition.serviceConfigs()) {
+      for (ServiceUseConfiguration<?> serviceConfig : cacheDefinition.serviceConfigs()) {
         builder = builder.add(serviceConfig);
       }
       if(cacheDefinition.loaderWriter()!= null) {
@@ -463,7 +464,7 @@ public class XmlConfiguration implements Configuration {
       resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool.getType(), resourcePool.getSize(), resourcePool.getUnit(), resourcePool.isPersistent());
     }
     builder = builder.withResourcePools(resourcePoolsBuilder);
-    for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {
+    for (ServiceUseConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {
       builder = builder.add(serviceConfiguration);
     }
     if (cacheTemplate.storeByValueOnHeap() != null) {

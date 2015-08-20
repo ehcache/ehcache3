@@ -21,7 +21,7 @@ import org.ehcache.RuntimeConfiguration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceUseConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -51,8 +51,8 @@ public class CachingTierConfigurationBuilderTest {
     
     final CacheConfiguration<String, String> config = newCacheConfigurationBuilder().buildConfig(String.class, String.class);
     final Store.Provider service = serviceLocator.getService(Store.Provider.class);
-    Collection<ServiceConfiguration<?>> serviceConfigs = config.getServiceConfigurations();
-    ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
+    Collection<ServiceUseConfiguration<?>> serviceConfigs = config.getServiceConfigurations();
+    ServiceUseConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceUseConfiguration[serviceConfigs.size()]);
     final Store<String, String> store = service.createStore(new StoreConfigurationImpl<String, String>(config), serviceConfigArray);
     final CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
     when(cacheConfiguration.getExpiry()).thenReturn(Expirations.noExpiration());

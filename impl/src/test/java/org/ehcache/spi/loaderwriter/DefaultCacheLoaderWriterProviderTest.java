@@ -27,7 +27,7 @@ import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterProviderConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.exceptions.StateTransitionException;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceUseConfiguration;
 import org.hamcrest.core.Is;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
@@ -116,9 +116,9 @@ public class DefaultCacheLoaderWriterProviderTest {
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(100, EntryUnit.ENTRIES).build())
             .buildConfig(Long.class, String.class));
-    Collection<ServiceConfiguration<?>> serviceConfiguration = cache.getRuntimeConfiguration()
+    Collection<ServiceUseConfiguration<?>> serviceConfiguration = cache.getRuntimeConfiguration()
         .getServiceConfigurations();
-    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(DefaultCacheLoaderWriterConfiguration.class)));
+    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceUseConfiguration<?>>hasItem(instanceOf(DefaultCacheLoaderWriterConfiguration.class)));
     cacheManager.close();
   }
 

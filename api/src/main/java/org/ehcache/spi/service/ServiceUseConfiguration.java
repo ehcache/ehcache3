@@ -14,20 +14,10 @@
  * limitations under the License.
  */
 
-package org.ehcache.config.xml;
-
-import org.ehcache.spi.service.ServiceUseConfiguration;
-import org.ehcache.spi.service.Service;
+package org.ehcache.spi.service;
 
 /**
- *
- * @author cdennis
+ * Marker interface to identify configuration that are cache level specific.
  */
-class FooConfiguration implements ServiceUseConfiguration<Service> {
-
-  @Override
-  public Class<Service> getServiceType() {
-    return Service.class;
-  }
-  
+public interface ServiceUseConfiguration<T extends Service> extends ServiceConfiguration<T> {
 }

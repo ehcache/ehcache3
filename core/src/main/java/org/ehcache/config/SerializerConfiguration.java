@@ -16,8 +16,7 @@
 package org.ehcache.config;
 
 import org.ehcache.spi.serialization.SerializationProvider;
-import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceUseConfiguration;
 
 /**
  * Configuration passed to {@link org.ehcache.spi.serialization.SerializationProvider} in order to control
@@ -25,7 +24,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
  *
  * @author Ludovic Orban
  */
-public interface SerializerConfiguration<T extends SerializationProvider> extends ServiceConfiguration<T> {
+public interface SerializerConfiguration<T extends SerializationProvider> extends ServiceUseConfiguration<T> {
 
   /**
    * Get the type of the serializer configured

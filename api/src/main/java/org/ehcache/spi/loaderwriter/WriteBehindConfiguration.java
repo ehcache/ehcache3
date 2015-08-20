@@ -16,12 +16,12 @@
 
 package org.ehcache.spi.loaderwriter;
 
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceUseConfiguration;
 
 /**
  * WriteBehindConfiguration
  */
-public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehindDecoratorLoaderWriterProvider> {
+public interface WriteBehindConfiguration extends ServiceUseConfiguration<WriteBehindDecoratorLoaderWriterProvider> {
   /**
    * the minimum number of seconds to wait before writing behind
    *
