@@ -16,14 +16,14 @@
 
 package org.ehcache.config.xml;
 
-import org.ehcache.spi.service.ServiceUseConfiguration;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.Service;
 
 /**
  *
  * @author cdennis
  */
-class FooConfiguration implements ServiceUseConfiguration<Service> {
+class FooConfiguration implements ServiceConfiguration<Service> {
 
   @Override
   public Class<Service> getServiceType() {

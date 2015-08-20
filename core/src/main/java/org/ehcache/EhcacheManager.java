@@ -38,10 +38,9 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
-import org.ehcache.spi.service.ServiceUseConfiguration;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.util.ClassLoading;
@@ -230,7 +229,7 @@ public class EhcacheManager implements PersistentCacheManager {
       config = new BaseCacheConfiguration<K, V>(config.getKeyType(), config.getValueType(),
           config.getEvictionVeto(), config.getEvictionPrioritizer(), cacheClassLoader, config.getExpiry(),
           config.getResourcePools(), config.getServiceConfigurations().toArray(
-          new ServiceUseConfiguration<?>[config.getServiceConfigurations().size()]));
+          new ServiceConfiguration<?>[config.getServiceConfigurations().size()]));
     }
     return config;
   }

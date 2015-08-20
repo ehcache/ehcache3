@@ -17,7 +17,7 @@
 package org.ehcache.config.xml;
 
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceUseConfiguration;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.w3c.dom.Element;
 
 import java.io.IOException;
@@ -42,7 +42,7 @@ public class FooParser implements CacheXmlConfigurationParser<Service> {
   }
 
   @Override
-  public ServiceUseConfiguration<Service> parse(Element fragment) {
+  public ServiceConfiguration<Service> parse(Element fragment) {
     return new FooConfiguration();
   }
 

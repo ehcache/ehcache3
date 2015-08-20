@@ -23,7 +23,7 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.spi.service.ServiceUseConfiguration;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Matchers;
@@ -87,8 +87,8 @@ public class ConfigurationMergerTest {
     assertThat(configHolder.useEhcacheLoaderWriter, is(false));
 
     boolean storeByValue = false;
-    Collection<ServiceUseConfiguration<?>> serviceConfigurations = configHolder.cacheConfiguration.getServiceConfigurations();
-    for (ServiceUseConfiguration<?> serviceConfiguration : serviceConfigurations) {
+    Collection<ServiceConfiguration<?>> serviceConfigurations = configHolder.cacheConfiguration.getServiceConfigurations();
+    for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
       if (serviceConfiguration instanceof OnHeapStoreServiceConfiguration) {
         storeByValue = ((OnHeapStoreServiceConfiguration) serviceConfiguration).storeByValue();
       }
@@ -203,8 +203,8 @@ public class ConfigurationMergerTest {
     ConfigurationMerger.ConfigHolder<Object, Object> configHolder = merger.mergeConfigurations("cache", configuration);
 
     boolean storeByValue = true;
-    Collection<ServiceUseConfiguration<?>> serviceConfigurations = configHolder.cacheConfiguration.getServiceConfigurations();
-    for (ServiceUseConfiguration<?> serviceConfiguration : serviceConfigurations) {
+    Collection<ServiceConfiguration<?>> serviceConfigurations = configHolder.cacheConfiguration.getServiceConfigurations();
+    for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
       if (serviceConfiguration instanceof OnHeapStoreServiceConfiguration) {
         storeByValue = ((OnHeapStoreServiceConfiguration) serviceConfiguration).storeByValue();
       }

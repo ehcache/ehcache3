@@ -21,9 +21,6 @@ import org.ehcache.UserManagedCache;
 import org.ehcache.UserManagedCacheBuilder;
 import org.ehcache.config.UserManagedCacheConfiguration;
 import org.ehcache.spi.service.LocalPersistenceService;
-import org.ehcache.spi.service.ServiceConfiguration;
-
-import java.io.File;
 
 /**
  * UserManagedPersistenceContext

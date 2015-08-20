@@ -22,7 +22,7 @@ import java.util.Collections;
 
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.spi.service.ServiceUseConfiguration;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author Alex Snaps
@@ -33,7 +33,7 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   private final Class<V> valueType;
   private final EvictionVeto<? super K, ? super V> evictionVeto;
   private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
-  private final Collection<ServiceUseConfiguration<?>> serviceConfigurations;
+  private final Collection<ServiceConfiguration<?>> serviceConfigurations;
   private final ClassLoader classLoader;
   private final Expiry<? super K, ? super V> expiry;
   private final ResourcePools resourcePools;
@@ -41,7 +41,7 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType,
           EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
           ClassLoader classLoader, Expiry<? super K, ? super V> expiry,
-          ResourcePools resourcePools, ServiceUseConfiguration<?>... serviceConfigurations) {
+          ResourcePools resourcePools, ServiceConfiguration<?>... serviceConfigurations) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.evictionVeto = evictionVeto;
@@ -57,7 +57,7 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   }
 
   @Override
-  public Collection<ServiceUseConfiguration<?>> getServiceConfigurations() {
+  public Collection<ServiceConfiguration<?>> getServiceConfigurations() {
     return serviceConfigurations;
   }
 

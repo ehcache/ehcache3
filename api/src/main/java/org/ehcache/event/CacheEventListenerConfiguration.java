@@ -16,7 +16,7 @@
 
 package org.ehcache.event;
 
-import org.ehcache.spi.service.ServiceUseConfiguration;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.EnumSet;
 
@@ -25,7 +25,7 @@ import java.util.EnumSet;
  *
  * @author Alex Snaps
  */
-public interface CacheEventListenerConfiguration extends ServiceUseConfiguration<CacheEventListenerProvider> {
+public interface CacheEventListenerConfiguration extends ServiceConfiguration<CacheEventListenerProvider> {
 
   /**
    * Indicates which {@link EventFiring firing mode} to use

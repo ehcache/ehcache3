@@ -22,9 +22,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.util.ClassLoading;
 
 import static java.util.Collections.*;
 

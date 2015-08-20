@@ -17,7 +17,7 @@
 package org.ehcache.config.xml;
 
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceUseConfiguration;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.w3c.dom.Element;
 
 import java.io.IOException;
@@ -34,5 +34,5 @@ public interface CacheXmlConfigurationParser<T extends Service> {
 
   URI getNamespace();
 
-  ServiceUseConfiguration<T> parse(Element fragment);
+  ServiceConfiguration<T> parse(Element fragment);
 }

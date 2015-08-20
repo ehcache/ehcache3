@@ -27,7 +27,7 @@ import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.spi.service.ServiceUseConfiguration;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ResourcePoolMerger;
 
 import java.util.ArrayList;
@@ -43,7 +43,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public class RuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, V>, InternalRuntimeConfiguration {
 
-  private final Collection<ServiceUseConfiguration<?>> serviceConfigurations;
+  private final Collection<ServiceConfiguration<?>> serviceConfigurations;
   private final CacheConfiguration<? super K, ? super V> config;
   private final Class<K> keyType;
   private final Class<V> valueType;
@@ -85,7 +85,7 @@ public class RuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
   }
 
   @Override
-  public Collection<ServiceUseConfiguration<?>> getServiceConfigurations() {
+  public Collection<ServiceConfiguration<?>> getServiceConfigurations() {
     return this.serviceConfigurations;
   }
 

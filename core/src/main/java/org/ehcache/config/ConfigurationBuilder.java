@@ -16,7 +16,6 @@
 
 package org.ehcache.config;
 
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.util.ArrayList;
@@ -88,7 +87,7 @@ public class ConfigurationBuilder {
     return new ConfigurationBuilder(this, newServiceConfigurations);
   }
 
-  public ConfigurationBuilder removeService(ServiceConfiguration<?> serviceConfiguration) {
+  public ConfigurationBuilder removeService(ServiceCreationConfiguration<?> serviceConfiguration) {
     List<ServiceCreationConfiguration<?>> newServiceConfigurations = new ArrayList<ServiceCreationConfiguration<?>>(serviceConfigurations);
     newServiceConfigurations.remove(serviceConfiguration);
     return new ConfigurationBuilder(this, newServiceConfigurations);

@@ -17,12 +17,12 @@
 package org.ehcache.internal.store.heap.service;
 
 import org.ehcache.internal.store.heap.OnHeapStore;
-import org.ehcache.spi.service.ServiceUseConfiguration;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author Ludovic Orban
  */
-public class OnHeapStoreServiceConfiguration implements ServiceUseConfiguration<OnHeapStore.Provider> {
+public class OnHeapStoreServiceConfiguration implements ServiceConfiguration<OnHeapStore.Provider> {
 
     private boolean storeByValue = false;
 

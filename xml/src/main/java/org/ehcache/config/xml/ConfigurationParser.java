@@ -35,7 +35,6 @@ import org.ehcache.config.xml.model.ResourceType;
 import org.ehcache.config.xml.model.ResourcesType;
 import org.ehcache.config.xml.model.ServiceType;
 import org.ehcache.config.xml.model.TimeType;
-import org.ehcache.spi.service.ServiceUseConfiguration;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.util.ClassLoading;
@@ -293,8 +292,8 @@ class ConfigurationParser {
 
 
           @Override
-          public Iterable<ServiceUseConfiguration<?>> serviceConfigs() {
-            Collection<ServiceUseConfiguration<?>> configs = new ArrayList<ServiceUseConfiguration<?>>();
+          public Iterable<ServiceConfiguration<?>> serviceConfigs() {
+            Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
             for (BaseCacheType source : sources) {
               for (Object child : source.getAny()) {
                 configs.add(parseCacheExtension((Element) child));
@@ -487,10 +486,10 @@ class ConfigurationParser {
           }
 
           @Override
-          public Iterable<ServiceUseConfiguration<?>> serviceConfigs() {
-            Collection<ServiceUseConfiguration<?>> configs = new ArrayList<ServiceUseConfiguration<?>>();
+          public Iterable<ServiceConfiguration<?>> serviceConfigs() {
+            Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
             for (Object child : cacheTemplate.getAny()) {
-              configs.add((ServiceUseConfiguration<?>) parseExtension((Element)child));
+              configs.add((ServiceConfiguration<?>) parseExtension((Element)child));
               configs.add(parseCacheExtension((Element) child));
             }
             return configs;
@@ -553,7 +552,7 @@ class ConfigurationParser {
     return xmlConfigurationParser.parse(element);
   }
 
-  ServiceUseConfiguration<?> parseCacheExtension(final Element element) {
+  ServiceConfiguration<?> parseCacheExtension(final Element element) {
     URI namespace = URI.create(element.getNamespaceURI());
     final CacheXmlConfigurationParser<?> xmlConfigurationParser = cacheXmlParsers.get(namespace);
     if(xmlConfigurationParser == null) {
@@ -602,7 +601,7 @@ class ConfigurationParser {
 
     Iterable<Listener> listeners();
 
-    Iterable<ServiceUseConfiguration<?>> serviceConfigs();
+    Iterable<ServiceConfiguration<?>> serviceConfigs();
 
     Iterable<ResourcePool> resourcePools();
     

@@ -40,7 +40,6 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.ServiceUseConfiguration;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.hamcrest.CoreMatchers;
@@ -156,7 +155,7 @@ public class XmlConfigurationTest {
 
     assertThat(config.getServiceConfigurations(), hasSize(0));
     assertThat(config.getCacheConfigurations().keySet(), hasItem("bar"));
-    assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.<ServiceUseConfiguration<?>>hasItem(instanceOf(FooConfiguration.class)));
+    assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(FooConfiguration.class)));
   }
 
   @SuppressWarnings("rawtypes")
@@ -167,7 +166,7 @@ public class XmlConfigurationTest {
 
     assertThat(xmlConfig.getServiceConfigurations(), hasSize(0));
     assertThat(xmlConfig.getCacheConfigurations().keySet(), hasItem("bar"));
-    assertThat(xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.<ServiceUseConfiguration<?>>hasItem(instanceOf(FooConfiguration.class)));
+    assertThat(xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(FooConfiguration.class)));
     assertThat(xmlConfig.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class) Number.class));
     assertThat(xmlConfig.getCacheConfigurations().get("bar").getValueType(), sameInstance((Class)String.class));
 
@@ -403,7 +402,7 @@ public class XmlConfigurationTest {
 
     assertThat(xmlConfig.getServiceConfigurations().size(), is(1));
 
-    ServiceConfiguration configuration = xmlConfig.getServiceConfigurations().iterator().next();
+    ServiceCreationConfiguration configuration = xmlConfig.getServiceConfigurations().iterator().next();
 
     assertThat(configuration, instanceOf(DefaultSerializationProviderConfiguration.class));
 
@@ -438,7 +437,7 @@ public class XmlConfigurationTest {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/persistence-config.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
 
-    ServiceConfiguration<?> serviceConfig = xmlConfig.getServiceConfigurations().iterator().next();
+    ServiceCreationConfiguration<?> serviceConfig = xmlConfig.getServiceConfigurations().iterator().next();
     assertThat(serviceConfig, instanceOf(PersistenceConfiguration.class));
 
     PersistenceConfiguration persistenceConfiguration = (PersistenceConfiguration)serviceConfig;
@@ -450,13 +449,13 @@ public class XmlConfigurationTest {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/writebehind-cache.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
     
-    Collection<ServiceUseConfiguration<?>> serviceConfiguration = xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations();
+    Collection<ServiceConfiguration<?>> serviceConfiguration = xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations();
     
-    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceUseConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
+    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
     
     serviceConfiguration = xmlConfig.newCacheConfigurationBuilderFromTemplate("example").buildConfig(Number.class, String.class).getServiceConfigurations();
     
-    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceUseConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
+    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
     
     for (ServiceConfiguration<?> configuration : serviceConfiguration) {
       if(configuration instanceof DefaultWriteBehindConfiguration) {

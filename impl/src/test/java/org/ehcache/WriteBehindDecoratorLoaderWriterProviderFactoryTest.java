@@ -20,11 +20,10 @@ import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
-import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.loaderwriter.writebehind.WriteBehindDecoratorLoaderWriterProviderFactory;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
-import org.ehcache.spi.service.ServiceUseConfiguration;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Rule;
 import org.junit.Test;
@@ -62,9 +61,9 @@ public class WriteBehindDecoratorLoaderWriterProviderFactoryTest {
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(100, EntryUnit.ENTRIES).build())
             .buildConfig(Long.class, String.class));
-    Collection<ServiceUseConfiguration<?>> serviceConfiguration = cache.getRuntimeConfiguration()
+    Collection<ServiceConfiguration<?>> serviceConfiguration = cache.getRuntimeConfiguration()
         .getServiceConfigurations();
-    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceUseConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
+    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
     cacheManager.close();
   }
   

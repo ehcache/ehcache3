@@ -16,7 +16,6 @@
 
 package org.ehcache.spi.loaderwriter;
 
-import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterProviderConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
@@ -28,8 +27,10 @@ public class DefaultCacheLoaderWriterProviderFactory implements ServiceFactory<C
 
   @Override
   public DefaultCacheLoaderWriterProvider create(ServiceCreationConfiguration<CacheLoaderWriterProvider> configuration) {
-    if (configuration instanceof DefaultCacheLoaderWriterConfiguration) {
-      throw new IllegalArgumentException("DefaultCacheLoaderWriterConfiguration must not be provided at CacheManager level");
+    if (configuration != null && !(configuration instanceof DefaultCacheLoaderWriterProviderConfiguration)) {
+      throw new IllegalArgumentException("Expected a configuration of type DefaultCacheLoaderWriterProviderConfiguration but got " + configuration
+          .getClass()
+          .getSimpleName());
     }
     return new DefaultCacheLoaderWriterProvider((DefaultCacheLoaderWriterProviderConfiguration) configuration);
   }

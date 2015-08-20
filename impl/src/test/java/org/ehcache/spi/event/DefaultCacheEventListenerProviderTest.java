@@ -28,7 +28,7 @@ import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.EventType;
-import org.ehcache.spi.service.ServiceUseConfiguration;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 
@@ -74,9 +74,9 @@ public class DefaultCacheEventListenerProviderTest {
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(100, EntryUnit.ENTRIES).build())
             .buildConfig(Long.class, String.class));
-    Collection<ServiceUseConfiguration<?>> serviceConfiguration = cache.getRuntimeConfiguration()
+    Collection<ServiceConfiguration<?>> serviceConfiguration = cache.getRuntimeConfiguration()
         .getServiceConfigurations();
-    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceUseConfiguration<?>>hasItem(instanceOf(DefaultCacheEventListenerConfiguration.class)));
+    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(DefaultCacheEventListenerConfiguration.class)));
     cacheManager.close();
   }
 

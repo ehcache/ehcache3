@@ -17,7 +17,17 @@
 package org.ehcache.spi.service;
 
 /**
- * Marker interface to identify {@link Service} configurations that are used when creating a {@code Service}.
+ * Interface regrouping configuration types to be used when creating a {@link Service}.
+ *
+ * @param <T> the service type this configuration works with
+ *
  */
-public interface ServiceCreationConfiguration<T extends Service> extends ServiceConfiguration<T> {
+public interface ServiceCreationConfiguration<T extends Service> {
+
+  /**
+   * Indicates which service this configuration works with.
+   *
+   * @return the service type
+   */
+  Class<T> getServiceType();
 }
