@@ -17,7 +17,7 @@
 package org.ehcache.config.xml;
 
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceUseConfiguration;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.w3c.dom.Element;
 
 import java.io.IOException;
@@ -28,27 +28,25 @@ import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
 /**
- *
- * @author cdennis
+ * BarParser
  */
-public class FooParser implements CacheXmlConfigurationParser<Service> {
+public class BarParser implements XmlConfigurationParser<Service> {
 
-  private static final URI NAMESPACE = URI.create("http://www.example.com/foo");
-  private static final URL XML_SCHEMA = FooParser.class.getResource("/configs/foo.xsd");
-  
+  private static final URI NAMESPACE = URI.create("http://www.example.com/bar");
+  private static final URL XML_SCHEMA = FooParser.class.getResource("/configs/bar.xsd");
+
   @Override
   public Source getXmlSchema() throws IOException {
     return new StreamSource(XML_SCHEMA.openStream());
   }
 
   @Override
-  public ServiceUseConfiguration<Service> parse(Element fragment) {
-    return new FooConfiguration();
-  }
-
-  @Override
   public URI getNamespace() {
     return NAMESPACE;
   }
-  
+
+  @Override
+  public ServiceConfiguration<Service> parse(Element fragment) {
+    return new BarConfiguration();
+  }
 }

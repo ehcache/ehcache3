@@ -75,6 +75,7 @@ class ConfigurationParser {
   private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 
   private final Map<URI, XmlConfigurationParser<?>> xmlParsers = new HashMap<URI, XmlConfigurationParser<?>>();
+  private final Map<URI, CacheXmlConfigurationParser<?>> cacheXmlParsers = new HashMap<URI, CacheXmlConfigurationParser<?>>();
   private final ConfigType config;
 
   public ConfigurationParser(String xml, URL... sources) throws IOException, SAXException {
@@ -82,6 +83,10 @@ class ConfigurationParser {
     for (XmlConfigurationParser<?> parser : ClassLoading.libraryServiceLoaderFor(XmlConfigurationParser.class)) {
       schemaSources.add(parser.getXmlSchema());
       xmlParsers.put(parser.getNamespace(), parser);
+    }
+    for (CacheXmlConfigurationParser<?> parser : ClassLoading.libraryServiceLoaderFor(CacheXmlConfigurationParser.class)) {
+      schemaSources.add(parser.getXmlSchema());
+      cacheXmlParsers.put(parser.getNamespace(), parser);
     }
     for (URL source : sources) {
       schemaSources.add(new StreamSource(source.openStream()));
@@ -291,7 +296,7 @@ class ConfigurationParser {
             Collection<ServiceUseConfiguration<?>> configs = new ArrayList<ServiceUseConfiguration<?>>();
             for (BaseCacheType source : sources) {
               for (Object child : source.getAny()) {
-                configs.add((ServiceUseConfiguration<?>) parseExtension((Element) child));
+                configs.add(parseCacheExtension((Element) child));
               }
             }
             return configs;
@@ -485,6 +490,7 @@ class ConfigurationParser {
             Collection<ServiceUseConfiguration<?>> configs = new ArrayList<ServiceUseConfiguration<?>>();
             for (Object child : cacheTemplate.getAny()) {
               configs.add((ServiceUseConfiguration<?>) parseExtension((Element)child));
+              configs.add(parseCacheExtension((Element) child));
             }
             return configs;
           }
@@ -546,6 +552,14 @@ class ConfigurationParser {
     return xmlConfigurationParser.parse(element);
   }
 
+  ServiceUseConfiguration<?> parseCacheExtension(final Element element) {
+    URI namespace = URI.create(element.getNamespaceURI());
+    final CacheXmlConfigurationParser<?> xmlConfigurationParser = cacheXmlParsers.get(namespace);
+    if(xmlConfigurationParser == null) {
+      throw new IllegalArgumentException("Can't find parser for namespace: " + namespace);
+    }
+    return xmlConfigurationParser.parse(element);
+  }
 
   static class FatalErrorHandler implements ErrorHandler {
 

@@ -22,33 +22,17 @@ import org.w3c.dom.Element;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
 
 import javax.xml.transform.Source;
-import javax.xml.transform.stream.StreamSource;
 
 /**
- *
- * @author cdennis
+ * CacheXmlConfigurationParser
  */
-public class FooParser implements CacheXmlConfigurationParser<Service> {
+public interface CacheXmlConfigurationParser<T extends Service> {
 
-  private static final URI NAMESPACE = URI.create("http://www.example.com/foo");
-  private static final URL XML_SCHEMA = FooParser.class.getResource("/configs/foo.xsd");
-  
-  @Override
-  public Source getXmlSchema() throws IOException {
-    return new StreamSource(XML_SCHEMA.openStream());
-  }
+  Source getXmlSchema() throws IOException;
 
-  @Override
-  public ServiceUseConfiguration<Service> parse(Element fragment) {
-    return new FooConfiguration();
-  }
+  URI getNamespace();
 
-  @Override
-  public URI getNamespace() {
-    return NAMESPACE;
-  }
-  
+  ServiceUseConfiguration<T> parse(Element fragment);
 }
