@@ -33,6 +33,7 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.junit.Rule;
@@ -72,28 +73,36 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   
   @Override
   protected OffHeapDiskStore<String, String> createAndInitStore(final TimeSource timeSource, final Expiry<? super String, ? super String> expiry) {
-    SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining(persistenceService));
-    ClassLoader classLoader = getClass().getClassLoader();
-    Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
-    Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
-    StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, null, classLoader, expiry, null, keySerializer, valueSerializer);
-    OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<String, String>(getPersistenceContext(), storeConfiguration, timeSource, MemoryUnit.MB.toBytes(1));
-    OffHeapDiskStore.Provider.init(offHeapStore);
-    return offHeapStore;
+    try {
+      SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
+      serializationProvider.start(providerContaining(persistenceService));
+      ClassLoader classLoader = getClass().getClassLoader();
+      Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
+      Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
+      StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, null, classLoader, expiry, null, keySerializer, valueSerializer);
+      OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<String, String>(getPersistenceContext(), storeConfiguration, timeSource, MemoryUnit.MB.toBytes(1));
+      OffHeapDiskStore.Provider.init(offHeapStore);
+      return offHeapStore;
+    } catch (UnsupportedTypeException e) {
+      throw new AssertionError(e);
+    }
   }
 
   @Override
   protected OffHeapDiskStore<String, byte[]> createAndInitStore(TimeSource timeSource, Expiry<? super String, ? super byte[]> expiry, EvictionVeto<? super String, ? super byte[]> evictionVeto) {
-    SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining(persistenceService));
-    ClassLoader classLoader = getClass().getClassLoader();
-    Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
-    Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
-    StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class, evictionVeto, null, getClass().getClassLoader(), expiry, null, keySerializer, valueSerializer);
-    OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<String, byte[]>(getPersistenceContext(), storeConfiguration, timeSource, MemoryUnit.MB.toBytes(1));
-    OffHeapDiskStore.Provider.init(offHeapStore);
-    return offHeapStore;
+    try {
+      SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
+      serializationProvider.start(providerContaining(persistenceService));
+      ClassLoader classLoader = getClass().getClassLoader();
+      Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
+      Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
+      StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class, evictionVeto, null, getClass().getClassLoader(), expiry, null, keySerializer, valueSerializer);
+      OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<String, byte[]>(getPersistenceContext(), storeConfiguration, timeSource, MemoryUnit.MB.toBytes(1));
+      OffHeapDiskStore.Provider.init(offHeapStore);
+      return offHeapStore;
+    } catch (UnsupportedTypeException e) {
+      throw new AssertionError(e);
+    }
   }
 
   @Override

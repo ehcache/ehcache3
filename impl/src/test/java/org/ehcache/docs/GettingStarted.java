@@ -430,6 +430,11 @@ public class GettingStarted {
     public boolean equals(String object, ByteBuffer binary) throws ClassNotFoundException {
       return object.equals(read(binary));
     }
+
+    @Override
+    public void close() {
+      //nothing
+    }
   }
 
   @Serializer.Persistent @Serializer.Transient
@@ -459,6 +464,11 @@ public class GettingStarted {
     @Override
     public boolean equals(Long object, ByteBuffer binary) throws ClassNotFoundException {
       return object.equals(read(binary));
+    }
+
+    @Override
+    public void close() {
+      //nothing
     }
   }
 
@@ -490,6 +500,11 @@ public class GettingStarted {
     @Override
     public boolean equals(CharSequence object, ByteBuffer binary) throws ClassNotFoundException {
       return object.equals(read(binary));
+    }
+
+    @Override
+    public void close() {
+      //nothing
     }
   }
 

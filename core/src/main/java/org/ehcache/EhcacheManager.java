@@ -37,8 +37,12 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
+import org.ehcache.spi.serialization.SerializationProvider;
+import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.LocalPersistenceService;
+import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
@@ -48,6 +52,7 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.context.annotations.ContextAttribute;
 import org.terracotta.statistics.StatisticsManager;
 
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,10 +68,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.ehcache.spi.serialization.SerializationProvider;
-import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 
+import static org.ehcache.config.ResourceType.Core.DISK;
+import static org.ehcache.config.ResourceType.Core.OFFHEAP;
+import static org.ehcache.util.LifeCycleUtils.closerFor;
 
 /**
  * @author Alex Snaps
@@ -268,10 +273,27 @@ public class EhcacheManager implements PersistentCacheManager {
     if (serialization != null) {
       try {
         keySerializer = serialization.createKeySerializer(keyType, config.getClassLoader(), serviceConfigs);
-        valueSerializer = serialization.createValueSerializer(valueType, config.getClassLoader(), serviceConfigs);
-      } catch (Throwable t) {
-        //TODO SerializationProvider doesn't require any exception behavior...
-        LOGGER.info("Could not create serializers for " + alias, t);
+        try {
+          valueSerializer = serialization.createValueSerializer(valueType, config.getClassLoader(), serviceConfigs);
+        } catch (UnsupportedTypeException e) {
+          try {
+            keySerializer.close();
+          } catch (IOException f) {
+            LOGGER.warn("Exception shutting down key serializer, after value serializer was unavailable.", f);
+          } finally {
+            keySerializer = null;
+          }
+          throw e;
+        }
+        lifeCycledList.add(closerFor(keySerializer));
+        lifeCycledList.add(closerFor(valueSerializer));
+      } catch (UnsupportedTypeException e) {
+        Set<ResourceType> resources = config.getResourcePools().getResourceTypeSet();
+        if (resources.contains(DISK) || resources.contains(OFFHEAP)) {
+          throw new RuntimeException(e);
+        } else {
+          LOGGER.info("Could not create serializers for " + alias, e);
+        }
       }
     }
     Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<K, V>(config, keySerializer, valueSerializer);

@@ -44,6 +44,7 @@ import org.ehcache.spi.serialization.Serializer;
  *
  * @author Chris Dennis
  */
+@Serializer.Transient
 public class CompactJavaSerializer implements Serializer<Serializable> {
 
   private final AtomicInteger nextStreamIndex = new AtomicInteger(0);
@@ -127,6 +128,11 @@ public class CompactJavaSerializer implements Serializer<Serializable> {
     } else {
       return rep;
     }
+  }
+
+  @Override
+  public void close() {
+    lookup.clear();
   }
 
   class OOS extends ObjectOutputStream {

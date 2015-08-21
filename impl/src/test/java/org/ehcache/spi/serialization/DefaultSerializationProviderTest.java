@@ -17,7 +17,7 @@ package org.ehcache.spi.serialization;
 
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.internal.serialization.JavaSerializer;
+import org.ehcache.internal.serialization.CompactJavaSerializer;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
@@ -38,11 +38,11 @@ public class DefaultSerializationProviderTest {
     DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
     dsp.start(providerContaining());
 
-    assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader()), instanceOf(JavaSerializer.class));
+    assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
     try {
       dsp.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader());
-      fail("expected IllegalArgumentException");
-    } catch (IllegalArgumentException iae) {
+      fail("expected UnsupportedTypeException");
+    } catch (UnsupportedTypeException ute) {
       // expected
     }
   }
@@ -67,7 +67,7 @@ public class DefaultSerializationProviderTest {
     dsp.start(providerContaining());
 
     assertThat(dsp.createValueSerializer(Long.class, ClassLoader.getSystemClassLoader()), instanceOf(TestSerializer.class));
-    assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader()), instanceOf(JavaSerializer.class));
+    assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
   }
 
 //  @Test
@@ -116,6 +116,11 @@ public class DefaultSerializationProviderTest {
     @Override
     public boolean equals(T object, ByteBuffer binary) {
       return false;
+    }
+
+    @Override
+    public void close() {
+      //no-op
     }
   }
 

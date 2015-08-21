@@ -37,6 +37,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.ehcache.internal.serialization.CompactJavaSerializer;
 
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
@@ -61,7 +62,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
   }
 
   @Override
-  public <T> Serializer<T> createKeySerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) {
+  public <T> Serializer<T> createKeySerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
     if (findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) configs) == null) {
       return transientProvider.createKeySerializer(clazz, classLoader, configs);
     } else {
@@ -70,7 +71,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
   }
 
   @Override
-  public <T> Serializer<T> createValueSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) {
+  public <T> Serializer<T> createValueSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
     if (findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) configs) == null) {
       return transientProvider.createValueSerializer(clazz, classLoader, configs);
     } else {
@@ -97,7 +98,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
     }
 
     @Override
-    protected <T> Serializer<T> createSerializer(String suffix, Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config, ServiceConfiguration<?>... configs) {
+    protected <T> Serializer<T> createSerializer(String suffix, Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
       String alias = (config != null ? null : clazz.getName());
       try {
         Class<? extends Serializer<T>> klazz = getClassFor(alias, config, classLoader);
@@ -110,7 +111,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
     @Override
     public void start(ServiceProvider serviceProvider) {
       if (!serializers.containsKey(Serializable.class.getName())) {
-        serializers.put(Serializable.class.getName(), (Class) JavaSerializer.class);
+        serializers.put(Serializable.class.getName(), (Class) CompactJavaSerializer.class);
       }
     }
   }
@@ -124,7 +125,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
     }
 
     @Override
-    protected <T> Serializer<T> createSerializer(String suffix, Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config, ServiceConfiguration<?>... configs) {
+    protected <T> Serializer<T> createSerializer(String suffix, Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
       String alias = (config != null ? null : clazz.getName());
       try {
         Class<? extends Serializer<T>> klazz = getClassFor(alias, config, classLoader);
@@ -162,20 +163,20 @@ public class DefaultSerializationProvider implements SerializationProvider {
     }
 
     @Override
-    public <T> Serializer<T> createKeySerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) {
+    public <T> Serializer<T> createKeySerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
       DefaultSerializerConfiguration<T> conf = find(SerializerConfiguration.Type.KEY, configs);
       return createSerializer("-Key", clazz, classLoader, conf, configs);
     }
 
     @Override
-    public <T> Serializer<T> createValueSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) {
+    public <T> Serializer<T> createValueSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
       DefaultSerializerConfiguration<T> conf = find(SerializerConfiguration.Type.VALUE, configs);
       return createSerializer("-Value", clazz, classLoader, conf, configs);
     }
 
-    protected abstract <T> Serializer<T> createSerializer(String suffix, Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config, ServiceConfiguration<?>... configs);
+    protected abstract <T> Serializer<T> createSerializer(String suffix, Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config, ServiceConfiguration<?>... configs) throws UnsupportedTypeException;
 
-    protected <T> Class<? extends Serializer<T>> getClassFor(String alias, DefaultSerializerConfiguration<T> config, ClassLoader classLoader) {
+    protected <T> Class<? extends Serializer<T>> getClassFor(String alias, DefaultSerializerConfiguration<T> config, ClassLoader classLoader) throws UnsupportedTypeException {
       if (config != null) {
         Class<? extends Serializer<T>> configured = config.getClazz();
         if (configured != null) {
@@ -191,7 +192,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
       try {
         targetSerializedClass = Class.forName(alias, true, classLoader);
       } catch (ClassNotFoundException cnfe) {
-        throw new IllegalArgumentException("Configured type class '" + alias + "' not found", cnfe);
+        throw new IllegalStateException("Configured type class '" + alias + "' not found", cnfe);
       }
       for (Map.Entry<String, Class<? extends Serializer<?>>> entry : serializers.entrySet()) {
         try {
@@ -200,10 +201,10 @@ public class DefaultSerializationProvider implements SerializationProvider {
             return (Class<? extends Serializer<T>>) entry.getValue();
           }
         } catch (ClassNotFoundException cnfe) {
-          throw new IllegalArgumentException("Configured type class '" + entry.getKey() + "' for serializer '" + entry.getValue() + "' not found", cnfe);
+          throw new IllegalStateException("Configured type class '" + entry.getKey() + "' for serializer '" + entry.getValue() + "' not found", cnfe);
         }
       }
-      throw new IllegalArgumentException("No serializer found for type '" + alias + "'");
+      throw new UnsupportedTypeException("No serializer found for type '" + alias + "'");
     }
 
     protected <T> Serializer<T> constructSerializer(Class<T> clazz, Constructor<? extends Serializer<T>> constructor, Object ... args) {

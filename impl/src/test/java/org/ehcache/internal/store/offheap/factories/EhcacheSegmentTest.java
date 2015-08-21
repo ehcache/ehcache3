@@ -33,9 +33,12 @@ import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
 
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static org.ehcache.internal.store.offheap.OffHeapStoreUtils.getBufferSource;
 import static org.ehcache.spi.TestServiceProvider.providerContaining;
+import org.ehcache.spi.serialization.UnsupportedTypeException;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -58,16 +61,20 @@ public class EhcacheSegmentTest {
   }
   
   private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(Predicate<Map.Entry<String, String>> evictionPredicate, EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
-    HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
-    SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
-    PageSource pageSource = new UpfrontAllocatingPageSource(getBufferSource(), configuration.getMaximumSize(), configuration.getMaximumChunkSize(), configuration.getMinimumChunkSize());
-    Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, EhcacheSegmentTest.class.getClassLoader());
-    Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, EhcacheSegmentTest.class.getClassLoader());
-    Portability<String> keyPortability = new SerializerPortability<String>(keySerializer);
-    Portability<String> elementPortability = new SerializerPortability<String>(valueSerializer);
-    Factory<OffHeapBufferStorageEngine<String, String>> storageEngineFactory = OffHeapBufferStorageEngine.createFactory(PointerSize.INT, pageSource, configuration.getInitialSegmentTableSize(), keyPortability, elementPortability, false, true);
-    return new EhcacheSegmentFactory.EhcacheSegment<String, String>(pageSource, storageEngineFactory.newInstance(), 1, evictionPredicate, evictionListener);
+    try {
+      HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
+      SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
+      serializationProvider.start(providerContaining());
+      PageSource pageSource = new UpfrontAllocatingPageSource(getBufferSource(), configuration.getMaximumSize(), configuration.getMaximumChunkSize(), configuration.getMinimumChunkSize());
+      Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, EhcacheSegmentTest.class.getClassLoader());
+      Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, EhcacheSegmentTest.class.getClassLoader());
+      Portability<String> keyPortability = new SerializerPortability<String>(keySerializer);
+      Portability<String> elementPortability = new SerializerPortability<String>(valueSerializer);
+      Factory<OffHeapBufferStorageEngine<String, String>> storageEngineFactory = OffHeapBufferStorageEngine.createFactory(PointerSize.INT, pageSource, configuration.getInitialSegmentTableSize(), keyPortability, elementPortability, false, true);
+      return new EhcacheSegmentFactory.EhcacheSegment<String, String>(pageSource, storageEngineFactory.newInstance(), 1, evictionPredicate, evictionListener);
+    } catch (UnsupportedTypeException e) {
+      throw new AssertionError(e);
+    }
   }
 
   @Test

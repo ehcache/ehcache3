@@ -16,8 +16,10 @@
 
 package org.ehcache;
 
-import java.util.Arrays;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -41,15 +43,20 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.util.ClassLoading;
 import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import org.slf4j.Logger;
+import static org.ehcache.config.ResourceType.Core.DISK;
+import static org.ehcache.config.ResourceType.Core.OFFHEAP;
+import org.ehcache.spi.service.ServiceConfiguration;
+import static org.ehcache.util.LifeCycleUtils.closerFor;
 
 /**
  * @author Alex Snaps
@@ -98,11 +105,10 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     } catch (Exception e) {
       throw new IllegalStateException("UserManagedCacheBuilder failed to build.", e);
     }
-    final Store.Provider storeProvider = serviceLocator.getService(Store.Provider.class);
 
-    Store.Configuration<K, V> storeConfig;
-    boolean persistent = resourcePools.getResourceTypeSet().contains(ResourceType.Core.DISK);
-    final Store<K, V> store;
+    ServiceConfiguration<?>[] serviceConfigs;
+    Set<ResourceType> resources = resourcePools.getResourceTypeSet();
+    boolean persistent = resources.contains(DISK);
     if (persistent) {
       if (id == null) {
         throw new IllegalStateException("Persistent user managed caches must have an id set");
@@ -116,40 +122,55 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
         }
       }
       try {
-        LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(id);
-        SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
-        Serializer<K> keySerializer = serialization.createKeySerializer(keyType, classLoader, space);
-        Serializer<V> valueSerializer = serialization.createValueSerializer(valueType, classLoader, space);
-        storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType, evictionVeto, evictionPrioritizer, classLoader,
-                expiry, resourcePools, keySerializer, valueSerializer);
-        store = storeProvider.createStore(storeConfig, space);
+        serviceConfigs = new ServiceConfiguration<?>[] {persistenceService.getOrCreatePersistenceSpace(id)};
       } catch (CachePersistenceException cpex) {
         throw new RuntimeException("Unable to create persistence space for cache " + id, cpex);
       }
     } else {
-      Serializer<K> keySerializer = null;
-      Serializer<V> valueSerializer = null;
-      SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
-      if (serialization != null) {
+      serviceConfigs = new ServiceConfiguration<?>[0];
+    }
+    
+    List<LifeCycled> lifeCycledList = new ArrayList<LifeCycled>();
+    
+    Serializer<K> keySerializer = null;
+    Serializer<V> valueSerializer = null;
+    SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
+    if (serialization != null) {
+      try {
+        keySerializer = serialization.createKeySerializer(keyType, classLoader, serviceConfigs);
         try {
-          keySerializer = serialization.createKeySerializer(keyType, classLoader);
-          valueSerializer = serialization.createValueSerializer(valueType, classLoader);
-        } catch (Throwable t) {
-          //TODO SerializationProvider doesn't require any exception behavior...
-          LOGGER.info("Could not create serializers for user managed cache " + id, t);
+          valueSerializer = serialization.createValueSerializer(valueType, classLoader, serviceConfigs);
+        } catch (UnsupportedTypeException e) {
+          try {
+            keySerializer.close();
+          } catch (IOException f) {
+            LOGGER.warn("Exception shutting down key serializer, after value serializer was unavailable.", f);
+          } finally {
+            keySerializer = null;
+          }
+          throw e;
+        }
+        lifeCycledList.add(closerFor(keySerializer));
+        lifeCycledList.add(closerFor(valueSerializer));
+      } catch (UnsupportedTypeException e) {
+        if (resources.contains(OFFHEAP) || resources.contains(DISK)) {
+          throw new RuntimeException(e);
+        } else {
+          LOGGER.info("Could not create serializers for user managed cache " + id, e);
         }
       }
-      storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType, evictionVeto, evictionPrioritizer, classLoader,
-              expiry, resourcePools, keySerializer, valueSerializer);
-      store = storeProvider.createStore(storeConfig);
     }
+    final Store.Provider storeProvider = serviceLocator.getService(Store.Provider.class);
+    Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType, evictionVeto, evictionPrioritizer, classLoader,
+            expiry, resourcePools, keySerializer, valueSerializer);
+    final Store<K, V> store = storeProvider.createStore(storeConfig, serviceConfigs);
 
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionVeto,
         evictionPrioritizer, classLoader, expiry, resourcePools);
 
     RuntimeConfiguration<K, V> runtimeConfiguration = new RuntimeConfiguration<K, V>(cacheConfig, cacheEventNotificationService);
 
-    LifeCycled lifeCycled = new LifeCycled() {
+    lifeCycledList.add(new LifeCycled() {
       @Override
       public void init() throws Exception {
         storeProvider.initStore(store);
@@ -159,7 +180,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
       public void close() throws Exception {
         storeProvider.releaseStore(store);
       }
-    };
+    });
     if (persistent) {
       LocalPersistenceService persistenceService = serviceLocator
           .getService(LocalPersistenceService.class);
@@ -168,7 +189,9 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
       }
 
       PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(runtimeConfiguration, store, storeConfig, persistenceService, cacheLoaderWriter, cacheEventNotificationService, id);
-      cache.addHook(lifeCycled);
+      for (LifeCycled lifeCycled : lifeCycledList) {
+        cache.addHook(lifeCycled);
+      }
       return cast(cache);
     } else {
       String loggerName;
@@ -177,10 +200,11 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
       } else {
         loggerName = Ehcache.class.getName() + "-UserManaged" + instanceId.incrementAndGet();
       }
-      final Ehcache<K, V> ehcache;
-      ehcache = new Ehcache<K, V>(runtimeConfiguration, store, cacheLoaderWriter, cacheEventNotificationService, LoggerFactory.getLogger(loggerName));
-      ehcache.addHook(lifeCycled);
-      return cast(ehcache);
+      Ehcache<K, V> cache = new Ehcache<K, V>(runtimeConfiguration, store, cacheLoaderWriter, cacheEventNotificationService, LoggerFactory.getLogger(loggerName));
+      for (LifeCycled lifeCycled : lifeCycledList) {
+        cache.addHook(lifeCycled);
+      }
+      return cast(cache);
     }
 
   }

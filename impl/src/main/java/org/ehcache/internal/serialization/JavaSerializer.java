@@ -88,6 +88,11 @@ public class JavaSerializer<T> implements Serializer<T> {
     return object.equals(read(binary));
   }
 
+  @Override
+  public void close() {
+    //no-op
+  }
+
   private static class OIS extends ObjectInputStream {
 
     private final ClassLoader classLoader;

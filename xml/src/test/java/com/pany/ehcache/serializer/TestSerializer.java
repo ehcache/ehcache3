@@ -45,4 +45,9 @@ public class TestSerializer<T> implements Serializer<T> {
   public boolean equals(T object, ByteBuffer binary) throws SerializerException, ClassNotFoundException {
     return serializer.equals(object, binary);
   }
+
+  @Override
+  public void close() throws IOException {
+    serializer.close();
+  }
 }

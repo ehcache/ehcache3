@@ -15,6 +15,7 @@
  */
 package org.ehcache.spi.serialization;
 
+import java.io.Closeable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 import java.nio.ByteBuffer;
@@ -31,7 +32,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  *
  * @author cdennis
  */
-public interface Serializer<T> {
+public interface Serializer<T> extends Closeable {
 
   /**
    * Marks a {@code Serializer} that is suitable for operation within a persistent cache.

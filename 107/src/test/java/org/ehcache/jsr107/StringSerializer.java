@@ -49,4 +49,9 @@ public class StringSerializer implements Serializer<String> {
   public boolean equals(String object, ByteBuffer binary) {
     return object.equals(read(binary));
   }
+
+  @Override
+  public void close() {
+    //nothing
+  }
 }
