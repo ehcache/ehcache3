@@ -15,9 +15,13 @@
  */
 package org.ehcache.spi.serialization;
 
-import java.io.IOException;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
 import java.nio.ByteBuffer;
 import org.ehcache.exceptions.SerializerException;
+
+import static java.lang.annotation.ElementType.TYPE;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
  * Interface defining the contract used to transform types in a serial form.
@@ -28,6 +32,16 @@ import org.ehcache.exceptions.SerializerException;
  * @author cdennis
  */
 public interface Serializer<T> {
+
+  /**
+   * Marks a {@code Serializer} that is suitable for operation within a persistent cache.
+   */
+  @Target(TYPE) @Retention(RUNTIME) @interface Persistent {}
+  
+  /**
+   * Marks a {@code Serializer} that is suitable for operation within a transient cache.
+   */
+  @Target(TYPE) @Retention(RUNTIME) @interface Transient {}
 
   /**
    * Transforms the given instance into its serial form.

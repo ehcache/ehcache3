@@ -401,6 +401,7 @@ public class GettingStarted {
     }
   }
 
+  @Serializer.Persistent @Serializer.Transient
   public static class StringSerializer implements Serializer<String> {
     private static final Logger LOG = LoggerFactory.getLogger(StringSerializer.class);
     private static final Charset CHARSET = Charset.forName("US-ASCII");
@@ -431,6 +432,7 @@ public class GettingStarted {
     }
   }
 
+  @Serializer.Persistent @Serializer.Transient
   public static class LongSerializer implements Serializer<Long> {
     private static final Logger LOG = LoggerFactory.getLogger(LongSerializer.class);
     private static final Charset CHARSET = Charset.forName("US-ASCII");
@@ -460,6 +462,7 @@ public class GettingStarted {
     }
   }
 
+  @Serializer.Persistent @Serializer.Transient
   public static class CharSequenceSerializer implements Serializer<CharSequence> {
     private static final Logger LOG = LoggerFactory.getLogger(StringSerializer.class);
     private static final Charset CHARSET = Charset.forName("US-ASCII");

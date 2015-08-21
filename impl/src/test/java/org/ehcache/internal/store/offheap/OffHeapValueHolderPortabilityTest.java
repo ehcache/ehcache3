@@ -28,6 +28,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
+import static org.ehcache.spi.TestServiceProvider.providerContaining;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -42,7 +43,7 @@ public class OffHeapValueHolderPortabilityTest {
   @Before
   public void setup() {
     SerializationProvider provider = new DefaultSerializationProvider(null);
-    provider.start(null);
+    provider.start(providerContaining());
     valueHolderPortability = new OffHeapValueHolderPortability<String>(provider
         .createValueSerializer(String.class, getClass().getClassLoader()));
 

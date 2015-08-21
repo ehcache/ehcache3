@@ -16,12 +16,18 @@
 
 package org.ehcache.config.serializer;
 
-import org.ehcache.internal.classes.ClassInstanceProviderConfiguration;
+import static java.util.Collections.unmodifiableMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
-public class DefaultSerializationProviderConfiguration extends ClassInstanceProviderConfiguration<Serializer<?>> implements ServiceCreationConfiguration<SerializationProvider> {
+public class DefaultSerializationProviderConfiguration implements ServiceCreationConfiguration<SerializationProvider> {
+
+  private final Map<String, Class<? extends Serializer<?>>> transientSerializers = new LinkedHashMap<String, Class<? extends Serializer<?>>>();
+  private final Map<String, Class<? extends Serializer<?>>> persistentSerializers = new LinkedHashMap<String, Class<? extends Serializer<?>>>();
 
   @Override
   public Class<SerializationProvider> getServiceType() {
@@ -36,10 +42,45 @@ public class DefaultSerializationProviderConfiguration extends ClassInstanceProv
       throw new NullPointerException("Serializer class cannot be null");
     }
     String alias = serializableClass.getName();
-    if (getDefaults().containsKey(alias)) {
-      throw new IllegalArgumentException("Duplicate serializer for class : " + alias);
+    
+    if (serializerClass.isAnnotationPresent(Serializer.Transient.class)) {
+      if (serializerClass.isAnnotationPresent(Serializer.Persistent.class)) {
+        if (transientSerializers.containsKey(alias)) {
+          if (persistentSerializers.containsKey(alias)) {
+            throw new IllegalArgumentException("Duplicate transient & persistent serializer for class : " + alias);
+          } else {
+            persistentSerializers.put(alias, serializerClass);
+          }
+        } else if (persistentSerializers.containsKey(alias)) {
+          transientSerializers.put(alias, serializerClass);
+        } else {
+          persistentSerializers.put(alias, serializerClass);
+          transientSerializers.put(alias, serializerClass);
+        }
+      } else {
+        if (transientSerializers.containsKey(alias)) {
+            throw new IllegalArgumentException("Duplicate transient serializer for class : " + alias);
+        } else {
+          transientSerializers.put(alias, serializerClass);
+        }
+      }
+    } else if (serializerClass.isAnnotationPresent(Serializer.Persistent.class)) {
+      if (persistentSerializers.containsKey(alias)) {
+          throw new IllegalArgumentException("Duplicate persistent serializer for class : " + alias);
+      } else {
+        persistentSerializers.put(alias, serializerClass);
+      }
+    } else {
+      throw new IllegalArgumentException("Serializer class '" + serializerClass + "' does not identify as persistent or transient.");
     }
-    getDefaults().put(alias, serializerClass);
     return this;
+  }
+
+  public Map<String, Class<? extends Serializer<?>>> getTransientSerializers() {
+    return unmodifiableMap(transientSerializers);
+  }
+
+  public Map<String, Class<? extends Serializer<?>>> getPersistentSerializers() {
+    return unmodifiableMap(persistentSerializers);
   }
 }

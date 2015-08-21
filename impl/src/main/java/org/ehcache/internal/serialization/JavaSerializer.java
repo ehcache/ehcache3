@@ -25,10 +25,8 @@ import java.lang.reflect.Proxy;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.ehcache.exceptions.SerializerException;
 
+import org.ehcache.exceptions.SerializerException;
 import org.ehcache.internal.util.ByteBufferInputStream;
 import org.ehcache.spi.serialization.Serializer;
 
@@ -36,6 +34,7 @@ import org.ehcache.spi.serialization.Serializer;
  * 
  * @author cdennis
  */
+@Serializer.Transient @Serializer.Persistent
 public class JavaSerializer<T> implements Serializer<T> {
 
   private final ClassLoader classLoader;

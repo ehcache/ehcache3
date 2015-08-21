@@ -19,88 +19,215 @@ package org.ehcache.spi.serialization;
 import org.ehcache.config.SerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.internal.classes.ClassInstanceProvider;
+import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.FileBasedPersistenceContext;
+import org.ehcache.spi.service.LocalPersistenceService;
+import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
+
+import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * @author Ludovic Orban
  */
-public class DefaultSerializationProvider extends ClassInstanceProvider<Serializer<?>> implements SerializationProvider {
+public class DefaultSerializationProvider implements SerializationProvider {
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultSerializationProvider.class);
 
+  private final TransientProvider transientProvider;
+  private final PersistentProvider persistentProvider;
+  
   public DefaultSerializationProvider(DefaultSerializationProviderConfiguration configuration) {
-    super(configuration, (Class) DefaultSerializerConfiguration.class);
+    if (configuration != null) {
+      transientProvider = new TransientProvider(configuration.getTransientSerializers());
+      persistentProvider = new PersistentProvider(configuration.getPersistentSerializers());
+    } else {
+      transientProvider = new TransientProvider(Collections.<String, Class<? extends Serializer<?>>>emptyMap());
+      persistentProvider = new PersistentProvider(Collections.<String, Class<? extends Serializer<?>>>emptyMap());
+    }
   }
 
   @Override
   public <T> Serializer<T> createKeySerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) {
-    DefaultSerializerConfiguration<T> conf = find(SerializerConfiguration.Type.KEY, configs);
-    return createSerializer(clazz, classLoader, conf);
+    if (findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) configs) == null) {
+      return transientProvider.createKeySerializer(clazz, classLoader, configs);
+    } else {
+      return persistentProvider.createKeySerializer(clazz, classLoader, configs);
+    }
   }
 
   @Override
   public <T> Serializer<T> createValueSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) {
-    DefaultSerializerConfiguration<T> conf = find(SerializerConfiguration.Type.VALUE, configs);
-    return createSerializer(clazz, classLoader, conf);
-  }
-
-  private <T> Serializer<T> createSerializer(Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config) {
-    String alias = (config != null ? null : clazz.getName());
-    Serializer<T> serializer = (Serializer<T>) newInstance(alias, config, new ConstructorArgument<ClassLoader>(ClassLoader.class, classLoader));
-    if (serializer == null) {
-      throw new IllegalArgumentException("No serializer found for type '" + alias + "'");
+    if (findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) configs) == null) {
+      return transientProvider.createValueSerializer(clazz, classLoader, configs);
+    } else {
+      return persistentProvider.createValueSerializer(clazz, classLoader, configs);
     }
-    LOG.info("Serializer for <{}> : {}", clazz.getName(), serializer);
-    return serializer;
-  }
-
-  @Override
-  protected Class<? extends Serializer<?>> getPreconfigured(String alias, ConstructorArgument<?>... ctorArgs) {
-    Class<? extends Serializer<?>> direct = preconfiguredLoaders.get(alias);
-    if (direct != null) {
-      return direct;
-    }
-    ClassLoader classLoader = (ClassLoader) ctorArgs[0].getVal();
-    Class<?> targetSerializedClass;
-    try {
-      targetSerializedClass = Class.forName(alias, true, classLoader);
-    } catch (ClassNotFoundException cnfe) {
-      throw new IllegalArgumentException("Configured type class '" + alias + "' not found", cnfe);
-    }
-    for (Map.Entry<String, Class<? extends Serializer<?>>> entry : preconfiguredLoaders.entrySet()) {
-      try {
-        Class<?> configuredSerializedClass = Class.forName(entry.getKey(), true, classLoader);
-        if (configuredSerializedClass.isAssignableFrom(targetSerializedClass)) {
-          return entry.getValue();
-        }
-      } catch (ClassNotFoundException cnfe) {
-        throw new IllegalArgumentException("Configured type class '" + entry.getKey() + "' for serializer '" + entry.getValue() + "' not found", cnfe);
-      }
-    }
-    return null;
   }
 
   @Override
   public void start(ServiceProvider serviceProvider) {
-    super.start(serviceProvider);
-    addDefaultSerializer();
+    transientProvider.start(serviceProvider);
+    persistentProvider.start(serviceProvider);
   }
 
-  protected void addDefaultSerializer() {
-    // add java.io.Serializable at the end of the map if it wasn't already there
-    if (!preconfiguredLoaders.containsKey(Serializable.class.getName())) {
-      preconfiguredLoaders.put(Serializable.class.getName(), (Class) JavaSerializer.class);
+  @Override
+  public void stop() {
+    transientProvider.stop();
+    persistentProvider.stop();
+  }
+
+  static class TransientProvider extends AbstractProvider {
+
+    public TransientProvider(Map<String, Class<? extends Serializer<?>>> serializers) {
+      super(serializers);
     }
+
+    @Override
+    protected <T> Serializer<T> createSerializer(String suffix, Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config, ServiceConfiguration<?>... configs) {
+      String alias = (config != null ? null : clazz.getName());
+      try {
+        Class<? extends Serializer<T>> klazz = getClassFor(alias, config, classLoader);
+        return constructSerializer(clazz, klazz.getConstructor(ClassLoader.class), classLoader);
+      } catch (NoSuchMethodException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    @Override
+    public void start(ServiceProvider serviceProvider) {
+      if (!serializers.containsKey(Serializable.class.getName())) {
+        serializers.put(Serializable.class.getName(), (Class) JavaSerializer.class);
+      }
+    }
+  }
+
+  static class PersistentProvider extends AbstractProvider {
+
+    private volatile LocalPersistenceService persistence;
+    
+    private PersistentProvider(Map<String, Class<? extends Serializer<?>>> serializers) {
+      super(serializers);
+    }
+
+    @Override
+    protected <T> Serializer<T> createSerializer(String suffix, Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config, ServiceConfiguration<?>... configs) {
+      String alias = (config != null ? null : clazz.getName());
+      try {
+        Class<? extends Serializer<T>> klazz = getClassFor(alias, config, classLoader);
+        try {
+          Constructor<? extends Serializer<T>> constructor = klazz.getConstructor(ClassLoader.class, FileBasedPersistenceContext.class);
+          PersistenceSpaceIdentifier space = findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) configs);
+          FileBasedPersistenceContext context = persistence.createPersistenceContextWithin(space, DefaultSerializationProvider.class.getSimpleName() + suffix);
+          return constructSerializer(clazz, constructor, classLoader, context);
+        } catch (NoSuchMethodException e) {
+          Constructor<? extends Serializer<T>> constructor = klazz.getConstructor(ClassLoader.class);
+          return constructSerializer(clazz, constructor, classLoader);
+        } catch (CachePersistenceException e) {
+          throw new RuntimeException(e);
+        }
+      } catch (NoSuchMethodException e) {
+        throw new RuntimeException(e);
+      }
+    }
+    
+    @Override
+    public void start(ServiceProvider serviceProvider) {
+      persistence = serviceProvider.getService(LocalPersistenceService.class);
+      if (!serializers.containsKey(Serializable.class.getName())) {
+        serializers.put(Serializable.class.getName(), (Class) JavaSerializer.class);
+      }
+    }
+  }
+
+  static abstract class AbstractProvider implements SerializationProvider  {
+
+    protected final Map<String, Class<? extends Serializer<?>>> serializers;
+
+    private AbstractProvider(Map<String, Class<? extends Serializer<?>>> serializers) {
+      this.serializers = new LinkedHashMap<String, Class<? extends Serializer<?>>>(serializers);
+    }
+
+    @Override
+    public <T> Serializer<T> createKeySerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) {
+      DefaultSerializerConfiguration<T> conf = find(SerializerConfiguration.Type.KEY, configs);
+      return createSerializer("-Key", clazz, classLoader, conf, configs);
+    }
+
+    @Override
+    public <T> Serializer<T> createValueSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) {
+      DefaultSerializerConfiguration<T> conf = find(SerializerConfiguration.Type.VALUE, configs);
+      return createSerializer("-Value", clazz, classLoader, conf, configs);
+    }
+
+    protected abstract <T> Serializer<T> createSerializer(String suffix, Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config, ServiceConfiguration<?>... configs);
+
+    protected <T> Class<? extends Serializer<T>> getClassFor(String alias, DefaultSerializerConfiguration<T> config, ClassLoader classLoader) {
+      if (config != null) {
+        Class<? extends Serializer<T>> configured = config.getClazz();
+        if (configured != null) {
+          return configured;
+        }
+      }
+      
+      Class<? extends Serializer<T>> direct = (Class<? extends Serializer<T>>) serializers.get(alias);
+      if (direct != null) {
+        return direct;
+      }
+      Class<?> targetSerializedClass;
+      try {
+        targetSerializedClass = Class.forName(alias, true, classLoader);
+      } catch (ClassNotFoundException cnfe) {
+        throw new IllegalArgumentException("Configured type class '" + alias + "' not found", cnfe);
+      }
+      for (Map.Entry<String, Class<? extends Serializer<?>>> entry : serializers.entrySet()) {
+        try {
+          Class<?> configuredSerializedClass = Class.forName(entry.getKey(), true, classLoader);
+          if (configuredSerializedClass.isAssignableFrom(targetSerializedClass)) {
+            return (Class<? extends Serializer<T>>) entry.getValue();
+          }
+        } catch (ClassNotFoundException cnfe) {
+          throw new IllegalArgumentException("Configured type class '" + entry.getKey() + "' for serializer '" + entry.getValue() + "' not found", cnfe);
+        }
+      }
+      throw new IllegalArgumentException("No serializer found for type '" + alias + "'");
+    }
+
+    protected <T> Serializer<T> constructSerializer(Class<T> clazz, Constructor<? extends Serializer<T>> constructor, Object ... args) {
+      try {
+        Serializer<T> serializer = constructor.newInstance(args);
+        LOG.info("Serializer for <{}> : {}", clazz.getName(), serializer);
+        return serializer;
+      } catch (InstantiationException e) {
+        throw new RuntimeException(e);
+      } catch (IllegalAccessException e) {
+        throw new RuntimeException(e);
+      } catch (IllegalArgumentException e) {
+        throw new AssertionError(e);
+      } catch (InvocationTargetException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    @Override
+    public void stop() {
+      serializers.clear();
+    }
+
+    
   }
 
   @SuppressWarnings("unchecked")

@@ -22,6 +22,7 @@ import org.ehcache.exceptions.SerializerException;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
 
+@Serializer.Transient
 public class TestSerializer<T> implements Serializer<T> {
   
   private final Serializer<T> serializer;

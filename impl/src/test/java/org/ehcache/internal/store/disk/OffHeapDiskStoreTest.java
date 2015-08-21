@@ -33,6 +33,7 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,8 +41,7 @@ import org.junit.Test;
 import java.io.IOException;
 
 import static org.ehcache.expiry.Expirations.noExpiration;
-import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
-import org.ehcache.spi.service.ServiceConfiguration;
+import static org.ehcache.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
@@ -73,7 +73,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   @Override
   protected OffHeapDiskStore<String, String> createAndInitStore(final TimeSource timeSource, final Expiry<? super String, ? super String> expiry) {
     SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(null);
+    serializationProvider.start(providerContaining(persistenceService));
     ClassLoader classLoader = getClass().getClassLoader();
     Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
     Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
@@ -86,7 +86,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   @Override
   protected OffHeapDiskStore<String, byte[]> createAndInitStore(TimeSource timeSource, Expiry<? super String, ? super byte[]> expiry, EvictionVeto<? super String, ? super byte[]> evictionVeto) {
     SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(null);
+    serializationProvider.start(providerContaining(persistenceService));
     ClassLoader classLoader = getClass().getClassLoader();
     Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
     Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);

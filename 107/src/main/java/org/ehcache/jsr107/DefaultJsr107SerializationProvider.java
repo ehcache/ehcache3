@@ -15,6 +15,7 @@
  */
 package org.ehcache.jsr107;
 
+import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 
@@ -24,15 +25,7 @@ import org.ehcache.spi.serialization.DefaultSerializationProvider;
 public class DefaultJsr107SerializationProvider extends DefaultSerializationProvider {
 
   public DefaultJsr107SerializationProvider() {
-    super(null);
+    super(new DefaultSerializationProviderConfiguration()
+            .addSerializerFor(Object.class, (Class) JavaSerializer.class));
   }
-
-  @Override
-  protected void addDefaultSerializer() {
-    // add java.lang.Object at the end of the map if it wasn't already there
-    if (!preconfiguredLoaders.containsKey(Object.class.getName())) {
-      preconfiguredLoaders.put(Object.class.getName(), (Class) JavaSerializer.class);
-    }
-  }
-
 }

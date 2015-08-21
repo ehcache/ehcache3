@@ -21,6 +21,7 @@ import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.TimeSource;
+import static org.ehcache.spi.TestServiceProvider.providerContaining;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -30,7 +31,7 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
   @Override
   protected OffHeapStore<String, String> createAndInitStore(TimeSource timeSource, Expiry<? super String, ? super String> expiry) {
     SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(null);
+    serializationProvider.start(providerContaining());
     ClassLoader classLoader = getClass().getClassLoader();
     Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
     Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
@@ -43,7 +44,7 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
   @Override
   protected OffHeapStore<String, byte[]> createAndInitStore(TimeSource timeSource, Expiry<? super String, ? super byte[]> expiry, EvictionVeto<? super String, ? super byte[]> evictionVeto) {
     SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(null);
+    serializationProvider.start(providerContaining());
     ClassLoader classLoader = getClass().getClassLoader();
     Serializer<String> keySerializer = serializationProvider.createValueSerializer(String.class, classLoader);
     Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);

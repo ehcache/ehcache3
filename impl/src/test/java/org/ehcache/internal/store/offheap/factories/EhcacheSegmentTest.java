@@ -35,6 +35,7 @@ import org.terracotta.offheapstore.util.Factory;
 import java.util.Map;
 
 import static org.ehcache.internal.store.offheap.OffHeapStoreUtils.getBufferSource;
+import static org.ehcache.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -59,7 +60,7 @@ public class EhcacheSegmentTest {
   private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(Predicate<Map.Entry<String, String>> evictionPredicate, EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
     HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
     SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(null);
+    serializationProvider.start(providerContaining());
     PageSource pageSource = new UpfrontAllocatingPageSource(getBufferSource(), configuration.getMaximumSize(), configuration.getMaximumChunkSize(), configuration.getMinimumChunkSize());
     Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, EhcacheSegmentTest.class.getClassLoader());
     Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, EhcacheSegmentTest.class.getClassLoader());

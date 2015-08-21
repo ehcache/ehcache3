@@ -408,11 +408,11 @@ public class XmlConfigurationTest {
     assertThat(configuration, instanceOf(DefaultSerializationProviderConfiguration.class));
 
     DefaultSerializationProviderConfiguration factoryConfiguration = (DefaultSerializationProviderConfiguration) configuration;
-    assertThat(factoryConfiguration.getDefaults().size(), is(4));
-    assertThat(factoryConfiguration.getDefaults().get("java.lang.CharSequence"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer.class));
-    assertThat(factoryConfiguration.getDefaults().get("java.lang.Number"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer2.class));
-    assertThat(factoryConfiguration.getDefaults().get("java.lang.Long"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer3.class));
-    assertThat(factoryConfiguration.getDefaults().get("java.lang.Integer"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer4.class));
+    assertThat(factoryConfiguration.getTransientSerializers().size(), is(4));
+    assertThat(factoryConfiguration.getTransientSerializers().get("java.lang.CharSequence"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer.class));
+    assertThat(factoryConfiguration.getTransientSerializers().get("java.lang.Number"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer2.class));
+    assertThat(factoryConfiguration.getTransientSerializers().get("java.lang.Long"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer3.class));
+    assertThat(factoryConfiguration.getTransientSerializers().get("java.lang.Integer"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer4.class));
 
 
     List<ServiceConfiguration<?>> orderedServiceConfigurations = new ArrayList<ServiceConfiguration<?>>(xmlConfig.getCacheConfigurations().get("baz").getServiceConfigurations());
