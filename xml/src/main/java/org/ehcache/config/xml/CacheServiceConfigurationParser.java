@@ -26,13 +26,13 @@ import java.net.URI;
 import javax.xml.transform.Source;
 
 /**
- * CacheXmlConfigurationParser
+ * CacheServiceConfigurationParser
  */
-public interface CacheXmlConfigurationParser<T extends Service> {
+public interface CacheServiceConfigurationParser<T extends Service> {
 
   Source getXmlSchema() throws IOException;
 
   URI getNamespace();
 
-  ServiceConfiguration<T> parse(Element fragment);
+  ServiceConfiguration<T> parseServiceConfiguration(Element fragment);
 }

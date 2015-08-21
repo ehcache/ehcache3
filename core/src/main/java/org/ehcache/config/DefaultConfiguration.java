@@ -51,7 +51,7 @@ public final class DefaultConfiguration implements Configuration {
   }
 
   @Override
-  public Collection<ServiceCreationConfiguration<?>> getServiceConfigurations() {
+  public Collection<ServiceCreationConfiguration<?>> getServiceCreationConfigurations() {
     return services;
   }
   

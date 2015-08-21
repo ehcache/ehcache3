@@ -28,7 +28,7 @@ public interface Configuration {
 
   Map<String, CacheConfiguration<?, ?>> getCacheConfigurations();
 
-  Collection<ServiceCreationConfiguration<?>> getServiceConfigurations();
+  Collection<ServiceCreationConfiguration<?>> getServiceCreationConfigurations();
 
   ClassLoader getClassLoader();
 }

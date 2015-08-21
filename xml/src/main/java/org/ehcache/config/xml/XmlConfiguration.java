@@ -481,7 +481,7 @@ public class XmlConfiguration implements Configuration {
   }
 
   @Override
-  public Collection<ServiceCreationConfiguration<?>> getServiceConfigurations() {
+  public Collection<ServiceCreationConfiguration<?>> getServiceCreationConfigurations() {
     return serviceConfigurations;
   }
 

@@ -25,7 +25,7 @@ package org.ehcache.spi.service;
 public interface ServiceCreationConfiguration<T extends Service> {
 
   /**
-   * Indicates which service this configuration works with.
+   * Indicates which service consumes this configuration at creation.
    *
    * @return the service type
    */

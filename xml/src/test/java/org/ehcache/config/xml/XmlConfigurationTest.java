@@ -145,7 +145,7 @@ public class XmlConfigurationTest {
   public void testOneServiceConfig() throws Exception {
     Configuration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-service.xml"));
 
-    assertThat(config.getServiceConfigurations(), IsCollectionContaining.<ServiceCreationConfiguration<?>>hasItem(instanceOf(BarConfiguration.class)));
+    assertThat(config.getServiceCreationConfigurations(), IsCollectionContaining.<ServiceCreationConfiguration<?>>hasItem(instanceOf(BarConfiguration.class)));
     assertThat(config.getCacheConfigurations().keySet(), hasSize(0));
   }
 
@@ -153,7 +153,7 @@ public class XmlConfigurationTest {
   public void testOneCacheConfig() throws Exception {
     Configuration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
 
-    assertThat(config.getServiceConfigurations(), hasSize(0));
+    assertThat(config.getServiceCreationConfigurations(), hasSize(0));
     assertThat(config.getCacheConfigurations().keySet(), hasItem("bar"));
     assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(FooConfiguration.class)));
   }
@@ -164,7 +164,7 @@ public class XmlConfigurationTest {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/template-cache.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
 
-    assertThat(xmlConfig.getServiceConfigurations(), hasSize(0));
+    assertThat(xmlConfig.getServiceCreationConfigurations(), hasSize(0));
     assertThat(xmlConfig.getCacheConfigurations().keySet(), hasItem("bar"));
     assertThat(xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(FooConfiguration.class)));
     assertThat(xmlConfig.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class) Number.class));
@@ -400,9 +400,9 @@ public class XmlConfigurationTest {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/default-serializer.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
 
-    assertThat(xmlConfig.getServiceConfigurations().size(), is(1));
+    assertThat(xmlConfig.getServiceCreationConfigurations().size(), is(1));
 
-    ServiceCreationConfiguration configuration = xmlConfig.getServiceConfigurations().iterator().next();
+    ServiceCreationConfiguration configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
 
     assertThat(configuration, instanceOf(DefaultSerializationProviderConfiguration.class));
 
@@ -437,7 +437,7 @@ public class XmlConfigurationTest {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/persistence-config.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
 
-    ServiceCreationConfiguration<?> serviceConfig = xmlConfig.getServiceConfigurations().iterator().next();
+    ServiceCreationConfiguration<?> serviceConfig = xmlConfig.getServiceCreationConfigurations().iterator().next();
     assertThat(serviceConfig, instanceOf(PersistenceConfiguration.class));
 
     PersistenceConfiguration persistenceConfiguration = (PersistenceConfiguration)serviceConfig;

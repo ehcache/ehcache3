@@ -30,7 +30,7 @@ import javax.xml.transform.stream.StreamSource;
 /**
  * BarParser
  */
-public class BarParser implements XmlConfigurationParser<Service> {
+public class BarParser implements CacheManagerServiceConfigurationParser<Service> {
 
   private static final URI NAMESPACE = URI.create("http://www.example.com/bar");
   private static final URL XML_SCHEMA = FooParser.class.getResource("/configs/bar.xsd");
@@ -46,7 +46,7 @@ public class BarParser implements XmlConfigurationParser<Service> {
   }
 
   @Override
-  public ServiceCreationConfiguration<Service> parse(Element fragment) {
+  public ServiceCreationConfiguration<Service> parseServiceCreationConfiguration(Element fragment) {
     return new BarConfiguration();
   }
 }

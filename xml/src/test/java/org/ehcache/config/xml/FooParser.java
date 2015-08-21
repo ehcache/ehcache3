@@ -31,7 +31,7 @@ import javax.xml.transform.stream.StreamSource;
  *
  * @author cdennis
  */
-public class FooParser implements CacheXmlConfigurationParser<Service> {
+public class FooParser implements CacheServiceConfigurationParser<Service> {
 
   private static final URI NAMESPACE = URI.create("http://www.example.com/foo");
   private static final URL XML_SCHEMA = FooParser.class.getResource("/configs/foo.xsd");
@@ -42,7 +42,7 @@ public class FooParser implements CacheXmlConfigurationParser<Service> {
   }
 
   @Override
-  public ServiceConfiguration<Service> parse(Element fragment) {
+  public ServiceConfiguration<Service> parseServiceConfiguration(Element fragment) {
     return new FooConfiguration();
   }
 

@@ -74,17 +74,17 @@ class ConfigurationParser {
 
   private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 
-  private final Map<URI, XmlConfigurationParser<?>> xmlParsers = new HashMap<URI, XmlConfigurationParser<?>>();
-  private final Map<URI, CacheXmlConfigurationParser<?>> cacheXmlParsers = new HashMap<URI, CacheXmlConfigurationParser<?>>();
+  private final Map<URI, CacheManagerServiceConfigurationParser<?>> xmlParsers = new HashMap<URI, CacheManagerServiceConfigurationParser<?>>();
+  private final Map<URI, CacheServiceConfigurationParser<?>> cacheXmlParsers = new HashMap<URI, CacheServiceConfigurationParser<?>>();
   private final ConfigType config;
 
   public ConfigurationParser(String xml, URL... sources) throws IOException, SAXException {
     Collection<Source> schemaSources = new ArrayList<Source>();
-    for (XmlConfigurationParser<?> parser : ClassLoading.libraryServiceLoaderFor(XmlConfigurationParser.class)) {
+    for (CacheManagerServiceConfigurationParser<?> parser : ClassLoading.libraryServiceLoaderFor(CacheManagerServiceConfigurationParser.class)) {
       schemaSources.add(parser.getXmlSchema());
       xmlParsers.put(parser.getNamespace(), parser);
     }
-    for (CacheXmlConfigurationParser<?> parser : ClassLoading.libraryServiceLoaderFor(CacheXmlConfigurationParser.class)) {
+    for (CacheServiceConfigurationParser<?> parser : ClassLoading.libraryServiceLoaderFor(CacheServiceConfigurationParser.class)) {
       schemaSources.add(parser.getXmlSchema());
       cacheXmlParsers.put(parser.getNamespace(), parser);
     }
@@ -545,20 +545,20 @@ class ConfigurationParser {
 
   ServiceCreationConfiguration<?> parseExtension(final Element element) {
     URI namespace = URI.create(element.getNamespaceURI());
-    final XmlConfigurationParser<?> xmlConfigurationParser = xmlParsers.get(namespace);
-    if(xmlConfigurationParser == null) {
+    final CacheManagerServiceConfigurationParser<?> cacheManagerServiceConfigurationParser = xmlParsers.get(namespace);
+    if(cacheManagerServiceConfigurationParser == null) {
       throw new IllegalArgumentException("Can't find parser for namespace: " + namespace);
     }
-    return xmlConfigurationParser.parse(element);
+    return cacheManagerServiceConfigurationParser.parseServiceCreationConfiguration(element);
   }
 
   ServiceConfiguration<?> parseCacheExtension(final Element element) {
     URI namespace = URI.create(element.getNamespaceURI());
-    final CacheXmlConfigurationParser<?> xmlConfigurationParser = cacheXmlParsers.get(namespace);
+    final CacheServiceConfigurationParser<?> xmlConfigurationParser = cacheXmlParsers.get(namespace);
     if(xmlConfigurationParser == null) {
       throw new IllegalArgumentException("Can't find parser for namespace: " + namespace);
     }
-    return xmlConfigurationParser.parse(element);
+    return xmlConfigurationParser.parseServiceConfiguration(element);
   }
 
   static class FatalErrorHandler implements ErrorHandler {

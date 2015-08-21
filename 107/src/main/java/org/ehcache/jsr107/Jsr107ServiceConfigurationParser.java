@@ -17,7 +17,7 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.config.Jsr107Configuration;
-import org.ehcache.config.xml.XmlConfigurationParser;
+import org.ehcache.config.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -34,10 +34,10 @@ import javax.xml.transform.stream.StreamSource;
 /**
  * @author Alex Snaps
  */
-public class ServiceConfigurationParser implements XmlConfigurationParser<Jsr107Service> {
+public class Jsr107ServiceConfigurationParser implements CacheManagerServiceConfigurationParser<Jsr107Service> {
 
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/jsr107");
-  private static final URL XML_SCHEMA = ServiceConfigurationParser.class.getResource("/ehcache-107ext.xsd");
+  private static final URL XML_SCHEMA = Jsr107ServiceConfigurationParser.class.getResource("/ehcache-107ext.xsd");
 
   @Override
   public Source getXmlSchema() throws IOException {
@@ -50,7 +50,7 @@ public class ServiceConfigurationParser implements XmlConfigurationParser<Jsr107
   }
 
   @Override
-  public ServiceCreationConfiguration<Jsr107Service> parse(final Element fragment) {
+  public ServiceCreationConfiguration<Jsr107Service> parseServiceCreationConfiguration(final Element fragment) {
     boolean jsr107CompliantAtomics = true;
     if (fragment.hasAttribute("jsr107CompliantAtomics")) {
       jsr107CompliantAtomics = Boolean.parseBoolean(fragment.getAttribute("jsr107CompliantAtomics"));

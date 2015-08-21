@@ -401,7 +401,7 @@ public class EhcacheManager implements PersistentCacheManager {
     final StatusTransitioner.Transition st = statusTransitioner.init();
 
     try {
-      for (ServiceCreationConfiguration<? extends Service> serviceConfig : configuration.getServiceConfigurations()) {
+      for (ServiceCreationConfiguration<? extends Service> serviceConfig : configuration.getServiceCreationConfigurations()) {
         Service service = serviceLocator.getOrCreateServiceFor(serviceConfig);
         if (service == null) {
           throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
