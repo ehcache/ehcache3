@@ -19,11 +19,8 @@ package org.ehcache.config.persistence;
 import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.PersistentUserManagedCache;
 import org.ehcache.config.CacheManagerConfiguration;
-import org.ehcache.config.UserManagedCacheConfiguration;
 import org.ehcache.spi.service.LocalPersistenceService;
-import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.io.File;
 

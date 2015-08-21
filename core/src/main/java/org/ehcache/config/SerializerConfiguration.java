@@ -16,7 +16,6 @@
 package org.ehcache.config;
 
 import org.ehcache.spi.serialization.SerializationProvider;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**

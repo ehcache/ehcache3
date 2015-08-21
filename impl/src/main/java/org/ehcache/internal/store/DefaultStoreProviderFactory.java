@@ -16,7 +16,7 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
 /**
@@ -25,7 +25,7 @@ import org.ehcache.spi.service.ServiceFactory;
 public class DefaultStoreProviderFactory implements ServiceFactory<DefaultStoreProvider> {
 
   @Override
-  public DefaultStoreProvider create(ServiceConfiguration<DefaultStoreProvider> configuration) {
+  public DefaultStoreProvider create(ServiceCreationConfiguration<DefaultStoreProvider> configuration) {
     return new DefaultStoreProvider();
   }
 

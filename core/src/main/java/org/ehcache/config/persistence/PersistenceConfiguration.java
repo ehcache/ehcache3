@@ -17,13 +17,13 @@
 package org.ehcache.config.persistence;
 
 import org.ehcache.spi.service.LocalPersistenceService;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.io.File;
 
 /**
  * PersistenceConfiguration
  */
-public interface PersistenceConfiguration extends ServiceConfiguration<LocalPersistenceService> {
+public interface PersistenceConfiguration extends ServiceCreationConfiguration<LocalPersistenceService> {
   File getRootDirectory();
 }

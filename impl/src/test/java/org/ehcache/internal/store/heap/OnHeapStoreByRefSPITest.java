@@ -28,7 +28,6 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
 import org.ehcache.spi.ServiceLocator;
-import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;

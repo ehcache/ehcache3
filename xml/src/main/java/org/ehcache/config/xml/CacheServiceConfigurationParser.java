@@ -14,14 +14,25 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.service;
+package org.ehcache.config.xml;
+
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.w3c.dom.Element;
+
+import java.io.IOException;
+import java.net.URI;
+
+import javax.xml.transform.Source;
 
 /**
- * @author Alex Snaps
+ * CacheServiceConfigurationParser
  */
-public interface ServiceFactory<T extends Service> {
+public interface CacheServiceConfigurationParser<T extends Service> {
 
-  T create(ServiceCreationConfiguration<T> configuration);
-  
-  Class<T> getServiceType();
+  Source getXmlSchema() throws IOException;
+
+  URI getNamespace();
+
+  ServiceConfiguration<T> parseServiceConfiguration(Element fragment);
 }

@@ -21,12 +21,9 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Set;
 
-import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 
-import static java.util.Collections.emptySet;
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 /**

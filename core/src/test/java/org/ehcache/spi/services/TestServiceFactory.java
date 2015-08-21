@@ -16,7 +16,7 @@
 
 package org.ehcache.spi.services;
 
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
 /**
@@ -24,7 +24,7 @@ import org.ehcache.spi.service.ServiceFactory;
  */
 public class TestServiceFactory implements ServiceFactory<TestService> {
   @Override
-  public TestService create(ServiceConfiguration<TestService> configuration) {
+  public TestService create(ServiceCreationConfiguration<TestService> configuration) {
     return new DefaultTestService();
   }
 

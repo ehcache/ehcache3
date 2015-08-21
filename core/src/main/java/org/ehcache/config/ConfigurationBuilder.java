@@ -16,7 +16,7 @@
 
 package org.ehcache.config;
 
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,7 +34,7 @@ import static java.util.Collections.unmodifiableMap;
 public class ConfigurationBuilder {
 
   private final Map<String, CacheConfiguration<?, ?>> caches;
-  private final List<ServiceConfiguration<?>> serviceConfigurations;
+  private final List<ServiceCreationConfiguration<?>> serviceConfigurations;
   private final ClassLoader classLoader;
 
   public static ConfigurationBuilder newConfigurationBuilder() {
@@ -53,7 +53,7 @@ public class ConfigurationBuilder {
     this.classLoader = builder.classLoader;
   }
 
-  private ConfigurationBuilder(ConfigurationBuilder builder, List<ServiceConfiguration<?>> serviceConfigurations) {
+  private ConfigurationBuilder(ConfigurationBuilder builder, List<ServiceCreationConfiguration<?>> serviceConfigurations) {
     this.caches = builder.caches;
     this.serviceConfigurations = unmodifiableList(serviceConfigurations);
     this.classLoader = builder.classLoader;
@@ -66,7 +66,7 @@ public class ConfigurationBuilder {
   }
   
   public Configuration build() {
-    return new DefaultConfiguration(caches, classLoader, serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
+    return new DefaultConfiguration(caches, classLoader, serviceConfigurations.toArray(new ServiceCreationConfiguration<?>[serviceConfigurations.size()]));
   }
 
   public ConfigurationBuilder addCache(String alias, CacheConfiguration<?, ?> config) {
@@ -81,14 +81,14 @@ public class ConfigurationBuilder {
     return new ConfigurationBuilder(this, newCaches);
   }
 
-  public ConfigurationBuilder addService(ServiceConfiguration<?> serviceConfiguration) {
-    List<ServiceConfiguration<?>> newServiceConfigurations = new ArrayList<ServiceConfiguration<?>>(serviceConfigurations);
+  public ConfigurationBuilder addService(ServiceCreationConfiguration<?> serviceConfiguration) {
+    List<ServiceCreationConfiguration<?>> newServiceConfigurations = new ArrayList<ServiceCreationConfiguration<?>>(serviceConfigurations);
     newServiceConfigurations.add(serviceConfiguration);
     return new ConfigurationBuilder(this, newServiceConfigurations);
   }
 
-  public ConfigurationBuilder removeService(ServiceConfiguration<?> serviceConfiguration) {
-    List<ServiceConfiguration<?>> newServiceConfigurations = new ArrayList<ServiceConfiguration<?>>(serviceConfigurations);
+  public ConfigurationBuilder removeService(ServiceCreationConfiguration<?> serviceConfiguration) {
+    List<ServiceCreationConfiguration<?>> newServiceConfigurations = new ArrayList<ServiceCreationConfiguration<?>>(serviceConfigurations);
     newServiceConfigurations.remove(serviceConfiguration);
     return new ConfigurationBuilder(this, newServiceConfigurations);
   }

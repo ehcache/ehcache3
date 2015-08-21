@@ -17,11 +17,17 @@
 package org.ehcache.spi.service;
 
 /**
- * @author Alex Snaps
+ * Interface regrouping configuration types to be used when creating a {@link Service}.
+ *
+ * @param <T> the service type this configuration works with
+ *
  */
-public interface ServiceFactory<T extends Service> {
+public interface ServiceCreationConfiguration<T extends Service> {
 
-  T create(ServiceCreationConfiguration<T> configuration);
-  
+  /**
+   * Indicates which service consumes this configuration at creation.
+   *
+   * @return the service type
+   */
   Class<T> getServiceType();
 }

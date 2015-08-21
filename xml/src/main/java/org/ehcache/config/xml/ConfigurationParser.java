@@ -36,6 +36,7 @@ import org.ehcache.config.xml.model.ResourcesType;
 import org.ehcache.config.xml.model.ServiceType;
 import org.ehcache.config.xml.model.TimeType;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.util.ClassLoading;
 import org.w3c.dom.Element;
 import org.xml.sax.ErrorHandler;
@@ -73,14 +74,19 @@ class ConfigurationParser {
 
   private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 
-  private final Map<URI, XmlConfigurationParser<?>> xmlParsers = new HashMap<URI, XmlConfigurationParser<?>>();
+  private final Map<URI, CacheManagerServiceConfigurationParser<?>> xmlParsers = new HashMap<URI, CacheManagerServiceConfigurationParser<?>>();
+  private final Map<URI, CacheServiceConfigurationParser<?>> cacheXmlParsers = new HashMap<URI, CacheServiceConfigurationParser<?>>();
   private final ConfigType config;
 
   public ConfigurationParser(String xml, URL... sources) throws IOException, SAXException {
     Collection<Source> schemaSources = new ArrayList<Source>();
-    for (XmlConfigurationParser<?> parser : ClassLoading.libraryServiceLoaderFor(XmlConfigurationParser.class)) {
+    for (CacheManagerServiceConfigurationParser<?> parser : ClassLoading.libraryServiceLoaderFor(CacheManagerServiceConfigurationParser.class)) {
       schemaSources.add(parser.getXmlSchema());
       xmlParsers.put(parser.getNamespace(), parser);
+    }
+    for (CacheServiceConfigurationParser<?> parser : ClassLoading.libraryServiceLoaderFor(CacheServiceConfigurationParser.class)) {
+      schemaSources.add(parser.getXmlSchema());
+      cacheXmlParsers.put(parser.getNamespace(), parser);
     }
     for (URL source : sources) {
       schemaSources.add(new StreamSource(source.openStream()));
@@ -239,8 +245,8 @@ class ConfigurationParser {
             String configClass = null;
             for (BaseCacheType source : sources) {
               final CacheIntegration integration = source.getIntegration();
-              final CacheIntegration.Loaderwriter loaderWriter = integration != null ? integration.getLoaderwriter(): null;
-              if(loaderWriter != null) {
+              final CacheIntegration.Loaderwriter loaderWriter = integration != null ? integration.getLoaderwriter() : null;
+              if (loaderWriter != null) {
                 configClass = loaderWriter.getClazz();
                 break;
               }
@@ -253,9 +259,9 @@ class ConfigurationParser {
             Set<Listener> cacheListenerSet = new HashSet<Listener>();
             for (BaseCacheType source : sources) {
               final CacheIntegration integration = source.getIntegration();
-              final List<CacheIntegration.Listener> listeners = integration != null ? integration.getListener(): null;
-              if(listeners != null) {
-                for(final CacheIntegration.Listener listener : listeners) {
+              final List<CacheIntegration.Listener> listeners = integration != null ? integration.getListener() : null;
+              if (listeners != null) {
+                for (final CacheIntegration.Listener listener : listeners) {
                   cacheListenerSet.add(new Listener() {
                     @Override
                     public String className() {
@@ -290,7 +296,7 @@ class ConfigurationParser {
             Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
             for (BaseCacheType source : sources) {
               for (Object child : source.getAny()) {
-                configs.add(parseExtension((Element)child));
+                configs.add(parseCacheExtension((Element) child));
               }
             }
             return configs;
@@ -302,21 +308,26 @@ class ConfigurationParser {
             for (BaseCacheType source : sources) {
               ResourceType directHeapResource = source.getHeap();
               if (directHeapResource != null) {
-                resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, directHeapResource.getSize().longValue(), parseUnit(directHeapResource), false));
+                resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, directHeapResource.getSize()
+                    .longValue(), parseUnit(directHeapResource), false));
               } else {
                 ResourcesType resources = source.getResources();
                 if (resources != null) {
                   ResourceType heapResource = resources.getHeap();
                   if (heapResource != null) {
-                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, heapResource.getSize().longValue(), parseUnit(heapResource), false));
+                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, heapResource.getSize()
+                        .longValue(), parseUnit(heapResource), false));
                   }
                   ResourceType offheapResource = resources.getOffheap();
                   if (offheapResource != null) {
-                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.OFFHEAP, offheapResource.getSize().longValue(), parseUnit(offheapResource), false));
+                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.OFFHEAP, offheapResource
+                        .getSize()
+                        .longValue(), parseUnit(offheapResource), false));
                   }
                   PersistableResourceType diskResource = resources.getDisk();
                   if (diskResource != null) {
-                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK, diskResource.getSize().longValue(), parseUnit(diskResource), diskResource.isPersistent()));
+                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK, diskResource.getSize()
+                        .longValue(), parseUnit(diskResource), diskResource.isPersistent()));
                   }
                 }
               }
@@ -328,8 +339,8 @@ class ConfigurationParser {
           public WriteBehind writeBehind() {
             for (BaseCacheType source : sources) {
               final CacheIntegration integration = source.getIntegration();
-              final CacheIntegration.Writebehind writebehind = integration != null ? integration.getWritebehind(): null;
-              if(writebehind != null) {
+              final CacheIntegration.Writebehind writebehind = integration != null ? integration.getWritebehind() : null;
+              if (writebehind != null) {
                 return new XmlWriteBehind(writebehind);
               }
             }
@@ -478,7 +489,8 @@ class ConfigurationParser {
           public Iterable<ServiceConfiguration<?>> serviceConfigs() {
             Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
             for (Object child : cacheTemplate.getAny()) {
-              configs.add(parseExtension((Element)child));
+              configs.add((ServiceConfiguration<?>) parseExtension((Element)child));
+              configs.add(parseCacheExtension((Element) child));
             }
             return configs;
           }
@@ -531,15 +543,23 @@ class ConfigurationParser {
     }
   }
 
-  ServiceConfiguration<?> parseExtension(final Element element) {
+  ServiceCreationConfiguration<?> parseExtension(final Element element) {
     URI namespace = URI.create(element.getNamespaceURI());
-    final XmlConfigurationParser<?> xmlConfigurationParser = xmlParsers.get(namespace);
+    final CacheManagerServiceConfigurationParser<?> cacheManagerServiceConfigurationParser = xmlParsers.get(namespace);
+    if(cacheManagerServiceConfigurationParser == null) {
+      throw new IllegalArgumentException("Can't find parser for namespace: " + namespace);
+    }
+    return cacheManagerServiceConfigurationParser.parseServiceCreationConfiguration(element);
+  }
+
+  ServiceConfiguration<?> parseCacheExtension(final Element element) {
+    URI namespace = URI.create(element.getNamespaceURI());
+    final CacheServiceConfigurationParser<?> xmlConfigurationParser = cacheXmlParsers.get(namespace);
     if(xmlConfigurationParser == null) {
       throw new IllegalArgumentException("Can't find parser for namespace: " + namespace);
     }
-    return xmlConfigurationParser.parse(element);
+    return xmlConfigurationParser.parseServiceConfiguration(element);
   }
-
 
   static class FatalErrorHandler implements ErrorHandler {
 

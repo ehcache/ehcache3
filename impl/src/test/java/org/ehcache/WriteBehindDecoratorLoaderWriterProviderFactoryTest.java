@@ -20,7 +20,6 @@ import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
-import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.loaderwriter.writebehind.WriteBehindDecoratorLoaderWriterProviderFactory;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
@@ -45,26 +44,6 @@ public class WriteBehindDecoratorLoaderWriterProviderFactoryTest {
   @Rule
   public ExpectedException expectedEx = ExpectedException.none();
   
-  @Test
-  public void testAddingWriteBehindConfigurationAtManagerLevelThrows() {
-    CacheManagerBuilder<CacheManager> cacheManagerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
-    WriteBehindConfiguration writeBehindConfiguration = WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
-        .concurrencyLevel(3).batchSize(1)
-        .queueSize(10)
-        .build();
-    cacheManagerBuilder.using(writeBehindConfiguration);
-    CacheManager cacheManager = null;
-    try {
-      cacheManager = cacheManagerBuilder.build(true);
-    } catch (StateTransitionException ste) {
-      assertThat(ste.getMessage(), is("WriteBehind configuration must not be provided at CacheManager level"));
-    } finally {
-      if(cacheManager != null) {
-        cacheManager.close();
-      }
-    }
-  }
-
   @SuppressWarnings("unchecked")
   @Test
   public void testAddingWriteBehindConfigurationAtCacheLevel() {

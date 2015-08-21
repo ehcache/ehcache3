@@ -40,7 +40,7 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.util.ClassLoading;
 import org.slf4j.LoggerFactory;
@@ -65,7 +65,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
   private final Class<V> valueType;
   private String id;
   private final Set<Service> services = new HashSet<Service>();
-  private final Set<ServiceConfiguration<?>> serviceCfgs = new HashSet<ServiceConfiguration<?>>();
+  private final Set<ServiceCreationConfiguration<?>> serviceCfgs = new HashSet<ServiceCreationConfiguration<?>>();
   private Expiry<? super K, ? super V> expiry = Expirations.noExpiration();
   private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
   private EvictionVeto<? super K, ? super V> evictionVeto;
@@ -81,7 +81,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
 
   T build(ServiceLocator serviceLocator) throws IllegalStateException {
     try {
-      for (ServiceConfiguration<?> serviceConfig : serviceCfgs) {
+      for (ServiceCreationConfiguration<?> serviceConfig : serviceCfgs) {
         Service service = serviceLocator.getOrCreateServiceFor(serviceConfig);
         if (service == null) {
           throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
@@ -223,7 +223,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     return this;
   }
 
-  public UserManagedCacheBuilder<K, V, T> using(ServiceConfiguration<?> serviceConfiguration) {
+  public UserManagedCacheBuilder<K, V, T> using(ServiceCreationConfiguration<?> serviceConfiguration) {
     serviceCfgs.add(serviceConfiguration);
     return this;
   }

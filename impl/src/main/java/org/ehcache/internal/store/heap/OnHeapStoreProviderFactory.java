@@ -16,7 +16,7 @@
 
 package org.ehcache.internal.store.heap;
 
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
 /**
@@ -25,7 +25,7 @@ import org.ehcache.spi.service.ServiceFactory;
 public class OnHeapStoreProviderFactory implements ServiceFactory<OnHeapStore.Provider> {
 
   @Override
-  public OnHeapStore.Provider create(ServiceConfiguration<OnHeapStore.Provider> configuration) {
+  public OnHeapStore.Provider create(ServiceCreationConfiguration<OnHeapStore.Provider> configuration) {
     return new OnHeapStore.Provider();
   }
 

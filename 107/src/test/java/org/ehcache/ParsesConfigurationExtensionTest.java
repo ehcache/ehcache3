@@ -55,7 +55,7 @@ public class ParsesConfigurationExtensionTest {
   @Test
   public void testConfigParse() throws ClassNotFoundException, SAXException, InstantiationException, IllegalAccessException, IOException {
     final XmlConfiguration configuration = new XmlConfiguration(this.getClass().getResource("/ehcache-107.xml"));
-    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, configuration.getServiceConfigurations().toArray()));
+    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, configuration.getServiceCreationConfigurations().toArray()));
     final ServiceLocator serviceLocator = new ServiceLocator(jsr107Service);
     final CacheManager cacheManager = new EhcacheManager(configuration, serviceLocator);
     cacheManager.init();
@@ -68,7 +68,7 @@ public class ParsesConfigurationExtensionTest {
   @Test
   public void testXmlExample() throws ClassNotFoundException, SAXException, InstantiationException, IOException, IllegalAccessException {
     XmlConfiguration config = new XmlConfiguration(ParsesConfigurationExtensionTest.class.getResource("/ehcache-example.xml"));
-    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceConfigurations().toArray()));
+    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceCreationConfigurations().toArray()));
     final ServiceLocator serviceLocator = new ServiceLocator(jsr107Service);
     final CacheManager cacheManager = new EhcacheManager(config, serviceLocator);
     cacheManager.init();

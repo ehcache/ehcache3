@@ -16,7 +16,7 @@
 
 package org.ehcache.internal.executor;
 
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ThreadPoolsService;
 import org.ehcache.spi.service.ThreadPoolsServiceFactory;
 
@@ -26,7 +26,7 @@ import org.ehcache.spi.service.ThreadPoolsServiceFactory;
 public class DefaultThreadPoolsServiceFactory implements ThreadPoolsServiceFactory {
 
   @Override
-  public ThreadPoolsService create(ServiceConfiguration<ThreadPoolsService> configuration) {
+  public ThreadPoolsService create(ServiceCreationConfiguration<ThreadPoolsService> configuration) {
     return new DefaultThreadPoolsService();
   }
 

@@ -15,12 +15,10 @@
  */
 package org.ehcache.spi.serialization;
 
-import org.ehcache.config.SerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.internal.classes.ClassInstanceProvider;
 import org.ehcache.internal.serialization.JavaSerializer;
-import org.hamcrest.core.Is;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -51,18 +49,6 @@ public class DefaultSerializationProviderTest {
       fail("expected IllegalArgumentException");
     } catch (IllegalArgumentException iae) {
       // expected
-    }
-  }
-
-  @Test
-  public void testRefusesSerializerConfigAtCreation() {
-    DefaultSerializationProviderFactory factory = new DefaultSerializationProviderFactory();
-
-    try {
-      factory.create(new DefaultSerializerConfiguration<String>((Class)JavaSerializer.class, SerializerConfiguration.Type.KEY));
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), Is.is("DefaultCacheLoaderWriterConfiguration must not be provided at CacheManager level"));
     }
   }
 

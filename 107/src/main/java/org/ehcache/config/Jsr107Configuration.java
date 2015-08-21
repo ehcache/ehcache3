@@ -17,7 +17,7 @@
 package org.ehcache.config;
 
 import org.ehcache.jsr107.Jsr107Service;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author Alex Snaps
  */
-public class Jsr107Configuration implements ServiceConfiguration<Jsr107Service> {
+public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107Service> {
 
   private final String defaultTemplate;
   private final boolean jsr107CompliantAtomics;

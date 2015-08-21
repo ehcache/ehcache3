@@ -15,7 +15,7 @@
  */
 package org.ehcache.management.registry;
 
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
 /**
@@ -24,7 +24,7 @@ import org.ehcache.spi.service.ServiceFactory;
 public class DefaultManagementRegistryFactory implements ServiceFactory<DefaultManagementRegistry> {
 
   @Override
-  public DefaultManagementRegistry create(ServiceConfiguration<DefaultManagementRegistry> configuration) {
+  public DefaultManagementRegistry create(ServiceCreationConfiguration<DefaultManagementRegistry> configuration) {
     return new DefaultManagementRegistry();
   }
 

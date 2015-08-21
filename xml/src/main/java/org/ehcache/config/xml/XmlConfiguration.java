@@ -43,6 +43,7 @@ import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.util.ClassLoading;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,7 +82,7 @@ public class XmlConfiguration implements Configuration {
   private final ClassLoader classLoader;
   private final Map<String, ClassLoader> cacheClassLoaders;
 
-  private final Collection<ServiceConfiguration<?>> serviceConfigurations = new ArrayList<ServiceConfiguration<?>>();
+  private final Collection<ServiceCreationConfiguration<?>> serviceConfigurations = new ArrayList<ServiceCreationConfiguration<?>>();
   private final Map<String, CacheConfiguration<?, ?>> cacheConfigurations = new HashMap<String, CacheConfiguration<?, ?>>();
   private final Map<String, ConfigurationParser.CacheTemplate> templates = new HashMap<String, ConfigurationParser.CacheTemplate>();
 
@@ -154,7 +155,7 @@ public class XmlConfiguration implements Configuration {
     LOGGER.info("Loading Ehcache XML configuration from {}.", xml.getPath());
     ConfigurationParser configurationParser = new ConfigurationParser(xml.toExternalForm(), CORE_SCHEMA_URL);
 
-    final ArrayList<ServiceConfiguration<?>> serviceConfigs = new ArrayList<ServiceConfiguration<?>>();
+    final ArrayList<ServiceCreationConfiguration<?>> serviceConfigs = new ArrayList<ServiceCreationConfiguration<?>>();
 
     for (ServiceType serviceType : configurationParser.getServiceElements()) {
       if (serviceType.getDefaultSerializers() != null) {
@@ -171,12 +172,12 @@ public class XmlConfiguration implements Configuration {
       } else if (serviceType.getPersistence() != null) {
         serviceConfigs.add(new CacheManagerPersistenceConfiguration(new File(serviceType.getPersistence().getDirectory())));
       } else {
-        final ServiceConfiguration<?> serviceConfiguration1 = configurationParser.parseExtension((Element)serviceType.getAny());
+        final ServiceCreationConfiguration<?> serviceConfiguration1 = configurationParser.parseExtension((Element)serviceType.getAny());
         serviceConfigs.add(serviceConfiguration1);
       }
     }
 
-    for (ServiceConfiguration<?> serviceConfiguration : Collections.unmodifiableList(serviceConfigs)) {
+    for (ServiceCreationConfiguration<?> serviceConfiguration : Collections.unmodifiableList(serviceConfigs)) {
       serviceConfigurations.add(serviceConfiguration);
     }
 
@@ -480,7 +481,7 @@ public class XmlConfiguration implements Configuration {
   }
 
   @Override
-  public Collection<ServiceConfiguration<?>> getServiceConfigurations() {
+  public Collection<ServiceCreationConfiguration<?>> getServiceCreationConfigurations() {
     return serviceConfigurations;
   }
 

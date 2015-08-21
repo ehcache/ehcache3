@@ -15,7 +15,7 @@
  */
 package org.ehcache.internal.store.tiering;
 
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
 /**
@@ -23,7 +23,7 @@ import org.ehcache.spi.service.ServiceFactory;
  */
 public class CompoundCachingTierProviderFactory implements ServiceFactory<CompoundCachingTier.Provider> {
   @Override
-  public CompoundCachingTier.Provider create(ServiceConfiguration<CompoundCachingTier.Provider> serviceConfiguration) {
+  public CompoundCachingTier.Provider create(ServiceCreationConfiguration<CompoundCachingTier.Provider> serviceConfiguration) {
     return new CompoundCachingTier.Provider();
   }
 

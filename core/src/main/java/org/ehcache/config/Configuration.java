@@ -16,7 +16,7 @@
 
 package org.ehcache.config;
 
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.util.Collection;
 import java.util.Map;
@@ -28,7 +28,7 @@ public interface Configuration {
 
   Map<String, CacheConfiguration<?, ?>> getCacheConfigurations();
 
-  Collection<ServiceConfiguration<?>> getServiceConfigurations();
+  Collection<ServiceCreationConfiguration<?>> getServiceCreationConfigurations();
 
   ClassLoader getClassLoader();
 }
