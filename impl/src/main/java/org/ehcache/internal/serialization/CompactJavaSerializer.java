@@ -23,14 +23,18 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.io.OutputStream;
-import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.ehcache.exceptions.SerializerException;
 import org.ehcache.internal.util.ByteBufferInputStream;
 import org.ehcache.spi.serialization.Serializer;
 
@@ -45,18 +49,37 @@ import org.ehcache.spi.serialization.Serializer;
  * @author Chris Dennis
  */
 @Serializer.Transient
-public class CompactJavaSerializer implements Serializer<Serializable> {
+public class CompactJavaSerializer<T> implements Serializer<T> {
 
   private final AtomicInteger nextStreamIndex = new AtomicInteger(0);
-  private final ConcurrentMap<Object, Object> lookup = new ConcurrentHashMap<Object, Object>();
-  private final ClassLoader loader;
+  
+  private final ConcurrentMap<Integer, ObjectStreamClass> readLookup = new ConcurrentHashMap<Integer, ObjectStreamClass>();
+  private final ConcurrentMap<SerializableDataKey, Integer> writeLookup = new ConcurrentHashMap<SerializableDataKey, Integer>();
+  
+  private final transient ClassLoader loader;
   
   public CompactJavaSerializer(ClassLoader loader) {
     this.loader = loader;
   }
   
+  protected CompactJavaSerializer(ClassLoader loader, Map<Integer, ObjectStreamClass> mappings) {
+    this(loader);
+    for (Entry<Integer, ObjectStreamClass> e : mappings.entrySet()) {
+      Integer encoding = e.getKey();
+      ObjectStreamClass disconnectedOsc = disconnect(e.getValue());
+      readLookup.put(encoding, disconnectedOsc);
+      if (writeLookup.putIfAbsent(new SerializableDataKey(disconnectedOsc, true), encoding) != null) {
+        throw new AssertionError("Corrupted data " + mappings.toString());
+      }
+    }
+  }
+  
+  protected Map<Integer, ObjectStreamClass> getSerializationMappings() {
+    return Collections.unmodifiableMap(new HashMap<Integer, ObjectStreamClass>(readLookup));
+  }
+  
   @Override
-  public ByteBuffer serialize(Serializable object) {
+  public ByteBuffer serialize(T object) throws SerializerException {
     try {
       ByteArrayOutputStream bout = new ByteArrayOutputStream();
       ObjectOutputStream oout = getObjectOutputStream(bout);
@@ -67,23 +90,21 @@ public class CompactJavaSerializer implements Serializer<Serializable> {
       }
       return ByteBuffer.wrap(bout.toByteArray());
     } catch (IOException e) {
-      throw new AssertionError(e);
+      throw new SerializerException(e);
     }
   }
 
   @Override
-  public Serializable read(ByteBuffer binary) {
+  public T read(ByteBuffer binary) throws ClassNotFoundException, SerializerException {
     try {
       ObjectInputStream oin = getObjectInputStream(new ByteBufferInputStream(binary));
       try {
-        return (Serializable) oin.readObject();
+        return (T) oin.readObject();
       } finally {
         oin.close();
       }
-    } catch (ClassNotFoundException e) {
-      throw new AssertionError(e);
     } catch (IOException e) {
-      throw new AssertionError(e);
+      throw new SerializerException(e);
     }
   }
 
@@ -96,21 +117,21 @@ public class CompactJavaSerializer implements Serializer<Serializable> {
   }
 
   @Override
-  public boolean equals(Serializable object, ByteBuffer binary) {
+  public boolean equals(T object, ByteBuffer binary) throws ClassNotFoundException, SerializerException {
     return object.equals(read(binary));
   }
 
   protected int getOrAddMapping(ObjectStreamClass desc) throws IOException {
     SerializableDataKey probe = new SerializableDataKey(desc, false);
-    Integer rep = (Integer) lookup.get(probe);
+    Integer rep = writeLookup.get(probe);
     if (rep == null) {
       ObjectStreamClass disconnected = disconnect(desc);
       SerializableDataKey key = new SerializableDataKey(disconnected, true);
       rep = nextStreamIndex.getAndIncrement();
 
-      ObjectStreamClass existingOsc = (ObjectStreamClass) lookup.putIfAbsent(rep, disconnected);
+      ObjectStreamClass existingOsc = readLookup.putIfAbsent(rep, disconnected);
       if (existingOsc == null) {
-        Integer existingRep = (Integer) lookup.putIfAbsent(key, rep);
+        Integer existingRep = writeLookup.putIfAbsent(key, rep);
         if (existingRep == null) {
           return rep;
         } else {
@@ -118,7 +139,7 @@ public class CompactJavaSerializer implements Serializer<Serializable> {
            * A racing thread established a mapping already.  We must clean up
            * our half complete mapping.
            */
-          lookup.remove(rep);
+          readLookup.remove(rep);
           return existingRep;
         }
       } else {
@@ -132,7 +153,8 @@ public class CompactJavaSerializer implements Serializer<Serializable> {
 
   @Override
   public void close() {
-    lookup.clear();
+    readLookup.clear();
+    writeLookup.clear();
   }
 
   class OOS extends ObjectOutputStream {
@@ -158,7 +180,7 @@ public class CompactJavaSerializer implements Serializer<Serializable> {
     
     @Override
     protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
-      return (ObjectStreamClass) lookup.get(readInt());
+      return readLookup.get(readInt());
     }
     
     @Override
@@ -186,7 +208,7 @@ public class CompactJavaSerializer implements Serializer<Serializable> {
 
     private transient WeakReference<Class<?>> klazz;
 
-    public SerializableDataKey(ObjectStreamClass desc, boolean store) throws IOException {
+    public SerializableDataKey(ObjectStreamClass desc, boolean store) {
       Class<?> forClass = desc.forClass();
       if (forClass != null) {
         if (store) {
@@ -267,7 +289,7 @@ public class CompactJavaSerializer implements Serializer<Serializable> {
       ObjectInputStream oin = new ObjectInputStream(new ByteArrayInputStream(getSerializedForm(desc))) {
 
         @Override
-        protected Class<?> resolveClass(ObjectStreamClass osc) throws IOException, ClassNotFoundException {
+        protected Class<?> resolveClass(ObjectStreamClass osc) {
           //Our stored OSC instances should not reference classes - doing so could cause perm-gen leaks
           return null;
         }

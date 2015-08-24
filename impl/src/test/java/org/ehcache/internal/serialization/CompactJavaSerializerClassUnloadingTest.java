@@ -109,6 +109,9 @@ public class CompactJavaSerializerClassUnloadingTest {
     //empty impl
   }
 
+  /*
+   * This code here for ease of debugging in the event the test fails.
+   */
 //  private static void dumpHeap(String fileName, boolean live) {
 //    try {
 //      new File(fileName).delete();

@@ -20,7 +20,6 @@ import org.ehcache.config.SerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.exceptions.CachePersistenceException;
-import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.FileBasedPersistenceContext;
@@ -38,6 +37,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.ehcache.internal.serialization.CompactJavaSerializer;
+import org.ehcache.internal.serialization.CompactPersistentJavaSerializer;
 
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
@@ -149,7 +149,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
     public void start(ServiceProvider serviceProvider) {
       persistence = serviceProvider.getService(LocalPersistenceService.class);
       if (!serializers.containsKey(Serializable.class.getName())) {
-        serializers.put(Serializable.class.getName(), (Class) JavaSerializer.class);
+        serializers.put(Serializable.class.getName(), (Class) CompactPersistentJavaSerializer.class);
       }
     }
   }

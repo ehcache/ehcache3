@@ -18,8 +18,8 @@ package com.pany.ehcache.serializer;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import org.ehcache.exceptions.SerializerException;
+import org.ehcache.internal.serialization.CompactJavaSerializer;
 
-import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
 
 @Serializer.Transient
@@ -28,7 +28,7 @@ public class TestSerializer<T> implements Serializer<T> {
   private final Serializer<T> serializer;
 
   public TestSerializer(ClassLoader classLoader) {
-    serializer = new JavaSerializer<T>(classLoader);
+    serializer = new CompactJavaSerializer<T>(classLoader);
   }
 
   @Override

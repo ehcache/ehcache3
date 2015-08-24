@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.integration;
+package org.ehcache.internal.store.tiering;
 
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
@@ -28,10 +28,13 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
 import org.ehcache.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.internal.store.heap.OnHeapStore;
-import org.ehcache.internal.store.tiering.CacheStore;
-import org.ehcache.internal.store.tiering.CacheStoreServiceConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.LocalPersistenceService;
+import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
+import org.ehcache.spi.service.ServiceConfiguration;
+
 import org.junit.Test;
 
 import java.io.File;
@@ -39,20 +42,23 @@ import java.io.Serializable;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import org.ehcache.internal.serialization.JavaSerializer;
-import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.LocalPersistenceService;
-import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
-import org.ehcache.spi.service.ServiceConfiguration;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * @author rism
  */
 public class CacheStoreFlushWhileShutdownTest {
+
+  @Rule
+  public final TemporaryFolder folder = new TemporaryFolder();
+  
   @Test
   public void testCacheStoreReleaseFlushesEntries() throws Exception {
-
+    File persistenceLocation = folder.newFolder("testCacheStoreReleaseFlushesEntries");
+    
     Store.Configuration<Number, String> configuration = new Store.Configuration<Number, String>() {
 
       @Override
@@ -105,14 +111,14 @@ public class CacheStoreFlushWhileShutdownTest {
     serviceConfiguration.authoritativeTierProvider(OffHeapDiskStore.Provider.class);
     serviceConfiguration.cachingTierProvider(OnHeapStore.Provider.class);
 
-    ServiceLocator serviceLocator = getServiceLocator();
+    ServiceLocator serviceLocator = getServiceLocator(persistenceLocation);
     serviceLocator.startAllServices();
     CacheStore.Provider cacheStoreProvider = new CacheStore.Provider();
 
     cacheStoreProvider.start(serviceLocator);
 
     LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
-    PersistenceSpaceIdentifier persistenceSpace = persistenceService.getOrCreatePersistenceSpace("CacheStoreFlushWhileShutdownTest");
+    PersistenceSpaceIdentifier persistenceSpace = persistenceService.getOrCreatePersistenceSpace("testCacheStoreReleaseFlushesEntries");
     Store<Number, String> cacheStore = cacheStoreProvider.createStore(configuration, new ServiceConfiguration[] {serviceConfiguration, persistenceSpace});
     cacheStoreProvider.initStore(cacheStore);
     for (int i = 0; i < 100; i++) {
@@ -130,12 +136,12 @@ public class CacheStoreFlushWhileShutdownTest {
 
     serviceLocator.stopAllServices();
 
-    ServiceLocator serviceLocator1 = getServiceLocator();
+    ServiceLocator serviceLocator1 = getServiceLocator(persistenceLocation);
     serviceLocator1.startAllServices();
     cacheStoreProvider.start(serviceLocator1);
     
     LocalPersistenceService persistenceService1 = serviceLocator1.getService(LocalPersistenceService.class);
-    PersistenceSpaceIdentifier persistenceSpace1 = persistenceService1.getOrCreatePersistenceSpace("CacheStoreFlushWhileShutdownTest");
+    PersistenceSpaceIdentifier persistenceSpace1 = persistenceService1.getOrCreatePersistenceSpace("testCacheStoreReleaseFlushesEntries");
     cacheStore = cacheStoreProvider.createStore(configuration, new ServiceConfiguration[] {serviceConfiguration, persistenceSpace1});
     cacheStoreProvider.initStore(cacheStore);
 
@@ -144,8 +150,8 @@ public class CacheStoreFlushWhileShutdownTest {
     }
   }
 
-  private ServiceLocator getServiceLocator() throws Exception {
-    PersistenceConfiguration persistenceConfiguration = new DefaultPersistenceConfiguration(new File(System.getProperty("java.io.tmpdir")));
+  private ServiceLocator getServiceLocator(File location) throws Exception {
+    PersistenceConfiguration persistenceConfiguration = new DefaultPersistenceConfiguration(location);
     DefaultLocalPersistenceService persistenceService = new DefaultLocalPersistenceService(persistenceConfiguration);
     ServiceLocator serviceLocator = new ServiceLocator();
     serviceLocator.addService(persistenceService);

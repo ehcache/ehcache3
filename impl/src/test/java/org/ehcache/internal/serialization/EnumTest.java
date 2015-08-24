@@ -60,9 +60,6 @@ public class EnumTest {
   public void shiftingInstanceSerialization() throws ClassNotFoundException {
     Serializer<Serializable> s = new CompactJavaSerializer(null);
     
-    System.out.println(Arrays.toString(Foo_W.class.getDeclaredClasses()));
-    System.out.println(Foo_W.c.getClass().getEnclosingClass());
-    
     ClassLoader wLoader = createClassNameRewritingLoader(Foo_W.class);
     ClassLoader rLoader = createClassNameRewritingLoader(Foo_R.class);
     
