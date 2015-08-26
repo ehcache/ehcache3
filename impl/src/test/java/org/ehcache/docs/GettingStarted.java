@@ -204,7 +204,7 @@ public class GettingStarted {
     // tag::cacheEventListener[]
     CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
         .newEventListenerConfiguration(ListenerObject.class, EventType.CREATED, EventType.UPDATED) // <1>
-        .ordered().synchronous(); // <2>
+        .unordered().asynchronous(); // <2>
     
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("foo",
@@ -215,7 +215,7 @@ public class GettingStarted {
     final Cache<String, String> cache = manager.getCache("foo", String.class, String.class);
     cache.put("Hello", "World"); // <4>
     cache.put("Hello", "Everyone"); // <5>
-//    cache.remove("Hello"); // <6>
+    cache.remove("Hello"); // <6>
     // end::cacheEventListener[]
 
     manager.close();

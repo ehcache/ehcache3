@@ -95,7 +95,7 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheEventsTestBase {
     doThrow(new CacheAccessException("")).when(store).computeIfAbsent(eq("key"), getAnyFunction());
     final Ehcache<String, String> ehcache = getEhcache(cacheLoaderWriter, "EhcacheBasicPutIfAbsentEventsTest");
     ehcache.putIfAbsent("key", "value");
-    verify(cacheEventListener, times(1)).onEvent(argThat(isCreated));
+    verify(cacheEventListener, never()).onEvent(argThat(isCreated));
   }
 
   @Test
@@ -113,7 +113,7 @@ public class EhcacheBasicPutIfAbsentEventsTest extends EhcacheEventsTestBase {
     doThrow(new CacheAccessException("")).when(store).computeIfAbsent(eq("key"), getAnyFunction());
     final Ehcache<String, String> ehcache = getEhcache(cacheLoaderWriter, "EhcacheBasicPutIfAbsentEventsTest");
     ehcache.putIfAbsent("key", "value");
-    verify(cacheEventListener, times(1)).onEvent(argThat(isCreated));
+    verify(cacheEventListener, never()).onEvent(argThat(isCreated));
   }
 
   @Test

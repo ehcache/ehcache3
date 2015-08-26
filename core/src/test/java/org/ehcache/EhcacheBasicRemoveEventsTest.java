@@ -63,7 +63,7 @@ public class EhcacheBasicRemoveEventsTest extends EhcacheEventsTestBase {
     doThrow(new CacheAccessException("")).when(store).compute(eq("key"), any(BiFunction.class));
     final Ehcache<String, String> ehcache = getEhcache(cacheLoaderWriter, "EhcacheBasicRemoveEventsTest");
     ehcache.remove("key");
-    verify(cacheEventListener, times(1)).onEvent(argThat(isRemoved));
+    verify(cacheEventListener, never()).onEvent(argThat(isRemoved));
   }
 
   @Test

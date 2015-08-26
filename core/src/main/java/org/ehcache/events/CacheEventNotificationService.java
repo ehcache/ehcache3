@@ -41,6 +41,4 @@ public interface CacheEventNotificationService<K, V> {
   void releaseAllListeners();
 
   void setStoreListenerSource(Cache<K, V> source);
-  
-  void stopEventService();
 }

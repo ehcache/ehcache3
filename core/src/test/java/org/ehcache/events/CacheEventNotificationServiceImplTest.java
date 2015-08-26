@@ -33,12 +33,15 @@ import org.mockito.internal.verification.NoMoreInteractions;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import static org.hamcrest.Matchers.anyOf;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doAnswer;
@@ -88,6 +91,10 @@ public class CacheEventNotificationServiceImplTest {
     eventService.onEvent(remove);
     eventService.onEvent(create);
     eventService.onEvent(update);
+
+    for (CacheEventWrapper cacheEventWrapper : EventThreadLocal.get()) {
+      cacheEventWrapper.markFireable();
+    }
     
     InOrder order = inOrder(listener);
     order.verify(listener).onEvent(remove);
@@ -104,7 +111,9 @@ public class CacheEventNotificationServiceImplTest {
     for (CacheEvent<Number, String> event: expectedEvents) {
       eventService.onEvent(event);
     }
-    
+    for (final CacheEventWrapper cacheEventWrapper : EventThreadLocal.get()) {
+      cacheEventWrapper.markFireable();
+    }
     verify(listener).onEvent(expectedEvents[2]);
     verify(listener).onEvent(expectedEvents[1]);
     verify(listener).onEvent(expectedEvents[0]);
@@ -167,6 +176,9 @@ public class CacheEventNotificationServiceImplTest {
     
     CacheEvent<Number, String> evict = eventOfType(EventType.EVICTED);
     eventService.onEvent(evict);
+    for (CacheEventWrapper cacheEventWrapper : EventThreadLocal.get()) {
+      cacheEventWrapper.markFireable();
+    }
     verify(listener).onEvent(evict);
   }
   
@@ -186,10 +198,16 @@ public class CacheEventNotificationServiceImplTest {
     eventService.registerCacheEventListener(listener, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EVICTED));
     CacheEvent<Number, String> evict = eventOfType(EventType.EVICTED);
     eventService.onEvent(evict);
+    for (CacheEventWrapper cacheEventWrapper : EventThreadLocal.get()) {
+      cacheEventWrapper.markFireable();
+    }
     verify(listener).onEvent(evict);
 
     eventService.deregisterCacheEventListener(listener);
     eventService.onEvent(evict);
+    for (CacheEventWrapper cacheEventWrapper : EventThreadLocal.get()) {
+      cacheEventWrapper.markFireable();
+    }
     verify(listener, new NoMoreInteractions()).onEvent(any(CacheEvent.class));
   }
   
@@ -206,6 +224,10 @@ public class CacheEventNotificationServiceImplTest {
 
     CacheEvent<Number, String> remove = eventOfType(EventType.REMOVED);
     eventService.onEvent(remove);
+
+    for (CacheEventWrapper cacheEventWrapper : EventThreadLocal.get()) {
+      cacheEventWrapper.markFireable();
+    }
     
     verify(listener).onEvent(create);
     verify(otherLsnr).onEvent(remove);
@@ -214,6 +236,10 @@ public class CacheEventNotificationServiceImplTest {
 
     eventService.onEvent(create);
     eventService.onEvent(remove);
+
+    for (CacheEventWrapper cacheEventWrapper : EventThreadLocal.get()) {
+      cacheEventWrapper.markFireable();
+    }
 
     verify(listener, new NoMoreInteractions()).onEvent(any(CacheEvent.class));
     verify(otherLsnr, new NoMoreInteractions()).onEvent(any(CacheEvent.class));
@@ -231,6 +257,7 @@ public class CacheEventNotificationServiceImplTest {
   private static <K, V> CacheEvent<K, V> eventOfType(EventType type) {
     CacheEvent<K, V> event = mock(CacheEvent.class, type.name());
     when(event.getType()).thenReturn(type);
+    when(event.getKey()).thenReturn((K)new Object());
     return event;
   }
 }

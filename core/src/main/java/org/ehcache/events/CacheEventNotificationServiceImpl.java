@@ -30,12 +30,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Per-cache component that manages cache event listener registrations, and provides event delivery based on desired
@@ -57,10 +58,8 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
   private final StoreListener<K, V> storeListener = new StoreListener<K, V>();
   private final Store<K, V> store;
   private final TimeSource timeSource;
-  private AtomicBoolean stopped = new AtomicBoolean(false);
-  ConcurrentLinkedQueue<CacheEvent> eventQueue = new ConcurrentLinkedQueue<CacheEvent>();
-  ConcurrentLinkedQueue<CacheEventWrapper> eventQueue1 = new ConcurrentLinkedQueue<CacheEventWrapper>();
-  private final Thread processingThread;
+  private ConcurrentHashMap<K, ConcurrentLinkedQueue<CacheEventWrapper>> keyBasedEventQueueMap = new ConcurrentHashMap<K, ConcurrentLinkedQueue<CacheEventWrapper>>();
+  private ExecutorService executorService;
 
   public CacheEventNotificationServiceImpl(ExecutorService orderedDelivery, ExecutorService unorderedDelivery, Store<K, V> store, TimeSource timeSource) {
     this.orderedDelivery = orderedDelivery;
@@ -68,12 +67,7 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
     this.store = store;
     this.timeSource = timeSource;
     storeListener.setEventNotificationService(this);
-    this.processingThread = new Thread(new QueueProcessingThread());
-    this.processingThread.setDaemon(true);
-    if (processingThread.isAlive()) {
-      throw new RuntimeException("The thread with name " + processingThread.getName() + " already exists and is still running");
-    }
-    processingThread.start();
+    this.executorService = unorderedDelivery;
   }
 
   /**
@@ -131,19 +125,26 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
   }
 
   @Override
-  public void stopEventService() {
-    while (stopped.compareAndSet(false, true));
-  }
-
-  @Override
   public void onEvent(final CacheEvent<K, V> event) {
     final EventType type = event.getType();
     LOGGER.trace("Cache Event notified for event type {}", type);
-    System.out.println("Adding to queue " + event.getType());
     CacheEventWrapper<K, V> cacheEventWrapper = new CacheEventWrapper<K, V>(event);
-//    eventQueue.add(event);
-    eventQueue1.add(cacheEventWrapper);
     EventThreadLocal.get().add(cacheEventWrapper);
+    EventDispatchTask eventDispatchTask;
+    if (!orderedListenersSet.isEmpty()) {
+      ConcurrentLinkedQueue<CacheEventWrapper> eventWrapperQueue;
+      if(keyBasedEventQueueMap.keySet().contains(event.getKey())) {
+        eventWrapperQueue = keyBasedEventQueueMap.get(event.getKey());
+      } else {
+        eventWrapperQueue = new ConcurrentLinkedQueue<CacheEventWrapper>();
+        keyBasedEventQueueMap.put(event.getKey(), eventWrapperQueue);
+      }
+      eventWrapperQueue.add(cacheEventWrapper);
+      eventDispatchTask = new EventDispatchTask(cacheEventWrapper, eventWrapperQueue);
+    } else {
+      eventDispatchTask = new EventDispatchTask(cacheEventWrapper);
+    }
+    executorService.submit(eventDispatchTask);
   }
 
   /**
@@ -160,11 +161,15 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
   private final ExecutorService unorderedDelivery;
   
   private boolean addOrderedListenerToSet(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering) {
+    executorService = orderedDelivery;
     return ordering != EventOrdering.ORDERED || orderedListenersSet.add(listener);
   }
   
   private boolean removeOrderedListenerFromSet(CacheEventListener<? super K, ? super V> listener) {
     orderedListenersSet.remove(listener);
+    if (orderedListenersSet.isEmpty()) {
+      executorService = unorderedDelivery;
+    }
     return true;
   }
   
@@ -245,82 +250,76 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
     }
   }
 
-  private final class QueueProcessingThread implements Runnable {
+  private final class EventDispatchTask implements Runnable {
+    CacheEventWrapper cacheEventWrapper;
+    ConcurrentLinkedQueue<CacheEventWrapper> eventQueue;
+    
+    EventDispatchTask(CacheEventWrapper<K, V> cacheEventWrapper) {
+      this.cacheEventWrapper = cacheEventWrapper;
+    }
+
+    EventDispatchTask(CacheEventWrapper<K, V> cacheEventWrapper, ConcurrentLinkedQueue<CacheEventWrapper> eventQueue) {
+      this.cacheEventWrapper = cacheEventWrapper;
+      this.eventQueue = eventQueue;
+    }
+    
     @Override
     public void run() {
-      while (!stopped.get()) {
-        if(registeredListeners.isEmpty() && !eventQueue.isEmpty()) {
-          System.out.println("Listeners are empty and no event is added yet!!!");
-          CacheEvent cacheEvent = eventQueue.remove();
-          markEventProcessedAndMoveOn();
+      for (final EventListenerWrapper wrapper: registeredListeners) {
+        if (!wrapper.config.fireOn().contains(cacheEventWrapper.cacheEvent.getType())) {
+          continue;
         }
-        if(!eventQueue.isEmpty()) {
-          for (final EventListenerWrapper wrapper: registeredListeners) {
-            System.out.println("Notifying listeners!!! " + wrapper.getListener() + " For event : " + eventQueue.peek().getKey());
-            if (!wrapper.config.fireOn().contains(eventQueue.peek().getType())) {
-              continue;
-            }
-            if(wrapper.config.firingMode() == EventFiring.SYNCHRONOUS) {
-              waitForEventToGetFireableAndFire(eventQueue.peek(), wrapper.getListener());
-            } else {
-              try{
-                wrapper.getListener().onEvent(markEventProcessedAndMoveOn());
-              } catch (Exception e) {
-                LOGGER.warn(wrapper.getListener() + " Failed to throw Event with Exception {}", e);
-              } finally {
-                markEventProcessedAndMoveOn();
-              }
-            }
+        if(wrapper.config.firingMode() == EventFiring.SYNCHRONOUS) {
+          waitForEventToGetFireableAndFire(cacheEventWrapper, wrapper.getListener());
+        } else {
+          try{
+            markEventProcessedAndMoveOn(cacheEventWrapper);
+            wrapper.getListener().onEvent(cacheEventWrapper.cacheEvent);
+          } catch (Exception e) {
+            LOGGER.warn(wrapper.getListener() + " Failed to fire Event due to ", e);
           }
-          System.out.println("Removing event : " + eventQueue.peek().getKey() + " " + eventQueue.peek().getType());
-          if(!eventQueue.peek().isProcessed()) {
-            eventQueue.peek().lockEvent();
-            System.out.println("Marking it processed " + eventQueue.peek().getType());
-            eventQueue.peek().markProcessed();
-            eventQueue.peek().signalProcessedCondition();
-            eventQueue.peek().unlockEvent();
-          }
-          eventQueue.remove();
         }
+      }
+      markEventProcessedAndMoveOn(cacheEventWrapper);
+      if (!eventQueue.isEmpty() && eventQueue.peek() == cacheEventWrapper.cacheEvent) {
+        eventQueue.remove();
       }
     }
   }
 
-  private boolean waitForEventToGetFireableAndFire(CacheEvent<?, ?> event, CacheEventListener<?, ?> listener) {
-    event.lockEvent();
+  private boolean waitForEventToGetFireableAndFire(CacheEventWrapper<?, ?> eventWrapper, CacheEventListener<?, ?> listener) {
+    eventWrapper.lockEvent();
     try {
-      while (!event.isFireable() && !event.hasFailed()) {
-        System.out.println("Initiating wait for "+ event.getType() + " blah  " + event.getKey());
-        event.awaitFireableCondition();
+      while (!eventWrapper.isFireable() && !eventWrapper.hasFailed()) {
+        eventWrapper.fireableCondition.await();
       }
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      
     } finally {
-      fireEventOnListener(listener);
-      event.unlockEvent();
-      markEventProcessedAndMoveOn();
+      fireEventOnListener(eventWrapper, listener);
+      eventWrapper.unlockEvent();
+      markEventProcessedAndMoveOn(eventWrapper);
     }
-    return event.isFireable();
+    return eventWrapper.isFireable();
   }
   
-  private CacheEvent markEventProcessedAndMoveOn() {
-    CacheEvent event = eventQueue.peek();
-    if (!event.isProcessed()) {
-      event.lockEvent();
-      event.markProcessed();
-      event.signalProcessedCondition();
-      event.unlockEvent();
+  private CacheEventWrapper markEventProcessedAndMoveOn(CacheEventWrapper eventWrapper) {
+    if (!eventWrapper.isProcessed()) {
+      eventWrapper.lockEvent();
+      eventWrapper.markProcessed();
+      eventWrapper.processedCondition.signal();
+      eventWrapper.unlockEvent();
     }
-    return event;
+    return eventWrapper;
   }
   
-  private void fireEventOnListener(CacheEventListener<?, ?> listener) {
+  private void fireEventOnListener(CacheEventWrapper eventWrapper, CacheEventListener listener) {
     try{
-      listener.onEvent(markEventProcessedAndMoveOn());
+      listener.onEvent(eventWrapper.cacheEvent);
     } catch (Exception e) {
       LOGGER.warn(listener + " Failed to throw Event with Exception {}", e);
     } finally {
-      markEventProcessedAndMoveOn();
+      markEventProcessedAndMoveOn(eventWrapper);
     }
   }
 }

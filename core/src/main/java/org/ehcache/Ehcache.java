@@ -202,9 +202,11 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       // Check for expiry first
       if (valueHolder == null) {
         getObserver.end(cacheLoaderWriter == null ? GetOutcome.MISS_NO_LOADER : GetOutcome.MISS_WITH_LOADER);
+        markAllCacheEventsFireable();
         return null;
       } else {
         getObserver.end(cacheLoaderWriter == null ? GetOutcome.HIT_NO_LOADER : GetOutcome.HIT_WITH_LOADER);
+        markAllCacheEventsFireable();
         return valueHolder.value();
       }
     } catch (CacheAccessException e) {
@@ -222,6 +224,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         }
       } finally {
         getObserver.end(GetOutcome.FAILURE);
+        markAllCacheEventsFailed();
       }
     }
   }
@@ -343,6 +346,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         markAllCacheEventsFireable();
       } else {
         removeObserver.end(RemoveOutcome.NOOP);
+        markAllCacheEventsFireable();
       }
     } catch (CacheAccessException e) {
       try {
@@ -820,9 +824,11 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
          * there is a loader/writer or not.
          */
         putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
+        markAllCacheEventsFireable();
         return null;
       } else {
         putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
+        markAllCacheEventsFireable();
         return inCache.value();
       }
     } catch (CacheAccessException e) {
@@ -971,6 +977,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         markAllCacheEventsFireable();
       } else {
         replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
+        markAllCacheEventsFireable();
       }
       return old.get();
     } catch (CacheAccessException e) {
@@ -1047,8 +1054,10 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } else {
         if (hit.get()) {
           replaceObserver.end(ReplaceOutcome.MISS_PRESENT);
+          markAllCacheEventsFireable();
         } else {
           replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
+          markAllCacheEventsFireable();
         }
       }
       return success.get();
@@ -1088,7 +1097,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
 
   @Override
   public void close() {
-    eventNotificationService.stopEventService();
     statusTransitioner.close().succeeded();
   }
 
@@ -1328,7 +1336,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } catch (CacheAccessException e) {
         getObserver.end(GetOutcome.FAILURE);
         removeObserver.end(RemoveOutcome.FAILURE);
-        markAllCacheEventsFireable();
+        markAllCacheEventsFailed();
         // XXX:
         throw new RuntimeException(e);
       }
@@ -1337,9 +1345,10 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       if (returnValue != null) {
         getObserver.end(GetOutcome.HIT_NO_LOADER);
         removeObserver.end(RemoveOutcome.SUCCESS);
-        markAllCacheEventsFailed();
+        markAllCacheEventsFireable();
       } else {
-        getObserver.end(GetOutcome.MISS_NO_LOADER);          
+        getObserver.end(GetOutcome.MISS_NO_LOADER);
+        markAllCacheEventsFireable();
       }
       return returnValue;
     }
@@ -1380,7 +1389,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } catch (CacheAccessException e) {
         getObserver.end(GetOutcome.FAILURE);
         putObserver.end(PutOutcome.FAILURE);
-        markAllCacheEventsFireable();
+        markAllCacheEventsFailed();
         // XXX:
         throw new RuntimeException(e);
       }
@@ -1388,11 +1397,13 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       V returnValue = existingValue.get();        
       if (returnValue != null) {
         getObserver.end(GetOutcome.HIT_NO_LOADER);
+        markAllCacheEventsFireable();
       } else {
-        getObserver.end(GetOutcome.MISS_NO_LOADER);          
+        getObserver.end(GetOutcome.MISS_NO_LOADER);
+        markAllCacheEventsFireable();
       }
       putObserver.end(PutOutcome.ADDED);
-      markAllCacheEventsFailed();
+      markAllCacheEventsFireable();
       return returnValue;
     }
 
