@@ -58,9 +58,7 @@
   </xs:complexType>
 
   <xs:complexType name="persistence-type">
-    <xs:sequence>
-      <xs:element name="directory" type="xs:string" minOccurs="1" maxOccurs="1"/>
-    </xs:sequence>
+    <xs:attribute name="directory" type="xs:string" use="required"/>
   </xs:complexType>
 
   <xs:complexType name="serializer-type">
@@ -404,8 +402,8 @@
     </xs:restriction>
   </xs:simpleType>
   <xs:simpleType name="fqcn-type">
-  	<xs:restriction base="xs:string">
-  	  <xs:whiteSpace value="collapse"></xs:whiteSpace>
-  	</xs:restriction>
+    <xs:restriction base="xs:string">
+      <xs:whiteSpace value="collapse"></xs:whiteSpace>
+    </xs:restriction>
   </xs:simpleType>
 </xs:schema>

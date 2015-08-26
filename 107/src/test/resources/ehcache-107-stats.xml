@@ -14,9 +14,7 @@
   </service>
 
   <service>
-    <persistence>
-      <directory>build/ehcache-107-stats</directory>
-    </persistence>
+    <persistence directory="build/ehcache-107-stats"/>
   </service>
   
   <cache-template name="diskCache">
