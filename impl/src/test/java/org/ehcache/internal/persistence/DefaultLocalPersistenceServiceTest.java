@@ -24,13 +24,12 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.IOException;
 import org.ehcache.exceptions.CachePersistenceException;
-import org.ehcache.spi.cache.Store;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
-import static org.mockito.Mockito.mock;
 
 public class DefaultLocalPersistenceServiceTest {
 
@@ -92,25 +91,5 @@ public class DefaultLocalPersistenceServiceTest {
     assertThat(service.getLockFile().exists(), is(true));
     service.stop();
     assertThat(service.getLockFile().exists(), is(false));
-  }
-  
-  @Test
-  public void testRefusesToCreateDuplicateContexts() throws IOException, CachePersistenceException {
-    Store.PersistentStoreConfiguration<?, ?, ?> config = mock(Store.PersistentStoreConfiguration.class);
-    File f = folder.newFolder("testRefusesToCreateDuplicateContexts");
-    DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
-    service.start(null);
-    try {
-      service.createPersistenceContext("context", config);
-      try {
-        service.createPersistenceContext("context", config);
-        fail("Expected CachePersistenceException");
-      } catch (CachePersistenceException e) {
-        assertThat(e.getMessage(), is("Identifier 'context' already created by this persistence service"));
-        //expected
-      }
-    } finally {
-      service.stop();
-    }
   }
 }

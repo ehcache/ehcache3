@@ -138,41 +138,6 @@ public abstract class StoreSPITest<K, V> {
   }
 
   @Test
-  public void testProviderCreateStore() throws Exception {
-    StoreProviderCreateStoreTest<K, V> testSuite =
-      new StoreProviderCreateStoreTest<K, V>(getStoreFactory());
-    testSuite.runTestSuite().reportAndThrow();
-  }
-
-  @Test
-  public void testConfigurationGetKeyType() throws Exception {
-    StoreConfigurationGetKeyTypeTest<K, V> testSuite =
-      new StoreConfigurationGetKeyTypeTest<K, V>(getStoreFactory());
-    testSuite.runTestSuite().reportAndThrow();
-  }
-
-  @Test
-  public void testConfigurationGetValueType() throws Exception {
-    StoreConfigurationGetValueTypeTest<K, V> testSuite =
-      new StoreConfigurationGetValueTypeTest<K, V>(getStoreFactory());
-    testSuite.runTestSuite().reportAndThrow();
-  }
-
-  @Test
-  public void testConfigurationGetEvictionVeto() throws Exception {
-    StoreConfigurationGetEvictionVetoTest<K, V> testSuite =
-      new StoreConfigurationGetEvictionVetoTest<K, V>(getStoreFactory());
-    testSuite.runTestSuite().reportAndThrow();
-  }
-
-  @Test
-  public void testConfigurationGetEvictionPrioritizer() throws Exception {
-    StoreConfigurationGetEvictionPrioritizerTest<K, V> testSuite =
-      new StoreConfigurationGetEvictionPrioritizerTest<K, V>(getStoreFactory());
-    testSuite.runTestSuite().reportAndThrow();
-  }
-
-  @Test
   public void testIteratorHasNext() throws Exception {
     StoreIteratorHasNextTest<K, V> testSuite =
       new StoreIteratorHasNextTest<K, V>(getStoreFactory());

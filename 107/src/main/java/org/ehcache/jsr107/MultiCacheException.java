@@ -60,10 +60,16 @@ public class MultiCacheException extends CacheException {
 
   @Override
   public String getMessage() {
-    if (throwables.isEmpty()) {
+    List<Throwable> ts = getThrowables();
+    if (ts.isEmpty()) {
       return super.getMessage();
+    } else {
+      StringBuilder sb = new StringBuilder();
+      for (int i = 0; i < ts.size(); i++) {
+        sb.append("[Exception ").append(i).append("] ").append(ts.get(i).getMessage()).append("\n");
+      }
+      return sb.deleteCharAt(sb.length() - 1).toString();
     }
-    return "Contains " + throwables.size() + " additional exception(s)";
   }
 
   @Override

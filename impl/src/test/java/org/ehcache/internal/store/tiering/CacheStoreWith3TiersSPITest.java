@@ -23,7 +23,6 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
-import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.CachePersistenceException;
@@ -62,6 +61,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import org.ehcache.spi.service.LocalPersistenceService;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -76,7 +76,7 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
   private StoreFactory<String, String> storeFactory;
   private final CacheStore.Provider provider = new CacheStore.Provider();
   private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<Store<String, String>, String>();
-  private DefaultLocalPersistenceService persistenceService;
+  private LocalPersistenceService persistenceService;
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
@@ -94,31 +94,46 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
       final AtomicInteger aliasCounter = new AtomicInteger();
 
       @Override
-      public Store<String, String> newStore(final Store.Configuration<String, String> config) {
-        return newStore(config, SystemTimeSource.INSTANCE);
+      public Store<String, String> newStore() {
+        return newStore(null, null, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
       @Override
-      public Store<String, String> newStore(Store.Configuration<String, String> config, TimeSource timeSource) {
-        Serializer<String> keySerializer = new JavaSerializer<String>(config.getClassLoader());
-        Serializer<String> valueSerializer = new JavaSerializer<String>(config.getClassLoader());
+      public Store<String, String> newStoreWithCapacity(long capacity) {
+        return newStore(capacity, null, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+      }
 
-        final OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, false, keySerializer, valueSerializer);
-        Store.PersistentStoreConfiguration<String, String, String> persistentStoreConfiguration = (Store.PersistentStoreConfiguration) config;
+      @Override
+      public Store<String, String> newStoreWithExpiry(Expiry<String, String> expiry, TimeSource timeSource) {
+        return newStore(null, null, expiry, timeSource);
+      }
+
+      @Override
+      public Store<String, String> newStoreWithEvictionVeto(EvictionVeto<String, String> evictionVeto) {
+        return newStore(null, evictionVeto, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+      }
+      
+      private Store<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
+        Serializer<String> keySerializer = new JavaSerializer<String>(getClass().getClassLoader());
+        Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, null, getClass().getClassLoader(), expiry, buildResourcePools(capacity), keySerializer, valueSerializer);
+
+        final OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, false);
 
         ResourcePool offheapPool = config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
         long offheapSize = ((MemoryUnit) offheapPool.getUnit()).toBytes(offheapPool.getSize());
 
-        final OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, keySerializer, valueSerializer, timeSource, offheapSize);
+        final OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, timeSource, offheapSize);
 
         try {
-          FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContext(persistentStoreConfiguration.getIdentifier(), persistentStoreConfiguration);
+          String spaceName = "alias-" + aliasCounter.getAndIncrement();
+          LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);
+          FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContextWithin(space, "store");
 
           ResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
           long diskSize = ((MemoryUnit) diskPool.getUnit()).toBytes(diskPool.getSize());
 
-          OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(persistenceContext, config,
-                  keySerializer, valueSerializer, timeSource, diskSize);
+          OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(persistenceContext, config, timeSource, diskSize);
 
           CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(onHeapStore, offHeapStore);
 
@@ -179,7 +194,7 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
             }
           });
           provider.initStore(cacheStore);
-          createdStores.put(cacheStore, persistentStoreConfiguration.getIdentifier());
+          createdStores.put(cacheStore, spaceName);
           return cacheStore;
         } catch (CachePersistenceException e) {
           throw new RuntimeException("Error creation persistence context", e);
@@ -234,28 +249,6 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
-      public Store.Provider newProvider() {
-        Store.Provider provider = new CacheStore.Provider();
-        ServiceLocator serviceLocator = new ServiceLocator();
-        serviceLocator.addService(new FakeCachingTierProvider());
-        serviceLocator.addService(new FakeAuthoritativeTierProvider());
-        provider.start(serviceLocator);
-        return provider;
-      }
-
-      @Override
-      public Store.Configuration<String, String> newConfiguration(Class<String> keyType, Class<String> valueType, Long capacityConstraint, EvictionVeto<? super String, ? super String> evictionVeto, EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
-        return newConfiguration(keyType, valueType, capacityConstraint, evictionVeto, evictionPrioritizer, Expirations.noExpiration());
-      }
-
-      @Override
-      public Store.Configuration<String, String> newConfiguration(Class<String> keyType, Class<String> valueType, Long capacityConstraint, EvictionVeto<? super String, ? super String> evictionVeto, EvictionPrioritizer<? super String, ? super String> evictionPrioritizer, Expiry<? super String, ? super String> expiry) {
-        StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(keyType, valueType,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, buildResourcePools(capacityConstraint));
-        return new PersistentStoreConfigurationImpl<String, String>(storeConfiguration, "alias-" + aliasCounter.getAndIncrement());
-      }
-
-      @Override
       public Class<String> getKeyType() {
         return String.class;
       }
@@ -284,10 +277,10 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
 
       @Override
       public void close(final Store<String, String> store) {
-        String alias = createdStores.get(store);
+        String spaceName = createdStores.get(store);
         provider.releaseStore(store);
         try {
-          persistenceService.destroyPersistenceContext(alias);
+          persistenceService.destroyPersistenceSpace(spaceName);
         } catch (CachePersistenceException e) {
           throw new AssertionError(e);
         } finally {
@@ -310,7 +303,7 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
     try {
       for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
         provider.releaseStore(entry.getKey());
-        persistenceService.destroyPersistenceContext(entry.getValue());
+        persistenceService.destroyPersistenceSpace(entry.getValue());
       }
     } finally {
       persistenceService.stop();

@@ -67,8 +67,7 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
   public void removeMapping() throws LegalSPITesterException {
     long nbMappings = 10;
 
-    tier = factory.newCachingTier(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        nbMappings, null, null, Expirations.noExpiration()));
+    tier = factory.newCachingTier();
 
     V originalValue= factory.createValue(1);
     V newValue= factory.createValue(2);

@@ -61,8 +61,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void mapsKeyToValueWhenMappingDoesntExist()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
-        .all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
 
     K key = factory.createKey(1);
     V value = factory.createValue(1);
@@ -77,7 +76,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void doesntMapKeyToValueWhenMappingExists()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
 
     K key = factory.createKey(1);
     V value = factory.createValue(1);
@@ -100,7 +99,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void nullKeyThrowsException()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    kvStore = factory.newStore();
 
     K key = null;
     V value = factory.createValue(1);
@@ -116,7 +115,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void nullValueThrowsException()
       throws CacheAccessException, IllegalAccessException, InstantiationException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1);
     V value = null;
@@ -133,7 +132,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public void wrongKeyTypeThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    kvStore2 = factory.newStore();
 
     V value = factory.createValue(1);
 
@@ -155,7 +154,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public void wrongValueTypeThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    kvStore2 = factory.newStore();
 
     K key = factory.createKey(1);
 

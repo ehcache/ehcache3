@@ -46,7 +46,7 @@ public class StoreClearTest<K, V> extends SPIStoreTester<K, V> {
 
   @Before
   public void setUp() {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
   }
 
   @After

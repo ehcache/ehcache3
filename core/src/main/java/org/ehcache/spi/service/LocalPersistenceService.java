@@ -17,7 +17,6 @@
 package org.ehcache.spi.service;
 
 import org.ehcache.exceptions.CachePersistenceException;
-import org.ehcache.spi.cache.Store;
 
 /**
  * Service to provide persistence context to caches requiring it.
@@ -29,36 +28,48 @@ import org.ehcache.spi.cache.Store;
 public interface LocalPersistenceService extends Service {
 
   /**
-   * Creates a new persistence context
+   * Retrieves an existing or creates a new persistence space
    *
-   * @param identifier the identifier to be used for the persistence context
-   * @param storeConfiguration the configuration of the {@link Store} that will use the persistence context
+   * @param name the name to be used for the persistence space
    *
-   * @return a {@link FileBasedPersistenceContext}
+   * @return a {@link PersistenceSpaceIdentifier}
    *
-   * @throws CachePersistenceException if the persistence context cannot be created
+   * @throws CachePersistenceException if the persistence space cannot be created
    */
-  FileBasedPersistenceContext createPersistenceContext(Object identifier, Store.PersistentStoreConfiguration<?, ?, ?> storeConfiguration) throws CachePersistenceException;
+  PersistenceSpaceIdentifier getOrCreatePersistenceSpace(String name) throws CachePersistenceException;
 
   /**
-   * Destroys the persistence context with the given identifier.
+   * Destroys the persistence space with the given name.
    *
-   * Note that this method can be called without creating the persistence context beforehand in the same JVM.
-   * It will nonetheless try to delete any persistent data that could have been associated with the identifier.
+   * Note that this method can be called without creating the persistence space beforehand in the same JVM.
+   * It will nonetheless try to delete any persistent data that could have been associated with the name.
    *
-   * @param identifier the identifier of the persistence context
+   * @param name the name of the persistence context
    *
-   * @throws CachePersistenceException if the persistence context cannot be destroyed
+   * @throws CachePersistenceException if the persistence space cannot be destroyed
    */
-  void destroyPersistenceContext(Object identifier) throws CachePersistenceException;
+  void destroyPersistenceSpace(String name) throws CachePersistenceException;
   
   /**
-   * Destroys all persistence context
+   * Creates a new persistence context within the given space.
    * 
-   * Note that this method can be called without creating the persistence context beforehand in the same JVM.
+   * @param space space to create within
+   * @param name name of the context to create
+   * @return a {@link FileBasedPersistenceContext}
+   */
+  FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier space, String name) throws CachePersistenceException;
+  
+  /**
+   * Destroys all persistence spaces
+   * 
+   * Note that this method can be called without creating the persistence space beforehand in the same JVM.
    * It will nonetheless try to delete any persistent data associated with the root directory provided
    * in the service.
    */
-  void destroyAllPersistenceContext();
+  void destroyAllPersistenceSpaces();
 
+  /**
+   * An identifier for an existing persistence space.
+   */
+  interface PersistenceSpaceIdentifier extends ServiceConfiguration<LocalPersistenceService> {}
 }

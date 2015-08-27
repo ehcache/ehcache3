@@ -24,6 +24,7 @@ import org.terracotta.offheapstore.storage.portability.WriteContext;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import org.ehcache.exceptions.SerializerException;
 
 /**
  * OffHeapValueHolderPortability
@@ -45,20 +46,16 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
 
   @Override
   public ByteBuffer encode(OffHeapValueHolder<V> valueHolder) {
-    try {
-      ByteBuffer serialized = serializer.serialize(valueHolder.value());
-      ByteBuffer byteBuffer = ByteBuffer.allocate(serialized.remaining() + FIELDS_OVERHEAD);
-      byteBuffer.putLong(valueHolder.getId());
-      byteBuffer.putLong(valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT));
-      byteBuffer.putLong(valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT));
-      byteBuffer.putLong(valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT));
-      byteBuffer.putLong(valueHolder.hits());
-      byteBuffer.put(serialized);
-      byteBuffer.flip();
-      return byteBuffer;
-    } catch (IOException e) {
-      throw new RuntimeException("Failure while encoding value holder " + valueHolder, e);
-    }
+    ByteBuffer serialized = serializer.serialize(valueHolder.value());
+    ByteBuffer byteBuffer = ByteBuffer.allocate(serialized.remaining() + FIELDS_OVERHEAD);
+    byteBuffer.putLong(valueHolder.getId());
+    byteBuffer.putLong(valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT));
+    byteBuffer.putLong(valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT));
+    byteBuffer.putLong(valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT));
+    byteBuffer.putLong(valueHolder.hits());
+    byteBuffer.put(serialized);
+    byteBuffer.flip();
+    return byteBuffer;
   }
 
   @Override
@@ -81,12 +78,8 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
       long hits = byteBuffer.getLong();
       OffHeapValueHolder<V> valueHolder = new OffHeapValueHolder<V>(id, serializer.read(byteBuffer), creationTime, expireTime, lastAccessTime, hits, writeContext);
       return valueHolder;
-    } catch (IOException e) {
-      // TODO find a proper exception type
-      throw new RuntimeException(e);
     } catch (ClassNotFoundException e) {
-      // TODO find a proper exception type
-      throw new RuntimeException(e);
+      throw new SerializerException(e);
     }
   }
 }

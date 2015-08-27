@@ -53,7 +53,7 @@ public class CachingTierConfigurationBuilderTest {
     final Store.Provider service = serviceLocator.getService(Store.Provider.class);
     Collection<ServiceConfiguration<?>> serviceConfigs = config.getServiceConfigurations();
     ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
-    final Store<String, String> store = service.createStore(new StoreConfigurationImpl<String, String>(config), serviceConfigArray);
+    final Store<String, String> store = service.createStore(new StoreConfigurationImpl<String, String>(config, null, null), serviceConfigArray);
     final CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
     when(cacheConfiguration.getExpiry()).thenReturn(Expirations.noExpiration());
 

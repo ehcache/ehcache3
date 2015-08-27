@@ -31,7 +31,6 @@ import javax.cache.Caching;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.spi.CachingProvider;
 
-import org.ehcache.exceptions.SerializerException;
 import org.junit.Test;
 
 import com.pany.domain.Customer;
@@ -72,9 +71,9 @@ public class EhCachingProviderTest {
 
     try {
       cache.get(1L);
-      fail("Expected ClassNotFoundException");
-    } catch (SerializerException e) {
-      assertThat(e.getCause(), instanceOf(ClassNotFoundException.class));
+      fail("Expected AssertionError");
+    } catch (AssertionError e) {
+      assertThat(e.getMessage(), is("No com.pany here"));
     }
   }
 
@@ -89,7 +88,7 @@ public class EhCachingProviderTest {
     @Override
     public Class<?> loadClass(String name) throws ClassNotFoundException {
       if (name.startsWith("com.pany")) {
-        throw new ClassNotFoundException("No com.pany here");
+        throw new AssertionError("No com.pany here");
       }
       return delegate.loadClass(name);
     }

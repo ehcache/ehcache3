@@ -127,7 +127,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
   };
 
-  public OnHeapStore(final Configuration<K, V> config, TimeSource timeSource, boolean storeByValue, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+  public OnHeapStore(final Configuration<K, V> config, TimeSource timeSource, boolean storeByValue) {
     ResourcePool heapPool = config.getResourcePools().getPoolForResource(ResourceType.Core.HEAP);
     if (heapPool == null) {
       throw new IllegalArgumentException("OnHeap store must be configured with a resource of type 'heap'");
@@ -147,8 +147,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     this.valueType = config.getValueType();
     this.expiry = config.getExpiry();
     if (storeByValue) {
-      this.valueSerializer = valueSerializer;
-      this.keySerializer = keySerializer;
+      this.valueSerializer = config.getValueSerializer();
+      this.keySerializer = config.getKeySerializer();
+      if (keySerializer == null || valueSerializer == null) {
+        throw new IllegalArgumentException("No serializers available for on by-value on-heap store");
+      }
     } else {
       this.valueSerializer = null;
       this.keySerializer = null;
@@ -1021,17 +1024,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       boolean storeByValue = onHeapStoreServiceConfig != null && onHeapStoreServiceConfig.storeByValue();
 
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
-      Serializer<K> keySerializer = null;
-      Serializer<V> valueSerializer = null;
-      if (storeByValue) {
-        if (serviceProvider == null) {
-          throw new RuntimeException("ServiceProvider is null.");
-        }
-        SerializationProvider serializationProvider = serviceProvider.getService(SerializationProvider.class);
-        keySerializer = serializationProvider.createKeySerializer(storeConfig.getKeyType(), storeConfig.getClassLoader(), serviceConfigs);
-        valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig.getClassLoader(), serviceConfigs);
-      }
-      OnHeapStore<K, V> onHeapStore = new OnHeapStore<K, V>(storeConfig, timeSource, storeByValue, keySerializer, valueSerializer);
+      OnHeapStore<K, V> onHeapStore = new OnHeapStore<K, V>(storeConfig, timeSource, storeByValue);
       createdStores.add(onHeapStore);
       return onHeapStore;
     }

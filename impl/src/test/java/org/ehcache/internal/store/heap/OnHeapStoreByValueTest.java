@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import org.ehcache.spi.serialization.Serializer;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.fail;
@@ -188,7 +189,17 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
       public ResourcePools getResourcePools() {
         return newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES).build();
       }
-    }, timeSource, true, new JavaSerializer<K>(getClass().getClassLoader()), new JavaSerializer<V>(getClass().getClassLoader()));
+
+      @Override
+      public Serializer<K> getKeySerializer() {
+        return new JavaSerializer<K>(getClass().getClassLoader());
+      }
+
+      @Override
+      public Serializer<V> getValueSerializer() {
+        return new JavaSerializer<V>(getClass().getClassLoader());
+      }
+    }, timeSource, true);
   }
 
   private void performAssertions(Cache<Long, String> cache, boolean same) {

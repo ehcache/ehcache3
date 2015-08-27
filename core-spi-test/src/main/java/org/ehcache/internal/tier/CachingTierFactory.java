@@ -30,22 +30,13 @@ import org.ehcache.spi.service.ServiceConfiguration;
  */
 public interface CachingTierFactory<K, V> {
 
-  CachingTier<K, V> newCachingTier(Store.Configuration<K, V> config);
+  CachingTier<K, V> newCachingTier();
 
-  CachingTier<K, V> newCachingTier(Store.Configuration<K, V> config, TimeSource timeSource);
+  CachingTier<K, V> newCachingTier(long capacity);
 
   Store.ValueHolder<V> newValueHolder(V value);
 
   Store.Provider newProvider();
-
-  Store.Configuration<K, V> newConfiguration(
-      Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
-      EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer);
-
-  Store.Configuration<K, V> newConfiguration(
-      Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
-      EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
-      Expiry<? super K, ? super V> expiry);
 
   Class<K> getKeyType();
 

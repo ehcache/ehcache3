@@ -8,7 +8,7 @@
 
   <ehcache:service>
     <ehcache:default-serializers>
-      <ehcache:serializer type="java.lang.String">org.ehcache.internal.serialization.JavaSerializer</ehcache:serializer>
+      <ehcache:serializer type="java.lang.String">org.ehcache.internal.serialization.CompactJavaSerializer</ehcache:serializer>
     </ehcache:default-serializers>
   </ehcache:service>
 

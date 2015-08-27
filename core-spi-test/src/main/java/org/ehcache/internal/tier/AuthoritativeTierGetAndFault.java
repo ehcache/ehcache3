@@ -72,8 +72,7 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
     K key = factory.createKey(1);
     V value = factory.createValue(1);
 
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+    tier = factory.newStoreWithCapacity(1L);
 
     tier.put(key, value);
 
@@ -91,8 +90,7 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
     K key = factory.createKey(1);
     V value = factory.createValue(1);
 
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+    tier = factory.newStoreWithCapacity(1L);
 
     try {
       tier.put(key, value);
@@ -111,8 +109,7 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
   @Ignore
   public void marksTheMappingAsNotExpirable() throws LegalSPITesterException {
     TestTimeSource timeSource = new TestTimeSource();
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        null, null, null, Expirations.timeToIdleExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
+    tier = factory.newStoreWithExpiry(Expirations.<K, V>timeToIdleExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
 
     K key = factory.createKey(1);
     V value = factory.createValue(1);

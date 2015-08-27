@@ -17,30 +17,37 @@ package com.pany.ehcache.serializer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import org.ehcache.exceptions.SerializerException;
+import org.ehcache.internal.serialization.CompactJavaSerializer;
 
-import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
 
+@Serializer.Transient
 public class TestSerializer<T> implements Serializer<T> {
   
   private final Serializer<T> serializer;
 
   public TestSerializer(ClassLoader classLoader) {
-    serializer = new JavaSerializer<T>(classLoader);
+    serializer = new CompactJavaSerializer<T>(classLoader);
   }
 
   @Override
-  public ByteBuffer serialize(T object) throws IOException {
+  public ByteBuffer serialize(T object) throws SerializerException {
     return serializer.serialize(object);
   }
 
   @Override
-  public T read(ByteBuffer binary) throws IOException, ClassNotFoundException {
+  public T read(ByteBuffer binary) throws SerializerException, ClassNotFoundException {
     return serializer.read(binary);
   }
 
   @Override
-  public boolean equals(T object, ByteBuffer binary) throws IOException, ClassNotFoundException {
+  public boolean equals(T object, ByteBuffer binary) throws SerializerException, ClassNotFoundException {
     return serializer.equals(object, binary);
+  }
+
+  @Override
+  public void close() throws IOException {
+    serializer.close();
   }
 }

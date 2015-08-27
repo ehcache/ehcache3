@@ -15,21 +15,20 @@
  */
 package org.ehcache.spi.serialization;
 
+import java.io.Serializable;
+import static java.lang.ClassLoader.getSystemClassLoader;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.internal.classes.ClassInstanceProvider;
-import org.ehcache.internal.serialization.JavaSerializer;
+import org.ehcache.internal.serialization.CompactJavaSerializer;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.io.Serializable;
 import java.nio.ByteBuffer;
+import static org.ehcache.spi.TestServiceProvider.providerContaining;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
+import org.hamcrest.core.IsInstanceOf;
+import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.fail;
 
 /**
@@ -41,13 +40,13 @@ public class DefaultSerializationProviderTest {
   public void testCreateSerializerNoConfig() throws Exception {
     DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
     DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
-    dsp.start(null);
+    dsp.start(providerContaining());
 
-    assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader()), instanceOf(JavaSerializer.class));
+    assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
     try {
       dsp.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader());
-      fail("expected IllegalArgumentException");
-    } catch (IllegalArgumentException iae) {
+      fail("expected UnsupportedTypeException");
+    } catch (UnsupportedTypeException ute) {
       // expected
     }
   }
@@ -56,7 +55,7 @@ public class DefaultSerializationProviderTest {
   public void testCreateSerializerWithConfig() throws Exception {
     DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
     DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
-    dsp.start(null);
+    dsp.start(providerContaining());
 
     DefaultSerializerConfiguration dspConfig = new DefaultSerializerConfiguration((Class) TestSerializer.class, DefaultSerializerConfiguration.Type.VALUE);
 
@@ -69,57 +68,58 @@ public class DefaultSerializationProviderTest {
     DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
     dspfConfig.addSerializerFor(Number.class, (Class) TestSerializer.class);
     DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
-    dsp.start(null);
+    dsp.start(providerContaining());
 
     assertThat(dsp.createValueSerializer(Long.class, ClassLoader.getSystemClassLoader()), instanceOf(TestSerializer.class));
-    assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader()), instanceOf(JavaSerializer.class));
+    assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
   }
 
   @Test
-  public void testGetPreconfigured() throws Exception {
+  public void testCreateTransientSerializers() throws Exception {
     DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
     dspfConfig.addSerializerFor(String.class, (Class) TestSerializer.class);
 
     DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
-    dsp.start(null);
+    dsp.start(providerContaining());
 
-    ClassInstanceProvider.ConstructorArgument arg = new ClassInstanceProvider.ConstructorArgument<ClassLoader>(ClassLoader.class, ClassLoader.getSystemClassLoader());
-
-    assertThat(dsp.getPreconfigured("java.lang.String", arg), equalTo((Class) TestSerializer.class));
-    assertThat(dsp.getPreconfigured("java.io.Serializable", arg), equalTo((Class) JavaSerializer.class));
-    assertThat(dsp.getPreconfigured("java.lang.Integer", arg), equalTo((Class) JavaSerializer.class));
-    assertThat(dsp.getPreconfigured("java.lang.Object", arg), is(nullValue()));
+    assertThat(dsp.createKeySerializer(String.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
+    assertThat(dsp.createKeySerializer(Serializable.class, getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
+    assertThat(dsp.createKeySerializer(Integer.class, getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
   }
 
   @Test
-  public void testGetPreconfiguredWithOverriddenSerializableType() throws Exception {
+  public void tesCreateTransientSerializersWithOverriddenSerializableType() throws Exception {
     DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
     dspfConfig.addSerializerFor(Serializable.class, (Class) TestSerializer.class);
 
     DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
-    dsp.start(null);
+    dsp.start(providerContaining());
 
-    ClassInstanceProvider.ConstructorArgument arg = new ClassInstanceProvider.ConstructorArgument<ClassLoader>(ClassLoader.class, ClassLoader.getSystemClassLoader());
-
-    assertThat(dsp.getPreconfigured("java.lang.String", arg), equalTo((Class) TestSerializer.class));
-    assertThat(dsp.getPreconfigured("java.io.Serializable", arg), equalTo((Class) TestSerializer.class));
-    assertThat(dsp.getPreconfigured("java.lang.Integer", arg), equalTo((Class) TestSerializer.class));
+    assertThat(dsp.createKeySerializer(String.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
+    assertThat(dsp.createKeySerializer(Serializable.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
+    assertThat(dsp.createKeySerializer(Integer.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
   }
 
+  @Serializer.Persistent @Serializer.Transient
   public static class TestSerializer<T> implements Serializer<T> {
     public TestSerializer(ClassLoader classLoader) {
     }
     @Override
-    public ByteBuffer serialize(T object) throws IOException {
+    public ByteBuffer serialize(T object) {
       return null;
     }
     @Override
-    public T read(ByteBuffer binary) throws IOException, ClassNotFoundException {
+    public T read(ByteBuffer binary) {
       return null;
     }
     @Override
-    public boolean equals(T object, ByteBuffer binary) throws IOException, ClassNotFoundException {
+    public boolean equals(T object, ByteBuffer binary) {
       return false;
+    }
+
+    @Override
+    public void close() {
+      //no-op
     }
   }
 

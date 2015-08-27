@@ -28,6 +28,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
+import static org.ehcache.spi.TestServiceProvider.providerContaining;
+import org.ehcache.spi.serialization.UnsupportedTypeException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -40,9 +42,9 @@ public class OffHeapValueHolderPortabilityTest {
   private OffHeapValueHolder<String> originalValue;
 
   @Before
-  public void setup() {
+  public void setup() throws UnsupportedTypeException {
     SerializationProvider provider = new DefaultSerializationProvider(null);
-    provider.start(null);
+    provider.start(providerContaining());
     valueHolderPortability = new OffHeapValueHolderPortability<String>(provider
         .createValueSerializer(String.class, getClass().getClassLoader()));
 

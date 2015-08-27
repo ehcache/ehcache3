@@ -61,8 +61,7 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void replaceCorrectKeyAndValue()
       throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
-        .all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
 
     K key = factory.createKey(1);
     V originalValue = factory.createValue(1);
@@ -83,7 +82,7 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void replaceCorrectKeyAndWrongValue()
       throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
 
     K key = factory.createKey(1L);
     V originalValue = factory.createValue(1L);
@@ -105,7 +104,7 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void successfulReplaceReturnsTrue()
       throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
 
     K key = factory.createKey(1);
     V originalValue = factory.createValue(1);
@@ -124,7 +123,7 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void unsuccessfulReplaceReturnsFalse()
       throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
 
     K key = factory.createKey(1);
     V originalValue = factory.createValue(1L);
@@ -145,7 +144,7 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public void wrongKeyTypeThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    kvStore2 = factory.newStore();
 
     V originalValue = factory.createValue(1);
     V newValue = factory.createValue(2);
@@ -168,7 +167,7 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public void wrongOriginalValueTypeThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    kvStore2 = factory.newStore();
 
     K key = factory.createKey(1);
     V newValue = factory.createValue(1);
@@ -191,7 +190,7 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public void wrongNewValueTypeThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    kvStore2 = factory.newStore();
 
     K key = factory.createKey(1);
     V originalValue = factory.createValue(1);

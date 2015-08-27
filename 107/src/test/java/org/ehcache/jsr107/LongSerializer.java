@@ -17,21 +17,18 @@ package org.ehcache.jsr107;
 
 import org.ehcache.spi.serialization.Serializer;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 
 /**
  * @author rism
  */
 public class LongSerializer implements Serializer<Long> {
-  private static final Charset CHARSET = Charset.forName("US-ASCII");
 
   public LongSerializer(ClassLoader classLoader) {
   }
 
   @Override
-  public ByteBuffer serialize(Long object) throws IOException {
+  public ByteBuffer serialize(Long object) {
     ByteBuffer byteBuffer = ByteBuffer.allocate(8);
     byteBuffer.putLong(object);
     byteBuffer.flip();
@@ -39,12 +36,17 @@ public class LongSerializer implements Serializer<Long> {
   }
 
   @Override
-  public Long read(ByteBuffer binary) throws IOException, ClassNotFoundException {
+  public Long read(ByteBuffer binary) {
     return binary.getLong();
   }
 
   @Override
-  public boolean equals(Long object, ByteBuffer binary) throws IOException, ClassNotFoundException {
+  public boolean equals(Long object, ByteBuffer binary) {
     return object.equals(read(binary));
+  }
+
+  @Override
+  public void close() {
+    //nothing
   }
 }

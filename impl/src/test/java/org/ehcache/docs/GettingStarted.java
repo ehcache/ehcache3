@@ -401,6 +401,7 @@ public class GettingStarted {
     }
   }
 
+  @Serializer.Persistent @Serializer.Transient
   public static class StringSerializer implements Serializer<String> {
     private static final Logger LOG = LoggerFactory.getLogger(StringSerializer.class);
     private static final Charset CHARSET = Charset.forName("US-ASCII");
@@ -409,7 +410,7 @@ public class GettingStarted {
     }
 
     @Override
-    public ByteBuffer serialize(String object) throws IOException {
+    public ByteBuffer serialize(String object) {
       LOG.info("serializing {}", object);
       ByteBuffer byteBuffer = ByteBuffer.allocate(object.length());
       byteBuffer.put(object.getBytes(CHARSET));
@@ -417,7 +418,7 @@ public class GettingStarted {
     }
 
     @Override
-    public String read(ByteBuffer binary) throws IOException, ClassNotFoundException {
+    public String read(ByteBuffer binary) throws ClassNotFoundException {
       byte[] bytes = new byte[binary.flip().remaining()];
       binary.get(bytes);
       String s = new String(bytes, CHARSET);
@@ -426,11 +427,17 @@ public class GettingStarted {
     }
 
     @Override
-    public boolean equals(String object, ByteBuffer binary) throws IOException, ClassNotFoundException {
+    public boolean equals(String object, ByteBuffer binary) throws ClassNotFoundException {
       return object.equals(read(binary));
+    }
+
+    @Override
+    public void close() {
+      //nothing
     }
   }
 
+  @Serializer.Persistent @Serializer.Transient
   public static class LongSerializer implements Serializer<Long> {
     private static final Logger LOG = LoggerFactory.getLogger(LongSerializer.class);
     private static final Charset CHARSET = Charset.forName("US-ASCII");
@@ -439,7 +446,7 @@ public class GettingStarted {
     }
 
     @Override
-    public ByteBuffer serialize(Long object) throws IOException {
+    public ByteBuffer serialize(Long object) {
       LOG.info("serializing {}", object);
       ByteBuffer byteBuffer = ByteBuffer.allocate(8);
       byteBuffer.putLong(object);
@@ -447,7 +454,7 @@ public class GettingStarted {
     }
 
     @Override
-    public Long read(ByteBuffer binary) throws IOException, ClassNotFoundException {
+    public Long read(ByteBuffer binary) throws ClassNotFoundException {
       binary.flip();
       long l = binary.getLong();
       LOG.info("deserialized {}", l);
@@ -455,11 +462,17 @@ public class GettingStarted {
     }
 
     @Override
-    public boolean equals(Long object, ByteBuffer binary) throws IOException, ClassNotFoundException {
+    public boolean equals(Long object, ByteBuffer binary) throws ClassNotFoundException {
       return object.equals(read(binary));
+    }
+
+    @Override
+    public void close() {
+      //nothing
     }
   }
 
+  @Serializer.Persistent @Serializer.Transient
   public static class CharSequenceSerializer implements Serializer<CharSequence> {
     private static final Logger LOG = LoggerFactory.getLogger(StringSerializer.class);
     private static final Charset CHARSET = Charset.forName("US-ASCII");
@@ -468,7 +481,7 @@ public class GettingStarted {
     }
 
     @Override
-    public ByteBuffer serialize(CharSequence object) throws IOException {
+    public ByteBuffer serialize(CharSequence object) {
       LOG.info("serializing {}", object);
       ByteBuffer byteBuffer = ByteBuffer.allocate(object.length());
       byteBuffer.put(object.toString().getBytes(CHARSET));
@@ -476,7 +489,7 @@ public class GettingStarted {
     }
 
     @Override
-    public CharSequence read(ByteBuffer binary) throws IOException, ClassNotFoundException {
+    public CharSequence read(ByteBuffer binary) throws ClassNotFoundException {
       byte[] bytes = new byte[binary.flip().remaining()];
       binary.get(bytes);
       String s = new String(bytes, CHARSET);
@@ -485,8 +498,13 @@ public class GettingStarted {
     }
 
     @Override
-    public boolean equals(CharSequence object, ByteBuffer binary) throws IOException, ClassNotFoundException {
+    public boolean equals(CharSequence object, ByteBuffer binary) throws ClassNotFoundException {
       return object.equals(read(binary));
+    }
+
+    @Override
+    public void close() {
+      //nothing
     }
   }
 

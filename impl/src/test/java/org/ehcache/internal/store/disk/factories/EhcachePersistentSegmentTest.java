@@ -26,6 +26,7 @@ import org.ehcache.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.UnsupportedTypeException;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -38,6 +39,7 @@ import org.ehcache.internal.store.disk.factories.EhcachePersistentSegmentFactory
 
 import static org.ehcache.internal.store.disk.OffHeapDiskStore.persistent;
 import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.EvictionListener;
+import static org.ehcache.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -66,15 +68,20 @@ public class EhcachePersistentSegmentTest {
   }
   
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(Predicate<Map.Entry<String, String>> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
-    HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
-    SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(null);
-    MappedPageSource pageSource = new MappedPageSource(folder.newFile(), true, configuration.getMaximumSize());
-    Serializer<String> stringSerializer = serializationProvider.createValueSerializer(String.class, EhcachePersistentSegmentTest.class.getClassLoader());
-    PersistentPortability<String> keyPortability = persistent(new SerializerPortability<String>(stringSerializer));
-    PersistentPortability<String> elementPortability = persistent(new SerializerPortability<String>(stringSerializer));
-    Factory<FileBackedStorageEngine<String, String>> storageEngineFactory = FileBackedStorageEngine.createFactory(pageSource, keyPortability, elementPortability);
-    return new EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String>(pageSource, storageEngineFactory.newInstance(), 1, true, evictionPredicate, evictionListener);
+    try {
+      HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
+      SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
+      serializationProvider.start(providerContaining());
+      MappedPageSource pageSource = new MappedPageSource(folder.newFile(), true, configuration.getMaximumSize());
+      Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, EhcachePersistentSegmentTest.class.getClassLoader());
+      Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, EhcachePersistentSegmentTest.class.getClassLoader());
+      PersistentPortability<String> keyPortability = persistent(new SerializerPortability<String>(keySerializer));
+      PersistentPortability<String> elementPortability = persistent(new SerializerPortability<String>(valueSerializer));
+      Factory<FileBackedStorageEngine<String, String>> storageEngineFactory = FileBackedStorageEngine.createFactory(pageSource, keyPortability, elementPortability);
+      return new EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String>(pageSource, storageEngineFactory.newInstance(), 1, true, evictionPredicate, evictionListener);
+    } catch (UnsupportedTypeException e) {
+      throw new AssertionError(e);
+    }
   }
 
   @Test

@@ -16,12 +16,10 @@
 
 package org.ehcache.internal.store.heap;
 
-import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
@@ -34,7 +32,9 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 
+import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import org.ehcache.expiry.Expirations;
 
 /**
  * Test the {@link org.ehcache.internal.store.heap.OnHeapStore} compliance to the
@@ -58,43 +58,34 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
     storeFactory = new StoreFactory<String, String>() {
 
       @Override
-      public Store<String, String> newStore(final Store.Configuration<String, String> config) {
-        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, true, new JavaSerializer<String>(getClass().getClassLoader()), new JavaSerializer<String>(getClass().getClassLoader()));
+      public Store<String, String> newStore() {
+        return newStore(null, null, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
       @Override
-      public Store<String, String> newStore(final Store.Configuration<String, String> config, TimeSource timeSource) {
-        return new OnHeapStore<String, String>(config, timeSource, true, new JavaSerializer<String>(getClass().getClassLoader()), new JavaSerializer<String>(getClass().getClassLoader()));
+      public Store<String, String> newStoreWithCapacity(long capacity) {
+        return newStore(capacity, null, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+      }
+
+      @Override
+      public Store<String, String> newStoreWithExpiry(Expiry<String, String> expiry, TimeSource timeSource) {
+        return newStore(null, null, expiry, timeSource);
+      }
+
+      @Override
+      public Store<String, String> newStoreWithEvictionVeto(EvictionVeto<String, String> evictionVeto) {
+        return newStore(null, evictionVeto, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+      }
+      
+      private Store<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
+        ResourcePools resourcePools = buildResourcePools(capacity);
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, null, getClass().getClassLoader(), expiry, resourcePools, new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
+        return new OnHeapStore<String, String>(config, timeSource, true);
       }
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
         return new ByValueOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), new JavaSerializer<String>(getClass().getClassLoader()));
-      }
-
-      @Override
-      public Store.Provider newProvider() {
-        Store.Provider service = new OnHeapStore.Provider();
-        ServiceLocator locator = getServiceProvider();
-        locator.addService(service);
-        return service;
-      }
-
-      @Override
-      public Store.Configuration<String, String> newConfiguration(
-          final Class<String> keyType, final Class<String> valueType, final Long capacityConstraint,
-          final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer) {
-        return new StoreConfigurationImpl<String, String>(keyType, valueType,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacityConstraint));
-      }
-
-      @Override
-      public Store.Configuration<String, String> newConfiguration(
-          final Class<String> keyType, final Class<String> valueType, final Long capacityConstraint,
-          final EvictionVeto<? super String, ? super String> evictionVeto, final EvictionPrioritizer<? super String, ? super String> evictionPrioritizer,
-          final Expiry<? super String, ? super String> expiry) {
-        return new StoreConfigurationImpl<String, String>(keyType, valueType,
-            evictionVeto, evictionPrioritizer, ClassLoader.getSystemClassLoader(), expiry, buildResourcePools(capacityConstraint));
       }
 
       private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {

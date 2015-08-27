@@ -18,6 +18,7 @@ package org.ehcache.config;
 
 import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.serialization.Serializer;
 
 /**
  *
@@ -32,16 +33,19 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   private final ClassLoader classLoader;
   private final Expiry<? super K, ? super V> expiry;
   private final ResourcePools resourcePools;
-
-  public StoreConfigurationImpl(CacheConfiguration<K, V> cacheConfig) {
+  private final Serializer<K> keySerializer;
+  private final Serializer<V> valueSerializer;
+  
+  public StoreConfigurationImpl(CacheConfiguration<K, V> cacheConfig, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
     this(cacheConfig.getKeyType(), cacheConfig.getValueType(),
             cacheConfig.getEvictionVeto(), cacheConfig.getEvictionPrioritizer(), cacheConfig.getClassLoader(),
-        cacheConfig.getExpiry(), cacheConfig.getResourcePools());
+        cacheConfig.getExpiry(), cacheConfig.getResourcePools(), keySerializer, valueSerializer);
   }
 
   public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType,
           EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
-          ClassLoader classLoader, Expiry<? super K, ? super V> expiry, ResourcePools resourcePools) {
+          ClassLoader classLoader, Expiry<? super K, ? super V> expiry, ResourcePools resourcePools,
+          Serializer<K> keySerializer, Serializer<V> valueSerializer) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.evictionVeto = evictionVeto;
@@ -49,6 +53,8 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
     this.classLoader = classLoader;
     this.expiry = expiry;
     this.resourcePools = resourcePools;
+    this.keySerializer = keySerializer;
+    this.valueSerializer = valueSerializer;
   }
 
   @Override
@@ -84,5 +90,15 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   @Override
   public ResourcePools getResourcePools() {
     return resourcePools;
+  }
+
+  @Override
+  public Serializer<K> getKeySerializer() {
+    return keySerializer;
+  }
+
+  @Override
+  public Serializer<V> getValueSerializer() {
+    return valueSerializer;
   }
 }

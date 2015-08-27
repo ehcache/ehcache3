@@ -22,7 +22,6 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.StoreConfigurationImpl;
-import org.ehcache.config.persistence.PersistentStoreConfigurationImpl;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
@@ -38,8 +37,12 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
+import org.ehcache.spi.serialization.SerializationProvider;
+import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.LocalPersistenceService;
+import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
@@ -49,6 +52,7 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.context.annotations.ContextAttribute;
 import org.terracotta.statistics.StatisticsManager;
 
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,6 +69,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.ehcache.config.ResourceType.Core.DISK;
+import static org.ehcache.config.ResourceType.Core.OFFHEAP;
+import static org.ehcache.util.LifeCycleUtils.closerFor;
 
 /**
  * @author Alex Snaps
@@ -154,9 +161,9 @@ public class EhcacheManager implements PersistentCacheManager {
     ehcache.close();
     if (diskTransient) {
       try {
-        destroyPersistenceContext(alias);
+        destroyPersistenceSpace(alias);
       } catch (CachePersistenceException e) {
-        LOGGER.debug("Unable to clear persistent context for cache {}", alias, e);
+        LOGGER.debug("Unable to clear persistence space for cache {}", alias, e);
       }
     }
     LOGGER.info("Cache '{}' is closed from EhcacheManager.", alias);
@@ -242,10 +249,54 @@ public class EhcacheManager implements PersistentCacheManager {
     List<LifeCycled> lifeCycledList = new ArrayList<LifeCycled>();
 
     final Store.Provider storeProvider = serviceLocator.getService(Store.Provider.class);
-    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<K, V>(config);
     if (config.getResourcePools().getResourceTypeSet().contains(ResourceType.Core.DISK)) {
-      storeConfiguration = new PersistentStoreConfigurationImpl<K, V>(storeConfiguration, alias);
+      LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
+      
+      if (!config.getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
+        try {
+          persistenceService.destroyPersistenceSpace(alias);
+        } catch (CachePersistenceException cpex) {
+          throw new RuntimeException("Unable to clean-up persistence space for non-restartable cache " + alias, cpex);
+        }
+      }
+      try {
+        PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(alias);
+        serviceConfigs = Arrays.copyOf(serviceConfigs, serviceConfigs.length + 1);
+        serviceConfigs[serviceConfigs.length - 1] = space;
+      } catch (CachePersistenceException cpex) {
+        throw new RuntimeException("Unable to create persistence space for cache " + alias, cpex);
+      }
     }
+    Serializer<K> keySerializer = null;
+    Serializer<V> valueSerializer = null;
+    SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
+    if (serialization != null) {
+      try {
+        keySerializer = serialization.createKeySerializer(keyType, config.getClassLoader(), serviceConfigs);
+        try {
+          valueSerializer = serialization.createValueSerializer(valueType, config.getClassLoader(), serviceConfigs);
+        } catch (UnsupportedTypeException e) {
+          try {
+            keySerializer.close();
+          } catch (IOException f) {
+            LOGGER.warn("Exception shutting down key serializer, after value serializer was unavailable.", f);
+          } finally {
+            keySerializer = null;
+          }
+          throw e;
+        }
+        lifeCycledList.add(closerFor(keySerializer));
+        lifeCycledList.add(closerFor(valueSerializer));
+      } catch (UnsupportedTypeException e) {
+        Set<ResourceType> resources = config.getResourcePools().getResourceTypeSet();
+        if (resources.contains(DISK) || resources.contains(OFFHEAP)) {
+          throw new RuntimeException(e);
+        } else {
+          LOGGER.info("Could not create serializers for " + alias, e);
+        }
+      }
+    }
+    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<K, V>(config, keySerializer, valueSerializer);
     final Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigs);
 
     lifeCycledList.add(new LifeCycled() {
@@ -501,7 +552,7 @@ public class EhcacheManager implements PersistentCacheManager {
         @Override
         public void destroy() {
           EhcacheManager.this.destroy();
-          persistenceService.destroyAllPersistenceContext();
+          persistenceService.destroyAllPersistenceSpaces();
         }
 
         @Override
@@ -541,13 +592,13 @@ public class EhcacheManager implements PersistentCacheManager {
         ehcache.close();
       }
     }
-    destroyPersistenceContext(alias);
+    destroyPersistenceSpace(alias);
     LOGGER.info("Cache '{}' is successfully destroyed in EhcacheManager.", alias);
   }
 
-  private void destroyPersistenceContext(String alias) throws CachePersistenceException {
+  private void destroyPersistenceSpace(String alias) throws CachePersistenceException {
     LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
-    persistenceService.destroyPersistenceContext(alias);
+    persistenceService.destroyPersistenceSpace(alias);
   }
 
   // for tests at the moment

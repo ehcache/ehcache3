@@ -52,8 +52,7 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongReturnValueType() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
-        .all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
 
     if (factory.getValueType() == Object.class) {
       System.err.println("Warning, store uses Object as value type, cannot verify in this configuration");
@@ -89,7 +88,7 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongKeyType() throws Exception {
-    kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore2 = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
 
     if (factory.getKeyType() == Object.class) {
       System.err.println("Warning, store uses Object as key type, cannot verify in this configuration");
@@ -124,7 +123,7 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testNullReturnRemovesEntry() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
 
     final K key = factory.createKey(1);
     final V value = factory.createValue(1);
@@ -147,7 +146,7 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testComputePutsValueInStoreWhenKeyIsPresent() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
     final K key = factory.createKey(1);
     final V value = factory.createValue(1);
     final V value2 = factory.createValue(2);
@@ -168,7 +167,7 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testFunctionNotCalledWhenAbsent() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
     final K key = factory.createKey(1L);
 
     try {
@@ -186,7 +185,7 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testException() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
 
     final K key = factory.createKey(1);
     final V value = factory.createValue(1);

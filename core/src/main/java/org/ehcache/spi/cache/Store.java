@@ -32,6 +32,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import org.ehcache.spi.serialization.Serializer;
 
 /**
  * The Service Provider Interface is what a {@link org.ehcache.Cache Cache} instance requires to be able to store
@@ -503,14 +504,10 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      * The resource pools this store can make use of
      */
     ResourcePools getResourcePools();
-  }
-
-  interface PersistentStoreConfiguration<K, V, T> extends Configuration<K, V> {
-
-    T getIdentifier();
-
-    boolean isPersistent();
-
+    
+    Serializer<K> getKeySerializer();
+    
+    Serializer<V> getValueSerializer();
   }
 
   /**

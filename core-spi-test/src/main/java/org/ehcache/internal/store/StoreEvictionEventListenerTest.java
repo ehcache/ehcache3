@@ -66,8 +66,7 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testPutOnEviction() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null));
+    kvStore = factory.newStoreWithCapacity(1L);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
@@ -79,8 +78,7 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testPutIfAbsentOnEviction() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null));
+    kvStore = factory.newStoreWithCapacity(1L);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
@@ -93,8 +91,7 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testReplaceTwoArgsOnEviction() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null));
+    kvStore = factory.newStoreWithCapacity(1L);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
@@ -108,8 +105,7 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testComputeOnEviction() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null));
+    kvStore = factory.newStoreWithCapacity(1L);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
@@ -126,8 +122,7 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testComputeIfAbsentOnEviction() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null));
+    kvStore = factory.newStoreWithCapacity(1L);
     TestStoreEventListener listener = new TestStoreEventListener();
     kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);

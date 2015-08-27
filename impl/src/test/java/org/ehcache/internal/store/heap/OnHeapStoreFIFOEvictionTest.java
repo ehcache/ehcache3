@@ -33,6 +33,7 @@ import org.junit.Test;
 import java.io.Serializable;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import org.ehcache.spi.serialization.Serializer;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
@@ -138,12 +139,22 @@ public class OnHeapStoreFIFOEvictionTest {
       public ResourcePools getResourcePools() {
         return newResourcePoolsBuilder().heap(storeSize, EntryUnit.ENTRIES).build();
       }
+
+      @Override
+      public Serializer<K> getKeySerializer() {
+        throw new AssertionError();
+      }
+
+      @Override
+      public Serializer<V> getValueSerializer() {
+        throw new AssertionError();
+      }
     }, timeSource);
   }
 
   static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
-      super(config, timeSource, false, null, null);
+      super(config, timeSource, false);
     }
   }
 }

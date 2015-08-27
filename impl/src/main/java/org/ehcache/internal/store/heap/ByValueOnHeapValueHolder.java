@@ -41,11 +41,7 @@ class ByValueOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
     }
     this.serializer = serializer;
     this.hash = value.hashCode();
-    try {
-      this.buffer = serializer.serialize(value).asReadOnlyBuffer();
-    } catch (IOException ioe) {
-      throw new SerializerException(ioe);
-    }
+    this.buffer = serializer.serialize(value).asReadOnlyBuffer();
   }
 
   protected ByValueOnHeapValueHolder(Store.ValueHolder<V> valueHolder, Serializer<V> serializer) {
@@ -58,8 +54,6 @@ class ByValueOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   public final V value() {
     try {
       return serializer.read(buffer.duplicate());
-    } catch (IOException ioe) {
-      throw new SerializerException(ioe);
     } catch (ClassNotFoundException cnfe) {
       throw new SerializerException(cnfe);
     }
@@ -75,8 +69,6 @@ class ByValueOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
     if (!super.equals(that)) return false;
     try {
       if (!serializer.equals(that.value(), buffer)) return false;
-    } catch (IOException ioe) {
-      throw new SerializerException(ioe);
     } catch (ClassNotFoundException cnfe) {
       throw new SerializerException(cnfe);
     }
