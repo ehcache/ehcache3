@@ -82,6 +82,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import org.w3c.dom.Element;
 
 /**
  *
@@ -441,7 +442,22 @@ public class XmlConfigurationTest {
     assertThat(serviceConfig, instanceOf(PersistenceConfiguration.class));
 
     PersistenceConfiguration persistenceConfiguration = (PersistenceConfiguration)serviceConfig;
-    assertThat(persistenceConfiguration.getRootDirectory(), is(new File("/some/dir")));
+    assertThat(persistenceConfiguration.getRootDirectory(), is(new File("   \n\t/my/caching/persistence  directory\r\n      ")));
+  }
+
+  @Test
+  public void testPersistenceConfigXmlPersistencePathHasWhitespaces() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/persistence-config.xml");
+    DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+    DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+    Document doc = dBuilder.parse(new File(resource.toURI()));
+
+    Element persistence = (Element) doc.getElementsByTagName("ehcache:persistence").item(0);
+    String directoryValue = persistence.getAttribute("directory");
+    assertThat(directoryValue, containsString(" "));
+    assertThat(directoryValue, containsString("\r"));
+    assertThat(directoryValue, containsString("\n"));
+    assertThat(directoryValue, containsString("\t"));
   }
   
   @Test
