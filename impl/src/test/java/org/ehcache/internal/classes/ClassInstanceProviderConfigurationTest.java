@@ -33,10 +33,10 @@ public class ClassInstanceProviderConfigurationTest {
     ClassInstanceProviderConfiguration<String> classInstanceProviderFactoryConfig = new ClassInstanceProviderConfiguration<String>();
 
     for (int i = 0; i < 100; i++) {
-      classInstanceProviderFactoryConfig.getDefaults().put("" + i, String.class);
+      classInstanceProviderFactoryConfig.getDefaults().put("" + i, new ClassInstanceConfiguration<String>(String.class));
     }
 
-    Map<String, Class<? extends String>> defaults = classInstanceProviderFactoryConfig.getDefaults();
+    Map<String, ClassInstanceConfiguration<String>> defaults = classInstanceProviderFactoryConfig.getDefaults();
     Iterator<String> iterator = defaults.keySet().iterator();
     for (int i = 0; i < defaults.size(); i++) {
       assertThat("" + i, equalTo(iterator.next()));

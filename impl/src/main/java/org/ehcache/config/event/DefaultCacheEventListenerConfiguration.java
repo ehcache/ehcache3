@@ -36,8 +36,8 @@ public class DefaultCacheEventListenerConfiguration extends ClassInstanceConfigu
   private EventOrdering eventOrderingMode = EventOrdering.UNORDERED;
   private EnumSet<EventType> eventsToFireOn;
 
-  public DefaultCacheEventListenerConfiguration(final Class<? extends CacheEventListener<?, ?>> clazz) {
-    super(clazz);
+  public DefaultCacheEventListenerConfiguration(final Class<? extends CacheEventListener<?, ?>> clazz, Object... arguments) {
+    super(clazz, arguments);
   }
 
   @Override

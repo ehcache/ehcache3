@@ -34,7 +34,7 @@ public class ClassInstanceProviderTest {
   public void testNewInstanceUsingAliasAndNoArgs() throws Exception {
     ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>(null, (Class)ClassInstanceConfiguration.class);
 
-    classInstanceProvider.preconfiguredLoaders.put("test stuff", TestService.class);
+    classInstanceProvider.preconfiguredLoaders.put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class));
     TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration) null);
 
     assertThat(obj.theString, is(nullValue()));
@@ -44,8 +44,8 @@ public class ClassInstanceProviderTest {
   public void testNewInstanceUsingAliasAndArg() throws Exception {
     ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>(null, (Class)ClassInstanceConfiguration.class);
 
-    classInstanceProvider.preconfiguredLoaders.put("test stuff", TestService.class);
-    TestService obj = classInstanceProvider.newInstance("test stuff", null, new ClassInstanceProvider.ConstructorArgument<String>(String.class, "test string"));
+    classInstanceProvider.preconfiguredLoaders.put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class, "test string"));
+    TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration<?>) null);
 
     assertThat(obj.theString, equalTo("test string"));
   }
@@ -63,7 +63,7 @@ public class ClassInstanceProviderTest {
   @Test
   public void testNewInstanceUsingServiceConfigFactory() throws Exception {
     TestServiceProviderConfiguration factoryConfig = new TestServiceProviderConfiguration();
-    factoryConfig.getDefaults().put("test stuff", TestService.class);
+    factoryConfig.getDefaults().put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class));
 
     ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>(factoryConfig, (Class)ClassInstanceConfiguration.class);
     classInstanceProvider.start(null);

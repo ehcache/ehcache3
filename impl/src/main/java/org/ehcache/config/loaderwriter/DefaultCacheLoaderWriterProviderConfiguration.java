@@ -31,8 +31,8 @@ public class DefaultCacheLoaderWriterProviderConfiguration extends ClassInstance
     return CacheLoaderWriterProvider.class;
   }
 
-  public DefaultCacheLoaderWriterProviderConfiguration addLoaderFor(String alias, final Class<? extends CacheLoaderWriter<?, ?>> clazz) {
-    getDefaults().put(alias, clazz);
+  public DefaultCacheLoaderWriterProviderConfiguration addLoaderFor(String alias, Class<? extends CacheLoaderWriter<?, ?>> clazz, Object... arguments) {
+    getDefaults().put(alias, new DefaultCacheLoaderWriterConfiguration(clazz, arguments));
     return this;
   }
 }
