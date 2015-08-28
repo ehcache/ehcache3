@@ -14,3 +14,4 @@ org.ehcache.internal.persistence.DefaultLocalPersistenceServiceFactory
 org.ehcache.loaderwriter.writebehind.WriteBehindDecoratorLoaderWriterProviderFactory
 org.ehcache.internal.events.CacheEventNotificationListenerServiceProviderFactory
 org.ehcache.spi.copy.DefaultCopyProviderFactory
+org.ehcache.internal.events.EventDispatchProviderFactory

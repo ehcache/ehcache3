@@ -28,40 +28,26 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class CacheEventWrapper<K, V> {
 
-  CacheEvent<K, V> cacheEvent;
-  
-  Lock lock = new ReentrantLock();
-  Condition fireableCondition;
-  Condition processedCondition;
-  AtomicBoolean fireable;
-  AtomicBoolean failed;
-  AtomicBoolean processed;
-  
+  public CacheEvent<K, V> cacheEvent;
+  Condition firedEventCondition;
+  private Lock lock = new ReentrantLock();
+  private AtomicBoolean fireable;
+  private AtomicBoolean failed;
+  private AtomicBoolean fired;
+
   public CacheEventWrapper(CacheEvent<K, V> cacheEvent) {
     this.cacheEvent = cacheEvent;
-    fireableCondition  = lock.newCondition();
-    processedCondition = lock.newCondition();
+    firedEventCondition = lock.newCondition();
     fireable = new AtomicBoolean(false);
     failed = new AtomicBoolean(false);
-    processed = new AtomicBoolean(false);
+    fired = new AtomicBoolean(false);
   }
-  
+
   /**
    * This marks events fireable atomically
    */
   public void markFireable() {
-    lockEvent();
-    try {
-      while (!isProcessed()) {
-        fireable.set(true);
-        fireableCondition.signal();
-        processedCondition.await();
-      }
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    } finally {
-      unlockEvent();
-    }
+    fireable.set(true);
   }
 
   /**
@@ -85,22 +71,24 @@ public class CacheEventWrapper<K, V> {
    *
    * @return {@code true} if marked failed
    */
-  Boolean hasFailed() {
+  public Boolean hasFailed() {
     return this.failed.get();
   }
 
   /**
-   * This marks events as processed atomically
+   * This marks events as fired atomically
    */
-  void markProcessed() {
-    this.processed.set(true);
+  void markFired() {
+    this.fired.set(true);
   }
 
   /**
-   * This marks events as processed atomically
+   * Check if the event is marked fired
+   *
+   * @return {@code true} if marked fired
    */
-  Boolean isProcessed() {
-    return processed.get();
+  public Boolean isFired() {
+    return fired.get();
   }
 
   /**

@@ -13,25 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.events;
 
-package org.ehcache;
-
+import java.util.concurrent.Future;
 /**
  * @author rism
  */
-public enum CacheConfigurationProperty {
-  /**
-   * used to update size of ResourcePool in RuntimeConfig
-   */
-  UPDATESIZE,
-
-  /**
-   * used to register new {@link org.ehcache.event.CacheEventListener}
-   */
-  ADDLISTENER,
-
-  /**
-   * used to remove {@link org.ehcache.event.CacheEventListener}
-   */
-  REMOVELISTENER
+public interface EventDispatcher<K, V> {
+  Future<?> dispatch(CacheEventWrapper<K, V> cacheEventWrapper, Iterable<EventListenerWrapper> listenerWrappers);
 }

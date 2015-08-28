@@ -26,6 +26,7 @@ import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.events.CacheEventNotificationService;
+import org.ehcache.events.EventListenerWrapper;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.util.ResourcePoolMerger;
@@ -136,13 +137,14 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
 
   @Override
   public synchronized void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener) {
-    eventNotificationService.deregisterCacheEventListener(listener);
+    fireCacheConfigurationChange(CacheConfigurationProperty.REMOVELISTENER, listener, listener);
   }
 
   @Override
   public synchronized void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering,
                                                       EventFiring firing, Set<EventType> forEventTypes) {
-    eventNotificationService.registerCacheEventListener(listener, ordering, firing, EnumSet.copyOf(forEventTypes));
+    EventListenerWrapper listenerWrapper = new EventListenerWrapper(listener, firing, ordering, EnumSet.copyOf(forEventTypes));
+    fireCacheConfigurationChange(CacheConfigurationProperty.ADDLISTENER, listenerWrapper, listenerWrapper);
   }
 
   private <T> Collection<T> copy(Collection<T> collection) {

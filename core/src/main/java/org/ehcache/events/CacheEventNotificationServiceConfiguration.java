@@ -14,24 +14,19 @@
  * limitations under the License.
  */
 
-package org.ehcache;
+package org.ehcache.events;
+
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author rism
  */
-public enum CacheConfigurationProperty {
-  /**
-   * used to update size of ResourcePool in RuntimeConfig
-   */
-  UPDATESIZE,
+public interface CacheEventNotificationServiceConfiguration extends ServiceConfiguration<CacheEventNotificationListenerServiceProvider> {
 
   /**
-   * used to register new {@link org.ehcache.event.CacheEventListener}
+   * Indicates the number of queues processing CacheEvents
+   * 
+   * @return the number of queues
    */
-  ADDLISTENER,
-
-  /**
-   * used to remove {@link org.ehcache.event.CacheEventListener}
-   */
-  REMOVELISTENER
+  int getNumberOfEventProcessingQueues();
 }

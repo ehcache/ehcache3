@@ -13,25 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.internal.events;
 
-package org.ehcache;
+import org.ehcache.events.EventDispatchProvider;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.spi.service.ServiceFactory;
 
 /**
  * @author rism
  */
-public enum CacheConfigurationProperty {
-  /**
-   * used to update size of ResourcePool in RuntimeConfig
-   */
-  UPDATESIZE,
+public class EventDispatchProviderFactory implements ServiceFactory<EventDispatchProvider> {
+  @Override
+  public EventDispatchProvider create(ServiceCreationConfiguration<EventDispatchProvider> configuration) {
+    return new EventDispatchProviderImpl();
+  }
 
-  /**
-   * used to register new {@link org.ehcache.event.CacheEventListener}
-   */
-  ADDLISTENER,
-
-  /**
-   * used to remove {@link org.ehcache.event.CacheEventListener}
-   */
-  REMOVELISTENER
+  @Override
+  public Class<EventDispatchProvider> getServiceType() {
+    return EventDispatchProvider.class;
+  }
 }

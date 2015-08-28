@@ -33,15 +33,11 @@ import org.mockito.internal.verification.NoMoreInteractions;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.Iterator;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
-import static org.hamcrest.Matchers.anyOf;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doAnswer;
@@ -70,7 +66,8 @@ public class CacheEventNotificationServiceImplTest {
     unorderedExecutor = Executors.newCachedThreadPool();
     store = mock(Store.class);
     TimeSource timeSource = SystemTimeSource.INSTANCE;
-    eventService = new CacheEventNotificationServiceImpl<Number, String>(orderedExecutor, unorderedExecutor, store, timeSource);
+    eventService = new CacheEventNotificationServiceImpl<Number, String>(store, new OrderedEventDispatcher<Number, String>(orderedExecutor),
+        new UnorderedEventDispatcher<Number, String>(unorderedExecutor), timeSource);
     listener = mock(CacheEventListener.class);
   }
 
@@ -92,10 +89,7 @@ public class CacheEventNotificationServiceImplTest {
     eventService.onEvent(create);
     eventService.onEvent(update);
 
-    for (CacheEventWrapper cacheEventWrapper : EventThreadLocal.get()) {
-      cacheEventWrapper.markFireable();
-    }
-    
+    eventService.fireAllEvents();
     InOrder order = inOrder(listener);
     order.verify(listener).onEvent(remove);
     order.verify(listener).onEvent(create);
@@ -111,39 +105,11 @@ public class CacheEventNotificationServiceImplTest {
     for (CacheEvent<Number, String> event: expectedEvents) {
       eventService.onEvent(event);
     }
-    for (final CacheEventWrapper cacheEventWrapper : EventThreadLocal.get()) {
-      cacheEventWrapper.markFireable();
-    }
+    eventService.fireAllEvents();
     verify(listener).onEvent(expectedEvents[2]);
     verify(listener).onEvent(expectedEvents[1]);
     verify(listener).onEvent(expectedEvents[0]);
     verify(listener, new NoMoreInteractions()).onEvent(any(CacheEvent.class));
-  }
-
-  @Test
-  public void testSyncEventFiring() throws Exception {
-    final CountDownLatch signal = new CountDownLatch(1);
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        signal.await();
-        return null;
-      }
-      
-    }).when(listener).onEvent(any(CacheEvent.class));
-    eventService.registerCacheEventListener(listener, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.CREATED));
-    final CacheEvent<Number, String> create = eventOfType(EventType.CREATED);
-    
-    ExecutorService runner = Executors.newSingleThreadExecutor();
-    Future<?> result = runner.submit(new Runnable() {
-      public void run() {
-        eventService.onEvent(create);
-      }
-    });
-    assertThat(result.isDone(), is(false));
-    signal.countDown();
-    result.get();
-    runner.shutdown();
   }
   
   @Test
@@ -176,9 +142,7 @@ public class CacheEventNotificationServiceImplTest {
     
     CacheEvent<Number, String> evict = eventOfType(EventType.EVICTED);
     eventService.onEvent(evict);
-    for (CacheEventWrapper cacheEventWrapper : EventThreadLocal.get()) {
-      cacheEventWrapper.markFireable();
-    }
+    eventService.fireAllEvents();
     verify(listener).onEvent(evict);
   }
   
@@ -198,19 +162,15 @@ public class CacheEventNotificationServiceImplTest {
     eventService.registerCacheEventListener(listener, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EVICTED));
     CacheEvent<Number, String> evict = eventOfType(EventType.EVICTED);
     eventService.onEvent(evict);
-    for (CacheEventWrapper cacheEventWrapper : EventThreadLocal.get()) {
-      cacheEventWrapper.markFireable();
-    }
+    eventService.fireAllEvents();
     verify(listener).onEvent(evict);
 
     eventService.deregisterCacheEventListener(listener);
     eventService.onEvent(evict);
-    for (CacheEventWrapper cacheEventWrapper : EventThreadLocal.get()) {
-      cacheEventWrapper.markFireable();
-    }
+    eventService.fireAllEvents();
     verify(listener, new NoMoreInteractions()).onEvent(any(CacheEvent.class));
   }
-  
+
   @Test
   public void testReleaseAllStopsNotification() {
     eventService.registerCacheEventListener(listener, 
@@ -225,22 +185,16 @@ public class CacheEventNotificationServiceImplTest {
     CacheEvent<Number, String> remove = eventOfType(EventType.REMOVED);
     eventService.onEvent(remove);
 
-    for (CacheEventWrapper cacheEventWrapper : EventThreadLocal.get()) {
-      cacheEventWrapper.markFireable();
-    }
-    
+    eventService.fireAllEvents();
     verify(listener).onEvent(create);
     verify(otherLsnr).onEvent(remove);
-    
+
     eventService.releaseAllListeners();
 
     eventService.onEvent(create);
     eventService.onEvent(remove);
 
-    for (CacheEventWrapper cacheEventWrapper : EventThreadLocal.get()) {
-      cacheEventWrapper.markFireable();
-    }
-
+    eventService.fireAllEvents();
     verify(listener, new NoMoreInteractions()).onEvent(any(CacheEvent.class));
     verify(otherLsnr, new NoMoreInteractions()).onEvent(any(CacheEvent.class));
   }

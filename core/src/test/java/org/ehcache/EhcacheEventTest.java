@@ -20,6 +20,7 @@ import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfiguration
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
@@ -43,13 +44,11 @@ import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
 import org.mockito.InOrder;
-import org.mockito.internal.verification.NoMoreInteractions;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
@@ -61,7 +60,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
-import static org.mockito.Mockito.verifyZeroInteractions;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class EhcacheEventTest {
@@ -81,12 +79,6 @@ public class EhcacheEventTest {
     cache = new Ehcache<Number, String>(
         cacheConfiguration, store, loaderWriter, eventNotifier, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheEventTest"));
     cache.init();
-  }
-  
-  @After
-  public void tearDown() {
-    // Make sure no more events have been sent
-    verify(eventNotifier, new NoMoreInteractions()).onEvent(any(CacheEvent.class));
   }
 
   @Test
@@ -109,7 +101,7 @@ public class EhcacheEventTest {
       }
     });
     cache.put(key, value);
-    verifyZeroInteractions(eventNotifier);
+    verify(eventNotifier, times(1)).processAndFireRemainingEvents();
   }
 
   @Test

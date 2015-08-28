@@ -21,6 +21,7 @@ import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.config.xml.model.BaseCacheType;
+import org.ehcache.config.xml.model.CacheIntegration;
 import org.ehcache.config.xml.model.CacheIntegrationType;
 import org.ehcache.config.xml.model.CacheTemplateType;
 import org.ehcache.config.xml.model.CacheType;
@@ -355,6 +356,20 @@ class ConfigurationParser {
             }
             return null;
           }
+
+          @Override
+          public Integer eventProcessingQueues() {
+            Integer eventProcessingQueueCount = null;
+            for (BaseCacheType source : sources) {
+              final CacheIntegration integration = source.getIntegration();
+              final CacheIntegration.EventProcessingQueues eventProcessingQueues = integration != null ? integration.getEventProcessingQueues() : null;
+              if (eventProcessingQueues != null) {
+                eventProcessingQueueCount = eventProcessingQueues.getCount();
+                break;
+              }
+            }
+            return eventProcessingQueueCount != null ? eventProcessingQueueCount : null;
+          }
         });
       }
     }
@@ -543,6 +558,13 @@ class ConfigurationParser {
             final CacheIntegrationType.WriteBehind writebehind = integration != null ? integration.getWriteBehind(): null;
             return writebehind != null ? new XmlWriteBehind(writebehind) : null;
           }
+
+          @Override
+          public Integer eventProcessingQueues() {
+            final CacheIntegration integration = cacheTemplate.getIntegration();
+            final CacheIntegration.EventProcessingQueues eventProcessingQueues = integration != null ? integration.getEventProcessingQueues(): null;
+            return eventProcessingQueues != null ? eventProcessingQueues() : null;
+          }
         });
       }
     }
@@ -622,6 +644,8 @@ class ConfigurationParser {
     Iterable<ResourcePool> resourcePools();
     
     WriteBehind writeBehind();
+
+    Integer eventProcessingQueues();
 
   }
 

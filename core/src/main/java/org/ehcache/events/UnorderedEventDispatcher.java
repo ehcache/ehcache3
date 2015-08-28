@@ -13,25 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.events;
 
-package org.ehcache;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 /**
  * @author rism
  */
-public enum CacheConfigurationProperty {
-  /**
-   * used to update size of ResourcePool in RuntimeConfig
-   */
-  UPDATESIZE,
+public class UnorderedEventDispatcher<K, V> implements EventDispatcher<K, V> {
+  private ExecutorService executorService;
 
-  /**
-   * used to register new {@link org.ehcache.event.CacheEventListener}
-   */
-  ADDLISTENER,
+  public UnorderedEventDispatcher(ExecutorService executorService) {
+    this.executorService = executorService;
+  }
 
-  /**
-   * used to remove {@link org.ehcache.event.CacheEventListener}
-   */
-  REMOVELISTENER
+  @Override
+  public Future<?> dispatch(CacheEventWrapper<K, V> cacheEventWrapper, Iterable<EventListenerWrapper> listenerWrappers) {
+    return executorService.submit(new EventDispatchTask<K, V>(cacheEventWrapper, listenerWrappers));
+  }
 }
