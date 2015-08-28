@@ -18,6 +18,8 @@ package org.ehcache.config.writebehind;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
 
+import static java.lang.String.format;
+
 /**
  * @author Geert Bevin
  * @author Chris Dennis
@@ -89,17 +91,20 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
     return writeBehindMaxQueueSize;
   }
 
-  public void setMinWriteDelay(int minWriteDelay) {
-    if(minWriteDelay < 1) {
+  public void setWriteDelays(Integer minWriteDelay, Integer maxWriteDelay) {
+    minWriteDelay = minWriteDelay != null ? minWriteDelay : 1;
+    maxWriteDelay = maxWriteDelay != null ? maxWriteDelay : 1;
+    if (minWriteDelay < 1) {
       throw new IllegalArgumentException("Minimum write delay seconds cannot be less then 1.");
     }
-    this.minWriteDelay = minWriteDelay;
-  }
-
-  public void setMaxWriteDelay(int maxWriteDelay) {
-    if(maxWriteDelay < 1) {
+    if (maxWriteDelay < 1) {
       throw new IllegalArgumentException("Maximum write delay seconds cannot be less then 1.");
     }
+    if (maxWriteDelay < minWriteDelay) {
+      throw new IllegalArgumentException(
+          format("Maximum write delay (%d seconds) must be equal or greater than minimum write delay (%d seconds)", maxWriteDelay, minWriteDelay));
+    }
+    this.minWriteDelay = minWriteDelay;
     this.maxWriteDelay = maxWriteDelay;
   }
 
