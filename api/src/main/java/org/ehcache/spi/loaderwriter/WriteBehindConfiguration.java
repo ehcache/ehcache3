@@ -23,70 +23,80 @@ import org.ehcache.spi.service.ServiceConfiguration;
  */
 public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehindDecoratorLoaderWriterProvider> {
   /**
-   * the minimum number of seconds to wait before writing behind
+   * The minimum number of seconds to wait before writing behind.
+   *
+   * Lower than or equal to {@see getMaxWriteDelay}.
    *
    * @return Retrieves the minimum number of seconds to wait before writing behind
    */
   int getMinWriteDelay();
 
   /**
-   * the maximum number of seconds to wait before writing behind
+   * The maximum number of seconds to wait before writing behind.
+   *
+   * Greater than or equal to {@see getMinWriteDelay}
    *
    * @return Retrieves the maximum number of seconds to wait before writing behind
    */
   int getMaxWriteDelay();
 
   /**
-   * the maximum number of write operations to allow per second.
+   * The maximum number of write operations to allow per second.
+   *
+   * {@code 0} means no limit.
    *
    * @return Retrieves the maximum number of write operations to allow per second.
    */
   int getRateLimitPerSecond();
 
   /**
-   * whether write operations should be batched
+   * Whether write operations should be batched.
    *
    * @return Retrieves whether write operations should be batched
    */
   boolean isWriteBatching();
 
   /**
-   * write coalescing behavior
+   * Whether write operations can be coalesced.
    *
    * @return Retrieves the write coalescing behavior is enabled or not
    */
   boolean isWriteCoalescing();
 
   /**
-   * the size of the batch operation.
+   * The recommended size of a batch of operations.
+   *
+   * Real batch size will be influenced by arrival frequency of operations and max write delay.
    *
    * @return Retrieves the size of the batch operation.
    */
   int getWriteBatchSize();
 
   /**
-   * the number of times the write of element is retried.
+   * The number of times the write of a mapping is retried in case it fails.
    *
    * @return Retrieves the number of times the write of element is retried.
    */
   int getRetryAttempts();
 
   /**
-   * the number of seconds to wait before retrying an failed operation.
+   * The number of seconds to wait before retrying an failed operation.
    *
    * @return Retrieves the number of seconds to wait before retrying an failed operation.
    */
   int getRetryAttemptDelaySeconds();
 
   /**
-   * the amount of bucket/thread pairs configured for this cache's write behind
+   * The amount of bucket/thread pairs configured for this cache's write behind.
    *
    * @return Retrieves the amount of bucket/thread pairs configured for this cache's write behind
    */
   int getWriteBehindConcurrency();
 
   /**
-   * the maximum amount of operations allowed on the write behind queue
+   * The maximum amount of operations allowed on the write behind queue.
+   *
+   * {@code 0} indicates an unbound queue.
    *
    * @return Retrieves the maximum amount of operations allowed on the write behind queue
    */
