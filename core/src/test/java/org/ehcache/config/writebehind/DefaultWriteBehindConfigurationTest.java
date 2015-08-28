@@ -31,8 +31,8 @@ public class DefaultWriteBehindConfigurationTest {
     DefaultWriteBehindConfiguration configuration = new DefaultWriteBehindConfiguration();
     configuration.setWriteDelays(null, null);
 
+    assertThat(configuration.getMinWriteDelay(), is(0));
     assertThat(configuration.getMaxWriteDelay(), is(1));
-    assertThat(configuration.getMinWriteDelay(), is(1));
   }
 
   @Test

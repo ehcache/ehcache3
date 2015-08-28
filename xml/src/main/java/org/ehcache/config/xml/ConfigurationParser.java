@@ -782,7 +782,7 @@ class ConfigurationParser {
 
     @Override
     public int minWriteDelay() {
-      return this.writebehind.getWritedelay() != null ? this.writebehind.getWritedelay().getMin().intValue() : 1 ;
+      return this.writebehind.getWritedelay() != null ? this.writebehind.getWritedelay().getMin().intValue() : 0 ;
     }
 
     @Override

@@ -27,7 +27,7 @@ import static java.lang.String.format;
  */
 public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration {
 
-  private int minWriteDelay = 1;
+  private int minWriteDelay = 0;
   private int maxWriteDelay = 1;
   private int rateLimitPerSecond = 0;
   private boolean writeCoalescing = false;
@@ -92,10 +92,10 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
   }
 
   public void setWriteDelays(Integer minWriteDelay, Integer maxWriteDelay) {
-    minWriteDelay = minWriteDelay != null ? minWriteDelay : 1;
+    minWriteDelay = minWriteDelay != null ? minWriteDelay : 0;
     maxWriteDelay = maxWriteDelay != null ? maxWriteDelay : 1;
-    if (minWriteDelay < 1) {
-      throw new IllegalArgumentException("Minimum write delay seconds cannot be less then 1.");
+    if (minWriteDelay < 0) {
+      throw new IllegalArgumentException("Minimum write delay seconds cannot be less then 0.");
     }
     if (maxWriteDelay < 1) {
       throw new IllegalArgumentException("Maximum write delay seconds cannot be less then 1.");
