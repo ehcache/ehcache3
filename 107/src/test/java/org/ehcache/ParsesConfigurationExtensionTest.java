@@ -27,6 +27,7 @@ import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.jsr107.DefaultJsr107Service;
 import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.service.Service;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -35,6 +36,7 @@ import com.pany.domain.Product;
 import com.pany.ehcache.integration.ProductCacheLoaderWriter;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -56,8 +58,8 @@ public class ParsesConfigurationExtensionTest {
   public void testConfigParse() throws ClassNotFoundException, SAXException, InstantiationException, IllegalAccessException, IOException {
     final XmlConfiguration configuration = new XmlConfiguration(this.getClass().getResource("/ehcache-107.xml"));
     final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, configuration.getServiceCreationConfigurations().toArray()));
-    final ServiceLocator serviceLocator = new ServiceLocator(jsr107Service);
-    final CacheManager cacheManager = new EhcacheManager(configuration, serviceLocator);
+
+    final CacheManager cacheManager = new EhcacheManager(configuration, Collections.<Service>singletonList(jsr107Service));
     cacheManager.init();
 
     assertThat(jsr107Service.getTemplateNameForCache("foos"), equalTo("stringCache"));
@@ -69,8 +71,8 @@ public class ParsesConfigurationExtensionTest {
   public void testXmlExample() throws ClassNotFoundException, SAXException, InstantiationException, IOException, IllegalAccessException {
     XmlConfiguration config = new XmlConfiguration(ParsesConfigurationExtensionTest.class.getResource("/ehcache-example.xml"));
     final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceCreationConfigurations().toArray()));
-    final ServiceLocator serviceLocator = new ServiceLocator(jsr107Service);
-    final CacheManager cacheManager = new EhcacheManager(config, serviceLocator);
+
+    final CacheManager cacheManager = new EhcacheManager(config, Collections.<Service>singletonList(jsr107Service));
     cacheManager.init();
 
     // test productCache
