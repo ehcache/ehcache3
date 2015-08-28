@@ -22,11 +22,11 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.ConfigurationBuilder;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
-import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -43,8 +43,7 @@ public class CacheManagerBuilder<T extends CacheManager> {
   private final Set<Service> services;
 
   public T build(final boolean init) {
-    ServiceLocator serviceLocator = new ServiceLocator(services.toArray(new Service[services.size()]));
-    final T cacheManager = newCacheManager(serviceLocator, configBuilder.build());
+    final T cacheManager = newCacheManager(services, configBuilder.build());
     if(init) {
       cacheManager.init();
     }
@@ -70,8 +69,8 @@ public class CacheManagerBuilder<T extends CacheManager> {
     return new EhcacheManager(configuration);
   }
 
-  T newCacheManager(final ServiceLocator serviceLocator, final Configuration configuration) {
-    final EhcacheManager ehcacheManager = new EhcacheManager(configuration, serviceLocator);
+  T newCacheManager(Collection<Service> services, final Configuration configuration) {
+    final EhcacheManager ehcacheManager = new EhcacheManager(configuration, services);
     return cast(ehcacheManager);
   }
   

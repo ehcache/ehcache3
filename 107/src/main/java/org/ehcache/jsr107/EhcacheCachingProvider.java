@@ -17,6 +17,8 @@ package org.ehcache.jsr107;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
 import java.util.WeakHashMap;
@@ -99,15 +101,15 @@ public class EhcacheCachingProvider implements CachingProvider {
         Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceCreationConfigurations().toArray()));
         ManagementRegistryCollectorService managementRegistryCollectorService = new ManagementRegistryCollectorService();
 
-        ServiceLocator serviceLocator = new ServiceLocator();
-        serviceLocator.addService(cacheLoaderWriterFactory);
-        serviceLocator.addService(jsr107Service);
+        Collection<Service> services = new ArrayList<Service>();
+        services.add(cacheLoaderWriterFactory);
+        services.add(jsr107Service);
         if(ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, config.getServiceCreationConfigurations().toArray()) == null) {
-          serviceLocator.addService(new DefaultJsr107SerializationProvider());
+          services.add(new DefaultJsr107SerializationProvider());
         }
-        serviceLocator.addService(managementRegistryCollectorService);
+        services.add(managementRegistryCollectorService);
        
-        EhcacheManager ehcacheManager = new EhcacheManager(config, serviceLocator, !jsr107Service.jsr107CompliantAtomics());
+        EhcacheManager ehcacheManager = new EhcacheManager(config, services, !jsr107Service.jsr107CompliantAtomics());
         ehcacheManager.init();
         cacheManager = new Eh107CacheManager(this, ehcacheManager, properties, classLoader, uri, cacheLoaderWriterFactory,
             config, jsr107Service, managementRegistryCollectorService.managementRegistry);

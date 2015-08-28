@@ -105,14 +105,14 @@ public class EhcacheManager implements PersistentCacheManager {
   private final EhcacheManagerStatsSettings ehcacheManagerStatsSettings = new EhcacheManagerStatsSettings(Collections.<String, Object>singletonMap("Setting", "CacheManagerName"));
 
   public EhcacheManager(Configuration config) {
-    this(config, new ServiceLocator(), true);
+    this(config, Collections.<Service>emptyList(), true);
   }
 
-  public EhcacheManager(Configuration config, ServiceLocator serviceLocator) {
-    this(config, serviceLocator, true);
+  public EhcacheManager(Configuration config, Collection<Service> services) {
+    this(config, services, true);
   }
-  public EhcacheManager(Configuration config, ServiceLocator serviceLocator, boolean useLoaderInAtomics) {
-    this.serviceLocator = serviceLocator;
+  public EhcacheManager(Configuration config, Collection<Service> services, boolean useLoaderInAtomics) {
+    this.serviceLocator = new ServiceLocator(services.toArray(new Service[services.size()]));
     this.useLoaderInAtomics = useLoaderInAtomics;
     this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
     this.configuration = config;
