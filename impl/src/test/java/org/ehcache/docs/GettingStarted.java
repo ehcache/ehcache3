@@ -46,7 +46,6 @@ import org.ehcache.internal.copy.ReadWriteCopier;
 import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -334,7 +333,6 @@ public class GettingStarted {
     // end::cacheCopiers[]
   }
 
-  @Ignore
   @Test
   public void cacheSerializingCopiers() throws Exception {
     // tag::cacheSerializingCopiers[]

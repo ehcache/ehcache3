@@ -31,7 +31,6 @@ import javax.cache.Caching;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.spi.CachingProvider;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.pany.domain.Customer;
@@ -58,7 +57,6 @@ public class EhCachingProviderTest {
     Caching.getCachingProvider().close();
   }
 
-  @Ignore
   @Test
   public void testCacheUsesCacheManagerClassLoaderForDefaultURI() {
     CachingProvider cachingProvider = Caching.getCachingProvider();

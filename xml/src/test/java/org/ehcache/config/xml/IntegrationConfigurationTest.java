@@ -27,7 +27,6 @@ import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.event.EventType;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -71,7 +70,6 @@ public class IntegrationConfigurationTest {
     cacheManager.close();
   }
 
-  @Ignore
   @Test
   public void testCopiers() throws Exception {
     Configuration configuration = new XmlConfiguration(this.getClass().getResource("/configs/cache-copiers.xml"));
