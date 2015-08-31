@@ -28,7 +28,7 @@ import java.nio.ByteBuffer;
  *
  * @author Albin Suresh
  */
-public final class SerializingCopier<T> extends ReadWriteCopier<T> implements Serializer<T> {
+public final class SerializingCopier<T> extends ReadWriteCopier<T> {
 
   private final Serializer<T> serializer;
 
@@ -45,23 +45,7 @@ public final class SerializingCopier<T> extends ReadWriteCopier<T> implements Se
     }
   }
 
-  @Override
-  public ByteBuffer serialize(final T object) {
-    return serializer.serialize(object);
-  }
-
-  @Override
-  public T read(final ByteBuffer binary) throws ClassNotFoundException {
-    return serializer.read(binary);
-  }
-
-  @Override
-  public boolean equals(final T object, final ByteBuffer binary) throws ClassNotFoundException {
-    return serializer.equals(object, binary);
-  }
-
-  @Override
-  public void close() throws IOException {
-    // nothing
+  public Serializer<T> getSerializer() {
+    return serializer;
   }
 }

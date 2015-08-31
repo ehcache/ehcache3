@@ -23,7 +23,6 @@ import java.nio.ByteBuffer;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -31,6 +30,7 @@ import static org.mockito.Mockito.when;
  */
 public class SerializingCopierTest {
 
+  @Test
   public void testCopy() throws Exception {
     Serializer<String> serializer = mock(Serializer.class);
     String in = new String("foo");
@@ -42,33 +42,5 @@ public class SerializingCopierTest {
     String copied = serializingCopier.copy("foo");
     assertNotSame(in, copied);
     assertEquals(in, copied);
-  }
-
-  @Test
-  public void testSerialize() throws Exception {
-    Serializer<String> serializer =  mock(Serializer.class);
-    SerializingCopier<String> serializingCopier = new SerializingCopier<String>(serializer);
-    String in = new String("foo");
-    serializingCopier.serialize(in);
-    verify(serializer).serialize(in);
-  }
-
-  @Test
-  public void testRead() throws Exception {
-    Serializer<String> serializer =  mock(Serializer.class);
-    SerializingCopier<String> serializingCopier = new SerializingCopier<String>(serializer);
-    ByteBuffer buff = mock(ByteBuffer.class);
-    serializingCopier.read(buff);
-    verify(serializer).read(buff);
-  }
-
-  @Test
-  public void testEquals() throws Exception {
-    Serializer<String> serializer =  mock(Serializer.class);
-    SerializingCopier<String> serializingCopier = new SerializingCopier<String>(serializer);
-    String in = new String("foo");
-    ByteBuffer buff = mock(ByteBuffer.class);
-    serializingCopier.equals(in, buff);
-    verify(serializer).equals(in, buff);
   }
 }

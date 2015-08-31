@@ -39,6 +39,7 @@ import org.ehcache.function.Predicates;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceService;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
@@ -338,12 +339,14 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
         final long now = timeSource.getTimeMillis();
 
+        V existingValue = mappedValue.value();
         if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           eventListener.onExpiration(mappedKey, mappedValue);
           return null;
-        } else if (oldValue.equals(mappedValue.value())) {
+        } else if (oldValue.equals(existingValue)) {
           returnValue.set(true);
-          return newUpdateValueHolder(key, mappedValue, newValue, now);
+          long expirationTime = mappedValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
+          return newUpdateValueHolder(key, existingValue, newValue, now, expirationTime);
         } else {
           setAccessTimeAndExpiry(key, mappedValue, now);
           return mappedValue;
@@ -466,7 +469,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
           final OnHeapValueHolder<V> newValue;
           if(value != null) {
             newValue = makeValue(value);
-            newValue.accessed(now, expiry.getExpiryForAccess(key, value.value()));
+            setAccessTimeAndExpiry(key, newValue, now);
           } else {
             backEnd.remove(key, fault);
             return null;
@@ -561,8 +564,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   }
 
   private OnHeapValueHolder<V> makeValue(ValueHolder<V> value) {
-    if(valueCopier instanceof Serializer) {
-      return makeSerializedValue(value, (Serializer)valueCopier);
+    if(valueCopier instanceof SerializingCopier) {
+      return makeSerializedValue(value, ((SerializingCopier)valueCopier).getSerializer());
     } else {
       return makeCopiedValue(value, valueCopier);
     }
@@ -711,7 +714,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
         
         checkValue(computedValue);
         if (mappedValue != null) {
-          return newUpdateValueHolder(key, mappedValue, computedValue, now);
+          long expirationTime = mappedValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
+          return newUpdateValueHolder(key, existingValue, computedValue, now, expirationTime);
         } else {
           return newCreateValueHolder(key, computedValue, now);
         }
@@ -775,19 +779,21 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
           return null;
         }
 
-        V computedValue = remappingFunction.apply(mappedKey, mappedValue.value());
+        V existingValue = mappedValue.value();
+        V computedValue = remappingFunction.apply(mappedKey, existingValue);
         if (computedValue == null) {
           return null;
         }
 
-        V existingValue = mappedValue.value();
         if ((eq(existingValue, computedValue)) && (!replaceEqual.apply())) {
           setAccessTimeAndExpiry(key, mappedValue, now);
           return mappedValue;
         }
 
         checkValue(computedValue);
-        return newUpdateValueHolder(key, mappedValue, computedValue, now);
+
+        long expirationTime = mappedValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
+        return newUpdateValueHolder(key, existingValue, computedValue, now, expirationTime);
       }
     });
   }
@@ -881,18 +887,25 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   }
 
   private OnHeapValueHolder<V> newUpdateValueHolder(K key, OnHeapValueHolder<V> oldValue, V newValue, long now) {
-    if (oldValue == null || newValue == null) {
+    if (oldValue == null) {
       throw new NullPointerException();
     }
-    
-    Duration duration = expiry.getExpiryForUpdate(key, oldValue.value(), newValue);
+    return newUpdateValueHolder(key, oldValue.value(), newValue, now, oldValue.expirationTime(OnHeapValueHolder.TIME_UNIT));
+  }
+
+  private OnHeapValueHolder<V> newUpdateValueHolder(K key, V oldValue, V newValue, long now, long oldExpirationTime) {
+    if (newValue == null) {
+      throw new NullPointerException();
+    }
+
+    Duration duration = expiry.getExpiryForUpdate(key, oldValue, newValue);
     if (Duration.ZERO.equals(duration)) {
       return null;
     }
 
     long expirationTime;
     if (duration == null) {
-      expirationTime = oldValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
+      expirationTime = oldExpirationTime;
     } else {
       if (duration.isForever()) {
         expirationTime = ValueHolder.NO_EXPIRE;
@@ -920,8 +933,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   }
 
   private OnHeapValueHolder<V> makeValue(V value, long creationTime, long expirationTime, Copier<V> valueCopier) {
-    if(valueCopier instanceof Serializer) {
-      return makeSerializedValue(value, creationTime, expirationTime, (Serializer)valueCopier);
+    if(valueCopier instanceof SerializingCopier) {
+      return makeSerializedValue(value, creationTime, expirationTime, ((SerializingCopier)valueCopier).getSerializer());
     } else {
       return makeCopiedValue(value, creationTime, expirationTime, valueCopier);
     }

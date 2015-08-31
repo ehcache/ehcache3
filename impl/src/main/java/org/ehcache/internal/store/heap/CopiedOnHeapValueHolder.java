@@ -56,4 +56,9 @@ public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   public V value() {
     return valueCopier.copyOnRead(copiedValue);
   }
+
+  @Override
+  public V getCurrentValue() {
+    return copiedValue;
+  }
 }

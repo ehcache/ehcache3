@@ -22,7 +22,6 @@ import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.concurrent.Exchanger;
@@ -49,6 +48,7 @@ public class SerializedOnHeapValueHolderTest {
     ValueHolder<?> vh2 = newValueHolder(o);
     assertFalse(vh1.value() == vh2.value());
     assertEquals(vh1.value(), vh2.value());
+    assertNotSame(vh1.value(), vh1.value());
   }
 
   @Test
