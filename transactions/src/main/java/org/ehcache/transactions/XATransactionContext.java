@@ -71,6 +71,12 @@ public class XATransactionContext<K, V> {
     return commands.containsKey(key);
   }
 
+  public V latestValueFor(K key) {
+    Command<V> command = commands.get(key);
+    XAValueHolder<V> valueHolder = command == null ? null : command.getNewValueHolder();
+    return valueHolder == null ? null : valueHolder.value();
+  }
+
   public int prepare() throws CacheAccessException, IllegalStateException {
     if (stateStore.getState(transactionId) != null) {
       throw new IllegalStateException("Cannot prepare transaction that is not in-flight : " + transactionId);

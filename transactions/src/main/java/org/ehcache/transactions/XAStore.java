@@ -148,7 +148,7 @@ public class XAStore<K, V> implements Store<K, V> {
   private final AtomicLong valueHolderIdGenerator = new AtomicLong();
 
   private XAValueHolder<V> newXAValueHolder(final V value) {
-    return new XAValueHolder<V>(valueHolderIdGenerator.incrementAndGet(), timeSource.getTimeMillis() ,value);
+    return new XAValueHolder<V>(valueHolderIdGenerator.incrementAndGet(), timeSource.getTimeMillis(), value);
   }
 
   @Override
@@ -228,7 +228,53 @@ public class XAStore<K, V> implements Store<K, V> {
 
   @Override
   public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException {
-    return null;
+    XATransactionContext<K, V> currentContext = getCurrentContext();
+    if (currentContext.containsCommandFor(key)) {
+      Store.ValueHolder<V> oldValueHolder = currentContext.getOldValueHolder(key);
+
+      V newValue = mappingFunction.apply(key, currentContext.latestValueFor(key));
+
+      XAValueHolder<V> xaValueHolder = null;
+      if (newValue == null) {
+        currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValueHolder));
+      } else {
+        xaValueHolder = newXAValueHolder(newValue);
+        currentContext.addCommand(key, new StorePutCommand<V>(oldValueHolder, xaValueHolder));
+      }
+      return xaValueHolder;
+    }
+
+    ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(key);
+
+    SoftLock<V> softLock = softLockValueHolder == null ? null : softLockValueHolder.value();
+    ValueHolder<V> oldValueHolder = softLock == null ? null : softLock.getOldValueHolder();
+    V oldValue = oldValueHolder == null ? null : oldValueHolder.value();
+    V newValue = mappingFunction.apply(key, oldValue);
+    XAValueHolder<V> xaValueHolder = newValue == null ? null : newXAValueHolder(newValue);
+
+    if (softLock != null && isInDoubt(softLock)) {
+      /*
+      There are 3 things we can do here:
+       - lock and wait until 2PC is done
+       - evict
+       - gamble: there are different bets we can take:
+         # assume the other transaction will commit
+         # assume the other transaction will rollback
+         Note that to take a gamble, you'd better know if the mapping is in an active 2PC
+         or waiting to be recovered. In the latter case, no gambling might be advisable.
+       */
+
+      // evict
+      underlyingStore.remove(key);
+    } else {
+      if (xaValueHolder == null) {
+        currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValueHolder));
+      } else {
+        currentContext.addCommand(key, new StorePutCommand<V>(oldValueHolder, xaValueHolder));
+      }
+    }
+
+    return xaValueHolder;
   }
 
   @Override

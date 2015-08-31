@@ -19,6 +19,7 @@ import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Expirations;
+import org.ehcache.function.BiFunction;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.store.heap.OnHeapStore;
@@ -50,7 +51,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class XAStoreTest {
 
   @Test
-  public void testSimple() throws Exception {
+  public void testSimpleGetPutRemove() throws Exception {
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
     Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
@@ -113,13 +114,57 @@ public class XAStoreTest {
       System.out.println(valueHolder);
     }
     testTransactionManager.rollback();
-
-
-
   }
 
+  @Test
+  public void testCompute() throws Exception {
+    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
+    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
+    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
+    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(), keySerializer, valueSerializer);
+    TestTimeSource testTimeSource = new TestTimeSource();
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, true);
+    TestTransactionManager testTransactionManager = new TestTransactionManager();
+    XaTransactionStateStore stateStore = new TransientXaTransactionStateStore();
 
-  static class TestTransactionManager implements TransactionManager {
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, testTransactionManager, testTimeSource, stateStore);
+
+    testTransactionManager.begin();
+    {
+      Store.ValueHolder<String> computed1 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
+        @Override
+        public String apply(Long aLong, String s) {
+          System.out.println("computing1 : "  + s);
+          return "one";
+        }
+      });
+      System.out.println("computed1 : " + computed1);
+      Store.ValueHolder<String> computed2 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
+        @Override
+        public String apply(Long aLong, String s) {
+          System.out.println("computing2 : "  + s);
+          return "un";
+        }
+      });
+      System.out.println("computed2 : " + computed2);
+    }
+    testTransactionManager.commit();
+
+    testTransactionManager.begin();
+    {
+      Store.ValueHolder<String> computed3 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
+        @Override
+        public String apply(Long aLong, String s) {
+          System.out.println("computing3 : "  + s);
+          return "eins";
+        }
+      });
+      System.out.println("computed3 : " + computed3);
+    }
+    testTransactionManager.commit();
+  }
+
+    static class TestTransactionManager implements TransactionManager {
 
     volatile TestTransaction currentTransaction;
     final AtomicLong gtridGenerator = new AtomicLong();
