@@ -17,6 +17,7 @@
 package org.ehcache.transactions.commands;
 
 import org.ehcache.spi.cache.Store;
+import org.ehcache.transactions.XAValueHolder;
 
 /**
  *
@@ -35,7 +36,7 @@ public class StoreRemoveCommand<V> implements Command<V> {
   }
 
   @Override
-  public Store.ValueHolder<V> getNewValueHolder() {
+  public XAValueHolder<V> getNewValueHolder() {
     return null;
   }
 }

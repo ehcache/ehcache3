@@ -52,11 +52,11 @@ public class XAStoreTest {
   @Test
   public void testSimple() throws Exception {
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build());
-    TestTimeSource testTimeSource = new TestTimeSource();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
     Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, true, keySerializer, valueSerializer);
+    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(), keySerializer, valueSerializer);
+    TestTimeSource testTimeSource = new TestTimeSource();
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, true);
     TestTransactionManager testTransactionManager = new TestTransactionManager();
     XaTransactionStateStore stateStore = new TransientXaTransactionStateStore();
 
@@ -82,6 +82,39 @@ public class XAStoreTest {
       System.out.println(valueHolder);
     }
     testTransactionManager.commit();
+
+    testTransactionManager.begin();
+    {
+      xaStore.remove(1L);
+      Store.ValueHolder<String> valueHolder = xaStore.get(1L);
+      System.out.println(valueHolder);
+    }
+    testTransactionManager.rollback();
+
+    testTransactionManager.begin();
+    {
+      Store.ValueHolder<String> valueHolder = xaStore.get(1L);
+      System.out.println(valueHolder);
+    }
+    testTransactionManager.rollback();
+
+
+    testTransactionManager.begin();
+    {
+      xaStore.put(1L, "un");
+      Store.ValueHolder<String> valueHolder = xaStore.get(1L);
+      System.out.println(valueHolder);
+    }
+    testTransactionManager.commit();
+
+    testTransactionManager.begin();
+    {
+      Store.ValueHolder<String> valueHolder = xaStore.get(1L);
+      System.out.println(valueHolder);
+    }
+    testTransactionManager.rollback();
+
+
 
   }
 
@@ -119,6 +152,7 @@ public class XAStoreTest {
 
     @Override
     public void rollback() throws IllegalStateException, SecurityException, SystemException {
+      currentTransaction.rollback();
       currentTransaction = null;
     }
 
@@ -182,7 +216,7 @@ public class XAStoreTest {
 
     @Override
     public boolean delistResource(XAResource xaRes, int flag) throws IllegalStateException, SystemException {
-      return false;
+      return true;
     }
 
     @Override
@@ -213,7 +247,25 @@ public class XAStoreTest {
 
     @Override
     public void rollback() throws IllegalStateException, SystemException {
+      Set<Map.Entry<XAResource, TestXid>> entries = xids.entrySet();
 
+      // delist
+      for (Map.Entry<XAResource, TestXid> entry : entries) {
+        try {
+          entry.getKey().end(entry.getValue(), XAResource.TMNOFLAGS);
+        } catch (XAException e) {
+          throw (SystemException) new SystemException(XAException.XAER_RMERR).initCause(e);
+        }
+      }
+
+      // rollback
+      for (Map.Entry<XAResource, TestXid> entry : entries) {
+        try {
+          entry.getKey().rollback(entry.getValue());
+        } catch (XAException e) {
+          throw (SystemException) new SystemException(XAException.XAER_RMERR).initCause(e);
+        }
+      }
     }
 
     @Override

@@ -16,6 +16,7 @@
 package org.ehcache.transactions.commands;
 
 import org.ehcache.spi.cache.Store;
+import org.ehcache.transactions.XAValueHolder;
 
 /**
  * @author Ludovic Orban
@@ -24,5 +25,5 @@ public interface Command<V> {
 
   Store.ValueHolder<V> getOldValueHolder();
 
-  Store.ValueHolder<V> getNewValueHolder();
+  XAValueHolder<V> getNewValueHolder();
 }

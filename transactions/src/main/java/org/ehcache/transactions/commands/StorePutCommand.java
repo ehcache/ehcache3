@@ -18,22 +18,23 @@ package org.ehcache.transactions.commands;
 
 
 import org.ehcache.spi.cache.Store;
+import org.ehcache.transactions.XAValueHolder;
 
 /**
  * @author Ludovic Orban
  */
 public class StorePutCommand<V> implements Command<V> {
 
-  private final Store.ValueHolder<V> newValueHolder;
   private final Store.ValueHolder<V> oldValueHolder;
+  private final XAValueHolder<V> newValueHolder;
 
-  public StorePutCommand(Store.ValueHolder<V> newValueHolder, Store.ValueHolder<V> oldValueHolder) {
+  public StorePutCommand(Store.ValueHolder<V> oldValueHolder, XAValueHolder<V> newValueHolder) {
     this.newValueHolder = newValueHolder;
     this.oldValueHolder = oldValueHolder;
   }
 
   @Override
-  public Store.ValueHolder<V> getNewValueHolder() {
+  public XAValueHolder<V> getNewValueHolder() {
     return newValueHolder;
   }
 

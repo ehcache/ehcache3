@@ -29,6 +29,10 @@ public class TransactionId implements Serializable {
     this.serializableXid = new SerializableXid(xid);
   }
 
+  public SerializableXid getSerializableXid() {
+    return serializableXid;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;

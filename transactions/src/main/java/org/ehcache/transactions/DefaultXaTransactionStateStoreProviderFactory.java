@@ -16,14 +16,16 @@
 package org.ehcache.transactions;
 
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
 /**
  * @author Ludovic Orban
  */
 public class DefaultXaTransactionStateStoreProviderFactory implements ServiceFactory<XaTransactionStateStoreProvider> {
+
   @Override
-  public XaTransactionStateStoreProvider create(ServiceConfiguration<XaTransactionStateStoreProvider> configuration) {
+  public XaTransactionStateStoreProvider create(ServiceCreationConfiguration<XaTransactionStateStoreProvider> configuration) {
     return new DefaultXaTransactionStateStoreProvider();
   }
 

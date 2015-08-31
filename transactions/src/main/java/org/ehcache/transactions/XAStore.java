@@ -47,6 +47,7 @@ public class XAStore<K, V> implements Store<K, V> {
   private final Map<Transaction, EhcacheXAResource<K, V>> xaResources = new ConcurrentHashMap<Transaction, EhcacheXAResource<K, V>>();
   private final TimeSource timeSource;
   private final XaTransactionStateStore stateStore;
+  private final XATransactionContextFactory<K, V> transactionContextFactory = new XATransactionContextFactory<K, V>();
 
   public XAStore(Store<K, SoftLock<V>> underlyingStore, TransactionManager transactionManager, TimeSource timeSource, XaTransactionStateStore stateStore) {
     this.underlyingStore = underlyingStore;
@@ -98,7 +99,7 @@ public class XAStore<K, V> implements Store<K, V> {
       }
       EhcacheXAResource<K, V> xaResource = xaResources.get(transaction);
       if (xaResource == null) {
-        xaResource = new EhcacheXAResource<K, V>(underlyingStore, stateStore);
+        xaResource = new EhcacheXAResource<K, V>(underlyingStore, stateStore, transactionContextFactory);
         transactionManager.getTransaction().enlistResource(xaResource);
         xaResources.put(transaction, xaResource);
       }
@@ -114,8 +115,8 @@ public class XAStore<K, V> implements Store<K, V> {
   public void put(K key, V value) throws CacheAccessException {
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.containsCommandFor(key)) {
-      ValueHolder<V> oldValueHolder = currentContext.getOldValueHolder(key);
-      currentContext.addCommand(key, new StorePutCommand<V>(newValueHolder(value), oldValueHolder));
+      Store.ValueHolder<V> oldValueHolder = currentContext.getOldValueHolder(key);
+      currentContext.addCommand(key, new StorePutCommand<V>(oldValueHolder, newXAValueHolder(value)));
       return;
     }
 
@@ -131,23 +132,22 @@ public class XAStore<K, V> implements Store<K, V> {
            # assume the other transaction will commit
            # assume the other transaction will rollback
            Note that to take a gamble, you'd better know if the mapping is in an active 2PC
-           or waiting to be recovered. In the latter case, a different behavior might be advisable.
+           or waiting to be recovered. In the latter case, no gambling might be advisable.
          */
 
         // evict
         underlyingStore.remove(key);
-        return;
       } else {
-        currentContext.addCommand(key, new StorePutCommand<V>(newValueHolder(value), softLock.getOldValueHolder()));
+        currentContext.addCommand(key, new StorePutCommand<V>(softLock.getOldValueHolder(), newXAValueHolder(value)));
       }
     } else {
-      currentContext.addCommand(key, new StorePutCommand<V>(newValueHolder(value), null));
+      currentContext.addCommand(key, new StorePutCommand<V>(null, newXAValueHolder(value)));
     }
   }
 
   private final AtomicLong valueHolderIdGenerator = new AtomicLong();
 
-  private ValueHolder<V> newValueHolder(final V value) {
+  private XAValueHolder<V> newXAValueHolder(final V value) {
     return new XAValueHolder<V>(valueHolderIdGenerator.incrementAndGet(), timeSource.getTimeMillis() ,value);
   }
 
@@ -177,12 +177,11 @@ public class XAStore<K, V> implements Store<K, V> {
            # assume the other transaction will commit
            # assume the other transaction will rollback
            Note that to take a gamble, you'd better know if the mapping is in an active 2PC
-           or waiting to be recovered. In the latter case, a different behavior might be advisable.
+           or waiting to be recovered. In the latter case, no gambling might be advisable.
          */
 
         // evict
         underlyingStore.remove(key);
-        return;
       } else {
         currentContext.addCommand(key, new StoreRemoveCommand<V>(softLock.getOldValueHolder()));
       }

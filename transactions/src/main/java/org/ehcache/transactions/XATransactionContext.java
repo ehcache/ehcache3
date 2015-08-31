@@ -40,6 +40,10 @@ public class XATransactionContext<K, V> {
     this.stateStore = stateStore;
   }
 
+  public TransactionId getTransactionId() {
+    return transactionId;
+  }
+
   public void addCommand(K key, StorePutCommand<V> command) {
     commands.put(key, command);
   }
@@ -48,7 +52,7 @@ public class XATransactionContext<K, V> {
     commands.put(key, command);
   }
 
-  public Store.ValueHolder<V> getNewValueHolder(K key) {
+  public XAValueHolder<V> getNewValueHolder(K key) {
     Command<V> command = commands.get(key);
     return command != null ? command.getNewValueHolder() : null;
   }
@@ -67,18 +71,22 @@ public class XATransactionContext<K, V> {
     return commands.containsKey(key);
   }
 
-  public int prepare() throws CacheAccessException {
+  public int prepare() throws CacheAccessException, IllegalStateException {
+    if (stateStore.getState(transactionId) != null) {
+      throw new IllegalStateException("Cannot prepare transaction that is not in-flight : " + transactionId);
+    }
+
     stateStore.save(transactionId, XAState.IN_DOUBT);
     for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
-      if (entry.getValue().getOldValueHolder() != null) {
-        SoftLock<V> oldSoftLock = new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), null);
-        SoftLock<V> newSoftLock = new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder());
+      Store.ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(entry.getKey());
+      SoftLock<V> oldSoftLock = softLockValueHolder == null ? null : softLockValueHolder.value();
+      SoftLock<V> newSoftLock = new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder());
+      if (oldSoftLock != null) {
         boolean replaced = underlyingStore.replace(entry.getKey(), oldSoftLock, newSoftLock);
         if (!replaced) {
           throw new AssertionError("TODO: handle this case");
         }
       } else {
-        SoftLock<V> newSoftLock = new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder());
         Store.ValueHolder<SoftLock<V>> existing = underlyingStore.putIfAbsent(entry.getKey(), newSoftLock);
         if (existing != null) {
           throw new AssertionError("TODO: handle this case");
@@ -89,7 +97,10 @@ public class XATransactionContext<K, V> {
   }
 
   public void commit() throws CacheAccessException {
-    stateStore.save(transactionId, XAState.COMMITTED);
+    if (stateStore.getState(transactionId) == null) {
+      throw new IllegalStateException("Cannot commit transaction that has not been prepared : " + transactionId);
+    }
+
     for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
       SoftLock<V> preparedSoftLock = new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder());
       SoftLock<V> definitiveSoftLock = new SoftLock<V>(transactionId, entry.getValue().getNewValueHolder(), null);
@@ -98,5 +109,34 @@ public class XATransactionContext<K, V> {
         throw new AssertionError("TODO: handle this case");
       }
     }
+    stateStore.save(transactionId, XAState.COMMITTED);
+  }
+
+  public void commitInOnePhase() throws CacheAccessException {
+    if (stateStore.getState(transactionId) != null) {
+      throw new IllegalStateException("Cannot commit-one-phase transaction that is not in-flight : " + transactionId);
+    }
+
+    for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
+      Store.ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(entry.getKey());
+      SoftLock<V> oldSoftLock = softLockValueHolder == null ? null : softLockValueHolder.value();
+      SoftLock<V> newSoftLock = new SoftLock<V>(transactionId, entry.getValue().getNewValueHolder(), null);
+      if (oldSoftLock != null) {
+        boolean replaced = underlyingStore.replace(entry.getKey(), oldSoftLock, newSoftLock);
+        if (!replaced) {
+          throw new AssertionError("TODO: handle this case");
+        }
+      } else {
+        Store.ValueHolder<SoftLock<V>> existing = underlyingStore.putIfAbsent(entry.getKey(), newSoftLock);
+        if (existing != null) {
+          throw new AssertionError("TODO: handle this case");
+        }
+      }
+    }
+    stateStore.save(transactionId, XAState.COMMITTED);
+  }
+
+  public void rollback() {
+    throw new AssertionError("TODO: handle this case");
   }
 }
