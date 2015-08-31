@@ -25,7 +25,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static org.apache.commons.lang3.reflect.ConstructorUtils.invokeConstructor;
+import static org.ehcache.internal.classes.commonslang.reflect.ConstructorUtils.invokeConstructor;
 
 /**
  * @author Alex Snaps
