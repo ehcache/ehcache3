@@ -14,6 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/*
+ * This is a modified version of the original Apache class.  It has had unused
+ * members removed.
+ */
 package org.ehcache.internal.classes.commonslang.reflect;
 
 import java.lang.reflect.AccessibleObject;

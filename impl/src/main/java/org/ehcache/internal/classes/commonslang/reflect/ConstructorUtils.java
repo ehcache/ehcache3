@@ -14,6 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/*
+ * This is a modified version of the original Apache class.  It has had unused
+ * members removed.
+ */
 package org.ehcache.internal.classes.commonslang.reflect;
 
 import java.lang.reflect.Constructor;
@@ -115,91 +120,6 @@ public class ConstructorUtils {
                 "No such accessible constructor on object: " + cls.getName());
         }
         return ctor.newInstance(args);
-    }
-
-    /**
-     * <p>Returns a new instance of the specified class inferring the right constructor
-     * from the types of the arguments.</p>
-     *
-     * <p>This locates and calls a constructor.
-     * The constructor signature must match the argument types exactly.</p>
-     *
-     * @param <T> the type to be constructed
-     * @param cls the class to be constructed, not {@code null}
-     * @param args the array of arguments, {@code null} treated as empty
-     * @return new instance of {@code cls}, not {@code null}
-     *
-     * @throws NullPointerException if {@code cls} is {@code null}
-     * @throws NoSuchMethodException if a matching constructor cannot be found
-     * @throws IllegalAccessException if invocation is not permitted by security
-     * @throws InvocationTargetException if an error occurs on invocation
-     * @throws InstantiationException if an error occurs on instantiation
-     * @see #invokeExactConstructor(java.lang.Class, java.lang.Object[], java.lang.Class[])
-     */
-    public static <T> T invokeExactConstructor(final Class<T> cls, Object... args)
-            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException,
-            InstantiationException {
-        args = ArrayUtils.nullToEmpty(args);
-        final Class<?> parameterTypes[] = ClassUtils.toClass(args);
-        return invokeExactConstructor(cls, args, parameterTypes);
-    }
-
-    /**
-     * <p>Returns a new instance of the specified class choosing the right constructor
-     * from the list of parameter types.</p>
-     *
-     * <p>This locates and calls a constructor.
-     * The constructor signature must match the parameter types exactly.</p>
-     *
-     * @param <T> the type to be constructed
-     * @param cls the class to be constructed, not {@code null}
-     * @param args the array of arguments, {@code null} treated as empty
-     * @param parameterTypes  the array of parameter types, {@code null} treated as empty
-     * @return new instance of <code>cls</code>, not {@code null}
-     *
-     * @throws NullPointerException if {@code cls} is {@code null}
-     * @throws NoSuchMethodException if a matching constructor cannot be found
-     * @throws IllegalAccessException if invocation is not permitted by security
-     * @throws InvocationTargetException if an error occurs on invocation
-     * @throws InstantiationException if an error occurs on instantiation
-     * @see Constructor#newInstance
-     */
-    public static <T> T invokeExactConstructor(final Class<T> cls, Object[] args,
-            Class<?>[] parameterTypes) throws NoSuchMethodException, IllegalAccessException,
-            InvocationTargetException, InstantiationException {
-        args = ArrayUtils.nullToEmpty(args);
-        parameterTypes = ArrayUtils.nullToEmpty(parameterTypes);
-        final Constructor<T> ctor = getAccessibleConstructor(cls, parameterTypes);
-        if (ctor == null) {
-            throw new NoSuchMethodException(
-                "No such accessible constructor on object: "+ cls.getName());
-        }
-        return ctor.newInstance(args);
-    }
-
-    //-----------------------------------------------------------------------
-    /**
-     * <p>Finds a constructor given a class and signature, checking accessibility.</p>
-     * 
-     * <p>This finds the constructor and ensures that it is accessible.
-     * The constructor signature must match the parameter types exactly.</p>
-     *
-     * @param <T> the constructor type
-     * @param cls the class to find a constructor for, not {@code null}
-     * @param parameterTypes the array of parameter types, {@code null} treated as empty
-     * @return the constructor, {@code null} if no matching accessible constructor found
-     * @see Class#getConstructor
-     * @see #getAccessibleConstructor(java.lang.reflect.Constructor)
-     * @throws NullPointerException if {@code cls} is {@code null}
-     */
-    public static <T> Constructor<T> getAccessibleConstructor(final Class<T> cls,
-            final Class<?>... parameterTypes) {
-        Validate.notNull(cls, "class cannot be null");
-        try {
-            return getAccessibleConstructor(cls.getConstructor(parameterTypes));
-        } catch (final NoSuchMethodException e) {
-            return null;
-        }
     }
 
     /**
