@@ -17,7 +17,6 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
-import org.ehcache.event.CacheEvent;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;

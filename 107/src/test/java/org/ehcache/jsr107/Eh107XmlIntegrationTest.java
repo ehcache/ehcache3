@@ -17,7 +17,6 @@ package org.ehcache.jsr107;
 
 import org.hamcrest.Matchers;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.pany.domain.Customer;

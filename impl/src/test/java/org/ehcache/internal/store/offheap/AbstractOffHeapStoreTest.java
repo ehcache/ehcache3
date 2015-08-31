@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.ehcache.Cache;
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.event.CacheEvent;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;

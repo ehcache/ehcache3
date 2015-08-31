@@ -16,7 +16,6 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.event.CacheEvent;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
