@@ -74,9 +74,12 @@ class ConfigurationMerger {
           builder = templateBuilder;
           log.info("Configuration of cache {} will be supplemented by template {}", cacheName, templateName);
         }
+      } else {
+        if(jsr107Configuration.isStoreByValue()) {
+          builder = builder.add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, CopierConfiguration.Type.KEY))
+              .add(new DefaultCopierConfiguration<V>((Class)SerializingCopier.class, CopierConfiguration.Type.VALUE));
+        }
       }
-
-      builder = handleStoreByValue(jsr107Configuration, builder);
 
       final boolean useJsr107Expiry = builder.hasDefaultExpiry();
       if (useJsr107Expiry) {
@@ -119,17 +122,6 @@ class ConfigurationMerger {
       CacheResources.close(loaderWriter, mce);
       throw mce;
     }
-  }
-
-  private <K, V> CacheConfigurationBuilder<K, V> handleStoreByValue(Eh107CompleteConfiguration<K, V> jsr107Configuration, CacheConfigurationBuilder<K, V> builder) {
-    DefaultCopierConfiguration copierConfig = builder.getExistingServiceConfiguration(DefaultCopierConfiguration.class);
-    if(copierConfig == null) {
-      if(jsr107Configuration.isStoreByValue()) {
-        builder = builder.add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, CopierConfiguration.Type.KEY))
-            .add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, CopierConfiguration.Type.VALUE));
-      }
-    }
-    return builder;
   }
 
   private <K, V> Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> initCacheEventListeners(CompleteConfiguration<K, V> config) {

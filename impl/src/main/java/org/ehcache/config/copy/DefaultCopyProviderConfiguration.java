@@ -42,7 +42,8 @@ public class DefaultCopyProviderConfiguration extends ClassInstanceProviderConfi
     if (getDefaults().containsKey(alias)) {
       throw new IllegalArgumentException("Duplicate copier for class : " + alias);
     }
-    getDefaults().put(alias, copierClass);
+    getDefaults().put(alias, new DefaultCopierConfiguration(copierClass, CopierConfiguration.Type.KEY));
+    getDefaults().put(alias, new DefaultCopierConfiguration(copierClass, CopierConfiguration.Type.VALUE));
     return this;
   }
 }

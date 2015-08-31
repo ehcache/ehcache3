@@ -426,9 +426,9 @@ public class XmlConfigurationTest {
 
     DefaultCopyProviderConfiguration factoryConfiguration = (DefaultCopyProviderConfiguration) configuration;
     assertThat(factoryConfiguration.getDefaults().size(), is(2));
-    assertThat(factoryConfiguration.getDefaults().get("com.pany.ehcache.copier.Description"),
+    assertThat(factoryConfiguration.getDefaults().get("com.pany.ehcache.copier.Description").getClazz(),
         Matchers.<Class<? extends Copier>>equalTo(DescriptionCopier.class));
-    assertThat(factoryConfiguration.getDefaults().get("com.pany.ehcache.copier.Person"),
+    assertThat(factoryConfiguration.getDefaults().get("com.pany.ehcache.copier.Person").getClazz(),
         Matchers.<Class<? extends Copier>>equalTo(PersonCopier.class));
 
 

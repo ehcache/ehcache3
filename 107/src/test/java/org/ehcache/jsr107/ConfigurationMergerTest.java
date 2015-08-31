@@ -203,11 +203,11 @@ public class ConfigurationMergerTest {
 
     ConfigurationMerger.ConfigHolder<Object, Object> configHolder = merger.mergeConfigurations("cache", configuration);
 
-    boolean storeByValue = true;
+    boolean storeByValue = false;
     Collection<ServiceConfiguration<?>> serviceConfigurations = configHolder.cacheConfiguration.getServiceConfigurations();
     for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
       if (serviceConfiguration instanceof CopierConfiguration) {
-        storeByValue = false;
+        storeByValue = true;
         break;
       }
     }

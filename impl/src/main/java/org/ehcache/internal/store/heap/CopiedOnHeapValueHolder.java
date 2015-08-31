@@ -35,7 +35,7 @@ public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
       throw new NullPointerException("null copier");
     }
     this.valueCopier = valueCopier;
-    this.copiedValue = valueCopier.copyOnWrite(value);
+    this.copiedValue = valueCopier.copyForWrite(value);
   }
 
   protected CopiedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, Copier<V> valueCopier) {
@@ -54,11 +54,6 @@ public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
 
   @Override
   public V value() {
-    return valueCopier.copyOnRead(copiedValue);
-  }
-
-  @Override
-  public V getCurrentValue() {
-    return copiedValue;
+    return valueCopier.copyForRead(copiedValue);
   }
 }

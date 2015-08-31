@@ -31,7 +31,7 @@ public interface Copier<T> {
    * @param obj the instance to copy
    * @return the copy of the {@code obj} instance
    */
-  T copyOnRead(T obj);
+  T copyForRead(T obj);
 
   /**
    * Creates a copy of the instance passed in.
@@ -39,5 +39,5 @@ public interface Copier<T> {
    * @param obj the instance to copy
    * @return the copy of the {@code obj} instance
    */
-  T copyOnWrite(T obj);
+  T copyForWrite(T obj);
 }

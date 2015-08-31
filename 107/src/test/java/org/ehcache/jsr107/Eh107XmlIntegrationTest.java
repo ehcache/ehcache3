@@ -51,7 +51,10 @@ import javax.cache.spi.CachingProvider;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
@@ -179,10 +182,15 @@ public class Eh107XmlIntegrationTest {
     Eh107ReverseConfiguration<Long, Product> eh107ReverseConfiguration = productCache.getConfiguration(Eh107ReverseConfiguration.class);
     assertThat(eh107ReverseConfiguration.isReadThrough(), is(true));
     assertThat(eh107ReverseConfiguration.isWriteThrough(), is(true));
+    assertThat(eh107ReverseConfiguration.isStoreByValue(), is(true));
 
     Product product = new Product(1L);
     productCache.put(1L, product);
     assertThat(productCache.get(1L).getId(), equalTo(product.getId()));
+
+    product.setMutable("foo");
+    assertThat(productCache.get(1L).getMutable(), nullValue());
+    assertThat(productCache.get(1L), not(sameInstance(product)));
 
     javax.cache.Cache<Long, Customer> customerCache = cacheManager.getCache("customerCache", Long.class, Customer.class);
     assertThat(customerCache, is(notNullValue()));

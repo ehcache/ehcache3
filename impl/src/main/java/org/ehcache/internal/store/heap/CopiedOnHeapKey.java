@@ -28,11 +28,11 @@ public class CopiedOnHeapKey<K> extends BaseOnHeapKey<K> {
   public CopiedOnHeapKey(final K actualKeyObject, final Copier<K> keyCopier) {
     super(actualKeyObject.hashCode());
     this.keyCopier = keyCopier;
-    this.copiedKey = keyCopier.copyOnWrite(actualKeyObject);
+    this.copiedKey = keyCopier.copyForWrite(actualKeyObject);
   }
 
   @Override
   public K getActualKeyObject() {
-    return keyCopier.copyOnRead(copiedKey);
+    return keyCopier.copyForRead(copiedKey);
   }
 }

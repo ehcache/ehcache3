@@ -287,15 +287,6 @@ public class EhcacheManager implements PersistentCacheManager {
         lifeCycledList.add(closerFor(valueSerializer));
       } catch (UnsupportedTypeException e) {
         if (resources.contains(DISK) || resources.contains(OFFHEAP)) {
-          try {
-            if(keySerializer != null) {
-              keySerializer.close();
-            }
-          } catch (IOException ioe) {
-            LOGGER.warn("Exception shutting down key serializer");
-          } finally {
-            keySerializer = null;
-          }
           throw new RuntimeException(e);
         } else {
           LOGGER.info("Could not create serializers for " + alias, e);

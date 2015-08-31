@@ -79,7 +79,7 @@ public abstract class Eh107Configuration<K, V> implements Configuration<K, V> {
     @Override
     public boolean isStoreByValue() {
       CopierConfiguration copierConfig = findSingletonAmongst(CopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
-      return copierConfig == null;
+      return copierConfig != null;
     }
   }
 }

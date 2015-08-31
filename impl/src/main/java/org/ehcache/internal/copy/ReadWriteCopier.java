@@ -29,12 +29,12 @@ import org.ehcache.spi.copy.Copier;
 public abstract class ReadWriteCopier<T> implements Copier<T> {
 
   @Override
-  public T copyOnRead(final T obj) {
+  public T copyForRead(final T obj) {
     return copy(obj);
   }
 
   @Override
-  public T copyOnWrite(final T obj) {
+  public T copyForWrite(final T obj) {
     return copy(obj);
   }
 

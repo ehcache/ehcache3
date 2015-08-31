@@ -264,12 +264,12 @@ public class CacheCopierTest {
   public static class PersonOnReadCopier implements Copier<Person> {
 
     @Override
-    public Person copyOnRead(final Person obj) {
+    public Person copyForRead(final Person obj) {
       return new Person(obj);
     }
 
     @Override
-    public Person copyOnWrite(final Person obj) {
+    public Person copyForWrite(final Person obj) {
       return obj;
     }
   }
@@ -277,12 +277,12 @@ public class CacheCopierTest {
   public static class PersonOnWriteCopier implements Copier<Person> {
 
     @Override
-    public Person copyOnRead(final Person obj) {
+    public Person copyForRead(final Person obj) {
       return obj;
     }
 
     @Override
-    public Person copyOnWrite(final Person obj) {
+    public Person copyForWrite(final Person obj) {
       return new Person(obj);
     }
   }

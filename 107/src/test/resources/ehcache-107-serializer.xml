@@ -15,12 +15,18 @@
   <cache alias="cache">
     <key-type>java.lang.Long</key-type>
     <value-type>java.lang.String</value-type>
-    <heap size="20" unit="entries"/>
+    <resources>
+      <heap size="20" unit="entries"/>
+      <offheap size="1" unit="mb"/>
+    </resources>
   </cache>
 
   <cache alias="cache1">
     <key-type serializer = "org.ehcache.jsr107.LongSerializer">java.lang.Long</key-type>
     <value-type serializer = "org.ehcache.jsr107.StringSerializer">java.lang.String</value-type>
-    <heap size="20" unit="entries"/>
+    <resources>
+      <heap size="20" unit="entries"/>
+      <offheap size="1" unit="mb"/>
+    </resources>
   </cache>
 </config>
