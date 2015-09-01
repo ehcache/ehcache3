@@ -18,11 +18,16 @@ package org.ehcache.transactions;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.function.BiFunction;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.store.heap.OnHeapStore;
+import org.ehcache.internal.store.offheap.MemorySizeParser;
+import org.ehcache.internal.store.offheap.OffHeapStore;
+import org.ehcache.internal.store.offheap.OffHeapStoreLifecycleHelper;
+import org.ehcache.internal.store.tiering.CacheStore;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
@@ -125,9 +130,15 @@ public class XAStoreTest {
     Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(), keySerializer, valueSerializer);
     TestTimeSource testTimeSource = new TestTimeSource();
     OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, true);
+    Store.Configuration<Long, SoftLock> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(), keySerializer, valueSerializer);
+    OffHeapStore<Long, SoftLock<String>> offHeapStore = (OffHeapStore) new OffHeapStore<Long, SoftLock>(offHeapConfig, testTimeSource, MemorySizeParser.parse("10M"));
+    OffHeapStoreLifecycleHelper.init(offHeapStore);
+    CacheStore<Long, SoftLock<String>> cacheStore = new CacheStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
+
+
     XaTransactionStateStore stateStore = new TransientXaTransactionStateStore();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, testTransactionManager, testTimeSource, stateStore);
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(cacheStore, testTransactionManager, testTimeSource, stateStore);
 
     testTransactionManager.begin();
     {
@@ -178,9 +189,26 @@ public class XAStoreTest {
       });
       System.out.println("computed3 : " + computed3);
     }
+    testTransactionManager.rollback();
+
+    assertMapping(xaStore, 1L, "eins");
+
+    testTransactionManager.begin();
+    {
+      Store.ValueHolder<String> computed3 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
+        @Override
+        public String apply(Long aLong, String s) {
+          System.out.println("computing3 : " + s);
+          return null;
+        }
+      });
+      System.out.println("computed3 : " + computed3);
+    }
     testTransactionManager.commit();
 
     assertMapping(xaStore, 1L, null);
+
+    OffHeapStoreLifecycleHelper.close(offHeapStore);
   }
 
   static class TestTransactionManager implements TransactionManager {
