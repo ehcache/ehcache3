@@ -210,7 +210,7 @@
             <xs:complexType>
               <xs:simpleContent>
                 <xs:extension base="xs:string">
-                  <xs:attribute type="xs:positiveInteger" name="min" default="1" use="optional"/>
+                  <xs:attribute type="xs:nonNegativeInteger" name="min" default="0" use="optional"/>
                   <xs:attribute type="xs:positiveInteger" name="max" default="1" use="optional"/>
                 </xs:extension>
               </xs:simpleContent>

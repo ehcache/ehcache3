@@ -56,12 +56,7 @@ public class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfi
   
   public WriteBehindConfiguration build() {
     DefaultWriteBehindConfiguration configuration = new DefaultWriteBehindConfiguration();
-    if (minWriteDelay != null) {
-      configuration.setMinWriteDelay(minWriteDelay);
-    }
-    if (maxWriteDelay != null) {
-      configuration.setMaxWriteDelay(maxWriteDelay);
-    }
+    configuration.setWriteDelays(minWriteDelay, maxWriteDelay);
     if (rateLimitPerSecond != null) {
       configuration.setRateLimitPerSecond(rateLimitPerSecond);
     }

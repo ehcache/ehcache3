@@ -54,7 +54,7 @@ public class WriteBehindEvictionTest extends AbstractWriteBehindTestBase {
                                                                                         .build();
     
     ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder()
-        .with(org.ehcache.config.ResourceType.Core.HEAP, 10, EntryUnit.ENTRIES, false);
+        .heap(10, EntryUnit.ENTRIES);
    
     cacheManager = newCacheManagerBuilder().using(cacheLoaderWriterProvider).build(true);
     testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder()
