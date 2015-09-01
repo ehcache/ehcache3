@@ -40,10 +40,6 @@ public class XATransactionContext<K, V> {
     this.stateStore = stateStore;
   }
 
-  public TransactionId getTransactionId() {
-    return transactionId;
-  }
-
   public void addCommand(K key, StorePutCommand<V> command) {
     commands.put(key, command);
   }
@@ -111,10 +107,18 @@ public class XATransactionContext<K, V> {
 
     for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
       SoftLock<V> preparedSoftLock = new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder());
-      SoftLock<V> definitiveSoftLock = new SoftLock<V>(transactionId, entry.getValue().getNewValueHolder(), null);
-      boolean replaced = underlyingStore.replace(entry.getKey(), preparedSoftLock, definitiveSoftLock);
-      if (!replaced) {
-        throw new AssertionError("TODO: handle this case");
+      SoftLock<V> definitiveSoftLock = entry.getValue().getNewValueHolder() == null ? null : new SoftLock<V>(transactionId, entry.getValue().getNewValueHolder(), null);
+
+      if (definitiveSoftLock != null) {
+        boolean replaced = underlyingStore.replace(entry.getKey(), preparedSoftLock, definitiveSoftLock);
+        if (!replaced) {
+          throw new AssertionError("TODO: handle this case");
+        }
+      } else {
+        boolean removed = underlyingStore.remove(entry.getKey(), preparedSoftLock);
+        if (!removed) {
+          throw new AssertionError("TODO: handle this case");
+        }
       }
     }
     stateStore.save(transactionId, XAState.COMMITTED);
@@ -128,16 +132,31 @@ public class XATransactionContext<K, V> {
     for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
       Store.ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(entry.getKey());
       SoftLock<V> oldSoftLock = softLockValueHolder == null ? null : softLockValueHolder.value();
-      SoftLock<V> newSoftLock = new SoftLock<V>(transactionId, entry.getValue().getNewValueHolder(), null);
+      SoftLock<V> newSoftLock = entry.getValue().getNewValueHolder() == null ? null : new SoftLock<V>(transactionId, entry.getValue().getNewValueHolder(), null);
       if (oldSoftLock != null) {
-        boolean replaced = underlyingStore.replace(entry.getKey(), oldSoftLock, newSoftLock);
-        if (!replaced) {
-          throw new AssertionError("TODO: handle this case");
+        if (newSoftLock != null) {
+          boolean replaced = underlyingStore.replace(entry.getKey(), oldSoftLock, newSoftLock);
+          if (!replaced) {
+            throw new AssertionError("TODO: handle this case");
+          }
+        } else {
+          boolean removed = underlyingStore.remove(entry.getKey(), oldSoftLock);
+          if (!removed) {
+            throw new AssertionError("TODO: handle this case");
+          }
         }
       } else {
-        Store.ValueHolder<SoftLock<V>> existing = underlyingStore.putIfAbsent(entry.getKey(), newSoftLock);
-        if (existing != null) {
-          throw new AssertionError("TODO: handle this case");
+        if (newSoftLock != null) {
+          Store.ValueHolder<SoftLock<V>> existing = underlyingStore.putIfAbsent(entry.getKey(), newSoftLock);
+          if (existing != null) {
+            throw new AssertionError("TODO: handle this case");
+          }
+        } else {
+          // replace null with null
+          Store.ValueHolder<SoftLock<V>> existing = underlyingStore.get(entry.getKey());
+          if (existing != null) {
+            throw new AssertionError("TODO: handle this case");
+          }
         }
       }
     }
@@ -153,16 +172,15 @@ public class XATransactionContext<K, V> {
       // phase 2 rollback
 
       for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
-        Store.ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(entry.getKey());
-        SoftLock<V> oldSoftLock = softLockValueHolder == null ? null : softLockValueHolder.value();
-        SoftLock<V> newSoftLock = entry.getValue().getOldValueHolder() == null ? null : new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), null);
-        if (newSoftLock != null) {
-          boolean replaced = underlyingStore.replace(entry.getKey(), oldSoftLock, newSoftLock);
+        SoftLock<V> preparedSoftLock = new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder());
+        SoftLock<V> definitiveSoftLock = entry.getValue().getOldValueHolder() == null ? null : new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), null);
+        if (definitiveSoftLock != null) {
+          boolean replaced = underlyingStore.replace(entry.getKey(), preparedSoftLock, definitiveSoftLock);
           if (!replaced) {
             throw new AssertionError("TODO: handle this case");
           }
         } else {
-          boolean removed = underlyingStore.remove(entry.getKey(), oldSoftLock);
+          boolean removed = underlyingStore.remove(entry.getKey(), preparedSoftLock);
           if (!removed) {
             throw new AssertionError("TODO: handle this case");
           }

@@ -206,6 +206,19 @@ public class XAStoreTest {
     }
     testTransactionManager.commit();
 
+    testTransactionManager.begin();
+    {
+      Store.ValueHolder<String> computed3 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
+        @Override
+        public String apply(Long aLong, String s) {
+          System.out.println("computing3 : " + s);
+          return null;
+        }
+      });
+      System.out.println("computed3 : " + computed3);
+    }
+    testTransactionManager.commit();
+
     assertMapping(xaStore, 1L, null);
 
     OffHeapStoreLifecycleHelper.close(offHeapStore);
