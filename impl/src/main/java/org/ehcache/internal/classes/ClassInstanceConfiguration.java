@@ -16,18 +16,27 @@
 
 package org.ehcache.internal.classes;
 
+import static java.util.Arrays.asList;
+import java.util.List;
+
 /**
  * @author Alex Snaps
  */
 public class ClassInstanceConfiguration<T> {
 
   private final Class<? extends T> clazz;
+  private final List<Object> arguments;
 
-  public ClassInstanceConfiguration(final Class<? extends T> clazz) {
+  public ClassInstanceConfiguration(Class<? extends T> clazz, Object... arguments) {
     this.clazz = clazz;
+    this.arguments = asList(arguments.clone());
   }
 
   public Class<? extends T> getClazz() {
     return clazz;
+  }
+
+  public Object[] getArguments() {
+    return arguments.toArray();
   }
 }

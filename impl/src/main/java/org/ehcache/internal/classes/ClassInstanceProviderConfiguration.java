@@ -27,9 +27,9 @@ import java.util.Map;
  */
 public class ClassInstanceProviderConfiguration<T> {
 
-  private Map<String, Class<? extends T>> defaults = new LinkedHashMap<String, Class<? extends T>>();
+  private Map<String, ClassInstanceConfiguration<T>> defaults = new LinkedHashMap<String, ClassInstanceConfiguration<T>>();
 
-  public Map<String, Class<? extends T>> getDefaults() {
+  public Map<String, ClassInstanceConfiguration<T>> getDefaults() {
     return defaults;
   }
 

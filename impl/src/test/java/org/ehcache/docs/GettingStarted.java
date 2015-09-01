@@ -47,7 +47,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -55,6 +54,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import static java.util.Collections.singletonMap;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -225,9 +225,10 @@ public class GettingStarted {
     
     final Cache<Long, String> writeThroughCache = cacheManager.createCache("writeThroughCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder()
-            .add(new DefaultCacheLoaderWriterConfiguration(klazz)) // <1>
+            .add(new DefaultCacheLoaderWriterConfiguration(klazz, singletonMap(41L, "zero"))) // <1>
             .buildConfig(Long.class, String.class));
     
+    assertThat(writeThroughCache.get(41L), is("zero"));
     writeThroughCache.put(42L, "one");
     assertThat(writeThroughCache.get(42L), equalTo("one"));
     
@@ -245,7 +246,7 @@ public class GettingStarted {
     
     final Cache<Long, String> writeBehindCache = cacheManager.createCache("writeBehindCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder()
-            .add(new DefaultCacheLoaderWriterConfiguration(klazz)) // <1>
+            .add(new DefaultCacheLoaderWriterConfiguration(klazz, singletonMap(41L, "zero"))) // <1>
             .add(WriteBehindConfigurationBuilder.newWriteBehindConfiguration() // <2>
                 .queueSize(3)// <3>
                 .concurrencyLevel(1) // <4>
@@ -256,6 +257,7 @@ public class GettingStarted {
                 .delay(1, 1)) // <9>
             .buildConfig(Long.class, String.class));
     
+    assertThat(writeBehindCache.get(41L), is("zero"));
     writeBehindCache.put(42L, "one");
     writeBehindCache.put(43L, "two");
     writeBehindCache.put(42L, "This goes for the record");
@@ -326,20 +328,21 @@ public class GettingStarted {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SampleLoaderWriter.class);
     
-    private final Map<K, Pair<K, V>> data = new HashMap<K, Pair<K, V>>();
+    private final Map<K, V> data = new HashMap<K, V>();
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     
+    public SampleLoaderWriter(Map<K, V> initialData) {
+      data.putAll(initialData);
+    }
+
     @Override
     public V load(K key) throws Exception {
-      V v = null;
       lock.readLock().lock();
       try {
-        Pair<K, V> kVPair = data.get(key); 
-        v = kVPair == null ? null : kVPair.getValue();
+        return data.get(key);
       } finally {
         lock.readLock().unlock();
       }
-      return v;
     }
 
     @Override
@@ -351,8 +354,8 @@ public class GettingStarted {
     public void write(K key, V value) throws Exception {
       lock.writeLock().lock();
       try {
+        data.put(key, value);
         LOGGER.info("Key - '{}', Value - '{}' successfully written", key, value);
-        data.put(key, new Pair<K, V>(key, value));
       } finally {
         lock.writeLock().unlock();
       }
@@ -363,8 +366,8 @@ public class GettingStarted {
       lock.writeLock().lock();
       try {
         for (Map.Entry<? extends K, ? extends V> entry : entries) {
+          data.put(entry.getKey(), entry.getValue());
           LOGGER.info("Key - '{}', Value - '{}' successfully written in batch", entry.getKey(), entry.getValue());
-          data.put(entry.getKey(), new Pair<K, V>(entry.getKey(), entry.getValue()));
         }
       } finally {
         lock.writeLock().unlock();
@@ -373,30 +376,25 @@ public class GettingStarted {
 
     @Override
     public void delete(K key) throws Exception {
-      throw new UnsupportedOperationException("Implement me!");
+      lock.writeLock().lock();
+      try {
+        data.remove(key);
+        LOGGER.info("Key - '{}' successfully deleted", key);
+      } finally {
+        lock.writeLock().unlock();
+      }
     }
 
     @Override
     public void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException, Exception {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-    
-    public static class Pair<K, V> {
-      
-      private K key;
-      private V value;
-      
-      public Pair(K k, V v) {
-        this.key = k;
-        this.value = v;
-      }
-      
-      public K getKey() {
-        return key;
-      }
-
-      public V getValue() {
-        return value;
+      lock.writeLock().lock();
+      try {
+        for (K key : keys) {
+          data.remove(key);
+          LOGGER.info("Key - '{}' successfully deleted in batch", key);
+        }
+      } finally {
+        lock.writeLock().unlock();
       }
     }
   }

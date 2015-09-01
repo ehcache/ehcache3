@@ -32,6 +32,7 @@ import java.util.Set;
 public class CacheEventListenerConfigurationBuilder implements Builder<CacheEventListenerConfiguration> {
   private EventOrdering eventOrdering;
   private EventFiring eventFiringMode;
+  private Object[] listenerArguments = new Object[0];
   private final EnumSet<EventType> eventsToFireOn;
   private final Class<? extends CacheEventListener<?, ?>> listenerClass;
 
@@ -45,6 +46,7 @@ public class CacheEventListenerConfigurationBuilder implements Builder<CacheEven
     eventOrdering = other.eventOrdering;
     eventsToFireOn = EnumSet.copyOf(other.eventsToFireOn);
     listenerClass = other.listenerClass;
+    listenerArguments = other.listenerArguments;
   }
 
   public static CacheEventListenerConfigurationBuilder newEventListenerConfiguration(
@@ -59,6 +61,12 @@ public class CacheEventListenerConfigurationBuilder implements Builder<CacheEven
       throw new IllegalArgumentException("EventType Set cannot be empty");
     }
     return new CacheEventListenerConfigurationBuilder(EnumSet.copyOf(eventSetToFireOn), listenerClass);
+  }
+
+  public CacheEventListenerConfigurationBuilder constructedWith(Object... arguments) {
+    CacheEventListenerConfigurationBuilder otherBuilder = new CacheEventListenerConfigurationBuilder(this);
+    otherBuilder.listenerArguments = arguments;
+    return otherBuilder;
   }
 
   public CacheEventListenerConfigurationBuilder eventOrdering(EventOrdering eventOrdering){
@@ -89,9 +97,9 @@ public class CacheEventListenerConfigurationBuilder implements Builder<CacheEven
     return firingMode(EventFiring.ASYNCHRONOUS);
   }
 
-  public CacheEventListenerConfiguration build() {
+  public DefaultCacheEventListenerConfiguration build() {
     DefaultCacheEventListenerConfiguration defaultCacheEventListenerConfiguration
-        = new DefaultCacheEventListenerConfiguration(this.listenerClass);
+        = new DefaultCacheEventListenerConfiguration(this.listenerClass, this.listenerArguments);
     defaultCacheEventListenerConfiguration.setEventsToFireOn(this.eventsToFireOn);
     if (eventOrdering != null) {
       defaultCacheEventListenerConfiguration.setEventOrderingMode(this.eventOrdering);
