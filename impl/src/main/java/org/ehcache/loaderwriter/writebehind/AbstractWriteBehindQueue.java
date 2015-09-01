@@ -172,14 +172,12 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
   }
 
   private void waitForQueueSizeToDrop() {
-    if (maxQueueSize > 0) {
-      while (getQueueSize() >= maxQueueSize) {
-        try {
-          queueIsFull.await();
-        } catch (InterruptedException e) {
-          stop();
-          Thread.currentThread().interrupt();
-        }
+    while (getQueueSize() >= maxQueueSize) {
+      try {
+        queueIsFull.await();
+      } catch (InterruptedException e) {
+        stop();
+        Thread.currentThread().interrupt();
       }
     }
   }

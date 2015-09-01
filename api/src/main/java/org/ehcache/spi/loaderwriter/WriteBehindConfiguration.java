@@ -96,7 +96,7 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
   /**
    * The maximum number of operations allowed on the write behind queue.
    *
-   * {@code 0} indicates an unbound queue.
+   * Only positive values are legal.
    *
    * @return Retrieves the maximum amount of operations allowed on the write behind queue
    */

@@ -58,4 +58,15 @@ public class DefaultWriteBehindConfigurationTest {
     new DefaultWriteBehindConfiguration().setWriteDelays(10, 5);
   }
 
+  @Test
+  public void testMaxQueueSizeDefault() {
+    DefaultWriteBehindConfiguration configuration = new DefaultWriteBehindConfiguration();
+    assertThat(configuration.getWriteBehindMaxQueueSize(), is(Integer.MAX_VALUE));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testMaxQueueSizeInvalid() {
+    new DefaultWriteBehindConfiguration().setWriteBehindMaxQueueSize(0);
+  }
+
 }

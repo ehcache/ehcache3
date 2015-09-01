@@ -237,7 +237,7 @@
           </xs:element>
         </xs:sequence>
         <xs:attribute type="xs:positiveInteger" name="concurrency" default="1" use="optional"/>
-        <xs:attribute type="xs:nonNegativeInteger" name="size" default="0" use="optional"/>
+        <xs:attribute type="xs:positiveInteger" name="size" default="2147483647" use="optional"/>
         <xs:attribute type="xs:boolean" name="coalesce" use="optional"/>
       </xs:complexType>
     </xs:element>

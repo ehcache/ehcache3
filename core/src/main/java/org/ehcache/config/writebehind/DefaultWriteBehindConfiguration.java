@@ -36,7 +36,7 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
   private int retryAttempts = 1;
   private int retryAttemptDelaySeconds = 1;
   private int writeBehindConcurrency = 1;
-  private int writeBehindMaxQueueSize = 0;
+  private int writeBehindMaxQueueSize = Integer.MAX_VALUE;
   
   public DefaultWriteBehindConfiguration() {
   }
@@ -149,8 +149,8 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
   }
 
   public void setWriteBehindMaxQueueSize(int writeBehindMaxQueueSize) {
-    if(writeBehindMaxQueueSize < 0) {
-      throw new IllegalArgumentException("WriteBehind queue size cannot be less than 0.");
+    if(writeBehindMaxQueueSize < 1) {
+      throw new IllegalArgumentException("WriteBehind queue size cannot be less than 1.");
     }
     this.writeBehindMaxQueueSize = writeBehindMaxQueueSize;
   }
