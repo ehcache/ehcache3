@@ -73,28 +73,28 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
   int getWriteBatchSize();
 
   /**
-   * The number of times the write of a mapping is retried in case it fails.
+   * The number of times the write of a mapping will be retried in the case of failure.
    *
    * @return Retrieves the number of times the write of element is retried.
    */
   int getRetryAttempts();
 
   /**
-   * The number of seconds to wait before retrying an failed operation.
+   * A number of seconds to wait before retrying an failed operation.
    *
    * @return Retrieves the number of seconds to wait before retrying an failed operation.
    */
   int getRetryAttemptDelaySeconds();
 
   /**
-   * The amount of bucket/thread pairs configured for this cache's write behind.
+   * A number of bucket/thread pairs configured for this cache's write behind.
    *
    * @return Retrieves the amount of bucket/thread pairs configured for this cache's write behind
    */
   int getWriteBehindConcurrency();
 
   /**
-   * The maximum amount of operations allowed on the write behind queue.
+   * The maximum number of operations allowed on the write behind queue.
    *
    * {@code 0} indicates an unbound queue.
    *

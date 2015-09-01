@@ -95,10 +95,10 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
     minWriteDelay = minWriteDelay != null ? minWriteDelay : 0;
     maxWriteDelay = maxWriteDelay != null ? maxWriteDelay : 1;
     if (minWriteDelay < 0) {
-      throw new IllegalArgumentException("Minimum write delay seconds cannot be less then 0.");
+      throw new IllegalArgumentException("Minimum write delay seconds cannot be less than 0.");
     }
     if (maxWriteDelay < 1) {
-      throw new IllegalArgumentException("Maximum write delay seconds cannot be less then 1.");
+      throw new IllegalArgumentException("Maximum write delay seconds cannot be less than 1.");
     }
     if (maxWriteDelay < minWriteDelay) {
       throw new IllegalArgumentException(
