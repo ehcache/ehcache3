@@ -37,6 +37,7 @@ import javax.transaction.HeuristicRollbackException;
 import javax.transaction.InvalidTransactionException;
 import javax.transaction.NotSupportedException;
 import javax.transaction.RollbackException;
+import javax.transaction.Status;
 import javax.transaction.Synchronization;
 import javax.transaction.SystemException;
 import javax.transaction.Transaction;
@@ -46,8 +47,10 @@ import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 import java.util.Arrays;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -282,6 +285,7 @@ public class XAStoreTest {
     final long gtrid;
     final Map<XAResource, TestXid> xids = new IdentityHashMap<XAResource, TestXid>();
     final AtomicLong bqualGenerator = new AtomicLong();
+    final List<Synchronization> synchronizations = new CopyOnWriteArrayList<Synchronization>();
 
     public TestTransaction(long gtrid) {
       this.gtrid = gtrid;
@@ -289,33 +293,39 @@ public class XAStoreTest {
 
     @Override
     public void commit() throws RollbackException, HeuristicMixedException, HeuristicRollbackException, SecurityException, IllegalStateException, SystemException {
-      Set<Map.Entry<XAResource, TestXid>> entries = xids.entrySet();
+      try {
+        Set<Map.Entry<XAResource, TestXid>> entries = xids.entrySet();
 
-      // delist
-      for (Map.Entry<XAResource, TestXid> entry : entries) {
-        try {
-          entry.getKey().end(entry.getValue(), XAResource.TMNOFLAGS);
-        } catch (XAException e) {
-          throw (SystemException) new SystemException(XAException.XAER_RMERR).initCause(e);
+        // delist
+        for (Map.Entry<XAResource, TestXid> entry : entries) {
+          try {
+            entry.getKey().end(entry.getValue(), XAResource.TMNOFLAGS);
+          } catch (XAException e) {
+            throw (SystemException) new SystemException(XAException.XAER_RMERR).initCause(e);
+          }
         }
-      }
 
-      // prepare
-      for (Map.Entry<XAResource, TestXid> entry : entries) {
-        try {
-          entry.getKey().prepare(entry.getValue());
-        } catch (XAException e) {
-          throw (SystemException) new SystemException(XAException.XAER_RMERR).initCause(e);
-        }
-      }
+        fireBeforeCompletion();
 
-      // commit
-      for (Map.Entry<XAResource, TestXid> entry : entries) {
-        try {
-          entry.getKey().commit(entry.getValue(), false);
-        } catch (XAException e) {
-          throw (SystemException) new SystemException(XAException.XAER_RMERR).initCause(e);
+        // prepare
+        for (Map.Entry<XAResource, TestXid> entry : entries) {
+          try {
+            entry.getKey().prepare(entry.getValue());
+          } catch (XAException e) {
+            throw (SystemException) new SystemException(XAException.XAER_RMERR).initCause(e);
+          }
         }
+
+        // commit
+        for (Map.Entry<XAResource, TestXid> entry : entries) {
+          try {
+            entry.getKey().commit(entry.getValue(), false);
+          } catch (XAException e) {
+            throw (SystemException) new SystemException(XAException.XAER_RMERR).initCause(e);
+          }
+        }
+      } finally {
+        fireAfterCompletion(Status.STATUS_COMMITTED);
       }
     }
 
@@ -347,29 +357,45 @@ public class XAStoreTest {
 
     @Override
     public void registerSynchronization(Synchronization sync) throws RollbackException, IllegalStateException, SystemException {
-
+      synchronizations.add(sync);
     }
 
     @Override
     public void rollback() throws IllegalStateException, SystemException {
-      Set<Map.Entry<XAResource, TestXid>> entries = xids.entrySet();
+      try {
+        Set<Map.Entry<XAResource, TestXid>> entries = xids.entrySet();
 
-      // delist
-      for (Map.Entry<XAResource, TestXid> entry : entries) {
-        try {
-          entry.getKey().end(entry.getValue(), XAResource.TMNOFLAGS);
-        } catch (XAException e) {
-          throw (SystemException) new SystemException(XAException.XAER_RMERR).initCause(e);
+        // delist
+        for (Map.Entry<XAResource, TestXid> entry : entries) {
+          try {
+            entry.getKey().end(entry.getValue(), XAResource.TMNOFLAGS);
+          } catch (XAException e) {
+            throw (SystemException) new SystemException(XAException.XAER_RMERR).initCause(e);
+          }
         }
+
+        // rollback
+        for (Map.Entry<XAResource, TestXid> entry : entries) {
+          try {
+            entry.getKey().rollback(entry.getValue());
+          } catch (XAException e) {
+            throw (SystemException) new SystemException(XAException.XAER_RMERR).initCause(e);
+          }
+        }
+      } finally {
+        fireAfterCompletion(Status.STATUS_ROLLEDBACK);
       }
+    }
 
-      // rollback
-      for (Map.Entry<XAResource, TestXid> entry : entries) {
-        try {
-          entry.getKey().rollback(entry.getValue());
-        } catch (XAException e) {
-          throw (SystemException) new SystemException(XAException.XAER_RMERR).initCause(e);
-        }
+    private void fireBeforeCompletion() {
+      for (Synchronization synchronization : synchronizations) {
+        synchronization.beforeCompletion();
+      }
+    }
+
+    private void fireAfterCompletion(int status) {
+      for (Synchronization synchronization : synchronizations) {
+        synchronization.afterCompletion(status);
       }
     }
 

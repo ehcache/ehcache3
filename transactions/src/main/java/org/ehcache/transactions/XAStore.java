@@ -29,13 +29,13 @@ import org.ehcache.transactions.commands.StorePutCommand;
 import org.ehcache.transactions.commands.StoreRemoveCommand;
 
 import javax.transaction.RollbackException;
+import javax.transaction.Synchronization;
 import javax.transaction.SystemException;
 import javax.transaction.Transaction;
 import javax.transaction.TransactionManager;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Ludovic Orban
@@ -93,7 +93,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
   private XATransactionContext<K, V> getCurrentContext() throws CacheAccessException {
     try {
-      Transaction transaction = transactionManager.getTransaction();
+      final Transaction transaction = transactionManager.getTransaction();
       if (transaction == null) {
         throw new CacheAccessException("Cannot access XA cache outside of XA transaction scope");
       }
@@ -102,6 +102,15 @@ public class XAStore<K, V> implements Store<K, V> {
         xaResource = new EhcacheXAResource<K, V>(underlyingStore, stateStore, transactionContextFactory);
         transactionManager.getTransaction().enlistResource(xaResource);
         xaResources.put(transaction, xaResource);
+        transaction.registerSynchronization(new Synchronization() {
+          @Override
+          public void beforeCompletion() {
+          }
+          @Override
+          public void afterCompletion(int status) {
+            xaResources.remove(transaction);
+          }
+        });
       }
       return xaResource.getCurrentContext();
     } catch (SystemException se) {
@@ -145,10 +154,8 @@ public class XAStore<K, V> implements Store<K, V> {
     }
   }
 
-  private final AtomicLong valueHolderIdGenerator = new AtomicLong();
-
   private XAValueHolder<V> newXAValueHolder(final V value) {
-    return new XAValueHolder<V>(valueHolderIdGenerator.incrementAndGet(), timeSource.getTimeMillis(), value);
+    return new XAValueHolder<V>(-1L, timeSource.getTimeMillis(), value);
   }
 
   @Override
