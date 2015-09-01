@@ -129,6 +129,10 @@ public class EhcacheXAResource<K, V> implements XAResource {
         throw new EhcacheXAException("Cannot rollback unknown XID : " + xid, XAException.XAER_PROTO);
       }
       transactionContext.rollback();
+    } catch (IllegalStateException ise) {
+      throw new EhcacheXAException("Cannot rollback XID : " + xid, XAException.XAER_PROTO, ise);
+    } catch (CacheAccessException cae) {
+      throw new EhcacheXAException("Cannot rollback XID : " + xid, XAException.XAER_RMERR, cae);
     } finally {
       transactionContextFactory.destroy(transactionId);
     }

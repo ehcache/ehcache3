@@ -105,6 +105,8 @@ public class XATransactionContext<K, V> {
   public void commit() throws CacheAccessException {
     if (stateStore.getState(transactionId) == null) {
       throw new IllegalStateException("Cannot commit transaction that has not been prepared : " + transactionId);
+    } else if (stateStore.getState(transactionId) != XAState.IN_DOUBT) {
+      throw new IllegalStateException("Cannot commit done transaction : " + transactionId);
     }
 
     for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
@@ -142,7 +144,35 @@ public class XATransactionContext<K, V> {
     stateStore.save(transactionId, XAState.COMMITTED);
   }
 
-  public void rollback() {
-    throw new AssertionError("TODO: handle this case");
+  public void rollback() throws CacheAccessException {
+    if (stateStore.getState(transactionId) == null) {
+      // phase 1 rollback
+
+
+    } else if (stateStore.getState(transactionId) == XAState.IN_DOUBT) {
+      // phase 2 rollback
+
+      for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
+        Store.ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(entry.getKey());
+        SoftLock<V> oldSoftLock = softLockValueHolder == null ? null : softLockValueHolder.value();
+        SoftLock<V> newSoftLock = entry.getValue().getOldValueHolder() == null ? null : new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), null);
+        if (newSoftLock != null) {
+          boolean replaced = underlyingStore.replace(entry.getKey(), oldSoftLock, newSoftLock);
+          if (!replaced) {
+            throw new AssertionError("TODO: handle this case");
+          }
+        } else {
+          boolean removed = underlyingStore.remove(entry.getKey(), oldSoftLock);
+          if (!removed) {
+            throw new AssertionError("TODO: handle this case");
+          }
+        }
+      }
+
+    } else {
+      throw new IllegalStateException("Cannot rollback done transaction : " + transactionId);
+    }
+
+    stateStore.save(transactionId, XAState.ROLLED_BACK);
   }
 }

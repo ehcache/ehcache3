@@ -45,10 +45,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+
 /**
  * @author Ludovic Orban
  */
 public class XAStoreTest {
+
+  private final TestTransactionManager testTransactionManager = new TestTransactionManager();
 
   @Test
   public void testSimpleGetPutRemove() throws Exception {
@@ -58,7 +65,6 @@ public class XAStoreTest {
     Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(), keySerializer, valueSerializer);
     TestTimeSource testTimeSource = new TestTimeSource();
     OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, true);
-    TestTransactionManager testTransactionManager = new TestTransactionManager();
     XaTransactionStateStore stateStore = new TransientXaTransactionStateStore();
 
     XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, testTransactionManager, testTimeSource, stateStore);
@@ -67,22 +73,15 @@ public class XAStoreTest {
     {
       Store.ValueHolder<String> valueHolder = xaStore.get(1L);
       System.out.println(valueHolder);
-    }
 
-    xaStore.put(1L, "one");
+      xaStore.put(1L, "one");
 
-    {
-      Store.ValueHolder<String> valueHolder = xaStore.get(1L);
+      valueHolder = xaStore.get(1L);
       System.out.println(valueHolder);
     }
     testTransactionManager.commit();
 
-    testTransactionManager.begin();
-    {
-      Store.ValueHolder<String> valueHolder = xaStore.get(1L);
-      System.out.println(valueHolder);
-    }
-    testTransactionManager.commit();
+    assertMapping(xaStore, 1L, "one");
 
     testTransactionManager.begin();
     {
@@ -92,13 +91,7 @@ public class XAStoreTest {
     }
     testTransactionManager.rollback();
 
-    testTransactionManager.begin();
-    {
-      Store.ValueHolder<String> valueHolder = xaStore.get(1L);
-      System.out.println(valueHolder);
-    }
-    testTransactionManager.rollback();
-
+    assertMapping(xaStore, 1L, "one");
 
     testTransactionManager.begin();
     {
@@ -108,12 +101,20 @@ public class XAStoreTest {
     }
     testTransactionManager.commit();
 
+    assertMapping(xaStore, 1L, "un");
+  }
+
+  private void assertMapping(XAStore<Long, String> xaStore, long key, String value) throws Exception {
     testTransactionManager.begin();
     {
-      Store.ValueHolder<String> valueHolder = xaStore.get(1L);
-      System.out.println(valueHolder);
+      Store.ValueHolder<String> valueHolder = xaStore.get(key);
+      if (value != null) {
+        assertThat(valueHolder.value(), equalTo(value));
+      } else {
+        assertThat(valueHolder, is(nullValue()));
+      }
     }
-    testTransactionManager.rollback();
+    testTransactionManager.commit();
   }
 
   @Test
@@ -124,7 +125,6 @@ public class XAStoreTest {
     Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(), keySerializer, valueSerializer);
     TestTimeSource testTimeSource = new TestTimeSource();
     OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, true);
-    TestTransactionManager testTransactionManager = new TestTransactionManager();
     XaTransactionStateStore stateStore = new TransientXaTransactionStateStore();
 
     XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, testTransactionManager, testTimeSource, stateStore);
@@ -134,7 +134,7 @@ public class XAStoreTest {
       Store.ValueHolder<String> computed1 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
         @Override
         public String apply(Long aLong, String s) {
-          System.out.println("computing1 : "  + s);
+          System.out.println("computing1 : " + s);
           return "one";
         }
       });
@@ -142,7 +142,7 @@ public class XAStoreTest {
       Store.ValueHolder<String> computed2 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
         @Override
         public String apply(Long aLong, String s) {
-          System.out.println("computing2 : "  + s);
+          System.out.println("computing2 : " + s);
           return "un";
         }
       });
@@ -150,21 +150,40 @@ public class XAStoreTest {
     }
     testTransactionManager.commit();
 
+    assertMapping(xaStore, 1L, "un");
+
     testTransactionManager.begin();
     {
       Store.ValueHolder<String> computed3 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
         @Override
         public String apply(Long aLong, String s) {
-          System.out.println("computing3 : "  + s);
+          System.out.println("computing3 : " + s);
           return "eins";
         }
       });
       System.out.println("computed3 : " + computed3);
     }
     testTransactionManager.commit();
+
+    assertMapping(xaStore, 1L, "eins");
+
+    testTransactionManager.begin();
+    {
+      Store.ValueHolder<String> computed3 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
+        @Override
+        public String apply(Long aLong, String s) {
+          System.out.println("computing3 : " + s);
+          return null;
+        }
+      });
+      System.out.println("computed3 : " + computed3);
+    }
+    testTransactionManager.commit();
+
+    assertMapping(xaStore, 1L, null);
   }
 
-    static class TestTransactionManager implements TransactionManager {
+  static class TestTransactionManager implements TransactionManager {
 
     volatile TestTransaction currentTransaction;
     final AtomicLong gtridGenerator = new AtomicLong();
@@ -357,7 +376,7 @@ public class XAStoreTest {
     public boolean equals(Object o) {
       if (o instanceof TestXid) {
         TestXid otherXid = (TestXid) o;
-        return  formatId == otherXid.formatId &&
+        return formatId == otherXid.formatId &&
             Arrays.equals(gtrid, otherXid.gtrid) &&
             Arrays.equals(bqual, otherXid.bqual);
       }
@@ -371,10 +390,10 @@ public class XAStoreTest {
 
     private static int arrayHashCode(byte[] uid) {
       int hash = 0;
-      for (int i = uid.length -1; i > 0 ;i--) {
+      for (int i = uid.length - 1; i > 0; i--) {
         hash <<= 1;
 
-        if ( hash < 0 ) {
+        if (hash < 0) {
           hash |= 1;
         }
 
