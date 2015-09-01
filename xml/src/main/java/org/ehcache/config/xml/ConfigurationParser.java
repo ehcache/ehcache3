@@ -809,7 +809,7 @@ class ConfigurationParser {
 
     @Override
     public int rateLimitPerSecond() {
-      return this.writebehind.getRatelimitpersecond() != null ? this.writebehind.getRatelimitpersecond().intValue() : 0;
+      return this.writebehind.getRatelimitpersecond().intValue();
     }
     
   }

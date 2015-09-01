@@ -43,7 +43,7 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
   /**
    * The maximum number of write operations to allow per second.
    *
-   * {@code 0} means no limit.
+   * Only positive values are legal.
    *
    * @return Retrieves the maximum number of write operations to allow per second.
    */

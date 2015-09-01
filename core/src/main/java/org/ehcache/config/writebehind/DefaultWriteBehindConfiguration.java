@@ -29,7 +29,7 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
 
   private int minWriteDelay = 0;
   private int maxWriteDelay = 1;
-  private int rateLimitPerSecond = 0;
+  private int rateLimitPerSecond = Integer.MAX_VALUE;
   private boolean writeCoalescing = false;
   private boolean writeBatching = false;
   private int writeBatchSize = 1;
@@ -109,8 +109,8 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
   }
 
   public void setRateLimitPerSecond(int rateLimitPerSecond) {
-    if(rateLimitPerSecond < 0) {
-      throw new IllegalArgumentException("RateLimitPerSecond cannot be less than 0.");
+    if(rateLimitPerSecond < 1) {
+      throw new IllegalArgumentException("RateLimitPerSecond cannot be less than 1.");
     }
     this.rateLimitPerSecond = rateLimitPerSecond;
   }

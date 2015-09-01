@@ -224,7 +224,6 @@
               </xs:simpleContent>
             </xs:complexType>
           </xs:element>
-          <xs:element type="xs:nonNegativeInteger" name="ratelimitpersecond" default="0" minOccurs="0" maxOccurs="1"/>
           <xs:element type="xs:positiveInteger" name="batchsize" default="1" minOccurs="0" maxOccurs="1"/>
           <xs:element name="retryAttempts" default="0" minOccurs="0" maxOccurs="1">
             <xs:complexType>
@@ -239,6 +238,7 @@
         <xs:attribute type="xs:positiveInteger" name="concurrency" default="1" use="optional"/>
         <xs:attribute type="xs:positiveInteger" name="size" default="2147483647" use="optional"/>
         <xs:attribute type="xs:boolean" name="coalesce" use="optional"/>
+        <xs:attribute name="ratelimitpersecond" type="xs:positiveInteger" default="2147483647" use="optional"/>
       </xs:complexType>
     </xs:element>
       <xs:element name="listener" minOccurs="0" maxOccurs="unbounded">

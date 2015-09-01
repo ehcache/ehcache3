@@ -18,6 +18,8 @@ package org.ehcache.config.writebehind;
 
 import org.junit.Test;
 
+import java.math.BigInteger;
+
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
@@ -67,6 +69,17 @@ public class DefaultWriteBehindConfigurationTest {
   @Test(expected = IllegalArgumentException.class)
   public void testMaxQueueSizeInvalid() {
     new DefaultWriteBehindConfiguration().setWriteBehindMaxQueueSize(0);
+  }
+
+  @Test
+  public void testRateLimitDefault() {
+    DefaultWriteBehindConfiguration configuration = new DefaultWriteBehindConfiguration();
+    assertThat(configuration.getRateLimitPerSecond(), is(Integer.MAX_VALUE));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testRateLimitInvalid() {
+    new DefaultWriteBehindConfiguration().setRateLimitPerSecond(0);
   }
 
 }

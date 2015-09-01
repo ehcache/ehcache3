@@ -510,7 +510,7 @@ public class XmlConfigurationTest {
         assertThat(((WriteBehindConfiguration) configuration).getWriteBatchSize(), is(2));
         assertThat(((WriteBehindConfiguration) configuration).getWriteBehindConcurrency(), is(1));
         assertThat(((WriteBehindConfiguration) configuration).getWriteBehindMaxQueueSize(), is(10));
-        assertThat(((WriteBehindConfiguration) configuration).getRateLimitPerSecond(), is(0));
+        assertThat(((WriteBehindConfiguration) configuration).getRateLimitPerSecond(), is(Integer.MAX_VALUE));
         assertThat(((WriteBehindConfiguration) configuration).getRetryAttempts(), is(0));
         assertThat(((WriteBehindConfiguration) configuration).getRetryAttemptDelaySeconds(), is(1));
         break;

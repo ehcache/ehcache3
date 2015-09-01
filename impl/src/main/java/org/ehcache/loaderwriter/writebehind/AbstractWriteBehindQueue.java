@@ -357,14 +357,12 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
           }
           // enforce the rate limit and wait for another round if too much would
           // be processed compared to the last time when a batch was executed
-          if (rateLimitPerSecond > 0) {
-            final long secondsSinceLastWorkDone = (System.currentTimeMillis() - lastWorkDone.get()) / MS_IN_SEC;
-            final long maxBatchSizeSinceLastWorkDone = rateLimitPerSecond * secondsSinceLastWorkDone;
-            final int batchSize = determineBatchSize(quarantinedItems);
-            if (batchSize > maxBatchSizeSinceLastWorkDone) {
-              waitUntilEnoughTimeHasPassed(quarantinedItems, batchSize, secondsSinceLastWorkDone);
-              return;
-            }
+          final long secondsSinceLastWorkDone = (System.currentTimeMillis() - lastWorkDone.get()) / MS_IN_SEC;
+          final long maxBatchSizeSinceLastWorkDone = rateLimitPerSecond * secondsSinceLastWorkDone;
+          final int batchSize = determineBatchSize(quarantinedItems);
+          if (batchSize > maxBatchSizeSinceLastWorkDone) {
+            waitUntilEnoughTimeHasPassed(quarantinedItems, batchSize, secondsSinceLastWorkDone);
+            return;
           }
         }
 
