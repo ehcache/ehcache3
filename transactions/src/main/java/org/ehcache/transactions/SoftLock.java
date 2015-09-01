@@ -66,4 +66,9 @@ public class SoftLock<V> implements Serializable {
     result = 31 * result + (newValueHolder != null ? newValueHolder.hashCode() : 0);
     return result;
   }
+
+  @Override
+  public String toString() {
+    return "SoftLock TxId[" + transactionId + "] Old[" + oldValueHolder + "] New[" + newValueHolder + "]";
+  }
 }
