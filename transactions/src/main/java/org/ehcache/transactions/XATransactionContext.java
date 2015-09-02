@@ -129,7 +129,7 @@ public class XATransactionContext<K, V> {
       }
 
       SoftLock<V> preparedSoftLock = new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder());
-      SoftLock<V> definitiveSoftLock = entry.getValue().getNewValueHolder() == null ? null : new SoftLock<V>(transactionId, entry.getValue().getNewValueHolder(), null);
+      SoftLock<V> definitiveSoftLock = entry.getValue().getNewValueHolder() == null ? null : new SoftLock<V>(null, entry.getValue().getNewValueHolder(), null);
 
       if (definitiveSoftLock != null) {
         boolean replaced = underlyingStore.replace(entry.getKey(), preparedSoftLock, definitiveSoftLock);
@@ -158,7 +158,7 @@ public class XATransactionContext<K, V> {
       }
       Store.ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(entry.getKey());
       SoftLock<V> oldSoftLock = softLockValueHolder == null ? null : softLockValueHolder.value();
-      SoftLock<V> newSoftLock = entry.getValue().getNewValueHolder() == null ? null : new SoftLock<V>(transactionId, entry.getValue().getNewValueHolder(), null);
+      SoftLock<V> newSoftLock = entry.getValue().getNewValueHolder() == null ? null : new SoftLock<V>(null, entry.getValue().getNewValueHolder(), null);
       if (oldSoftLock != null) {
         if (newSoftLock != null) {
           boolean replaced = underlyingStore.replace(entry.getKey(), oldSoftLock, newSoftLock);
@@ -199,7 +199,7 @@ public class XATransactionContext<K, V> {
 
       for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
         SoftLock<V> preparedSoftLock = new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder());
-        SoftLock<V> definitiveSoftLock = entry.getValue().getOldValueHolder() == null ? null : new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), null);
+        SoftLock<V> definitiveSoftLock = entry.getValue().getOldValueHolder() == null ? null : new SoftLock<V>(null, entry.getValue().getOldValueHolder(), null);
         if (definitiveSoftLock != null) {
           boolean replaced = underlyingStore.replace(entry.getKey(), preparedSoftLock, definitiveSoftLock);
           if (!replaced) {

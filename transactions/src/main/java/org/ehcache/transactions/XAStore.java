@@ -64,7 +64,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   private boolean isInDoubt(SoftLock<V> softLock) {
-    return stateStore.getState(softLock.getTransactionId()) == XAState.IN_DOUBT;
+    return softLock.getTransactionId() != null;
   }
 
   @Override
@@ -268,6 +268,9 @@ public class XAStore<K, V> implements Store<K, V> {
     }
 
     void advance() throws CacheAccessException {
+      if (!getCurrentContext().getTransactionId().equals(transactionId)) {
+        throw new IllegalStateException("Iterator has been created in another transaction, it can only be used in the transaction it has been created in.");
+      }
       next = null;
 
       if (iterator.hasNext()) {
@@ -305,7 +308,15 @@ public class XAStore<K, V> implements Store<K, V> {
         final Cache.Entry<K, ValueHolder<SoftLock<V>>> next = underlyingIterator.next();
 
         if (!transactionContextFactory.isTouched(transactionId, next.getKey())) {
-          final XAValueHolder<V> xaValueHolder = newXAValueHolder(next.getValue().value().getNewValueHolder().value());
+          SoftLock<V> softLock = next.getValue().value();
+          final XAValueHolder<V> xaValueHolder;
+          if (softLock.getTransactionId() == transactionId) {
+            xaValueHolder = newXAValueHolder(softLock.getNewValueHolder().value());
+          } else if (isInDoubt(softLock)) {
+            continue;
+          } else {
+            xaValueHolder = newXAValueHolder(softLock.getOldValueHolder().value());
+          }
           this.next = new Cache.Entry<K, ValueHolder<V>>() {
             @Override
             public K getKey() {

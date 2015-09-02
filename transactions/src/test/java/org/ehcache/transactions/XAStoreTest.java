@@ -162,6 +162,16 @@ public class XAStoreTest {
     }
     testTransactionManager.commit();
 
+    testTransactionManager.begin();
+    {
+      Store.Iterator<Cache.Entry<Long, Store.ValueHolder<String>>> iterator = xaStore.iterator();
+      while (iterator.hasNext()) {
+        Cache.Entry<Long, Store.ValueHolder<String>> next = iterator.next();
+        System.out.println(next.getKey() + " : " + next.getValue().value());
+      }
+    }
+    testTransactionManager.commit();
+
 
   }
 

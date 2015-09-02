@@ -52,7 +52,8 @@ public class SoftLock<V> implements Serializable {
 
     SoftLock<?> softLock = (SoftLock<?>) o;
 
-    if (!transactionId.equals(softLock.transactionId)) return false;
+    if (transactionId != null ? !transactionId.equals(softLock.transactionId) : softLock.transactionId != null)
+      return false;
     if (oldValueHolder != null ? !oldValueHolder.equals(softLock.oldValueHolder) : softLock.oldValueHolder != null)
       return false;
     return !(newValueHolder != null ? !newValueHolder.equals(softLock.newValueHolder) : softLock.newValueHolder != null);
@@ -61,7 +62,7 @@ public class SoftLock<V> implements Serializable {
 
   @Override
   public int hashCode() {
-    int result = transactionId.hashCode();
+    int result = transactionId != null ? transactionId.hashCode() : 0;
     result = 31 * result + (oldValueHolder != null ? oldValueHolder.hashCode() : 0);
     result = 31 * result + (newValueHolder != null ? newValueHolder.hashCode() : 0);
     return result;
