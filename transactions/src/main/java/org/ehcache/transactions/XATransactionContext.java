@@ -19,8 +19,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.transactions.commands.Command;
-import org.ehcache.transactions.commands.StorePutCommand;
-import org.ehcache.transactions.commands.StoreRemoveCommand;
+import org.ehcache.transactions.commands.StoreEvictCommand;
 
 import java.util.Map;
 
@@ -40,11 +39,10 @@ public class XATransactionContext<K, V> {
     this.stateStore = stateStore;
   }
 
-  public void addCommand(K key, StorePutCommand<V> command) {
-    commands.put(key, command);
-  }
-
-  public void addCommand(K key, StoreRemoveCommand<V> command) {
+  public void addCommand(K key, Command<V> command) {
+    if (commands.get(key) instanceof StoreEvictCommand) {
+      return;
+    }
     commands.put(key, command);
   }
 
@@ -56,11 +54,6 @@ public class XATransactionContext<K, V> {
   public Store.ValueHolder<V> getOldValueHolder(K key) {
     Command<V> command = commands.get(key);
     return command != null ? command.getOldValueHolder() : null;
-  }
-
-  public boolean isRemoved(K key) {
-    Command command = commands.get(key);
-    return command != null && command instanceof StoreRemoveCommand;
   }
 
   public boolean containsCommandFor(K key) {
@@ -80,6 +73,9 @@ public class XATransactionContext<K, V> {
 
     stateStore.save(transactionId, XAState.IN_DOUBT);
     for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
+      if (entry.getValue() instanceof StoreEvictCommand) {
+        continue;
+      }
       Store.ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(entry.getKey());
       SoftLock<V> oldSoftLock = softLockValueHolder == null ? null : softLockValueHolder.value();
       SoftLock<V> newSoftLock = new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder());
@@ -106,6 +102,11 @@ public class XATransactionContext<K, V> {
     }
 
     for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
+      if (entry.getValue() instanceof StoreEvictCommand) {
+        underlyingStore.remove(entry.getKey());
+        continue;
+      }
+
       SoftLock<V> preparedSoftLock = new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder());
       SoftLock<V> definitiveSoftLock = entry.getValue().getNewValueHolder() == null ? null : new SoftLock<V>(transactionId, entry.getValue().getNewValueHolder(), null);
 
@@ -130,6 +131,10 @@ public class XATransactionContext<K, V> {
     }
 
     for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
+      if (entry.getValue() instanceof StoreEvictCommand) {
+        underlyingStore.remove(entry.getKey());
+        continue;
+      }
       Store.ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(entry.getKey());
       SoftLock<V> oldSoftLock = softLockValueHolder == null ? null : softLockValueHolder.value();
       SoftLock<V> newSoftLock = entry.getValue().getNewValueHolder() == null ? null : new SoftLock<V>(transactionId, entry.getValue().getNewValueHolder(), null);

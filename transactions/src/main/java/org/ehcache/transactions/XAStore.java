@@ -25,6 +25,7 @@ import org.ehcache.function.NullaryFunction;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.transactions.commands.StoreEvictCommand;
 import org.ehcache.transactions.commands.StorePutCommand;
 import org.ehcache.transactions.commands.StoreRemoveCommand;
 
@@ -64,10 +65,6 @@ public class XAStore<K, V> implements Store<K, V> {
   public ValueHolder<V> get(K key) throws CacheAccessException {
     XATransactionContext<K, V> currentContext = getCurrentContext();
 
-    if (currentContext.isRemoved(key)) {
-      return null;
-    }
-
     ValueHolder<V> newValueHolder = currentContext.getNewValueHolder(key);
     if (newValueHolder != null) {
       return newValueHolder;
@@ -88,7 +85,11 @@ public class XAStore<K, V> implements Store<K, V> {
 
   @Override
   public boolean containsKey(K key) throws CacheAccessException {
-    return false;
+    if (getCurrentContext().containsCommandFor(key)) {
+      return getCurrentContext().getNewValueHolder(key) != null;
+    }
+    ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(key);
+    return softLockValueHolder != null && softLockValueHolder.value() != null && softLockValueHolder.value().getOldValueHolder() != null;
   }
 
   private XATransactionContext<K, V> getCurrentContext() throws CacheAccessException {
@@ -145,7 +146,7 @@ public class XAStore<K, V> implements Store<K, V> {
          */
 
         // evict
-        underlyingStore.remove(key);
+        currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValueHolder()));
       } else {
         currentContext.addCommand(key, new StorePutCommand<V>(softLock.getOldValueHolder(), newXAValueHolder(value)));
       }
@@ -188,7 +189,7 @@ public class XAStore<K, V> implements Store<K, V> {
          */
 
         // evict
-        underlyingStore.remove(key);
+        currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValueHolder()));
       } else {
         currentContext.addCommand(key, new StoreRemoveCommand<V>(softLock.getOldValueHolder()));
       }
@@ -219,13 +220,23 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public void enableStoreEventNotifications(StoreEventListener<K, V> listener) {
+  public void enableStoreEventNotifications(final StoreEventListener<K, V> listener) {
+    underlyingStore.enableStoreEventNotifications(new StoreEventListener<K, SoftLock<V>>() {
+      @Override
+      public void onEviction(K key, ValueHolder<SoftLock<V>> valueHolder) {
+        listener.onEviction(key, newXAValueHolder(valueHolder.value().getOldValueHolder().value()));
+      }
 
+      @Override
+      public void onExpiration(K key, ValueHolder<SoftLock<V>> valueHolder) {
+        listener.onExpiration(key, newXAValueHolder(valueHolder.value().getOldValueHolder().value()));
+      }
+    });
   }
 
   @Override
   public void disableStoreEventNotifications() {
-
+    underlyingStore.disableStoreEventNotifications();
   }
 
   @Override
@@ -233,8 +244,19 @@ public class XAStore<K, V> implements Store<K, V> {
     return null;
   }
 
+  private static final NullaryFunction<Boolean> REPLACE_EQUALS_TRUE = new NullaryFunction<Boolean>() {
+    @Override
+    public Boolean apply() {
+      return Boolean.TRUE;
+    }
+  };
+
+  private static boolean eq(Object o1, Object o2) {
+    return (o1 == o2) || (o1 != null && o1.equals(o2));
+  }
+
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException {
+  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.containsCommandFor(key)) {
       Store.ValueHolder<V> oldValueHolder = currentContext.getOldValueHolder(key);
@@ -242,11 +264,16 @@ public class XAStore<K, V> implements Store<K, V> {
       V newValue = mappingFunction.apply(key, currentContext.latestValueFor(key));
 
       XAValueHolder<V> xaValueHolder = null;
+      V oldValue = oldValueHolder == null ? null : oldValueHolder.value();
       if (newValue == null) {
-        currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValueHolder));
+        if (!(eq(oldValue, newValue) && !replaceEqual.apply())) {
+          currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValueHolder));
+        }
       } else {
         xaValueHolder = newXAValueHolder(newValue);
-        currentContext.addCommand(key, new StorePutCommand<V>(oldValueHolder, xaValueHolder));
+        if (!(eq(oldValue, newValue) && !replaceEqual.apply())) {
+          currentContext.addCommand(key, new StorePutCommand<V>(oldValueHolder, xaValueHolder));
+        }
       }
       return xaValueHolder;
     }
@@ -258,6 +285,9 @@ public class XAStore<K, V> implements Store<K, V> {
     V oldValue = oldValueHolder == null ? null : oldValueHolder.value();
     V newValue = mappingFunction.apply(key, oldValue);
     XAValueHolder<V> xaValueHolder = newValue == null ? null : newXAValueHolder(newValue);
+    if (eq(oldValue, newValue) && !replaceEqual.apply()) {
+      return xaValueHolder;
+    }
 
     if (softLock != null && isInDoubt(softLock)) {
       /*
@@ -272,7 +302,7 @@ public class XAStore<K, V> implements Store<K, V> {
        */
 
       // evict
-      underlyingStore.remove(key);
+      currentContext.addCommand(key, new StoreEvictCommand<V>(oldValueHolder));
     } else {
       if (xaValueHolder == null) {
         currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValueHolder));
@@ -285,8 +315,8 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
-    return null;
+  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException {
+    return compute(key, mappingFunction, REPLACE_EQUALS_TRUE);
   }
 
   @Override

@@ -148,19 +148,19 @@ public class XAStoreTest {
       Store.ValueHolder<String> computed1 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
         @Override
         public String apply(Long aLong, String s) {
-          System.out.println("computing1 : " + s);
+          System.out.println("computing : " + s);
           return "one";
         }
       });
-      System.out.println("computed1 : " + computed1);
+      System.out.println("computed : " + computed1);
       Store.ValueHolder<String> computed2 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
         @Override
         public String apply(Long aLong, String s) {
-          System.out.println("computing2 : " + s);
+          System.out.println("computing : " + s);
           return "un";
         }
       });
-      System.out.println("computed2 : " + computed2);
+      System.out.println("computed : " + computed2);
     }
     testTransactionManager.commit();
 
@@ -171,11 +171,11 @@ public class XAStoreTest {
       Store.ValueHolder<String> computed3 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
         @Override
         public String apply(Long aLong, String s) {
-          System.out.println("computing3 : " + s);
+          System.out.println("computing : " + s);
           return "eins";
         }
       });
-      System.out.println("computed3 : " + computed3);
+      System.out.println("computed : " + computed3);
     }
     testTransactionManager.commit();
 
@@ -186,11 +186,11 @@ public class XAStoreTest {
       Store.ValueHolder<String> computed3 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
         @Override
         public String apply(Long aLong, String s) {
-          System.out.println("computing3 : " + s);
+          System.out.println("computing : " + s);
           return null;
         }
       });
-      System.out.println("computed3 : " + computed3);
+      System.out.println("computed : " + computed3);
     }
     testTransactionManager.rollback();
 
@@ -201,11 +201,11 @@ public class XAStoreTest {
       Store.ValueHolder<String> computed3 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
         @Override
         public String apply(Long aLong, String s) {
-          System.out.println("computing3 : " + s);
+          System.out.println("computing : " + s);
           return null;
         }
       });
-      System.out.println("computed3 : " + computed3);
+      System.out.println("computed : " + computed3);
     }
     testTransactionManager.commit();
 
@@ -214,11 +214,37 @@ public class XAStoreTest {
       Store.ValueHolder<String> computed3 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
         @Override
         public String apply(Long aLong, String s) {
-          System.out.println("computing3 : " + s);
+          System.out.println("computing : " + s);
           return null;
         }
       });
-      System.out.println("computed3 : " + computed3);
+      System.out.println("computed : " + computed3);
+    }
+    testTransactionManager.commit();
+
+    testTransactionManager.begin();
+    {
+      boolean b = xaStore.containsKey(1L);
+      System.out.println("containsKey: " + b);
+      assertThat(b, is(false));
+      xaStore.put(1L, "uno");
+      b = xaStore.containsKey(1L);
+      System.out.println("containsKey: " + b);
+      assertThat(b, is(true));
+    }
+    testTransactionManager.commit();
+
+    assertMapping(xaStore, 1L, "uno");
+
+    testTransactionManager.begin();
+    {
+      boolean b = xaStore.containsKey(1L);
+      System.out.println("containsKey: " + b);
+      assertThat(b, is(true));
+      xaStore.remove(1L);
+      b = xaStore.containsKey(1L);
+      System.out.println("containsKey: " + b);
+      assertThat(b, is(false));
     }
     testTransactionManager.commit();
 
