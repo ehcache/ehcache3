@@ -80,8 +80,8 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
     this.stopping = false;
     this.stopped = true;
     
-    this.minWriteDelayMs = config.getMinWriteDelay() * MS_IN_SEC;
-    this.maxWriteDelayMs = config.getMaxWriteDelay() * MS_IN_SEC;
+    this.minWriteDelayMs = TimeUnit.SECONDS.toMillis(config.getMinWriteDelay());
+    this.maxWriteDelayMs = TimeUnit.SECONDS.toMillis(config.getMaxWriteDelay());
     this.rateLimitPerSecond = config.getRateLimitPerSecond();
     this.maxQueueSize = config.getWriteBehindMaxQueueSize();
     this.writeBatching = config.isWriteBatching();

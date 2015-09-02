@@ -503,7 +503,7 @@ public class XmlConfigurationTest {
     
     for (ServiceConfiguration<?> configuration : serviceConfiguration) {
       if(configuration instanceof DefaultWriteBehindConfiguration) {
-        assertThat(((WriteBehindConfiguration) configuration).getMaxWriteDelay(), is(1));
+        assertThat(((WriteBehindConfiguration) configuration).getMaxWriteDelay(), is(Integer.MAX_VALUE));
         assertThat(((WriteBehindConfiguration) configuration).getMinWriteDelay(), is(0));
         assertThat(((WriteBehindConfiguration) configuration).isWriteCoalescing(), is(false));
         assertThat(((WriteBehindConfiguration) configuration).isWriteBatching(), is(true));

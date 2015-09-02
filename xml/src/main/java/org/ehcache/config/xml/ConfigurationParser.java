@@ -799,12 +799,12 @@ class ConfigurationParser {
 
     @Override
     public int minWriteDelay() {
-      return this.writebehind.getWritedelay() != null ? this.writebehind.getWritedelay().getMin().intValue() : 0 ;
+      return this.writebehind.getMinWriteDelay().intValue();
     }
 
     @Override
     public int maxWriteDelay() {
-      return this.writebehind.getWritedelay() != null ? this.writebehind.getWritedelay().getMax().intValue() : 1 ;
+      return this.writebehind.getMaxWriteDelay().intValue();
     }
 
     @Override

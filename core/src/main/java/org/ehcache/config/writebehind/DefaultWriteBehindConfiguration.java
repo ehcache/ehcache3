@@ -28,7 +28,7 @@ import static java.lang.String.format;
 public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration {
 
   private int minWriteDelay = 0;
-  private int maxWriteDelay = 1;
+  private int maxWriteDelay = Integer.MAX_VALUE;
   private int rateLimitPerSecond = Integer.MAX_VALUE;
   private boolean writeCoalescing = false;
   private boolean writeBatching = false;
@@ -91,20 +91,23 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
     return writeBehindMaxQueueSize;
   }
 
-  public void setWriteDelays(Integer minWriteDelay, Integer maxWriteDelay) {
-    minWriteDelay = minWriteDelay != null ? minWriteDelay : 0;
-    maxWriteDelay = maxWriteDelay != null ? maxWriteDelay : 1;
+  public void setMinWriteDelay(int minWriteDelay) {
     if (minWriteDelay < 0) {
-      throw new IllegalArgumentException("Minimum write delay seconds cannot be less than 0.");
-    }
-    if (maxWriteDelay < 1) {
-      throw new IllegalArgumentException("Maximum write delay seconds cannot be less than 1.");
-    }
-    if (maxWriteDelay < minWriteDelay) {
-      throw new IllegalArgumentException(
-          format("Maximum write delay (%d seconds) must be equal or greater than minimum write delay (%d seconds)", maxWriteDelay, minWriteDelay));
+      throw new IllegalArgumentException("Minimum write delay seconds cannot be less than 0");
+    } else if (minWriteDelay > maxWriteDelay) {
+      throw new IllegalArgumentException("Minimum write delay (" + minWriteDelay +
+                                         "must be smaller than or equal to maximum write delay (" + maxWriteDelay + ")");
     }
     this.minWriteDelay = minWriteDelay;
+  }
+
+  public void setMaxWriteDelay(int maxWriteDelay) {
+    if (maxWriteDelay < 0) {
+      throw new IllegalArgumentException("Maximum write delay cannot be less than 1");
+    } else if (maxWriteDelay < minWriteDelay) {
+      throw new IllegalArgumentException("Maximum write delay (" + maxWriteDelay +
+                                         ") must be larger than or equal to minimum write delay (" + minWriteDelay + ")");
+    }
     this.maxWriteDelay = maxWriteDelay;
   }
 
