@@ -15,6 +15,7 @@
  */
 package org.ehcache.transactions;
 
+import org.ehcache.Cache;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
@@ -123,6 +124,45 @@ public class XAStoreTest {
       }
     }
     testTransactionManager.commit();
+  }
+
+
+  @Test
+  public void testIterate() throws Exception {
+    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
+    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
+    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
+    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(), keySerializer, valueSerializer);
+    TestTimeSource testTimeSource = new TestTimeSource();
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, true);
+    XaTransactionStateStore stateStore = new TransientXaTransactionStateStore();
+
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, testTransactionManager, testTimeSource, stateStore);
+
+    testTransactionManager.begin();
+    {
+      xaStore.put(1L, "one");
+      xaStore.put(2L, "two");
+      xaStore.put(3L, "three");
+    }
+    testTransactionManager.commit();
+
+    testTransactionManager.begin();
+    {
+      xaStore.put(0L, "zero");
+      xaStore.put(1L, "un");
+      xaStore.put(2L, "two");
+      xaStore.remove(3L);
+
+      Store.Iterator<Cache.Entry<Long, Store.ValueHolder<String>>> iterator = xaStore.iterator();
+      while (iterator.hasNext()) {
+        Cache.Entry<Long, Store.ValueHolder<String>> next = iterator.next();
+        System.out.println(next.getKey() + " : " + next.getValue().value());
+      }
+    }
+    testTransactionManager.commit();
+
+
   }
 
   @Test

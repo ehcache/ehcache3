@@ -43,4 +43,20 @@ public class XATransactionContextFactory<K, V> {
   public boolean contains(TransactionId transactionId) {
     return transactionContextMap.containsKey(transactionId);
   }
+
+  public Map<K, XAValueHolder<V>> listPuts(TransactionId transactionId) {
+    XATransactionContext<K, V> transactionContext = transactionContextMap.get(transactionId);
+    if (transactionContext == null) {
+      throw new IllegalStateException("Cannot check for removed key outside of transactional context");
+    }
+    return transactionContext.listPutNewValueHolders();
+  }
+
+  public boolean isTouched(TransactionId transactionId, K key) {
+    XATransactionContext<K, V> transactionContext = transactionContextMap.get(transactionId);
+    if (transactionContext == null) {
+      throw new IllegalStateException("Cannot check for removed key outside of transactional context");
+    }
+    return transactionContext.containsCommandFor(key);
+  }
 }

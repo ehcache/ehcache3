@@ -23,8 +23,12 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.TimeSourceService;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.transactions.commands.StoreEvictCommand;
 import org.ehcache.transactions.commands.StorePutCommand;
 import org.ehcache.transactions.commands.StoreRemoveCommand;
@@ -36,7 +40,9 @@ import javax.transaction.Transaction;
 import javax.transaction.TransactionManager;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Ludovic Orban
@@ -216,7 +222,8 @@ public class XAStore<K, V> implements Store<K, V> {
 
   @Override
   public void clear() throws CacheAccessException {
-
+    // we don't want that to be transactional
+    underlyingStore.clear();
   }
 
   @Override
@@ -241,7 +248,109 @@ public class XAStore<K, V> implements Store<K, V> {
 
   @Override
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() throws CacheAccessException {
-    return null;
+    XATransactionContext<K, V> currentContext = getCurrentContext();
+    Map<K, XAValueHolder<V>> valueHolderMap = transactionContextFactory.listPuts(currentContext.getTransactionId());
+    return new XAIterator(valueHolderMap, underlyingStore.iterator(), currentContext.getTransactionId());
+  }
+
+  class XAIterator implements Iterator<Cache.Entry<K, ValueHolder<V>>> {
+
+    private final java.util.Iterator<Map.Entry<K, XAValueHolder<V>>> iterator;
+    private final Iterator<Cache.Entry<K, ValueHolder<SoftLock<V>>>> underlyingIterator;
+    private final TransactionId transactionId;
+    private Cache.Entry<K, ValueHolder<V>> next;
+
+    XAIterator(Map<K, XAValueHolder<V>> valueHolderMap, Iterator<Cache.Entry<K, ValueHolder<SoftLock<V>>>> underlyingIterator, TransactionId transactionId) throws CacheAccessException {
+      this.transactionId = transactionId;
+      this.iterator = valueHolderMap.entrySet().iterator();
+      this.underlyingIterator = underlyingIterator;
+      advance();
+    }
+
+    void advance() throws CacheAccessException {
+      next = null;
+
+      if (iterator.hasNext()) {
+        final Map.Entry<K, XAValueHolder<V>> entry = iterator.next();
+        this.next = new Cache.Entry<K, ValueHolder<V>>() {
+          @Override
+          public K getKey() {
+            return entry.getKey();
+          }
+
+          @Override
+          public ValueHolder<V> getValue() {
+            return entry.getValue();
+          }
+
+          @Override
+          public long getCreationTime(TimeUnit unit) {
+            return entry.getValue().creationTime(unit);
+          }
+
+          @Override
+          public long getLastAccessTime(TimeUnit unit) {
+            return entry.getValue().lastAccessTime(unit);
+          }
+
+          @Override
+          public float getHitRate(TimeUnit unit) {
+            return entry.getValue().hitRate(timeSource.getTimeMillis(), unit);
+          }
+        };
+        return;
+      }
+
+      while (underlyingIterator.hasNext()) {
+        final Cache.Entry<K, ValueHolder<SoftLock<V>>> next = underlyingIterator.next();
+
+        if (!transactionContextFactory.isTouched(transactionId, next.getKey())) {
+          final XAValueHolder<V> xaValueHolder = newXAValueHolder(next.getValue().value().getNewValueHolder().value());
+          this.next = new Cache.Entry<K, ValueHolder<V>>() {
+            @Override
+            public K getKey() {
+              return next.getKey();
+            }
+
+            @Override
+            public ValueHolder<V> getValue() {
+              return xaValueHolder;
+            }
+
+            @Override
+            public long getCreationTime(TimeUnit unit) {
+              return next.getCreationTime(unit);
+            }
+
+            @Override
+            public long getLastAccessTime(TimeUnit unit) {
+              return next.getLastAccessTime(unit);
+            }
+
+            @Override
+            public float getHitRate(TimeUnit unit) {
+              return next.getHitRate(unit);
+            }
+          };
+          break;
+        }
+      }
+    }
+
+    @Override
+    public boolean hasNext() throws CacheAccessException {
+      return next != null;
+    }
+
+    @Override
+    public Cache.Entry<K, ValueHolder<V>> next() throws CacheAccessException {
+      if (next == null) {
+        throw new NoSuchElementException();
+      }
+      Cache.Entry<K, ValueHolder<V>> rc = next;
+      advance();
+      return rc;
+    }
   }
 
   private static final NullaryFunction<Boolean> REPLACE_EQUALS_TRUE = new NullaryFunction<Boolean>() {
@@ -353,4 +462,35 @@ public class XAStore<K, V> implements Store<K, V> {
   public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
     return null;
   }
+
+
+  @ServiceDependencies({TimeSourceService.class})
+  public static class Provider implements Store.Provider {
+
+    @Override
+    public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      return null;
+    }
+
+    @Override
+    public void releaseStore(Store<?, ?> resource) {
+
+    }
+
+    @Override
+    public void initStore(Store<?, ?> resource) {
+
+    }
+
+    @Override
+    public void start(ServiceProvider serviceProvider) {
+
+    }
+
+    @Override
+    public void stop() {
+
+    }
+  }
+
 }

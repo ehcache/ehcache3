@@ -20,7 +20,9 @@ import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.transactions.commands.Command;
 import org.ehcache.transactions.commands.StoreEvictCommand;
+import org.ehcache.transactions.commands.StorePutCommand;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -39,12 +41,31 @@ public class XATransactionContext<K, V> {
     this.stateStore = stateStore;
   }
 
+  public TransactionId getTransactionId() {
+    return transactionId;
+  }
+
   public void addCommand(K key, Command<V> command) {
     if (commands.get(key) instanceof StoreEvictCommand) {
       return;
     }
     commands.put(key, command);
   }
+
+
+  public Map<K, XAValueHolder<V>> listPutNewValueHolders() {
+    Map<K, XAValueHolder<V>> puts = new HashMap<K, XAValueHolder<V>>();
+
+    for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
+      Command<V> command = entry.getValue();
+      if (command instanceof StorePutCommand) {
+        puts.put(entry.getKey(), entry.getValue().getNewValueHolder());
+      }
+    }
+
+    return puts;
+  }
+
 
   public XAValueHolder<V> getNewValueHolder(K key) {
     Command<V> command = commands.get(key);
