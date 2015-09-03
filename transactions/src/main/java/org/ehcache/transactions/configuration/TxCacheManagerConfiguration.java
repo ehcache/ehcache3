@@ -13,22 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.transactions;
+package org.ehcache.transactions.configuration;
 
+import org.ehcache.CacheManager;
+import org.ehcache.CacheManagerBuilder;
+import org.ehcache.config.CacheManagerConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceFactory;
 
 /**
  * @author Ludovic Orban
  */
-public class XAStoreProviderFactory implements ServiceFactory<XAStore.Provider> {
+public class TxCacheManagerConfiguration<T extends CacheManager> implements ServiceCreationConfiguration<TxService>, CacheManagerConfiguration<T> {
   @Override
-  public XAStore.Provider create(ServiceCreationConfiguration<XAStore.Provider> configuration) {
-    return new XAStore.Provider();
+  public CacheManagerBuilder<T> builder(CacheManagerBuilder<? extends CacheManager> other) {
+    return (CacheManagerBuilder<T>) other.using(this);
   }
 
   @Override
-  public Class<XAStore.Provider> getServiceType() {
-    return XAStore.Provider.class;
+  public Class<TxService> getServiceType() {
+    return TxService.class;
   }
 }

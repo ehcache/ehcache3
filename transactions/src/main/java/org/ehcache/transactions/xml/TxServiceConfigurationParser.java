@@ -17,6 +17,8 @@ package org.ehcache.transactions.xml;
 
 import org.ehcache.config.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.transactions.configuration.TxServiceConfiguration;
+import org.ehcache.transactions.configuration.TxService;
 import org.w3c.dom.Element;
 
 import javax.xml.transform.Source;
@@ -45,6 +47,6 @@ public class TxServiceConfigurationParser implements CacheManagerServiceConfigur
 
   @Override
   public ServiceCreationConfiguration<TxService> parseServiceCreationConfiguration(final Element fragment) {
-    return new TxConfiguration();
+    return null;
   }
 }

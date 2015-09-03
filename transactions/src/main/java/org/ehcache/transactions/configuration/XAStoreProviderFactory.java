@@ -13,10 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.transactions.configuration;
 
-dependencies {
-  compile project(':impl'), project(':xml')
-  compile group: 'javax.transaction', name: 'jta', version: '1.1'
-  testCompile project(path: ':core-spi-test')
-  compile group: 'org.codehaus.btm', name: 'btm', version: '2.1.4'
+import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.transactions.XAStore;
+
+/**
+ * @author Ludovic Orban
+ */
+public class XAStoreProviderFactory implements ServiceFactory<XAStore.Provider> {
+  @Override
+  public XAStore.Provider create(ServiceCreationConfiguration<XAStore.Provider> configuration) {
+    return new XAStore.Provider();
+  }
+
+  @Override
+  public Class<XAStore.Provider> getServiceType() {
+    return XAStore.Provider.class;
+  }
 }

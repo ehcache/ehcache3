@@ -28,6 +28,7 @@ import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +41,7 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * @author Ludovic Orban
  */
+@SupplementaryService
 @ServiceDependencies({CacheStore.Provider.class, CompoundCachingTier.Provider.class,
     OnHeapStore.Provider.class, OffHeapStore.Provider.class, OffHeapDiskStore.Provider.class})
 public class DefaultStoreProvider implements Store.Provider {

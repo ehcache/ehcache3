@@ -13,14 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.transactions.xml;
+package org.ehcache.transactions.configuration;
 
+import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 /**
  * @author Ludovic Orban
  */
-public class TxConfiguration implements ServiceCreationConfiguration<TxService> {
+public class TxServiceConfiguration implements ServiceConfiguration<TxService> {
+
+  private boolean transactional = true;
+
+  public boolean isTransactional() {
+    return transactional;
+  }
+
+  public TxServiceConfiguration transactional(boolean transactional) {
+    this.transactional = transactional;
+    return this;
+  }
+
   @Override
   public Class<TxService> getServiceType() {
     return TxService.class;

@@ -145,23 +145,32 @@ public class EhcacheXAResource<K, V> implements XAResource {
 
   @Override
   public void start(Xid xid, int flag) throws XAException {
-    if (flag != XAResource.TMNOFLAGS) {
+    if (flag != XAResource.TMNOFLAGS && flag != XAResource.TMJOIN) {
       throw new EhcacheXAException("Start flag not supported : " + xlat(flag), XAException.XAER_PROTO);
     }
+
     if (currentXid != null) {
       throw new EhcacheXAException("Already started on : " + xid, XAException.XAER_PROTO);
     }
 
-    currentXid = xid;
-    TransactionId transactionId = new TransactionId(currentXid);
-    if (!transactionContextFactory.contains(transactionId)) {
-      transactionContextFactory.create(transactionId, underlyingStore, stateStore);
+    if (flag == XAResource.TMNOFLAGS) {
+      currentXid = xid;
+      TransactionId transactionId = new TransactionId(currentXid);
+      if (!transactionContextFactory.contains(transactionId)) {
+        transactionContextFactory.create(transactionId, underlyingStore, stateStore);
+      }
+    } else {
+      TransactionId transactionId = new TransactionId(xid);
+      if (!transactionContextFactory.contains(transactionId)) {
+        throw new EhcacheXAException("Cannot join : " + xid, XAException.XAER_PROTO);
+      }
+      currentXid = xid;
     }
   }
 
   @Override
   public void end(Xid xid, int flag) throws XAException {
-    if (flag != XAResource.TMNOFLAGS) {
+    if (flag != XAResource.TMSUCCESS) {
       throw new EhcacheXAException("End flag not supported : " + xlat(flag), XAException.XAER_PROTO);
     }
     if (currentXid == null) {
@@ -174,9 +183,6 @@ public class EhcacheXAResource<K, V> implements XAResource {
   private static String xlat(int flags) {
     StringBuilder sb = new StringBuilder();
 
-    if ((flags & XAResource.TMNOFLAGS) == XAResource.TMNOFLAGS) {
-      sb.append("TMNOFLAGS|");
-    }
     if ((flags & XAResource.TMSUCCESS) == XAResource.TMSUCCESS) {
       sb.append("TMSUCCESS|");
     }
@@ -204,6 +210,8 @@ public class EhcacheXAResource<K, V> implements XAResource {
 
     if (sb.length() > 0) {
       sb.deleteCharAt(sb.length() - 1);
+    } else {
+      sb.append("TMNOFLAGS");
     }
 
     return sb.toString();
