@@ -50,13 +50,6 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
   int getRateLimitPerSecond();
 
   /**
-   * Whether write operations should be batched.
-   *
-   * @return Retrieves whether write operations should be batched
-   */
-  boolean isWriteBatching();
-
-  /**
    * Whether write operations can be coalesced.
    *
    * @return Retrieves the write coalescing behavior is enabled or not
@@ -65,6 +58,8 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
 
   /**
    * The recommended size of a batch of operations.
+   *
+   * Only positive values are legal. A value of 1 indicates that no batching should happen.
    *
    * Real batch size will be influenced by arrival frequency of operations and max write delay.
    *

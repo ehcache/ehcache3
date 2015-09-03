@@ -53,7 +53,6 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
   private final long maxWriteDelayMs;
   private final int rateLimitPerSecond;
   private final int maxQueueSize;
-  private final boolean writeBatching;
   private final int writeBatchSize;
   private final int retryAttempts;
   private final int retryAttemptDelaySeconds;
@@ -84,7 +83,6 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
     this.maxWriteDelayMs = TimeUnit.SECONDS.toMillis(config.getMaxWriteDelay());
     this.rateLimitPerSecond = config.getRateLimitPerSecond();
     this.maxQueueSize = config.getWriteBehindMaxQueueSize();
-    this.writeBatching = config.isWriteBatching();
     this.writeBatchSize = config.getWriteBatchSize();
     this.retryAttempts = config.getRetryAttempts();
     this.retryAttemptDelaySeconds = config.getRetryAttemptDelaySeconds();
@@ -348,7 +346,7 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
 
         // if the batching is enabled and work size is smaller than batch size,
         // don't process anything as long as the max allowed delay hasn't expired
-        if (writeBatching && writeBatchSize > 0) {
+        if (writeBatchSize > 1) {
           // wait for another round if the batch size hasn't been filled up yet
           // and the max write delay hasn't expired yet
           if (workSize < writeBatchSize && maxWriteDelayMs > lastProcessing.get() - lastWorkDone.get()) {
@@ -388,7 +386,7 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
   private void processQuarantinedItems(List<SingleOperation<K, V>> quarantinedItems) throws Exception {
     LOGGER.debug("{} : processItems() : processing " + " quarantined items", getThreadName());
 
-    if (writeBatching && writeBatchSize > 0) {
+    if (writeBatchSize > 1) {
       processBatchedOperations(quarantinedItems);
     } else {
       processSingleOperation(quarantinedItems);

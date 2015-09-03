@@ -31,7 +31,6 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
   private int maxWriteDelay = Integer.MAX_VALUE;
   private int rateLimitPerSecond = Integer.MAX_VALUE;
   private boolean writeCoalescing = false;
-  private boolean writeBatching = false;
   private int writeBatchSize = 1;
   private int retryAttempts = 1;
   private int retryAttemptDelaySeconds = 1;
@@ -59,11 +58,6 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
   @Override
   public boolean isWriteCoalescing() {
     return writeCoalescing;
-  }
-  
-  @Override
-  public boolean isWriteBatching() {
-    return writeBatching;
   }
   
   @Override
@@ -127,7 +121,6 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
       throw new IllegalArgumentException("Batchsize cannot be less than 1.");
     }
     this.writeBatchSize = writeBatchSize;
-    this.writeBatching = writeBatchSize != 1;
   }
 
   public void setRetryAttempts(int retryAttempts) {

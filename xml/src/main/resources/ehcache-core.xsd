@@ -214,7 +214,6 @@
       <xs:element name="writebehind" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:sequence>
-          <xs:element type="xs:positiveInteger" name="batchsize" default="1" minOccurs="0" maxOccurs="1"/>
           <xs:element name="retryAttempts" default="0" minOccurs="0" maxOccurs="1">
             <xs:complexType>
               <xs:simpleContent>
@@ -231,6 +230,7 @@
         <xs:attribute name="ratelimitpersecond" type="xs:positiveInteger" default="2147483647" use="optional"/>
         <xs:attribute name="minWriteDelay" type="xs:nonNegativeInteger" default="0" use="optional"/>
         <xs:attribute name="maxWriteDelay" type="xs:positiveInteger" default="2147483647" use="optional"/>
+        <xs:attribute name="batchsize" type="xs:positiveInteger" default="1" use="optional"/>
       </xs:complexType>
     </xs:element>
       <xs:element name="listener" minOccurs="0" maxOccurs="unbounded">

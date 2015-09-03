@@ -664,8 +664,6 @@ class ConfigurationParser {
     
     boolean isCoalesced();
     
-    boolean isBatched();
-    
     int batchSize();
     
     int maxQueueSize();
@@ -767,14 +765,8 @@ class ConfigurationParser {
     }
 
     @Override
-    public boolean isBatched() {
-      return this.writebehind.getBatchsize() != null;
-    }
-
-    @Override
     public int batchSize() {
-      if(this.writebehind.getBatchsize() != null) return this.writebehind.getBatchsize().intValue();
-      return 0;
+      return this.writebehind.getBatchsize().intValue();
     }
 
     @Override
