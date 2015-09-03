@@ -17,8 +17,7 @@ package org.ehcache.transactions.xml;
 
 import org.ehcache.config.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.transactions.configuration.TxServiceConfiguration;
-import org.ehcache.transactions.configuration.TxService;
+import org.ehcache.transactions.configuration.XAServiceProvider;
 import org.w3c.dom.Element;
 
 import javax.xml.transform.Source;
@@ -30,7 +29,7 @@ import java.net.URL;
 /**
  * @author Ludovic Orban
  */
-public class TxServiceConfigurationParser implements CacheManagerServiceConfigurationParser<TxService> {
+public class TxServiceConfigurationParser implements CacheManagerServiceConfigurationParser<XAServiceProvider> {
 
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/tx");
   private static final URL XML_SCHEMA = TxServiceConfigurationParser.class.getResource("/ehcache-tx-ext.xsd");
@@ -46,7 +45,7 @@ public class TxServiceConfigurationParser implements CacheManagerServiceConfigur
   }
 
   @Override
-  public ServiceCreationConfiguration<TxService> parseServiceCreationConfiguration(final Element fragment) {
+  public ServiceCreationConfiguration<XAServiceProvider> parseServiceCreationConfiguration(final Element fragment) {
     return null;
   }
 }

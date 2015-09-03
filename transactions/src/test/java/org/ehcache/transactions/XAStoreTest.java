@@ -31,6 +31,7 @@ import org.ehcache.internal.store.offheap.OffHeapStoreLifecycleHelper;
 import org.ehcache.internal.store.tiering.CacheStore;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.transactions.configuration.DefaultXAServiceProvider;
 import org.ehcache.transactions.journal.TransientJournal;
 import org.ehcache.transactions.journal.Journal;
 import org.junit.Test;
@@ -70,6 +71,7 @@ public class XAStoreTest {
 
   @Test
   public void testSimpleGetPutRemove() throws Exception {
+    DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider(testTransactionManager);
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
     Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
@@ -78,7 +80,7 @@ public class XAStoreTest {
     OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, true);
     Journal stateStore = new TransientJournal();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, testTransactionManager, testTimeSource, stateStore);
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, defaultXAServiceProvider, testTimeSource, stateStore);
 
     testTransactionManager.begin();
     {
@@ -131,6 +133,7 @@ public class XAStoreTest {
 
   @Test
   public void testIterate() throws Exception {
+    DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider(testTransactionManager);
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
     Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
@@ -139,7 +142,7 @@ public class XAStoreTest {
     OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, true);
     Journal stateStore = new TransientJournal();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, testTransactionManager, testTimeSource, stateStore);
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, defaultXAServiceProvider, testTimeSource, stateStore);
 
     testTransactionManager.begin();
     {
@@ -179,6 +182,7 @@ public class XAStoreTest {
 
   @Test
   public void testCompute() throws Exception {
+    DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider(testTransactionManager);
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
     Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
@@ -193,7 +197,7 @@ public class XAStoreTest {
 
     Journal stateStore = new TransientJournal();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(cacheStore, testTransactionManager, testTimeSource, stateStore);
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(cacheStore, defaultXAServiceProvider, testTimeSource, stateStore);
 
     testTransactionManager.begin();
     {
@@ -377,7 +381,7 @@ public class XAStoreTest {
         // delist
         for (Map.Entry<XAResource, TestXid> entry : entries) {
           try {
-            entry.getKey().end(entry.getValue(), XAResource.TMNOFLAGS);
+            entry.getKey().end(entry.getValue(), XAResource.TMSUCCESS);
           } catch (XAException e) {
             throw (SystemException) new SystemException(XAException.XAER_RMERR).initCause(e);
           }
@@ -446,7 +450,7 @@ public class XAStoreTest {
         // delist
         for (Map.Entry<XAResource, TestXid> entry : entries) {
           try {
-            entry.getKey().end(entry.getValue(), XAResource.TMNOFLAGS);
+            entry.getKey().end(entry.getValue(), XAResource.TMSUCCESS);
           } catch (XAException e) {
             throw (SystemException) new SystemException(XAException.XAER_RMERR).initCause(e);
           }

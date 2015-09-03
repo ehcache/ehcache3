@@ -30,26 +30,25 @@ import org.ehcache.function.NullaryFunction;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceService;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.internal.serialization.CompactJavaSerializer;
 import org.ehcache.internal.store.DefaultStoreProvider;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.transactions.journal.Journal;
-import org.ehcache.transactions.journal.JournalProvider;
-import org.ehcache.transactions.txmgrs.btm.Ehcache3XAResourceProducer;
 import org.ehcache.transactions.commands.StoreEvictCommand;
 import org.ehcache.transactions.commands.StorePutCommand;
 import org.ehcache.transactions.commands.StoreRemoveCommand;
-import org.ehcache.transactions.configuration.TxService;
-import org.ehcache.transactions.configuration.TxServiceConfiguration;
+import org.ehcache.transactions.configuration.XAServiceConfiguration;
+import org.ehcache.transactions.configuration.XAServiceProvider;
+import org.ehcache.transactions.journal.Journal;
+import org.ehcache.transactions.journal.JournalProvider;
 
 import javax.transaction.RollbackException;
 import javax.transaction.Synchronization;
 import javax.transaction.SystemException;
 import javax.transaction.Transaction;
-import javax.transaction.TransactionManager;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -63,18 +62,17 @@ import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
  */
 public class XAStore<K, V> implements Store<K, V> {
 
-  public static final String SOME_XASTORE_UNIQUE_NAME = "some-xastore-unique-name";
   private final Store<K, SoftLock<V>> underlyingStore;
-  private final TransactionManager transactionManager;
+  private final XAServiceProvider xaServiceProvider;
   private final Map<Transaction, EhcacheXAResource<K, V>> xaResources = new ConcurrentHashMap<Transaction, EhcacheXAResource<K, V>>();
   private final TimeSource timeSource;
   private final Journal journal;
   private final XATransactionContextFactory<K, V> transactionContextFactory = new XATransactionContextFactory<K, V>();
   private final EhcacheXAResource recoveryXaResource;
 
-  public XAStore(Store<K, SoftLock<V>> underlyingStore, TransactionManager transactionManager, TimeSource timeSource, Journal journal) {
+  public XAStore(Store<K, SoftLock<V>> underlyingStore, XAServiceProvider xaServiceProvider, TimeSource timeSource, Journal journal) {
     this.underlyingStore = underlyingStore;
-    this.transactionManager = transactionManager;
+    this.xaServiceProvider = xaServiceProvider;
     this.timeSource = timeSource;
     this.journal = journal;
     this.recoveryXaResource = new EhcacheXAResource<K, V>(underlyingStore, journal, transactionContextFactory);
@@ -117,15 +115,15 @@ public class XAStore<K, V> implements Store<K, V> {
 
   private XATransactionContext<K, V> getCurrentContext() throws CacheAccessException {
     try {
-      final Transaction transaction = transactionManager.getTransaction();
+      final Transaction transaction = xaServiceProvider.getTransactionManager().getTransaction();
       if (transaction == null) {
         throw new CacheAccessException("Cannot access XA cache outside of XA transaction scope");
       }
       EhcacheXAResource<K, V> xaResource = xaResources.get(transaction);
       if (xaResource == null) {
         xaResource = new EhcacheXAResource<K, V>(underlyingStore, journal, transactionContextFactory);
-        Ehcache3XAResourceProducer.registerXAResource(SOME_XASTORE_UNIQUE_NAME, xaResource);
-        transactionManager.getTransaction().enlistResource(xaResource);
+        xaServiceProvider.registerXAResource(xaResource);
+        xaServiceProvider.getTransactionManager().getTransaction().enlistResource(xaResource);
         xaResources.put(transaction, xaResource);
         final EhcacheXAResource<K, V> finalXaResource = xaResource;
         transaction.registerSynchronization(new Synchronization() {
@@ -135,7 +133,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
           @Override
           public void afterCompletion(int status) {
-            Ehcache3XAResourceProducer.unregisterXAResource("some-xastore-unique-name", finalXaResource);
+            xaServiceProvider.unregisterXAResource(finalXaResource);
             xaResources.remove(transaction);
           }
         });
@@ -519,16 +517,16 @@ public class XAStore<K, V> implements Store<K, V> {
 
     private volatile ServiceProvider serviceProvider;
     private volatile DefaultStoreProvider defaultStoreProvider;
+    private volatile XAServiceProvider xaServiceProvider;
 
     @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
-      TxService txService = serviceProvider.getService(TxService.class);
       Journal journal = serviceProvider.getService(JournalProvider.class).getJournal();
 
-      TxServiceConfiguration txServiceConfiguration = findSingletonAmongst(TxServiceConfiguration.class, (Object[]) serviceConfigs);
+      XAServiceConfiguration XAServiceConfiguration = findSingletonAmongst(XAServiceConfiguration.class, (Object[]) serviceConfigs);
       Store<K, V> store;
-      if (txServiceConfiguration == null || !txServiceConfiguration.isTransactional()) {
+      if (XAServiceConfiguration == null || !XAServiceConfiguration.isTransactional()) {
         // non-tx cache
         store = defaultStoreProvider.createStore(storeConfig, serviceConfigs);
       } else {
@@ -537,12 +535,12 @@ public class XAStore<K, V> implements Store<K, V> {
         Expiry<Object, Object> expiry = Expirations.noExpiration();
         EvictionVeto<? super K, ? super SoftLock> evictionVeto = null;
         EvictionPrioritizer<? super K, ? super SoftLock> evictionPrioritizer = null;
-        Serializer<SoftLock> valueSerializer = null;
+        Serializer<SoftLock> valueSerializer = new CompactJavaSerializer<SoftLock>(storeConfig.getClassLoader());
         // TODO </end>
 
         Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer, storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), valueSerializer);
         Store<K, SoftLock<V>> underlyingStore = (Store) defaultStoreProvider.createStore(underlyingStoreConfig, serviceConfigs);
-        store = new XAStore<K, V>(underlyingStore, txService.getTransactionManager(), timeSource, journal);
+        store = new XAStore<K, V>(underlyingStore, xaServiceProvider, timeSource, journal);
       }
 
       return store;
@@ -553,7 +551,7 @@ public class XAStore<K, V> implements Store<K, V> {
       if (resource instanceof XAStore) {
         XAStore<?, ?> xaStore = (XAStore<?, ?>) resource;
         defaultStoreProvider.releaseStore(xaStore.underlyingStore);
-        Ehcache3XAResourceProducer.unregisterXAResource(SOME_XASTORE_UNIQUE_NAME, xaStore.recoveryXaResource);
+        xaServiceProvider.unregisterXAResource(xaStore.recoveryXaResource);
       } else {
         defaultStoreProvider.releaseStore(resource);
       }
@@ -563,7 +561,7 @@ public class XAStore<K, V> implements Store<K, V> {
     public void initStore(Store<?, ?> resource) {
       if (resource instanceof XAStore) {
         XAStore<?, ?> xaStore = (XAStore<?, ?>) resource;
-        Ehcache3XAResourceProducer.registerXAResource(SOME_XASTORE_UNIQUE_NAME, xaStore.recoveryXaResource);
+        xaServiceProvider.registerXAResource(xaStore.recoveryXaResource);
         defaultStoreProvider.initStore(xaStore.underlyingStore);
       } else {
         defaultStoreProvider.initStore(resource);
@@ -574,10 +572,12 @@ public class XAStore<K, V> implements Store<K, V> {
     public void start(ServiceProvider serviceProvider) {
       this.serviceProvider = serviceProvider;
       this.defaultStoreProvider = serviceProvider.getService(DefaultStoreProvider.class);
+      this.xaServiceProvider = serviceProvider.getService(XAServiceProvider.class);
     }
 
     @Override
     public void stop() {
+      this.xaServiceProvider = null;
       this.defaultStoreProvider = null;
       this.serviceProvider = null;
     }

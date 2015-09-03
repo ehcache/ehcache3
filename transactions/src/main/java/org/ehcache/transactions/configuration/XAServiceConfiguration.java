@@ -15,22 +15,29 @@
  */
 package org.ehcache.transactions.configuration;
 
-import org.ehcache.CacheManager;
-import org.ehcache.CacheManagerBuilder;
-import org.ehcache.config.CacheManagerConfiguration;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author Ludovic Orban
  */
-public class TxCacheManagerConfiguration<T extends CacheManager> implements ServiceCreationConfiguration<TxService>, CacheManagerConfiguration<T> {
-  @Override
-  public CacheManagerBuilder<T> builder(CacheManagerBuilder<? extends CacheManager> other) {
-    return (CacheManagerBuilder<T>) other.using(this);
+public class XAServiceConfiguration implements ServiceConfiguration<XAServiceProvider> {
+
+  private boolean transactional;
+
+  public XAServiceConfiguration() {
+    this.transactional = true;
+  }
+
+  public XAServiceConfiguration(boolean transactional) {
+    this.transactional = transactional;
+  }
+
+  public boolean isTransactional() {
+    return transactional;
   }
 
   @Override
-  public Class<TxService> getServiceType() {
-    return TxService.class;
+  public Class<XAServiceProvider> getServiceType() {
+    return XAServiceProvider.class;
   }
 }

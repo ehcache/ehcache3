@@ -1,2 +1,3 @@
 org.ehcache.transactions.configuration.XAStoreProviderFactory
+org.ehcache.transactions.configuration.XAServiceProviderFactory
 org.ehcache.transactions.journal.TransientJournalProviderFactory

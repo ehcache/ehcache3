@@ -21,9 +21,11 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfigurationBuilder;
-import org.ehcache.transactions.configuration.DefaultTxService;
-import org.ehcache.transactions.configuration.TxCacheManagerConfiguration;
-import org.ehcache.transactions.configuration.TxServiceConfiguration;
+import org.ehcache.config.ResourcePoolsBuilder;
+import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.transactions.configuration.XACacheManagerConfiguration;
+import org.ehcache.transactions.configuration.XAServiceConfiguration;
 import org.junit.Test;
 
 import javax.transaction.Transaction;
@@ -38,13 +40,23 @@ public class XACacheTest {
     TransactionManagerServices.getConfiguration().setJournal("null").setServerId("XACacheTest");
     BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
 
+    CacheConfigurationBuilder<Object, Object> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+                .heap(10, EntryUnit.ENTRIES)
+                .offheap(10, MemoryUnit.MB)
+        );
+
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("txCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().add(new TxServiceConfiguration()).buildConfig(Long.class, String.class))
-        .with(new TxCacheManagerConfiguration())
-        .using(new DefaultTxService(transactionManager))
+        .withCache("txCache", cacheConfigurationBuilder.add(new XAServiceConfiguration()).buildConfig(Long.class, String.class))
+        .withCache("nonTxCache", cacheConfigurationBuilder.buildConfig(Long.class, String.class))
+        .with(new XACacheManagerConfiguration())
         .build(true);
 
     Cache<Long, String> txCache = cacheManager.getCache("txCache", Long.class, String.class);
+    Cache<Long, String> nonTxCache = cacheManager.getCache("nonTxCache", Long.class, String.class);
+
+    nonTxCache.put(1L, "eins");
+    System.out.println(nonTxCache.get(1L));
 
     transactionManager.begin();
     {

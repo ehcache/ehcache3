@@ -18,34 +18,48 @@ package org.ehcache.transactions.configuration;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.transactions.XAStore;
+import org.ehcache.transactions.txmgrs.btm.Ehcache3XAResourceProducer;
 
 import javax.transaction.TransactionManager;
+import javax.transaction.xa.XAResource;
 
 /**
  * @author Ludovic Orban
  */
 @ServiceDependencies({XAStore.Provider.class})
-public class DefaultTxService implements TxService {
-  private volatile ServiceProvider serviceProvider;
+public class DefaultXAServiceProvider implements XAServiceProvider {
+
+  // TODO: find a unique ID per cache
+  private static final String SOME_XASTORE_UNIQUE_NAME = "some-xastore-unique-name";
 
   private final TransactionManager transactionManager;
 
-  public DefaultTxService(TransactionManager transactionManager) {
+  public DefaultXAServiceProvider(TransactionManager transactionManager) {
     this.transactionManager = transactionManager;
   }
 
   @Override
   public void start(ServiceProvider serviceProvider) {
-    this.serviceProvider = serviceProvider;
   }
 
   @Override
   public void stop() {
-    this.serviceProvider = null;
   }
 
   @Override
   public TransactionManager getTransactionManager() {
     return transactionManager;
+  }
+
+  @Override
+  public void registerXAResource(XAResource xaResource) {
+    //TODO: abstract that
+    Ehcache3XAResourceProducer.registerXAResource(SOME_XASTORE_UNIQUE_NAME, xaResource);
+  }
+
+  @Override
+  public void unregisterXAResource(XAResource xaResource) {
+    //TODO: abstract that
+    Ehcache3XAResourceProducer.unregisterXAResource(SOME_XASTORE_UNIQUE_NAME, xaResource);
   }
 }
