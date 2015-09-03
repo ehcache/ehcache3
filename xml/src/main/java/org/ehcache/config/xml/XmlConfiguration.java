@@ -21,6 +21,8 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.copy.DefaultCopierConfiguration;
+import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePoolsBuilder;
@@ -30,6 +32,7 @@ import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
 import org.ehcache.config.xml.ConfigurationParser.WriteBehind;
+import org.ehcache.config.xml.model.CopierType;
 import org.ehcache.config.xml.model.SerializerType;
 import org.ehcache.config.xml.model.ServiceType;
 import org.ehcache.expiry.Duration;
@@ -39,7 +42,7 @@ import org.ehcache.config.xml.model.EventType;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
+import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -169,6 +172,17 @@ public class XmlConfiguration implements Configuration {
           }
         }
         serviceConfigs.add(configuration);
+      } else if(serviceType.getDefaultCopiers() != null) {
+        DefaultCopyProviderConfiguration configuration = new DefaultCopyProviderConfiguration();
+
+        for (CopierType.Copier copier : serviceType.getDefaultCopiers().getCopier()) {
+          try {
+            configuration.addCopierFor(getClassForName(copier.getType(), classLoader), (Class)getClassForName(copier.getValue(), classLoader));
+          } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+          }
+        }
+        serviceConfigs.add(configuration);
       } else if (serviceType.getPersistence() != null) {
         serviceConfigs.add(new CacheManagerPersistenceConfiguration(new File(serviceType.getPersistence().getDirectory())));
       } else {
@@ -204,9 +218,17 @@ public class XmlConfiguration implements Configuration {
         Class keySerializer = getClassForName(cacheDefinition.keySerializer(), cacheClassLoader);
         builder = builder.add(new DefaultSerializerConfiguration(keySerializer, DefaultSerializerConfiguration.Type.KEY));
       }
+      if (cacheDefinition.keyCopier() != null) {
+        Class keyCopier = getClassForName(cacheDefinition.keyCopier(), cacheClassLoader);
+        builder = builder.add(new DefaultCopierConfiguration(keyCopier, DefaultCopierConfiguration.Type.KEY));
+      }
       if (cacheDefinition.valueSerializer() != null) {
         Class valueSerializer = getClassForName(cacheDefinition.valueSerializer(), cacheClassLoader);
         builder = builder.add(new DefaultSerializerConfiguration(valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
+      }
+      if (cacheDefinition.valueCopier() != null) {
+        Class valueCopier = getClassForName(cacheDefinition.valueCopier(), cacheClassLoader);
+        builder = builder.add(new DefaultCopierConfiguration(valueCopier, DefaultCopierConfiguration.Type.VALUE));
       }
       EvictionVeto evictionVeto = getInstanceOfName(cacheDefinition.evictionVeto(), cacheClassLoader, EvictionVeto.class);
       EvictionPrioritizer evictionPrioritizer = getInstanceOfName(cacheDefinition.evictionPrioritizer(), cacheClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class);
@@ -272,11 +294,6 @@ public class XmlConfiguration implements Configuration {
               .eventOrdering(EventOrdering.valueOf(listener.eventOrdering().value()));
           builder = builder.add(listenerBuilder);
         }
-      }
-      if (cacheDefinition.storeByValueOnHeap() != null) {
-        final OnHeapStoreServiceConfiguration onHeapStoreServiceConfig = new OnHeapStoreServiceConfiguration();
-        onHeapStoreServiceConfig.storeByValue(cacheDefinition.storeByValueOnHeap());
-        builder = builder.add(onHeapStoreServiceConfig);
       }
       final CacheConfiguration<?, ?> config = builder.buildConfig(keyType, valueType, evictionVeto, evictionPrioritizer);
       cacheConfigurations.put(alias, config);
@@ -403,9 +420,17 @@ public class XmlConfiguration implements Configuration {
       final Class<Serializer<?>> keySerializer = (Class<Serializer<?>>) getClassForName(cacheTemplate.keySerializer(), defaultClassLoader);
       builder = builder.add(new DefaultSerializerConfiguration(keySerializer, DefaultSerializerConfiguration.Type.KEY));
     }
+    if (cacheTemplate.keyCopier() != null) {
+      final Class<Copier<?>> keyCopier = (Class<Copier<?>>) getClassForName(cacheTemplate.keyCopier(), defaultClassLoader);
+      builder = builder.add(new DefaultCopierConfiguration(keyCopier, DefaultCopierConfiguration.Type.KEY));
+    }
     if (cacheTemplate.valueSerializer() != null) {
       final Class<Serializer<?>> valueSerializer = (Class<Serializer<?>>) getClassForName(cacheTemplate.valueSerializer(), defaultClassLoader);
       builder = builder.add(new DefaultSerializerConfiguration(valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
+    }
+    if (cacheTemplate.valueCopier() != null) {
+      final Class<Copier<?>> valueCopier = (Class<Copier<?>>) getClassForName(cacheTemplate.valueCopier(), defaultClassLoader);
+      builder = builder.add(new DefaultCopierConfiguration(valueCopier, DefaultCopierConfiguration.Type.VALUE));
     }
     final String loaderWriter = cacheTemplate.loaderWriter();
     if(loaderWriter!= null) {
@@ -466,11 +491,6 @@ public class XmlConfiguration implements Configuration {
     builder = builder.withResourcePools(resourcePoolsBuilder);
     for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {
       builder = builder.add(serviceConfiguration);
-    }
-    if (cacheTemplate.storeByValueOnHeap() != null) {
-      final OnHeapStoreServiceConfiguration onHeapStoreServiceConfig = new OnHeapStoreServiceConfiguration();
-      onHeapStoreServiceConfig.storeByValue(cacheTemplate.storeByValueOnHeap());
-      builder = builder.add(onHeapStoreServiceConfig);
     }
     return builder;
   }

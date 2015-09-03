@@ -18,9 +18,11 @@ package org.ehcache.jsr107;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.copy.CopierConfiguration;
+import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.xml.XmlConfiguration;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
+import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.slf4j.Logger;
 
@@ -72,9 +74,12 @@ class ConfigurationMerger {
           builder = templateBuilder;
           log.info("Configuration of cache {} will be supplemented by template {}", cacheName, templateName);
         }
+      } else {
+        if(jsr107Configuration.isStoreByValue()) {
+          builder = builder.add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, CopierConfiguration.Type.KEY))
+              .add(new DefaultCopierConfiguration<V>((Class)SerializingCopier.class, CopierConfiguration.Type.VALUE));
+        }
       }
-
-      builder = handleStoreByValue(jsr107Configuration, builder);
 
       final boolean useJsr107Expiry = builder.hasDefaultExpiry();
       if (useJsr107Expiry) {
@@ -117,13 +122,6 @@ class ConfigurationMerger {
       CacheResources.close(loaderWriter, mce);
       throw mce;
     }
-  }
-
-  private <K, V> CacheConfigurationBuilder<K, V> handleStoreByValue(Eh107CompleteConfiguration<K, V> jsr107Configuration, CacheConfigurationBuilder<K, V> builder) {OnHeapStoreServiceConfiguration onHeapStoreServiceConfig = builder.getExistingServiceConfiguration(OnHeapStoreServiceConfiguration.class);
-    if (onHeapStoreServiceConfig == null) {
-      builder = builder.add(new OnHeapStoreServiceConfiguration().storeByValue(jsr107Configuration.isStoreByValue()));
-    }
-    return builder;
   }
 
   private <K, V> Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> initCacheEventListeners(CompleteConfiguration<K, V> config) {

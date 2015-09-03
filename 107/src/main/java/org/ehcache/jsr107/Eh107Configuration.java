@@ -16,7 +16,7 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
+import org.ehcache.config.copy.CopierConfiguration;
 
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.Configuration;
@@ -78,8 +78,8 @@ public abstract class Eh107Configuration<K, V> implements Configuration<K, V> {
 
     @Override
     public boolean isStoreByValue() {
-      OnHeapStoreServiceConfiguration heapConfig = findSingletonAmongst(OnHeapStoreServiceConfiguration.class, cacheConfiguration.getServiceConfigurations());
-      return heapConfig != null && heapConfig.storeByValue();
+      CopierConfiguration copierConfig = findSingletonAmongst(CopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
+      return copierConfig != null;
     }
   }
 }

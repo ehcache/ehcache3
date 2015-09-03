@@ -171,6 +171,16 @@ class ConfigurationParser {
           }
 
           @Override
+          public String keyCopier() {
+            String value = null;
+            for (BaseCacheType source : sources) {
+              value = source.getKeyType() != null ? source.getKeyType().getCopier() : null;
+              if (value != null) break;
+            }
+            return value;
+          }
+
+          @Override
           public String valueType() {
             String value = null;
             for (BaseCacheType source : sources) {
@@ -191,6 +201,16 @@ class ConfigurationParser {
             String value = null;
             for (BaseCacheType source : sources) {
               value = source.getValueType() != null ? source.getValueType().getSerializer() : null;
+              if (value != null) break;
+            }
+            return value;
+          }
+
+          @Override
+          public String valueCopier() {
+            String value = null;
+            for (BaseCacheType source : sources) {
+              value = source.getValueType() != null ? source.getValueType().getCopier() : null;
               if (value != null) break;
             }
             return value;
@@ -228,16 +248,6 @@ class ConfigurationParser {
             } else {
               return null;
             }
-          }
-
-          @Override
-          public Boolean storeByValueOnHeap() {
-            Boolean value = null;
-            for (BaseCacheType source : sources) {
-              value = source.isStoreByValueOnHeap();
-              if (value != null) break;
-            }
-            return value == null ? Boolean.FALSE : value;
           }
 
           @Override
@@ -407,6 +417,11 @@ class ConfigurationParser {
           }
 
           @Override
+          public String keyCopier() {
+            return cacheTemplate.getKeyType() != null ? cacheTemplate.getKeyType().getCopier() : null;
+          }
+
+          @Override
           public String valueType() {
             String valueType = cacheTemplate.getValueType() != null ? cacheTemplate.getValueType().getValue() : null;
             if (valueType == null) {
@@ -418,6 +433,11 @@ class ConfigurationParser {
           @Override
           public String valueSerializer() {
             return cacheTemplate.getValueType() != null ? cacheTemplate.getValueType().getSerializer() : null;
+          }
+
+          @Override
+          public String valueCopier() {
+            return cacheTemplate.getValueType() != null ? cacheTemplate.getValueType().getCopier() : null;
           }
 
           @Override
@@ -438,11 +458,6 @@ class ConfigurationParser {
             } else {
               return null;
             }
-          }
-
-          @Override
-          public Boolean storeByValueOnHeap() {
-            return cacheTemplate.isStoreByValueOnHeap();
           }
 
           @Override
@@ -585,17 +600,19 @@ class ConfigurationParser {
 
     String keySerializer();
 
+    String keyCopier();
+
     String valueType();
 
     String valueSerializer();
+
+    String valueCopier();
 
     String evictionVeto();
 
     String evictionPrioritizer();
 
     Expiry expiry();
-
-    Boolean storeByValueOnHeap();
 
     String loaderWriter();
 

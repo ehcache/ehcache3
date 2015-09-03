@@ -39,12 +39,13 @@ import org.ehcache.function.Predicates;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceService;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
+import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
-import org.ehcache.spi.serialization.SerializationProvider;
+import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
@@ -74,7 +75,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
@@ -91,8 +91,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   private final MapWrapper<K, V> map;
   private final Class<K> keyType;
   private final Class<V> valueType;
-  private final Serializer<V> valueSerializer;
-  private final Serializer<K> keySerializer;
+  private final Copier<K> keyCopier;
+  private final Copier<V> valueCopier;
 
   private volatile long capacity;
   private final Predicate<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionVeto;
@@ -127,7 +127,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
   };
 
-  public OnHeapStore(final Configuration<K, V> config, TimeSource timeSource, boolean storeByValue) {
+  public OnHeapStore(final Configuration<K, V> config, TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier) {
     ResourcePool heapPool = config.getResourcePools().getPoolForResource(ResourceType.Core.HEAP);
     if (heapPool == null) {
       throw new IllegalArgumentException("OnHeap store must be configured with a resource of type 'heap'");
@@ -146,18 +146,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
     this.expiry = config.getExpiry();
-    if (storeByValue) {
-      this.valueSerializer = config.getValueSerializer();
-      this.keySerializer = config.getKeySerializer();
-      if (keySerializer == null || valueSerializer == null) {
-        throw new IllegalArgumentException("No serializers available for on by-value on-heap store");
-      }
-    } else {
-      this.valueSerializer = null;
-      this.keySerializer = null;
-    }
-    
-    this.map = new MapWrapper<K, V>(this.keySerializer);
+    this.keyCopier = keyCopier;
+    this.valueCopier = valueCopier;
+    this.map = new MapWrapper<K, V>(this.keyCopier);
     onHeapStoreStatsSettings = new OnHeapStoreStatsSettings(this);
     StatisticsManager.associate(onHeapStoreStatsSettings).withParent(this);
   }
@@ -293,7 +284,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
         final long now = timeSource.getTimeMillis();
-        
+
         if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           eventListener.onExpiration(mappedKey, mappedValue);
           return null;
@@ -348,12 +339,14 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
         final long now = timeSource.getTimeMillis();
 
+        V existingValue = mappedValue.value();
         if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           eventListener.onExpiration(mappedKey, mappedValue);
           return null;
-        } else if (oldValue.equals(mappedValue.value())) {
+        } else if (oldValue.equals(existingValue)) {
           returnValue.set(true);
-          return newUpdateValueHolder(key, mappedValue, newValue, now);
+          long expirationTime = mappedValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
+          return newUpdateValueHolder(key, existingValue, newValue, now, expirationTime);
         } else {
           setAccessTimeAndExpiry(key, mappedValue, now);
           return mappedValue;
@@ -370,15 +363,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   }
 
   private void invalidate() {
-    if(map.map != null) {
-      for (K k : map.map.keySet()) {
-        try {
-          invalidate(k);
-        } catch (CacheAccessException cae) {
-          LOG.warn("Failed to invalidate mapping for key {}", k, cae);
-        }
-      }
-    }
     if(map.keyCopyMap != null) {
       for(OnHeapKey<K> key : map.keyCopyMap.keySet()) {
         try {
@@ -484,12 +468,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
           ValueHolder<V> value = fault.get();
           final OnHeapValueHolder<V> newValue;
           if(value != null) {
-            if (valueSerializer != null) {
-              newValue = new ByValueOnHeapValueHolder<V>(value, valueSerializer);
-            } else {
-              newValue = new ByRefOnHeapValueHolder<V>(value);
-            }
-            newValue.accessed(now, expiry.getExpiryForAccess(key, value.value()));
+            newValue = makeValue(value);
+            setAccessTimeAndExpiry(key, newValue, now);
           } else {
             backEnd.remove(key, fault);
             return null;
@@ -581,6 +561,22 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     } else {
       return (ValueHolder<V>)cachedValue;
     }
+  }
+
+  private OnHeapValueHolder<V> makeValue(ValueHolder<V> value) {
+    if(valueCopier instanceof SerializingCopier) {
+      return makeSerializedValue(value, ((SerializingCopier)valueCopier).getSerializer());
+    } else {
+      return makeCopiedValue(value, valueCopier);
+    }
+  }
+
+  private OnHeapValueHolder<V> makeSerializedValue(ValueHolder<V> value, Serializer<V> valueSerializer) {
+    return new SerializedOnHeapValueHolder<V>(value, valueSerializer);
+  }
+
+  private OnHeapValueHolder<V> makeCopiedValue(ValueHolder<V> value, Copier<V> valueCopier) {
+    return new CopiedOnHeapValueHolder<V>(value, valueCopier);
   }
 
   /**
@@ -718,7 +714,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
         
         checkValue(computedValue);
         if (mappedValue != null) {
-          return newUpdateValueHolder(key, mappedValue, computedValue, now);
+          long expirationTime = mappedValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
+          return newUpdateValueHolder(key, existingValue, computedValue, now, expirationTime);
         } else {
           return newCreateValueHolder(key, computedValue, now);
         }
@@ -776,25 +773,27 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
         final long now = timeSource.getTimeMillis();
-        
+
         if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           eventListener.onExpiration(mappedKey, mappedValue);
           return null;
         }
-        
-        V computedValue = remappingFunction.apply(mappedKey, mappedValue.value());       
+
+        V existingValue = mappedValue.value();
+        V computedValue = remappingFunction.apply(mappedKey, existingValue);
         if (computedValue == null) {
           return null;
         }
-        
-        V existingValue = mappedValue.value();
-        if ((eq(existingValue, computedValue)) && (! replaceEqual.apply())) {
+
+        if ((eq(existingValue, computedValue)) && (!replaceEqual.apply())) {
           setAccessTimeAndExpiry(key, mappedValue, now);
           return mappedValue;
         }
-        
+
         checkValue(computedValue);
-        return newUpdateValueHolder(key, mappedValue, computedValue, now);
+
+        long expirationTime = mappedValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
+        return newUpdateValueHolder(key, existingValue, computedValue, now, expirationTime);
       }
     });
   }
@@ -888,18 +887,25 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   }
 
   private OnHeapValueHolder<V> newUpdateValueHolder(K key, OnHeapValueHolder<V> oldValue, V newValue, long now) {
-    if (oldValue == null || newValue == null) {
+    if (oldValue == null) {
       throw new NullPointerException();
     }
-    
-    Duration duration = expiry.getExpiryForUpdate(key, oldValue.value(), newValue);
+    return newUpdateValueHolder(key, oldValue.value(), newValue, now, oldValue.expirationTime(OnHeapValueHolder.TIME_UNIT));
+  }
+
+  private OnHeapValueHolder<V> newUpdateValueHolder(K key, V oldValue, V newValue, long now, long oldExpirationTime) {
+    if (newValue == null) {
+      throw new NullPointerException();
+    }
+
+    Duration duration = expiry.getExpiryForUpdate(key, oldValue, newValue);
     if (Duration.ZERO.equals(duration)) {
       return null;
     }
 
     long expirationTime;
     if (duration == null) {
-      expirationTime = oldValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
+      expirationTime = oldExpirationTime;
     } else {
       if (duration.isForever()) {
         expirationTime = ValueHolder.NO_EXPIRE;
@@ -908,11 +914,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       }
     }
 
-    if (valueSerializer != null) {
-      return new ByValueOnHeapValueHolder<V>(newValue, now, expirationTime, valueSerializer);
-    } else {
-      return new ByRefOnHeapValueHolder<V>(newValue, now, expirationTime);
-    }
+    return makeValue(newValue, now, expirationTime, this.valueCopier);
   }
   
   private OnHeapValueHolder<V> newCreateValueHolder(K key, V value, long now) {
@@ -927,13 +929,25 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
 
     long expirationTime = duration.isForever() ? ValueHolder.NO_EXPIRE : safeExpireTime(now, duration);
 
-    if (valueSerializer != null) {
-      return new ByValueOnHeapValueHolder<V>(value, now, expirationTime, valueSerializer);
+    return makeValue(value, now, expirationTime, this.valueCopier);
+  }
+
+  private OnHeapValueHolder<V> makeValue(V value, long creationTime, long expirationTime, Copier<V> valueCopier) {
+    if(valueCopier instanceof SerializingCopier) {
+      return makeSerializedValue(value, creationTime, expirationTime, ((SerializingCopier)valueCopier).getSerializer());
     } else {
-      return new ByRefOnHeapValueHolder<V>(value, now, expirationTime);
+      return makeCopiedValue(value, creationTime, expirationTime, valueCopier);
     }
   }
-  
+
+  private OnHeapValueHolder<V> makeSerializedValue(V value, long creationTime, long expirationTime, Serializer<V> valueSerializer) {
+    return new SerializedOnHeapValueHolder<V>(value, creationTime, expirationTime, valueSerializer);
+  }
+
+  private OnHeapValueHolder<V> makeCopiedValue(V value, long creationTime, long expirationTime, Copier<V> valueCopier) {
+    return new CopiedOnHeapValueHolder<V>(value, creationTime, expirationTime, valueCopier);
+  }
+
   private static long safeExpireTime(long now, Duration duration) {
     long millis = OnHeapValueHolder.TIME_UNIT.convert(duration.getAmount(), duration.getTimeUnit());
     
@@ -1012,7 +1026,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     return (o1 == o2) || (o1 != null && o1.equals(o2));
   }
 
-  @ServiceDependencies({TimeSourceService.class, SerializationProvider.class})
+  @ServiceDependencies({TimeSourceService.class, CopyProvider.class})
   public static class Provider implements Store.Provider, CachingTier.Provider {
     
     private volatile ServiceProvider serviceProvider;
@@ -1020,11 +1034,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
 
     @Override
     public <K, V> OnHeapStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
-      OnHeapStoreServiceConfiguration onHeapStoreServiceConfig = findSingletonAmongst(OnHeapStoreServiceConfiguration.class, (Object[])serviceConfigs);
-      boolean storeByValue = onHeapStoreServiceConfig != null && onHeapStoreServiceConfig.storeByValue();
-
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
-      OnHeapStore<K, V> onHeapStore = new OnHeapStore<K, V>(storeConfig, timeSource, storeByValue);
+      CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
+      Copier<K> keyCopier  = copyProvider.createKeyCopier(storeConfig.getKeyType(), storeConfig.getKeySerializer(), serviceConfigs);
+      Copier<V> valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer(), serviceConfigs);
+      OnHeapStore<K, V> onHeapStore = new OnHeapStore<K, V>(storeConfig, timeSource, keyCopier, valueCopier);
       createdStores.add(onHeapStore);
       return onHeapStore;
     }
@@ -1107,36 +1121,21 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   // The idea of this wrapper is to let all the other code deal in terms of <K> and hide
   // the potentially different key type of the underlying CHM 
   private static class MapWrapper<K, V> {
-    private final ConcurrentHashMap<K, OnHeapValueHolder<V>> map;
+
     private final ConcurrentHashMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap;
-    private final Serializer<K> keySerializer;
+    private final Copier<K> keyCopier;
   
-    MapWrapper(Serializer<K> keySerializer) {
-      this.keySerializer = keySerializer;
-      
-      if (keySerializer == null) {
-        map = new ConcurrentHashMap<K, OnHeapValueHolder<V>>();
-        keyCopyMap = null;
-      } else {
-        keyCopyMap = new ConcurrentHashMap<OnHeapKey<K>, OnHeapValueHolder<V>>();
-        map = null;
-      }
+    MapWrapper(Copier<K> keyCopier) {
+      this.keyCopier = keyCopier;
+      keyCopyMap = new ConcurrentHashMap<OnHeapKey<K>, OnHeapValueHolder<V>>();
     }
     
     boolean remove(K key, OnHeapValueHolder<V> value) {
-      if (keySerializer == null) {
-        return map.remove(key, value);
-      }
-    
       return keyCopyMap.remove(lookupOnlyKey(key), value);
     }
 
     Set<Map.Entry<K, OnHeapValueHolder<V>>> getRandomValues(Random random, int size,
          final Predicate<Map.Entry<K, OnHeapValueHolder<V>>> veto) {
-       if (keySerializer == null) {
-         return map.getRandomValues(random, size, veto);
-       }
-       
 
        Set<Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>>> values = keyCopyMap.getRandomValues(random, size, new Predicate<Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>>>() {
          @Override
@@ -1153,18 +1152,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
 
     int size() {
-      if (keySerializer == null) {
-        return map.size();
-      } else {
-        return keyCopyMap.size();
-      }
+      return keyCopyMap.size();
     }
 
     java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>> entrySetIterator() {
-      if (keySerializer == null) {
-        return map.entrySet().iterator();
-      }
-      
+
       final java.util.Iterator<Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>>> iter = keyCopyMap.entrySet().iterator();
       return new java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>>() {
         @Override
@@ -1186,10 +1178,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
 
     OnHeapValueHolder<V> compute(final K key, final BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> computeFunction) {
-      if (keySerializer == null) {
-        return map.compute(key, computeFunction);
-      }
-      
+
       return keyCopyMap.compute(makeKey(key), new BiFunction<OnHeapKey<K>, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
         @Override
         public OnHeapValueHolder<V> apply(OnHeapKey<K> mappedKey, OnHeapValueHolder<V> mappedValue) {
@@ -1199,26 +1188,15 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
 
     void clear() {
-      if (keySerializer == null) {
-        map.clear();
-      } else {
-        keyCopyMap.clear();
-      }
+      keyCopyMap.clear();
     }
 
     OnHeapValueHolder<V> remove(K key) {
-      if (keySerializer == null) {
-        return map.remove(key);
-      } else {
-        return keyCopyMap.remove(lookupOnlyKey(key));
-      }
+      return keyCopyMap.remove(lookupOnlyKey(key));
     }
 
     OnHeapValueHolder<V> computeIfPresent(final K key, final BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> computeFunction) {
-      if (keySerializer == null) {
-        return map.computeIfPresent(key, computeFunction);
-      }
-      
+
       return keyCopyMap.computeIfPresent(lookupOnlyKey(key), new BiFunction<OnHeapKey<K>, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
         @Override
         public OnHeapValueHolder<V> apply(OnHeapKey<K> mappedKey, OnHeapValueHolder<V> mappedValue) {
@@ -1228,7 +1206,19 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
     
     private OnHeapKey<K> makeKey(K key) {
+      if(keyCopier instanceof Serializer) {
+        return makeSerializedKey(key, (Serializer)keyCopier);
+      } else {
+        return makeCopyKey(key, keyCopier);
+      }
+    }
+
+    private OnHeapKey<K> makeSerializedKey(K key, Serializer<K> keySerializer) {
       return new SerializedOnHeapKey<K>(key, keySerializer);
+    }
+
+    private OnHeapKey<K> makeCopyKey(K key, Copier<K> keyCopier) {
+      return new CopiedOnHeapKey<K>(key, keyCopier);
     }
 
     private OnHeapKey<K> lookupOnlyKey(K key) {
@@ -1236,27 +1226,15 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
 
     public OnHeapValueHolder<V> get(K key) {
-      if (keySerializer == null) {
-        return map.get(key);
-      } else {
-        return keyCopyMap.get(lookupOnlyKey(key));
-      }
+      return keyCopyMap.get(lookupOnlyKey(key));
     }
 
     public OnHeapValueHolder<V> putIfAbsent(K key, OnHeapValueHolder<V> valueHolder) {
-      if (keySerializer == null) {
-        return map.putIfAbsent(key, valueHolder);
-      } else {
-        return keyCopyMap.putIfAbsent(lookupOnlyKey(key), valueHolder);
-      }
+      return keyCopyMap.putIfAbsent(lookupOnlyKey(key), valueHolder);
     }
 
     public boolean replace(K key, OnHeapValueHolder<V> oldValue, OnHeapValueHolder<V> newValue) {
-      if (keySerializer == null) {
-        return map.replace(key, oldValue, newValue);
-      } else {
-        return keyCopyMap.replace(lookupOnlyKey(key), oldValue, newValue);
-      }
+      return keyCopyMap.replace(lookupOnlyKey(key), oldValue, newValue);
     }
   }
 

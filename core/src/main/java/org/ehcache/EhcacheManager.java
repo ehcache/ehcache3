@@ -270,25 +270,22 @@ public class EhcacheManager implements PersistentCacheManager {
     Serializer<K> keySerializer = null;
     Serializer<V> valueSerializer = null;
     SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
+    Set<ResourceType> resources = config.getResourcePools().getResourceTypeSet();
     if (serialization != null) {
       try {
         keySerializer = serialization.createKeySerializer(keyType, config.getClassLoader(), serviceConfigs);
-        try {
-          valueSerializer = serialization.createValueSerializer(valueType, config.getClassLoader(), serviceConfigs);
-        } catch (UnsupportedTypeException e) {
-          try {
-            keySerializer.close();
-          } catch (IOException f) {
-            LOGGER.warn("Exception shutting down key serializer, after value serializer was unavailable.", f);
-          } finally {
-            keySerializer = null;
-          }
-          throw e;
-        }
         lifeCycledList.add(closerFor(keySerializer));
+      } catch (UnsupportedTypeException e) {
+        if (resources.contains(DISK) || resources.contains(OFFHEAP)) {
+          throw new RuntimeException(e);
+        } else {
+          LOGGER.info("Could not create serializers for " + alias, e);
+        }
+      }
+      try {
+        valueSerializer = serialization.createValueSerializer(valueType, config.getClassLoader(), serviceConfigs);
         lifeCycledList.add(closerFor(valueSerializer));
       } catch (UnsupportedTypeException e) {
-        Set<ResourceType> resources = config.getResourcePools().getResourceTypeSet();
         if (resources.contains(DISK) || resources.contains(OFFHEAP)) {
           throw new RuntimeException(e);
         } else {

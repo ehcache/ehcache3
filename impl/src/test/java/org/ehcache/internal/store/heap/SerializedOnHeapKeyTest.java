@@ -31,7 +31,7 @@ import static org.junit.Assert.assertThat;
 /**
  * @author teck
  */
-public class ByValueOnHeapKeyTest {
+public class SerializedOnHeapKeyTest {
  
   @Test
   public void testLookupOnlyKey() throws Exception {

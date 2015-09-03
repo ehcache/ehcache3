@@ -16,7 +16,6 @@
 
 package org.ehcache.internal.store.heap;
 
-import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
@@ -25,10 +24,12 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 
@@ -54,6 +55,8 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
   public void setUp() {
     storeFactory = new StoreFactory<String, String>() {
 
+      final Copier DEFAULT_COPIER = new IdentityCopier();
+
       @Override
       public Store<String, String> newStore() {
         return newStore(null, null, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
@@ -77,12 +80,12 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
       private Store<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         ResourcePools resourcePools = buildResourcePools(capacity);
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, null, getClass().getClassLoader(), expiry, resourcePools, null, null);
-        return new OnHeapStore<String, String>(config, timeSource, false);
+        return new OnHeapStore<String, String>(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER);
       }
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new ByRefOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis());
+        return new CopiedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), DEFAULT_COPIER);
       }
 
       private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {

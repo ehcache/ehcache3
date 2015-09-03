@@ -16,6 +16,9 @@
 
 package org.ehcache.config.xml;
 
+import com.pany.ehcache.copier.Description;
+import com.pany.ehcache.copier.Employee;
+import com.pany.ehcache.copier.Person;
 import com.pany.ehcache.integration.TestCacheEventListener;
 import com.pany.ehcache.integration.TestCacheLoaderWriter;
 import com.pany.ehcache.integration.TestSecondCacheEventListener;
@@ -24,7 +27,6 @@ import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.event.EventType;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -37,8 +39,10 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 /**
  * @author Alex Snaps
@@ -59,13 +63,35 @@ public class IntegrationConfigurationTest {
     baz.put("1", "one");
     assertThat(baz.get("1"), equalTo("one"));
 
-    try {
-      cacheManager.createCache("bam", newCacheConfigurationBuilder().add(new OnHeapStoreServiceConfiguration().storeByValue(true)).buildConfig(String.class, Object.class));
-      fail("expected IllegalStateException");
-    } catch (IllegalStateException ise) {
-      // expected
-    }
+    Cache<String, Object> bam = cacheManager.createCache("bam", newCacheConfigurationBuilder().buildConfig(String.class, Object.class));
+    bam.put("1", "one");
+    assertThat(bam.get("1"), equalTo((Object)"one"));
 
+    cacheManager.close();
+  }
+
+  @Test
+  public void testCopiers() throws Exception {
+    Configuration configuration = new XmlConfiguration(this.getClass().getResource("/configs/cache-copiers.xml"));
+    final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
+    cacheManager.init();
+
+    Cache<Description, Person> bar = cacheManager.getCache("bar", Description.class, Person.class);
+    Description desc = new Description(1234, "foo");
+    Person person = new Person("Bar", 24);
+    bar.put(desc, person);
+    assertEquals(person, bar.get(desc));
+    assertNotSame(person, bar.get(desc));
+
+    Cache<Long, Person> baz = cacheManager.getCache("baz", Long.class, Person.class);
+    baz.put(1L, person);
+    assertEquals(person, baz.get(1L));
+    assertNotSame(person, baz.get(1L));
+
+    Employee empl = new Employee(1234, "foo", 23);
+    Cache<Long, Employee> bak = cacheManager.getCache("bak", Long.class, Employee.class);
+    bak.put(1L, empl);
+    assertSame(empl, bak.get(1L));
     cacheManager.close();
   }
 

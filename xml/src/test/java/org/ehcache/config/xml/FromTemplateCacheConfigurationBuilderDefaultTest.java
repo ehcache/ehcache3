@@ -17,12 +17,10 @@
 package org.ehcache.config.xml;
 
 import org.ehcache.config.CacheConfigurationBuilder;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -37,11 +35,6 @@ public class FromTemplateCacheConfigurationBuilderDefaultTest {
   public void setUp() throws Exception {
     xmlConfiguration = new XmlConfiguration(getClass().getResource("/configs/template-defaults.xml"));
     minimalTemplateBuilder = xmlConfiguration.newCacheConfigurationBuilderFromTemplate("minimal-template");
-  }
-
-  @Test
-  public void testDefaultStoreByRefCreatesNoOnHeapStoreServiceConfig() throws Exception {
-    assertThat(minimalTemplateBuilder.getExistingServiceConfiguration(OnHeapStoreServiceConfiguration.class), nullValue());
   }
 
   @Test

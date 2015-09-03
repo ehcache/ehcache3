@@ -19,20 +19,14 @@ import org.ehcache.exceptions.SerializerException;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.Serializer;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
-class ByValueOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
+class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   private final ByteBuffer buffer;
-  private final int hash;
   private final Serializer<V> serializer;
 
-  protected ByValueOnHeapValueHolder(V value, long creationTime, Serializer<V> serializer) {
-    this(value, creationTime, NO_EXPIRE, serializer);
-  }
-
-  protected ByValueOnHeapValueHolder(V value, long creationTime, long expirationTime, Serializer<V> serializer) {
-    super(-1, creationTime, expirationTime);
+  protected SerializedOnHeapValueHolder(long id, V value, long creationTime, long expirationTime, Serializer<V> serializer) {
+    super(id, creationTime, expirationTime);
     if (value == null) {
       throw new NullPointerException("null value");
     }
@@ -40,12 +34,19 @@ class ByValueOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
       throw new NullPointerException("null serializer");
     }
     this.serializer = serializer;
-    this.hash = value.hashCode();
     this.buffer = serializer.serialize(value).asReadOnlyBuffer();
   }
 
-  protected ByValueOnHeapValueHolder(Store.ValueHolder<V> valueHolder, Serializer<V> serializer) {
-    this(valueHolder.value(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), serializer);
+  protected SerializedOnHeapValueHolder(V value, long creationTime, Serializer<V> serializer) {
+    this(value, creationTime, NO_EXPIRE, serializer);
+  }
+
+  protected SerializedOnHeapValueHolder(V value, long creationTime, long expirationTime, Serializer<V> serializer) {
+    this(-1, value, creationTime, expirationTime, serializer);
+  }
+
+  protected SerializedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, Serializer<V> serializer) {
+    this(valueHolder.getId(), valueHolder.value(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), serializer);
     this.setLastAccessTime(valueHolder.lastAccessTime(TIME_UNIT), TIME_UNIT);
     this.setHits(valueHolder.hits());
   }
@@ -64,7 +65,7 @@ class ByValueOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
     if (this == other) return true;
     if (other == null || getClass() != other.getClass()) return false;
 
-    ByValueOnHeapValueHolder<V> that = (ByValueOnHeapValueHolder)other;
+    SerializedOnHeapValueHolder<V> that = (SerializedOnHeapValueHolder)other;
 
     if (!super.equals(that)) return false;
     try {
@@ -79,7 +80,6 @@ class ByValueOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   @Override
   public int hashCode() {
     int result = 1;
-    result = 31 * result + hash;
     result = 31 * result + super.hashCode();
     return result;
   }

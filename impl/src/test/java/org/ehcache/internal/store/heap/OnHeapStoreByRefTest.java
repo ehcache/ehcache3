@@ -24,12 +24,16 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.copy.Copier;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import org.ehcache.spi.serialization.Serializer;
 
 public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
+
+  private static final Copier DEFAULT_COPIER = new IdentityCopier();
 
   @Override
   protected <K, V> OnHeapStore<K, V> newStore() {
@@ -96,7 +100,7 @@ public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
       public Serializer<V> getValueSerializer() {
         throw new AssertionError("By-ref heap store using serializers!");
       }
-    }, timeSource, false);
+    }, timeSource, DEFAULT_COPIER, DEFAULT_COPIER);
   }
 
 }

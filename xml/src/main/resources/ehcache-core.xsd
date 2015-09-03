@@ -52,6 +52,7 @@
   <xs:complexType name="service-type">
     <xs:choice>
       <xs:element name="default-serializers" type="ehcache:serializer-type" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="default-copiers" type="ehcache:copier-type" minOccurs="0" maxOccurs="1"/>
       <xs:element name="persistence" type="ehcache:persistence-type" minOccurs="0" maxOccurs="1"/>
       <xs:any namespace="##other" minOccurs="0" maxOccurs="1"/>
     </xs:choice>
@@ -74,7 +75,21 @@
      </xs:element>
     </xs:sequence>
   </xs:complexType>
-  
+
+  <xs:complexType name="copier-type">
+    <xs:sequence>
+      <xs:element name="copier" maxOccurs="unbounded" minOccurs="0">
+        <xs:complexType>
+          <xs:simpleContent>
+            <xs:extension base="ehcache:fqcn-type">
+              <xs:attribute type="xs:string" name="type" use="required"/>
+            </xs:extension>
+          </xs:simpleContent>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
   <xs:complexType name="cache-type">
     <xs:complexContent>
       <xs:extension base="ehcache:baseCache-type">
@@ -176,13 +191,6 @@
       </xs:choice>
       <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
-    <xs:attribute name="storeByValueOnHeap" type="xs:boolean" use="optional">
-      <xs:annotation>
-        <xs:documentation xml:lang="en">
-          Specifies whether the heap tier for this cache should store by value, if true; or by reference (default, false)
-        </xs:documentation>
-      </xs:annotation>
-    </xs:attribute>
   </xs:complexType>
 
   <xs:complexType name="cache-integration">
@@ -280,6 +288,13 @@
           <xs:annotation>
             <xs:documentation xml:lang="en">
               A fully qualified class name of the type's serializer class.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="copier" type="ehcache:fqcn-type">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">
+              A fully qualified class name of the type's copier class.
             </xs:documentation>
           </xs:annotation>
         </xs:attribute>
