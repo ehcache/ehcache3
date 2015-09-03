@@ -17,6 +17,7 @@
 package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.DefaultConfiguration;
 import org.ehcache.config.ResourcePools;
@@ -34,6 +35,7 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
+import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -71,6 +73,39 @@ import static org.mockito.Mockito.when;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class EhcacheManagerTest {
+
+  @Test
+  public void testCanGoInMaintenanceAndClose() {
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .buildConfig(Long.class, String.class);
+
+    Store.Provider storeProvider = mock(Store.Provider.class);
+    Store store = mock(Store.class);
+    CacheEventNotificationListenerServiceProvider cacheEventNotificationListenerServiceProvider = mock(CacheEventNotificationListenerServiceProvider.class);
+
+    when(storeProvider.createStore(any(Store.Configuration.class), Matchers.<ServiceConfiguration>anyVararg())).thenReturn(store);
+    when(store.getConfigurationChangeListeners()).thenReturn(new ArrayList<CacheConfigurationChangeListener>());
+    when(cacheEventNotificationListenerServiceProvider.createCacheEventNotificationService(store)).thenReturn(mock(CacheEventNotificationService.class));
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("aCache", cacheConfiguration)
+        .using(storeProvider)
+        .using(mock(CacheLoaderWriterProvider.class))
+        .using(mock(WriteBehindDecoratorLoaderWriterProvider.class))
+        .using(cacheEventNotificationListenerServiceProvider)
+        .using(mock(CacheEventListenerProvider.class))
+        .using(mock(LocalPersistenceService.class))
+        .build(true);
+
+    cacheManager.close();
+    cacheManager.init();
+    cacheManager.close();
+    Maintainable maintainable = ((PersistentCacheManager) cacheManager).toMaintenance();
+    maintainable.close();
+    cacheManager.init();
+    cacheManager.close();
+  }
 
   @Test
   public void testInitThrowsWhenNotBeingToResolveService() {
