@@ -36,6 +36,8 @@ import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.LifeCycledAdapter;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.lifecycle.DefaultLifeCycleManager;
+import org.ehcache.spi.lifecycle.LifeCycleManager;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
@@ -105,6 +107,7 @@ public class EhcacheManager implements PersistentCacheManager {
   private final CopyOnWriteArrayList<CacheManagerListener> listeners = new CopyOnWriteArrayList<CacheManagerListener>();
   private final StatisticsManager statisticsManager = new StatisticsManager();
   private final EhcacheManagerStatsSettings ehcacheManagerStatsSettings = new EhcacheManagerStatsSettings(Collections.<String, Object>singletonMap("Setting", "CacheManagerName"));
+  private final LifeCycleManager lifeCycleManager;
 
   public EhcacheManager(Configuration config) {
     this(config, Collections.<Service>emptyList(), true);
@@ -114,10 +117,25 @@ public class EhcacheManager implements PersistentCacheManager {
     this(config, services, true);
   }
   public EhcacheManager(Configuration config, Collection<Service> services, boolean useLoaderInAtomics) {
-    this.serviceLocator = new ServiceLocator(services.toArray(new Service[services.size()]));
+    this.serviceLocator = new ServiceLocator();
     this.useLoaderInAtomics = useLoaderInAtomics;
     this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
     this.configuration = new DefaultConfiguration(config);
+
+    // DefaultLifeCycleManager exposed a service to register lifecycle listeners from services
+    DefaultLifeCycleManager defaultLifeCycleManager = new DefaultLifeCycleManager();
+    this.serviceLocator.addService(defaultLifeCycleManager);
+    this.lifeCycleManager = defaultLifeCycleManager;
+
+    // add other services after (this way the LifeCycleService) cannot be override by the user
+    for (Service service : services) {
+      this.serviceLocator.addService(service);
+    }
+
+    // register a state change listener on this cache manager. 
+    // We use a StateChangeListener because they are fired AFTER all init / close hooks
+    this.statusTransitioner.registerListener(lifeCycleManager.createStateChangeListener(this));
+
     StatisticsManager.associate(ehcacheManagerStatsSettings).withParent(this);
   }
 
@@ -374,6 +392,10 @@ public class EhcacheManager implements PersistentCacheManager {
 
     final ManagementRegistry managementRegistry = serviceLocator.getService(ManagementRegistry.class);
     final EhcacheStatsSettings ehcacheStatsSettings = new EhcacheStatsSettings(alias, Collections.<String, Object>singletonMap("Setting", "CacheName"));
+
+    // registers a listener on ehcache status transitioner, when all init / close hoot are done
+    // to provide a way for services to know when an ehcache instance is initialized or closed
+    ehCache.registerListener(lifeCycleManager.createStateChangeListener(ehCache));
 
     lifeCycledList.add(new LifeCycled() {
       @Override
