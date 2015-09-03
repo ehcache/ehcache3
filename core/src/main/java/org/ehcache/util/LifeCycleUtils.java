@@ -18,6 +18,7 @@ package org.ehcache.util;
 
 import java.io.Closeable;
 import org.ehcache.spi.LifeCycled;
+import org.ehcache.spi.LifeCycledAdapter;
 
 /**
  * Lifecycle utility methods.
@@ -32,13 +33,7 @@ public class LifeCycleUtils {
    * @return a lifecycled instance that closes the closeable upon close
    */
   public static LifeCycled closerFor(final Closeable closeable) {
-    return new LifeCycled() {
-
-      @Override
-      public void init() throws Exception {
-        //nothing
-      }
-
+    return new LifeCycledAdapter() {
       @Override
       public void close() throws Exception {
         closeable.close();

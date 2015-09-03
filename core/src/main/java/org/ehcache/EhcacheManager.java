@@ -31,6 +31,7 @@ import org.ehcache.events.CacheManagerListener;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.management.ManagementRegistry;
 import org.ehcache.spi.LifeCycled;
+import org.ehcache.spi.LifeCycledAdapter;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -52,7 +53,6 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.context.annotations.ContextAttribute;
 import org.terracotta.statistics.StatisticsManager;
 
-import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -318,13 +318,7 @@ public class EhcacheManager implements PersistentCacheManager {
         final WriteBehindDecoratorLoaderWriterProvider factory = serviceLocator.getService(WriteBehindDecoratorLoaderWriterProvider.class);
         decorator = factory.createWriteBehindDecoratorLoaderWriter((CacheLoaderWriter<K, V>)loaderWriter, writeBehindConfiguration);
         if(decorator != null) {
-          lifeCycledList.add(new LifeCycled() {
-
-            @Override
-            public void init() throws Exception {
-              // no-op for now
-            }
-
+          lifeCycledList.add(new LifeCycledAdapter() {
             @Override
             public void close() {
               factory.releaseWriteBehindDecoratorCacheLoaderWriter(decorator);
@@ -337,12 +331,7 @@ public class EhcacheManager implements PersistentCacheManager {
       }
       
       if (loaderWriter != null) {
-        lifeCycledList.add(new LifeCycled() {
-          @Override
-          public void init() throws Exception {
-            // no-op for now
-          }
-
+        lifeCycledList.add(new LifeCycledAdapter() {
           @Override
           public void close() {
             cacheLoaderWriterProvider.releaseCacheLoaderWriter(loaderWriter);
@@ -356,12 +345,7 @@ public class EhcacheManager implements PersistentCacheManager {
 
     final CacheEventNotificationListenerServiceProvider cenlProvider = serviceLocator.getService(CacheEventNotificationListenerServiceProvider.class);
     final CacheEventNotificationService<K, V> evtService = cenlProvider.createCacheEventNotificationService(store, serviceConfigs);
-    lifeCycledList.add(new LifeCycled() {
-      @Override
-      public void init() throws Exception {
-        // no-op for now
-      }
-
+    lifeCycledList.add(new LifeCycledAdapter() {
       @Override
       public void close() {
         cenlProvider.releaseCacheEventNotificationService(evtService);
