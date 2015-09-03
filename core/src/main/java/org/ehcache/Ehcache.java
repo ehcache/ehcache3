@@ -21,6 +21,7 @@ import org.ehcache.event.CacheEvent;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.CacheEvents;
 import org.ehcache.events.DisabledCacheEventNotificationService;
+import org.ehcache.events.StateChangeListener;
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
@@ -1083,6 +1084,14 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
 
   void removeHook(LifeCycled hook) {
     statusTransitioner.removeHook(hook);
+  }
+
+  void registerListener(StateChangeListener listener) {
+    statusTransitioner.registerListener(listener);
+  }
+
+  void deregisterListener(StateChangeListener listener) {
+    statusTransitioner.deregisterListener(listener);
   }
 
   private static void checkNonNull(Object thing) {
