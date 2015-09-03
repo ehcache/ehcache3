@@ -17,9 +17,6 @@
 package org.ehcache.events;
 
 import org.ehcache.event.CacheEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
