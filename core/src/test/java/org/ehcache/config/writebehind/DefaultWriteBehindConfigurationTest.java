@@ -71,7 +71,7 @@ public class DefaultWriteBehindConfigurationTest {
       defaultWriteBehindConfiguration.setMaxWriteDelay(5);
       fail("Expected IllegalArgumentException");
     } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), containsString("Maximum write delay must be larger than minimum write delay"));
+      assertThat(e.getMessage(), containsString("Maximum write delay (5) must be larger than or equal to minimum write delay (10)"));
     }
   }
 
@@ -83,7 +83,7 @@ public class DefaultWriteBehindConfigurationTest {
       defaultWriteBehindConfiguration.setMinWriteDelay(10);
       fail("Expected IllegalArgumentException");
     } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), containsString("Minimum write delay must be smaller than maximum write delay"));
+      assertThat(e.getMessage(), containsString("Minimum write delay (10) must be smaller than or equal to maximum write delay (5)"));
     }
   }
 

@@ -32,7 +32,7 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
   private int rateLimitPerSecond = Integer.MAX_VALUE;
   private boolean writeCoalescing = false;
   private int writeBatchSize = 1;
-  private int retryAttempts = 1;
+  private int retryAttempts = 0;
   private int retryAttemptDelaySeconds = 1;
   private int writeBehindConcurrency = 1;
   private int writeBehindMaxQueueSize = Integer.MAX_VALUE;
@@ -90,7 +90,7 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
       throw new IllegalArgumentException("Minimum write delay seconds cannot be less than 0");
     } else if (minWriteDelay > maxWriteDelay) {
       throw new IllegalArgumentException("Minimum write delay (" + minWriteDelay +
-                                         "must be smaller than or equal to maximum write delay (" + maxWriteDelay + ")");
+                                         ") must be smaller than or equal to maximum write delay (" + maxWriteDelay + ")");
     }
     this.minWriteDelay = minWriteDelay;
   }
@@ -123,17 +123,14 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
     this.writeBatchSize = writeBatchSize;
   }
 
-  public void setRetryAttempts(int retryAttempts) {
+  public void setRetryAttempts(int retryAttempts, int retryAttemptDelaySeconds) {
     if(retryAttempts < 0) {
       throw new IllegalArgumentException("RetryAttempts cannot be less than 0.");
     }
-    this.retryAttempts = retryAttempts;
-  }
-
-  public void setRetryAttemptDelaySeconds(int retryAttemptDelaySeconds) {
     if(retryAttemptDelaySeconds < 1) {
       throw new IllegalArgumentException("RetryAttemptDelaySeconds cannot be less than 1.");
     }
+    this.retryAttempts = retryAttempts;
     this.retryAttemptDelaySeconds = retryAttemptDelaySeconds;
   }
 

@@ -214,16 +214,13 @@
       <xs:element name="writebehind" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:sequence>
-          <xs:element name="retryAttempts" default="0" minOccurs="0" maxOccurs="1">
-            <xs:complexType>
-              <xs:simpleContent>
-                <xs:extension base="xs:nonNegativeInteger">
-                  <xs:attribute type="xs:positiveInteger" name="delay" default="1" use="optional"/>
-                </xs:extension>
-              </xs:simpleContent>
-            </xs:complexType>
-          </xs:element>
-        </xs:sequence>
+            <xs:element name="retry" minOccurs="0" maxOccurs="1">
+              <xs:complexType>
+                <xs:attribute type="xs:positiveInteger" name="attempts" use="required"/>
+                <xs:attribute type="xs:positiveInteger" name="delay" use="required"/>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
         <xs:attribute type="xs:positiveInteger" name="concurrency" default="1" use="optional"/>
         <xs:attribute type="xs:positiveInteger" name="size" default="2147483647" use="optional"/>
         <xs:attribute type="xs:boolean" name="coalesce" use="optional"/>

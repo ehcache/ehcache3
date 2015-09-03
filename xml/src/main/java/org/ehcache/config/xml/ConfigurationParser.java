@@ -669,6 +669,8 @@ class ConfigurationParser {
     int maxQueueSize();
     
     int concurrency();
+
+    boolean isRetryAttemptsSet();
     
     int retryAttempts();
     
@@ -780,13 +782,18 @@ class ConfigurationParser {
     }
 
     @Override
+    public boolean isRetryAttemptsSet() {
+      return this.writebehind.getRetry() != null;
+    }
+
+    @Override
     public int retryAttempts() {
-      return this.writebehind.getRetryAttempts() != null ? this.writebehind.getRetryAttempts().getValue().intValue() : 0 ;
+      return this.writebehind.getRetry().getAttempts().intValue();
     }
 
     @Override
     public int retryAttemptsDelay() {
-      return this.writebehind.getRetryAttempts() != null ? this.writebehind.getRetryAttempts().getDelay().intValue() : 1;
+      return this.writebehind.getRetry().getDelay().intValue();
     }
 
     @Override
