@@ -21,6 +21,7 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.transactions.commands.Command;
 import org.ehcache.transactions.commands.StoreEvictCommand;
 import org.ehcache.transactions.commands.StorePutCommand;
+import org.ehcache.transactions.journal.Journal;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,12 +34,12 @@ public class XATransactionContext<K, V> {
   private final ConcurrentHashMap<K, Command<V>> commands = new ConcurrentHashMap<K, Command<V>>();
   private final TransactionId transactionId;
   private final Store<K, SoftLock<V>> underlyingStore;
-  private final XaTransactionStateStore stateStore;
+  private final Journal journal;
 
-  public XATransactionContext(TransactionId transactionId, Store<K, SoftLock<V>> underlyingStore, XaTransactionStateStore stateStore) {
+  public XATransactionContext(TransactionId transactionId, Store<K, SoftLock<V>> underlyingStore, Journal journal) {
     this.transactionId = transactionId;
     this.underlyingStore = underlyingStore;
-    this.stateStore = stateStore;
+    this.journal = journal;
   }
 
   public TransactionId getTransactionId() {
@@ -88,11 +89,11 @@ public class XATransactionContext<K, V> {
   }
 
   public int prepare() throws CacheAccessException, IllegalStateException {
-    if (stateStore.getState(transactionId) != null) {
+    if (journal.getState(transactionId) != null) {
       throw new IllegalStateException("Cannot prepare transaction that is not in-flight : " + transactionId);
     }
 
-    stateStore.save(transactionId, XAState.IN_DOUBT);
+    journal.save(transactionId, XAState.IN_DOUBT);
     for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
       if (entry.getValue() instanceof StoreEvictCommand) {
         continue;
@@ -116,9 +117,9 @@ public class XATransactionContext<K, V> {
   }
 
   public void commit() throws CacheAccessException {
-    if (stateStore.getState(transactionId) == null) {
+    if (journal.getState(transactionId) == null) {
       throw new IllegalStateException("Cannot commit transaction that has not been prepared : " + transactionId);
-    } else if (stateStore.getState(transactionId) != XAState.IN_DOUBT) {
+    } else if (journal.getState(transactionId) != XAState.IN_DOUBT) {
       throw new IllegalStateException("Cannot commit done transaction : " + transactionId);
     }
 
@@ -143,11 +144,11 @@ public class XATransactionContext<K, V> {
         }
       }
     }
-    stateStore.save(transactionId, XAState.COMMITTED);
+    journal.save(transactionId, XAState.COMMITTED);
   }
 
   public void commitInOnePhase() throws CacheAccessException {
-    if (stateStore.getState(transactionId) != null) {
+    if (journal.getState(transactionId) != null) {
       throw new IllegalStateException("Cannot commit-one-phase transaction that is not in-flight : " + transactionId);
     }
 
@@ -186,15 +187,15 @@ public class XATransactionContext<K, V> {
         }
       }
     }
-    stateStore.save(transactionId, XAState.COMMITTED);
+    journal.save(transactionId, XAState.COMMITTED);
   }
 
   public void rollback() throws CacheAccessException {
-    if (stateStore.getState(transactionId) == null) {
+    if (journal.getState(transactionId) == null) {
       // phase 1 rollback
 
 
-    } else if (stateStore.getState(transactionId) == XAState.IN_DOUBT) {
+    } else if (journal.getState(transactionId) == XAState.IN_DOUBT) {
       // phase 2 rollback
 
       for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
@@ -217,6 +218,6 @@ public class XATransactionContext<K, V> {
       throw new IllegalStateException("Cannot rollback done transaction : " + transactionId);
     }
 
-    stateStore.save(transactionId, XAState.ROLLED_BACK);
+    journal.save(transactionId, XAState.ROLLED_BACK);
   }
 }

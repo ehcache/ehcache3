@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.transactions.btm;
+package org.ehcache.transactions.txmgrs.btm;
 
 import bitronix.tm.internal.BitronixRuntimeException;
 import bitronix.tm.internal.XAResourceHolderState;

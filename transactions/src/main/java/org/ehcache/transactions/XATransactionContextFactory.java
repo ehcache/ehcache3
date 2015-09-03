@@ -17,6 +17,7 @@ package org.ehcache.transactions;
 
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.transactions.journal.Journal;
 
 import java.util.Map;
 
@@ -27,8 +28,8 @@ public class XATransactionContextFactory<K, V> {
 
   private final Map<TransactionId, XATransactionContext<K, V>> transactionContextMap = new ConcurrentHashMap<TransactionId, XATransactionContext<K, V>>();
 
-  public void create(TransactionId transactionId, Store<K, SoftLock<V>> underlyingStore, XaTransactionStateStore xaTransactionStateStore) {
-    XATransactionContext<K, V> transactionContext = new XATransactionContext<K, V>(transactionId, underlyingStore, xaTransactionStateStore);
+  public void create(TransactionId transactionId, Store<K, SoftLock<V>> underlyingStore, Journal journal) {
+    XATransactionContext<K, V> transactionContext = new XATransactionContext<K, V>(transactionId, underlyingStore, journal);
     transactionContextMap.put(transactionId, transactionContext);
   }
 

@@ -13,27 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.transactions;
+package org.ehcache.transactions.journal;
 
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.spi.service.ServiceFactory;
 
 /**
  * @author Ludovic Orban
  */
-public class DefaultXaTransactionStateStoreProvider implements XaTransactionStateStoreProvider {
+public class TransientJournalProviderFactory implements ServiceFactory<JournalProvider> {
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
-
+  public JournalProvider create(ServiceCreationConfiguration<JournalProvider> configuration) {
+    return new TransientJournalProvider();
   }
 
   @Override
-  public void stop() {
-
-  }
-
-  @Override
-  public XaTransactionStateStore createStore() {
-    return new TransientXaTransactionStateStore();
+  public Class<JournalProvider> getServiceType() {
+    return JournalProvider.class;
   }
 }

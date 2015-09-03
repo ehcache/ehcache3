@@ -18,7 +18,7 @@
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/licenses/publicdomain
  */
-package org.ehcache.transactions.btm;
+package org.ehcache.transactions.txmgrs.btm;
 
 import java.util.AbstractCollection;
 import java.util.AbstractMap;
@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry; // Needed by sbt doc - do not remove
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;

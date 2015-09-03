@@ -17,6 +17,7 @@ package org.ehcache.transactions;
 
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.transactions.journal.Journal;
 
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
@@ -31,13 +32,13 @@ import java.util.Set;
 public class EhcacheXAResource<K, V> implements XAResource {
 
   private final Store<K, SoftLock<V>> underlyingStore;
-  private final XaTransactionStateStore stateStore;
+  private final Journal journal;
   private final XATransactionContextFactory<K, V> transactionContextFactory;
   private volatile Xid currentXid;
 
-  public EhcacheXAResource(Store<K, SoftLock<V>> underlyingStore, XaTransactionStateStore stateStore, XATransactionContextFactory<K, V> transactionContextFactory) {
+  public EhcacheXAResource(Store<K, SoftLock<V>> underlyingStore, Journal journal, XATransactionContextFactory<K, V> transactionContextFactory) {
     this.underlyingStore = underlyingStore;
-    this.stateStore = stateStore;
+    this.journal = journal;
     this.transactionContextFactory = transactionContextFactory;
   }
 
@@ -69,14 +70,14 @@ public class EhcacheXAResource<K, V> implements XAResource {
   @Override
   public void forget(Xid xid) throws XAException {
     TransactionId transactionId = new TransactionId(xid);
-    XAState xaState = stateStore.getState(transactionId);
+    XAState xaState = journal.getState(transactionId);
     if (xaState == null) {
       throw new EhcacheXAException("Cannot forget unknown XID : " + xid, XAException.XAER_PROTO);
     }
     if (xaState == XAState.IN_DOUBT) {
       throw new EhcacheXAException("Cannot forget in-doubt XID : " + xid, XAException.XAER_PROTO);
     }
-    stateStore.forgetHeuristicDecision(transactionId);
+    journal.forgetHeuristicDecision(transactionId);
   }
 
   @Override
@@ -109,7 +110,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
   public Xid[] recover(int flag) throws XAException {
     if ((flag & XAResource.TMSTARTRSCAN) == XAResource.TMSTARTRSCAN) {
       List<Xid> xids = new ArrayList<Xid>();
-      Set<TransactionId> transactionIds = stateStore.recover().keySet();
+      Set<TransactionId> transactionIds = journal.recover().keySet();
       for (TransactionId transactionId : transactionIds) {
         if (!transactionContextFactory.contains(transactionId)) {
           xids.add(transactionId.getSerializableXid());
@@ -157,7 +158,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
       currentXid = xid;
       TransactionId transactionId = new TransactionId(currentXid);
       if (!transactionContextFactory.contains(transactionId)) {
-        transactionContextFactory.create(transactionId, underlyingStore, stateStore);
+        transactionContextFactory.create(transactionId, underlyingStore, journal);
       }
     } else {
       TransactionId transactionId = new TransactionId(xid);

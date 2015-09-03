@@ -36,7 +36,9 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.transactions.btm.Ehcache3XAResourceProducer;
+import org.ehcache.transactions.journal.Journal;
+import org.ehcache.transactions.journal.JournalProvider;
+import org.ehcache.transactions.txmgrs.btm.Ehcache3XAResourceProducer;
 import org.ehcache.transactions.commands.StoreEvictCommand;
 import org.ehcache.transactions.commands.StorePutCommand;
 import org.ehcache.transactions.commands.StoreRemoveCommand;
@@ -66,16 +68,16 @@ public class XAStore<K, V> implements Store<K, V> {
   private final TransactionManager transactionManager;
   private final Map<Transaction, EhcacheXAResource<K, V>> xaResources = new ConcurrentHashMap<Transaction, EhcacheXAResource<K, V>>();
   private final TimeSource timeSource;
-  private final XaTransactionStateStore stateStore;
+  private final Journal journal;
   private final XATransactionContextFactory<K, V> transactionContextFactory = new XATransactionContextFactory<K, V>();
   private final EhcacheXAResource recoveryXaResource;
 
-  public XAStore(Store<K, SoftLock<V>> underlyingStore, TransactionManager transactionManager, TimeSource timeSource, XaTransactionStateStore stateStore) {
+  public XAStore(Store<K, SoftLock<V>> underlyingStore, TransactionManager transactionManager, TimeSource timeSource, Journal journal) {
     this.underlyingStore = underlyingStore;
     this.transactionManager = transactionManager;
     this.timeSource = timeSource;
-    this.stateStore = stateStore;
-    this.recoveryXaResource = new EhcacheXAResource<K, V>(underlyingStore, stateStore, transactionContextFactory);
+    this.journal = journal;
+    this.recoveryXaResource = new EhcacheXAResource<K, V>(underlyingStore, journal, transactionContextFactory);
   }
 
   private boolean isInDoubt(SoftLock<V> softLock) {
@@ -121,7 +123,7 @@ public class XAStore<K, V> implements Store<K, V> {
       }
       EhcacheXAResource<K, V> xaResource = xaResources.get(transaction);
       if (xaResource == null) {
-        xaResource = new EhcacheXAResource<K, V>(underlyingStore, stateStore, transactionContextFactory);
+        xaResource = new EhcacheXAResource<K, V>(underlyingStore, journal, transactionContextFactory);
         Ehcache3XAResourceProducer.registerXAResource(SOME_XASTORE_UNIQUE_NAME, xaResource);
         transactionManager.getTransaction().enlistResource(xaResource);
         xaResources.put(transaction, xaResource);
@@ -511,8 +513,8 @@ public class XAStore<K, V> implements Store<K, V> {
     return underlyingStore.getConfigurationChangeListeners();
   }
 
-  //TODO: kepp track of stores with a ConcurrentWeakIdentityHashMap
-  @ServiceDependencies({TimeSourceService.class, DefaultStoreProvider.class})
+  //TODO: keep track of stores with a ConcurrentWeakIdentityHashMap
+  @ServiceDependencies({TimeSourceService.class, JournalProvider.class, DefaultStoreProvider.class})
   public static class Provider implements Store.Provider {
 
     private volatile ServiceProvider serviceProvider;
@@ -522,7 +524,7 @@ public class XAStore<K, V> implements Store<K, V> {
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
       TxService txService = serviceProvider.getService(TxService.class);
-      XaTransactionStateStore stateStore = new TransientXaTransactionStateStore(); // TODO: get that via service lookup / config
+      Journal journal = serviceProvider.getService(JournalProvider.class).getJournal();
 
       TxServiceConfiguration txServiceConfiguration = findSingletonAmongst(TxServiceConfiguration.class, (Object[]) serviceConfigs);
       Store<K, V> store;
@@ -540,7 +542,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
         Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer, storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), valueSerializer);
         Store<K, SoftLock<V>> underlyingStore = (Store) defaultStoreProvider.createStore(underlyingStoreConfig, serviceConfigs);
-        store = new XAStore<K, V>(underlyingStore, txService.getTransactionManager(), timeSource, stateStore);
+        store = new XAStore<K, V>(underlyingStore, txService.getTransactionManager(), timeSource, journal);
       }
 
       return store;

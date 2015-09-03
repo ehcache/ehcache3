@@ -31,6 +31,8 @@ import org.ehcache.internal.store.offheap.OffHeapStoreLifecycleHelper;
 import org.ehcache.internal.store.tiering.CacheStore;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.transactions.journal.TransientJournal;
+import org.ehcache.transactions.journal.Journal;
 import org.junit.Test;
 
 import javax.transaction.HeuristicMixedException;
@@ -74,7 +76,7 @@ public class XAStoreTest {
     Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(), keySerializer, valueSerializer);
     TestTimeSource testTimeSource = new TestTimeSource();
     OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, true);
-    XaTransactionStateStore stateStore = new TransientXaTransactionStateStore();
+    Journal stateStore = new TransientJournal();
 
     XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, testTransactionManager, testTimeSource, stateStore);
 
@@ -135,7 +137,7 @@ public class XAStoreTest {
     Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(), keySerializer, valueSerializer);
     TestTimeSource testTimeSource = new TestTimeSource();
     OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, true);
-    XaTransactionStateStore stateStore = new TransientXaTransactionStateStore();
+    Journal stateStore = new TransientJournal();
 
     XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, testTransactionManager, testTimeSource, stateStore);
 
@@ -189,7 +191,7 @@ public class XAStoreTest {
     CacheStore<Long, SoftLock<String>> cacheStore = new CacheStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
 
 
-    XaTransactionStateStore stateStore = new TransientXaTransactionStateStore();
+    Journal stateStore = new TransientJournal();
 
     XAStore<Long, String> xaStore = new XAStore<Long, String>(cacheStore, testTransactionManager, testTimeSource, stateStore);
 
