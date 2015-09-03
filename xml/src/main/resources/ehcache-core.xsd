@@ -221,15 +221,15 @@
               </xs:complexType>
             </xs:element>
           </xs:sequence>
-        <xs:attribute type="xs:positiveInteger" name="concurrency" default="1" use="optional"/>
-        <xs:attribute type="xs:positiveInteger" name="size" default="2147483647" use="optional"/>
-        <xs:attribute type="xs:boolean" name="coalesce" use="optional"/>
-        <xs:attribute name="ratelimitpersecond" type="xs:positiveInteger" default="2147483647" use="optional"/>
-        <xs:attribute name="minWriteDelay" type="xs:nonNegativeInteger" default="0" use="optional"/>
-        <xs:attribute name="maxWriteDelay" type="xs:positiveInteger" default="2147483647" use="optional"/>
-        <xs:attribute name="batchsize" type="xs:positiveInteger" default="1" use="optional"/>
-      </xs:complexType>
-    </xs:element>
+          <xs:attribute type="xs:positiveInteger" name="concurrency" default="1" use="optional"/>
+          <xs:attribute type="xs:positiveInteger" name="size" default="2147483647" use="optional"/>
+          <xs:attribute type="xs:boolean" name="coalesce" use="optional"/>
+          <xs:attribute name="ratelimitpersecond" type="xs:positiveInteger" default="2147483647" use="optional"/>
+          <xs:attribute name="minWriteDelay" type="xs:nonNegativeInteger" default="0" use="optional"/>
+          <xs:attribute name="maxWriteDelay" type="xs:positiveInteger" default="2147483647" use="optional"/>
+          <xs:attribute name="batchsize" type="xs:positiveInteger" default="1" use="optional"/>
+        </xs:complexType>
+      </xs:element>
       <xs:element name="listener" minOccurs="0" maxOccurs="unbounded">
         <xs:complexType>
           <xs:sequence>
