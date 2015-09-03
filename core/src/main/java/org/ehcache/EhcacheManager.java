@@ -555,7 +555,7 @@ public class EhcacheManager implements PersistentCacheManager {
         @Override
         public void close() {
           persistenceService.stop();
-          statusTransitioner.exitMaintenance();
+          statusTransitioner.exitMaintenance().succeeded();
         }
       };
       st.succeeded();
