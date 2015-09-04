@@ -93,7 +93,7 @@ public class XATransactionContext<K, V> {
       throw new IllegalStateException("Cannot prepare transaction that is not in-flight : " + transactionId);
     }
 
-    journal.save(transactionId, XAState.IN_DOUBT);
+    journal.save(transactionId, XAState.IN_DOUBT, false);
     for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
       if (entry.getValue() instanceof StoreEvictCommand) {
         continue;
@@ -144,7 +144,7 @@ public class XATransactionContext<K, V> {
         }
       }
     }
-    journal.save(transactionId, XAState.COMMITTED);
+    journal.save(transactionId, XAState.COMMITTED, false);
   }
 
   public void commitInOnePhase() throws CacheAccessException {
@@ -187,7 +187,7 @@ public class XATransactionContext<K, V> {
         }
       }
     }
-    journal.save(transactionId, XAState.COMMITTED);
+    journal.save(transactionId, XAState.COMMITTED, false);
   }
 
   public void rollback() throws CacheAccessException {
@@ -218,6 +218,6 @@ public class XATransactionContext<K, V> {
       throw new IllegalStateException("Cannot rollback done transaction : " + transactionId);
     }
 
-    journal.save(transactionId, XAState.ROLLED_BACK);
+    journal.save(transactionId, XAState.ROLLED_BACK, false);
   }
 }

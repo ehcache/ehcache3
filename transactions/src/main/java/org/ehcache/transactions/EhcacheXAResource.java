@@ -45,12 +45,12 @@ public class EhcacheXAResource<K, V> implements XAResource {
   @Override
   public void commit(Xid xid, boolean onePhase) throws XAException {
     TransactionId transactionId = new TransactionId(xid);
-    try {
-      XATransactionContext<K, V> transactionContext = transactionContextFactory.get(transactionId);
-      if (transactionContext == null) {
-        throw new EhcacheXAException("Cannot commit unknown XID : " + xid, XAException.XAER_PROTO);
-      }
+    XATransactionContext<K, V> transactionContext = transactionContextFactory.get(transactionId);
+    if (transactionContext == null) {
+      throw new EhcacheXAException("Cannot commit unknown XID : " + xid, XAException.XAER_PROTO);
+    }
 
+    try {
       try {
         if (onePhase) {
           transactionContext.commitInOnePhase();
@@ -92,17 +92,24 @@ public class EhcacheXAResource<K, V> implements XAResource {
 
   @Override
   public int prepare(Xid xid) throws XAException {
-    XATransactionContext<K, V> transactionContext = transactionContextFactory.get(new TransactionId(xid));
+    TransactionId transactionId = new TransactionId(xid);
+    XATransactionContext<K, V> transactionContext = transactionContextFactory.get(transactionId);
     if (transactionContext == null) {
       throw new EhcacheXAException("Cannot prepare unknown XID : " + xid, XAException.XAER_PROTO);
     }
 
+    boolean readOnly = false;
     try {
-      return (transactionContext.prepare() > 0) ? XA_OK : XA_RDONLY;
+      readOnly = transactionContext.prepare() == 0;
+      return readOnly ? XA_RDONLY : XA_OK;
     } catch (IllegalStateException ise) {
       throw new EhcacheXAException("Cannot prepare XID : " + xid, XAException.XAER_PROTO, ise);
     } catch (CacheAccessException cae) {
       throw new EhcacheXAException("Cannot prepare XID : " + xid, XAException.XAER_RMERR, cae);
+    } finally {
+      if (readOnly) {
+        transactionContextFactory.destroy(transactionId);
+      }
     }
   }
 
@@ -112,6 +119,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
       List<Xid> xids = new ArrayList<Xid>();
       Set<TransactionId> transactionIds = journal.recover().keySet();
       for (TransactionId transactionId : transactionIds) {
+        // filter-out in-flight tx
         if (!transactionContextFactory.contains(transactionId)) {
           xids.add(transactionId.getSerializableXid());
         }
@@ -124,11 +132,12 @@ public class EhcacheXAResource<K, V> implements XAResource {
   @Override
   public void rollback(Xid xid) throws XAException {
     TransactionId transactionId = new TransactionId(xid);
+    XATransactionContext<K, V> transactionContext = transactionContextFactory.get(transactionId);
+    if (transactionContext == null) {
+      throw new EhcacheXAException("Cannot rollback unknown XID : " + xid, XAException.XAER_PROTO);
+    }
+
     try {
-      XATransactionContext<K, V> transactionContext = transactionContextFactory.get(transactionId);
-      if (transactionContext == null) {
-        throw new EhcacheXAException("Cannot rollback unknown XID : " + xid, XAException.XAER_PROTO);
-      }
       transactionContext.rollback();
     } catch (IllegalStateException ise) {
       throw new EhcacheXAException("Cannot rollback XID : " + xid, XAException.XAER_PROTO, ise);
@@ -206,7 +215,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
       sb.append("TMSTARTRSCAN|");
     }
     if ((flags & XAResource.TMENDRSCAN) == XAResource.TMENDRSCAN) {
-      sb.append("TMSTARTRSCAN|");
+      sb.append("TMENDRSCAN|");
     }
 
     if (sb.length() > 0) {

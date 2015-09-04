@@ -159,18 +159,6 @@ public class XAStore<K, V> implements Store<K, V> {
     if (softLockValueHolder != null) {
       SoftLock<V> softLock = softLockValueHolder.value();
       if (isInDoubt(softLock)) {
-        /*
-        There are 3 things we can do here:
-         - lock and wait until 2PC is done
-         - evict
-         - gamble: there are different bets we can take:
-           # assume the other transaction will commit
-           # assume the other transaction will rollback
-           Note that to take a gamble, you'd better know if the mapping is in an active 2PC
-           or waiting to be recovered. In the latter case, no gambling might be advisable.
-         */
-
-        // evict
         currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValueHolder()));
       } else {
         currentContext.addCommand(key, new StorePutCommand<V>(softLock.getOldValueHolder(), newXAValueHolder(value)));
@@ -202,25 +190,10 @@ public class XAStore<K, V> implements Store<K, V> {
     if (softLockValueHolder != null) {
       SoftLock<V> softLock = softLockValueHolder.value();
       if (isInDoubt(softLock)) {
-        /*
-        There are 3 things we can do here:
-         - lock and wait until 2PC is done
-         - evict
-         - gamble: there are different bets we can take:
-           # assume the other transaction will commit
-           # assume the other transaction will rollback
-           Note that to take a gamble, you'd better know if the mapping is in an active 2PC
-           or waiting to be recovered. In the latter case, no gambling might be advisable.
-         */
-
-        // evict
         currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValueHolder()));
       } else {
         currentContext.addCommand(key, new StoreRemoveCommand<V>(softLock.getOldValueHolder()));
       }
-    } else {
-      // it's probably not needed not record a remove of a non-existent key
-      currentContext.addCommand(key, new StoreRemoveCommand<V>(null));
     }
   }
 
@@ -429,26 +402,11 @@ public class XAStore<K, V> implements Store<K, V> {
     }
 
     if (softLock != null && isInDoubt(softLock)) {
-      /*
-      There are 3 things we can do here:
-       - lock and wait until 2PC is done
-       - evict
-       - gamble: there are different bets we can take:
-         # assume the other transaction will commit
-         # assume the other transaction will rollback
-         Note that to take a gamble, you'd better know if the mapping is in an active 2PC
-         or waiting to be recovered. In the latter case, no gambling might be advisable.
-       */
-
-      // evict
       currentContext.addCommand(key, new StoreEvictCommand<V>(oldValueHolder));
-    } else {
-      if (xaValueHolder == null) {
-        currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValueHolder));
-      } else {
-        currentContext.addCommand(key, new StorePutCommand<V>(oldValueHolder, xaValueHolder));
-      }
+    } else if (xaValueHolder != null) {
+      currentContext.addCommand(key, new StorePutCommand<V>(oldValueHolder, xaValueHolder));
     }
+
 
     return xaValueHolder;
   }

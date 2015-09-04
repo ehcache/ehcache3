@@ -19,18 +19,19 @@ import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.transactions.TransactionId;
 import org.ehcache.transactions.XAState;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * @author Ludovic Orban
  */
+//TODO: implement heuristics
 public class TransientJournal implements Journal {
   private final ConcurrentHashMap<TransactionId, XAState> states = new ConcurrentHashMap<TransactionId, XAState>();
-  private final ConcurrentHashMap<TransactionId, XAState> heuristicDecisions = new ConcurrentHashMap<TransactionId, XAState>();
 
   @Override
-  public void save(TransactionId transactionId, XAState xaState) {
+  public void save(TransactionId transactionId, XAState xaState, boolean heuristicDecision) {
     if (xaState == XAState.IN_DOUBT) {
       states.put(transactionId, xaState);
     } else {
@@ -49,24 +50,12 @@ public class TransientJournal implements Journal {
   }
 
   @Override
-  public void saveHeuristicDecision(TransactionId transactionId, XAState xaState) {
-    if (xaState == XAState.IN_DOUBT) {
-      throw new IllegalStateException("In-doubt is not a valid heuristic decision");
-    }
-    if (states.get(transactionId) != XAState.IN_DOUBT) {
-      throw new IllegalStateException("Only in-doubt transactions can be heuristically terminated");
-    }
-    states.remove(transactionId);
-    heuristicDecisions.put(transactionId, xaState);
-  }
-
-  @Override
   public void forgetHeuristicDecision(TransactionId transactionId) {
-    heuristicDecisions.remove(transactionId);
+
   }
 
   @Override
   public Map<TransactionId, XAState> heuristicDecisions() {
-    return new HashMap<TransactionId, XAState>(heuristicDecisions);
+    return Collections.emptyMap();
   }
 }

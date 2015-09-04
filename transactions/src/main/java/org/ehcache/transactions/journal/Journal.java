@@ -10,14 +10,12 @@ import java.util.Map;
  */
 public interface Journal {
 
-  void save(TransactionId transactionId, XAState xaState);
+  void save(TransactionId transactionId, XAState xaState, boolean heuristicDecision);
 
   XAState getState(TransactionId transactionId);
 
   Map<TransactionId, XAState> recover();
 
-
-  void saveHeuristicDecision(TransactionId transactionId, XAState xaState);
 
   void forgetHeuristicDecision(TransactionId transactionId);
 

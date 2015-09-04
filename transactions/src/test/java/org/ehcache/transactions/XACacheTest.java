@@ -17,6 +17,7 @@ package org.ehcache.transactions;
 
 import bitronix.tm.BitronixTransactionManager;
 import bitronix.tm.TransactionManagerServices;
+import bitronix.tm.internal.TransactionStatusChangeListener;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
@@ -24,10 +25,12 @@ import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.transactions.configuration.DefaultXAServiceProvider;
 import org.ehcache.transactions.configuration.XACacheManagerConfiguration;
 import org.ehcache.transactions.configuration.XAServiceConfiguration;
 import org.junit.Test;
 
+import javax.transaction.Status;
 import javax.transaction.Transaction;
 
 /**
@@ -47,12 +50,15 @@ public class XACacheTest {
         );
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("txCache", cacheConfigurationBuilder.add(new XAServiceConfiguration()).buildConfig(Long.class, String.class))
+        .withCache("txCache1", cacheConfigurationBuilder.add(new XAServiceConfiguration()).buildConfig(Long.class, String.class))
+        .withCache("txCache2", cacheConfigurationBuilder.add(new XAServiceConfiguration()).buildConfig(Long.class, String.class))
         .withCache("nonTxCache", cacheConfigurationBuilder.buildConfig(Long.class, String.class))
         .with(new XACacheManagerConfiguration())
+//        .using(new DefaultXAServiceProvider(transactionManager))
         .build(true);
 
-    Cache<Long, String> txCache = cacheManager.getCache("txCache", Long.class, String.class);
+    final Cache<Long, String> txCache1 = cacheManager.getCache("txCache1", Long.class, String.class);
+    final Cache<Long, String> txCache2 = cacheManager.getCache("txCache2", Long.class, String.class);
     Cache<Long, String> nonTxCache = cacheManager.getCache("nonTxCache", Long.class, String.class);
 
     nonTxCache.put(1L, "eins");
@@ -60,22 +66,39 @@ public class XACacheTest {
 
     transactionManager.begin();
     {
-      txCache.put(1L, "one");
+      txCache1.put(1L, "one");
     }
     transactionManager.commit();
 
     transactionManager.begin();
     {
-      String s = txCache.get(1L);
+      txCache1.get(1L);
+      txCache2.get(1L);
+    }
+    transactionManager.commit();
+
+    transactionManager.begin();
+    {
+      String s = txCache1.get(1L);
       System.out.println(s);
-      txCache.remove(1L);
+      txCache1.remove(1L);
 
       Transaction suspended = transactionManager.suspend();
       transactionManager.begin();
       {
-        String s2 = txCache.get(1L);
+        txCache2.put(1L, "uno");
+        String s2 = txCache1.get(1L);
         System.out.println(s2);
       }
+      transactionManager.getCurrentTransaction().addTransactionStatusChangeListener(new TransactionStatusChangeListener() {
+        @Override
+        public void statusChanged(int oldStatus, int newStatus) {
+          if (newStatus == Status.STATUS_PREPARED) {
+            txCache2.getClass();
+            txCache1.getClass();
+          }
+        }
+      });
       transactionManager.commit();
       transactionManager.resume(suspended);
 
