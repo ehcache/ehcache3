@@ -17,7 +17,7 @@ public interface Journal {
   Map<TransactionId, XAState> recover();
 
 
-  void forgetHeuristicDecision(TransactionId transactionId);
+  void forget(TransactionId transactionId);
 
   Map<TransactionId, XAState> heuristicDecisions();
 

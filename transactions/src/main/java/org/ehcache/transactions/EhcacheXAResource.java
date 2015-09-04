@@ -77,7 +77,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
     if (xaState == XAState.IN_DOUBT) {
       throw new EhcacheXAException("Cannot forget in-doubt XID : " + xid, XAException.XAER_PROTO);
     }
-    journal.forgetHeuristicDecision(transactionId);
+    journal.forget(transactionId);
   }
 
   @Override

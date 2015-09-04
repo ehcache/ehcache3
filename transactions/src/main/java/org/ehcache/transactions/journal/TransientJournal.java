@@ -50,7 +50,7 @@ public class TransientJournal implements Journal {
   }
 
   @Override
-  public void forgetHeuristicDecision(TransactionId transactionId) {
+  public void forget(TransactionId transactionId) {
 
   }
 
