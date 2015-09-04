@@ -192,14 +192,17 @@ public class EhcacheXAResource<K, V> implements XAResource {
 
   @Override
   public void end(Xid xid, int flag) throws XAException {
-    //TODO: add support for TMFAIL
-    if (flag != XAResource.TMSUCCESS) {
+    if (flag != XAResource.TMSUCCESS && flag != XAResource.TMFAIL) {
       throw new EhcacheXAException("End flag not supported : " + xlat(flag), XAException.XAER_INVAL);
     }
     if (currentXid == null) {
       throw new EhcacheXAException("Not started on : " + xid, XAException.XAER_PROTO);
     }
 
+    if (flag == XAResource.TMFAIL) {
+      TransactionId transactionId = new TransactionId(currentXid);
+      transactionContextFactory.destroy(transactionId);
+    }
     currentXid = null;
   }
 
