@@ -15,6 +15,9 @@
  */
 package org.ehcache.management.registry;
 
+import org.ehcache.spi.ServiceLocator;
+import org.ehcache.spi.lifecycle.DefaultLifeCycleManager;
+import org.ehcache.spi.alias.DefaultAliasService;
 import org.junit.Test;
 
 import static junit.framework.Assert.fail;
@@ -24,6 +27,8 @@ import static junit.framework.Assert.fail;
  */
 public class DefaultManagementRegistryTest {
 
+  ServiceLocator serviceLocator = new ServiceLocator(new DefaultLifeCycleManager(), new DefaultAliasService());
+  
   @Test
   public void testRegisterOnlyWorksWhenStarted() throws Exception {
     DefaultManagementRegistry defaultManagementRegistry = new DefaultManagementRegistry();
@@ -35,7 +40,7 @@ public class DefaultManagementRegistryTest {
       // expected
     }
 
-    defaultManagementRegistry.start(null);
+    defaultManagementRegistry.start(serviceLocator);
 
     defaultManagementRegistry.register(Object.class, new Object());
 
@@ -60,9 +65,9 @@ public class DefaultManagementRegistryTest {
       // expected
     }
 
-    defaultManagementRegistry.start(null);
-    defaultManagementRegistry.start(null);
-    defaultManagementRegistry.start(null);
+    defaultManagementRegistry.start(serviceLocator);
+    defaultManagementRegistry.start(serviceLocator);
+    defaultManagementRegistry.start(serviceLocator);
 
     defaultManagementRegistry.register(Object.class, new Object());
 
@@ -84,7 +89,7 @@ public class DefaultManagementRegistryTest {
     defaultManagementRegistry.stop();
     defaultManagementRegistry.stop();
 
-    defaultManagementRegistry.start(null);
+    defaultManagementRegistry.start(serviceLocator);
     defaultManagementRegistry.register(Object.class, new Object());
     defaultManagementRegistry.stop();
 
@@ -94,7 +99,7 @@ public class DefaultManagementRegistryTest {
   public void testRestartingAfterStops() throws Exception {
     DefaultManagementRegistry defaultManagementRegistry = new DefaultManagementRegistry();
 
-    defaultManagementRegistry.start(null);
+    defaultManagementRegistry.start(serviceLocator);
 
     defaultManagementRegistry.register(Object.class, new Object());
 
@@ -109,7 +114,7 @@ public class DefaultManagementRegistryTest {
       // expected
     }
 
-    defaultManagementRegistry.start(null);
+    defaultManagementRegistry.start(serviceLocator);
     defaultManagementRegistry.register(Object.class, new Object());
     defaultManagementRegistry.stop();
   }

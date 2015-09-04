@@ -15,12 +15,24 @@
  */
 package org.ehcache.management.registry;
 
+import org.ehcache.CacheManager;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.actions.EhcacheActionProvider;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.lifecycle.LifeCycleListenerAdapter;
+import org.ehcache.spi.lifecycle.LifeCycleService;
+import org.ehcache.spi.alias.AliasService;
+import org.ehcache.spi.service.ServiceDependencies;
+import org.terracotta.context.annotations.ContextAttribute;
+import org.terracotta.statistics.StatisticsManager;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * @author Ludovic Orban
  */
+@ServiceDependencies({AliasService.class, LifeCycleService.class})
 public class DefaultManagementRegistry extends AbstractManagementRegistry {
 
   public static final EhcacheStatisticsProviderConfiguration DEFAULT_EHCACHE_STATISTICS_PROVIDER_CONFIGURATION = new EhcacheStatisticsProviderConfiguration(5 * 60, TimeUnit.SECONDS, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS);
@@ -46,7 +59,26 @@ public class DefaultManagementRegistry extends AbstractManagementRegistry {
   }
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void start(final ServiceProvider serviceProvider) {
+
+    serviceProvider.getService(LifeCycleService.class).register(CacheManager.class, new LifeCycleListenerAdapter<CacheManager>() {
+      
+      // must be kept as a string reference in this listener because the StatisticsManager class  is using weak references
+      EhcacheManagerStatsSettings ehcacheManagerStatsSettings;
+      
+      @Override
+      public void afterInitialization(CacheManager instance) {
+        String cacheManagerName = serviceProvider.getService(AliasService.class).getCacheManagerAlias();
+        ehcacheManagerStatsSettings = new EhcacheManagerStatsSettings(cacheManagerName, Collections.<String, Object>singletonMap("Setting", "CacheManagerName"));
+        StatisticsManager.associate(ehcacheManagerStatsSettings).withParent(instance);
+      }
+
+      @Override
+      public void afterClosing(CacheManager instance) {
+        StatisticsManager.dissociate(ehcacheManagerStatsSettings).fromParent(instance);
+      }
+    });
+
     if (startedCounter.getAndIncrement() > 0) {
       return;
     }
@@ -77,6 +109,17 @@ public class DefaultManagementRegistry extends AbstractManagementRegistry {
       super.stop();
       executor.shutdown();
       executor = null;
+    }
+  }
+
+  private static final class EhcacheManagerStatsSettings {
+    @ContextAttribute("CacheManagerName") private final String name;
+    @ContextAttribute("properties") private final Map<String, Object> properties;
+    @ContextAttribute("tags") private final Set<String> tags = new HashSet<String>(Arrays.asList("cacheManager", "exposed"));
+
+    EhcacheManagerStatsSettings(String name, Map<String, Object> properties) {
+      this.name = name;
+      this.properties = properties;
     }
   }
 
