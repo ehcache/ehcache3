@@ -26,7 +26,7 @@ import java.util.Map;
 /**
  * @author Ludovic Orban
  */
-//TODO: implement heuristics
+//TODO: implement heuristics, and implement a disk persistent version for disk-persistent caches
 public class TransientJournal implements Journal {
   private final ConcurrentHashMap<TransactionId, XAState> states = new ConcurrentHashMap<TransactionId, XAState>();
 
