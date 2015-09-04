@@ -15,7 +15,10 @@
  */
 package org.ehcache.transactions;
 
+import org.ehcache.spi.serialization.Serializer;
+
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 
 /**
  * @author Ludovic Orban
@@ -24,12 +27,40 @@ public class SoftLock<V> implements Serializable {
 
   private final TransactionId transactionId;
   private final V oldValue;
+  private final byte[] oldValueSerialized;
   private final XAValueHolder<V> newValueHolder;
 
   public SoftLock(TransactionId transactionId, V oldValue, XAValueHolder<V> newValueHolder) {
     this.transactionId = transactionId;
     this.oldValue = oldValue;
+    this.oldValueSerialized = null;
     this.newValueHolder = newValueHolder;
+  }
+
+  private SoftLock(TransactionId transactionId, ByteBuffer serializedOldValue, XAValueHolder<V> serializedNewValueHolder) {
+    this.transactionId = transactionId;
+    this.oldValue = null;
+    this.oldValueSerialized = new byte[serializedOldValue.remaining()];
+    serializedOldValue.get(oldValueSerialized);
+    this.newValueHolder = serializedNewValueHolder;
+  }
+
+  protected SoftLock<V> copyForSerialization(Serializer<V> valueSerializer) {
+    ByteBuffer serializedOldValue = valueSerializer.serialize(oldValue);
+    XAValueHolder<V> serializedXaValueHolder = null;
+    if (newValueHolder != null) {
+      serializedXaValueHolder = newValueHolder.copyForSerialization(valueSerializer);
+    }
+    return new SoftLock<V>(transactionId, serializedOldValue, serializedXaValueHolder);
+  }
+
+  protected SoftLock<V> copyAfterDeserialization(Serializer<V> valueSerializer, SoftLock<V> serializedSoftLock) throws ClassNotFoundException {
+    V oldValue = valueSerializer.read(ByteBuffer.wrap(serializedSoftLock.oldValueSerialized));
+    XAValueHolder<V> newValueHolder = null;
+    if (this.newValueHolder != null) {
+      newValueHolder = this.newValueHolder.copyAfterDeserialization(valueSerializer);
+    }
+    return new SoftLock<V>(transactionId, oldValue, newValueHolder);
   }
 
   public V getOldValue() {

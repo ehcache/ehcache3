@@ -503,12 +503,13 @@ public class XAStore<K, V> implements Store<K, V> {
           Expiry<Object, Object> expiry = Expirations.noExpiration();
           EvictionVeto<? super K, ? super SoftLock> evictionVeto = null;
           EvictionPrioritizer<? super K, ? super SoftLock> evictionPrioritizer = null;
-
-//          Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig.getClassLoader());
-          Serializer<SoftLock> softLockSerializer = serializationProvider.createValueSerializer(SoftLock.class, storeConfig.getClassLoader());
           // TODO </end>
 
-          Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer, storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), softLockSerializer);
+          Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig.getClassLoader());
+          Serializer<SoftLock<V>> softLockSerializer = (Serializer) serializationProvider.createValueSerializer(SoftLock.class, storeConfig.getClassLoader());
+          SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializer, valueSerializer);
+
+          Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer, storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
           Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig, serviceConfigs);
           store = new XAStore<K, V>(underlyingStore, xaServiceProvider, timeSource, journal, uniqueXAResourceId);
         } catch (UnsupportedTypeException ute) {
