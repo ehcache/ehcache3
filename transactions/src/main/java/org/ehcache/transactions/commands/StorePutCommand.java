@@ -17,7 +17,6 @@
 package org.ehcache.transactions.commands;
 
 
-import org.ehcache.spi.cache.Store;
 import org.ehcache.transactions.XAValueHolder;
 
 /**
@@ -25,12 +24,12 @@ import org.ehcache.transactions.XAValueHolder;
  */
 public class StorePutCommand<V> implements Command<V> {
 
-  private final Store.ValueHolder<V> oldValueHolder;
+  private final V oldValue;
   private final XAValueHolder<V> newValueHolder;
 
-  public StorePutCommand(Store.ValueHolder<V> oldValueHolder, XAValueHolder<V> newValueHolder) {
+  public StorePutCommand(V oldValue, XAValueHolder<V> newValueHolder) {
     this.newValueHolder = newValueHolder;
-    this.oldValueHolder = oldValueHolder;
+    this.oldValue = oldValue;
   }
 
   @Override
@@ -39,7 +38,7 @@ public class StorePutCommand<V> implements Command<V> {
   }
 
   @Override
-  public Store.ValueHolder<V> getOldValueHolder() {
-    return oldValueHolder;
+  public V getOldValue() {
+    return oldValue;
   }
 }

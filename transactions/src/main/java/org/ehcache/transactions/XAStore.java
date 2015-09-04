@@ -34,7 +34,9 @@ import org.ehcache.internal.serialization.CompactJavaSerializer;
 import org.ehcache.internal.store.DefaultStoreProvider;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.transactions.commands.StoreEvictCommand;
@@ -86,22 +88,23 @@ public class XAStore<K, V> implements Store<K, V> {
   public ValueHolder<V> get(K key) throws CacheAccessException {
     XATransactionContext<K, V> currentContext = getCurrentContext();
 
-    ValueHolder<V> newValueHolder = currentContext.getNewValueHolder(key);
+    XAValueHolder<V> newValueHolder = currentContext.getNewValueHolder(key);
     if (newValueHolder != null) {
       return newValueHolder;
     }
 
-    ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(key);
+    ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
     if (softLockValueHolder == null) {
       return null;
     }
 
     SoftLock<V> softLock = softLockValueHolder.value();
     if (isInDoubt(softLock)) {
+      currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValue()));
       return null;
     }
 
-    return softLock.getOldValueHolder();
+    return new XAValueHolder<V>(softLockValueHolder, softLock.getOldValue());
   }
 
   @Override
@@ -109,8 +112,8 @@ public class XAStore<K, V> implements Store<K, V> {
     if (getCurrentContext().containsCommandFor(key)) {
       return getCurrentContext().getNewValueHolder(key) != null;
     }
-    ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(key);
-    return softLockValueHolder != null && softLockValueHolder.value() != null && softLockValueHolder.value().getOldValueHolder() != null;
+    ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
+    return softLockValueHolder != null && softLockValueHolder.value() != null && softLockValueHolder.value().getOldValue() != null;
   }
 
   private XATransactionContext<K, V> getCurrentContext() throws CacheAccessException {
@@ -150,26 +153,22 @@ public class XAStore<K, V> implements Store<K, V> {
   public void put(K key, V value) throws CacheAccessException {
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.containsCommandFor(key)) {
-      Store.ValueHolder<V> oldValueHolder = currentContext.getOldValueHolder(key);
-      currentContext.addCommand(key, new StorePutCommand<V>(oldValueHolder, newXAValueHolder(value)));
+      V oldValue = currentContext.getOldValue(key);
+      currentContext.addCommand(key, new StorePutCommand<V>(oldValue, new XAValueHolder<V>(value, timeSource.getTimeMillis())));
       return;
     }
 
-    ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(key);
+    ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
     if (softLockValueHolder != null) {
       SoftLock<V> softLock = softLockValueHolder.value();
       if (isInDoubt(softLock)) {
-        currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValueHolder()));
+        currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValue()));
       } else {
-        currentContext.addCommand(key, new StorePutCommand<V>(softLock.getOldValueHolder(), newXAValueHolder(value)));
+        currentContext.addCommand(key, new StorePutCommand<V>(softLock.getOldValue(), new XAValueHolder<V>(value, timeSource.getTimeMillis())));
       }
     } else {
-      currentContext.addCommand(key, new StorePutCommand<V>(null, newXAValueHolder(value)));
+      currentContext.addCommand(key, new StorePutCommand<V>(null, new XAValueHolder<V>(value, timeSource.getTimeMillis())));
     }
-  }
-
-  private XAValueHolder<V> newXAValueHolder(final V value) {
-    return new XAValueHolder<V>(-1L, timeSource.getTimeMillis(), value);
   }
 
   @Override
@@ -181,18 +180,18 @@ public class XAStore<K, V> implements Store<K, V> {
   public void remove(K key) throws CacheAccessException {
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.containsCommandFor(key)) {
-      ValueHolder<V> oldValueHolder = currentContext.getOldValueHolder(key);
-      currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValueHolder));
+      V oldValue = currentContext.getOldValue(key);
+      currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValue));
       return;
     }
 
-    ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(key);
+    ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
     if (softLockValueHolder != null) {
       SoftLock<V> softLock = softLockValueHolder.value();
       if (isInDoubt(softLock)) {
-        currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValueHolder()));
+        currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValue()));
       } else {
-        currentContext.addCommand(key, new StoreRemoveCommand<V>(softLock.getOldValueHolder()));
+        currentContext.addCommand(key, new StoreRemoveCommand<V>(softLock.getOldValue()));
       }
     }
   }
@@ -223,12 +222,12 @@ public class XAStore<K, V> implements Store<K, V> {
     underlyingStore.enableStoreEventNotifications(new StoreEventListener<K, SoftLock<V>>() {
       @Override
       public void onEviction(K key, ValueHolder<SoftLock<V>> valueHolder) {
-        listener.onEviction(key, newXAValueHolder(valueHolder.value().getOldValueHolder().value()));
+        listener.onEviction(key, new XAValueHolder<V>(valueHolder, valueHolder.value().getOldValue()));
       }
 
       @Override
       public void onExpiration(K key, ValueHolder<SoftLock<V>> valueHolder) {
-        listener.onExpiration(key, newXAValueHolder(valueHolder.value().getOldValueHolder().value()));
+        listener.onExpiration(key, new XAValueHolder<V>(valueHolder, valueHolder.value().getOldValue()));
       }
     });
   }
@@ -300,14 +299,15 @@ public class XAStore<K, V> implements Store<K, V> {
         final Cache.Entry<K, ValueHolder<SoftLock<V>>> next = underlyingIterator.next();
 
         if (!transactionContextFactory.isTouched(transactionId, next.getKey())) {
-          SoftLock<V> softLock = next.getValue().value();
+          ValueHolder<SoftLock<V>> valueHolder = next.getValue();
+          SoftLock<V> softLock = valueHolder.value();
           final XAValueHolder<V> xaValueHolder;
           if (softLock.getTransactionId() == transactionId) {
-            xaValueHolder = newXAValueHolder(softLock.getNewValueHolder().value());
+            xaValueHolder = new XAValueHolder(valueHolder, softLock.getNewValueHolder());
           } else if (isInDoubt(softLock)) {
             continue;
           } else {
-            xaValueHolder = newXAValueHolder(softLock.getOldValueHolder().value());
+            xaValueHolder = new XAValueHolder(valueHolder, softLock.getOldValue());
           }
           this.next = new Cache.Entry<K, ValueHolder<V>>() {
             @Override
@@ -371,44 +371,50 @@ public class XAStore<K, V> implements Store<K, V> {
   public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.containsCommandFor(key)) {
-      Store.ValueHolder<V> oldValueHolder = currentContext.getOldValueHolder(key);
-
       V newValue = mappingFunction.apply(key, currentContext.latestValueFor(key));
 
       XAValueHolder<V> xaValueHolder = null;
-      V oldValue = oldValueHolder == null ? null : oldValueHolder.value();
+      V oldValue = currentContext.getOldValue(key);
       if (newValue == null) {
         if (!(eq(oldValue, newValue) && !replaceEqual.apply())) {
-          currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValueHolder));
+          currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValue));
         }
       } else {
-        xaValueHolder = newXAValueHolder(newValue);
+        xaValueHolder = new XAValueHolder<V>(newValue, timeSource.getTimeMillis());
         if (!(eq(oldValue, newValue) && !replaceEqual.apply())) {
-          currentContext.addCommand(key, new StorePutCommand<V>(oldValueHolder, xaValueHolder));
+          currentContext.addCommand(key, new StorePutCommand<V>(oldValue, xaValueHolder));
         }
       }
       return xaValueHolder;
     }
 
-    ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(key);
+    ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
 
     SoftLock<V> softLock = softLockValueHolder == null ? null : softLockValueHolder.value();
-    ValueHolder<V> oldValueHolder = softLock == null ? null : softLock.getOldValueHolder();
-    V oldValue = oldValueHolder == null ? null : oldValueHolder.value();
+    V oldValue = softLock == null ? null : softLock.getOldValue();
     V newValue = mappingFunction.apply(key, oldValue);
-    XAValueHolder<V> xaValueHolder = newValue == null ? null : newXAValueHolder(newValue);
+    XAValueHolder<V> xaValueHolder = newValue == null ? null : new XAValueHolder<V>(newValue, timeSource.getTimeMillis());
     if (eq(oldValue, newValue) && !replaceEqual.apply()) {
       return xaValueHolder;
     }
 
     if (softLock != null && isInDoubt(softLock)) {
-      currentContext.addCommand(key, new StoreEvictCommand<V>(oldValueHolder));
-    } else if (xaValueHolder != null) {
-      currentContext.addCommand(key, new StorePutCommand<V>(oldValueHolder, xaValueHolder));
+      currentContext.addCommand(key, new StoreEvictCommand<V>(oldValue));
+    } else {
+      if (xaValueHolder == null) {
+        if (oldValue != null) {
+          currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValue));
+        }
+      } else {
+        currentContext.addCommand(key, new StorePutCommand<V>(oldValue, xaValueHolder));
+      }
     }
 
-
     return xaValueHolder;
+  }
+
+  private ValueHolder<SoftLock<V>> getSoftLockValueHolderFromUnderlyingStore(K key) throws CacheAccessException {
+    return underlyingStore.get(key);
   }
 
   @Override
@@ -481,6 +487,7 @@ public class XAStore<K, V> implements Store<K, V> {
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
       Journal journal = serviceProvider.getService(JournalProvider.class).getJournal();
+      SerializationProvider serializationProvider = serviceProvider.getService(SerializationProvider.class);
 
       XAServiceConfiguration XAServiceConfiguration = findSingletonAmongst(XAServiceConfiguration.class, (Object[]) serviceConfigs);
       Store<K, V> store;
@@ -489,16 +496,24 @@ public class XAStore<K, V> implements Store<K, V> {
         store = defaultStoreProvider.createStore(storeConfig, serviceConfigs);
       } else {
 
-        // TODO: adapt from underlying store's config
-        Expiry<Object, Object> expiry = Expirations.noExpiration();
-        EvictionVeto<? super K, ? super SoftLock> evictionVeto = null;
-        EvictionPrioritizer<? super K, ? super SoftLock> evictionPrioritizer = null;
-        Serializer<SoftLock> valueSerializer = new CompactJavaSerializer<SoftLock>(storeConfig.getClassLoader());
-        // TODO </end>
+        try {
+          // TODO: adapt from underlying store's config
+          Expiry<Object, Object> expiry = Expirations.noExpiration();
+          EvictionVeto<? super K, ? super SoftLock> evictionVeto = null;
+          EvictionPrioritizer<? super K, ? super SoftLock> evictionPrioritizer = null;
 
-        Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer, storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), valueSerializer);
-        Store<K, SoftLock<V>> underlyingStore = (Store) defaultStoreProvider.createStore(underlyingStoreConfig, serviceConfigs);
-        store = new XAStore<K, V>(underlyingStore, xaServiceProvider, timeSource, journal);
+          Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig.getClassLoader());
+
+
+          Serializer<SoftLock> softLockSerializer = new CompactJavaSerializer<SoftLock>(storeConfig.getClassLoader());
+          // TODO </end>
+
+          Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer, storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), softLockSerializer);
+          Store<K, SoftLock<V>> underlyingStore = (Store) defaultStoreProvider.createStore(underlyingStoreConfig, serviceConfigs);
+          store = new XAStore<K, V>(underlyingStore, xaServiceProvider, timeSource, journal);
+        } catch (UnsupportedTypeException ute) {
+          throw new RuntimeException(ute);
+        }
       }
 
       return store;

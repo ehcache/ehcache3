@@ -49,7 +49,9 @@ import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -389,10 +391,15 @@ public class XAStoreTest {
 
         fireBeforeCompletion();
 
+        Set<XAResource> preparedResources = new HashSet<XAResource>();
+
         // prepare
         for (Map.Entry<XAResource, TestXid> entry : entries) {
           try {
-            entry.getKey().prepare(entry.getValue());
+            int prepareStatus = entry.getKey().prepare(entry.getValue());
+            if (prepareStatus != XAResource.XA_RDONLY) {
+              preparedResources.add(entry.getKey());
+            }
           } catch (XAException e) {
             throw (SystemException) new SystemException(XAException.XAER_RMERR).initCause(e);
           }
@@ -401,7 +408,9 @@ public class XAStoreTest {
         // commit
         for (Map.Entry<XAResource, TestXid> entry : entries) {
           try {
-            entry.getKey().commit(entry.getValue(), false);
+            if (preparedResources.contains(entry.getKey())) {
+              entry.getKey().commit(entry.getValue(), false);
+            }
           } catch (XAException e) {
             throw (SystemException) new SystemException(XAException.XAER_RMERR).initCause(e);
           }
@@ -498,12 +507,6 @@ public class XAStoreTest {
       this.bqual = longToBytes(bqual);
     }
 
-    public TestXid(Xid xid) {
-      this.formatId = xid.getFormatId();
-      this.gtrid = xid.getGlobalTransactionId();
-      this.bqual = xid.getBranchQualifier();
-    }
-
     public int getFormatId() {
       return formatId;
     }
@@ -534,7 +537,7 @@ public class XAStoreTest {
 
     @Override
     public String toString() {
-      return "TestXid [" + hashCode() + "]";
+      return "TestXid [" + Arrays.toString(gtrid) + " " + Arrays.toString(bqual) + "]";
     }
 
     private static int arrayHashCode(byte[] uid) {

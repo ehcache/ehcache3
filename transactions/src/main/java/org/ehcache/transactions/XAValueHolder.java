@@ -16,6 +16,7 @@
 package org.ehcache.transactions;
 
 import org.ehcache.spi.cache.AbstractValueHolder;
+import org.ehcache.spi.cache.Store;
 
 import java.util.concurrent.TimeUnit;
 
@@ -23,20 +24,51 @@ import java.util.concurrent.TimeUnit;
  * @author Ludovic Orban
  */
 public class XAValueHolder<V> extends AbstractValueHolder<V> {
+
+  private static final TimeUnit NATIVE_TIME_UNIT = TimeUnit.MILLISECONDS;
+
   private final V value;
 
-  public XAValueHolder(long id, long creationTime, V value) {
-    super(id, creationTime);
+  public XAValueHolder(Store.ValueHolder<SoftLock<V>> valueHolder, V value) {
+    super(-1, valueHolder.creationTime(TimeUnit.MILLISECONDS), valueHolder.expirationTime(TimeUnit.MILLISECONDS));
+    this.value = value;
+  }
+
+  public XAValueHolder(V value, long creationTime) {
+    super(-1, creationTime, NO_EXPIRE);
+    if (value == null) {
+      throw new NullPointerException("null value");
+    }
     this.value = value;
   }
 
   @Override
   protected TimeUnit nativeTimeUnit() {
-    return TimeUnit.MILLISECONDS;
+    return NATIVE_TIME_UNIT;
   }
 
   @Override
   public V value() {
     return value;
   }
+
+  @Override
+  public int hashCode() {
+    int result = 1;
+    result = 31 * result + value.hashCode();
+    result = 31 * result + super.hashCode();
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (this == other) return true;
+    if (other == null || getClass() != other.getClass()) return false;
+
+    XAValueHolder<V> that = (XAValueHolder) other;
+
+    if (!super.equals(that)) return false;
+    return value.equals(that.value);
+  }
+
 }

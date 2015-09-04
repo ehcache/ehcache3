@@ -44,10 +44,13 @@ public class EhcacheXAResource<K, V> implements XAResource {
 
   @Override
   public void commit(Xid xid, boolean onePhase) throws XAException {
+    if (currentXid != null) {
+      throw new EhcacheXAException("Cannot commit a non-ended start on : " + xid, XAException.XAER_PROTO);
+    }
     TransactionId transactionId = new TransactionId(xid);
     XATransactionContext<K, V> transactionContext = transactionContextFactory.get(transactionId);
     if (transactionContext == null) {
-      throw new EhcacheXAException("Cannot commit unknown XID : " + xid, XAException.XAER_PROTO);
+      throw new EhcacheXAException("Cannot commit unknown XID : " + xid, XAException.XAER_NOTA);
     }
 
     try {
@@ -72,7 +75,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
     TransactionId transactionId = new TransactionId(xid);
     XAState xaState = journal.getState(transactionId);
     if (xaState == null) {
-      throw new EhcacheXAException("Cannot forget unknown XID : " + xid, XAException.XAER_PROTO);
+      throw new EhcacheXAException("Cannot forget unknown XID : " + xid, XAException.XAER_NOTA);
     }
     if (xaState == XAState.IN_DOUBT) {
       throw new EhcacheXAException("Cannot forget in-doubt XID : " + xid, XAException.XAER_PROTO);
@@ -92,10 +95,13 @@ public class EhcacheXAResource<K, V> implements XAResource {
 
   @Override
   public int prepare(Xid xid) throws XAException {
+    if (currentXid != null) {
+      throw new EhcacheXAException("Cannot prepare a non-ended start on : " + xid, XAException.XAER_PROTO);
+    }
     TransactionId transactionId = new TransactionId(xid);
     XATransactionContext<K, V> transactionContext = transactionContextFactory.get(transactionId);
     if (transactionContext == null) {
-      throw new EhcacheXAException("Cannot prepare unknown XID : " + xid, XAException.XAER_PROTO);
+      throw new EhcacheXAException("Cannot prepare unknown XID : " + xid, XAException.XAER_NOTA);
     }
 
     boolean readOnly = false;
@@ -114,8 +120,12 @@ public class EhcacheXAResource<K, V> implements XAResource {
   }
 
   @Override
-  public Xid[] recover(int flag) throws XAException {
-    if ((flag & XAResource.TMSTARTRSCAN) == XAResource.TMSTARTRSCAN) {
+  public Xid[] recover(int flags) throws XAException {
+    if (flags != XAResource.TMNOFLAGS && flags != XAResource.TMSTARTRSCAN && flags != XAResource.TMENDRSCAN && flags != (XAResource.TMSTARTRSCAN|XAResource.TMENDRSCAN)) {
+      throw new EhcacheXAException("Recover flags not supported : " + xlat(flags), XAException.XAER_INVAL);
+    }
+
+    if ((flags & XAResource.TMSTARTRSCAN) == XAResource.TMSTARTRSCAN) {
       List<Xid> xids = new ArrayList<Xid>();
       Set<TransactionId> transactionIds = journal.recover().keySet();
       for (TransactionId transactionId : transactionIds) {
@@ -131,10 +141,13 @@ public class EhcacheXAResource<K, V> implements XAResource {
 
   @Override
   public void rollback(Xid xid) throws XAException {
+    if (currentXid != null) {
+      throw new EhcacheXAException("Cannot rollback a non-ended start on : " + xid, XAException.XAER_PROTO);
+    }
     TransactionId transactionId = new TransactionId(xid);
     XATransactionContext<K, V> transactionContext = transactionContextFactory.get(transactionId);
     if (transactionContext == null) {
-      throw new EhcacheXAException("Cannot rollback unknown XID : " + xid, XAException.XAER_PROTO);
+      throw new EhcacheXAException("Cannot rollback unknown XID : " + xid, XAException.XAER_NOTA);
     }
 
     try {
@@ -156,9 +169,8 @@ public class EhcacheXAResource<K, V> implements XAResource {
   @Override
   public void start(Xid xid, int flag) throws XAException {
     if (flag != XAResource.TMNOFLAGS && flag != XAResource.TMJOIN) {
-      throw new EhcacheXAException("Start flag not supported : " + xlat(flag), XAException.XAER_PROTO);
+      throw new EhcacheXAException("Start flag not supported : " + xlat(flag), XAException.XAER_INVAL);
     }
-
     if (currentXid != null) {
       throw new EhcacheXAException("Already started on : " + xid, XAException.XAER_PROTO);
     }
@@ -172,7 +184,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
     } else {
       TransactionId transactionId = new TransactionId(xid);
       if (!transactionContextFactory.contains(transactionId)) {
-        throw new EhcacheXAException("Cannot join : " + xid, XAException.XAER_PROTO);
+        throw new EhcacheXAException("Cannot join unknown XID : " + xid, XAException.XAER_NOTA);
       }
       currentXid = xid;
     }
@@ -181,7 +193,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
   @Override
   public void end(Xid xid, int flag) throws XAException {
     if (flag != XAResource.TMSUCCESS) {
-      throw new EhcacheXAException("End flag not supported : " + xlat(flag), XAException.XAER_PROTO);
+      throw new EhcacheXAException("End flag not supported : " + xlat(flag), XAException.XAER_INVAL);
     }
     if (currentXid == null) {
       throw new EhcacheXAException("Not started on : " + xid, XAException.XAER_PROTO);

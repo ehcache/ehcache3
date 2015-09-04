@@ -48,6 +48,7 @@ public class XATransactionContext<K, V> {
 
   public void addCommand(K key, Command<V> command) {
     if (commands.get(key) instanceof StoreEvictCommand) {
+      // once a mapping is marked as evict, that's the only thing that can happen
       return;
     }
     commands.put(key, command);
@@ -73,9 +74,9 @@ public class XATransactionContext<K, V> {
     return command != null ? command.getNewValueHolder() : null;
   }
 
-  public Store.ValueHolder<V> getOldValueHolder(K key) {
+  public V getOldValue(K key) {
     Command<V> command = commands.get(key);
-    return command != null ? command.getOldValueHolder() : null;
+    return command != null ? command.getOldValue() : null;
   }
 
   public boolean containsCommandFor(K key) {
@@ -100,7 +101,8 @@ public class XATransactionContext<K, V> {
       }
       Store.ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(entry.getKey());
       SoftLock<V> oldSoftLock = softLockValueHolder == null ? null : softLockValueHolder.value();
-      SoftLock<V> newSoftLock = new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder());
+      V oldValue = entry.getValue().getOldValue();
+      SoftLock<V> newSoftLock = new SoftLock<V>(transactionId, oldValue, entry.getValue().getNewValueHolder());
       if (oldSoftLock != null) {
         boolean replaced = underlyingStore.replace(entry.getKey(), oldSoftLock, newSoftLock);
         if (!replaced) {
@@ -129,8 +131,9 @@ public class XATransactionContext<K, V> {
         continue;
       }
 
-      SoftLock<V> preparedSoftLock = new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder());
-      SoftLock<V> definitiveSoftLock = entry.getValue().getNewValueHolder() == null ? null : new SoftLock<V>(null, entry.getValue().getNewValueHolder(), null);
+      V oldValue = entry.getValue().getOldValue();
+      SoftLock<V> preparedSoftLock = new SoftLock<V>(transactionId, oldValue, entry.getValue().getNewValueHolder());
+      SoftLock<V> definitiveSoftLock = entry.getValue().getNewValueHolder() == null ? null : new SoftLock<V>(null, entry.getValue().getNewValueHolder().value(), null);
 
       if (definitiveSoftLock != null) {
         boolean replaced = underlyingStore.replace(entry.getKey(), preparedSoftLock, definitiveSoftLock);
@@ -149,7 +152,7 @@ public class XATransactionContext<K, V> {
 
   public void commitInOnePhase() throws CacheAccessException {
     if (journal.getState(transactionId) != null) {
-      throw new IllegalStateException("Cannot commit-one-phase transaction that is not in-flight : " + transactionId);
+      throw new IllegalStateException("Cannot commit-one-phase transaction that has been prepared : " + transactionId);
     }
 
     for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
@@ -159,7 +162,7 @@ public class XATransactionContext<K, V> {
       }
       Store.ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(entry.getKey());
       SoftLock<V> oldSoftLock = softLockValueHolder == null ? null : softLockValueHolder.value();
-      SoftLock<V> newSoftLock = entry.getValue().getNewValueHolder() == null ? null : new SoftLock<V>(null, entry.getValue().getNewValueHolder(), null);
+      SoftLock<V> newSoftLock = entry.getValue().getNewValueHolder() == null ? null : new SoftLock<V>(null, entry.getValue().getNewValueHolder().value(), null);
       if (oldSoftLock != null) {
         if (newSoftLock != null) {
           boolean replaced = underlyingStore.replace(entry.getKey(), oldSoftLock, newSoftLock);
@@ -199,8 +202,9 @@ public class XATransactionContext<K, V> {
       // phase 2 rollback
 
       for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
-        SoftLock<V> preparedSoftLock = new SoftLock<V>(transactionId, entry.getValue().getOldValueHolder(), entry.getValue().getNewValueHolder());
-        SoftLock<V> definitiveSoftLock = entry.getValue().getOldValueHolder() == null ? null : new SoftLock<V>(null, entry.getValue().getOldValueHolder(), null);
+        V oldValue = entry.getValue().getOldValue();
+        SoftLock<V> preparedSoftLock = new SoftLock<V>(transactionId, oldValue, entry.getValue().getNewValueHolder());
+        SoftLock<V> definitiveSoftLock = entry.getValue().getOldValue() == null ? null : new SoftLock<V>(null, oldValue, null);
         if (definitiveSoftLock != null) {
           boolean replaced = underlyingStore.replace(entry.getKey(), preparedSoftLock, definitiveSoftLock);
           if (!replaced) {

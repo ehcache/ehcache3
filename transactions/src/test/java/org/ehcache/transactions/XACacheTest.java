@@ -102,6 +102,9 @@ public class XACacheTest {
       transactionManager.commit();
       transactionManager.resume(suspended);
 
+      String s1 = txCache2.get(1L);
+      System.out.println(s1);
+
     }
     transactionManager.commit();
 

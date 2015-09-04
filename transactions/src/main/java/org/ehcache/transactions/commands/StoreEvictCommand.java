@@ -16,7 +16,6 @@
 
 package org.ehcache.transactions.commands;
 
-import org.ehcache.spi.cache.Store;
 import org.ehcache.transactions.XAValueHolder;
 
 /**
@@ -25,15 +24,15 @@ import org.ehcache.transactions.XAValueHolder;
  */
 public class StoreEvictCommand<V> implements Command<V> {
 
-  private final Store.ValueHolder<V> oldValueHolder;
+  private final V oldValue;
 
-  public StoreEvictCommand(Store.ValueHolder<V> oldValueHolder) {
-    this.oldValueHolder = oldValueHolder;
+  public StoreEvictCommand(V oldValue) {
+    this.oldValue = oldValue;
   }
 
   @Override
-  public Store.ValueHolder<V> getOldValueHolder() {
-    return oldValueHolder;
+  public V getOldValue() {
+    return oldValue;
   }
 
   @Override

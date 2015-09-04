@@ -15,8 +15,6 @@
  */
 package org.ehcache.transactions;
 
-import org.ehcache.spi.cache.Store;
-
 import java.io.Serializable;
 
 /**
@@ -25,19 +23,20 @@ import java.io.Serializable;
 public class SoftLock<V> implements Serializable {
 
   private final TransactionId transactionId;
-  private final Store.ValueHolder<V> oldValueHolder;
-  private final Store.ValueHolder<V> newValueHolder;
+  private final V oldValue;
+  private final XAValueHolder<V> newValueHolder;
 
-  public SoftLock(TransactionId transactionId, Store.ValueHolder<V> oldValueHolder, Store.ValueHolder<V> newValueHolder) {
+  public SoftLock(TransactionId transactionId, V oldValue, XAValueHolder<V> newValueHolder) {
     this.transactionId = transactionId;
-    this.oldValueHolder = oldValueHolder;
+    this.oldValue = oldValue;
     this.newValueHolder = newValueHolder;
   }
 
-  public Store.ValueHolder<V> getOldValueHolder() {
-    return oldValueHolder;
+  public V getOldValue() {
+    return oldValue;
   }
-  public Store.ValueHolder<V> getNewValueHolder() {
+
+  public XAValueHolder<V> getNewValueHolder() {
     return newValueHolder;
   }
 
@@ -54,7 +53,7 @@ public class SoftLock<V> implements Serializable {
 
     if (transactionId != null ? !transactionId.equals(softLock.transactionId) : softLock.transactionId != null)
       return false;
-    if (oldValueHolder != null ? !oldValueHolder.equals(softLock.oldValueHolder) : softLock.oldValueHolder != null)
+    if (oldValue != null ? !oldValue.equals(softLock.oldValue) : softLock.oldValue != null)
       return false;
     return !(newValueHolder != null ? !newValueHolder.equals(softLock.newValueHolder) : softLock.newValueHolder != null);
 
@@ -63,13 +62,13 @@ public class SoftLock<V> implements Serializable {
   @Override
   public int hashCode() {
     int result = transactionId != null ? transactionId.hashCode() : 0;
-    result = 31 * result + (oldValueHolder != null ? oldValueHolder.hashCode() : 0);
+    result = 31 * result + (oldValue != null ? oldValue.hashCode() : 0);
     result = 31 * result + (newValueHolder != null ? newValueHolder.hashCode() : 0);
     return result;
   }
 
   @Override
   public String toString() {
-    return "SoftLock TxId[" + transactionId + "] Old[" + oldValueHolder + "] New[" + newValueHolder + "]";
+    return "SoftLock TxId[" + transactionId + "] Old[" + oldValue + "] New[" + newValueHolder + "]";
   }
 }

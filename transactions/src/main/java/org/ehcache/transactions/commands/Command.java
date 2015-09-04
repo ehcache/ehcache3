@@ -15,7 +15,6 @@
  */
 package org.ehcache.transactions.commands;
 
-import org.ehcache.spi.cache.Store;
 import org.ehcache.transactions.XAValueHolder;
 
 /**
@@ -23,7 +22,7 @@ import org.ehcache.transactions.XAValueHolder;
  */
 public interface Command<V> {
 
-  Store.ValueHolder<V> getOldValueHolder();
+  V getOldValue();
 
   XAValueHolder<V> getNewValueHolder();
 }
