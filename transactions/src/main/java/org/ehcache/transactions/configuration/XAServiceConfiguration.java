@@ -22,18 +22,15 @@ import org.ehcache.spi.service.ServiceConfiguration;
  */
 public class XAServiceConfiguration implements ServiceConfiguration<XAServiceProvider> {
 
-  private boolean transactional;
+  private final String uniqueXAResourceId;
 
-  public XAServiceConfiguration() {
-    this.transactional = true;
+  //TODO: ideally, the uniqueXAResourceIdSuffix should be the cache alias, injected by the CM
+  public XAServiceConfiguration(String uniqueXAResourceId) {
+    this.uniqueXAResourceId = uniqueXAResourceId;
   }
 
-  public XAServiceConfiguration(boolean transactional) {
-    this.transactional = transactional;
-  }
-
-  public boolean isTransactional() {
-    return transactional;
+  public String getUniqueXAResourceId() {
+    return uniqueXAResourceId;
   }
 
   @Override

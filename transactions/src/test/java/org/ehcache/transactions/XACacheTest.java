@@ -50,8 +50,8 @@ public class XACacheTest {
         );
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("txCache1", cacheConfigurationBuilder.add(new XAServiceConfiguration()).buildConfig(Long.class, String.class))
-        .withCache("txCache2", cacheConfigurationBuilder.add(new XAServiceConfiguration()).buildConfig(Long.class, String.class))
+        .withCache("txCache1", cacheConfigurationBuilder.add(new XAServiceConfiguration("txCache1")).buildConfig(Long.class, String.class))
+        .withCache("txCache2", cacheConfigurationBuilder.add(new XAServiceConfiguration("txCache2")).buildConfig(Long.class, String.class))
         .withCache("nonTxCache", cacheConfigurationBuilder.buildConfig(Long.class, String.class))
         .with(new XACacheManagerConfiguration())
 //        .using(new DefaultXAServiceProvider(transactionManager))
@@ -94,6 +94,7 @@ public class XACacheTest {
         @Override
         public void statusChanged(int oldStatus, int newStatus) {
           if (newStatus == Status.STATUS_PREPARED) {
+            TransactionManagerServices.getRecoverer().run();
             txCache2.getClass();
             txCache1.getClass();
           }
@@ -108,10 +109,64 @@ public class XACacheTest {
     }
     transactionManager.commit();
 
+    cacheManager.close();
+    transactionManager.shutdown();
+  }
 
+  @Test
+  public void testRecoveryWithInflightTx() throws Exception {
+    TransactionManagerServices.getConfiguration().setJournal("null").setServerId("XACacheTest");
+    BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
+
+    CacheConfigurationBuilder<Object, Object> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+                .heap(10, EntryUnit.ENTRIES)
+                .offheap(10, MemoryUnit.MB)
+        );
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("txCache1", cacheConfigurationBuilder.add(new XAServiceConfiguration("txCache1")).buildConfig(Long.class, String.class))
+        .withCache("txCache2", cacheConfigurationBuilder.add(new XAServiceConfiguration("txCache2")).buildConfig(Long.class, String.class))
+        .withCache("nonTxCache", cacheConfigurationBuilder.buildConfig(Long.class, String.class))
+        .with(new XACacheManagerConfiguration())
+//        .using(new DefaultXAServiceProvider(transactionManager))
+        .build(true);
+
+    final Cache<Long, String> txCache1 = cacheManager.getCache("txCache1", Long.class, String.class);
+    final Cache<Long, String> txCache2 = cacheManager.getCache("txCache2", Long.class, String.class);
+
+    transactionManager.begin();
+    {
+      txCache1.put(1L, "one");
+      txCache2.put(1L, "eins");
+    }
+    transactionManager.commit();
+
+
+    transactionManager.begin();
+    {
+      txCache1.remove(1L);
+
+      Transaction suspended = transactionManager.suspend();
+      transactionManager.begin();
+      {
+        txCache2.put(1L, "un");
+      }
+      transactionManager.getCurrentTransaction().addTransactionStatusChangeListener(new TransactionStatusChangeListener() {
+        @Override
+        public void statusChanged(int oldStatus, int newStatus) {
+          if (newStatus == Status.STATUS_PREPARED) {
+            TransactionManagerServices.getRecoverer().run();
+          }
+        }
+      });
+      transactionManager.commit();
+      transactionManager.resume(suspended);
+
+    }
+    transactionManager.commit();
 
     cacheManager.close();
-
     transactionManager.shutdown();
   }
 

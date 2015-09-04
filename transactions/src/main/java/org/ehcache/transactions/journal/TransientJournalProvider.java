@@ -22,20 +22,16 @@ import org.ehcache.spi.ServiceProvider;
  */
 public class TransientJournalProvider implements JournalProvider {
 
-  private volatile TransientJournal transientJournal;
-
   @Override
   public void start(ServiceProvider serviceProvider) {
-    transientJournal = new TransientJournal();
   }
 
   @Override
   public void stop() {
-    transientJournal = null;
   }
 
   @Override
   public Journal getJournal() {
-    return transientJournal;
+    return new TransientJournal();
   }
 }

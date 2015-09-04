@@ -29,9 +29,6 @@ import javax.transaction.xa.XAResource;
 @ServiceDependencies({XAStore.Provider.class})
 public class DefaultXAServiceProvider implements XAServiceProvider {
 
-  // TODO: find a unique ID per cache
-  private static final String SOME_XASTORE_UNIQUE_NAME = "some-xastore-unique-name";
-
   private final TransactionManager transactionManager;
 
   public DefaultXAServiceProvider(TransactionManager transactionManager) {
@@ -52,14 +49,15 @@ public class DefaultXAServiceProvider implements XAServiceProvider {
   }
 
   @Override
-  public void registerXAResource(XAResource xaResource) {
+  public void registerXAResource(String uniqueXAResourceId, XAResource xaResource) {
     //TODO: abstract that
-    Ehcache3XAResourceProducer.registerXAResource(SOME_XASTORE_UNIQUE_NAME, xaResource);
+    Ehcache3XAResourceProducer.registerXAResource(uniqueXAResourceId, xaResource);
   }
 
   @Override
-  public void unregisterXAResource(XAResource xaResource) {
+  public void unregisterXAResource(String uniqueXAResourceId, XAResource xaResource) {
     //TODO: abstract that
-    Ehcache3XAResourceProducer.unregisterXAResource(SOME_XASTORE_UNIQUE_NAME, xaResource);
+    Ehcache3XAResourceProducer.unregisterXAResource(uniqueXAResourceId, xaResource);
   }
+
 }

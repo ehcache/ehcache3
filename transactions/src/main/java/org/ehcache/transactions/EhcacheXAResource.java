@@ -192,6 +192,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
 
   @Override
   public void end(Xid xid, int flag) throws XAException {
+    //TODO: add support for TMFAIL
     if (flag != XAResource.TMSUCCESS) {
       throw new EhcacheXAException("End flag not supported : " + xlat(flag), XAException.XAER_INVAL);
     }

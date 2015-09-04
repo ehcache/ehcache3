@@ -49,7 +49,6 @@ import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -73,6 +72,7 @@ public class XAStoreTest {
 
   @Test
   public void testSimpleGetPutRemove() throws Exception {
+    String uniqueXAResourceId = "testSimpleGetPutRemove";
     DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider(testTransactionManager);
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
@@ -82,7 +82,7 @@ public class XAStoreTest {
     OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, true);
     Journal stateStore = new TransientJournal();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, defaultXAServiceProvider, testTimeSource, stateStore);
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, defaultXAServiceProvider, testTimeSource, stateStore, uniqueXAResourceId);
 
     testTransactionManager.begin();
     {
@@ -135,6 +135,7 @@ public class XAStoreTest {
 
   @Test
   public void testIterate() throws Exception {
+    String uniqueXAResourceId = "testIterate";
     DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider(testTransactionManager);
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
@@ -144,7 +145,7 @@ public class XAStoreTest {
     OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, true);
     Journal stateStore = new TransientJournal();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, defaultXAServiceProvider, testTimeSource, stateStore);
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, defaultXAServiceProvider, testTimeSource, stateStore, uniqueXAResourceId);
 
     testTransactionManager.begin();
     {
@@ -184,6 +185,7 @@ public class XAStoreTest {
 
   @Test
   public void testCompute() throws Exception {
+    String uniqueXAResourceId = "testCompute";
     DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider(testTransactionManager);
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
@@ -199,7 +201,7 @@ public class XAStoreTest {
 
     Journal stateStore = new TransientJournal();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(cacheStore, defaultXAServiceProvider, testTimeSource, stateStore);
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(cacheStore, defaultXAServiceProvider, testTimeSource, stateStore, uniqueXAResourceId);
 
     testTransactionManager.begin();
     {

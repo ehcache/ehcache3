@@ -12,8 +12,8 @@ public interface XAServiceProvider extends Service {
 
   TransactionManager getTransactionManager();
 
-  void registerXAResource(XAResource xaResource);
+  void registerXAResource(String uniqueXAResourceId, XAResource xaResource);
 
-  void unregisterXAResource(XAResource xaResource);
+  void unregisterXAResource(String uniqueXAResourceId, XAResource xaResource);
 
 }
