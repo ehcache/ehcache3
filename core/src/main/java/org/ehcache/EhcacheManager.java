@@ -68,7 +68,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
@@ -103,7 +102,6 @@ public class EhcacheManager implements PersistentCacheManager {
 
   private final CopyOnWriteArrayList<CacheManagerListener> listeners = new CopyOnWriteArrayList<CacheManagerListener>();
   private final StatisticsManager statisticsManager = new StatisticsManager();
-  private final EhcacheManagerStatsSettings ehcacheManagerStatsSettings = new EhcacheManagerStatsSettings(Collections.<String, Object>singletonMap("Setting", "CacheManagerName"));
   private final LifeCycleManager lifeCycleManager;
 
   public EhcacheManager(Configuration config) {
@@ -132,8 +130,6 @@ public class EhcacheManager implements PersistentCacheManager {
     // register a state change listener on this cache manager. 
     // We use a StateChangeListener because they are fired AFTER all init / close hooks
     this.statusTransitioner.registerListener(lifeCycleManager.createStateChangeListener(this));
-
-    StatisticsManager.associate(ehcacheManagerStatsSettings).withParent(this);
   }
 
   public StatisticsManager getStatisticsManager() {
@@ -397,6 +393,7 @@ public class EhcacheManager implements PersistentCacheManager {
     // registers a listener on ehcache status transitioner, when all init / close hoot are done
     // to provide a way for services to know when an ehcache instance is initialized or closed
     ehCache.registerListener(lifeCycleManager.createStateChangeListener(ehCache));
+    ehCache.registerListener(lifeCycleManager.createStateChangeListener(new EhcacheBinding(alias, ehCache)));
 
     lifeCycledList.add(new LifeCycled() {
       @Override
@@ -685,17 +682,4 @@ public class EhcacheManager implements PersistentCacheManager {
     }
   }
 
-  private static final class EhcacheManagerStatsSettings {
-    private static final AtomicInteger COUNTER = new AtomicInteger();
-
-    @ContextAttribute("CacheManagerName")  private final String name;
-    @ContextAttribute("properties") private final Map<String, Object> properties;
-    @ContextAttribute("tags") private final Set<String> tags = new HashSet<String>(Arrays.asList("cacheManager", "exposed"));
-
-    EhcacheManagerStatsSettings(Map<String, Object> properties) {
-      //TODO: improve cache manager naming
-      this.name = "cache-manager-" + COUNTER.getAndIncrement();
-      this.properties = properties;
-    }
-  }
 }
