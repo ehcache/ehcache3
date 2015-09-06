@@ -115,6 +115,11 @@ public class XATransactionContext<K, V> {
         }
       }
     }
+
+    if (commands.isEmpty()) {
+      journal.save(transactionId, XAState.COMMITTED, false);
+    }
+
     return commands.size();
   }
 

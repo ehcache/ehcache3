@@ -137,8 +137,8 @@ public class XACacheTest {
 
     transactionManager.begin();
     {
-      txCache1.put(1L, "one");
-      txCache2.put(1L, "eins");
+      txCache1.get(1L);
+      txCache2.get(1L);
     }
     transactionManager.commit();
 
@@ -146,24 +146,15 @@ public class XACacheTest {
     transactionManager.begin();
     {
       txCache1.remove(1L);
-
-      Transaction suspended = transactionManager.suspend();
-      transactionManager.begin();
-      {
-        txCache2.put(1L, "un");
-      }
-      transactionManager.getCurrentTransaction().addTransactionStatusChangeListener(new TransactionStatusChangeListener() {
-        @Override
-        public void statusChanged(int oldStatus, int newStatus) {
-          if (newStatus == Status.STATUS_PREPARED) {
-            TransactionManagerServices.getRecoverer().run();
-          }
-        }
-      });
-      transactionManager.commit();
-      transactionManager.resume(suspended);
-
     }
+    transactionManager.getCurrentTransaction().addTransactionStatusChangeListener(new TransactionStatusChangeListener() {
+      @Override
+      public void statusChanged(int oldStatus, int newStatus) {
+        if (newStatus == Status.STATUS_PREPARED) {
+          TransactionManagerServices.getRecoverer().run();
+        }
+      }
+    });
     transactionManager.commit();
 
     cacheManager.close();
