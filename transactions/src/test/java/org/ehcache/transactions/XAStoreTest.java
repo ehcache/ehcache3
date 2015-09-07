@@ -92,7 +92,7 @@ public class XAStoreTest {
     OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier);
     Journal stateStore = new TransientJournal();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, defaultXAServiceProvider, testTimeSource, stateStore, uniqueXAResourceId);
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, defaultXAServiceProvider, testTimeSource, stateStore, uniqueXAResourceId);
 
     testTransactionManager.begin();
     {
@@ -158,7 +158,7 @@ public class XAStoreTest {
     OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier);
     Journal stateStore = new TransientJournal();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, defaultXAServiceProvider, testTimeSource, stateStore, uniqueXAResourceId);
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, defaultXAServiceProvider, testTimeSource, stateStore, uniqueXAResourceId);
 
     testTransactionManager.begin();
     {
@@ -217,7 +217,7 @@ public class XAStoreTest {
 
     Journal stateStore = new TransientJournal();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(cacheStore, defaultXAServiceProvider, testTimeSource, stateStore, uniqueXAResourceId);
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, cacheStore, defaultXAServiceProvider, testTimeSource, stateStore, uniqueXAResourceId);
 
     testTransactionManager.begin();
     {
@@ -352,7 +352,7 @@ public class XAStoreTest {
 
     Journal stateStore = new TransientJournal();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(cacheStore, defaultXAServiceProvider, testTimeSource, stateStore, uniqueXAResourceId);
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, cacheStore, defaultXAServiceProvider, testTimeSource, stateStore, uniqueXAResourceId);
 
     testTransactionManager.begin();
     {

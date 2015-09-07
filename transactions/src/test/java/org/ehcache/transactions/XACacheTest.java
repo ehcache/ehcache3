@@ -23,6 +23,8 @@ import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
+import org.ehcache.config.copy.CopierConfiguration;
+import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Duration;
@@ -30,6 +32,7 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.internal.DefaultTimeSourceService;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
+import org.ehcache.spi.copy.Copier;
 import org.ehcache.transactions.configuration.XACacheManagerConfiguration;
 import org.ehcache.transactions.configuration.XAServiceConfiguration;
 import org.junit.Test;
@@ -217,6 +220,82 @@ public class XACacheTest {
 
     cacheManager.close();
     transactionManager.shutdown();
+  }
+
+  @Test
+  public void testCopiers() throws Exception {
+    TestTimeSource testTimeSource = new TestTimeSource();
+    TransactionManagerServices.getConfiguration().setJournal("null").setServerId("XACacheTest");
+    BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
+
+    CacheConfigurationBuilder<Object, Object> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+                .heap(10, EntryUnit.ENTRIES)
+                .offheap(10, MemoryUnit.MB)
+        );
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("txCache1", cacheConfigurationBuilder.add(new XAServiceConfiguration("txCache1")).add(new DefaultCopierConfiguration<Long>(LongCopier.class, CopierConfiguration.Type.KEY)).add(new DefaultCopierConfiguration<String>(StringCopier.class, CopierConfiguration.Type.VALUE)).buildConfig(Long.class, String.class))
+        .withCache("txCache2", cacheConfigurationBuilder.add(new XAServiceConfiguration("txCache2")).buildConfig(Long.class, String.class))
+        .with(new XACacheManagerConfiguration())
+//        .using(new DefaultXAServiceProvider(transactionManager))
+        .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))
+        .build(true);
+
+    final Cache<Long, String> txCache1 = cacheManager.getCache("txCache1", Long.class, String.class);
+    final Cache<Long, String> txCache2 = cacheManager.getCache("txCache2", Long.class, String.class);
+
+    transactionManager.begin();
+    {
+      txCache1.put(1L, "one");
+      txCache2.put(1L, "un");
+    }
+    transactionManager.commit();
+
+
+    transactionManager.begin();
+    {
+      txCache1.put(1L, "eins");
+      txCache2.put(1L, "uno");
+    }
+    transactionManager.commit();
+
+
+    transactionManager.begin();
+    {
+      System.out.println(txCache1.get(1L));
+      System.out.println(txCache2.get(1L));
+    }
+    transactionManager.commit();
+
+
+    cacheManager.close();
+    transactionManager.shutdown();
+  }
+
+
+  public static class LongCopier implements Copier<Long> {
+    @Override
+    public Long copyForRead(Long obj) {
+      return obj;
+    }
+
+    @Override
+    public Long copyForWrite(Long obj) {
+      return obj;
+    }
+  }
+
+  public static class StringCopier implements Copier<String> {
+    @Override
+    public String copyForRead(String obj) {
+      return obj;
+    }
+
+    @Override
+    public String copyForWrite(String obj) {
+      return obj;
+    }
   }
 
 }

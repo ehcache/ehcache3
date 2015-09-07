@@ -32,7 +32,6 @@ import org.ehcache.function.NullaryFunction;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceService;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.internal.store.DefaultStoreProvider;
 import org.ehcache.spi.ServiceProvider;
@@ -59,6 +58,7 @@ import javax.transaction.SystemException;
 import javax.transaction.Transaction;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -66,6 +66,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.spi.ServiceLocator.findAmongst;
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
 /**
@@ -73,6 +74,8 @@ import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
  */
 public class XAStore<K, V> implements Store<K, V> {
 
+  private final Class<K> keyType;
+  private final Class<V> valueType;
   private final Store<K, SoftLock<V>> underlyingStore;
   private final XAServiceProvider xaServiceProvider;
   private final Map<Transaction, EhcacheXAResource<K, V>> xaResources = new ConcurrentHashMap<Transaction, EhcacheXAResource<K, V>>();
@@ -82,7 +85,9 @@ public class XAStore<K, V> implements Store<K, V> {
   private final XATransactionContextFactory<K, V> transactionContextFactory = new XATransactionContextFactory<K, V>();
   private final EhcacheXAResource recoveryXaResource;
 
-  public XAStore(Store<K, SoftLock<V>> underlyingStore, XAServiceProvider xaServiceProvider, TimeSource timeSource, Journal journal, String uniqueXAResourceId) {
+  public XAStore(Class<K> keyType, Class <V> valueType, Store<K, SoftLock<V>> underlyingStore, XAServiceProvider xaServiceProvider, TimeSource timeSource, Journal journal, String uniqueXAResourceId) {
+    this.keyType = keyType;
+    this.valueType = valueType;
     this.underlyingStore = underlyingStore;
     this.xaServiceProvider = xaServiceProvider;
     this.timeSource = timeSource;
@@ -97,6 +102,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
   @Override
   public ValueHolder<V> get(K key) throws CacheAccessException {
+    checkKey(key);
     XATransactionContext<K, V> currentContext = getCurrentContext();
 
     XAValueHolder<V> newValueHolder = currentContext.getNewValueHolder(key);
@@ -120,6 +126,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
   @Override
   public boolean containsKey(K key) throws CacheAccessException {
+    checkKey(key);
     if (getCurrentContext().containsCommandFor(key)) {
       return getCurrentContext().getNewValueHolder(key) != null;
     }
@@ -162,6 +169,8 @@ public class XAStore<K, V> implements Store<K, V> {
 
   @Override
   public void put(K key, V value) throws CacheAccessException {
+    checkKey(key);
+    checkValue(value);
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.containsCommandFor(key)) {
       V oldValue = currentContext.getOldValue(key);
@@ -189,6 +198,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
   @Override
   public void remove(K key) throws CacheAccessException {
+    checkKey(key);
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.containsCommandFor(key)) {
       V oldValue = currentContext.getOldValue(key);
@@ -378,12 +388,30 @@ public class XAStore<K, V> implements Store<K, V> {
     return (o1 == o2) || (o1 != null && o1.equals(o2));
   }
 
+  private void checkKey(K keyObject) {
+    if (keyObject == null) {
+      throw new NullPointerException();
+    }
+    if (!keyType.isAssignableFrom(keyObject.getClass())) {
+      throw new ClassCastException("Invalid key type, expected : " + keyType.getName() + " but was : " + keyObject.getClass().getName());
+    }
+  }
+
+  private void checkValue(V valueObject) {
+    if (valueObject == null) {
+      throw new NullPointerException();
+    }
+    if (!valueType.isAssignableFrom(valueObject.getClass())) {
+      throw new ClassCastException("Invalid value type, expected : " + valueType.getName() + " but was : " + valueObject.getClass().getName());
+    }
+  }
+
   @Override
   public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+    checkKey(key);
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.containsCommandFor(key)) {
       V newValue = mappingFunction.apply(key, currentContext.latestValueFor(key));
-
       XAValueHolder<V> xaValueHolder = null;
       V oldValue = currentContext.getOldValue(key);
       if (newValue == null) {
@@ -391,6 +419,7 @@ public class XAStore<K, V> implements Store<K, V> {
           currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValue));
         }
       } else {
+        checkValue(newValue);
         xaValueHolder = new XAValueHolder<V>(newValue, timeSource.getTimeMillis());
         if (!(eq(oldValue, newValue) && !replaceEqual.apply())) {
           currentContext.addCommand(key, new StorePutCommand<V>(oldValue, xaValueHolder));
@@ -407,6 +436,9 @@ public class XAStore<K, V> implements Store<K, V> {
     XAValueHolder<V> xaValueHolder = newValue == null ? null : new XAValueHolder<V>(newValue, timeSource.getTimeMillis());
     if (eq(oldValue, newValue) && !replaceEqual.apply()) {
       return xaValueHolder;
+    }
+    if (newValue != null) {
+      checkValue(newValue);
     }
 
     if (softLock != null && isInDoubt(softLock)) {
@@ -585,22 +617,36 @@ public class XAStore<K, V> implements Store<K, V> {
           Serializer<SoftLock<V>> softLockSerializer = (Serializer) serializationProvider.createValueSerializer(SoftLock.class, storeConfig.getClassLoader());
           SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializer, valueSerializer);
 
-          CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
-          Copier<K> keyCopier = copyProvider.createKeyCopier(storeConfig.getKeyType(), storeConfig.getKeySerializer());
-          Copier valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer());
-
-          SoftLockValueCombinedCopier<V> softLockValueCombinedCopier = new SoftLockValueCombinedCopier<V>(valueCopier);
+          Collection<DefaultCopierConfiguration> copierConfigs = findAmongst(DefaultCopierConfiguration.class, underlyingServiceConfigs.toArray());
+          DefaultCopierConfiguration keyCopierConfig = null;
+          DefaultCopierConfiguration valueCopierConfig = null;
+          for (DefaultCopierConfiguration copierConfig : copierConfigs) {
+            if (copierConfig.getType().equals(CopierConfiguration.Type.KEY)) {
+              keyCopierConfig = copierConfig;
+            } else if (copierConfig.getType().equals(CopierConfiguration.Type.VALUE)) {
+              valueCopierConfig = copierConfig;
+            }
+            underlyingServiceConfigs.remove(copierConfig);
+          }
 
           Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer, storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
-          if (!isIdentityCopier(keyCopier)) {
-            underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) keyCopier.getClass(), CopierConfiguration.Type.KEY));
-          } else {
+          if (keyCopierConfig == null) {
             underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.KEY));
+          } else {
+            underlyingServiceConfigs.add(keyCopierConfig);
           }
-          underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Copier) softLockValueCombinedCopier, CopierConfiguration.Type.VALUE));
+
+          if (valueCopierConfig == null) {
+            underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.VALUE));
+          } else {
+            CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
+            Copier valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer(), valueCopierConfig);
+            SoftLockValueCombinedCopier<V> softLockValueCombinedCopier = new SoftLockValueCombinedCopier<V>(valueCopier);
+            underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Copier) softLockValueCombinedCopier, CopierConfiguration.Type.VALUE));
+          }
 
           Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig, underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
-          store = new XAStore<K, V>(underlyingStore, xaServiceProvider, timeSource, journal, uniqueXAResourceId);
+          store = new XAStore<K, V>(storeConfig.getKeyType(), storeConfig.getValueType(), underlyingStore, xaServiceProvider, timeSource, journal, uniqueXAResourceId);
         } catch (UnsupportedTypeException ute) {
           throw new RuntimeException(ute);
         }
@@ -608,10 +654,6 @@ public class XAStore<K, V> implements Store<K, V> {
 
       createdStores.add(store);
       return store;
-    }
-
-    private boolean isIdentityCopier(Copier<?> copier) {
-      return copier instanceof IdentityCopier;
     }
 
     @Override
