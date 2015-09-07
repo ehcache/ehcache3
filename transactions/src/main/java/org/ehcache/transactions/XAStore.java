@@ -20,6 +20,8 @@ import org.ehcache.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.config.copy.CopierConfiguration;
+import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expirations;
@@ -30,9 +32,13 @@ import org.ehcache.function.NullaryFunction;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceService;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.internal.copy.IdentityCopier;
+import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.internal.store.DefaultStoreProvider;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
@@ -50,6 +56,8 @@ import javax.transaction.RollbackException;
 import javax.transaction.Synchronization;
 import javax.transaction.SystemException;
 import javax.transaction.Transaction;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -304,11 +312,11 @@ public class XAStore<K, V> implements Store<K, V> {
           SoftLock<V> softLock = valueHolder.value();
           final XAValueHolder<V> xaValueHolder;
           if (softLock.getTransactionId() == transactionId) {
-            xaValueHolder = new XAValueHolder(valueHolder, softLock.getNewValueHolder());
+            xaValueHolder = new XAValueHolder<V>(valueHolder, softLock.getNewValueHolder().value());
           } else if (isInDoubt(softLock)) {
             continue;
           } else {
-            xaValueHolder = new XAValueHolder(valueHolder, softLock.getOldValue());
+            xaValueHolder = new XAValueHolder<V>(valueHolder, softLock.getOldValue());
           }
           this.next = new Cache.Entry<K, ValueHolder<V>>() {
             @Override
@@ -477,7 +485,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   //TODO: keep track of stores with a ConcurrentWeakIdentityHashMap
-  @ServiceDependencies({TimeSourceService.class, JournalProvider.class, DefaultStoreProvider.class})
+  @ServiceDependencies({TimeSourceService.class, JournalProvider.class, CopyProvider.class, DefaultStoreProvider.class})
   public static class Provider implements Store.Provider {
 
     private volatile ServiceProvider serviceProvider;
@@ -497,6 +505,8 @@ public class XAStore<K, V> implements Store<K, V> {
         store = underlyingStoreProvider.createStore(storeConfig, serviceConfigs);
       } else {
         String uniqueXAResourceId = xaServiceConfiguration.getUniqueXAResourceId();
+        List<ServiceConfiguration<?>> underlyingServiceConfigs = new ArrayList<ServiceConfiguration<?>>();
+        underlyingServiceConfigs.addAll(Arrays.asList(serviceConfigs));
 
         try {
           // TODO: adapt from underlying store's config
@@ -509,8 +519,23 @@ public class XAStore<K, V> implements Store<K, V> {
           Serializer<SoftLock<V>> softLockSerializer = (Serializer) serializationProvider.createValueSerializer(SoftLock.class, storeConfig.getClassLoader());
           SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializer, valueSerializer);
 
+          CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
+          Copier<K> keyCopier = copyProvider.createKeyCopier(storeConfig.getKeyType(), storeConfig.getKeySerializer());
+          Copier valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), softLockValueCombinedSerializer);
+
           Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer, storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
-          Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig, serviceConfigs);
+          if (!isIdentityCopier(keyCopier)) {
+            underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) keyCopier.getClass(), CopierConfiguration.Type.KEY));
+          } else {
+            underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.KEY));
+          }
+          if (!isIdentityCopier(keyCopier)) {
+            underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) valueCopier.getClass(), CopierConfiguration.Type.VALUE));
+          } else {
+            underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.VALUE));
+          }
+
+          Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig, underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
           store = new XAStore<K, V>(underlyingStore, xaServiceProvider, timeSource, journal, uniqueXAResourceId);
         } catch (UnsupportedTypeException ute) {
           throw new RuntimeException(ute);
@@ -518,6 +543,10 @@ public class XAStore<K, V> implements Store<K, V> {
       }
 
       return store;
+    }
+
+    private boolean isIdentityCopier(Copier<?> copier) {
+      return copier instanceof IdentityCopier;
     }
 
     @Override

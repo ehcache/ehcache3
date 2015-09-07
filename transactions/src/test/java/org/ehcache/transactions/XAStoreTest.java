@@ -18,6 +18,7 @@ package org.ehcache.transactions;
 import org.ehcache.Cache;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
@@ -30,10 +31,13 @@ import org.ehcache.internal.store.offheap.OffHeapStore;
 import org.ehcache.internal.store.offheap.OffHeapStoreLifecycleHelper;
 import org.ehcache.internal.store.tiering.CacheStore;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.copy.CopyProvider;
+import org.ehcache.spi.copy.DefaultCopyProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.transactions.configuration.DefaultXAServiceProvider;
-import org.ehcache.transactions.journal.TransientJournal;
 import org.ehcache.transactions.journal.Journal;
+import org.ehcache.transactions.journal.TransientJournal;
 import org.junit.Test;
 
 import javax.transaction.HeuristicMixedException;
@@ -77,9 +81,12 @@ public class XAStoreTest {
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
     Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
+    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
+    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
+    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
     Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(), keySerializer, valueSerializer);
     TestTimeSource testTimeSource = new TestTimeSource();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, true);
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier);
     Journal stateStore = new TransientJournal();
 
     XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, defaultXAServiceProvider, testTimeSource, stateStore, uniqueXAResourceId);
@@ -140,9 +147,12 @@ public class XAStoreTest {
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
     Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
+    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
+    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
+    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
     Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(), keySerializer, valueSerializer);
     TestTimeSource testTimeSource = new TestTimeSource();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, true);
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier);
     Journal stateStore = new TransientJournal();
 
     XAStore<Long, String> xaStore = new XAStore<Long, String>(onHeapStore, defaultXAServiceProvider, testTimeSource, stateStore, uniqueXAResourceId);
@@ -190,9 +200,12 @@ public class XAStoreTest {
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
     Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
+    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
+    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
+    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
     Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(), keySerializer, valueSerializer);
     TestTimeSource testTimeSource = new TestTimeSource();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, true);
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier);
     Store.Configuration<Long, SoftLock> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(), keySerializer, valueSerializer);
     OffHeapStore<Long, SoftLock<String>> offHeapStore = (OffHeapStore) new OffHeapStore<Long, SoftLock>(offHeapConfig, testTimeSource, MemorySizeParser.parse("10M"));
     OffHeapStoreLifecycleHelper.init(offHeapStore);
