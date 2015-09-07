@@ -28,8 +28,10 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.spi.cache.AbstractValueHolder;
 import org.ehcache.spi.cache.Store;
 
@@ -41,9 +43,16 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import org.ehcache.statistics.StoreOperationOutcomes;
 import org.hamcrest.MatcherAssert;
 import org.ehcache.spi.cache.tiering.CachingTier;
+import org.hamcrest.Matchers;
 import org.junit.Test;
+import org.terracotta.context.ContextElement;
+import org.terracotta.context.TreeNode;
+import org.terracotta.context.query.QueryBuilder;
+import org.terracotta.statistics.OperationStatistic;
+import org.terracotta.statistics.StatisticsManager;
 
 /**
  *
@@ -94,6 +103,7 @@ public abstract class AbstractOffHeapStoreTest {
       assertThat(offHeapStore.getAndRemove("1"), is(nullValue()));
       assertThat(invalidated.get().value(), equalTo("one"));
       assertThat(invalidated.get().isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS), is(true));
+      assertThat(getExpirationStatistic(offHeapStore).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
     } finally {
       destroyStore(offHeapStore);
     }
@@ -297,7 +307,88 @@ public abstract class AbstractOffHeapStoreTest {
 
       offHeapStore.get("key1");
       offHeapStore.get("key2");
-      MatcherAssert.assertThat(expiredKeys, containsInAnyOrder("key1", "key2"));
+      assertThat(expiredKeys, containsInAnyOrder("key1", "key2"));
+      assertThat(getExpirationStatistic(offHeapStore).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(2L));
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
+
+  @Test
+  public void testGetAndFaultOnExpiredEntry() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
+    try {
+      offHeapStore.put("key", "value");
+      timeSource.advanceTime(20L);
+
+      Store.ValueHolder<String> valueHolder = offHeapStore.getAndFault("key");
+      assertThat(valueHolder, nullValue());
+      assertThat(getExpirationStatistic(offHeapStore).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
+
+  @Test
+  public void testComputeOnExpiredEntry() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
+    try {
+      offHeapStore.put("key", "value");
+      timeSource.advanceTime(20L);
+
+      offHeapStore.compute("key", new BiFunction<String, String, String>() {
+        @Override
+        public String apply(String mappedKey, String mappedValue) {
+          assertThat(mappedKey, is("key"));
+          assertThat(mappedValue, Matchers.nullValue());
+          return "value2";
+        }
+      });
+      assertThat(getExpirationStatistic(offHeapStore).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
+
+  @Test
+  public void testComputeIfPresentOnExpiredEntry() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
+    try {
+      offHeapStore.put("key", "value");
+      timeSource.advanceTime(20L);
+
+      offHeapStore.computeIfPresent("key", new BiFunction<String, String, String>() {
+        @Override
+        public String apply(String mappedKey, String mappedValue) {
+          fail("Mapping should be expired");
+          return null;
+        }
+      });
+      assertThat(getExpirationStatistic(offHeapStore).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
+
+  @Test
+  public void testComputeIfAbsentOnExpiredEntry() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
+    try {
+      offHeapStore.put("key", "value");
+      timeSource.advanceTime(20L);
+
+      offHeapStore.computeIfAbsent("key", new Function<String, String>() {
+        @Override
+        public String apply(String mappedKey) {
+          assertThat(mappedKey, is("key"));
+          return "value2";
+        }
+      });
+      assertThat(getExpirationStatistic(offHeapStore).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
     } finally {
       destroyStore(offHeapStore);
     }
@@ -308,7 +399,20 @@ public abstract class AbstractOffHeapStoreTest {
   protected abstract AbstractOffHeapStore<String, byte[]> createAndInitStore(final TimeSource timeSource, final Expiry<? super String, ? super byte[]> expiry, EvictionVeto<? super String, ? super byte[]> evictionVeto);
 
   protected abstract void destroyStore(AbstractOffHeapStore<?, ?> store);
-  
+
+  private OperationStatistic<StoreOperationOutcomes.ExpirationOutcome> getExpirationStatistic(Store<?, ?> store) {
+    StatisticsManager statisticsManager = new StatisticsManager();
+    statisticsManager.root(store);
+    TreeNode treeNode = statisticsManager.queryForSingleton(QueryBuilder.queryBuilder()
+        .descendants()
+        .filter(org.terracotta.context.query.Matchers.context(
+            org.terracotta.context.query.Matchers.<ContextElement>allOf(org.terracotta.context.query.Matchers.identifier(org.terracotta.context.query.Matchers
+                .subclassOf(OperationStatistic.class)),
+                org.terracotta.context.query.Matchers.attributes(org.terracotta.context.query.Matchers.hasAttribute("name", "expiration")))))
+        .build());
+    return (OperationStatistic<StoreOperationOutcomes.ExpirationOutcome>) treeNode.getContext().attributes().get("this");
+  }
+
   private static class TestStoreEventListener<K, V> implements StoreEventListener<K, V> {
 
     @Override
