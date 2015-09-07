@@ -89,8 +89,8 @@ require enforcing lifecycle constraints.
 
 == Configuration types and builders
 
-In the most generic sense, configuration types are used to _configure_ a given service _while_ it's being constructed. A
-builder exposes a user-friendly DSL to configure and build _runtime instances_ (e.g. `CacheManager`). Finally runtime
+In the most generic sense, configuration types are used to _configure_ a given service, either _while_ it is being constructed or when it is used.
+A builder exposes a user-friendly DSL to configure and build _runtime instances_ (e.g. `CacheManager`). Finally runtime
 configuration types are configured from configuration types and used at runtime by the actual configured instance,
 providing a way for the user to mutate the behavior of that instance at runtime in limited ways.
 
@@ -99,26 +99,37 @@ providing a way for the user to mutate the behavior of that instance at runtime 
 You don't necessarily ever get exposed to a _configuration_ for a given type being constructed. The builder can hide it
 all from you and will create the actual configuration at `.build()` invocation time. Configuration types are always
 immutable. Instances of these types are used to configure some part of the system (e.g. `CacheManager`, `Cache`,
-`Service`, ...). If a given configured type has a requirement to modify it's configuration, a additional _runtime
+`Service`, ...). If a given configured type has a requirement to modify it's configuration, an additional _runtime
 configuration_ is introduced, e.g. `RuntimeCacheConfiguration`. That type will expose additional mutative methods for
 attributes that are mutable. Internally it will also let consumers of the type register listener for these attributes.
 
 image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/design/basics/config.png[Configuration types]
 
-==== `ServiceProvider` and `ServiceConfiguration`
+==== Services creation, `ServiceCreationConfiguration`, `ServiceProvider` and `ServiceConfiguration`
 
-A special type of configuration is the `ServiceConfiguration<T extends Service>` type. That configuration type enables
-the `ServiceProvider` to lookup the `ServiceFactory<T extends Service>` to use to create the `Service` that's being
-configured, see `ServiceProvider.findServiceFor(ServiceConfiguration<T> config): T extends Service`. This is what
-happens underneath of that call when the `CacheManager` or a `ServiceFactory` looks up `Service` instances:
+A special type of configuration is the `ServiceCreationConfiguration<T extends Service>` type.
+That configuration type indicates to the system to lookup the `ServiceFactory<T extends Service>` to use to create the `Service` that's being configured.
+Subclasses of that configuration type are accepted at the outermost level of configuration, `CacheManager` or `UserManagedCacheBuilder`, which is the only place where services will be looked up from a configuration.
 
- . The caller invokes `ServiceProvider.findServiceFor`
- . The `ServiceProvider` looks up whether it already has that `Service`
+This is what happens underneath that call when the `CacheManager` looks up `Service` instances:
+
+For each `ServiceCreationConfiguration`
+
+ . The service subsystem looks up whether it already has that `Service`
  .. If it does, that instance is being retuned
  .. If it doesn't, it looks up all `ServiceFactory` it has for one that creates instances of that `Service` type.
- ... If one is found in that `ServiceFactory` repository, it uses that to create the instance
+ ... If one is found in that `ServiceFactory` repository, it uses that to create the instance with the configuration
  ... If none is found, it uses the JDK's `java.util.ServiceLoader` service to load `ServiceFactory` and recheck
  .. If nothing could be found, an Exception is thrown
+
+After this, services are started and can be consummed by the different components.
+For this, the `ServiceProvider` is passed to `Service` instances at start point.
+Form there, calling into `ServiceProvider.getService(Class<T> serviceType)` will enable to retrieve a defined service.
+
+NOTE: When `Service.start(ServiceProvider serviceProvider)` is called, the service subsystem is currently starting.
+So while all `Service` instances are defined, they are not necessarily started which means your code in `start(...)` needs to limit itself to service lookups and not consumption.
+
+The `ServiceConfiguration<T extends Service>` interface enables to define extra configuration to a `Service` when using it. 
 
 === Builder design guidelines
 
