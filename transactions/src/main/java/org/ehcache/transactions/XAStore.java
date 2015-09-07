@@ -24,7 +24,7 @@ import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
@@ -511,11 +511,75 @@ public class XAStore<K, V> implements Store<K, V> {
         underlyingServiceConfigs.addAll(Arrays.asList(serviceConfigs));
 
         try {
-          // TODO: adapt from underlying store's config
-          Expiry<Object, Object> expiry = Expirations.noExpiration();
-          EvictionVeto<? super K, ? super SoftLock> evictionVeto = null;
-          EvictionPrioritizer<? super K, ? super SoftLock> evictionPrioritizer = null;
-          // TODO </end>
+          // TODO: do we want to support pluggable veto and prioritizer?
+          EvictionVeto<? super K, ? super SoftLock> evictionVeto = new EvictionVeto<K, SoftLock>() {
+            @Override
+            public boolean test(Cache.Entry<K, SoftLock> argument) {
+              return argument.getValue().getTransactionId() != null;
+            }
+          };
+          EvictionPrioritizer<? super K, ? super SoftLock> evictionPrioritizer = new EvictionPrioritizer<K, SoftLock>() {
+            @Override
+            public int compare(Cache.Entry<K, SoftLock> o1, Cache.Entry<K, SoftLock> o2) {
+              if (o1.getValue().getTransactionId() != null && o2.getValue().getTransactionId() != null) {
+                return 0;
+              }
+              if (o1.getValue().getTransactionId() == null && o2.getValue().getTransactionId() == null) {
+                return 0;
+              }
+              return o1.getValue().getTransactionId() != null ? 1 : -1;
+            }
+          };
+
+
+          final Expiry<? super K, ? super V> configuredExpiry = storeConfig.getExpiry();
+          Expiry<? super K, ? super SoftLock> expiry = new Expiry<K, SoftLock>() {
+            @Override
+            public Duration getExpiryForCreation(K key, SoftLock softLock) {
+              if (softLock.getTransactionId() != null) {
+                // phase 1 prepare
+//                System.out.println("create -> forever");
+                return Duration.FOREVER;
+              } else {
+                // phase 2 commit, or during a TX's lifetime
+//                System.out.println("create -> some time");
+                return configuredExpiry.getExpiryForCreation(key, (V) softLock.getNewValueHolder().value());
+              }
+            }
+
+            @Override
+            public Duration getExpiryForAccess(K key, SoftLock softLock) {
+              if (softLock.getTransactionId() != null) {
+                // phase 1 prepare
+//                System.out.println("access -> forever");
+                return Duration.FOREVER;
+              } else {
+                // phase 2 commit, or during a TX's lifetime
+//                System.out.println("access -> some time");
+                return configuredExpiry.getExpiryForAccess(key, (V) softLock.getOldValue());
+              }
+            }
+
+            @Override
+            public Duration getExpiryForUpdate(K key, SoftLock oldSoftLock, SoftLock newSoftLock) {
+              if (oldSoftLock.getTransactionId() == null) {
+                // phase 1 prepare
+//                System.out.println("update -> forever");
+                return Duration.FOREVER;
+              } else {
+                // phase 2 commit, or during a TX's lifetime
+                if (oldSoftLock.getOldValue() == null) {
+                  // there is no old value -> it's a CREATE
+//                  System.out.println("update -> create -> some time");
+                  return configuredExpiry.getExpiryForCreation(key, (V) oldSoftLock.getOldValue());
+                } else {
+                  // there is an old value -> it's an UPDATE
+//                  System.out.println("update -> some time");
+                  return configuredExpiry.getExpiryForUpdate(key, (V) oldSoftLock.getOldValue(), (V) oldSoftLock.getNewValueHolder().value());
+                }
+              }
+            }
+          };
 
           Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig.getClassLoader());
           Serializer<SoftLock<V>> softLockSerializer = (Serializer) serializationProvider.createValueSerializer(SoftLock.class, storeConfig.getClassLoader());

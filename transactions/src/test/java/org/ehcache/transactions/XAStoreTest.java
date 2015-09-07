@@ -21,7 +21,9 @@ import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.internal.serialization.JavaSerializer;
@@ -60,6 +62,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -326,7 +329,45 @@ public class XAStoreTest {
     OffHeapStoreLifecycleHelper.close(offHeapStore);
   }
 
-  static class TestTransactionManager implements TransactionManager {
+
+  @Test
+  public void testExpiry() throws Exception {
+    String uniqueXAResourceId = "testCompute";
+    DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider(testTransactionManager);
+    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
+    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
+    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
+    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
+    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
+    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
+    Expiry<Object, Object> expiry = Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS));
+    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(), keySerializer, valueSerializer);
+    TestTimeSource testTimeSource = new TestTimeSource();
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier);
+    Store.Configuration<Long, SoftLock> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(), keySerializer, valueSerializer);
+    OffHeapStore<Long, SoftLock<String>> offHeapStore = (OffHeapStore) new OffHeapStore<Long, SoftLock>(offHeapConfig, testTimeSource, MemorySizeParser.parse("10M"));
+    OffHeapStoreLifecycleHelper.init(offHeapStore);
+    CacheStore<Long, SoftLock<String>> cacheStore = new CacheStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
+
+
+    Journal stateStore = new TransientJournal();
+
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(cacheStore, defaultXAServiceProvider, testTimeSource, stateStore, uniqueXAResourceId);
+
+    testTransactionManager.begin();
+    {
+      xaStore.put(1L, "one");
+    }
+    testTransactionManager.commit();
+
+    assertMapping(xaStore, 1L, "one");
+
+    testTimeSource.advanceTime(2000);
+
+    assertMapping(xaStore, 1L, null);
+  }
+
+    static class TestTransactionManager implements TransactionManager {
 
     volatile TestTransaction currentTransaction;
     final AtomicLong gtridGenerator = new AtomicLong();
