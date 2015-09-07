@@ -98,7 +98,8 @@ include::{sourcedir}/107/src/test/resources/org/ehcache/docs/ehcache-jsr107-temp
 <3> The element takes an optional attribute `default-template`, which references the `cache-template` to use for all
     `javax.cache.Cache` created by the application at runtime using `javax.cache.CacheManager.createCache`. In
     this example, the default `cache-template` used will be `tinyCache`, meaning that atop of their particular config,
-    programmatically created `Cache` instances will have their capacity constrained to 20 entries.
+    programmatically created `Cache` instances will have their capacity constrained to 20 entries. Since no copiers are 
+    configured explicitly all the caches created using this template would be by-reference caches. 
 <4> Nested within the `jsr107:defaults`, add specific `cache-templates` to use for given named `Cache`, e.g. when
     creating the `Cache` named `foos` at runtime, Ehcache will enhance its config, giving it a capacity of 2000 entries,
     as well as insuring both key and value types are `String`.
@@ -112,11 +113,13 @@ without modifying the application code.
 ----
 include::{sourcedir}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=jsr107SupplementWithTemplatesExample]
 ----
-<1> Assume existing JSR-107 configuration code
+<1> Assume existing JSR-107 configuration code, which is store-by-value by default
 <2> that creates JSR-107 `Cache`
 <3> If you were to get to the Ehcache `RuntimeConfiguration`
 <4> you could verify that the template configured capacity is applied to the cache and returns _20_ here.
-<5> Templates will also override JSR-107 config, see here a configuration with TTL 1 minute
-<6> used to create a cache where the template says TTL 2 minutes.
-<7> And we can indeed verify that the template provided configuration has been applied, duration will be _2 minutes_ and not _1_.
-<8> One drawback of this is that when getting at the `CompleteConfiguration`, you no longer have access to the factories from JSR-107.
+<5> The cache template will override the JSR-107 store-by-value config to store-by-ref since the `tinyCache` template 
+    that is be used to create the cache is store-by-ref.
+<6> Templates will also override JSR-107 config, see here a configuration with TTL 1 minute
+<7> used to create a cache where the template says TTL 2 minutes.
+<8> And we can indeed verify that the template provided configuration has been applied, duration will be _2 minutes_ and not _1_.
+<9> One drawback of this is that when getting at the `CompleteConfiguration`, you no longer have access to the factories from JSR-107.
