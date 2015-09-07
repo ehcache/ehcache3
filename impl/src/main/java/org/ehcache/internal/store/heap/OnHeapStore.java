@@ -128,6 +128,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   };
 
   public OnHeapStore(final Configuration<K, V> config, TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier) {
+    if (keyCopier == null) {
+      throw new NullPointerException("keyCopier must not be null");
+    }
+    if (valueCopier == null) {
+      throw new NullPointerException("valueCopier must not be null");
+    }
     ResourcePool heapPool = config.getResourcePools().getPoolForResource(ResourceType.Core.HEAP);
     if (heapPool == null) {
       throw new IllegalArgumentException("OnHeap store must be configured with a resource of type 'heap'");
@@ -1230,7 +1236,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
 
     public OnHeapValueHolder<V> putIfAbsent(K key, OnHeapValueHolder<V> valueHolder) {
-      return keyCopyMap.putIfAbsent(lookupOnlyKey(key), valueHolder);
+      return keyCopyMap.putIfAbsent(makeKey(key), valueHolder);
     }
 
     public boolean replace(K key, OnHeapValueHolder<V> oldValue, OnHeapValueHolder<V> newValue) {
