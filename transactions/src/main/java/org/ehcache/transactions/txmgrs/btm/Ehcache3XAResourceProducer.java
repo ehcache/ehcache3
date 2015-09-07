@@ -42,7 +42,7 @@ public class Ehcache3XAResourceProducer extends ResourceBean implements XAResour
 
   private static final ConcurrentMap<String, Ehcache3XAResourceProducer> producers = new ConcurrentHashMap<String, Ehcache3XAResourceProducer>();
 
-  private final Map<XAResource, XAResourceHolder> xaResourceHolders = new ConcurrentIdentityHashMap<XAResource, XAResourceHolder>();
+  private final Map<XAResource, XAResourceHolder> xaResourceHolders = new ConcurrentHashMap<XAResource, XAResourceHolder>();
 
   private volatile RecoveryXAResourceHolder recoveryXAResourceHolder;
 
