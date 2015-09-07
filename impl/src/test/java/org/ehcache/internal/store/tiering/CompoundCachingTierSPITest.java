@@ -16,17 +16,12 @@
 
 package org.ehcache.internal.store.tiering;
 
-import static java.lang.ClassLoader.getSystemClassLoader;
-import org.ehcache.config.EvictionPrioritizer;
-import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
-import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.offheap.OffHeapStore;
@@ -43,6 +38,7 @@ import org.junit.Before;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
+import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 /**
@@ -80,7 +76,8 @@ public class CompoundCachingTierSPITest extends CachingTierSPITest<String, Strin
         
         OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, SystemTimeSource.INSTANCE, 10 * 1024 * 1024);
         OffHeapStoreLifecycleHelper.init(offHeapStore);
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, null, null);
+        IdentityCopier<String> copier = new IdentityCopier<String>();
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, copier, copier);
         CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(onHeapStore, offHeapStore);
         map.put(compoundCachingTier, offHeapStore);
         return compoundCachingTier;

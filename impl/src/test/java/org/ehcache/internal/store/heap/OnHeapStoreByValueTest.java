@@ -20,8 +20,8 @@ import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.EvictionPrioritizer;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.copy.CopierConfiguration;
@@ -30,28 +30,76 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.exceptions.SerializerException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.function.Function;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.copy.SerializingCopier;
+import org.ehcache.internal.serialization.CompactJavaSerializer;
 import org.ehcache.internal.serialization.JavaSerializer;
+import org.ehcache.spi.cache.AbstractValueHolder;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import org.ehcache.spi.serialization.Serializer;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.fail;
 
 @SuppressWarnings("serial")
 public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
+
+  static class LongCopier implements Copier<Long> {
+    int copyForReadCount = 0;
+    int copyForWriteCount = 0;
+
+    @Override
+    public Long copyForRead(Long obj) {
+      copyForReadCount++;
+      return obj;
+    }
+
+    @Override
+    public Long copyForWrite(Long obj) {
+      copyForWriteCount++;
+      return obj;
+    }
+  }
+
+  @Test
+  public void testKeyCopierCalledOnGetOrComputeIfAbsent() throws Exception {
+    LongCopier keyCopier = new LongCopier();
+    OnHeapStore<Long, Long> store = newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.none(),
+        keyCopier, new SerializingCopier<Long>(new CompactJavaSerializer<Long>(ClassLoader.getSystemClassLoader())));
+
+    ValueHolder<Long> computed = store.getOrComputeIfAbsent(1L, new Function<Long, ValueHolder<Long>>() {
+      @Override
+      public ValueHolder<Long> apply(final Long key) {
+        return new AbstractValueHolder<Long>(-1, -1) {
+          @Override
+          public Long value() {
+            return key * 1000L;
+          }
+
+          @Override
+          protected TimeUnit nativeTimeUnit() {
+            return TimeUnit.MILLISECONDS;
+          }
+        };
+      }
+    });
+    assertThat(computed.value(), is(1000L));
+    assertThat(keyCopier.copyForReadCount, is(1));
+    assertThat(keyCopier.copyForWriteCount, is(1));
+  }
 
   @Test
   public void testPutNotSerializableValue() throws Exception {
@@ -155,11 +203,16 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
   }
 
   @Override
-  protected <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
-      final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto) {
+  protected <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource,
+      Expiry<? super K, ? super V> expiry, EvictionVeto<? super K, ? super V> veto) {
+    Copier<K> keyCopier = new SerializingCopier<K>(new JavaSerializer<K>(getClass().getClassLoader()));
+    Copier<V> valueCopier = new SerializingCopier<V>(new JavaSerializer<V>(getClass().getClassLoader()));
+    return newStore(timeSource, expiry, veto, keyCopier, valueCopier);
+  }
 
-    final Copier copier = new SerializingCopier(new JavaSerializer<K>(getClass().getClassLoader()));
-
+  private  <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
+      final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto,
+      final Copier<K> keyCopier, final Copier<V> valueCopier) {
     return new OnHeapStore<K, V>(new Store.Configuration<K, V>() {
       
       @SuppressWarnings("unchecked")
@@ -208,7 +261,7 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
       public Serializer<V> getValueSerializer() {
         return new JavaSerializer<V>(getClass().getClassLoader());
       }
-    }, timeSource, copier, copier);
+    }, timeSource, keyCopier, valueCopier);
   }
 
   private void performAssertions(Cache<Long, String> cache, boolean same) {
