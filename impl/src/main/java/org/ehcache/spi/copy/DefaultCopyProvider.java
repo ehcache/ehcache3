@@ -56,7 +56,9 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Copier<?>> implem
                                      Serializer<T> serializer, ServiceConfiguration<?>... configs) {
     DefaultCopierConfiguration<T> conf = find(type, configs);
     Copier<T> copier;
-    if(conf != null && conf.getClazz().isAssignableFrom(SerializingCopier.class)) {
+    if (conf != null && conf.getInstance() != null) {
+      copier = conf.getInstance();
+    } else if (conf != null && conf.getClazz().isAssignableFrom(SerializingCopier.class)) {
       copier = new SerializingCopier<T>(serializer);
     } else {
       copier = createCopier(clazz, conf);

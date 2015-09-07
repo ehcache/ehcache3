@@ -587,7 +587,9 @@ public class XAStore<K, V> implements Store<K, V> {
 
           CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
           Copier<K> keyCopier = copyProvider.createKeyCopier(storeConfig.getKeyType(), storeConfig.getKeySerializer());
-          Copier valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), softLockValueCombinedSerializer);
+          Copier valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer());
+
+          SoftLockValueCombinedCopier<V> softLockValueCombinedCopier = new SoftLockValueCombinedCopier<V>(valueCopier);
 
           Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer, storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
           if (!isIdentityCopier(keyCopier)) {
@@ -595,11 +597,7 @@ public class XAStore<K, V> implements Store<K, V> {
           } else {
             underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.KEY));
           }
-          if (!isIdentityCopier(keyCopier)) {
-            underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) valueCopier.getClass(), CopierConfiguration.Type.VALUE));
-          } else {
-            underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.VALUE));
-          }
+          underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Copier) softLockValueCombinedCopier, CopierConfiguration.Type.VALUE));
 
           Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig, underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
           store = new XAStore<K, V>(underlyingStore, xaServiceProvider, timeSource, journal, uniqueXAResourceId);
