@@ -40,6 +40,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.BulkOps;
 import org.ehcache.statistics.CacheOperationOutcomes.CacheLoadingOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.GetAllOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.PutOutcome;
@@ -91,6 +92,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   protected final Logger logger;
   
   private final OperationObserver<GetOutcome> getObserver = operation(GetOutcome.class).named("get").of(this).tag("cache").build();
+  private final OperationObserver<GetAllOutcome> getAllObserver = operation(GetAllOutcome.class).named("getAll").of(this).tag("cache").build();
   private final OperationObserver<PutOutcome> putObserver = operation(PutOutcome.class).named("put").of(this).tag("cache").build();
   private final OperationObserver<RemoveOutcome> removeObserver = operation(RemoveOutcome.class).named("remove").of(this).tag("cache").build();
   private final OperationObserver<ConditionalRemoveOutcome> conditionalRemoveObserver = operation(ConditionalRemoveOutcome.class).named("conditionalRemove").of(this).tag("cache").build();
@@ -368,9 +370,11 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   }
   
   private Map<K, V> getAllInternal(Set<? extends K> keys, boolean includeNulls) throws BulkCacheLoadingException {
+    getAllObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNullContent(keys);
     if(keys.isEmpty()) {
+      getAllObserver.end(GetAllOutcome.SUCCESS);
       return Collections.emptyMap();
     }
     final Map<K, V> successes;
@@ -425,7 +429,9 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       Map<K, Store.ValueHolder<V>> computedMap = store.bulkComputeIfAbsent(keys, computeFunction);
 
       int hits = 0;
+      int keyCount = 0;
       for (Map.Entry<K, Store.ValueHolder<V>> entry : computedMap.entrySet()) {
+        keyCount++;
         if (entry.getValue() != null) {
           result.put(entry.getKey(), entry.getValue().value());
           hits++;
@@ -434,29 +440,36 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         }
       }
       
-      addBulkMethodEntriesCount(BulkOps.GET_ALL, hits);
+      addBulkMethodEntriesCount(BulkOps.GET_ALL_HITS, hits);
+      addBulkMethodEntriesCount(BulkOps.GET_ALL_MISS, keyCount - hits);
       if (failures.isEmpty()) {
+        getAllObserver.end(GetAllOutcome.SUCCESS);
         return result;
       } else {
         successes.putAll(result);
+        getAllObserver.end(GetAllOutcome.FAILURE);
         throw new BulkCacheLoadingException(failures, successes);
       }
     } catch (CacheAccessException e) {
-      if (cacheLoaderWriter == null) {
-        return resilienceStrategy.getAllFailure(keys, e);
-      } else {
-        Set<K> toLoad = new HashSet<K>();
-        for (K key: keys) {
-          toLoad.add(key);
-        }
-        toLoad.removeAll(successes.keySet());
-        toLoad.removeAll(failures.keySet());
-        computeFunction.apply(toLoad);
-        if (failures.isEmpty()) {
-          return resilienceStrategy.getAllFailure(keys, successes, e);
+      try {
+        if (cacheLoaderWriter == null) {
+          return resilienceStrategy.getAllFailure(keys, e);
         } else {
-          return resilienceStrategy.getAllFailure(keys, e, new BulkCacheLoadingException(failures, successes));
+          Set<K> toLoad = new HashSet<K>();
+          for (K key : keys) {
+            toLoad.add(key);
+          }
+          toLoad.removeAll(successes.keySet());
+          toLoad.removeAll(failures.keySet());
+          computeFunction.apply(toLoad);
+          if (failures.isEmpty()) {
+            return resilienceStrategy.getAllFailure(keys, successes, e);
+          } else {
+            return resilienceStrategy.getAllFailure(keys, e, new BulkCacheLoadingException(failures, successes));
+          }
         }
+      } finally {
+        getAllObserver.end(GetAllOutcome.FAILURE);
       }
     }
   }

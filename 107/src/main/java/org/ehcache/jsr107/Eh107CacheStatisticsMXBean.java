@@ -92,7 +92,7 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
 
   @Override
   public long getCacheHits() {
-    return normalize(getHits() - compensatingCounters.cacheHits);
+    return normalize(getHits() - compensatingCounters.cacheHits - compensatingCounters.bulkGetHits);
   }
 
   @Override
@@ -103,7 +103,7 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
 
   @Override
   public long getCacheMisses() {
-    return normalize(getMisses() - compensatingCounters.cacheMisses);
+    return normalize(getMisses() - compensatingCounters.cacheMisses - compensatingCounters.bulkGetMiss);
   }
 
   @Override
@@ -114,8 +114,10 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
 
   @Override
   public long getCacheGets() {
-    return normalize(getBulkCount(BulkOps.GET_ALL) - compensatingCounters.bulkGets +
-        getHits() + getMisses() - compensatingCounters.cacheGets);
+    return normalize(getHits() + getMisses()
+                     - compensatingCounters.cacheGets
+                     - compensatingCounters.bulkGetHits
+                     - compensatingCounters.bulkGetMiss);
   }
 
   @Override
@@ -170,14 +172,16 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
   }
 
   private long getMisses() {
-    return get.sum(EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER, CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER)) +
+    return getBulkCount(BulkOps.GET_ALL_MISS) +
+        get.sum(EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER, CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER)) +
         putIfAbsent.sum(EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.PUT)) +
         replace.sum(EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT)) +
         conditionalRemove.sum(EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_MISSING));
   }
 
   private long getHits() {
-    return get.sum(EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER, CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER)) +
+    return getBulkCount(BulkOps.GET_ALL_HITS) +
+        get.sum(EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER, CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER)) +
         putIfAbsent.sum(EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.PUT)) +
         replace.sum(EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT, CacheOperationOutcomes.ReplaceOutcome.MISS_PRESENT)) +
         conditionalRemove.sum(EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.SUCCESS, CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_PRESENT));
@@ -279,7 +283,8 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
     volatile long cacheHits;
     volatile long cacheMisses;
     volatile long cacheGets;
-    volatile long bulkGets;
+    volatile long bulkGetHits;
+    volatile long bulkGetMiss;
     volatile long cachePuts;
     volatile long bulkPuts;
     volatile long cacheRemovals;
@@ -291,7 +296,8 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
       cacheHits += Eh107CacheStatisticsMXBean.this.getCacheHits();
       cacheMisses += Eh107CacheStatisticsMXBean.this.getCacheMisses();
       cacheGets += Eh107CacheStatisticsMXBean.this.getCacheGets();
-      bulkGets += Eh107CacheStatisticsMXBean.this.getBulkCount(BulkOps.GET_ALL);
+      bulkGetHits += Eh107CacheStatisticsMXBean.this.getBulkCount(BulkOps.GET_ALL_HITS);
+      bulkGetMiss += Eh107CacheStatisticsMXBean.this.getBulkCount(BulkOps.GET_ALL_MISS);
       cachePuts += Eh107CacheStatisticsMXBean.this.getCachePuts();
       bulkPuts += Eh107CacheStatisticsMXBean.this.getBulkCount(BulkOps.PUT_ALL);
       cacheRemovals += Eh107CacheStatisticsMXBean.this.getCacheRemovals();
