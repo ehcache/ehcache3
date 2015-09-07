@@ -51,6 +51,7 @@ import org.ehcache.transactions.configuration.XAServiceConfiguration;
 import org.ehcache.transactions.configuration.XAServiceProvider;
 import org.ehcache.transactions.journal.Journal;
 import org.ehcache.transactions.journal.JournalProvider;
+import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 
 import javax.transaction.RollbackException;
 import javax.transaction.Synchronization;
@@ -58,6 +59,7 @@ import javax.transaction.SystemException;
 import javax.transaction.Transaction;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -484,13 +486,13 @@ public class XAStore<K, V> implements Store<K, V> {
     return underlyingStore.getConfigurationChangeListeners();
   }
 
-  //TODO: keep track of stores with a ConcurrentWeakIdentityHashMap
   @ServiceDependencies({TimeSourceService.class, JournalProvider.class, CopyProvider.class, DefaultStoreProvider.class})
   public static class Provider implements Store.Provider {
 
     private volatile ServiceProvider serviceProvider;
     private volatile Store.Provider underlyingStoreProvider;
     private volatile XAServiceProvider xaServiceProvider;
+    private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
 
     @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
@@ -542,6 +544,7 @@ public class XAStore<K, V> implements Store<K, V> {
         }
       }
 
+      createdStores.add(store);
       return store;
     }
 
@@ -551,6 +554,9 @@ public class XAStore<K, V> implements Store<K, V> {
 
     @Override
     public void releaseStore(Store<?, ?> resource) {
+      if (!createdStores.remove(resource)) {
+        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+      }
       if (resource instanceof XAStore) {
         XAStore<?, ?> xaStore = (XAStore<?, ?>) resource;
         underlyingStoreProvider.releaseStore(xaStore.underlyingStore);
@@ -562,6 +568,9 @@ public class XAStore<K, V> implements Store<K, V> {
 
     @Override
     public void initStore(Store<?, ?> resource) {
+      if (!createdStores.contains(resource)) {
+        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+      }
       if (resource instanceof XAStore) {
         XAStore<?, ?> xaStore = (XAStore<?, ?>) resource;
         xaServiceProvider.registerXAResource(xaStore.uniqueXAResourceId, xaStore.recoveryXaResource);
