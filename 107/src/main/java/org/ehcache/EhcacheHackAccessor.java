@@ -17,9 +17,9 @@ package org.ehcache;
 
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.BulkOps;
+import org.terracotta.statistics.jsr166e.LongAdder;
 
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.Map;
 
 /**
  * EhcacheHackAccessor
@@ -38,7 +38,7 @@ public final class EhcacheHackAccessor {
     return ehcache.getJsr107Cache();
   }
 
-  public static ConcurrentMap<BulkOps, AtomicLong> getBulkMethodEntries(Ehcache<?, ?> ehcache) {
+  public static Map<BulkOps, LongAdder> getBulkMethodEntries(Ehcache<?, ?> ehcache) {
     return ehcache.getBulkMethodEntries();
   }
 

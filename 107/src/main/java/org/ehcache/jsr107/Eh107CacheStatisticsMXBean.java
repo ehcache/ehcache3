@@ -31,6 +31,7 @@ import org.terracotta.management.stats.Sample;
 import org.terracotta.management.stats.sampled.SampledRatio;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
+import org.terracotta.statistics.jsr166e.LongAdder;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -40,8 +41,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.terracotta.context.query.Matchers.attributes;
 import static org.terracotta.context.query.Matchers.context;
@@ -63,7 +62,7 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
   private final OperationStatistic<StoreOperationOutcomes.EvictionOutcome> authorityEviction;
   private final ManagementRegistry managementRegistry;
   private final Map<String, String> context;
-  private final ConcurrentMap<BulkOps, AtomicLong> bulkMethodEntries;
+  private final Map<BulkOps, LongAdder> bulkMethodEntries;
 
   Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager, Cache<?, ?> cache, ManagementRegistry managementRegistry) {
     super(cacheName, cacheManager, "CacheStatistics");
@@ -188,8 +187,7 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
   }
 
   private long getBulkCount(BulkOps bulkOps) {
-    AtomicLong counter = bulkMethodEntries.get(bulkOps);
-    return counter == null ? 0L : counter.get();
+    return bulkMethodEntries.get(bulkOps).longValue();
   }
 
   private static long normalize(long value) {

@@ -50,12 +50,14 @@ import org.ehcache.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.slf4j.Logger;
 import org.terracotta.statistics.StatisticsManager;
+import org.terracotta.statistics.jsr166e.LongAdder;
 import org.terracotta.statistics.observer.OperationObserver;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -64,12 +66,9 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.Functions.memoize;
@@ -103,7 +102,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   private final OperationObserver<CacheLoadingOutcome> cacheLoadingObserver = operation(CacheLoadingOutcome.class).named("cacheLoading").of(this).tag("cache").build();
   private final OperationObserver<PutIfAbsentOutcome> putIfAbsentObserver = operation(PutIfAbsentOutcome.class).named("putIfAbsent").of(this).tag("cache").build();
   private final OperationObserver<ReplaceOutcome> replaceObserver = operation(ReplaceOutcome.class).named("replace").of(this).tag("cache").build();  
-  private final ConcurrentMap<BulkOps, AtomicLong> bulkMethodEntries = new ConcurrentHashMap<BulkOps, AtomicLong>();
+  private final Map<BulkOps, LongAdder> bulkMethodEntries = new EnumMap<BulkOps, LongAdder>(BulkOps.class);
 
   private static final NullaryFunction<Boolean> REPLACE_FALSE = new NullaryFunction<Boolean>() {
     @Override
@@ -156,9 +155,12 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     this.useLoaderInAtomics = useLoaderInAtomics;
     this.logger=logger;
     this.statusTransitioner = statusTransitioner;
+    for (BulkOps bulkOp : BulkOps.values()) {
+      bulkMethodEntries.put(bulkOp, new LongAdder());
+    }
   }
 
-  ConcurrentMap<BulkOps, AtomicLong> getBulkMethodEntries() {
+  Map<BulkOps, LongAdder> getBulkMethodEntries() {
     return bulkMethodEntries;
   }
 
@@ -1103,15 +1105,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   }
 
   private void addBulkMethodEntriesCount(BulkOps op, long count) {
-    AtomicLong current = bulkMethodEntries.get(op);
-    if (current == null) {
-      AtomicLong newCount = new AtomicLong();
-      current = bulkMethodEntries.putIfAbsent(op, newCount);
-      if (current == null) {
-        current = newCount;
-      }
-    }
-    current.addAndGet(count);
+    bulkMethodEntries.get(op).add(count);
   }
   
   Jsr107Cache<K, V> getJsr107Cache() {
