@@ -45,6 +45,7 @@ import org.ehcache.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.PutAllOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.PutOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.RemoveAllOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.slf4j.Logger;
@@ -97,6 +98,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   private final OperationObserver<PutOutcome> putObserver = operation(PutOutcome.class).named("put").of(this).tag("cache").build();
   private final OperationObserver<PutAllOutcome> putAllObserver = operation(PutAllOutcome.class).named("putAll").of(this).tag("cache").build();
   private final OperationObserver<RemoveOutcome> removeObserver = operation(RemoveOutcome.class).named("remove").of(this).tag("cache").build();
+  private final OperationObserver<RemoveAllOutcome> removeAllObserver = operation(RemoveAllOutcome.class).named("removeAll").of(this).tag("cache").build();
   private final OperationObserver<ConditionalRemoveOutcome> conditionalRemoveObserver = operation(ConditionalRemoveOutcome.class).named("conditionalRemove").of(this).tag("cache").build();
   private final OperationObserver<CacheLoadingOutcome> cacheLoadingObserver = operation(CacheLoadingOutcome.class).named("cacheLoading").of(this).tag("cache").build();
   private final OperationObserver<PutIfAbsentOutcome> putIfAbsentObserver = operation(PutIfAbsentOutcome.class).named("putIfAbsent").of(this).tag("cache").build();
@@ -637,9 +639,11 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
 
   @Override
   public void removeAll(final Set<? extends K> keys) throws BulkCacheWritingException {
+    removeAllObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(keys);
     if(keys.isEmpty()) {
+      removeAllObserver.end(RemoveAllOutcome.SUCCESS);
       return;
     }
     final Set<K> successes;
@@ -697,22 +701,29 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     try {
       store.bulkCompute(keys, removalFunction);
       addBulkMethodEntriesCount(BulkOps.REMOVE_ALL, actualRemoveCount.get());
-      if (! failures.isEmpty()) {
+      if (failures.isEmpty()) {
+        removeAllObserver.end(RemoveAllOutcome.SUCCESS);
+      } else {
+        removeAllObserver.end(RemoveAllOutcome.FAILURE);
         throw new BulkCacheWritingException(failures, successes);
       }
     } catch (CacheAccessException e) {
-      if (cacheLoaderWriter == null) {
-        resilienceStrategy.removeAllFailure(keys, e);
-      } else {
-        // just in case not all writes happened:
-        if (! entriesToRemove.isEmpty()) {
-          cacheLoaderWriterDeleteAllCall(entriesToRemove.entrySet(), successes, failures);
-        }
-        if (failures.isEmpty()) {
+      try {
+        if (cacheLoaderWriter == null) {
           resilienceStrategy.removeAllFailure(keys, e);
         } else {
-          resilienceStrategy.removeAllFailure(keys, e, new BulkCacheWritingException(failures, successes));
+          // just in case not all writes happened:
+          if (!entriesToRemove.isEmpty()) {
+            cacheLoaderWriterDeleteAllCall(entriesToRemove.entrySet(), successes, failures);
+          }
+          if (failures.isEmpty()) {
+            resilienceStrategy.removeAllFailure(keys, e);
+          } else {
+            resilienceStrategy.removeAllFailure(keys, e, new BulkCacheWritingException(failures, successes));
+          }
         }
+      } finally {
+        removeAllObserver.end(RemoveAllOutcome.FAILURE);
       }
     }
   }

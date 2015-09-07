@@ -80,6 +80,14 @@ public interface CacheOperationOutcomes {
   };
 
   /**
+   * Outcomes for cache removeAll operation
+   */
+  enum RemoveAllOutcome implements CacheOperationOutcomes {
+    SUCCESS,
+    FAILURE
+  }
+
+  /**
    * The outcomes for conditional remove operations.
    */
   enum ConditionalRemoveOutcome implements CacheOperationOutcomes {
