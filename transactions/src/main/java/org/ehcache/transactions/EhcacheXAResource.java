@@ -245,7 +245,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
 
   public XATransactionContext<K, V> getCurrentContext() throws CacheAccessException {
     if (currentXid == null) {
-      throw new CacheAccessException("Cannot get current context when XAResource.start() was not called");
+      return null;
     }
     return transactionContextFactory.get(new TransactionId(currentXid));
   }
