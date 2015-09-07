@@ -60,6 +60,14 @@ public interface CacheOperationOutcomes {
   };
 
   /**
+   * Outcomes for cache putAll operation
+   */
+  enum PutAllOutcome implements CacheOperationOutcomes {
+    SUCCESS,
+    FAILURE
+  }
+
+  /**
    * The outcomes for remove operations.
    */
   enum RemoveOutcome implements CacheOperationOutcomes {
