@@ -22,6 +22,7 @@ import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.xml.XmlConfiguration;
+import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.slf4j.Logger;
@@ -75,12 +76,9 @@ class ConfigurationMerger {
           builder = templateBuilder;
           LOG.info("Configuration of cache {} will be supplemented by template {}", cacheName, templateName);
         }
-      } else {
-        if(jsr107Configuration.isStoreByValue()) {
-          builder = builder.add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, CopierConfiguration.Type.KEY))
-              .add(new DefaultCopierConfiguration<V>((Class)SerializingCopier.class, CopierConfiguration.Type.VALUE));
-        }
       }
+
+      builder = handleStoreByValue(jsr107Configuration, builder);
 
       final boolean useJsr107Expiry = builder.hasDefaultExpiry();
       if (useJsr107Expiry) {
@@ -123,6 +121,19 @@ class ConfigurationMerger {
       CacheResources.close(loaderWriter, mce);
       throw mce;
     }
+  }
+
+  private <K, V> CacheConfigurationBuilder<K, V> handleStoreByValue(Eh107CompleteConfiguration<K, V> jsr107Configuration, CacheConfigurationBuilder<K, V> builder) {
+    DefaultCopierConfiguration copierConfig = builder.getExistingServiceConfiguration(DefaultCopierConfiguration.class);
+    LOG.info("No user configured copiers found. Falling back to JSR-107 defaults.");
+    if(copierConfig == null) {
+      if(jsr107Configuration.isStoreByValue()) {
+        builder = builder.add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, CopierConfiguration.Type.KEY))
+            .add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, CopierConfiguration.Type.VALUE));
+        LOG.info("Using default SerializingCopier for JSR-107 store-by-value cache.");
+      }
+    }
+    return builder;
   }
 
   private <K, V> Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> initCacheEventListeners(CompleteConfiguration<K, V> config) {

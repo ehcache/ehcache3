@@ -16,20 +16,21 @@
 
 package org.ehcache.jsr107;
 
+import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.copy.CopierConfiguration;
+import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.internal.creation.MockSettingsImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.util.Collection;
@@ -193,20 +194,25 @@ public class ConfigurationMergerTest {
 
   @Test
   public void jsr107StoreByValueGetsOverriddenByTemplate() throws Exception {
+    CacheConfigurationBuilder<Object, Object> builder = newCacheConfigurationBuilder()
+        .add(new DefaultCopierConfiguration<Object>((Class)IdentityCopier.class, CopierConfiguration.Type.KEY))
+        .add(new DefaultCopierConfiguration<Object>((Class)IdentityCopier.class, CopierConfiguration.Type.VALUE));
+    
     when(jsr107Service.getTemplateNameForCache("cache")).thenReturn("cacheTemplate");
-    when(xmlConfiguration.newCacheConfigurationBuilderFromTemplate("cacheTemplate", Object.class, Object.class)).thenReturn(
-        newCacheConfigurationBuilder()
-    );
+    when(xmlConfiguration.newCacheConfigurationBuilderFromTemplate("cacheTemplate", Object.class, Object.class))
+        .thenReturn(builder);
 
-    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();
+    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();  //store-by-value by default
 
     ConfigurationMerger.ConfigHolder<Object, Object> configHolder = merger.mergeConfigurations("cache", configuration);
 
-    boolean storeByValue = false;
+    boolean storeByValue = true;
     Collection<ServiceConfiguration<?>> serviceConfigurations = configHolder.cacheConfiguration.getServiceConfigurations();
     for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
-      if (serviceConfiguration instanceof CopierConfiguration) {
-        storeByValue = true;
+      if (serviceConfiguration instanceof DefaultCopierConfiguration) {
+        DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration)serviceConfiguration;
+        if(copierConfig.getClazz().isAssignableFrom(IdentityCopier.class))
+          storeByValue = false;
         break;
       }
     }

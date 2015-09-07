@@ -6,6 +6,10 @@
   <service> <!--2-->
     <jsr107:defaults default-template="tinyCache"> <!--3-->
       <jsr107:cache name="foos" template="stringCache"/> <!--4-->
+      <jsr107:cache name="byRefCache" template="byRefTemplate"/>
+      <jsr107:cache name="byValCache" template="byValueTemplate"/>
+      <jsr107:cache name="weirdCache1" template="mixedTemplate1"/>
+      <jsr107:cache name="weirdCache2" template="mixedTemplate2"/>
     </jsr107:defaults>
   </service>
 
@@ -22,4 +26,27 @@
     <heap size="20" unit="entries"/>
   </cache-template>
 
+  <cache-template name="byRefTemplate">
+    <key-type copier="org.ehcache.internal.copy.IdentityCopier">java.lang.Long</key-type>
+    <value-type copier="org.ehcache.internal.copy.IdentityCopier">java.lang.String</value-type>
+    <heap size="10" unit="entries"/>
+  </cache-template>
+
+  <cache-template name="byValueTemplate">
+    <key-type copier="org.ehcache.internal.copy.SerializingCopier">java.lang.Long</key-type>
+    <value-type copier="org.ehcache.internal.copy.SerializingCopier">java.lang.String</value-type>
+    <heap size="10" unit="entries"/>
+  </cache-template>
+
+  <cache-template name="mixedTemplate1">
+    <key-type copier="org.ehcache.internal.copy.IdentityCopier">java.lang.Long</key-type>
+    <value-type copier="org.ehcache.internal.copy.SerializingCopier">java.lang.String</value-type>
+    <heap size="10" unit="entries"/>
+  </cache-template>
+
+  <cache-template name="mixedTemplate2">
+    <key-type copier="org.ehcache.internal.copy.SerializingCopier">java.lang.Long</key-type>
+    <value-type copier="org.ehcache.internal.copy.IdentityCopier">java.lang.String</value-type>
+    <heap size="10" unit="entries"/>
+  </cache-template>
 </config>

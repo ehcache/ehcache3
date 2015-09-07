@@ -38,7 +38,8 @@ import org.ehcache.EhcacheHackAccessor;
 import org.ehcache.EhcacheManager;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.copy.CopierConfiguration;
+import org.ehcache.config.copy.DefaultCopierConfiguration;
+import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.management.ManagementRegistry;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -103,8 +104,10 @@ class Eh107CacheManager implements CacheManager {
 
     boolean storeByValueOnHeap = false;
     for (ServiceConfiguration<?> serviceConfiguration : cache.getRuntimeConfiguration().getServiceConfigurations()) {
-      if (serviceConfiguration instanceof CopierConfiguration) {
-        storeByValueOnHeap = true;
+      if (serviceConfiguration instanceof DefaultCopierConfiguration) {
+        DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration)serviceConfiguration;
+        if(!copierConfig.getClazz().isAssignableFrom(IdentityCopier.class))
+          storeByValueOnHeap = true;
         break;
       }
     }
