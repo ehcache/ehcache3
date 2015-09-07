@@ -543,7 +543,7 @@ public class XAStore<K, V> implements Store<K, V> {
               } else {
                 // phase 2 commit, or during a TX's lifetime
 //                System.out.println("create -> some time");
-                return configuredExpiry.getExpiryForCreation(key, (V) softLock.getNewValueHolder().value());
+                return configuredExpiry.getExpiryForCreation(key, (V) softLock.getOldValue());
               }
             }
 
