@@ -74,8 +74,7 @@ public class EhcacheEventsTestBase extends EhcacheBasicCrudBase {
     ExecutorService unorderedExecutor = Executors.newCachedThreadPool();
     TimeSource timeSource = SystemTimeSource.INSTANCE;
     cacheEventNotificationService = new CacheEventNotificationServiceImpl<String, String>(orderedExecutor, unorderedExecutor, store, timeSource);
-    EhcacheRuntimeConfiguration<String, String> runtimeConfiguration = new EhcacheRuntimeConfiguration<String, String>(config, cacheEventNotificationService);
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(runtimeConfiguration, this.store,
+    final Ehcache<String, String> ehcache = new Ehcache<String, String>(config, this.store,
         cacheLoaderWriter, cacheEventNotificationService,
         LoggerFactory.getLogger(Ehcache.class + "-" + name));
     ehcache.init();

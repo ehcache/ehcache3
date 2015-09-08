@@ -58,10 +58,10 @@ public class CacheConfigurationChangeListenerTest {
     this.config = newCacheConfigurationBuilder()
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10L, MemoryUnit.MB).heap(2L, EntryUnit.ENTRIES))
         .buildConfig(Object.class, Object.class);
-    this.runtimeConfiguration = new EhcacheRuntimeConfiguration<Object, Object>(this.config, this.eventNotifier);
-    this.cache = new Ehcache<Object, Object>(runtimeConfiguration, store, loaderWriter, eventNotifier,
+    this.cache = new Ehcache<Object, Object>(config, store, loaderWriter, eventNotifier,
         LoggerFactory.getLogger(Ehcache.class + "-" + "CacheConfigurationListenerTest"));
     cache.init();
+    this.runtimeConfiguration = (EhcacheRuntimeConfiguration<Object, Object>)cache.getRuntimeConfiguration();
   }
 
   @After

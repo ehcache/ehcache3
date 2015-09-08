@@ -16,6 +16,7 @@
 
 package org.ehcache;
 
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.events.CacheEventNotificationService;
@@ -46,10 +47,10 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
   private final LocalPersistenceService localPersistenceService;
   private final String id;
 
-  public PersistentUserManagedEhcache(CacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store, Store.Configuration<K, V> storeConfig, LocalPersistenceService localPersistenceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventNotificationService<K, V> eventNotifier, String id) {
+  public PersistentUserManagedEhcache(CacheConfiguration<K, V> configuration, Store<K, V> store, Store.Configuration<K, V> storeConfig, LocalPersistenceService localPersistenceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventNotificationService<K, V> eventNotifier, String id) {
     this.logger = LoggerFactory.getLogger(PersistentUserManagedEhcache.class.getName() + "-" + id);
     this.statusTransitioner = new StatusTransitioner(logger);
-    this.ehcache = new Ehcache<K, V>(runtimeConfiguration, store, cacheLoaderWriter, eventNotifier, true, logger, statusTransitioner);
+    this.ehcache = new Ehcache<K, V>(new EhcacheRuntimeConfiguration<K, V>(configuration, eventNotifier), store, cacheLoaderWriter, eventNotifier, true, logger, statusTransitioner);
     this.localPersistenceService = localPersistenceService;
     this.id = id;
   }

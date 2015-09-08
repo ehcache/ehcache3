@@ -30,6 +30,7 @@ import static org.mockito.Matchers.argThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.EventType;
 import org.ehcache.events.CacheEventNotificationService;
@@ -75,10 +76,10 @@ public class EhcacheEventTest {
     eventNotifier = mock(CacheEventNotificationService.class);
     CacheLoaderWriter<Number, String> loaderWriter = mock(CacheLoaderWriter.class);
 
-    EhcacheRuntimeConfiguration<Number, String> runtimeConfiguration = new EhcacheRuntimeConfiguration<Number, String>(newCacheConfigurationBuilder()
-        .buildConfig(Number.class, String.class), eventNotifier);
+    final CacheConfiguration<Number, String> cacheConfiguration = newCacheConfigurationBuilder()
+        .buildConfig(Number.class, String.class);
     cache = new Ehcache<Number, String>(
-        runtimeConfiguration, store, loaderWriter, eventNotifier, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheEventTest"));
+        cacheConfiguration, store, loaderWriter, eventNotifier, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheEventTest"));
     cache.init();
   }
   
@@ -90,11 +91,11 @@ public class EhcacheEventTest {
 
   @Test
   public void testImmediatelyExpiringEntry() throws Exception {
-    EhcacheRuntimeConfiguration<Number, String> runtimeConfiguration = new EhcacheRuntimeConfiguration<Number, String>(newCacheConfigurationBuilder()
+    final CacheConfiguration<Number, String> configuration = newCacheConfigurationBuilder()
         .withExpiry(Expirations.timeToLiveExpiration(Duration.ZERO))
-        .buildConfig(Number.class, String.class), eventNotifier);
+        .buildConfig(Number.class, String.class);
     Ehcache<Number, String> cache = new Ehcache<Number, String>(
-        runtimeConfiguration, store, null, eventNotifier, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheEventTest-testImmediatelyExpiringEntry"));
+        configuration, store, null, eventNotifier, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheEventTest-testImmediatelyExpiringEntry"));
     cache.init();
 
     Number key = 1;

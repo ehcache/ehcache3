@@ -545,9 +545,8 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
 
   private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<? super String, ? super String> expiry) {
     CacheConfiguration<String, String> config = newCacheConfigurationBuilder().withExpiry(expiry).buildConfig(String.class, String.class);
-    EhcacheRuntimeConfiguration<String, String> runtimeConfiguration = new EhcacheRuntimeConfiguration<String, String>(config, null);
     final Ehcache<String, String> ehcache
-        = new Ehcache<String, String>(runtimeConfiguration, this.store, cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicReplaceTest"));
+        = new Ehcache<String, String>(config, this.store, cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicReplaceTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

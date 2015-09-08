@@ -378,8 +378,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter) throws Exception {
-    EhcacheRuntimeConfiguration<String, String> runtimeConfiguration = new EhcacheRuntimeConfiguration<String, String>(CACHE_CONFIGURATION, null);
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(runtimeConfiguration, this.store, cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicIteratorTest"));
+    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicIteratorTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
