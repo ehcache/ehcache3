@@ -3,6 +3,7 @@ package org.ehcache.transactions.journal;
 import org.ehcache.transactions.TransactionId;
 import org.ehcache.transactions.XAState;
 
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -20,5 +21,9 @@ public interface Journal {
   void forget(TransactionId transactionId);
 
   Map<TransactionId, XAState> heuristicDecisions();
+
+  void open() throws IOException;
+
+  void close() throws IOException;
 
 }

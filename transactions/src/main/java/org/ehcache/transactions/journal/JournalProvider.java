@@ -1,5 +1,6 @@
 package org.ehcache.transactions.journal;
 
+import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
 
 /**
@@ -7,6 +8,6 @@ import org.ehcache.spi.service.Service;
  */
 public interface JournalProvider extends Service {
 
-  Journal getJournal();
+  Journal getJournal(LocalPersistenceService.PersistenceSpaceIdentifier persistentSpaceId);
 
 }

@@ -15,23 +15,21 @@
  */
 package org.ehcache.transactions.journal;
 
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.spi.service.ServiceFactory;
 
 /**
  * @author Ludovic Orban
  */
-public class TransientJournalProvider implements JournalProvider {
+public class DefaultJournalProviderFactory implements ServiceFactory<JournalProvider> {
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public JournalProvider create(ServiceCreationConfiguration<JournalProvider> configuration) {
+    return new DefaultJournalProvider();
   }
 
   @Override
-  public void stop() {
-  }
-
-  @Override
-  public Journal getJournal() {
-    return new TransientJournal();
+  public Class<JournalProvider> getServiceType() {
+    return JournalProvider.class;
   }
 }

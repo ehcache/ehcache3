@@ -19,43 +19,98 @@ import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.transactions.TransactionId;
 import org.ehcache.transactions.XAState;
 
-import java.util.Collections;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * @author Ludovic Orban
  */
-//TODO: implement heuristics, and implement a disk persistent version for disk-persistent caches
 public class TransientJournal implements Journal {
-  private final ConcurrentHashMap<TransactionId, XAState> states = new ConcurrentHashMap<TransactionId, XAState>();
+
+  protected static class Entry {
+    final XAState state;
+    final boolean heuristic;
+    public Entry(XAState state, boolean heuristic) {
+      this.state = state;
+      this.heuristic = heuristic;
+    }
+  }
+
+  protected final ConcurrentHashMap<TransactionId, Entry> states = new ConcurrentHashMap<TransactionId, Entry>();
 
   @Override
   public void save(TransactionId transactionId, XAState xaState, boolean heuristicDecision) {
-    if (xaState == XAState.IN_DOUBT) {
-      states.put(transactionId, xaState);
+    if (!heuristicDecision) {
+      // check for heuristics
+      if (xaState == XAState.IN_DOUBT) {
+        Entry existing = states.putIfAbsent(transactionId, new Entry(xaState, false));
+        if (existing != null) {
+          throw new RuntimeException("A transaction cannot go back to in-doubt state");
+        }
+      } else {
+        Entry entry = states.get(transactionId);
+        if (entry != null && entry.heuristic) {
+          throw new RuntimeException("A heuristically terminated transaction cannot be normally terminated, it must be forgotten");
+        }
+        states.remove(transactionId);
+      }
     } else {
-      states.remove(transactionId);
+      if (xaState == XAState.IN_DOUBT) {
+        throw new RuntimeException("A transaction cannot enter in-doubt state heuristically");
+      } else {
+        Entry replaced = states.replace(transactionId, new Entry(xaState, true));
+        if (replaced == null) {
+          throw new RuntimeException("Only in-doubt transactions can be heuristically terminated");
+        }
+      }
     }
   }
 
   @Override
   public XAState getState(TransactionId transactionId) {
-    return states.get(transactionId);
+    Entry entry = states.get(transactionId);
+    if (entry == null || entry.heuristic) {
+      return null;
+    }
+    return entry.state;
   }
 
   @Override
   public Map<TransactionId, XAState> recover() {
-    return new HashMap<TransactionId, XAState>(states);
+    HashMap<TransactionId, XAState> result = new HashMap<TransactionId, XAState>();
+    for (Map.Entry<TransactionId, Entry> entry : states.entrySet()) {
+      if (!entry.getValue().heuristic) {
+        result.put(entry.getKey(), entry.getValue().state);
+      }
+    }
+    return result;
   }
 
   @Override
   public void forget(TransactionId transactionId) {
-
+    Entry entry = states.get(transactionId);
+    if (entry != null && entry.heuristic) {
+      states.remove(transactionId);
+    }
   }
 
   @Override
   public Map<TransactionId, XAState> heuristicDecisions() {
-    return Collections.emptyMap();
+    HashMap<TransactionId, XAState> result = new HashMap<TransactionId, XAState>();
+    for (Map.Entry<TransactionId, Entry> entry : states.entrySet()) {
+      if (entry.getValue().heuristic) {
+        result.put(entry.getKey(), entry.getValue().state);
+      }
+    }
+    return result;
+  }
+
+  @Override
+  public void open() throws IOException {
+  }
+
+  @Override
+  public void close() throws IOException {
   }
 }

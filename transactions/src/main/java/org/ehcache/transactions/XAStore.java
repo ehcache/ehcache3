@@ -19,11 +19,16 @@ import org.ehcache.Cache;
 import org.ehcache.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourceType;
+import org.ehcache.config.SerializerConfiguration;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
+import org.ehcache.config.serializer.ExtendedSerializerConfiguration;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -41,6 +46,7 @@ import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
+import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.transactions.commands.StoreEvictCommand;
@@ -56,6 +62,7 @@ import javax.transaction.RollbackException;
 import javax.transaction.Synchronization;
 import javax.transaction.SystemException;
 import javax.transaction.Transaction;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -82,10 +89,12 @@ public class XAStore<K, V> implements Store<K, V> {
   private final TimeSource timeSource;
   private final Journal journal;
   private final String uniqueXAResourceId;
+  private final Serializer<SoftLock<V>> softLockSerializer;
   private final XATransactionContextFactory<K, V> transactionContextFactory = new XATransactionContextFactory<K, V>();
   private final EhcacheXAResource recoveryXaResource;
 
-  public XAStore(Class<K> keyType, Class <V> valueType, Store<K, SoftLock<V>> underlyingStore, XAServiceProvider xaServiceProvider, TimeSource timeSource, Journal journal, String uniqueXAResourceId) {
+  public XAStore(Class<K> keyType, Class<V> valueType, Store<K, SoftLock<V>> underlyingStore, XAServiceProvider xaServiceProvider, TimeSource timeSource, Journal journal,
+                 String uniqueXAResourceId, Serializer<SoftLock<V>> softLockSerializer) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.underlyingStore = underlyingStore;
@@ -93,6 +102,7 @@ public class XAStore<K, V> implements Store<K, V> {
     this.timeSource = timeSource;
     this.journal = journal;
     this.uniqueXAResourceId = uniqueXAResourceId;
+    this.softLockSerializer = softLockSerializer;
     this.recoveryXaResource = new EhcacheXAResource<K, V>(underlyingStore, journal, transactionContextFactory);
   }
 
@@ -528,10 +538,6 @@ public class XAStore<K, V> implements Store<K, V> {
 
     @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
-      Journal journal = serviceProvider.getService(JournalProvider.class).getJournal();
-      SerializationProvider serializationProvider = serviceProvider.getService(SerializationProvider.class);
-
       XAServiceConfiguration xaServiceConfiguration = findSingletonAmongst(XAServiceConfiguration.class, (Object[]) serviceConfigs);
       Store<K, V> store;
       if (xaServiceConfiguration == null) {
@@ -613,8 +619,24 @@ public class XAStore<K, V> implements Store<K, V> {
             }
           };
 
-          Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig.getClassLoader());
-          Serializer<SoftLock<V>> softLockSerializer = (Serializer) serializationProvider.createValueSerializer(SoftLock.class, storeConfig.getClassLoader());
+          ResourcePool diskResourcePool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
+          String persistentSpace = diskResourcePool != null && diskResourcePool.isPersistent() ? uniqueXAResourceId : null;
+          LocalPersistenceService.PersistenceSpaceIdentifier persistenceSpaceId = null;
+          ExtendedSerializerConfiguration<SoftLock> extendedSerializerConf = null;
+          if (persistentSpace != null) {
+            try {
+              LocalPersistenceService persistenceService = serviceProvider.getService(LocalPersistenceService.class);
+              persistenceSpaceId = persistenceService.getOrCreatePersistenceSpace(persistentSpace);
+              extendedSerializerConf = new ExtendedSerializerConfiguration<SoftLock>(SerializerConfiguration.Type.VALUE, "SoftLock");
+            } catch (CachePersistenceException cpe) {
+              throw new RuntimeException("Cannot access local persistence space", cpe);
+            }
+          }
+
+          Serializer<V> valueSerializer = storeConfig.getValueSerializer();
+          SerializationProvider serializationProvider = serviceProvider.getService(SerializationProvider.class);
+          Serializer<SoftLock<V>> softLockSerializer = (Serializer) serializationProvider.createValueSerializer(SoftLock.class, storeConfig.getClassLoader(),
+              persistenceSpaceId, extendedSerializerConf);
           SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializer, valueSerializer);
 
           Collection<DefaultCopierConfiguration> copierConfigs = findAmongst(DefaultCopierConfiguration.class, underlyingServiceConfigs.toArray());
@@ -629,7 +651,8 @@ public class XAStore<K, V> implements Store<K, V> {
             underlyingServiceConfigs.remove(copierConfig);
           }
 
-          Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer, storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
+          Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer,
+              storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
           if (keyCopierConfig == null) {
             underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.KEY));
           } else {
@@ -645,8 +668,10 @@ public class XAStore<K, V> implements Store<K, V> {
             underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Copier) softLockValueCombinedCopier, CopierConfiguration.Type.VALUE));
           }
 
+          Journal journal = serviceProvider.getService(JournalProvider.class).getJournal(persistenceSpaceId);
           Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig, underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
-          store = new XAStore<K, V>(storeConfig.getKeyType(), storeConfig.getValueType(), underlyingStore, xaServiceProvider, timeSource, journal, uniqueXAResourceId);
+          TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
+          store = new XAStore<K, V>(storeConfig.getKeyType(), storeConfig.getValueType(), underlyingStore, xaServiceProvider, timeSource, journal, uniqueXAResourceId, softLockValueCombinedSerializer);
         } catch (UnsupportedTypeException ute) {
           throw new RuntimeException(ute);
         }
@@ -665,6 +690,12 @@ public class XAStore<K, V> implements Store<K, V> {
         XAStore<?, ?> xaStore = (XAStore<?, ?>) resource;
         underlyingStoreProvider.releaseStore(xaStore.underlyingStore);
         xaServiceProvider.unregisterXAResource(xaStore.uniqueXAResourceId, xaStore.recoveryXaResource);
+        try {
+          xaStore.journal.close();
+          xaStore.softLockSerializer.close();
+        } catch (IOException ioe) {
+          throw new RuntimeException(ioe);
+        }
       } else {
         underlyingStoreProvider.releaseStore(resource);
       }
@@ -677,6 +708,11 @@ public class XAStore<K, V> implements Store<K, V> {
       }
       if (resource instanceof XAStore) {
         XAStore<?, ?> xaStore = (XAStore<?, ?>) resource;
+        try {
+          xaStore.journal.open();
+        } catch (IOException ioe) {
+          throw new RuntimeException(ioe);
+        }
         xaServiceProvider.registerXAResource(xaStore.uniqueXAResourceId, xaStore.recoveryXaResource);
         underlyingStoreProvider.initStore(xaStore.underlyingStore);
       } else {

@@ -25,6 +25,7 @@ import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
+import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Duration;
@@ -39,6 +40,7 @@ import org.junit.Test;
 
 import javax.transaction.Status;
 import javax.transaction.Transaction;
+import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -232,9 +234,11 @@ public class XACacheTest {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
                 .offheap(10, MemoryUnit.MB)
+                .disk(20, MemoryUnit.MB, true)
         );
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .with(new CacheManagerPersistenceConfiguration(new File("myData")))
         .withCache("txCache1", cacheConfigurationBuilder.add(new XAServiceConfiguration("txCache1")).add(new DefaultCopierConfiguration<Long>(LongCopier.class, CopierConfiguration.Type.KEY)).add(new DefaultCopierConfiguration<String>(StringCopier.class, CopierConfiguration.Type.VALUE)).buildConfig(Long.class, String.class))
         .withCache("txCache2", cacheConfigurationBuilder.add(new XAServiceConfiguration("txCache2")).buildConfig(Long.class, String.class))
         .with(new XACacheManagerConfiguration())
