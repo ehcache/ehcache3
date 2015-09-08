@@ -95,6 +95,26 @@ final class EhcacheBasicBulkUtil {
     testEntries.put("keyC6", "valueC6");   // keySet C
     testEntries.put("keyD6", "valueD6");   // KeySet D
 
+    testEntries.put("keyB7", "valueB7");   // keySet B
+    testEntries.put("keyE7", "valueE7");   // KeySet E
+    testEntries.put("keyF7", "valueF7");   // KeySet F
+    testEntries.put("keyC7", "valueC7");   // keySet C
+    testEntries.put("keyD7", "valueD7");   // KeySet D
+
+    testEntries.put("keyE8", "valueE8");   // KeySet E
+    testEntries.put("keyF8", "valueF8");   // KeySet F
+    testEntries.put("keyC8", "valueC8");   // keySet C
+    testEntries.put("keyD8", "valueD8");   // KeySet D
+
+    testEntries.put("keyF9", "valueF9");   // KeySet F
+    testEntries.put("keyC9", "valueC9");   // keySet C
+    testEntries.put("keyD9", "valueD9");   // KeySet D
+
+    testEntries.put("keyC10", "valueC10");   // keySet C
+    testEntries.put("keyD10", "valueD10");   // KeySet D
+
+    testEntries.put("keyD11", "valueD11");   // KeySet D
+
     TEST_ENTRIES = Collections.unmodifiableMap(testEntries);
   }
 

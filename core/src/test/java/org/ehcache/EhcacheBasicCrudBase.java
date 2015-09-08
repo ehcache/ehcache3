@@ -902,7 +902,7 @@ public abstract class EhcacheBasicCrudBase {
           if (failingKeys.contains(key)) {
             failures.put(key, loadingException);
           } else {
-            loadedKeys.put(key, null);
+            loadedKeys.put(key, this.entries.get(key));
           }
         }
         throw new BulkCacheLoadingException(failures, loadedKeys);

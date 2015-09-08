@@ -449,8 +449,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       }
       
       addBulkMethodEntriesCount(BulkOps.GET_ALL_HITS, hits);
-      addBulkMethodEntriesCount(BulkOps.GET_ALL_MISS, keyCount - hits);
       if (failures.isEmpty()) {
+        addBulkMethodEntriesCount(BulkOps.GET_ALL_MISS, keyCount - hits);
         getAllObserver.end(GetAllOutcome.SUCCESS);
         return result;
       } else {
