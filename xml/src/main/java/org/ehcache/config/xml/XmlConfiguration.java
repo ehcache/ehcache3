@@ -251,10 +251,10 @@ public class XmlConfiguration implements Configuration {
           WriteBehind writeBehind = cacheDefinition.writeBehind();
           WriteBehindConfigurationBuilder writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
               .concurrencyLevel(writeBehind.concurrency()).queueSize(writeBehind.maxQueueSize()).rateLimit(writeBehind.rateLimitPerSecond())
-              .retry(writeBehind.retryAttempts(), writeBehind.retryAttemptsDelay())
-              .delay(writeBehind.minWriteDelay(), writeBehind.maxWriteDelay());
-          if(writeBehind.isBatched()){
-            writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.batchSize(writeBehind.batchSize());
+              .delay(writeBehind.minWriteDelay(), writeBehind.maxWriteDelay())
+              .batchSize(writeBehind.batchSize());
+          if (writeBehind.isRetryAttemptsSet()) {
+            writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.retry(writeBehind.retryAttempts(), writeBehind.retryAttemptsDelay());
           }
           if(writeBehind.isCoalesced()) {
             writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.enableCoalescing();
@@ -440,10 +440,10 @@ public class XmlConfiguration implements Configuration {
         WriteBehind writeBehind = cacheTemplate.writeBehind();
         WriteBehindConfigurationBuilder writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
             .concurrencyLevel(writeBehind.concurrency()).queueSize(writeBehind.maxQueueSize()).rateLimit(writeBehind.rateLimitPerSecond())
-            .retry(writeBehind.retryAttempts(), writeBehind.retryAttemptsDelay())
-            .delay(writeBehind.minWriteDelay(), writeBehind.maxWriteDelay());
-        if(writeBehind.isBatched()){
-          writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.batchSize(writeBehind.batchSize());
+            .delay(writeBehind.minWriteDelay(), writeBehind.maxWriteDelay())
+            .batchSize(writeBehind.batchSize());
+        if (writeBehind.isRetryAttemptsSet()) {
+          writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.retry(writeBehind.retryAttempts(), writeBehind.retryAttemptsDelay());
         }
         if(writeBehind.isCoalesced()) {
           writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.enableCoalescing();

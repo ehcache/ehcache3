@@ -43,18 +43,11 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
   /**
    * The maximum number of write operations to allow per second.
    *
-   * {@code 0} means no limit.
+   * Only positive values are legal.
    *
    * @return Retrieves the maximum number of write operations to allow per second.
    */
   int getRateLimitPerSecond();
-
-  /**
-   * Whether write operations should be batched.
-   *
-   * @return Retrieves whether write operations should be batched
-   */
-  boolean isWriteBatching();
 
   /**
    * Whether write operations can be coalesced.
@@ -65,6 +58,8 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
 
   /**
    * The recommended size of a batch of operations.
+   *
+   * Only positive values are legal. A value of 1 indicates that no batching should happen.
    *
    * Real batch size will be influenced by arrival frequency of operations and max write delay.
    *
@@ -96,7 +91,7 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
   /**
    * The maximum number of operations allowed on the write behind queue.
    *
-   * {@code 0} indicates an unbound queue.
+   * Only positive values are legal.
    *
    * @return Retrieves the maximum amount of operations allowed on the write behind queue
    */

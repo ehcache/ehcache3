@@ -664,13 +664,13 @@ class ConfigurationParser {
     
     boolean isCoalesced();
     
-    boolean isBatched();
-    
     int batchSize();
     
     int maxQueueSize();
     
     int concurrency();
+
+    boolean isRetryAttemptsSet();
     
     int retryAttempts();
     
@@ -767,14 +767,8 @@ class ConfigurationParser {
     }
 
     @Override
-    public boolean isBatched() {
-      return this.writebehind.getBatchsize() != null;
-    }
-
-    @Override
     public int batchSize() {
-      if(this.writebehind.getBatchsize() != null) return this.writebehind.getBatchsize().intValue();
-      return 0;
+      return this.writebehind.getBatchsize().intValue();
     }
 
     @Override
@@ -788,28 +782,33 @@ class ConfigurationParser {
     }
 
     @Override
+    public boolean isRetryAttemptsSet() {
+      return this.writebehind.getRetry() != null;
+    }
+
+    @Override
     public int retryAttempts() {
-      return this.writebehind.getRetryAttempts() != null ? this.writebehind.getRetryAttempts().getValue().intValue() : 0 ;
+      return this.writebehind.getRetry().getAttempts().intValue();
     }
 
     @Override
     public int retryAttemptsDelay() {
-      return this.writebehind.getRetryAttempts() != null ? this.writebehind.getRetryAttempts().getDelay().intValue() : 1;
+      return this.writebehind.getRetry().getDelay().intValue();
     }
 
     @Override
     public int minWriteDelay() {
-      return this.writebehind.getWritedelay() != null ? this.writebehind.getWritedelay().getMin().intValue() : 0 ;
+      return this.writebehind.getMinWriteDelay().intValue();
     }
 
     @Override
     public int maxWriteDelay() {
-      return this.writebehind.getWritedelay() != null ? this.writebehind.getWritedelay().getMax().intValue() : 1 ;
+      return this.writebehind.getMaxWriteDelay().intValue();
     }
 
     @Override
     public int rateLimitPerSecond() {
-      return this.writebehind.getRatelimitpersecond() != null ? this.writebehind.getRatelimitpersecond().intValue() : 0;
+      return this.writebehind.getRatelimitpersecond().intValue();
     }
     
   }
