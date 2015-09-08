@@ -488,17 +488,43 @@ public class XAStore<K, V> implements Store<K, V> {
 
   @Override
   public ValueHolder<V> computeIfAbsent(K key, final Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
-    //TODO: implement this properly
-    ValueHolder<V> valueHolder = get(key);
-    if (valueHolder == null) {
-      return compute(key, new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K k, V v) {
-          return mappingFunction.apply(k);
-        }
-      });
+    checkKey(key);
+    XATransactionContext<K, V> currentContext = getCurrentContext();
+    if (currentContext.removed(key)) {
+      V computed = mappingFunction.apply(key);
+      XAValueHolder<V> xaValueHolder = null;
+      if (computed != null) {
+        checkValue(computed);
+        xaValueHolder = new XAValueHolder<V>(computed, timeSource.getTimeMillis());
+        V oldValue = currentContext.getOldValue(key);
+        currentContext.addCommand(key, new StorePutCommand<V>(oldValue, xaValueHolder));
+      } // else do nothing
+      return xaValueHolder;
     }
-    return valueHolder;
+    V evictedValue = currentContext.getEvictedValue(key);
+    if (evictedValue != null) {
+      return new XAValueHolder<V>(evictedValue, timeSource.getTimeMillis());
+    }
+
+
+    XAValueHolder<V> xaValueHolder;
+    ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
+    if (softLockValueHolder == null) {
+      V computed = mappingFunction.apply(key);
+      if (computed != null) {
+        xaValueHolder = new XAValueHolder<V>(computed, timeSource.getTimeMillis());
+        currentContext.addCommand(key, new StorePutCommand<V>(null, xaValueHolder));
+      } else {
+        xaValueHolder = null;
+      }
+    } else if (isInDoubt(softLockValueHolder.value())) {
+      currentContext.addCommand(key, new StoreEvictCommand<V>(softLockValueHolder.value().getOldValue()));
+      xaValueHolder = new XAValueHolder<V>(softLockValueHolder, softLockValueHolder.value().getNewValueHolder().value());
+    } else {
+      xaValueHolder = new XAValueHolder<V>(softLockValueHolder, softLockValueHolder.value().getOldValue());
+    }
+
+    return xaValueHolder;
   }
 
   @Override

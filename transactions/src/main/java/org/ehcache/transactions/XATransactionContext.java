@@ -21,6 +21,7 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.transactions.commands.Command;
 import org.ehcache.transactions.commands.StoreEvictCommand;
 import org.ehcache.transactions.commands.StorePutCommand;
+import org.ehcache.transactions.commands.StoreRemoveCommand;
 import org.ehcache.transactions.journal.Journal;
 
 import java.util.HashMap;
@@ -81,6 +82,18 @@ public class XATransactionContext<K, V> {
 
   public boolean containsCommandFor(K key) {
     return commands.containsKey(key);
+  }
+
+  public boolean removed(K key) {
+    return commands.get(key) instanceof StoreRemoveCommand;
+  }
+
+  public V getEvictedValue(K key) {
+    Command<V> command = commands.get(key);
+    if (command instanceof StoreEvictCommand) {
+      return command.getOldValue();
+    }
+    return null;
   }
 
   public V latestValueFor(K key) {
