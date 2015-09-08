@@ -30,9 +30,15 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.Iterator;
 import org.ehcache.spi.cache.Store.ValueHolder;
+import org.ehcache.statistics.StoreOperationOutcomes;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Matchers;
+import org.terracotta.context.ContextElement;
+import org.terracotta.context.TreeNode;
+import org.terracotta.context.query.QueryBuilder;
+import org.terracotta.statistics.OperationStatistic;
+import org.terracotta.statistics.StatisticsManager;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -104,6 +110,7 @@ public abstract class BaseOnHeapStoreTest {
     timeSource.advanceTime(1);
     assertThat(store.get("key"), nullValue());
     checkExpiryEvent(listener, "key", "value");
+    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
   }
 
   @Test
@@ -153,6 +160,7 @@ public abstract class BaseOnHeapStoreTest {
     timeSource.advanceTime(1);
     assertThat(store.containsKey("key"), is(false));
     checkExpiryEvent(listener, "key", "value");
+    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
   }
 
   @Test
@@ -221,6 +229,7 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(prev, nullValue());
     assertThat(store.get("key").value(), equalTo("value2"));
     checkExpiryEvent(listener, "key", "value");
+    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
   }
 
   @Test
@@ -248,6 +257,7 @@ public abstract class BaseOnHeapStoreTest {
     boolean removed = store.remove("key", "value");
     assertThat(removed, equalTo(false));
     checkExpiryEvent(listener, "key", "value");
+    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
   }
 
   @Test
@@ -278,6 +288,7 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(existing, nullValue());
     assertThat(store.get("key"), nullValue());
     checkExpiryEvent(listener, "key", "value");
+    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
   }
 
   @Test
@@ -312,6 +323,7 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(replaced, equalTo(false));
     assertThat(store.get("key"), nullValue());
     checkExpiryEvent(listener, "key", "value");
+    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
   }
 
   @Test
@@ -361,6 +373,7 @@ public abstract class BaseOnHeapStoreTest {
     checkExpiryEvent(listener, "key1", "value1");
     checkExpiryEvent(listener, "key2", "value2");
     checkExpiryEvent(listener, "key3", "value3");
+    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(3L));
   }
 
   @Test
@@ -536,6 +549,7 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(newValue.value(), equalTo("value2"));
     assertThat(store.get("key").value(), equalTo("value2"));
     checkExpiryEvent(listener, "key", "value");
+    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
   }
 
   @Test
@@ -627,6 +641,7 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(store.get("key").value(), equalTo("value2"));
     final String value = "value";
     verify(listener).onExpiration(eq("key"), valueHolderValueEq(value));
+    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
   }
 
   @Test
@@ -782,9 +797,8 @@ public abstract class BaseOnHeapStoreTest {
 
     assertThat(newValue, nullValue());
     assertThat(store.get("key"), nullValue());
-    verify(listener).onExpiration(eq("key"), valueHolderValueEq("value")
-    );
-    
+    verify(listener).onExpiration(eq("key"), valueHolderValueEq("value"));
+    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
   }
 
   @Test
@@ -809,6 +823,20 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(store.get("key"), nullValue());
     verify(listener).onExpiration(eq("key"), valueHolderValueEq("value"));
     assertThat(storeSize(store), is(0));
+    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
+  }
+
+  private OperationStatistic<StoreOperationOutcomes.ExpirationOutcome> getExpirationStatistic(OnHeapStore<String, String> store) {
+    StatisticsManager statisticsManager = new StatisticsManager();
+    statisticsManager.root(store);
+    TreeNode treeNode = statisticsManager.queryForSingleton(QueryBuilder.queryBuilder()
+        .descendants()
+        .filter(org.terracotta.context.query.Matchers.context(
+            org.terracotta.context.query.Matchers.<ContextElement>allOf(org.terracotta.context.query.Matchers.identifier(org.terracotta.context.query.Matchers
+                .subclassOf(OperationStatistic.class)),
+                org.terracotta.context.query.Matchers.attributes(org.terracotta.context.query.Matchers.hasAttribute("name", "expiration")))))
+        .build());
+    return (OperationStatistic<StoreOperationOutcomes.ExpirationOutcome>) treeNode.getContext().attributes().get("this");
   }
 
   public static <V> ValueHolder<V> valueHolderValueEq(final V value) {

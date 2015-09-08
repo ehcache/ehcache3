@@ -60,4 +60,11 @@ public interface StoreOperationOutcomes {
     FAILURE
   };
 
+  /**
+   * Outcomes for expiration
+   */
+  enum ExpirationOutcome implements StoreOperationOutcomes {
+    SUCCESS
+  }
+
 }
