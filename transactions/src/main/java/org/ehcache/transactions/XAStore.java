@@ -768,14 +768,15 @@ public class XAStore<K, V> implements Store<K, V> {
       }
       if (resource instanceof XAStore) {
         XAStore<?, ?> xaStore = (XAStore<?, ?>) resource;
-        underlyingStoreProvider.releaseStore(xaStore.underlyingStore);
+
         xaServiceProvider.unregisterXAResource(xaStore.uniqueXAResourceId, xaStore.recoveryXaResource);
         try {
-          xaStore.journal.close();
           helper.valueSerializer.close();
+          xaStore.journal.close();
         } catch (IOException ioe) {
           throw new RuntimeException(ioe);
         }
+        underlyingStoreProvider.releaseStore(xaStore.underlyingStore);
       } else {
         underlyingStoreProvider.releaseStore(resource);
       }
@@ -790,6 +791,7 @@ public class XAStore<K, V> implements Store<K, V> {
       if (resource instanceof XAStore) {
         XAStore<?, ?> xaStore = (XAStore<?, ?>) resource;
 
+        underlyingStoreProvider.initStore(xaStore.underlyingStore);
         try {
           helper.valueSerializer = (Serializer) serializationProvider.createValueSerializer(SoftLock.class, helper.storeConfig.getClassLoader(),
               helper.persistenceSpaceId, helper.extendedSerializerConf);
@@ -797,14 +799,12 @@ public class XAStore<K, V> implements Store<K, V> {
         } catch (UnsupportedTypeException ute) {
           throw new RuntimeException(ute);
         }
-
         try {
           xaStore.journal.open();
         } catch (IOException ioe) {
           throw new RuntimeException(ioe);
         }
         xaServiceProvider.registerXAResource(xaStore.uniqueXAResourceId, xaStore.recoveryXaResource);
-        underlyingStoreProvider.initStore(xaStore.underlyingStore);
       } else {
         underlyingStoreProvider.initStore(resource);
       }
