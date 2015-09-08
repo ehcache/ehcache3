@@ -26,12 +26,15 @@ import java.nio.ByteBuffer;
  */
 public class SoftLockValueCombinedSerializer<T> implements Serializer<SoftLock<T>> {
 
-  private final Serializer<SoftLock<T>> softLockSerializer;
+  private volatile Serializer<SoftLock<T>> softLockSerializer;
   private final Serializer<T> valueSerializer;
 
-  public SoftLockValueCombinedSerializer(Serializer<SoftLock<T>> softLockSerializer, Serializer<T> valueSerializer) {
-    this.softLockSerializer = softLockSerializer;
+  public SoftLockValueCombinedSerializer(Serializer<T> valueSerializer) {
     this.valueSerializer = valueSerializer;
+  }
+
+  void setSoftLockSerializer(Serializer<SoftLock<T>> softLockSerializer) {
+    this.softLockSerializer = softLockSerializer;
   }
 
   @Override
@@ -52,10 +55,6 @@ public class SoftLockValueCombinedSerializer<T> implements Serializer<SoftLock<T
 
   @Override
   public void close() throws IOException {
-    try {
-      softLockSerializer.close();
-    } finally {
-      valueSerializer.close();
-    }
+    throw new AssertionError("SoftLock and value serializers should be closed independently");
   }
 }

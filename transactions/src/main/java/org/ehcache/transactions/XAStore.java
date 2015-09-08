@@ -90,12 +90,11 @@ public class XAStore<K, V> implements Store<K, V> {
   private final TimeSource timeSource;
   private final Journal journal;
   private final String uniqueXAResourceId;
-  private final Serializer<SoftLock<V>> softLockSerializer;
   private final XATransactionContextFactory<K, V> transactionContextFactory = new XATransactionContextFactory<K, V>();
   private final EhcacheXAResource recoveryXaResource;
 
-  public XAStore(Class<K> keyType, Class<V> valueType, Store<K, SoftLock<V>> underlyingStore, XAServiceProvider xaServiceProvider, TimeSource timeSource, Journal journal,
-                 String uniqueXAResourceId, Serializer<SoftLock<V>> softLockSerializer) {
+  public XAStore(Class<K> keyType, Class<V> valueType, Store<K, SoftLock<V>> underlyingStore, XAServiceProvider xaServiceProvider,
+                 TimeSource timeSource, Journal journal, String uniqueXAResourceId) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.underlyingStore = underlyingStore;
@@ -103,7 +102,6 @@ public class XAStore<K, V> implements Store<K, V> {
     this.timeSource = timeSource;
     this.journal = journal;
     this.uniqueXAResourceId = uniqueXAResourceId;
-    this.softLockSerializer = softLockSerializer;
     this.recoveryXaResource = new EhcacheXAResource<K, V>(underlyingStore, journal, transactionContextFactory);
   }
 
@@ -587,170 +585,185 @@ public class XAStore<K, V> implements Store<K, V> {
     return underlyingStore.getConfigurationChangeListeners();
   }
 
+  private static final class SoftLockValueCombinedSerializerLifecycleHelper {
+    volatile Serializer<SoftLock> valueSerializer;
+
+    final SoftLockValueCombinedSerializer softLockValueCombinedSerializer;
+    final Configuration<?, ?> storeConfig;
+    final LocalPersistenceService.PersistenceSpaceIdentifier persistenceSpaceId;
+    final ExtendedSerializerConfiguration<SoftLock> extendedSerializerConf;
+
+    <K, V> SoftLockValueCombinedSerializerLifecycleHelper(SoftLockValueCombinedSerializer softLockValueCombinedSerializer, Configuration<K, V> storeConfig, LocalPersistenceService.PersistenceSpaceIdentifier persistenceSpaceId, ExtendedSerializerConfiguration<SoftLock> extendedSerializerConf) {
+      this.softLockValueCombinedSerializer = softLockValueCombinedSerializer;
+      this.storeConfig = storeConfig;
+      this.persistenceSpaceId = persistenceSpaceId;
+      this.extendedSerializerConf = extendedSerializerConf;
+    }
+  }
+
   @ServiceDependencies({TimeSourceService.class, JournalProvider.class, CopyProvider.class, DefaultStoreProvider.class})
   public static class Provider implements Store.Provider {
 
     private volatile ServiceProvider serviceProvider;
     private volatile Store.Provider underlyingStoreProvider;
     private volatile XAServiceProvider xaServiceProvider;
-    private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
+    private volatile SerializationProvider serializationProvider;
+    private final Map<Store<?, ?>, SoftLockValueCombinedSerializerLifecycleHelper> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, SoftLockValueCombinedSerializerLifecycleHelper>();
 
     @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       XAServiceConfiguration xaServiceConfiguration = findSingletonAmongst(XAServiceConfiguration.class, (Object[]) serviceConfigs);
       Store<K, V> store;
+      SoftLockValueCombinedSerializerLifecycleHelper helper;
       if (xaServiceConfiguration == null) {
         // non-tx cache
         store = underlyingStoreProvider.createStore(storeConfig, serviceConfigs);
+        helper = new SoftLockValueCombinedSerializerLifecycleHelper(null, null, null, null);
       } else {
         String uniqueXAResourceId = xaServiceConfiguration.getUniqueXAResourceId();
         List<ServiceConfiguration<?>> underlyingServiceConfigs = new ArrayList<ServiceConfiguration<?>>();
         underlyingServiceConfigs.addAll(Arrays.asList(serviceConfigs));
 
-        try {
-          // TODO: do we want to support pluggable veto and prioritizer?
+        // TODO: do we want to support pluggable veto and prioritizer?
 
-          // eviction veto
-          EvictionVeto<? super K, ? super SoftLock> evictionVeto = new EvictionVeto<K, SoftLock>() {
-            @Override
-            public boolean test(Cache.Entry<K, SoftLock> argument) {
-              return argument.getValue().getTransactionId() != null;
+        // eviction veto
+        EvictionVeto<? super K, ? super SoftLock> evictionVeto = new EvictionVeto<K, SoftLock>() {
+          @Override
+          public boolean test(Cache.Entry<K, SoftLock> argument) {
+            return argument.getValue().getTransactionId() != null;
+          }
+        };
+
+        // eviction prioritizer
+        EvictionPrioritizer<? super K, ? super SoftLock> evictionPrioritizer = new EvictionPrioritizer<K, SoftLock>() {
+          @Override
+          public int compare(Cache.Entry<K, SoftLock> o1, Cache.Entry<K, SoftLock> o2) {
+            if (o1.getValue().getTransactionId() != null && o2.getValue().getTransactionId() != null) {
+              return 0;
             }
-          };
-
-          // eviction prioritizer
-          EvictionPrioritizer<? super K, ? super SoftLock> evictionPrioritizer = new EvictionPrioritizer<K, SoftLock>() {
-            @Override
-            public int compare(Cache.Entry<K, SoftLock> o1, Cache.Entry<K, SoftLock> o2) {
-              if (o1.getValue().getTransactionId() != null && o2.getValue().getTransactionId() != null) {
-                return 0;
-              }
-              if (o1.getValue().getTransactionId() == null && o2.getValue().getTransactionId() == null) {
-                return 0;
-              }
-              return o1.getValue().getTransactionId() != null ? 1 : -1;
+            if (o1.getValue().getTransactionId() == null && o2.getValue().getTransactionId() == null) {
+              return 0;
             }
-          };
+            return o1.getValue().getTransactionId() != null ? 1 : -1;
+          }
+        };
 
-          // expiry
-          final Expiry<? super K, ? super V> configuredExpiry = storeConfig.getExpiry();
-          Expiry<? super K, ? super SoftLock> expiry = new Expiry<K, SoftLock>() {
-            @Override
-            public Duration getExpiryForCreation(K key, SoftLock softLock) {
-              if (softLock.getTransactionId() != null) {
-                // phase 1 prepare, create -> forever
-                return Duration.FOREVER;
+        // expiry
+        final Expiry<? super K, ? super V> configuredExpiry = storeConfig.getExpiry();
+        Expiry<? super K, ? super SoftLock> expiry = new Expiry<K, SoftLock>() {
+          @Override
+          public Duration getExpiryForCreation(K key, SoftLock softLock) {
+            if (softLock.getTransactionId() != null) {
+              // phase 1 prepare, create -> forever
+              return Duration.FOREVER;
+            } else {
+              // phase 2 commit, or during a TX's lifetime, create -> some time
+              return configuredExpiry.getExpiryForCreation(key, (V) softLock.getOldValue());
+            }
+          }
+
+          @Override
+          public Duration getExpiryForAccess(K key, SoftLock softLock) {
+            if (softLock.getTransactionId() != null) {
+              // phase 1 prepare, access -> forever
+              return Duration.FOREVER;
+            } else {
+              // phase 2 commit, or during a TX's lifetime, access -> some time
+              return configuredExpiry.getExpiryForAccess(key, (V) softLock.getOldValue());
+            }
+          }
+
+          @Override
+          public Duration getExpiryForUpdate(K key, SoftLock oldSoftLock, SoftLock newSoftLock) {
+            if (oldSoftLock.getTransactionId() == null) {
+              // phase 1 prepare, update -> forever
+              return Duration.FOREVER;
+            } else {
+              // phase 2 commit, or during a TX's lifetime
+              if (oldSoftLock.getOldValue() == null) {
+                // there is no old value -> it's a CREATE, update -> create -> some time
+                return configuredExpiry.getExpiryForCreation(key, (V) oldSoftLock.getOldValue());
               } else {
-                // phase 2 commit, or during a TX's lifetime, create -> some time
-                return configuredExpiry.getExpiryForCreation(key, (V) softLock.getOldValue());
+                // there is an old value -> it's an UPDATE, update -> some time
+                return configuredExpiry.getExpiryForUpdate(key, (V) oldSoftLock.getOldValue(), (V) oldSoftLock.getNewValueHolder().value());
               }
             }
-
-            @Override
-            public Duration getExpiryForAccess(K key, SoftLock softLock) {
-              if (softLock.getTransactionId() != null) {
-                // phase 1 prepare, access -> forever
-                return Duration.FOREVER;
-              } else {
-                // phase 2 commit, or during a TX's lifetime, access -> some time
-                return configuredExpiry.getExpiryForAccess(key, (V) softLock.getOldValue());
-              }
-            }
-
-            @Override
-            public Duration getExpiryForUpdate(K key, SoftLock oldSoftLock, SoftLock newSoftLock) {
-              if (oldSoftLock.getTransactionId() == null) {
-                // phase 1 prepare, update -> forever
-                return Duration.FOREVER;
-              } else {
-                // phase 2 commit, or during a TX's lifetime
-                if (oldSoftLock.getOldValue() == null) {
-                  // there is no old value -> it's a CREATE, update -> create -> some time
-                  return configuredExpiry.getExpiryForCreation(key, (V) oldSoftLock.getOldValue());
-                } else {
-                  // there is an old value -> it's an UPDATE, update -> some time
-                  return configuredExpiry.getExpiryForUpdate(key, (V) oldSoftLock.getOldValue(), (V) oldSoftLock.getNewValueHolder().value());
-                }
-              }
-            }
-          };
-
-          // check if the store is persistent, and get the PersistenceSpaceIdentifier if it is
-          ResourcePool diskResourcePool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
-          String persistentSpace = diskResourcePool != null && diskResourcePool.isPersistent() ? uniqueXAResourceId : null;
-          LocalPersistenceService.PersistenceSpaceIdentifier persistenceSpaceId = null;
-          ExtendedSerializerConfiguration<SoftLock> extendedSerializerConf = null;
-          if (persistentSpace != null) {
-            try {
-              LocalPersistenceService persistenceService = serviceProvider.getService(LocalPersistenceService.class);
-              persistenceSpaceId = persistenceService.getOrCreatePersistenceSpace(persistentSpace);
-              // the soft lock serializer needs to be qualified or else it will be persisted in the same space as the value serializer
-              // making one's state overwrite the other's
-              extendedSerializerConf = new ExtendedSerializerConfiguration<SoftLock>(SerializerConfiguration.Type.VALUE, "SoftLock");
-            } catch (CachePersistenceException cpe) {
-              throw new RuntimeException("Cannot access local persistence space", cpe);
-            }
           }
+        };
 
-          // find the copiers
-          Collection<DefaultCopierConfiguration> copierConfigs = findAmongst(DefaultCopierConfiguration.class, underlyingServiceConfigs.toArray());
-          DefaultCopierConfiguration keyCopierConfig = null;
-          DefaultCopierConfiguration valueCopierConfig = null;
-          for (DefaultCopierConfiguration copierConfig : copierConfigs) {
-            if (copierConfig.getType().equals(CopierConfiguration.Type.KEY)) {
-              keyCopierConfig = copierConfig;
-            } else if (copierConfig.getType().equals(CopierConfiguration.Type.VALUE)) {
-              valueCopierConfig = copierConfig;
-            }
-            underlyingServiceConfigs.remove(copierConfig);
+        // check if the store is persistent, and get the PersistenceSpaceIdentifier if it is
+        ResourcePool diskResourcePool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
+        String persistentSpace = diskResourcePool != null && diskResourcePool.isPersistent() ? uniqueXAResourceId : null;
+        LocalPersistenceService.PersistenceSpaceIdentifier persistenceSpaceId = null;
+        ExtendedSerializerConfiguration<SoftLock> extendedSerializerConf = null;
+        if (persistentSpace != null) {
+          try {
+            LocalPersistenceService persistenceService = serviceProvider.getService(LocalPersistenceService.class);
+            persistenceSpaceId = persistenceService.getOrCreatePersistenceSpace(persistentSpace);
+            // the soft lock serializer needs to be qualified or else it will be persisted in the same space as the value serializer
+            // making one's state overwrite the other's
+            extendedSerializerConf = new ExtendedSerializerConfiguration<SoftLock>(SerializerConfiguration.Type.VALUE, "SoftLock");
+          } catch (CachePersistenceException cpe) {
+            throw new RuntimeException("Cannot access local persistence space", cpe);
           }
-
-          // force-in a key copier if none is configured
-          if (keyCopierConfig == null) {
-            underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.KEY));
-          } else {
-            underlyingServiceConfigs.add(keyCopierConfig);
-          }
-
-          // force-in a value copier if none is configured, or wrap the configured one in a soft lock copier
-          if (valueCopierConfig == null) {
-            underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.VALUE));
-          } else {
-            CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
-            Copier valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer(), valueCopierConfig);
-            SoftLockValueCombinedCopier<V> softLockValueCombinedCopier = new SoftLockValueCombinedCopier<V>(valueCopier);
-            underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Copier) softLockValueCombinedCopier, CopierConfiguration.Type.VALUE));
-          }
-
-          // lookup the required XAStore services
-          Journal journal = serviceProvider.getService(JournalProvider.class).getJournal(persistenceSpaceId);
-          TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
-
-          // create the soft lock serializer
-          SerializationProvider serializationProvider = serviceProvider.getService(SerializationProvider.class);
-          Serializer<SoftLock<V>> softLockSerializer = (Serializer) serializationProvider.createValueSerializer(SoftLock.class, storeConfig.getClassLoader(),
-              persistenceSpaceId, extendedSerializerConf);
-          SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializer, storeConfig.getValueSerializer());
-
-          // create the underlying store
-          Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer,
-              storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
-          Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig, underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
-
-          // create the XA store
-          store = new XAStore<K, V>(storeConfig.getKeyType(), storeConfig.getValueType(), underlyingStore, xaServiceProvider, timeSource, journal, uniqueXAResourceId, softLockValueCombinedSerializer);
-        } catch (UnsupportedTypeException ute) {
-          throw new RuntimeException(ute);
         }
+
+        // find the copiers
+        Collection<DefaultCopierConfiguration> copierConfigs = findAmongst(DefaultCopierConfiguration.class, underlyingServiceConfigs.toArray());
+        DefaultCopierConfiguration keyCopierConfig = null;
+        DefaultCopierConfiguration valueCopierConfig = null;
+        for (DefaultCopierConfiguration copierConfig : copierConfigs) {
+          if (copierConfig.getType().equals(CopierConfiguration.Type.KEY)) {
+            keyCopierConfig = copierConfig;
+          } else if (copierConfig.getType().equals(CopierConfiguration.Type.VALUE)) {
+            valueCopierConfig = copierConfig;
+          }
+          underlyingServiceConfigs.remove(copierConfig);
+        }
+
+        // force-in a key copier if none is configured
+        if (keyCopierConfig == null) {
+          underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.KEY));
+        } else {
+          underlyingServiceConfigs.add(keyCopierConfig);
+        }
+
+        // force-in a value copier if none is configured, or wrap the configured one in a soft lock copier
+        if (valueCopierConfig == null) {
+          underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.VALUE));
+        } else {
+          CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
+          Copier valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer(), valueCopierConfig);
+          SoftLockValueCombinedCopier<V> softLockValueCombinedCopier = new SoftLockValueCombinedCopier<V>(valueCopier);
+          underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Copier) softLockValueCombinedCopier, CopierConfiguration.Type.VALUE));
+        }
+
+        // lookup the required XAStore services
+        Journal journal = serviceProvider.getService(JournalProvider.class).getJournal(persistenceSpaceId);
+        TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
+
+        // create the soft lock serializer
+        SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(storeConfig.getValueSerializer());
+
+        // create the underlying store
+        Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer,
+            storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
+        Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig, underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
+
+        // create the XA store
+        store = new XAStore<K, V>(storeConfig.getKeyType(), storeConfig.getValueType(), underlyingStore, xaServiceProvider, timeSource, journal, uniqueXAResourceId);
+
+        helper = new SoftLockValueCombinedSerializerLifecycleHelper(softLockValueCombinedSerializer, storeConfig, persistenceSpaceId, extendedSerializerConf);
       }
 
-      createdStores.add(store);
+      createdStores.put(store, helper);
       return store;
     }
 
     @Override
     public void releaseStore(Store<?, ?> resource) {
-      if (!createdStores.remove(resource)) {
+      SoftLockValueCombinedSerializerLifecycleHelper helper = createdStores.remove(resource);
+      if (helper == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
       if (resource instanceof XAStore) {
@@ -759,7 +772,7 @@ public class XAStore<K, V> implements Store<K, V> {
         xaServiceProvider.unregisterXAResource(xaStore.uniqueXAResourceId, xaStore.recoveryXaResource);
         try {
           xaStore.journal.close();
-          xaStore.softLockSerializer.close();
+          helper.valueSerializer.close();
         } catch (IOException ioe) {
           throw new RuntimeException(ioe);
         }
@@ -770,11 +783,21 @@ public class XAStore<K, V> implements Store<K, V> {
 
     @Override
     public void initStore(Store<?, ?> resource) {
-      if (!createdStores.contains(resource)) {
+      SoftLockValueCombinedSerializerLifecycleHelper helper = createdStores.get(resource);
+      if (helper == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
       if (resource instanceof XAStore) {
         XAStore<?, ?> xaStore = (XAStore<?, ?>) resource;
+
+        try {
+          helper.valueSerializer = (Serializer) serializationProvider.createValueSerializer(SoftLock.class, helper.storeConfig.getClassLoader(),
+              helper.persistenceSpaceId, helper.extendedSerializerConf);
+          helper.softLockValueCombinedSerializer.setSoftLockSerializer(helper.valueSerializer);
+        } catch (UnsupportedTypeException ute) {
+          throw new RuntimeException(ute);
+        }
+
         try {
           xaStore.journal.open();
         } catch (IOException ioe) {
@@ -790,6 +813,7 @@ public class XAStore<K, V> implements Store<K, V> {
     @Override
     public void start(ServiceProvider serviceProvider) {
       this.serviceProvider = serviceProvider;
+      this.serializationProvider = serviceProvider.getService(SerializationProvider.class);
       this.underlyingStoreProvider = serviceProvider.getService(DefaultStoreProvider.class);
       this.xaServiceProvider = serviceProvider.getService(XAServiceProvider.class);
     }
@@ -798,6 +822,7 @@ public class XAStore<K, V> implements Store<K, V> {
     public void stop() {
       this.xaServiceProvider = null;
       this.underlyingStoreProvider = null;
+      this.serializationProvider = null;
       this.serviceProvider = null;
     }
   }
