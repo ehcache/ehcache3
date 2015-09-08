@@ -26,6 +26,7 @@ import javax.cache.Caching;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.spi.CachingProvider;
 
+import java.util.HashSet;
 import java.util.concurrent.Callable;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -130,6 +131,21 @@ public class StatisticsTest {
     heapCache.get("key");
 
     assertThat(heapStatistics.getCacheMisses(), is(5L));
+  }
+
+  @Test
+  public void test_getCacheHitsAndMisses() {
+    heapCache.put("key1", "value1");
+    heapCache.put("key3", "value3");
+    heapCache.put("key5", "value5");
+
+    HashSet<String> keys = new HashSet<String>(5);
+    for (int i = 1; i <= 5; i++) {
+      keys.add("key" + i);
+    }
+    heapCache.getAll(keys);
+    assertThat(heapStatistics.getCacheHits(), is(3L));
+    assertThat(heapStatistics.getCacheMisses(), is(2L));
   }
 
   @Test

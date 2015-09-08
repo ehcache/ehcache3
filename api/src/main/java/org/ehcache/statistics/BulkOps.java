@@ -23,7 +23,12 @@ public enum BulkOps {
   /**
    * The "get all" bulk operation
    */
-  GET_ALL,
+  GET_ALL_HITS,
+
+  /**
+   * The "get all" missed bulk operation
+   */
+  GET_ALL_MISS,
 
   /**
    * The "put all" bulk operation

@@ -40,19 +40,24 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.BulkOps;
 import org.ehcache.statistics.CacheOperationOutcomes.CacheLoadingOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.GetAllOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.PutAllOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.PutOutcome;
+import org.ehcache.statistics.CacheOperationOutcomes.RemoveAllOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.slf4j.Logger;
 import org.terracotta.statistics.StatisticsManager;
+import org.terracotta.statistics.jsr166e.LongAdder;
 import org.terracotta.statistics.observer.OperationObserver;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -61,12 +66,9 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.Functions.memoize;
@@ -91,13 +93,16 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   protected final Logger logger;
   
   private final OperationObserver<GetOutcome> getObserver = operation(GetOutcome.class).named("get").of(this).tag("cache").build();
+  private final OperationObserver<GetAllOutcome> getAllObserver = operation(GetAllOutcome.class).named("getAll").of(this).tag("cache").build();
   private final OperationObserver<PutOutcome> putObserver = operation(PutOutcome.class).named("put").of(this).tag("cache").build();
+  private final OperationObserver<PutAllOutcome> putAllObserver = operation(PutAllOutcome.class).named("putAll").of(this).tag("cache").build();
   private final OperationObserver<RemoveOutcome> removeObserver = operation(RemoveOutcome.class).named("remove").of(this).tag("cache").build();
+  private final OperationObserver<RemoveAllOutcome> removeAllObserver = operation(RemoveAllOutcome.class).named("removeAll").of(this).tag("cache").build();
   private final OperationObserver<ConditionalRemoveOutcome> conditionalRemoveObserver = operation(ConditionalRemoveOutcome.class).named("conditionalRemove").of(this).tag("cache").build();
   private final OperationObserver<CacheLoadingOutcome> cacheLoadingObserver = operation(CacheLoadingOutcome.class).named("cacheLoading").of(this).tag("cache").build();
   private final OperationObserver<PutIfAbsentOutcome> putIfAbsentObserver = operation(PutIfAbsentOutcome.class).named("putIfAbsent").of(this).tag("cache").build();
   private final OperationObserver<ReplaceOutcome> replaceObserver = operation(ReplaceOutcome.class).named("replace").of(this).tag("cache").build();  
-  private final ConcurrentMap<BulkOps, AtomicLong> bulkMethodEntries = new ConcurrentHashMap<BulkOps, AtomicLong>();
+  private final Map<BulkOps, LongAdder> bulkMethodEntries = new EnumMap<BulkOps, LongAdder>(BulkOps.class);
 
   private static final NullaryFunction<Boolean> REPLACE_FALSE = new NullaryFunction<Boolean>() {
     @Override
@@ -150,9 +155,12 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     this.useLoaderInAtomics = useLoaderInAtomics;
     this.logger=logger;
     this.statusTransitioner = statusTransitioner;
+    for (BulkOps bulkOp : BulkOps.values()) {
+      bulkMethodEntries.put(bulkOp, new LongAdder());
+    }
   }
 
-  ConcurrentMap<BulkOps, AtomicLong> getBulkMethodEntries() {
+  Map<BulkOps, LongAdder> getBulkMethodEntries() {
     return bulkMethodEntries;
   }
 
@@ -368,9 +376,11 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   }
   
   private Map<K, V> getAllInternal(Set<? extends K> keys, boolean includeNulls) throws BulkCacheLoadingException {
+    getAllObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNullContent(keys);
     if(keys.isEmpty()) {
+      getAllObserver.end(GetAllOutcome.SUCCESS);
       return Collections.emptyMap();
     }
     final Map<K, V> successes;
@@ -425,7 +435,9 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       Map<K, Store.ValueHolder<V>> computedMap = store.bulkComputeIfAbsent(keys, computeFunction);
 
       int hits = 0;
+      int keyCount = 0;
       for (Map.Entry<K, Store.ValueHolder<V>> entry : computedMap.entrySet()) {
+        keyCount++;
         if (entry.getValue() != null) {
           result.put(entry.getKey(), entry.getValue().value());
           hits++;
@@ -434,29 +446,36 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         }
       }
       
-      addBulkMethodEntriesCount(BulkOps.GET_ALL, hits);
+      addBulkMethodEntriesCount(BulkOps.GET_ALL_HITS, hits);
+      addBulkMethodEntriesCount(BulkOps.GET_ALL_MISS, keyCount - hits);
       if (failures.isEmpty()) {
+        getAllObserver.end(GetAllOutcome.SUCCESS);
         return result;
       } else {
         successes.putAll(result);
+        getAllObserver.end(GetAllOutcome.FAILURE);
         throw new BulkCacheLoadingException(failures, successes);
       }
     } catch (CacheAccessException e) {
-      if (cacheLoaderWriter == null) {
-        return resilienceStrategy.getAllFailure(keys, e);
-      } else {
-        Set<K> toLoad = new HashSet<K>();
-        for (K key: keys) {
-          toLoad.add(key);
-        }
-        toLoad.removeAll(successes.keySet());
-        toLoad.removeAll(failures.keySet());
-        computeFunction.apply(toLoad);
-        if (failures.isEmpty()) {
-          return resilienceStrategy.getAllFailure(keys, successes, e);
+      try {
+        if (cacheLoaderWriter == null) {
+          return resilienceStrategy.getAllFailure(keys, e);
         } else {
-          return resilienceStrategy.getAllFailure(keys, e, new BulkCacheLoadingException(failures, successes));
+          Set<K> toLoad = new HashSet<K>();
+          for (K key : keys) {
+            toLoad.add(key);
+          }
+          toLoad.removeAll(successes.keySet());
+          toLoad.removeAll(failures.keySet());
+          computeFunction.apply(toLoad);
+          if (failures.isEmpty()) {
+            return resilienceStrategy.getAllFailure(keys, successes, e);
+          } else {
+            return resilienceStrategy.getAllFailure(keys, e, new BulkCacheLoadingException(failures, successes));
+          }
         }
+      } finally {
+        getAllObserver.end(GetAllOutcome.FAILURE);
       }
     }
   }
@@ -471,9 +490,11 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
 
   @Override
   public void putAll(final Map<? extends K, ? extends V> entries) throws BulkCacheWritingException {
+    putAllObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(entries);
     if(entries.isEmpty()) {
+      putAllObserver.end(PutAllOutcome.SUCCESS);
       return;
     }
     final Set<K> successes;
@@ -537,24 +558,31 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     try {
       store.bulkCompute(entries.keySet(), computeFunction);
       addBulkMethodEntriesCount(BulkOps.PUT_ALL, actualPutCount.get());
-      if (! failures.isEmpty()) {
+      if (failures.isEmpty()) {
+        putAllObserver.end(PutAllOutcome.SUCCESS);
+      } else {
         BulkCacheWritingException cacheWritingException = new BulkCacheWritingException(failures, successes);
         tryRemoveFailedKeys(entries, failures, cacheWritingException);
+        putAllObserver.end(PutAllOutcome.FAILURE);
         throw cacheWritingException;
       }
     } catch (CacheAccessException e) {
-      if (cacheLoaderWriter == null) {
-        resilienceStrategy.putAllFailure(entries, e);
-      } else {
-        // just in case not all writes happened:
-        if (! entriesToRemap.isEmpty()) {
-          cacheLoaderWriterWriteAllCall(entriesToRemap.entrySet(), entriesToRemap, successes, failures);
-        }
-        if (failures.isEmpty()) {
+      try {
+        if (cacheLoaderWriter == null) {
           resilienceStrategy.putAllFailure(entries, e);
         } else {
-          resilienceStrategy.putAllFailure(entries, e, new BulkCacheWritingException(failures, successes));
+          // just in case not all writes happened:
+          if (!entriesToRemap.isEmpty()) {
+            cacheLoaderWriterWriteAllCall(entriesToRemap.entrySet(), entriesToRemap, successes, failures);
+          }
+          if (failures.isEmpty()) {
+            resilienceStrategy.putAllFailure(entries, e);
+          } else {
+            resilienceStrategy.putAllFailure(entries, e, new BulkCacheWritingException(failures, successes));
+          }
         }
+      } finally {
+        putAllObserver.end(PutAllOutcome.FAILURE);
       }
     }
   }
@@ -613,9 +641,11 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
 
   @Override
   public void removeAll(final Set<? extends K> keys) throws BulkCacheWritingException {
+    removeAllObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(keys);
     if(keys.isEmpty()) {
+      removeAllObserver.end(RemoveAllOutcome.SUCCESS);
       return;
     }
     final Set<K> successes;
@@ -673,22 +703,29 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     try {
       store.bulkCompute(keys, removalFunction);
       addBulkMethodEntriesCount(BulkOps.REMOVE_ALL, actualRemoveCount.get());
-      if (! failures.isEmpty()) {
+      if (failures.isEmpty()) {
+        removeAllObserver.end(RemoveAllOutcome.SUCCESS);
+      } else {
+        removeAllObserver.end(RemoveAllOutcome.FAILURE);
         throw new BulkCacheWritingException(failures, successes);
       }
     } catch (CacheAccessException e) {
-      if (cacheLoaderWriter == null) {
-        resilienceStrategy.removeAllFailure(keys, e);
-      } else {
-        // just in case not all writes happened:
-        if (! entriesToRemove.isEmpty()) {
-          cacheLoaderWriterDeleteAllCall(entriesToRemove.entrySet(), successes, failures);
-        }
-        if (failures.isEmpty()) {
+      try {
+        if (cacheLoaderWriter == null) {
           resilienceStrategy.removeAllFailure(keys, e);
         } else {
-          resilienceStrategy.removeAllFailure(keys, e, new BulkCacheWritingException(failures, successes));
+          // just in case not all writes happened:
+          if (!entriesToRemove.isEmpty()) {
+            cacheLoaderWriterDeleteAllCall(entriesToRemove.entrySet(), successes, failures);
+          }
+          if (failures.isEmpty()) {
+            resilienceStrategy.removeAllFailure(keys, e);
+          } else {
+            resilienceStrategy.removeAllFailure(keys, e, new BulkCacheWritingException(failures, successes));
+          }
         }
+      } finally {
+        removeAllObserver.end(RemoveAllOutcome.FAILURE);
       }
     }
   }
@@ -1068,15 +1105,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   }
 
   private void addBulkMethodEntriesCount(BulkOps op, long count) {
-    AtomicLong current = bulkMethodEntries.get(op);
-    if (current == null) {
-      AtomicLong newCount = new AtomicLong();
-      current = bulkMethodEntries.putIfAbsent(op, newCount);
-      if (current == null) {
-        current = newCount;
-      }
-    }
-    current.addAndGet(count);
+    bulkMethodEntries.get(op).add(count);
   }
   
   Jsr107Cache<K, V> getJsr107Cache() {

@@ -40,6 +40,14 @@ public interface CacheOperationOutcomes {
   };
 
   /**
+   * Outcomes for cache getAll operation
+   */
+  enum GetAllOutcome implements  CacheOperationOutcomes {
+    SUCCESS,
+    FAILURE
+  }
+
+  /**
    * The outcomes for Put Outcomes.
    */
   enum PutOutcome implements CacheOperationOutcomes {
@@ -52,6 +60,14 @@ public interface CacheOperationOutcomes {
   };
 
   /**
+   * Outcomes for cache putAll operation
+   */
+  enum PutAllOutcome implements CacheOperationOutcomes {
+    SUCCESS,
+    FAILURE
+  }
+
+  /**
    * The outcomes for remove operations.
    */
   enum RemoveOutcome implements CacheOperationOutcomes {
@@ -62,6 +78,14 @@ public interface CacheOperationOutcomes {
     /** failure */
     FAILURE
   };
+
+  /**
+   * Outcomes for cache removeAll operation
+   */
+  enum RemoveAllOutcome implements CacheOperationOutcomes {
+    SUCCESS,
+    FAILURE
+  }
 
   /**
    * The outcomes for conditional remove operations.
