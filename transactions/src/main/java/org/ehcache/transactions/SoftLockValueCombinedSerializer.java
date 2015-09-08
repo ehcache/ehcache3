@@ -52,7 +52,10 @@ public class SoftLockValueCombinedSerializer<T> implements Serializer<SoftLock<T
 
   @Override
   public void close() throws IOException {
-    softLockSerializer.close();
-    valueSerializer.close();
+    try {
+      softLockSerializer.close();
+    } finally {
+      valueSerializer.close();
+    }
   }
 }
