@@ -17,6 +17,7 @@
 package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.RuntimeConfiguration;
 
 /**
  * A CacheManager that manages {@link Cache} as well as associated {@link org.ehcache.spi.service.Service}
@@ -96,4 +97,10 @@ public interface CacheManager {
    * @return the current {@link org.ehcache.Status}
    */
   Status getStatus();
+
+  /**
+   * Returns the current {@link RuntimeConfiguration} used by this CacheManager
+   * @return the configuration instance backing this CacheManager up
+   */
+  RuntimeConfiguration getRuntimeConfiguration();
 }

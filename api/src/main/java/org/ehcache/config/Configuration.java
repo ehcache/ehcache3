@@ -26,9 +26,26 @@ import java.util.Map;
  */
 public interface Configuration {
 
+  /**
+   * Mapping of names to {@link CacheConfiguration}, used to create the named {@link org.ehcache.Cache}
+   * managed by a {@link org.ehcache.CacheManager}
+   *
+   * @return the map of names to configs
+   */
   Map<String, CacheConfiguration<?, ?>> getCacheConfigurations();
 
+  /**
+   * All services initially used to bootstrap the {@link org.ehcache.CacheManager} and
+   * its {@link org.ehcache.Cache} instances
+   *
+   * @return the collection of said configs
+   */
   Collection<ServiceCreationConfiguration<?>> getServiceCreationConfigurations();
 
+  /**
+   * The {@link ClassLoader} to be associated with the {@link org.ehcache.CacheManager}
+   *
+   * @return The classloader
+   */
   ClassLoader getClassLoader();
 }
