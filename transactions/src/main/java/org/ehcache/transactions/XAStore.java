@@ -692,12 +692,6 @@ public class XAStore<K, V> implements Store<K, V> {
             }
           }
 
-          // create the soft lock serializer
-          SerializationProvider serializationProvider = serviceProvider.getService(SerializationProvider.class);
-          Serializer<SoftLock<V>> softLockSerializer = (Serializer) serializationProvider.createValueSerializer(SoftLock.class, storeConfig.getClassLoader(),
-              persistenceSpaceId, extendedSerializerConf);
-          SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializer, storeConfig.getValueSerializer());
-
           // find the copiers
           Collection<DefaultCopierConfiguration> copierConfigs = findAmongst(DefaultCopierConfiguration.class, underlyingServiceConfigs.toArray());
           DefaultCopierConfiguration keyCopierConfig = null;
@@ -728,14 +722,22 @@ public class XAStore<K, V> implements Store<K, V> {
             underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Copier) softLockValueCombinedCopier, CopierConfiguration.Type.VALUE));
           }
 
+          // lookup the required XAStore services
+          Journal journal = serviceProvider.getService(JournalProvider.class).getJournal(persistenceSpaceId);
+          TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
+
+          // create the soft lock serializer
+          SerializationProvider serializationProvider = serviceProvider.getService(SerializationProvider.class);
+          Serializer<SoftLock<V>> softLockSerializer = (Serializer) serializationProvider.createValueSerializer(SoftLock.class, storeConfig.getClassLoader(),
+              persistenceSpaceId, extendedSerializerConf);
+          SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializer, storeConfig.getValueSerializer());
+
           // create the underlying store
           Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer,
               storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
           Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig, underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
 
           // create the XA store
-          Journal journal = serviceProvider.getService(JournalProvider.class).getJournal(persistenceSpaceId);
-          TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
           store = new XAStore<K, V>(storeConfig.getKeyType(), storeConfig.getValueType(), underlyingStore, xaServiceProvider, timeSource, journal, uniqueXAResourceId, softLockValueCombinedSerializer);
         } catch (UnsupportedTypeException ute) {
           throw new RuntimeException(ute);
