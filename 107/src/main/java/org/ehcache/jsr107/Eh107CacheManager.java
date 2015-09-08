@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.cache.Cache;
 import javax.cache.CacheException;
@@ -37,6 +36,7 @@ import javax.management.MBeanServer;
 import org.ehcache.Ehcache;
 import org.ehcache.EhcacheHackAccessor;
 import org.ehcache.EhcacheManager;
+import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.management.ManagementRegistry;
@@ -56,7 +56,6 @@ class Eh107CacheManager implements CacheManager {
 
   private final Object cachesLock = new Object();
   private final ConcurrentMap<String, Eh107Cache<?, ?>> caches = new ConcurrentHashMap<String, Eh107Cache<?, ?>>();
-  private final AtomicBoolean closed = new AtomicBoolean();
   private final EhcacheManager ehCacheManager;
   private final EhcacheCachingProvider cachingProvider;
   private final ClassLoader classLoader;
@@ -398,7 +397,7 @@ class Eh107CacheManager implements CacheManager {
 
   @Override
   public boolean isClosed() {
-    return closed.get();
+    return ehCacheManager.getStatus() == Status.UNINITIALIZED;
   }
 
   @Override
@@ -416,26 +415,24 @@ class Eh107CacheManager implements CacheManager {
   void closeInternal(MultiCacheException closeException) {
     try {
       synchronized (cachesLock) {
-        if (closed.compareAndSet(false, true)) {
-          for (Eh107Cache<?, ?> cache : caches.values()) {
-            try {
-              close(cache, closeException);
-            } catch (Throwable t) {
-              closeException.addThrowable(t);
-            }
-          }
-
+        for (Eh107Cache<?, ?> cache : caches.values()) {
           try {
-            caches.clear();
+            close(cache, closeException);
           } catch (Throwable t) {
             closeException.addThrowable(t);
           }
+        }
 
-          try {
-            ehCacheManager.close();
-          } catch (Throwable t) {
-            closeException.addThrowable(t);
-          }
+        try {
+          caches.clear();
+        } catch (Throwable t) {
+          closeException.addThrowable(t);
+        }
+
+        try {
+          ehCacheManager.close();
+        } catch (Throwable t) {
+          closeException.addThrowable(t);
         }
       }
     } catch (Throwable t) {
