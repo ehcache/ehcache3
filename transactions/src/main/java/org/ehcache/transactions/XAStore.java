@@ -73,6 +73,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.spi.ServiceLocator.findAmongst;
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
@@ -586,15 +587,14 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   private static final class SoftLockValueCombinedSerializerLifecycleHelper {
-    volatile Serializer<SoftLock> valueSerializer;
-
-    final SoftLockValueCombinedSerializer softLockValueCombinedSerializer;
+    final AtomicReference<Serializer<SoftLock>> softLockSerializerRef;
     final Configuration<?, ?> storeConfig;
     final LocalPersistenceService.PersistenceSpaceIdentifier persistenceSpaceId;
     final ExtendedSerializerConfiguration<SoftLock> extendedSerializerConf;
 
-    <K, V> SoftLockValueCombinedSerializerLifecycleHelper(SoftLockValueCombinedSerializer softLockValueCombinedSerializer, Configuration<K, V> storeConfig, LocalPersistenceService.PersistenceSpaceIdentifier persistenceSpaceId, ExtendedSerializerConfiguration<SoftLock> extendedSerializerConf) {
-      this.softLockValueCombinedSerializer = softLockValueCombinedSerializer;
+    <K, V> SoftLockValueCombinedSerializerLifecycleHelper(AtomicReference<Serializer<SoftLock>> softLockSerializerRef, Configuration<K, V> storeConfig,
+                                                          LocalPersistenceService.PersistenceSpaceIdentifier persistenceSpaceId, ExtendedSerializerConfiguration<SoftLock> extendedSerializerConf) {
+      this.softLockSerializerRef = softLockSerializerRef;
       this.storeConfig = storeConfig;
       this.persistenceSpaceId = persistenceSpaceId;
       this.extendedSerializerConf = extendedSerializerConf;
@@ -743,7 +743,8 @@ public class XAStore<K, V> implements Store<K, V> {
         TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
 
         // create the soft lock serializer
-        SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(storeConfig.getValueSerializer());
+        AtomicReference<Serializer<SoftLock<V>>> softLockSerializerRef = new AtomicReference<Serializer<SoftLock<V>>>();
+        SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig.getValueSerializer());
 
         // create the underlying store
         Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer,
@@ -753,7 +754,7 @@ public class XAStore<K, V> implements Store<K, V> {
         // create the XA store
         store = new XAStore<K, V>(storeConfig.getKeyType(), storeConfig.getValueType(), underlyingStore, xaServiceProvider, timeSource, journal, uniqueXAResourceId);
 
-        helper = new SoftLockValueCombinedSerializerLifecycleHelper(softLockValueCombinedSerializer, storeConfig, persistenceSpaceId, extendedSerializerConf);
+        helper = new SoftLockValueCombinedSerializerLifecycleHelper((AtomicReference) softLockSerializerRef, storeConfig, persistenceSpaceId, extendedSerializerConf);
       }
 
       createdStores.put(store, helper);
@@ -770,13 +771,14 @@ public class XAStore<K, V> implements Store<K, V> {
         XAStore<?, ?> xaStore = (XAStore<?, ?>) resource;
 
         xaServiceProvider.unregisterXAResource(xaStore.uniqueXAResourceId, xaStore.recoveryXaResource);
+        // release the underlying store first, as it may still need the serializer to flush down to lower tiers
+        underlyingStoreProvider.releaseStore(xaStore.underlyingStore);
         try {
-          helper.valueSerializer.close();
+          helper.softLockSerializerRef.getAndSet(null).close();
           xaStore.journal.close();
         } catch (IOException ioe) {
           throw new RuntimeException(ioe);
         }
-        underlyingStoreProvider.releaseStore(xaStore.underlyingStore);
       } else {
         underlyingStoreProvider.releaseStore(resource);
       }
@@ -793,9 +795,8 @@ public class XAStore<K, V> implements Store<K, V> {
 
         underlyingStoreProvider.initStore(xaStore.underlyingStore);
         try {
-          helper.valueSerializer = (Serializer) serializationProvider.createValueSerializer(SoftLock.class, helper.storeConfig.getClassLoader(),
-              helper.persistenceSpaceId, helper.extendedSerializerConf);
-          helper.softLockValueCombinedSerializer.setSoftLockSerializer(helper.valueSerializer);
+          helper.softLockSerializerRef.set(serializationProvider.createValueSerializer(SoftLock.class, helper.storeConfig.getClassLoader(),
+              helper.persistenceSpaceId, helper.extendedSerializerConf));
         } catch (UnsupportedTypeException ute) {
           throw new RuntimeException(ute);
         }

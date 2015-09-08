@@ -20,31 +20,29 @@ import org.ehcache.spi.serialization.Serializer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Ludovic Orban
  */
 public class SoftLockValueCombinedSerializer<T> implements Serializer<SoftLock<T>> {
 
-  private volatile Serializer<SoftLock<T>> softLockSerializer;
+  private final AtomicReference<Serializer<SoftLock<T>>> softLockSerializerRef;
   private final Serializer<T> valueSerializer;
 
-  public SoftLockValueCombinedSerializer(Serializer<T> valueSerializer) {
+  public SoftLockValueCombinedSerializer(AtomicReference<Serializer<SoftLock<T>>> softLockSerializerRef, Serializer<T> valueSerializer) {
+    this.softLockSerializerRef = softLockSerializerRef;
     this.valueSerializer = valueSerializer;
-  }
-
-  void setSoftLockSerializer(Serializer<SoftLock<T>> softLockSerializer) {
-    this.softLockSerializer = softLockSerializer;
   }
 
   @Override
   public ByteBuffer serialize(SoftLock<T> softLock) throws SerializerException {
-    return softLockSerializer.serialize(softLock.copyForSerialization(valueSerializer));
+    return softLockSerializerRef.get().serialize(softLock.copyForSerialization(valueSerializer));
   }
 
   @Override
   public SoftLock<T> read(ByteBuffer binary) throws ClassNotFoundException, SerializerException {
-    SoftLock<T> serializedSoftLock = softLockSerializer.read(binary);
+    SoftLock<T> serializedSoftLock = softLockSerializerRef.get().read(binary);
     return serializedSoftLock.copyAfterDeserialization(valueSerializer, serializedSoftLock);
   }
 
