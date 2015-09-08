@@ -128,7 +128,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
    */
   private Ehcache<String, String> getEhcache()
       throws Exception {
-    RuntimeConfiguration<String, String> runtimeConfiguration = new RuntimeConfiguration<String, String>(CACHE_CONFIGURATION, null);
+    EhcacheRuntimeConfiguration<String, String> runtimeConfiguration = new EhcacheRuntimeConfiguration<String, String>(CACHE_CONFIGURATION, null);
     final Ehcache<String, String> ehcache =
         new Ehcache<String, String>(runtimeConfiguration, this.store, this.cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicClearTest"));
     ehcache.init();

@@ -45,7 +45,7 @@ import static org.mockito.Mockito.mock;
 public class CacheConfigurationChangeListenerTest {
   private Store<Object, Object> store;
   private CacheEventNotificationService<Object, Object> eventNotifier;
-  private RuntimeConfiguration<Object, Object> runtimeConfiguration;
+  private EhcacheRuntimeConfiguration<Object, Object> runtimeConfiguration;
   private CacheConfiguration<Object, Object> config;
   private Ehcache<Object, Object> cache;
 
@@ -58,7 +58,7 @@ public class CacheConfigurationChangeListenerTest {
     this.config = newCacheConfigurationBuilder()
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10L, MemoryUnit.MB).heap(2L, EntryUnit.ENTRIES))
         .buildConfig(Object.class, Object.class);
-    this.runtimeConfiguration = new RuntimeConfiguration<Object, Object>(this.config, this.eventNotifier);
+    this.runtimeConfiguration = new EhcacheRuntimeConfiguration<Object, Object>(this.config, this.eventNotifier);
     this.cache = new Ehcache<Object, Object>(runtimeConfiguration, store, loaderWriter, eventNotifier,
         LoggerFactory.getLogger(Ehcache.class + "-" + "CacheConfigurationListenerTest"));
     cache.init();

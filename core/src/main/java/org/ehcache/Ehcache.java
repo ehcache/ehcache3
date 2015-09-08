@@ -86,7 +86,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   private final Store<K, V> store;
   private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
   private final ResilienceStrategy<K, V> resilienceStrategy;
-  private final RuntimeConfiguration<K, V> runtimeConfiguration;
+  private final EhcacheRuntimeConfiguration<K, V> runtimeConfiguration;
   private final CacheEventNotificationService<K, V> eventNotificationService;
   private final Jsr107CacheImpl jsr107Cache;
   private final boolean useLoaderInAtomics;
@@ -111,28 +111,28 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     }
   };
 
-  public Ehcache(RuntimeConfiguration<K, V> runtimeConfiguration, final Store<K, V> store, Logger logger) {
+  public Ehcache(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, final Store<K, V> store, Logger logger) {
     this(runtimeConfiguration, store, null,logger);
   }
 
-  public Ehcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store, final CacheLoaderWriter<? super K, V> cacheLoaderWriter, Logger logger) {
+  public Ehcache(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store, final CacheLoaderWriter<? super K, V> cacheLoaderWriter, Logger logger) {
     this(runtimeConfiguration, store, cacheLoaderWriter, null,logger);
   }
 
-  public Ehcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
+  public Ehcache(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
       final CacheLoaderWriter<? super K, V> cacheLoaderWriter, 
       CacheEventNotificationService<K, V> eventNotifier,
       Logger logger) {
     this(runtimeConfiguration, store, cacheLoaderWriter, eventNotifier, true, logger);
   }
 
-  Ehcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
+  Ehcache(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
           CacheLoaderWriter<? super K, V> cacheLoaderWriter,
           CacheEventNotificationService<K, V> eventNotifier, boolean useLoaderInAtomics, Logger logger) {
     this(runtimeConfiguration, store, cacheLoaderWriter, eventNotifier, useLoaderInAtomics, logger, new StatusTransitioner(logger));
   }
 
-  Ehcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
+  Ehcache(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
             CacheLoaderWriter<? super K, V> cacheLoaderWriter,
             CacheEventNotificationService<K, V> eventNotifier, boolean useLoaderInAtomics, Logger logger, StatusTransitioner statusTransitioner) {
     this.store = store;

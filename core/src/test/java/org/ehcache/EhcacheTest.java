@@ -64,8 +64,8 @@ public class EhcacheTest {
   @Test
   public void testTransistionsState() {
     Store store = mock(Store.class);
-    RuntimeConfiguration<Object, Object> runtimeConfiguration
-        = new RuntimeConfiguration<Object, Object>(newCacheConfigurationBuilder()
+    EhcacheRuntimeConfiguration<Object, Object> runtimeConfiguration
+        = new EhcacheRuntimeConfiguration<Object, Object>(newCacheConfigurationBuilder()
         .buildConfig(Object.class, Object.class), null);
     Ehcache ehcache = new Ehcache(runtimeConfiguration, store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest"));
     assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
@@ -80,8 +80,8 @@ public class EhcacheTest {
     Store store = mock(Store.class);
     Store.Iterator mockIterator = mock(Store.Iterator.class);
     when(store.iterator()).thenReturn(mockIterator);
-    RuntimeConfiguration<Object, Object> runtimeConfiguration
-        = new RuntimeConfiguration<Object, Object>(newCacheConfigurationBuilder()
+    EhcacheRuntimeConfiguration<Object, Object> runtimeConfiguration
+        = new EhcacheRuntimeConfiguration<Object, Object>(newCacheConfigurationBuilder()
         .buildConfig(Object.class, Object.class), null);
     Ehcache ehcache = new Ehcache(runtimeConfiguration, store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest1"));
 
@@ -201,8 +201,8 @@ public class EhcacheTest {
 
   @Test
   public void testDelegatesLifecycleCallsToStore() throws Exception {
-    RuntimeConfiguration<Object, Object> runtimeConfiguration
-        = new RuntimeConfiguration<Object, Object>(newCacheConfigurationBuilder()
+    EhcacheRuntimeConfiguration<Object, Object> runtimeConfiguration
+        = new EhcacheRuntimeConfiguration<Object, Object>(newCacheConfigurationBuilder()
         .buildConfig(Object.class, Object.class), null);
     Ehcache ehcache = new Ehcache(runtimeConfiguration, mock(Store.class), LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest2"));
     final LifeCycled mock = mock(LifeCycled.class);
@@ -216,8 +216,8 @@ public class EhcacheTest {
   @Test
   public void testFailingTransitionGoesToLowestStatus() throws Exception {
     final LifeCycled mock = mock(LifeCycled.class);
-    RuntimeConfiguration<Object, Object> runtimeConfiguration
-        = new RuntimeConfiguration<Object, Object>(newCacheConfigurationBuilder()
+    EhcacheRuntimeConfiguration<Object, Object> runtimeConfiguration
+        = new EhcacheRuntimeConfiguration<Object, Object>(newCacheConfigurationBuilder()
         .buildConfig(Object.class, Object.class), null);
     Ehcache ehcache = new Ehcache(runtimeConfiguration, mock(Store.class), LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest3"));
     doThrow(new Exception()).when(mock).init();
@@ -292,8 +292,8 @@ public class EhcacheTest {
         };
       }
     });
-    RuntimeConfiguration<Object, Object> runtimeConfiguration
-        = new RuntimeConfiguration<Object, Object>(newCacheConfigurationBuilder()
+    EhcacheRuntimeConfiguration<Object, Object> runtimeConfiguration
+        = new EhcacheRuntimeConfiguration<Object, Object>(newCacheConfigurationBuilder()
         .buildConfig(Object.class, Object.class), null);
     Ehcache<Object, Object> ehcache = new Ehcache<Object, Object>(
         runtimeConfiguration, store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest4"));
@@ -307,8 +307,8 @@ public class EhcacheTest {
   @Test
   public void testInvokesHooks() {
     Store store = mock(Store.class);
-    RuntimeConfiguration<Object, Object> runtimeConfiguration
-        = new RuntimeConfiguration<Object, Object>(newCacheConfigurationBuilder()
+    EhcacheRuntimeConfiguration<Object, Object> runtimeConfiguration
+        = new EhcacheRuntimeConfiguration<Object, Object>(newCacheConfigurationBuilder()
         .buildConfig(Object.class, Object.class), null);
     Ehcache ehcache = new Ehcache(runtimeConfiguration, store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest5"));
 
@@ -339,8 +339,8 @@ public class EhcacheTest {
   public void testIgnoresKeysReturnedFromCacheLoaderLoadAll() {
     LoadAllVerifyStore store = new LoadAllVerifyStore();
     KeyFumblingCacheLoaderWriter loader = new KeyFumblingCacheLoaderWriter();
-    RuntimeConfiguration<String, String> runtimeConfiguration
-        = new RuntimeConfiguration<String, String>(newCacheConfigurationBuilder()
+    EhcacheRuntimeConfiguration<String, String> runtimeConfiguration
+        = new EhcacheRuntimeConfiguration<String, String>(newCacheConfigurationBuilder()
         .buildConfig(String.class, String.class), null);
     Ehcache<String, String> ehcache = new Ehcache<String, String>(runtimeConfiguration, store, loader, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest6"));
     ehcache.init();

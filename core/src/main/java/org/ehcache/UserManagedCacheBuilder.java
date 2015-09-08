@@ -168,7 +168,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionVeto,
         evictionPrioritizer, classLoader, expiry, resourcePools);
 
-    RuntimeConfiguration<K, V> runtimeConfiguration = new RuntimeConfiguration<K, V>(cacheConfig, cacheEventNotificationService);
+    EhcacheRuntimeConfiguration<K, V> runtimeConfiguration = new EhcacheRuntimeConfiguration<K, V>(cacheConfig, cacheEventNotificationService);
 
     lifeCycledList.add(new LifeCycled() {
       @Override

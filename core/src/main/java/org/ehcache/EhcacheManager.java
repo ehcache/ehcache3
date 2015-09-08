@@ -353,7 +353,7 @@ public class EhcacheManager implements PersistentCacheManager {
       
     });
     
-    RuntimeConfiguration<K, V> runtimeConfiguration = new RuntimeConfiguration<K, V>(config, evtService);
+    EhcacheRuntimeConfiguration<K, V> runtimeConfiguration = new EhcacheRuntimeConfiguration<K, V>(config, evtService);
     runtimeConfiguration.addCacheConfigurationListener(store.getConfigurationChangeListeners());
     final Ehcache<K, V> ehCache = new Ehcache<K, V>(runtimeConfiguration, store, decorator, evtService,
         useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));

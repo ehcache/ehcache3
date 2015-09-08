@@ -34,7 +34,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 
 /**
  * PersistentUserManagedEhcache
@@ -47,7 +46,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
   private final LocalPersistenceService localPersistenceService;
   private final String id;
 
-  public PersistentUserManagedEhcache(RuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store, Store.Configuration<K, V> storeConfig, LocalPersistenceService localPersistenceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventNotificationService<K, V> eventNotifier, String id) {
+  public PersistentUserManagedEhcache(CacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store, Store.Configuration<K, V> storeConfig, LocalPersistenceService localPersistenceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventNotificationService<K, V> eventNotifier, String id) {
     this.logger = LoggerFactory.getLogger(PersistentUserManagedEhcache.class.getName() + "-" + id);
     this.statusTransitioner = new StatusTransitioner(logger);
     this.ehcache = new Ehcache<K, V>(runtimeConfiguration, store, cacheLoaderWriter, eventNotifier, true, logger, statusTransitioner);

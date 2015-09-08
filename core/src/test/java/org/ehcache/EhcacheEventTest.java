@@ -75,7 +75,7 @@ public class EhcacheEventTest {
     eventNotifier = mock(CacheEventNotificationService.class);
     CacheLoaderWriter<Number, String> loaderWriter = mock(CacheLoaderWriter.class);
 
-    RuntimeConfiguration<Number, String> runtimeConfiguration = new RuntimeConfiguration<Number, String>(newCacheConfigurationBuilder()
+    EhcacheRuntimeConfiguration<Number, String> runtimeConfiguration = new EhcacheRuntimeConfiguration<Number, String>(newCacheConfigurationBuilder()
         .buildConfig(Number.class, String.class), eventNotifier);
     cache = new Ehcache<Number, String>(
         runtimeConfiguration, store, loaderWriter, eventNotifier, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheEventTest"));
@@ -90,7 +90,7 @@ public class EhcacheEventTest {
 
   @Test
   public void testImmediatelyExpiringEntry() throws Exception {
-    RuntimeConfiguration<Number, String> runtimeConfiguration = new RuntimeConfiguration<Number, String>(newCacheConfigurationBuilder()
+    EhcacheRuntimeConfiguration<Number, String> runtimeConfiguration = new EhcacheRuntimeConfiguration<Number, String>(newCacheConfigurationBuilder()
         .withExpiry(Expirations.timeToLiveExpiration(Duration.ZERO))
         .buildConfig(Number.class, String.class), eventNotifier);
     Ehcache<Number, String> cache = new Ehcache<Number, String>(
