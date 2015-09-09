@@ -176,7 +176,7 @@ public class CacheEventNotificationServiceImplTest {
     eventService.registerCacheEventListener(listener, 
         EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.CREATED));
     CacheEventListener<Number, String> otherLsnr = mock(CacheEventListener.class);
-    eventService.registerCacheEventListener(otherLsnr, 
+    eventService.registerCacheEventListener(otherLsnr,
         EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.REMOVED));
 
     CacheEvent<Number, String> create = eventOfType(EventType.CREATED);

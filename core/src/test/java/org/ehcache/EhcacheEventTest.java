@@ -35,6 +35,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.EventType;
 import org.ehcache.events.CacheEventNotificationService;
+import org.ehcache.events.CacheEventWrapper;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.expiry.Duration;
