@@ -25,6 +25,7 @@ import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,12 +44,13 @@ import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfiguration
  */
 class ConfigurationMerger {
 
+  private static final Logger LOG = LoggerFactory.getLogger(ConfigurationMerger.class);
+
   private final XmlConfiguration xmlConfiguration;
   private final Jsr107Service jsr107Service;
   private final Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory;
-  private final Logger log;
 
-  ConfigurationMerger(org.ehcache.config.Configuration ehConfig, Jsr107Service jsr107Service, Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory, Logger log) {
+  ConfigurationMerger(org.ehcache.config.Configuration ehConfig, Jsr107Service jsr107Service, Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory) {
     if (ehConfig instanceof XmlConfiguration) {
       xmlConfiguration = (XmlConfiguration) ehConfig;
     } else {
@@ -56,7 +58,6 @@ class ConfigurationMerger {
     }
     this.jsr107Service = jsr107Service;
     this.cacheLoaderWriterFactory = cacheLoaderWriterFactory;
-    this.log = log;
   }
 
   <K, V> ConfigHolder<K, V> mergeConfigurations(String cacheName, Configuration<K, V> configuration) {
@@ -72,7 +73,7 @@ class ConfigurationMerger {
             jsr107Configuration.getKeyType(), jsr107Configuration.getValueType());
         if (templateBuilder != null) {
           builder = templateBuilder;
-          log.info("Configuration of cache {} will be supplemented by template {}", cacheName, templateName);
+          LOG.info("Configuration of cache {} will be supplemented by template {}", cacheName, templateName);
         }
       } else {
         if(jsr107Configuration.isStoreByValue()) {
@@ -86,7 +87,7 @@ class ConfigurationMerger {
         expiryPolicy = initExpiryPolicy(jsr107Configuration);
         builder = builder.withExpiry(expiryPolicy);
       } else {
-        log.info("Cache {} will use expiry configuration from template {}", cacheName, templateName);
+        LOG.info("Cache {} will use expiry configuration from template {}", cacheName, templateName);
       }
 
       boolean useEhcacheLoaderWriter;
@@ -101,9 +102,9 @@ class ConfigurationMerger {
       } else {
         useEhcacheLoaderWriter = true;
         if (!jsr107Configuration.isReadThrough() && !jsr107Configuration.isWriteThrough()) {
-          log.warn("Activating Ehcache loader/writer for JSR-107 cache {} which was neither read-through nor write-through", cacheName);
+          LOG.warn("Activating Ehcache loader/writer for JSR-107 cache {} which was neither read-through nor write-through", cacheName);
         }
-        log.info("Cache {} will use loader/writer configuration from template {}", cacheName, templateName);
+        LOG.info("Cache {} will use loader/writer configuration from template {}", cacheName, templateName);
       }
 
       CacheConfiguration<K, V> cacheConfiguration = builder.buildConfig(jsr107Configuration.getKeyType(), jsr107Configuration.getValueType());

@@ -61,21 +61,19 @@ class Eh107CacheManager implements CacheManager {
   private final ClassLoader classLoader;
   private final URI uri;
   private final Properties props;
-  private final org.ehcache.config.Configuration ehConfig;
   private final ManagementRegistry managementRegistry;
   private final ConfigurationMerger configurationMerger;
 
   Eh107CacheManager(EhcacheCachingProvider cachingProvider, EhcacheManager ehCacheManager, Properties props,
-      ClassLoader classLoader, URI uri, Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory,
-      org.ehcache.config.Configuration ehConfig, Jsr107Service jsr107Service, ManagementRegistry managementRegistry) {
+                    ClassLoader classLoader, URI uri,
+                    ManagementRegistry managementRegistry, final ConfigurationMerger configurationMerger) {
     this.cachingProvider = cachingProvider;
     this.ehCacheManager = ehCacheManager;
     this.props = props;
     this.classLoader = classLoader;
     this.uri = uri;
-    this.ehConfig = ehConfig;
     this.managementRegistry = managementRegistry;
-    this.configurationMerger = new ConfigurationMerger(ehConfig, jsr107Service, cacheLoaderWriterFactory, LOG);
+    this.configurationMerger = configurationMerger;
 
     loadExistingEhcaches();
   }
@@ -85,7 +83,7 @@ class Eh107CacheManager implements CacheManager {
   }
 
   private void loadExistingEhcaches() {
-    for (Map.Entry<String, CacheConfiguration<?, ?>> entry : ehConfig.getCacheConfigurations().entrySet()) {
+    for (Map.Entry<String, CacheConfiguration<?, ?>> entry : ehCacheManager.getRuntimeConfiguration().getCacheConfigurations().entrySet()) {
       String name = entry.getKey();
       CacheConfiguration<?, ?> config = entry.getValue();
       caches.put(name, wrapEhcacheCache(name, config));
