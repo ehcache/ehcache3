@@ -234,7 +234,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
   @Override
   public ValueHolder<V> putIfAbsent(K key, V value) throws CacheAccessException {
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -260,17 +260,17 @@ public class XAStore<K, V> implements Store<K, V> {
 
   @Override
   public boolean remove(K key, V value) throws CacheAccessException {
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ValueHolder<V> replace(K key, V value) throws CacheAccessException {
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean replace(K key, V oldValue, V newValue) throws CacheAccessException {
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
