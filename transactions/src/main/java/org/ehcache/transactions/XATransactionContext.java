@@ -80,12 +80,16 @@ public class XATransactionContext<K, V> {
     return command != null ? command.getOldValue() : null;
   }
 
-  public boolean containsCommandFor(K key) {
+  public boolean touched(K key) {
     return commands.containsKey(key);
   }
 
   public boolean removed(K key) {
     return commands.get(key) instanceof StoreRemoveCommand;
+  }
+
+  public boolean updated(K key) {
+    return commands.get(key) instanceof StorePutCommand;
   }
 
   public V getEvictedValue(K key) {

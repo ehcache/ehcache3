@@ -35,7 +35,7 @@ import org.ehcache.internal.TestTimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.transactions.configuration.XACacheManagerConfiguration;
-import org.ehcache.transactions.configuration.XAServiceConfiguration;
+import org.ehcache.transactions.configuration.DefaultXAServiceConfiguration;
 import org.junit.Test;
 
 import javax.transaction.Status;
@@ -60,8 +60,8 @@ public class XACacheTest {
         );
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("txCache1", cacheConfigurationBuilder.add(new XAServiceConfiguration("txCache1")).buildConfig(Long.class, String.class))
-        .withCache("txCache2", cacheConfigurationBuilder.add(new XAServiceConfiguration("txCache2")).buildConfig(Long.class, String.class))
+        .withCache("txCache1", cacheConfigurationBuilder.add(new DefaultXAServiceConfiguration("txCache1")).buildConfig(Long.class, String.class))
+        .withCache("txCache2", cacheConfigurationBuilder.add(new DefaultXAServiceConfiguration("txCache2")).buildConfig(Long.class, String.class))
         .withCache("nonTxCache", cacheConfigurationBuilder.buildConfig(Long.class, String.class))
         .with(new XACacheManagerConfiguration())
 //        .using(new DefaultXAServiceProvider(transactionManager))
@@ -135,8 +135,8 @@ public class XACacheTest {
         );
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("txCache1", cacheConfigurationBuilder.add(new XAServiceConfiguration("txCache1")).buildConfig(Long.class, String.class))
-        .withCache("txCache2", cacheConfigurationBuilder.add(new XAServiceConfiguration("txCache2")).buildConfig(Long.class, String.class))
+        .withCache("txCache1", cacheConfigurationBuilder.add(new DefaultXAServiceConfiguration("txCache1")).buildConfig(Long.class, String.class))
+        .withCache("txCache2", cacheConfigurationBuilder.add(new DefaultXAServiceConfiguration("txCache2")).buildConfig(Long.class, String.class))
         .withCache("nonTxCache", cacheConfigurationBuilder.buildConfig(Long.class, String.class))
         .with(new XACacheManagerConfiguration())
 //        .using(new DefaultXAServiceProvider(transactionManager))
@@ -185,8 +185,8 @@ public class XACacheTest {
         );
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("txCache1", cacheConfigurationBuilder.add(new XAServiceConfiguration("txCache1")).buildConfig(Long.class, String.class))
-        .withCache("txCache2", cacheConfigurationBuilder.add(new XAServiceConfiguration("txCache2")).buildConfig(Long.class, String.class))
+        .withCache("txCache1", cacheConfigurationBuilder.add(new DefaultXAServiceConfiguration("txCache1")).buildConfig(Long.class, String.class))
+        .withCache("txCache2", cacheConfigurationBuilder.add(new DefaultXAServiceConfiguration("txCache2")).buildConfig(Long.class, String.class))
         .with(new XACacheManagerConfiguration())
 //        .using(new DefaultXAServiceProvider(transactionManager))
         .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))
@@ -240,13 +240,13 @@ public class XACacheTest {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(new CacheManagerPersistenceConfiguration(new File("myData")))
         .withCache("txCache1", cacheConfigurationBuilder
-            .add(new XAServiceConfiguration("txCache1"))
+            .add(new DefaultXAServiceConfiguration("txCache1"))
             .add(new DefaultCopierConfiguration<Long>(LongCopier.class, CopierConfiguration.Type.KEY))
             .add(new DefaultCopierConfiguration<String>(StringCopier.class, CopierConfiguration.Type.VALUE))
             .buildConfig(Long.class, String.class)
         )
         .withCache("txCache2", cacheConfigurationBuilder
-            .add(new XAServiceConfiguration("txCache2"))
+            .add(new DefaultXAServiceConfiguration("txCache2"))
             .add(new DefaultCopierConfiguration<Long>(LongCopier.class, CopierConfiguration.Type.KEY))
             .add(new DefaultCopierConfiguration<String>(StringCopier.class, CopierConfiguration.Type.VALUE))
             .buildConfig(Long.class, String.class))

@@ -13,28 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.transactions.configuration;
+package org.ehcache.transactions.txmgrs;
 
-import org.ehcache.spi.service.ServiceConfiguration;
+import javax.transaction.xa.XAResource;
 
 /**
  * @author Ludovic Orban
  */
-public class XAServiceConfiguration implements ServiceConfiguration<XAServiceProvider> {
-
-  private final String uniqueXAResourceId;
-
-  //TODO: ideally, the uniqueXAResourceIdSuffix should be the cache alias, injected by the CM
-  public XAServiceConfiguration(String uniqueXAResourceId) {
-    this.uniqueXAResourceId = uniqueXAResourceId;
-  }
-
-  public String getUniqueXAResourceId() {
-    return uniqueXAResourceId;
+public class NullXAResourceRegistry implements XAResourceRegistry {
+  @Override
+  public void registerXAResource(String uniqueName, XAResource xaResource) {
+    // no-op
   }
 
   @Override
-  public Class<XAServiceProvider> getServiceType() {
-    return XAServiceProvider.class;
+  public void unregisterXAResource(String uniqueName, XAResource xaResource) {
+    // no-op
   }
 }

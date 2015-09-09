@@ -15,13 +15,18 @@
  */
 package org.ehcache.transactions.configuration;
 
+import bitronix.tm.TransactionManagerServices;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.transactions.XAStore;
 import org.ehcache.transactions.txmgrs.btm.Ehcache3XAResourceProducer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.transaction.TransactionManager;
-import javax.transaction.xa.XAResource;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * @author Ludovic Orban
@@ -29,11 +34,9 @@ import javax.transaction.xa.XAResource;
 @ServiceDependencies({XAStore.Provider.class})
 public class DefaultXAServiceProvider implements XAServiceProvider {
 
-  private final TransactionManager transactionManager;
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultXAServiceProvider.class);
 
-  public DefaultXAServiceProvider(TransactionManager transactionManager) {
-    this.transactionManager = transactionManager;
-  }
+  private final AtomicReference<TransactionManagerWrapper> transactionManagerWrapperRef = new AtomicReference<TransactionManagerWrapper>();
 
   @Override
   public void start(ServiceProvider serviceProvider) {
@@ -41,23 +44,33 @@ public class DefaultXAServiceProvider implements XAServiceProvider {
 
   @Override
   public void stop() {
+    this.transactionManagerWrapperRef.set(null);
   }
 
   @Override
-  public TransactionManager getTransactionManager() {
-    return transactionManager;
+  public TransactionManagerWrapper getTransactionManagerWrapper(ServiceConfiguration<?>... configs) {
+    DefaultXAServiceConfiguration xaServiceConfiguration = findSingletonAmongst(DefaultXAServiceConfiguration.class, configs);
+
+    TransactionManagerWrapper transactionManagerWrapper;
+    if (transactionManagerWrapperRef.get() == null) {
+      if (xaServiceConfiguration != null && xaServiceConfiguration.getTransactionManager() != null) {
+        transactionManagerWrapperRef.compareAndSet(null, new TransactionManagerWrapper(xaServiceConfiguration.getTransactionManager(), xaServiceConfiguration.getXAResourceRegistry()));
+        transactionManagerWrapper = transactionManagerWrapperRef.get();
+      } else {
+        //TODO: lookup other TX managers and XAResourceRegistry impls
+        if (!TransactionManagerServices.isTransactionManagerRunning()) {
+          throw new IllegalStateException("BTM must be started beforehand");
+        }
+        transactionManagerWrapperRef.compareAndSet(null, new TransactionManagerWrapper(TransactionManagerServices.getTransactionManager(), new Ehcache3XAResourceProducer()));
+        transactionManagerWrapper = transactionManagerWrapperRef.get();
+      }
+      LOGGER.info("Using JTA transaction manager : " + transactionManagerWrapper);
+    } else {
+      transactionManagerWrapper = transactionManagerWrapperRef.get();
+    }
+
+    return transactionManagerWrapper;
   }
 
-  @Override
-  public void registerXAResource(String uniqueXAResourceId, XAResource xaResource) {
-    //TODO: abstract that
-    Ehcache3XAResourceProducer.registerXAResource(uniqueXAResourceId, xaResource);
-  }
-
-  @Override
-  public void unregisterXAResource(String uniqueXAResourceId, XAResource xaResource) {
-    //TODO: abstract that
-    Ehcache3XAResourceProducer.unregisterXAResource(uniqueXAResourceId, xaResource);
-  }
 
 }

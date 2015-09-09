@@ -25,6 +25,7 @@ import bitronix.tm.resource.common.ResourceBean;
 import bitronix.tm.resource.common.XAResourceHolder;
 import bitronix.tm.resource.common.XAResourceProducer;
 import bitronix.tm.resource.common.XAStatefulHolder;
+import org.ehcache.transactions.txmgrs.XAResourceRegistry;
 
 import javax.naming.NamingException;
 import javax.naming.Reference;
@@ -37,16 +38,17 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * @author Ludovic Orban
  */
-public class Ehcache3XAResourceProducer extends ResourceBean implements XAResourceProducer {
+public class Ehcache3XAResourceProducer extends ResourceBean implements XAResourceProducer, XAResourceRegistry {
 
-
-  private static final ConcurrentMap<String, Ehcache3XAResourceProducer> producers = new ConcurrentHashMap<String, Ehcache3XAResourceProducer>();
-
+  private final ConcurrentMap<String, Ehcache3XAResourceProducer> producers = new ConcurrentHashMap<String, Ehcache3XAResourceProducer>();
   private final Map<XAResource, XAResourceHolder> xaResourceHolders = new ConcurrentHashMap<XAResource, XAResourceHolder>();
-
   private volatile RecoveryXAResourceHolder recoveryXAResourceHolder;
 
 
+
+  public Ehcache3XAResourceProducer() {
+    setApplyTransactionTimeout(true);
+  }
 
   /**
    * Register an XAResource of a cache with BTM. The first time a XAResource is registered a new
@@ -54,7 +56,8 @@ public class Ehcache3XAResourceProducer extends ResourceBean implements XAResour
    * @param uniqueName the uniqueName of this XAResourceProducer, usually the cache's name
    * @param xaResource the XAResource to be registered
    */
-  public static void registerXAResource(String uniqueName, XAResource xaResource) {
+  @Override
+  public void registerXAResource(String uniqueName, XAResource xaResource) {
     Ehcache3XAResourceProducer xaResourceProducer = producers.get(uniqueName);
 
     if (xaResourceProducer == null) {
@@ -79,7 +82,8 @@ public class Ehcache3XAResourceProducer extends ResourceBean implements XAResour
    * @param uniqueName the uniqueName of this XAResourceProducer, usually the cache's name
    * @param xaResource the XAResource to be registered
    */
-  public static void unregisterXAResource(String uniqueName, XAResource xaResource) {
+  @Override
+  public void unregisterXAResource(String uniqueName, XAResource xaResource) {
     Ehcache3XAResourceProducer xaResourceProducer = producers.get(uniqueName);
 
     if (xaResourceProducer != null) {
@@ -104,12 +108,6 @@ public class Ehcache3XAResourceProducer extends ResourceBean implements XAResour
 
   private boolean removeXAResource(XAResource xaResource) {
     return xaResourceHolders.remove(xaResource) != null;
-  }
-
-
-
-  public Ehcache3XAResourceProducer() {
-    setApplyTransactionTimeout(true);
   }
 
   public XAResourceHolderState startRecovery() throws RecoveryException {

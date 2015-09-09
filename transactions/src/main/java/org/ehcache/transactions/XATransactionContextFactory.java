@@ -58,6 +58,6 @@ public class XATransactionContextFactory<K, V> {
     if (transactionContext == null) {
       throw new IllegalStateException("Cannot check for removed key outside of transactional context");
     }
-    return transactionContext.containsCommandFor(key);
+    return transactionContext.touched(key);
   }
 }

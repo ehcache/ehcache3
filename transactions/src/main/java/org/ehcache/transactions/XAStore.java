@@ -49,7 +49,7 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.transactions.commands.StoreEvictCommand;
 import org.ehcache.transactions.commands.StorePutCommand;
 import org.ehcache.transactions.commands.StoreRemoveCommand;
-import org.ehcache.transactions.configuration.XAServiceConfiguration;
+import org.ehcache.transactions.configuration.DefaultXAServiceConfiguration;
 import org.ehcache.transactions.configuration.XAServiceProvider;
 import org.ehcache.transactions.journal.Journal;
 import org.ehcache.transactions.journal.JournalProvider;
@@ -83,7 +83,7 @@ public class XAStore<K, V> implements Store<K, V> {
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final Store<K, SoftLock<V>> underlyingStore;
-  private final XAServiceProvider xaServiceProvider;
+  private final XAServiceProvider.TransactionManagerWrapper transactionManagerWrapper;
   private final Map<Transaction, EhcacheXAResource<K, V>> xaResources = new ConcurrentHashMap<Transaction, EhcacheXAResource<K, V>>();
   private final TimeSource timeSource;
   private final Journal journal;
@@ -91,12 +91,12 @@ public class XAStore<K, V> implements Store<K, V> {
   private final XATransactionContextFactory<K, V> transactionContextFactory = new XATransactionContextFactory<K, V>();
   private final EhcacheXAResource recoveryXaResource;
 
-  public XAStore(Class<K> keyType, Class<V> valueType, Store<K, SoftLock<V>> underlyingStore, XAServiceProvider xaServiceProvider,
+  public XAStore(Class<K> keyType, Class<V> valueType, Store<K, SoftLock<V>> underlyingStore, XAServiceProvider.TransactionManagerWrapper transactionManagerWrapper,
                  TimeSource timeSource, Journal journal, String uniqueXAResourceId) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.underlyingStore = underlyingStore;
-    this.xaServiceProvider = xaServiceProvider;
+    this.transactionManagerWrapper = transactionManagerWrapper;
     this.timeSource = timeSource;
     this.journal = journal;
     this.uniqueXAResourceId = uniqueXAResourceId;
@@ -113,15 +113,15 @@ public class XAStore<K, V> implements Store<K, V> {
 
   private XATransactionContext<K, V> getCurrentContext() throws CacheAccessException {
     try {
-      final Transaction transaction = xaServiceProvider.getTransactionManager().getTransaction();
+      final Transaction transaction = transactionManagerWrapper.getTransactionManager().getTransaction();
       if (transaction == null) {
         throw new CacheAccessException("Cannot access XA cache outside of XA transaction scope");
       }
       EhcacheXAResource<K, V> xaResource = xaResources.get(transaction);
       if (xaResource == null) {
         xaResource = new EhcacheXAResource<K, V>(underlyingStore, journal, transactionContextFactory);
-        xaServiceProvider.registerXAResource(uniqueXAResourceId, xaResource);
-        xaServiceProvider.getTransactionManager().getTransaction().enlistResource(xaResource);
+        transactionManagerWrapper.registerXAResource(uniqueXAResourceId, xaResource);
+        transactionManagerWrapper.getTransactionManager().getTransaction().enlistResource(xaResource);
         xaResources.put(transaction, xaResource);
         final EhcacheXAResource<K, V> finalXaResource = xaResource;
         transaction.registerSynchronization(new Synchronization() {
@@ -131,7 +131,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
           @Override
           public void afterCompletion(int status) {
-            xaServiceProvider.unregisterXAResource(uniqueXAResourceId, finalXaResource);
+            transactionManagerWrapper.unregisterXAResource(uniqueXAResourceId, finalXaResource);
             xaResources.remove(transaction);
           }
         });
@@ -201,7 +201,7 @@ public class XAStore<K, V> implements Store<K, V> {
   @Override
   public boolean containsKey(K key) throws CacheAccessException {
     checkKey(key);
-    if (getCurrentContext().containsCommandFor(key)) {
+    if (getCurrentContext().touched(key)) {
       return getCurrentContext().getNewValueHolder(key) != null;
     }
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
@@ -213,7 +213,7 @@ public class XAStore<K, V> implements Store<K, V> {
     checkKey(key);
     checkValue(value);
     XATransactionContext<K, V> currentContext = getCurrentContext();
-    if (currentContext.containsCommandFor(key)) {
+    if (currentContext.touched(key)) {
       V oldValue = currentContext.getOldValue(key);
       currentContext.addCommand(key, new StorePutCommand<V>(oldValue, new XAValueHolder<V>(value, timeSource.getTimeMillis())));
       return;
@@ -241,7 +241,7 @@ public class XAStore<K, V> implements Store<K, V> {
   public void remove(K key) throws CacheAccessException {
     checkKey(key);
     XATransactionContext<K, V> currentContext = getCurrentContext();
-    if (currentContext.containsCommandFor(key)) {
+    if (currentContext.touched(key)) {
       V oldValue = currentContext.getOldValue(key);
       currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValue));
       return;
@@ -432,7 +432,7 @@ public class XAStore<K, V> implements Store<K, V> {
   public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
     checkKey(key);
     XATransactionContext<K, V> currentContext = getCurrentContext();
-    if (currentContext.containsCommandFor(key)) {
+    if (currentContext.touched(key)) {
       V newValue = mappingFunction.apply(key, currentContext.latestValueFor(key));
       XAValueHolder<V> xaValueHolder = null;
       V oldValue = currentContext.getOldValue(key);
@@ -662,7 +662,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
     @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      XAServiceConfiguration xaServiceConfiguration = findSingletonAmongst(XAServiceConfiguration.class, (Object[]) serviceConfigs);
+      DefaultXAServiceConfiguration xaServiceConfiguration = findSingletonAmongst(DefaultXAServiceConfiguration.class, (Object[]) serviceConfigs);
       Store<K, V> store;
       SoftLockValueCombinedSerializerLifecycleHelper helper;
       if (xaServiceConfiguration == null) {
@@ -795,10 +795,11 @@ public class XAStore<K, V> implements Store<K, V> {
         // create the underlying store
         Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer,
             storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
-        Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig, underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
+        Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig,  underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
 
         // create the XA store
-        store = new XAStore<K, V>(storeConfig.getKeyType(), storeConfig.getValueType(), underlyingStore, xaServiceProvider, timeSource, journal, uniqueXAResourceId);
+        XAServiceProvider.TransactionManagerWrapper transactionManagerWrapper = xaServiceProvider.getTransactionManagerWrapper(underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
+        store = new XAStore<K, V>(storeConfig.getKeyType(), storeConfig.getValueType(), underlyingStore, transactionManagerWrapper, timeSource, journal, uniqueXAResourceId);
 
         // create the softLockSerializer lifecycle helper
         helper = new SoftLockValueCombinedSerializerLifecycleHelper((AtomicReference) softLockSerializerRef, storeConfig.getClassLoader());
@@ -817,7 +818,7 @@ public class XAStore<K, V> implements Store<K, V> {
       if (resource instanceof XAStore) {
         XAStore<?, ?> xaStore = (XAStore<?, ?>) resource;
 
-        xaServiceProvider.unregisterXAResource(xaStore.uniqueXAResourceId, xaStore.recoveryXaResource);
+        xaStore.transactionManagerWrapper.unregisterXAResource(xaStore.uniqueXAResourceId, xaStore.recoveryXaResource);
         // release the underlying store first, as it may still need the serializer to flush down to lower tiers
         underlyingStoreProvider.releaseStore(xaStore.underlyingStore);
         try {
@@ -847,7 +848,7 @@ public class XAStore<K, V> implements Store<K, V> {
         } catch (IOException ioe) {
           throw new RuntimeException(ioe);
         }
-        xaServiceProvider.registerXAResource(xaStore.uniqueXAResourceId, xaStore.recoveryXaResource);
+        xaStore.transactionManagerWrapper.registerXAResource(xaStore.uniqueXAResourceId, xaStore.recoveryXaResource);
       } else {
         underlyingStoreProvider.initStore(resource);
       }

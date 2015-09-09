@@ -37,9 +37,12 @@ import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.copy.DefaultCopyProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.transactions.configuration.DefaultXAServiceConfiguration;
 import org.ehcache.transactions.configuration.DefaultXAServiceProvider;
+import org.ehcache.transactions.configuration.XAServiceProvider;
 import org.ehcache.transactions.journal.Journal;
 import org.ehcache.transactions.journal.TransientJournal;
+import org.ehcache.transactions.txmgrs.NullXAResourceRegistry;
 import org.junit.Test;
 
 import javax.transaction.HeuristicMixedException;
@@ -80,7 +83,8 @@ public class XAStoreTest {
   @Test
   public void testSimpleGetPutRemove() throws Exception {
     String uniqueXAResourceId = "testSimpleGetPutRemove";
-    DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider(testTransactionManager);
+    DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider();
+    XAServiceProvider.TransactionManagerWrapper transactionManagerWrapper = defaultXAServiceProvider.getTransactionManagerWrapper(new DefaultXAServiceConfiguration(uniqueXAResourceId, testTransactionManager, new NullXAResourceRegistry()));
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
     Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
@@ -92,7 +96,7 @@ public class XAStoreTest {
     OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier);
     Journal stateStore = new TransientJournal();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, defaultXAServiceProvider, testTimeSource, stateStore, uniqueXAResourceId);
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, stateStore, uniqueXAResourceId);
 
     testTransactionManager.begin();
     {
@@ -146,7 +150,8 @@ public class XAStoreTest {
   @Test
   public void testIterate() throws Exception {
     String uniqueXAResourceId = "testIterate";
-    DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider(testTransactionManager);
+    DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider();
+    XAServiceProvider.TransactionManagerWrapper transactionManagerWrapper = defaultXAServiceProvider.getTransactionManagerWrapper(new DefaultXAServiceConfiguration(uniqueXAResourceId, testTransactionManager, new NullXAResourceRegistry()));
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
     Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
@@ -158,7 +163,7 @@ public class XAStoreTest {
     OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier);
     Journal stateStore = new TransientJournal();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, defaultXAServiceProvider, testTimeSource, stateStore, uniqueXAResourceId);
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, stateStore, uniqueXAResourceId);
 
     testTransactionManager.begin();
     {
@@ -199,7 +204,8 @@ public class XAStoreTest {
   @Test
   public void testCompute() throws Exception {
     String uniqueXAResourceId = "testCompute";
-    DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider(testTransactionManager);
+    DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider();
+    XAServiceProvider.TransactionManagerWrapper transactionManagerWrapper = defaultXAServiceProvider.getTransactionManagerWrapper(new DefaultXAServiceConfiguration(uniqueXAResourceId, testTransactionManager, new NullXAResourceRegistry()));
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
     Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
@@ -217,7 +223,7 @@ public class XAStoreTest {
 
     Journal stateStore = new TransientJournal();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, cacheStore, defaultXAServiceProvider, testTimeSource, stateStore, uniqueXAResourceId);
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, cacheStore, transactionManagerWrapper, testTimeSource, stateStore, uniqueXAResourceId);
 
     testTransactionManager.begin();
     {
@@ -333,7 +339,8 @@ public class XAStoreTest {
   @Test
   public void testExpiry() throws Exception {
     String uniqueXAResourceId = "testCompute";
-    DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider(testTransactionManager);
+    DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider();
+    XAServiceProvider.TransactionManagerWrapper transactionManagerWrapper = defaultXAServiceProvider.getTransactionManagerWrapper(new DefaultXAServiceConfiguration(uniqueXAResourceId, testTransactionManager, new NullXAResourceRegistry()));
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
     Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
@@ -352,7 +359,7 @@ public class XAStoreTest {
 
     Journal stateStore = new TransientJournal();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, cacheStore, defaultXAServiceProvider, testTimeSource, stateStore, uniqueXAResourceId);
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, cacheStore, transactionManagerWrapper, testTimeSource, stateStore, uniqueXAResourceId);
 
     testTransactionManager.begin();
     {
