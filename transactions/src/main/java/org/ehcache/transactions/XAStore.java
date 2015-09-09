@@ -526,20 +526,52 @@ public class XAStore<K, V> implements Store<K, V> {
 
   @Override
   public ValueHolder<V> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException {
-    //TODO: implement this properly
-    if (containsKey(key)) {
-      return compute(key, remappingFunction);
-    }
-    return null;
+    return computeIfPresent(key, remappingFunction, REPLACE_EQUALS_TRUE);
   }
 
   @Override
   public ValueHolder<V> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
-    //TODO: implement this properly
-    if (containsKey(key)) {
-      return compute(key, remappingFunction, replaceEqual);
+    checkKey(key);
+    XATransactionContext<K, V> currentContext = getCurrentContext();
+    if (currentContext.updated(key)) {
+      V newValue = remappingFunction.apply(key, currentContext.latestValueFor(key));
+      XAValueHolder<V> xaValueHolder = null;
+      V oldValue = currentContext.getOldValue(key);
+      if (newValue == null) {
+        if (!(oldValue == null && !replaceEqual.apply())) {
+          currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValue));
+        }
+      } else {
+        checkValue(newValue);
+        xaValueHolder = new XAValueHolder<V>(newValue, timeSource.getTimeMillis());
+        if (!(eq(oldValue, newValue) && !replaceEqual.apply())) {
+          currentContext.addCommand(key, new StorePutCommand<V>(oldValue, xaValueHolder));
+        }
+      }
+      return xaValueHolder;
     }
-    return null;
+
+    ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
+
+    XAValueHolder<V> xaValueHolder;
+    SoftLock<V> softLock = softLockValueHolder == null ? null : softLockValueHolder.value();
+    V oldValue = softLock == null ? null : softLock.getOldValue();
+
+    if (softLock != null && isInDoubt(softLock)) {
+      currentContext.addCommand(key, new StoreEvictCommand<V>(oldValue));
+      xaValueHolder = null;
+    } else if (softLock == null) {
+      xaValueHolder = null;
+    } else {
+      V newValue = remappingFunction.apply(key, oldValue);
+      if (newValue != null) {
+        checkValue(newValue);
+      }
+      xaValueHolder = new XAValueHolder<V>(newValue, timeSource.getTimeMillis());
+      currentContext.addCommand(key, new StorePutCommand<V>(oldValue, xaValueHolder));
+    }
+
+    return xaValueHolder;
   }
 
   @Override
