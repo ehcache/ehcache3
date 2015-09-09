@@ -41,7 +41,6 @@ import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
-import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -657,7 +656,6 @@ public class XAStore<K, V> implements Store<K, V> {
     private volatile ServiceProvider serviceProvider;
     private volatile Store.Provider underlyingStoreProvider;
     private volatile XAServiceProvider xaServiceProvider;
-    private volatile SerializationProvider serializationProvider;
     private final Map<Store<?, ?>, SoftLockValueCombinedSerializerLifecycleHelper> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, SoftLockValueCombinedSerializerLifecycleHelper>();
 
     @Override
@@ -857,7 +855,6 @@ public class XAStore<K, V> implements Store<K, V> {
     @Override
     public void start(ServiceProvider serviceProvider) {
       this.serviceProvider = serviceProvider;
-      this.serializationProvider = serviceProvider.getService(SerializationProvider.class);
       this.underlyingStoreProvider = serviceProvider.getService(DefaultStoreProvider.class);
       this.xaServiceProvider = serviceProvider.getService(XAServiceProvider.class);
     }
@@ -866,7 +863,6 @@ public class XAStore<K, V> implements Store<K, V> {
     public void stop() {
       this.xaServiceProvider = null;
       this.underlyingStoreProvider = null;
-      this.serializationProvider = null;
       this.serviceProvider = null;
     }
   }
