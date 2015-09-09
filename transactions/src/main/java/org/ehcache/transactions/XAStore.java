@@ -21,11 +21,9 @@ import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
-import org.ehcache.config.SerializerConfiguration;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
-import org.ehcache.config.serializer.ExtendedSerializerConfiguration;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CachePersistenceException;
@@ -45,7 +43,6 @@ import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
@@ -614,16 +611,11 @@ public class XAStore<K, V> implements Store<K, V> {
 
   private static final class SoftLockValueCombinedSerializerLifecycleHelper {
     final AtomicReference<Serializer<SoftLock>> softLockSerializerRef;
-    final Configuration<?, ?> storeConfig;
-    final LocalPersistenceService.PersistenceSpaceIdentifier persistenceSpaceId;
-    final ExtendedSerializerConfiguration<SoftLock> extendedSerializerConf;
+    final ClassLoader classLoader;
 
-    <K, V> SoftLockValueCombinedSerializerLifecycleHelper(AtomicReference<Serializer<SoftLock>> softLockSerializerRef, Configuration<K, V> storeConfig,
-                                                          LocalPersistenceService.PersistenceSpaceIdentifier persistenceSpaceId, ExtendedSerializerConfiguration<SoftLock> extendedSerializerConf) {
+    <K, V> SoftLockValueCombinedSerializerLifecycleHelper(AtomicReference<Serializer<SoftLock>> softLockSerializerRef, ClassLoader classLoader) {
       this.softLockSerializerRef = softLockSerializerRef;
-      this.storeConfig = storeConfig;
-      this.persistenceSpaceId = persistenceSpaceId;
-      this.extendedSerializerConf = extendedSerializerConf;
+      this.classLoader = classLoader;
     }
   }
 
@@ -644,7 +636,7 @@ public class XAStore<K, V> implements Store<K, V> {
       if (xaServiceConfiguration == null) {
         // non-tx cache
         store = underlyingStoreProvider.createStore(storeConfig, serviceConfigs);
-        helper = new SoftLockValueCombinedSerializerLifecycleHelper(null, null, null, null);
+        helper = new SoftLockValueCombinedSerializerLifecycleHelper(null, null);
       } else {
         String uniqueXAResourceId = xaServiceConfiguration.getUniqueXAResourceId();
         List<ServiceConfiguration<?>> underlyingServiceConfigs = new ArrayList<ServiceConfiguration<?>>();
@@ -721,14 +713,10 @@ public class XAStore<K, V> implements Store<K, V> {
         ResourcePool diskResourcePool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
         String persistentSpace = diskResourcePool != null && diskResourcePool.isPersistent() ? uniqueXAResourceId : null;
         LocalPersistenceService.PersistenceSpaceIdentifier persistenceSpaceId = null;
-        ExtendedSerializerConfiguration<SoftLock> extendedSerializerConf = null;
         if (persistentSpace != null) {
           try {
             LocalPersistenceService persistenceService = serviceProvider.getService(LocalPersistenceService.class);
             persistenceSpaceId = persistenceService.getOrCreatePersistenceSpace(persistentSpace);
-            // the soft lock serializer needs to be qualified or else it will be persisted in the same space as the value serializer
-            // making one's state overwrite the other's
-            extendedSerializerConf = new ExtendedSerializerConfiguration<SoftLock>(SerializerConfiguration.Type.VALUE, "SoftLock");
           } catch (CachePersistenceException cpe) {
             throw new RuntimeException("Cannot access local persistence space", cpe);
           }
@@ -780,7 +768,8 @@ public class XAStore<K, V> implements Store<K, V> {
         // create the XA store
         store = new XAStore<K, V>(storeConfig.getKeyType(), storeConfig.getValueType(), underlyingStore, xaServiceProvider, timeSource, journal, uniqueXAResourceId);
 
-        helper = new SoftLockValueCombinedSerializerLifecycleHelper((AtomicReference) softLockSerializerRef, storeConfig, persistenceSpaceId, extendedSerializerConf);
+        // create the softLockSerializer lifecycle helper
+        helper = new SoftLockValueCombinedSerializerLifecycleHelper((AtomicReference) softLockSerializerRef, storeConfig.getClassLoader());
       }
 
       createdStores.put(store, helper);
@@ -820,12 +809,7 @@ public class XAStore<K, V> implements Store<K, V> {
         XAStore<?, ?> xaStore = (XAStore<?, ?>) resource;
 
         underlyingStoreProvider.initStore(xaStore.underlyingStore);
-        try {
-          helper.softLockSerializerRef.set(serializationProvider.createValueSerializer(SoftLock.class, helper.storeConfig.getClassLoader(),
-              helper.persistenceSpaceId, helper.extendedSerializerConf));
-        } catch (UnsupportedTypeException ute) {
-          throw new RuntimeException(ute);
-        }
+        helper.softLockSerializerRef.set(new SoftLockSerializer(helper.classLoader));
         try {
           xaStore.journal.open();
         } catch (IOException ioe) {

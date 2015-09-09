@@ -239,8 +239,17 @@ public class XACacheTest {
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(new CacheManagerPersistenceConfiguration(new File("myData")))
-        .withCache("txCache1", cacheConfigurationBuilder.add(new XAServiceConfiguration("txCache1")).add(new DefaultCopierConfiguration<Long>(LongCopier.class, CopierConfiguration.Type.KEY)).add(new DefaultCopierConfiguration<String>(StringCopier.class, CopierConfiguration.Type.VALUE)).buildConfig(Long.class, String.class))
-        .withCache("txCache2", cacheConfigurationBuilder.add(new XAServiceConfiguration("txCache2")).buildConfig(Long.class, String.class))
+        .withCache("txCache1", cacheConfigurationBuilder
+            .add(new XAServiceConfiguration("txCache1"))
+            .add(new DefaultCopierConfiguration<Long>(LongCopier.class, CopierConfiguration.Type.KEY))
+            .add(new DefaultCopierConfiguration<String>(StringCopier.class, CopierConfiguration.Type.VALUE))
+            .buildConfig(Long.class, String.class)
+        )
+        .withCache("txCache2", cacheConfigurationBuilder
+            .add(new XAServiceConfiguration("txCache2"))
+            .add(new DefaultCopierConfiguration<Long>(LongCopier.class, CopierConfiguration.Type.KEY))
+            .add(new DefaultCopierConfiguration<String>(StringCopier.class, CopierConfiguration.Type.VALUE))
+            .buildConfig(Long.class, String.class))
         .with(new XACacheManagerConfiguration())
 //        .using(new DefaultXAServiceProvider(transactionManager))
         .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))

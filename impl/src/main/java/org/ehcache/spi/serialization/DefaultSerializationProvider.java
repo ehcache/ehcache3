@@ -19,7 +19,6 @@ package org.ehcache.spi.serialization;
 import org.ehcache.config.SerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.config.serializer.ExtendedSerializerConfiguration;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
@@ -51,7 +50,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
   private final TransientProvider transientProvider;
   private final PersistentProvider persistentProvider;
-  
+
   public DefaultSerializationProvider(DefaultSerializationProviderConfiguration configuration) {
     if (configuration != null) {
       transientProvider = new TransientProvider(configuration.getTransientSerializers());
@@ -120,7 +119,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
   static class PersistentProvider extends AbstractProvider {
 
     private volatile LocalPersistenceService persistence;
-    
+
     private PersistentProvider(Map<String, Class<? extends Serializer<?>>> serializers) {
       super(serializers);
     }
@@ -133,12 +132,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
         try {
           Constructor<? extends Serializer<T>> constructor = klazz.getConstructor(ClassLoader.class, FileBasedPersistenceContext.class);
           PersistenceSpaceIdentifier space = findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) configs);
-          String name = DefaultSerializationProvider.class.getSimpleName() + suffix;
-          ExtendedSerializerConfiguration extendedConf = findSingletonAmongst(ExtendedSerializerConfiguration.class, (Object[]) configs);
-          if (extendedConf != null) {
-            name += "-" + extendedConf.getQualifier();
-          }
-          FileBasedPersistenceContext context = persistence.createPersistenceContextWithin(space, name);
+          FileBasedPersistenceContext context = persistence.createPersistenceContextWithin(space, DefaultSerializationProvider.class.getSimpleName() + suffix);
           return constructSerializer(clazz, constructor, classLoader, context);
         } catch (NoSuchMethodException e) {
           Constructor<? extends Serializer<T>> constructor = klazz.getConstructor(ClassLoader.class);
