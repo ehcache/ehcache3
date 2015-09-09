@@ -35,6 +35,8 @@ import javax.cache.processor.EntryProcessorResult;
 
 import org.ehcache.Ehcache;
 import org.ehcache.EhcacheHackAccessor;
+import org.ehcache.Status;
+import org.ehcache.UserManagedCache;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.function.BiFunction;
@@ -436,7 +438,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
   @Override
   public boolean isClosed() {
-    return closed.get();
+    return closed.get() || ((UserManagedCache)ehCache).getStatus() != Status.AVAILABLE;
   }
 
   void closeInternal(MultiCacheException closeException) {

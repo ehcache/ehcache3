@@ -75,18 +75,21 @@ class Eh107CacheManager implements CacheManager {
     this.managementRegistry = managementRegistry;
     this.configurationMerger = configurationMerger;
 
-    loadExistingEhcaches();
+    refreshAllCaches();
   }
 
   EhcacheManager getEhCacheManager() {
     return ehCacheManager;
   }
 
-  private void loadExistingEhcaches() {
+  private void refreshAllCaches() {
     for (Map.Entry<String, CacheConfiguration<?, ?>> entry : ehCacheManager.getRuntimeConfiguration().getCacheConfigurations().entrySet()) {
       String name = entry.getKey();
       CacheConfiguration<?, ?> config = entry.getValue();
-      caches.put(name, wrapEhcacheCache(name, config));
+      caches.putIfAbsent(name, wrapEhcacheCache(name, config));
+    }
+    for (Map.Entry<String, Eh107Cache<?, ?>> namedCacheEntry : caches.entrySet()) {
+      namedCacheEntry.getValue().isClosed();
     }
   }
 
@@ -135,22 +138,26 @@ class Eh107CacheManager implements CacheManager {
   public <K, V, C extends Configuration<K, V>> Cache<K, V> createCache(String cacheName, C config)
       throws IllegalArgumentException {
 
+    checkClosed();
+
+    // TCK expects the "closed" check before these null checks
+    if (cacheName == null || config == null) {
+      throw new NullPointerException();
+    }
+
     synchronized (cachesLock) {
-      checkClosed();
-
-      // TCK expects the "closed" check before these null checks
-      if (cacheName == null || config == null) {
-        throw new NullPointerException();
-      }
-
-      if (caches.containsKey(cacheName)) {
-        throw new CacheException("A Cache named [" + cacheName + "] already exists");
-      }
 
       if (config instanceof Eh107Configuration.Eh107ConfigurationWrapper) {
         Eh107Configuration.Eh107ConfigurationWrapper<K, V> configurationWrapper = (Eh107Configuration.Eh107ConfigurationWrapper<K, V>)config;
         CacheConfiguration<K, V> unwrap = configurationWrapper.getCacheConfiguration();
-        Eh107Cache<K, V> cache = wrapEhcacheCache(cacheName, ehCacheManager.createCache(cacheName, unwrap));
+        final org.ehcache.Cache<K, V> ehcache;
+        try {
+          ehcache = ehCacheManager.createCache(cacheName, unwrap);
+        } catch (IllegalArgumentException e) {
+          throw new CacheException("A Cache named [" + cacheName + "] already exists");
+        }
+        Eh107Cache<K, V> cache = wrapEhcacheCache(cacheName, ehcache);
+        assert safeCacheRetrieval(cacheName) == null;
         caches.put(cacheName, cache);
 
         return cache;
@@ -161,10 +168,12 @@ class Eh107CacheManager implements CacheManager {
       final org.ehcache.Cache<K, V> ehCache;
       try {
         ehCache = ehCacheManager.createCache(cacheName, configHolder.cacheConfiguration);
+      } catch (IllegalArgumentException e) {
+        MultiCacheException mce = new MultiCacheException(e);
+        configHolder.cacheResources.closeResources(mce);
+        throw new CacheException("A Cache named [" + cacheName + "] already exists", mce);
       } catch (Throwable t) {
         // something went wrong in ehcache land, make sure to clean up our stuff
-        // NOTE: one relatively simple error path is if a pre-configured cache of the same name already exists in
-        // ehcache
         MultiCacheException mce = new MultiCacheException(t);
         configHolder.cacheResources.closeResources(mce);
         throw mce;
@@ -223,7 +232,7 @@ class Eh107CacheManager implements CacheManager {
       throw new NullPointerException();
     }
 
-    Eh107Cache<K, V> cache = (Eh107Cache<K, V>) caches.get(cacheName);
+    Eh107Cache<K, V> cache = safeCacheRetrieval(cacheName);
     if (cache == null) {
       return null;
     }
@@ -253,7 +262,7 @@ class Eh107CacheManager implements CacheManager {
       throw new NullPointerException();
     }
 
-    Eh107Cache<K, V> cache = (Eh107Cache<K, V>) caches.get(cacheName);
+    Eh107Cache<K, V> cache = safeCacheRetrieval(cacheName);
 
     if (cache == null) {
       return null;
@@ -267,8 +276,18 @@ class Eh107CacheManager implements CacheManager {
     return cache;
   }
 
+  @SuppressWarnings("unchecked")
+  private <K, V> Eh107Cache<K, V> safeCacheRetrieval(final String cacheName) {
+    final Eh107Cache<?, ?> eh107Cache = caches.get(cacheName);
+    if(eh107Cache != null && eh107Cache.isClosed()) {
+      return null;
+    }
+    return (Eh107Cache<K, V>) eh107Cache;
+  }
+
   @Override
   public Iterable<String> getCacheNames() {
+    refreshAllCaches();
     return Collections.unmodifiableList(new ArrayList<String>(caches.keySet()));
   }
 
@@ -321,7 +340,7 @@ class Eh107CacheManager implements CacheManager {
       throw new NullPointerException();
     }
 
-    Eh107Cache<?, ?> cache = caches.get(cacheName);
+    Eh107Cache<?, ?> cache = safeCacheRetrieval(cacheName);
     if (cache == null) {
       throw new IllegalArgumentException("No such Cache named " + cacheName);
     }
@@ -371,7 +390,7 @@ class Eh107CacheManager implements CacheManager {
       throw new NullPointerException();
     }
 
-    Eh107Cache<?, ?> cache = caches.get(cacheName);
+    Eh107Cache<?, ?> cache = safeCacheRetrieval(cacheName);
     if (cache == null) {
       throw new IllegalArgumentException("No such Cache named " + cacheName);
     }

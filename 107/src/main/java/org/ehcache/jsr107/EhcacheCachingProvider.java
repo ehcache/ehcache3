@@ -85,7 +85,12 @@ public class EhcacheCachingProvider implements CachingProvider {
       }
 
       cacheManager = byURI.get(uri);
-      if (cacheManager == null) {
+      if (cacheManager == null || cacheManager.isClosed()) {
+
+        if(cacheManager != null) {
+          byURI.remove(uri, cacheManager);
+        }
+
         Configuration config;
         try {
           if (URI_DEFAULT.equals(uri)) {
