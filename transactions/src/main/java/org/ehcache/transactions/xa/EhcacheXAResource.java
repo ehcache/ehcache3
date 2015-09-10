@@ -31,10 +31,13 @@ import java.util.Set;
  */
 public class EhcacheXAResource<K, V> implements XAResource {
 
+  private static final int DEFAULT_TRANSACTION_TIMEOUT_SECONDS = 30;
+
   private final Store<K, SoftLock<V>> underlyingStore;
   private final Journal journal;
   private final XATransactionContextFactory<K, V> transactionContextFactory;
   private volatile Xid currentXid;
+  private volatile int transactionTimeoutInSeconds = DEFAULT_TRANSACTION_TIMEOUT_SECONDS;
 
   public EhcacheXAResource(Store<K, SoftLock<V>> underlyingStore, Journal journal, XATransactionContextFactory<K, V> transactionContextFactory) {
     this.underlyingStore = underlyingStore;
@@ -54,17 +57,19 @@ public class EhcacheXAResource<K, V> implements XAResource {
     }
 
     try {
-      try {
-        if (onePhase) {
+      if (onePhase) {
+        try {
           transactionContext.commitInOnePhase();
-        } else {
-          transactionContext.commit();
+        } catch (TransactionTimeoutException tte) {
+          throw new EhcacheXAException("Transaction timed out", XAException.XA_RBTIMEOUT);
         }
-      } catch (IllegalStateException ise) {
-        throw new EhcacheXAException("Cannot commit XID : " + xid, XAException.XAER_PROTO, ise);
-      } catch (CacheAccessException cae) {
-        throw new EhcacheXAException("Cannot commit XID : " + xid, XAException.XAER_RMERR, cae);
+      } else {
+        transactionContext.commit();
       }
+    } catch (IllegalStateException ise) {
+      throw new EhcacheXAException("Cannot commit XID : " + xid, XAException.XAER_PROTO, ise);
+    } catch (CacheAccessException cae) {
+      throw new EhcacheXAException("Cannot commit XID : " + xid, XAException.XAER_RMERR, cae);
     } finally {
       transactionContextFactory.destroy(transactionId);
     }
@@ -85,7 +90,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
 
   @Override
   public int getTransactionTimeout() throws XAException {
-    return 0;
+    return transactionTimeoutInSeconds;
   }
 
   @Override
@@ -108,6 +113,8 @@ public class EhcacheXAResource<K, V> implements XAResource {
     try {
       readOnly = transactionContext.prepare() == 0;
       return readOnly ? XA_RDONLY : XA_OK;
+    } catch (TransactionTimeoutException tte) {
+      throw new EhcacheXAException("Transaction timed out", XAException.XA_RBTIMEOUT);
     } catch (IllegalStateException ise) {
       throw new EhcacheXAException("Cannot prepare XID : " + xid, XAException.XAER_PROTO, ise);
     } catch (CacheAccessException cae) {
@@ -121,7 +128,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
 
   @Override
   public Xid[] recover(int flags) throws XAException {
-    if (flags != XAResource.TMNOFLAGS && flags != XAResource.TMSTARTRSCAN && flags != XAResource.TMENDRSCAN && flags != (XAResource.TMSTARTRSCAN|XAResource.TMENDRSCAN)) {
+    if (flags != XAResource.TMNOFLAGS && flags != XAResource.TMSTARTRSCAN && flags != XAResource.TMENDRSCAN && flags != (XAResource.TMSTARTRSCAN | XAResource.TMENDRSCAN)) {
       throw new EhcacheXAException("Recover flags not supported : " + xlat(flags), XAException.XAER_INVAL);
     }
 
@@ -163,7 +170,15 @@ public class EhcacheXAResource<K, V> implements XAResource {
 
   @Override
   public boolean setTransactionTimeout(int seconds) throws XAException {
-    return false;
+    if (seconds < 0) {
+      throw new EhcacheXAException("Transaction timeout must be >= 0", XAException.XAER_INVAL);
+    }
+    if (seconds == 0) {
+      this.transactionTimeoutInSeconds = DEFAULT_TRANSACTION_TIMEOUT_SECONDS;
+    } else {
+      this.transactionTimeoutInSeconds = seconds;
+    }
+    return true;
   }
 
   @Override
@@ -175,19 +190,26 @@ public class EhcacheXAResource<K, V> implements XAResource {
       throw new EhcacheXAException("Already started on : " + xid, XAException.XAER_PROTO);
     }
 
+    TransactionId transactionId = new TransactionId(xid);
+    XATransactionContext<K, V> transactionContext = transactionContextFactory.get(transactionId);
     if (flag == XAResource.TMNOFLAGS) {
-      currentXid = xid;
-      TransactionId transactionId = new TransactionId(currentXid);
-      if (!transactionContextFactory.contains(transactionId)) {
-        transactionContextFactory.create(transactionId, underlyingStore, journal);
+      if (transactionContext == null) {
+        transactionContext = transactionContextFactory.createTransactionContext(transactionId, underlyingStore, journal, transactionTimeoutInSeconds);
+      } else {
+        throw new EhcacheXAException("Cannot start in parallel on two XIDs : " + xid, XAException.XAER_RMERR);
       }
     } else {
-      TransactionId transactionId = new TransactionId(xid);
-      if (!transactionContextFactory.contains(transactionId)) {
+      if (transactionContext == null) {
         throw new EhcacheXAException("Cannot join unknown XID : " + xid, XAException.XAER_NOTA);
       }
-      currentXid = xid;
     }
+
+    // TODO: the timeout check currently conflicts with the resilience strategy.
+    // put it back once resilience strategies are pluggable
+    //if (transactionContext.hasTimedOut()) {
+    //  throw new EhcacheXAException("Transaction timeout for XID : " + xid, XAException.XA_RBTIMEOUT);
+    //}
+    currentXid = xid;
   }
 
   @Override
@@ -198,12 +220,20 @@ public class EhcacheXAResource<K, V> implements XAResource {
     if (currentXid == null) {
       throw new EhcacheXAException("Not started on : " + xid, XAException.XAER_PROTO);
     }
+    TransactionId transactionId = new TransactionId(currentXid);
+    XATransactionContext<K, V> transactionContext = transactionContextFactory.get(transactionId);
+    if (transactionContext == null) {
+      throw new EhcacheXAException("Cannot end unknown XID : " + xid, XAException.XAER_NOTA);
+    }
 
     if (flag == XAResource.TMFAIL) {
-      TransactionId transactionId = new TransactionId(currentXid);
       transactionContextFactory.destroy(transactionId);
     }
     currentXid = null;
+
+    if (transactionContext.hasTimedOut()) {
+      throw new EhcacheXAException("Transaction timeout for XID : " + xid, XAException.XA_RBTIMEOUT);
+    }
   }
 
   private static String xlat(int flags) {

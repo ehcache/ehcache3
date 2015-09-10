@@ -88,7 +88,7 @@ public class XAStore<K, V> implements Store<K, V> {
   private final TimeSource timeSource;
   private final Journal journal;
   private final String uniqueXAResourceId;
-  private final XATransactionContextFactory<K, V> transactionContextFactory = new XATransactionContextFactory<K, V>();
+  private final XATransactionContextFactory<K, V> transactionContextFactory;
   private final EhcacheXAResource recoveryXaResource;
 
   public XAStore(Class<K> keyType, Class<V> valueType, Store<K, SoftLock<V>> underlyingStore, TransactionManagerWrapper transactionManagerWrapper,
@@ -100,6 +100,7 @@ public class XAStore<K, V> implements Store<K, V> {
     this.timeSource = timeSource;
     this.journal = journal;
     this.uniqueXAResourceId = uniqueXAResourceId;
+    this.transactionContextFactory = new XATransactionContextFactory<K, V>(timeSource);
     this.recoveryXaResource = new EhcacheXAResource<K, V>(underlyingStore, journal, transactionContextFactory);
   }
 
@@ -115,7 +116,7 @@ public class XAStore<K, V> implements Store<K, V> {
     try {
       final Transaction transaction = transactionManagerWrapper.getTransactionManager().getTransaction();
       if (transaction == null) {
-        throw new CacheAccessException("Cannot access XA cache outside of XA transaction scope");
+        throw new XACacheAccessException("Cannot access XA cache outside of XA transaction scope");
       }
       EhcacheXAResource<K, V> xaResource = xaResources.get(transaction);
       if (xaResource == null) {
@@ -136,11 +137,15 @@ public class XAStore<K, V> implements Store<K, V> {
           }
         });
       }
-      return xaResource.getCurrentContext();
+      XATransactionContext<K, V> currentContext = xaResource.getCurrentContext();
+      if (currentContext.hasTimedOut()) {
+        throw new XACacheAccessException("Current XA transaction has timed out");
+      }
+      return currentContext;
     } catch (SystemException se) {
-      throw new CacheAccessException("Cannot get current transaction", se);
+      throw new XACacheAccessException("Cannot get current XA transaction", se);
     } catch (RollbackException re) {
-      throw new CacheAccessException("Transaction has been marked for rollback", re);
+      throw new XACacheAccessException("XA Transaction has been marked for rollback only", re);
     }
   }
 

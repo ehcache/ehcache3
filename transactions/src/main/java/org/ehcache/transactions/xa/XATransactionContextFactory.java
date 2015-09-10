@@ -15,11 +15,13 @@
  */
 package org.ehcache.transactions.xa;
 
+import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.transactions.xa.journal.Journal;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Ludovic Orban
@@ -27,10 +29,18 @@ import java.util.Map;
 public class XATransactionContextFactory<K, V> {
 
   private final Map<TransactionId, XATransactionContext<K, V>> transactionContextMap = new ConcurrentHashMap<TransactionId, XATransactionContext<K, V>>();
+  private final TimeSource timeSource;
 
-  public void create(TransactionId transactionId, Store<K, SoftLock<V>> underlyingStore, Journal journal) {
-    XATransactionContext<K, V> transactionContext = new XATransactionContext<K, V>(transactionId, underlyingStore, journal);
+  public XATransactionContextFactory(TimeSource timeSource) {
+    this.timeSource = timeSource;
+  }
+
+  public XATransactionContext<K, V> createTransactionContext(TransactionId transactionId, Store<K, SoftLock<V>> underlyingStore, Journal journal, int transactionTimeoutInSeconds) {
+    long nowTimestamp = timeSource.getTimeMillis();
+    long timeoutTimestamp = nowTimestamp + TimeUnit.SECONDS.toMillis(transactionTimeoutInSeconds);
+    XATransactionContext<K, V> transactionContext = new XATransactionContext<K, V>(transactionId, underlyingStore, journal, timeSource, timeoutTimestamp);
     transactionContextMap.put(transactionId, transactionContext);
+    return transactionContext;
   }
 
   public XATransactionContext<K, V> get(TransactionId transactionId) {

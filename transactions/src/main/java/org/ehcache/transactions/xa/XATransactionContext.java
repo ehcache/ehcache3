@@ -16,6 +16,7 @@
 package org.ehcache.transactions.xa;
 
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.transactions.xa.commands.Command;
@@ -36,11 +37,19 @@ public class XATransactionContext<K, V> {
   private final TransactionId transactionId;
   private final Store<K, SoftLock<V>> underlyingStore;
   private final Journal journal;
+  private final TimeSource timeSource;
+  private final long timeoutTimestamp;
 
-  public XATransactionContext(TransactionId transactionId, Store<K, SoftLock<V>> underlyingStore, Journal journal) {
+  public XATransactionContext(TransactionId transactionId, Store<K, SoftLock<V>> underlyingStore, Journal journal, TimeSource timeSource, long timeoutTimestamp) {
     this.transactionId = transactionId;
     this.underlyingStore = underlyingStore;
     this.journal = journal;
+    this.timeSource = timeSource;
+    this.timeoutTimestamp = timeoutTimestamp;
+  }
+
+  public boolean hasTimedOut() {
+    return timeSource.getTimeMillis() >= timeoutTimestamp;
   }
 
   public TransactionId getTransactionId() {
@@ -106,7 +115,10 @@ public class XATransactionContext<K, V> {
     return valueHolder == null ? null : valueHolder.value();
   }
 
-  public int prepare() throws CacheAccessException, IllegalStateException {
+  public int prepare() throws CacheAccessException, IllegalStateException, TransactionTimeoutException {
+    if (hasTimedOut()) {
+      throw new TransactionTimeoutException();
+    }
     if (journal.getState(transactionId) != null) {
       throw new IllegalStateException("Cannot prepare transaction that is not in-flight : " + transactionId);
     }
@@ -172,7 +184,10 @@ public class XATransactionContext<K, V> {
     journal.save(transactionId, XAState.COMMITTED, false);
   }
 
-  public void commitInOnePhase() throws CacheAccessException {
+  public void commitInOnePhase() throws CacheAccessException, TransactionTimeoutException {
+    if (hasTimedOut()) {
+      throw new TransactionTimeoutException();
+    }
     if (journal.getState(transactionId) != null) {
       throw new IllegalStateException("Cannot commit-one-phase transaction that has been prepared : " + transactionId);
     }

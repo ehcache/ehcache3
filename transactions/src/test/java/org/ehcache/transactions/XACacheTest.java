@@ -37,10 +37,13 @@ import org.ehcache.spi.copy.Copier;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.junit.Test;
 
+import javax.transaction.RollbackException;
 import javax.transaction.Status;
 import javax.transaction.Transaction;
 import java.io.File;
 import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.fail;
 
 /**
  * @author Ludovic Orban
@@ -272,6 +275,54 @@ public class XACacheTest {
     }
     transactionManager.commit();
 
+
+    cacheManager.close();
+    transactionManager.shutdown();
+  }
+
+  @Test
+  public void testTimeout() throws Exception {
+    TestTimeSource testTimeSource = new TestTimeSource();
+    TransactionManagerServices.getConfiguration().setJournal("null").setServerId("XACacheTest").setDefaultTransactionTimeout(1);
+    BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
+
+    CacheConfigurationBuilder<Object, Object> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+                .heap(10, EntryUnit.ENTRIES)
+                .offheap(10, MemoryUnit.MB)
+        );
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .with(new CacheManagerPersistenceConfiguration(new File("myData")))
+        .withCache("txCache1", cacheConfigurationBuilder
+            .add(new XAStoreConfiguration("txCache1"))
+            .add(new DefaultCopierConfiguration<Long>(LongCopier.class, CopierConfiguration.Type.KEY))
+            .add(new DefaultCopierConfiguration<String>(StringCopier.class, CopierConfiguration.Type.VALUE))
+            .buildConfig(Long.class, String.class)
+        )
+        .withCache("txCache2", cacheConfigurationBuilder
+            .add(new XAStoreConfiguration("txCache2"))
+            .add(new DefaultCopierConfiguration<Long>(LongCopier.class, CopierConfiguration.Type.KEY))
+            .add(new DefaultCopierConfiguration<String>(StringCopier.class, CopierConfiguration.Type.VALUE))
+            .buildConfig(Long.class, String.class))
+        .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))
+        .build(true);
+
+    final Cache<Long, String> txCache1 = cacheManager.getCache("txCache1", Long.class, String.class);
+    final Cache<Long, String> txCache2 = cacheManager.getCache("txCache2", Long.class, String.class);
+
+    transactionManager.begin();
+    {
+      txCache1.put(1L, "one");
+      txCache2.put(1L, "un");
+      testTimeSource.advanceTime(2000);
+    }
+    try {
+      transactionManager.commit();
+      fail("Expected RollbackException");
+    } catch (RollbackException e) {
+      // expected
+    }
 
     cacheManager.close();
     transactionManager.shutdown();
