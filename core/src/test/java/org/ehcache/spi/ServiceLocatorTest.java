@@ -19,12 +19,14 @@ package org.ehcache.spi;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Enumeration;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.ehcache.Ehcache;
 import org.ehcache.spi.cache.CacheProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.spi.services.DefaultTestService;
 import org.ehcache.spi.services.TestService;
@@ -33,6 +35,7 @@ import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.junit.Assert.assertThat;
@@ -165,6 +168,25 @@ public class ServiceLocatorTest {
     TestService testService = locator.getService(TestService.class);
     assertThat(testService, instanceOf(ExtendedTestService.class));
   }
+
+  @Test
+  public void testCanOverrideServiceDependencyWithoutOrderingProblem() throws Exception {
+    final AtomicBoolean started = new AtomicBoolean(false);
+    ServiceLocator serviceLocator = new ServiceLocator(new TestServiceConsumerService());
+    serviceLocator.addService(new TestService() {
+      @Override
+      public void start(ServiceProvider serviceProvider) {
+        started.set(true);
+      }
+
+      @Override
+      public void stop() {
+        // no-op
+      }
+    });
+    serviceLocator.startAllServices();
+    assertThat(started.get(), is(true));
+  }
 }
 
 class ExtendedTestService extends DefaultTestService {
@@ -175,7 +197,19 @@ interface FooProvider extends Service {
 
 }
 
+@ServiceDependencies(TestService.class)
+class TestServiceConsumerService implements Service {
 
+  @Override
+  public void start(ServiceProvider serviceProvider) {
+    assertThat(serviceProvider.getService(TestService.class), notNullValue());
+  }
+
+  @Override
+  public void stop() {
+    // no-op
+  }
+}
 
 class ParentTestService implements FooProvider {
 
