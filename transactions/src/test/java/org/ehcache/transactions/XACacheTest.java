@@ -34,7 +34,7 @@ import org.ehcache.internal.DefaultTimeSourceService;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.spi.copy.Copier;
-import org.ehcache.transactions.configuration.DefaultXAServiceConfiguration;
+import org.ehcache.transactions.configuration.XAStoreConfiguration;
 import org.junit.Test;
 
 import javax.transaction.Status;
@@ -59,8 +59,8 @@ public class XACacheTest {
         );
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("txCache1", cacheConfigurationBuilder.add(new DefaultXAServiceConfiguration("txCache1")).buildConfig(Long.class, String.class))
-        .withCache("txCache2", cacheConfigurationBuilder.add(new DefaultXAServiceConfiguration("txCache2")).buildConfig(Long.class, String.class))
+        .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).buildConfig(Long.class, String.class))
+        .withCache("txCache2", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache2")).buildConfig(Long.class, String.class))
         .withCache("nonTxCache", cacheConfigurationBuilder.buildConfig(Long.class, String.class))
         .build(true);
 
@@ -132,8 +132,8 @@ public class XACacheTest {
         );
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("txCache1", cacheConfigurationBuilder.add(new DefaultXAServiceConfiguration("txCache1")).buildConfig(Long.class, String.class))
-        .withCache("txCache2", cacheConfigurationBuilder.add(new DefaultXAServiceConfiguration("txCache2")).buildConfig(Long.class, String.class))
+        .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).buildConfig(Long.class, String.class))
+        .withCache("txCache2", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache2")).buildConfig(Long.class, String.class))
         .withCache("nonTxCache", cacheConfigurationBuilder.buildConfig(Long.class, String.class))
         .build(true);
 
@@ -180,8 +180,8 @@ public class XACacheTest {
         );
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("txCache1", cacheConfigurationBuilder.add(new DefaultXAServiceConfiguration("txCache1")).buildConfig(Long.class, String.class))
-        .withCache("txCache2", cacheConfigurationBuilder.add(new DefaultXAServiceConfiguration("txCache2")).buildConfig(Long.class, String.class))
+        .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).buildConfig(Long.class, String.class))
+        .withCache("txCache2", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache2")).buildConfig(Long.class, String.class))
         .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))
         .build(true);
 
@@ -233,13 +233,13 @@ public class XACacheTest {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(new CacheManagerPersistenceConfiguration(new File("myData")))
         .withCache("txCache1", cacheConfigurationBuilder
-            .add(new DefaultXAServiceConfiguration("txCache1"))
+            .add(new XAStoreConfiguration("txCache1"))
             .add(new DefaultCopierConfiguration<Long>(LongCopier.class, CopierConfiguration.Type.KEY))
             .add(new DefaultCopierConfiguration<String>(StringCopier.class, CopierConfiguration.Type.VALUE))
             .buildConfig(Long.class, String.class)
         )
         .withCache("txCache2", cacheConfigurationBuilder
-            .add(new DefaultXAServiceConfiguration("txCache2"))
+            .add(new XAStoreConfiguration("txCache2"))
             .add(new DefaultCopierConfiguration<Long>(LongCopier.class, CopierConfiguration.Type.KEY))
             .add(new DefaultCopierConfiguration<String>(StringCopier.class, CopierConfiguration.Type.VALUE))
             .buildConfig(Long.class, String.class))

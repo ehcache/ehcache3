@@ -16,44 +16,26 @@
 package org.ehcache.transactions.configuration;
 
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.transactions.txmgrs.XAResourceRegistry;
-
-import javax.transaction.TransactionManager;
+import org.ehcache.transactions.XAStore;
 
 /**
  * @author Ludovic Orban
  */
-public class DefaultXAServiceConfiguration implements ServiceConfiguration<XAServiceProvider> {
+public class XAStoreConfiguration implements ServiceConfiguration<XAStore.Provider> {
 
   private final String uniqueXAResourceId;
-  private final TransactionManager transactionManager;
-  private final XAResourceRegistry xaResourceRegistry;
 
   //TODO: ideally, the uniqueXAResourceIdSuffix should be the cache alias, injected by the CM
-  public DefaultXAServiceConfiguration(String uniqueXAResourceId) {
-    this(uniqueXAResourceId, null, null);
-  }
-
-  public DefaultXAServiceConfiguration(String uniqueXAResourceId, TransactionManager transactionManager, XAResourceRegistry xaResourceRegistry) {
+  public XAStoreConfiguration(String uniqueXAResourceId) {
     this.uniqueXAResourceId = uniqueXAResourceId;
-    this.transactionManager = transactionManager;
-    this.xaResourceRegistry = xaResourceRegistry;
   }
 
   public String getUniqueXAResourceId() {
     return uniqueXAResourceId;
   }
 
-  public TransactionManager getTransactionManager() {
-    return transactionManager;
-  }
-
-  public XAResourceRegistry getXAResourceRegistry() {
-    return xaResourceRegistry;
-  }
-
   @Override
-  public Class<XAServiceProvider> getServiceType() {
-    return XAServiceProvider.class;
+  public Class<XAStore.Provider> getServiceType() {
+    return XAStore.Provider.class;
   }
 }

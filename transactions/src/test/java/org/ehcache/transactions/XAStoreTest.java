@@ -37,12 +37,10 @@ import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.copy.DefaultCopyProvider;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.transactions.configuration.DefaultXAServiceConfiguration;
-import org.ehcache.transactions.configuration.DefaultXAServiceProvider;
-import org.ehcache.transactions.configuration.XAServiceProvider;
 import org.ehcache.transactions.journal.Journal;
 import org.ehcache.transactions.journal.TransientJournal;
 import org.ehcache.transactions.txmgrs.NullXAResourceRegistry;
+import org.ehcache.transactions.txmgrs.TransactionManagerWrapper;
 import org.junit.Test;
 
 import javax.transaction.HeuristicMixedException;
@@ -83,8 +81,7 @@ public class XAStoreTest {
   @Test
   public void testSimpleGetPutRemove() throws Exception {
     String uniqueXAResourceId = "testSimpleGetPutRemove";
-    DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider();
-    XAServiceProvider.TransactionManagerWrapper transactionManagerWrapper = defaultXAServiceProvider.getTransactionManagerWrapper(new DefaultXAServiceConfiguration(uniqueXAResourceId, testTransactionManager, new NullXAResourceRegistry()));
+    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
     Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
@@ -150,8 +147,7 @@ public class XAStoreTest {
   @Test
   public void testIterate() throws Exception {
     String uniqueXAResourceId = "testIterate";
-    DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider();
-    XAServiceProvider.TransactionManagerWrapper transactionManagerWrapper = defaultXAServiceProvider.getTransactionManagerWrapper(new DefaultXAServiceConfiguration(uniqueXAResourceId, testTransactionManager, new NullXAResourceRegistry()));
+    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
     Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
@@ -204,8 +200,7 @@ public class XAStoreTest {
   @Test
   public void testCompute() throws Exception {
     String uniqueXAResourceId = "testCompute";
-    DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider();
-    XAServiceProvider.TransactionManagerWrapper transactionManagerWrapper = defaultXAServiceProvider.getTransactionManagerWrapper(new DefaultXAServiceConfiguration(uniqueXAResourceId, testTransactionManager, new NullXAResourceRegistry()));
+    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
     Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
@@ -339,8 +334,7 @@ public class XAStoreTest {
   @Test
   public void testExpiry() throws Exception {
     String uniqueXAResourceId = "testCompute";
-    DefaultXAServiceProvider defaultXAServiceProvider = new DefaultXAServiceProvider();
-    XAServiceProvider.TransactionManagerWrapper transactionManagerWrapper = defaultXAServiceProvider.getTransactionManagerWrapper(new DefaultXAServiceConfiguration(uniqueXAResourceId, testTransactionManager, new NullXAResourceRegistry()));
+    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
     Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);

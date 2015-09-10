@@ -25,88 +25,32 @@ import bitronix.tm.resource.common.ResourceBean;
 import bitronix.tm.resource.common.XAResourceHolder;
 import bitronix.tm.resource.common.XAResourceProducer;
 import bitronix.tm.resource.common.XAStatefulHolder;
-import org.ehcache.transactions.txmgrs.XAResourceRegistry;
+import org.ehcache.internal.concurrent.ConcurrentHashMap;
 
 import javax.naming.NamingException;
 import javax.naming.Reference;
 import javax.naming.StringRefAddr;
 import javax.transaction.xa.XAResource;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * @author Ludovic Orban
  */
-public class Ehcache3XAResourceProducer extends ResourceBean implements XAResourceProducer, XAResourceRegistry {
+public class Ehcache3XAResourceProducer extends ResourceBean implements XAResourceProducer {
 
-  private final ConcurrentMap<String, Ehcache3XAResourceProducer> producers = new ConcurrentHashMap<String, Ehcache3XAResourceProducer>();
   private final Map<XAResource, XAResourceHolder> xaResourceHolders = new ConcurrentHashMap<XAResource, XAResourceHolder>();
   private volatile RecoveryXAResourceHolder recoveryXAResourceHolder;
-
-
 
   public Ehcache3XAResourceProducer() {
     setApplyTransactionTimeout(true);
   }
 
-  /**
-   * Register an XAResource of a cache with BTM. The first time a XAResource is registered a new
-   * EhCacheXAResourceProducer is created to hold it.
-   * @param uniqueName the uniqueName of this XAResourceProducer, usually the cache's name
-   * @param xaResource the XAResource to be registered
-   */
-  @Override
-  public void registerXAResource(String uniqueName, XAResource xaResource) {
-    Ehcache3XAResourceProducer xaResourceProducer = producers.get(uniqueName);
-
-    if (xaResourceProducer == null) {
-      xaResourceProducer = new Ehcache3XAResourceProducer();
-      xaResourceProducer.setUniqueName(uniqueName);
-      // the initial xaResource must be added before init() can be called
-      xaResourceProducer.addXAResource(xaResource);
-
-      Ehcache3XAResourceProducer previous = producers.putIfAbsent(uniqueName, xaResourceProducer);
-      if (previous == null) {
-        xaResourceProducer.init();
-      } else {
-        previous.addXAResource(xaResource);
-      }
-    } else {
-      xaResourceProducer.addXAResource(xaResource);
-    }
-  }
-
-  /**
-   * Unregister an XAResource of a cache from BTM.
-   * @param uniqueName the uniqueName of this XAResourceProducer, usually the cache's name
-   * @param xaResource the XAResource to be registered
-   */
-  @Override
-  public void unregisterXAResource(String uniqueName, XAResource xaResource) {
-    Ehcache3XAResourceProducer xaResourceProducer = producers.get(uniqueName);
-
-    if (xaResourceProducer != null) {
-      boolean found = xaResourceProducer.removeXAResource(xaResource);
-      if (!found) {
-        throw new IllegalStateException("no XAResource " + xaResource + " found in XAResourceProducer with name " + uniqueName);
-      }
-      if (xaResourceProducer.xaResourceHolders.isEmpty()) {
-        xaResourceProducer.close();
-        producers.remove(uniqueName);
-      }
-    } else {
-      throw new IllegalStateException("no XAResourceProducer registered with name " + uniqueName);
-    }
-  }
-
-
-  private void addXAResource(XAResource xaResource) {
+  protected void addXAResource(XAResource xaResource) {
     Ehcache3XAResourceHolder xaResourceHolder = new Ehcache3XAResourceHolder(xaResource, this);
     xaResourceHolders.put(xaResource, xaResourceHolder);
   }
 
-  private boolean removeXAResource(XAResource xaResource) {
+  protected boolean removeXAResource(XAResource xaResource) {
     return xaResourceHolders.remove(xaResource) != null;
   }
 
@@ -121,6 +65,10 @@ public class Ehcache3XAResourceProducer extends ResourceBean implements XAResour
 
     recoveryXAResourceHolder = new RecoveryXAResourceHolder(xaResourceHolders.values().iterator().next());
     return new XAResourceHolderState(recoveryXAResourceHolder, this);
+  }
+
+  protected boolean isEmpty() {
+    return xaResourceHolders.isEmpty();
   }
 
   public void endRecovery() throws RecoveryException {

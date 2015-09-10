@@ -15,6 +15,27 @@
   ~ limitations under the License.
   -->
 
-<xs:schema version="1.0" xmlns:tx="http://www.ehcache.org/v3/tx" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" targetNamespace="http://www.ehcache.org/v3/tx">
+<xs:schema version="1.0"
+           xmlns:ehcache="http://www.ehcache.org/v3"
+           xmlns:tx="http://www.ehcache.org/v3/tx"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified"
+           targetNamespace="http://www.ehcache.org/v3/tx">
+
+  <xs:element name="xa" type="tx:xa-config-type"/>
+
+  <xs:element name="jta-tm" type="tx:xa-tm-type">
+  </xs:element>
+
+  <xs:complexType name="xa-config-type">
+    <xs:attribute name="unique-XAResource-id" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="xa-tm-type">
+<!--
+    <xs:attribute name="transaction-manager-provider-class" type="ehcache:fqcn-type" use="required"/>
+-->
+    <xs:attribute name="transaction-manager-provider-class" type="xs:string" use="required"/>
+  </xs:complexType>
 
 </xs:schema>

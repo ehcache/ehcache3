@@ -1,1 +1,1 @@
-org.ehcache.transactions.xml.TxServiceConfigurationParser
+org.ehcache.transactions.xml.TxCacheManagerServiceConfigurationParser

@@ -15,9 +15,10 @@
  */
 package org.ehcache.transactions.xml;
 
-import org.ehcache.config.xml.CacheManagerServiceConfigurationParser;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.transactions.configuration.XAServiceProvider;
+import org.ehcache.config.xml.CacheServiceConfigurationParser;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.transactions.XAStore;
+import org.ehcache.transactions.configuration.XAStoreConfiguration;
 import org.w3c.dom.Element;
 
 import javax.xml.transform.Source;
@@ -29,10 +30,10 @@ import java.net.URL;
 /**
  * @author Ludovic Orban
  */
-public class TxServiceConfigurationParser implements CacheManagerServiceConfigurationParser<XAServiceProvider> {
+public class TxCacheServiceConfigurationParser implements CacheServiceConfigurationParser<XAStore.Provider> {
 
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/tx");
-  private static final URL XML_SCHEMA = TxServiceConfigurationParser.class.getResource("/ehcache-tx-ext.xsd");
+  private static final URL XML_SCHEMA = TxCacheManagerServiceConfigurationParser.class.getResource("/ehcache-tx-ext.xsd");
 
   @Override
   public Source getXmlSchema() throws IOException {
@@ -45,7 +46,8 @@ public class TxServiceConfigurationParser implements CacheManagerServiceConfigur
   }
 
   @Override
-  public ServiceCreationConfiguration<XAServiceProvider> parseServiceCreationConfiguration(final Element fragment) {
-    return null;
+  public ServiceConfiguration<XAStore.Provider> parseServiceConfiguration(Element fragment) {
+    String uniqueXAResourceId = fragment.getAttribute("unique-XAResource-id");
+    return new XAStoreConfiguration(uniqueXAResourceId);
   }
 }
