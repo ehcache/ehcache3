@@ -34,7 +34,7 @@ import org.ehcache.internal.DefaultTimeSourceService;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
 import org.ehcache.spi.copy.Copier;
-import org.ehcache.transactions.configuration.XAStoreConfiguration;
+import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.junit.Test;
 
 import javax.transaction.Status;

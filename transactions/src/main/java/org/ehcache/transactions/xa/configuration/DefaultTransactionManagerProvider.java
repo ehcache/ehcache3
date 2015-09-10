@@ -13,33 +13,49 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.pany;
+package org.ehcache.transactions.xa.configuration;
 
 import bitronix.tm.TransactionManagerServices;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.transactions.xa.configuration.TransactionManagerProvider;
 import org.ehcache.transactions.xa.txmgrs.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.txmgrs.btm.BitronixXAResourceRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Ludovic Orban
  */
-public class BitronixProvider implements TransactionManagerProvider {
+public class DefaultTransactionManagerProvider implements TransactionManagerProvider {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultTransactionManagerProvider.class);
+
+  private final TransactionManagerProviderConfiguration config;
+
+  public DefaultTransactionManagerProvider(TransactionManagerProviderConfiguration config) {
+    this.config = config;
+  }
+
   @Override
   public TransactionManagerWrapper getTransactionManagerWrapper() {
-    if (!TransactionManagerServices.isTransactionManagerRunning()) {
-      throw new RuntimeException("You must start the Bitronix TM before ehcache can use it");
+    if (config != null) {
+      LOGGER.info("Using configured transaction manager : {}", config.getTransactionManagerWrapper());
+      return config.getTransactionManagerWrapper();
     }
-    return new TransactionManagerWrapper(TransactionManagerServices.getTransactionManager(), new BitronixXAResourceRegistry());
+
+    //TODO: lookup other TX managers and XAResourceRegistry impls
+    if (!TransactionManagerServices.isTransactionManagerRunning()) {
+      throw new IllegalStateException("BTM must be started beforehand");
+    }
+    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(TransactionManagerServices.getTransactionManager(), new BitronixXAResourceRegistry());
+    LOGGER.info("Using looked up transaction manager : {}", transactionManagerWrapper);
+    return transactionManagerWrapper;
   }
 
   @Override
   public void start(ServiceProvider serviceProvider) {
-
   }
 
   @Override
   public void stop() {
-
   }
 }

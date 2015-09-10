@@ -17,8 +17,8 @@ package org.ehcache.transactions.xml;
 
 import org.ehcache.config.xml.CacheServiceConfigurationParser;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.transactions.XAStore;
-import org.ehcache.transactions.configuration.XAStoreConfiguration;
+import org.ehcache.transactions.xa.XAStore;
+import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.w3c.dom.Element;
 
 import javax.xml.transform.Source;

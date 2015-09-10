@@ -17,9 +17,9 @@ package org.ehcache.transactions.xml;
 
 import org.ehcache.config.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.transactions.configuration.TransactionManagerProviderConfiguration;
-import org.ehcache.transactions.configuration.TransactionManagerProvider;
-import org.ehcache.transactions.txmgrs.TransactionManagerWrapper;
+import org.ehcache.transactions.xa.configuration.TransactionManagerProviderConfiguration;
+import org.ehcache.transactions.xa.configuration.TransactionManagerProvider;
+import org.ehcache.transactions.xa.txmgrs.TransactionManagerWrapper;
 import org.w3c.dom.Element;
 
 import javax.xml.transform.Source;

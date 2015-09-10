@@ -37,10 +37,12 @@ import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.copy.DefaultCopyProvider;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.transactions.journal.Journal;
-import org.ehcache.transactions.journal.TransientJournal;
-import org.ehcache.transactions.txmgrs.NullXAResourceRegistry;
-import org.ehcache.transactions.txmgrs.TransactionManagerWrapper;
+import org.ehcache.transactions.xa.journal.Journal;
+import org.ehcache.transactions.xa.journal.TransientJournal;
+import org.ehcache.transactions.xa.txmgrs.NullXAResourceRegistry;
+import org.ehcache.transactions.xa.txmgrs.TransactionManagerWrapper;
+import org.ehcache.transactions.xa.SoftLock;
+import org.ehcache.transactions.xa.XAStore;
 import org.junit.Test;
 
 import javax.transaction.HeuristicMixedException;
