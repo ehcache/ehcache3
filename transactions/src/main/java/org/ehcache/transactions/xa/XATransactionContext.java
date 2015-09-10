@@ -24,6 +24,8 @@ import org.ehcache.transactions.xa.commands.StoreEvictCommand;
 import org.ehcache.transactions.xa.commands.StorePutCommand;
 import org.ehcache.transactions.xa.commands.StoreRemoveCommand;
 import org.ehcache.transactions.xa.journal.Journal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,6 +34,8 @@ import java.util.Map;
  * @author Ludovic Orban
  */
 public class XATransactionContext<K, V> {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(XATransactionContext.class);
 
   private final ConcurrentHashMap<K, Command<V>> commands = new ConcurrentHashMap<K, Command<V>>();
   private final TransactionId transactionId;
@@ -64,7 +68,6 @@ public class XATransactionContext<K, V> {
     commands.put(key, command);
   }
 
-
   public Map<K, XAValueHolder<V>> listPutNewValueHolders() {
     Map<K, XAValueHolder<V>> puts = new HashMap<K, XAValueHolder<V>>();
 
@@ -77,7 +80,6 @@ public class XATransactionContext<K, V> {
 
     return puts;
   }
-
 
   public XAValueHolder<V> getNewValueHolder(K key) {
     Command<V> command = commands.get(key);
@@ -135,12 +137,14 @@ public class XATransactionContext<K, V> {
       if (oldSoftLock != null) {
         boolean replaced = underlyingStore.replace(entry.getKey(), oldSoftLock, newSoftLock);
         if (!replaced) {
-          throw new AssertionError("TODO: handle this case");
+          LOGGER.debug("prepare failed replace of softlock (concurrent modification?)");
+          evictFromUnderlyingStore(entry.getKey());
         }
       } else {
         Store.ValueHolder<SoftLock<V>> existing = underlyingStore.putIfAbsent(entry.getKey(), newSoftLock);
         if (existing != null) {
-          throw new AssertionError("TODO: handle this case");
+          LOGGER.debug("prepare failed putIfAbsent of softlock (concurrent modification?)");
+          evictFromUnderlyingStore(entry.getKey());
         }
       }
     }
@@ -161,7 +165,7 @@ public class XATransactionContext<K, V> {
 
     for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
       if (entry.getValue() instanceof StoreEvictCommand) {
-        underlyingStore.remove(entry.getKey());
+        evictFromUnderlyingStore(entry.getKey());
         continue;
       }
 
@@ -172,12 +176,14 @@ public class XATransactionContext<K, V> {
       if (definitiveSoftLock != null) {
         boolean replaced = underlyingStore.replace(entry.getKey(), preparedSoftLock, definitiveSoftLock);
         if (!replaced) {
-          throw new AssertionError("TODO: handle this case");
+          LOGGER.debug("commit failed replace of softlock (concurrent modification?)");
+          evictFromUnderlyingStore(entry.getKey());
         }
       } else {
         boolean removed = underlyingStore.remove(entry.getKey(), preparedSoftLock);
         if (!removed) {
-          throw new AssertionError("TODO: handle this case");
+          LOGGER.debug("commit failed remove of softlock (concurrent modification?)");
+          evictFromUnderlyingStore(entry.getKey());
         }
       }
     }
@@ -194,7 +200,7 @@ public class XATransactionContext<K, V> {
 
     for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
       if (entry.getValue() instanceof StoreEvictCommand) {
-        underlyingStore.remove(entry.getKey());
+        evictFromUnderlyingStore(entry.getKey());
         continue;
       }
       Store.ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(entry.getKey());
@@ -204,25 +210,29 @@ public class XATransactionContext<K, V> {
         if (newSoftLock != null) {
           boolean replaced = underlyingStore.replace(entry.getKey(), oldSoftLock, newSoftLock);
           if (!replaced) {
-            throw new AssertionError("TODO: handle this case");
+            LOGGER.debug("commitInOnePhase failed replace of softlock (concurrent modification?)");
+            evictFromUnderlyingStore(entry.getKey());
           }
         } else {
           boolean removed = underlyingStore.remove(entry.getKey(), oldSoftLock);
           if (!removed) {
-            throw new AssertionError("TODO: handle this case");
+            LOGGER.debug("commitInOnePhase failed remove of softlock (concurrent modification?)");
+            evictFromUnderlyingStore(entry.getKey());
           }
         }
       } else {
         if (newSoftLock != null) {
           Store.ValueHolder<SoftLock<V>> existing = underlyingStore.putIfAbsent(entry.getKey(), newSoftLock);
           if (existing != null) {
-            throw new AssertionError("TODO: handle this case");
+            LOGGER.debug("commitInOnePhase failed putIfAbsent of softlock (concurrent modification?)");
+            evictFromUnderlyingStore(entry.getKey());
           }
         } else {
           // replace null with null
           Store.ValueHolder<SoftLock<V>> existing = underlyingStore.get(entry.getKey());
           if (existing != null) {
-            throw new AssertionError("TODO: handle this case");
+            LOGGER.debug("commitInOnePhase failed null check of softlock (concurrent modification?)");
+            evictFromUnderlyingStore(entry.getKey());
           }
         }
       }
@@ -234,7 +244,7 @@ public class XATransactionContext<K, V> {
     if (journal.getState(transactionId) == null) {
       // phase 1 rollback
 
-
+      // no-op
     } else if (journal.getState(transactionId) == XAState.IN_DOUBT) {
       // phase 2 rollback
 
@@ -245,12 +255,12 @@ public class XATransactionContext<K, V> {
         if (definitiveSoftLock != null) {
           boolean replaced = underlyingStore.replace(entry.getKey(), preparedSoftLock, definitiveSoftLock);
           if (!replaced) {
-            throw new AssertionError("TODO: handle this case");
+            LOGGER.debug("rollback failed replace of softlock (concurrent modification?)");
           }
         } else {
           boolean removed = underlyingStore.remove(entry.getKey(), preparedSoftLock);
           if (!removed) {
-            throw new AssertionError("TODO: handle this case");
+            LOGGER.debug("rollback failed remove of softlock (concurrent modification?)");
           }
         }
       }
@@ -261,4 +271,9 @@ public class XATransactionContext<K, V> {
 
     journal.save(transactionId, XAState.ROLLED_BACK, false);
   }
+
+  private void evictFromUnderlyingStore(K key) throws CacheAccessException {
+    underlyingStore.remove(key);
+  }
+
 }
