@@ -136,9 +136,8 @@ public final class ServiceLocator implements ServiceProvider {
         }
       }
 
-      loadDependenciesOf(service.getClass());
-
       if (running.get()) {
+        loadDependenciesOf(service.getClass());
         service.start(this);
       }
     } finally {
@@ -204,6 +203,9 @@ public final class ServiceLocator implements ServiceProvider {
       if (!running.compareAndSet(false, true)) {
         throw new IllegalStateException("Already started!");
       }
+
+      resolveMissingDependencies();
+
       for (Service service : services.values()) {
         if (!started.contains(service)) {
           service.start(this);
@@ -223,6 +225,12 @@ public final class ServiceLocator implements ServiceProvider {
       throw e;
     } finally {
       lock.unlock();
+    }
+  }
+
+  private void resolveMissingDependencies() {
+    for (Service service : services.values()) {
+      loadDependenciesOf(service.getClass());
     }
   }
 
