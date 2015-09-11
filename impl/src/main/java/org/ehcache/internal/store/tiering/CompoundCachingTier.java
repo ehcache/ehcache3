@@ -194,10 +194,10 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       }
 
       CachingTier.Provider higherProvider = serviceProvider.getService(compoundCachingTierServiceConfiguration.higherProvider());
-      CachingTier<K, V> higherCachingTier = higherProvider.createCachingTier(storeConfig);
+      CachingTier<K, V> higherCachingTier = higherProvider.createCachingTier(storeConfig, serviceConfigs);
 
       LowerCachingTier.Provider lowerProvider = serviceProvider.getService(compoundCachingTierServiceConfiguration.lowerProvider());
-      LowerCachingTier<K, V> lowerCachingTier = lowerProvider.createCachingTier(storeConfig);
+      LowerCachingTier<K, V> lowerCachingTier = lowerProvider.createCachingTier(storeConfig, serviceConfigs);
 
       CompoundCachingTier<K, V> compoundCachingTier = new CompoundCachingTier<K, V>(higherCachingTier, lowerCachingTier);
       providersMap.put(compoundCachingTier, new AbstractMap.SimpleEntry<CachingTier.Provider, LowerCachingTier.Provider>(higherProvider, lowerProvider));
