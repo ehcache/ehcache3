@@ -22,8 +22,11 @@ import org.ehcache.transactions.xa.journal.Journal;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -129,7 +132,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
   @Override
   public Xid[] recover(int flags) throws XAException {
     if (flags != XAResource.TMNOFLAGS && flags != XAResource.TMSTARTRSCAN && flags != XAResource.TMENDRSCAN && flags != (XAResource.TMSTARTRSCAN | XAResource.TMENDRSCAN)) {
-      throw new EhcacheXAException("Recover flags not supported : " + xlat(flags), XAException.XAER_INVAL);
+      throw new EhcacheXAException("Recover flags not supported : " + xaResourceFlagsToString(flags), XAException.XAER_INVAL);
     }
 
     if ((flags & XAResource.TMSTARTRSCAN) == XAResource.TMSTARTRSCAN) {
@@ -184,7 +187,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
   @Override
   public void start(Xid xid, int flag) throws XAException {
     if (flag != XAResource.TMNOFLAGS && flag != XAResource.TMJOIN) {
-      throw new EhcacheXAException("Start flag not supported : " + xlat(flag), XAException.XAER_INVAL);
+      throw new EhcacheXAException("Start flag not supported : " + xaResourceFlagsToString(flag), XAException.XAER_INVAL);
     }
     if (currentXid != null) {
       throw new EhcacheXAException("Already started on : " + xid, XAException.XAER_PROTO);
@@ -204,18 +207,16 @@ public class EhcacheXAResource<K, V> implements XAResource {
       }
     }
 
-    // TODO: the timeout check currently conflicts with the resilience strategy.
-    // put it back once resilience strategies are pluggable
-    //if (transactionContext.hasTimedOut()) {
-    //  throw new EhcacheXAException("Transaction timeout for XID : " + xid, XAException.XA_RBTIMEOUT);
-    //}
+    if (transactionContext.hasTimedOut()) {
+      throw new EhcacheXAException("Transaction timeout for XID : " + xid, XAException.XA_RBTIMEOUT);
+    }
     currentXid = xid;
   }
 
   @Override
   public void end(Xid xid, int flag) throws XAException {
     if (flag != XAResource.TMSUCCESS && flag != XAResource.TMFAIL) {
-      throw new EhcacheXAException("End flag not supported : " + xlat(flag), XAException.XAER_INVAL);
+      throw new EhcacheXAException("End flag not supported : " + xaResourceFlagsToString(flag), XAException.XAER_INVAL);
     }
     if (currentXid == null) {
       throw new EhcacheXAException("Not started on : " + xid, XAException.XAER_PROTO);
@@ -236,47 +237,47 @@ public class EhcacheXAResource<K, V> implements XAResource {
     }
   }
 
-  private static String xlat(int flags) {
-    StringBuilder sb = new StringBuilder();
-
-    if ((flags & XAResource.TMSUCCESS) == XAResource.TMSUCCESS) {
-      sb.append("TMSUCCESS|");
-    }
-    if ((flags & XAResource.TMFAIL) == XAResource.TMFAIL) {
-      sb.append("TMFAIL|");
-    }
-    if ((flags & XAResource.TMJOIN) == XAResource.TMJOIN) {
-      sb.append("TMJOIN|");
-    }
-    if ((flags & XAResource.TMONEPHASE) == XAResource.TMONEPHASE) {
-      sb.append("TMONEPHASE|");
-    }
-    if ((flags & XAResource.TMSUSPEND) == XAResource.TMSUSPEND) {
-      sb.append("TMRESUME|");
-    }
-    if ((flags & XAResource.TMRESUME) == XAResource.TMRESUME) {
-      sb.append("TMRESUME|");
-    }
-    if ((flags & XAResource.TMSTARTRSCAN) == XAResource.TMSTARTRSCAN) {
-      sb.append("TMSTARTRSCAN|");
-    }
-    if ((flags & XAResource.TMENDRSCAN) == XAResource.TMENDRSCAN) {
-      sb.append("TMENDRSCAN|");
-    }
-
-    if (sb.length() > 0) {
-      sb.deleteCharAt(sb.length() - 1);
-    } else {
-      sb.append("TMNOFLAGS");
-    }
-
-    return sb.toString();
-  }
-
   public XATransactionContext<K, V> getCurrentContext() throws CacheAccessException {
     if (currentXid == null) {
       return null;
     }
     return transactionContextFactory.get(new TransactionId(currentXid));
   }
+
+  private static String xaResourceFlagsToString(int flags) {
+    StringBuilder sb = new StringBuilder();
+
+    Set<Map.Entry<Integer, String>> entries = XARESOURCE_FLAGS_TO_NAMES.entrySet();
+    for (Map.Entry<Integer, String> entry : entries) {
+      int constant = entry.getKey();
+      String name = entry.getValue();
+      if (constant != 0 && (flags & constant) == constant) {
+        sb.append(name).append("|");
+      }
+    }
+
+    if (sb.length() > 0) {
+      sb.deleteCharAt(sb.length() - 1);
+    } else {
+      sb.append(XARESOURCE_FLAGS_TO_NAMES.get(0));
+    }
+
+    return sb.toString();
+  }
+
+  private static final Map<Integer, String> XARESOURCE_FLAGS_TO_NAMES = new HashMap<Integer, String>();
+  static {
+    try {
+      for (Field field : XAResource.class.getFields()) {
+        String name = field.getName();
+        if (field.getType().equals(int.class) && name.startsWith("TM")) {
+          Integer contant = (Integer) field.get(XAResource.class);
+          XARESOURCE_FLAGS_TO_NAMES.put(contant, name);
+        }
+      }
+    } catch (IllegalAccessException iae) {
+      throw new RuntimeException("Cannot initialize XAResource flags map", iae);
+    }
+  }
+
 }
