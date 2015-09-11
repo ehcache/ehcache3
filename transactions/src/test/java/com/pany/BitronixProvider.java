@@ -24,22 +24,25 @@ import org.ehcache.transactions.xa.txmgrs.btm.BitronixXAResourceRegistry;
 /**
  * @author Ludovic Orban
  */
-public class BitronixProvider implements TransactionManagerProvider {
+// tag::BitronixProvider[]
+public class BitronixProvider implements TransactionManagerProvider { // <1>
   @Override
-  public TransactionManagerWrapper getTransactionManagerWrapper() {
-    if (!TransactionManagerServices.isTransactionManagerRunning()) {
+  public TransactionManagerWrapper getTransactionManagerWrapper() { // <2>
+    if (!TransactionManagerServices.isTransactionManagerRunning()) { // <3>
       throw new RuntimeException("You must start the Bitronix TM before ehcache can use it");
     }
-    return new TransactionManagerWrapper(TransactionManagerServices.getTransactionManager(), new BitronixXAResourceRegistry());
+    return new TransactionManagerWrapper(TransactionManagerServices.getTransactionManager(),
+        new BitronixXAResourceRegistry()); // <4>
   }
 
   @Override
   public void start(ServiceProvider serviceProvider) {
-
+    // no-op
   }
 
   @Override
   public void stop() {
-
+    // no-op
   }
 }
+// end::BitronixProvider[]

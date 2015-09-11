@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.transactions;
+package org.ehcache.transactions.xa;
 
 import org.ehcache.Cache;
 import org.ehcache.config.ResourcePoolsBuilder;
@@ -26,7 +26,6 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.internal.TestTimeSource;
-import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.offheap.MemorySizeParser;
 import org.ehcache.internal.store.offheap.OffHeapStore;
@@ -41,8 +40,7 @@ import org.ehcache.transactions.xa.journal.Journal;
 import org.ehcache.transactions.xa.journal.TransientJournal;
 import org.ehcache.transactions.xa.txmgrs.NullXAResourceRegistry;
 import org.ehcache.transactions.xa.txmgrs.TransactionManagerWrapper;
-import org.ehcache.transactions.xa.SoftLock;
-import org.ehcache.transactions.xa.XAStore;
+import org.ehcache.transactions.xa.utils.JavaSerializer;
 import org.junit.Test;
 
 import javax.transaction.HeuristicMixedException;

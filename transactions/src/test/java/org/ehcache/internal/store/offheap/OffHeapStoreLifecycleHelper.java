@@ -13,31 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.transactions.xa.commands;
+package org.ehcache.internal.store.offheap;
 
-
-import org.ehcache.transactions.xa.XAValueHolder;
+import org.ehcache.internal.store.offheap.OffHeapStore;
 
 /**
  * @author Ludovic Orban
  */
-public class StorePutCommand<V> implements Command<V> {
+public class OffHeapStoreLifecycleHelper {
 
-  private final V oldValue;
-  private final XAValueHolder<V> newValueHolder;
-
-  public StorePutCommand(V oldValue, XAValueHolder<V> newValueHolder) {
-    this.newValueHolder = newValueHolder;
-    this.oldValue = oldValue;
+  private OffHeapStoreLifecycleHelper() {
   }
 
-  @Override
-  public XAValueHolder<V> getNewValueHolder() {
-    return newValueHolder;
+  public static void init(OffHeapStore<?, ?> offHeapStore) {
+    OffHeapStore.Provider.init(offHeapStore);
   }
 
-  @Override
-  public V getOldValue() {
-    return oldValue;
+  public static void close(OffHeapStore<?, ?> offHeapStore) {
+    OffHeapStore.Provider.close(offHeapStore);
   }
+
 }

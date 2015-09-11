@@ -20,3 +20,18 @@ dependencies {
   testCompile project(path: ':core-spi-test')
   compile group: 'org.codehaus.btm', name: 'btm', version: '2.1.4'
 }
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.2'
+    }
+}
+
+apply plugin: 'org.asciidoctor.convert'
+
+uploadArchives.onlyIf { false }
+install.onlyIf { false }
