@@ -28,6 +28,7 @@ import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.internal.DefaultTimeSourceService;
@@ -73,6 +74,13 @@ public class XACacheTest {
 
     nonTxCache.put(1L, "eins");
     System.out.println(nonTxCache.get(1L));
+
+    try {
+      txCache1.put(1L, "one");
+      fail("expected XACacheException");
+    } catch (XACacheException e) {
+      // expected
+    }
 
     transactionManager.begin();
     {
@@ -316,6 +324,25 @@ public class XACacheTest {
       txCache1.put(1L, "one");
       txCache2.put(1L, "un");
       testTimeSource.advanceTime(2000);
+    }
+    try {
+      transactionManager.commit();
+      fail("Expected RollbackException");
+    } catch (RollbackException e) {
+      // expected
+    }
+
+    transactionManager.begin();
+    {
+      txCache1.put(1L, "one");
+      txCache2.put(1L, "un");
+      testTimeSource.advanceTime(2000);
+      try {
+        txCache2.put(1L, "uno");
+        fail("expected XACacheException");
+      } catch (XACacheException e) {
+        // expected
+      }
     }
     try {
       transactionManager.commit();

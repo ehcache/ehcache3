@@ -31,6 +31,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.transactions.xa.XACacheException;
 import org.ehcache.transactions.xa.configuration.TransactionManagerProviderConfiguration;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.transactions.xa.txmgrs.TransactionManagerWrapper;
@@ -50,6 +51,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import static java.util.Collections.singletonMap;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * @author Ludovic Orban
@@ -88,6 +90,36 @@ public class XAGettingStarted {
     cacheManager.close();
     transactionManager.shutdown();
     // end::testSimpleXACache[]
+  }
+
+  @Test
+  public void testNonTransactionalAccess() throws Exception {
+    // tag::testNonTransactionalAccess[]
+    BitronixTransactionManager transactionManager =
+        TransactionManagerServices.getTransactionManager(); // <1>
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder() // <2>
+            .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder() // <3>
+                    .heap(10, EntryUnit.ENTRIES)
+            )
+            .add(new XAStoreConfiguration("xaCache")) // <4>
+            .buildConfig(Long.class, String.class)
+        )
+        .build(true);
+
+    final Cache<Long, String> xaCache = cacheManager.getCache("xaCache", Long.class, String.class);
+
+    try {
+      xaCache.get(1L); // <5>
+      fail("expected XACacheException");
+    } catch (XACacheException e) {
+      // expected
+    }
+
+    cacheManager.close();
+    transactionManager.shutdown();
+    // end::testNonTransactionalAccess[]
   }
 
   @Test

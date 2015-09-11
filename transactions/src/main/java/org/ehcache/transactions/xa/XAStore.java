@@ -117,7 +117,7 @@ public class XAStore<K, V> implements Store<K, V> {
     try {
       final Transaction transaction = transactionManagerWrapper.getTransactionManager().getTransaction();
       if (transaction == null) {
-        throw new XACacheAccessException("Cannot access XA cache outside of XA transaction scope");
+        throw new XACacheAccessException(new XACacheException("Cannot access XA cache outside of XA transaction scope"));
       }
       EhcacheXAResource<K, V> xaResource = xaResources.get(transaction);
       if (xaResource == null) {
@@ -140,13 +140,13 @@ public class XAStore<K, V> implements Store<K, V> {
       }
       XATransactionContext<K, V> currentContext = xaResource.getCurrentContext();
       if (currentContext.hasTimedOut()) {
-        throw new XACacheAccessException("Current XA transaction has timed out");
+        throw new XACacheAccessException(new XACacheException("Current XA transaction has timed out"));
       }
       return currentContext;
     } catch (SystemException se) {
-      throw new XACacheAccessException("Cannot get current XA transaction", se);
+      throw new XACacheAccessException(new XACacheException("Cannot get current XA transaction", se));
     } catch (RollbackException re) {
-      throw new XACacheAccessException("XA Transaction has been marked for rollback only", re);
+      throw new XACacheAccessException(new XACacheException("XA Transaction has been marked for rollback only", re));
     }
   }
 

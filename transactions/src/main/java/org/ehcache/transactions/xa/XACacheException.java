@@ -15,13 +15,15 @@
  */
 package org.ehcache.transactions.xa;
 
-import org.ehcache.exceptions.RethrowingCacheAccessException;
-
 /**
  * @author Ludovic Orban
  */
-public class XACacheAccessException extends RethrowingCacheAccessException {
-  public XACacheAccessException(RuntimeException cause) {
-    super(cause);
+public class XACacheException extends RuntimeException {
+  public XACacheException(String message) {
+    super(message);
+  }
+
+  public XACacheException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

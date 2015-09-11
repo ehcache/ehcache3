@@ -99,12 +99,32 @@ include::{sourcedir}/transactions/src/test/java/org/ehcache/transactions/xa/docs
 <3> Give it the resources you wish.
 <4> Add a `XAStoreConfiguration` object to make the cache XA transactional. You must also give the cache a unique
     XAResource identifier as some transaction managers require this.
-<5> configure the `CacheLoaderWriter` here. this is a mocked SoR backed by a map for illustration that contains 1/"eins"
-    key/value pair at startup.
+<5> Add a `CacheLoaderWriter` configuration. This one is a mocked SoR backed by a map for illustration purpose that
+    is filled with `1L`/`"eins"` key/value pair at startup.
 <6> Begin a JTA transaction the normal way.
 <7> The cache is empty at startup, so the `CacheLoaderWriter` will be called to load the value.
 <8> Update the value. This will make the `CacheLoaderWriter` write to the SoR.
 <9> Commit the JTA transaction. Other transactions can now see the changes you made to the cache and the SoR.
+
+==== Transactional scope
+
+A XA cache can only be accessed within a JTA transaction's context. Any attempt to access one outside of such context
+will result in `XACacheException` to be thrown.
+
+[source,java,indent=0]
+----
+include::{sourcedir}/transactions/src/test/java/org/ehcache/transactions/xa/docs/XAGettingStarted.java[tag=testNonTransactionalAccess]
+----
+
+<1> First start the Bitronix transaction manager. By default, Ehcache 3 will auto-detect it but will throw an exception
+    during the cache manager initialization if BTM isn't started.
+<2> Register a cache the normal way.
+<3> Give it the resources you wish.
+<4> Add a `XAStoreConfiguration` object to make the cache XA transactional. You must also give the cache a unique
+    XAResource identifier as some transaction managers require this.
+<5> The cache is being accessed with no prior call to `transactionManager.begin()` which makes it throw `XACacheException`.
+
+Note: there is one exception to that rule: the `Cache.clear()` method will always wipe the cache's contents non-transactionally.
 
 ==== XA cache with three tiers and persistence
 
