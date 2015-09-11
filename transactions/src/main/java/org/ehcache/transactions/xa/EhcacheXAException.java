@@ -13,6 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.transactions.xa;
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "integration-test", "dist", "demos/00-NoCache", "demos/01-CacheAside", "docs"
+import javax.transaction.xa.XAException;
+
+/**
+ * @author Ludovic Orban
+ */
+public class EhcacheXAException extends XAException {
+
+  public EhcacheXAException(String msg, int errorCode) {
+    super(msg);
+    this.errorCode = errorCode;
+  }
+
+  public EhcacheXAException(String msg, int errorCode, Throwable t) {
+    this(msg, errorCode);
+    initCause(t);
+  }
+}

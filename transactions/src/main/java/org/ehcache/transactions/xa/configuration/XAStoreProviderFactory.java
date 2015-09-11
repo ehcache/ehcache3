@@ -13,6 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.transactions.xa.configuration;
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "integration-test", "dist", "demos/00-NoCache", "demos/01-CacheAside", "docs"
+import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.transactions.xa.XAStore;
+
+/**
+ * @author Ludovic Orban
+ */
+public class XAStoreProviderFactory implements ServiceFactory<XAStore.Provider> {
+  @Override
+  public XAStore.Provider create(ServiceCreationConfiguration<XAStore.Provider> configuration) {
+    return new XAStore.Provider();
+  }
+
+  @Override
+  public Class<XAStore.Provider> getServiceType() {
+    return XAStore.Provider.class;
+  }
+}

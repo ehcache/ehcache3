@@ -13,6 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.internal.store.offheap;
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "integration-test", "dist", "demos/00-NoCache", "demos/01-CacheAside", "docs"
+import org.ehcache.internal.store.offheap.OffHeapStore;
+
+/**
+ * @author Ludovic Orban
+ */
+public class OffHeapStoreLifecycleHelper {
+
+  private OffHeapStoreLifecycleHelper() {
+  }
+
+  public static void init(OffHeapStore<?, ?> offHeapStore) {
+    OffHeapStore.Provider.init(offHeapStore);
+  }
+
+  public static void close(OffHeapStore<?, ?> offHeapStore) {
+    OffHeapStore.Provider.close(offHeapStore);
+  }
+
+}

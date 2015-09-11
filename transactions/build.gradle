@@ -14,5 +14,24 @@
  * limitations under the License.
  */
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "integration-test", "dist", "demos/00-NoCache", "demos/01-CacheAside", "docs"
+dependencies {
+  compile project(':impl'), project(':xml')
+  compile group: 'javax.transaction', name: 'jta', version: '1.1'
+  testCompile project(path: ':core-spi-test')
+  compile group: 'org.codehaus.btm', name: 'btm', version: '2.1.4'
+}
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.2'
+    }
+}
+
+apply plugin: 'org.asciidoctor.convert'
+
+uploadArchives.onlyIf { false }
+install.onlyIf { false }

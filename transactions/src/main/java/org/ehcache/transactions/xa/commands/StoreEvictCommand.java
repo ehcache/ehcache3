@@ -13,6 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.transactions.xa.commands;
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "integration-test", "dist", "demos/00-NoCache", "demos/01-CacheAside", "docs"
+import org.ehcache.transactions.xa.XAValueHolder;
+
+/**
+ *
+ * @author Ludovic Orban
+ */
+public class StoreEvictCommand<V> implements Command<V> {
+
+  private final V oldValue;
+
+  public StoreEvictCommand(V oldValue) {
+    this.oldValue = oldValue;
+  }
+
+  @Override
+  public V getOldValue() {
+    return oldValue;
+  }
+
+  @Override
+  public XAValueHolder<V> getNewValueHolder() {
+    return null;
+  }
+}

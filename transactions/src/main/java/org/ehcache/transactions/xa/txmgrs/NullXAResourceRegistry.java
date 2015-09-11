@@ -13,6 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.transactions.xa.txmgrs;
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "integration-test", "dist", "demos/00-NoCache", "demos/01-CacheAside", "docs"
+import javax.transaction.xa.XAResource;
+
+/**
+ * @author Ludovic Orban
+ */
+public class NullXAResourceRegistry implements XAResourceRegistry {
+  @Override
+  public void registerXAResource(String uniqueName, XAResource xaResource) {
+    // no-op
+  }
+
+  @Override
+  public void unregisterXAResource(String uniqueName, XAResource xaResource) {
+    // no-op
+  }
+}

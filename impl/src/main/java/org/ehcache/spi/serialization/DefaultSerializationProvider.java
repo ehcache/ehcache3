@@ -50,7 +50,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
   private final TransientProvider transientProvider;
   private final PersistentProvider persistentProvider;
-  
+
   public DefaultSerializationProvider(DefaultSerializationProviderConfiguration configuration) {
     if (configuration != null) {
       transientProvider = new TransientProvider(configuration.getTransientSerializers());
@@ -119,7 +119,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
   static class PersistentProvider extends AbstractProvider {
 
     private volatile LocalPersistenceService persistence;
-    
+
     private PersistentProvider(Map<String, Class<? extends Serializer<?>>> serializers) {
       super(serializers);
     }

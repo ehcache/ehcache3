@@ -13,6 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.transactions.xa.configuration;
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "integration-test", "dist", "demos/00-NoCache", "demos/01-CacheAside", "docs"
+import org.ehcache.spi.service.Service;
+import org.ehcache.transactions.xa.txmgrs.TransactionManagerWrapper;
+
+/**
+ * @author Ludovic Orban
+ */
+public interface TransactionManagerProvider extends Service {
+
+  TransactionManagerWrapper getTransactionManagerWrapper();
+
+}

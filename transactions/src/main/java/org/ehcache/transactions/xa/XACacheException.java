@@ -13,6 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.transactions.xa;
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "integration-test", "dist", "demos/00-NoCache", "demos/01-CacheAside", "docs"
+/**
+ * @author Ludovic Orban
+ */
+public class XACacheException extends RuntimeException {
+  public XACacheException(String message) {
+    super(message);
+  }
+
+  public XACacheException(String message, Throwable cause) {
+    super(message, cause);
+  }
+}

@@ -13,6 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.transactions.xa.journal;
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "integration-test", "dist", "demos/00-NoCache", "demos/01-CacheAside", "docs"
+import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.spi.service.ServiceFactory;
+
+/**
+ * @author Ludovic Orban
+ */
+public class DefaultJournalProviderFactory implements ServiceFactory<JournalProvider> {
+
+  @Override
+  public JournalProvider create(ServiceCreationConfiguration<JournalProvider> configuration) {
+    return new DefaultJournalProvider();
+  }
+
+  @Override
+  public Class<JournalProvider> getServiceType() {
+    return JournalProvider.class;
+  }
+}
