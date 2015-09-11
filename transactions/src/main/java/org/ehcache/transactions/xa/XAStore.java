@@ -20,6 +20,7 @@ import org.ehcache.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.copy.CopierConfiguration;
@@ -746,15 +747,18 @@ public class XAStore<K, V> implements Store<K, V> {
         };
 
         // check if the store is persistent, and get the PersistenceSpaceIdentifier if it is
-        ResourcePool diskResourcePool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
-        String persistentSpace = diskResourcePool != null && diskResourcePool.isPersistent() ? uniqueXAResourceId : null;
         LocalPersistenceService.PersistenceSpaceIdentifier persistenceSpaceId = null;
-        if (persistentSpace != null) {
-          try {
-            LocalPersistenceService persistenceService = serviceProvider.getService(LocalPersistenceService.class);
-            persistenceSpaceId = persistenceService.getOrCreatePersistenceSpace(persistentSpace);
-          } catch (CachePersistenceException cpe) {
-            throw new RuntimeException("Cannot access local persistence space", cpe);
+        ResourcePools resourcePools = storeConfig.getResourcePools();
+        for (ResourceType resourceType : resourcePools.getResourceTypeSet()) {
+          ResourcePool pool = resourcePools.getPoolForResource(resourceType);
+          if (pool.isPersistent()) {
+            try {
+              LocalPersistenceService persistenceService = serviceProvider.getService(LocalPersistenceService.class);
+              persistenceSpaceId = persistenceService.getOrCreatePersistenceSpace(uniqueXAResourceId);
+            } catch (CachePersistenceException cpe) {
+              throw new RuntimeException("Cannot access local persistence space : " + uniqueXAResourceId, cpe);
+            }
+            break;
           }
         }
 
