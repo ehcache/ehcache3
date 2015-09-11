@@ -17,9 +17,12 @@ package org.ehcache.internal.store.tiering;
 
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.cache.tiering.LowerCachingTier;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
@@ -28,6 +31,7 @@ import org.mockito.stubbing.Answer;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -324,6 +328,75 @@ public class CompoundCachingTierTest {
     assertThat(invalidated.get(), is(valueHolder));
     assertThat(higherTierValueHolder.get(), is(nullValue()));
     assertThat(lowerTierValueHolder.get(), is(nullValue()));
+  }
+
+  @Test
+  public void testProviderPassesServiceConfigs() {
+    CompoundCachingTier.Provider provider = new CompoundCachingTier.Provider();
+    ServiceProvider serviceProvider = mock(ServiceProvider.class);
+    when(serviceProvider.getService(FakeProvider.class)).thenReturn(new FakeProvider());
+    when(serviceProvider.getService(FakeLowerProvider.class)).thenReturn(new FakeLowerProvider());
+    provider.start(serviceProvider);
+
+    CompoundCachingTierServiceConfiguration cachingTierServiceConfiguration = new CompoundCachingTierServiceConfiguration();
+    cachingTierServiceConfiguration.higherProvider(FakeProvider.class);
+    cachingTierServiceConfiguration.lowerProvider(FakeLowerProvider.class);
+    provider.createCachingTier(mock(Store.Configuration.class), cachingTierServiceConfiguration, new ServiceConfiguration<Service>() {
+      @Override
+      public Class<Service> getServiceType() {
+        return Service.class;
+      }
+    });
+  }
+
+  static class FakeLowerProvider implements LowerCachingTier.Provider {
+
+    @Override
+    public <K, V> LowerCachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      assertThat(serviceConfigs.length, is(2));
+      return mock(LowerCachingTier.class);
+    }
+
+    @Override
+    public void releaseCachingTier(LowerCachingTier<?, ?> resource) {
+    }
+
+    @Override
+    public void initCachingTier(LowerCachingTier<?, ?> resource) {
+    }
+
+    @Override
+    public void start(ServiceProvider serviceProvider) {
+    }
+
+    @Override
+    public void stop() {
+    }
+  }
+
+  static class FakeProvider implements CachingTier.Provider {
+
+    @Override
+    public void start(ServiceProvider serviceProvider) {
+    }
+
+    @Override
+    public void stop() {
+    }
+
+    @Override
+    public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      assertThat(serviceConfigs.length, is(2));
+      return mock(CachingTier.class);
+    }
+
+    @Override
+    public void releaseCachingTier(CachingTier<?, ?> resource) {
+    }
+
+    @Override
+    public void initCachingTier(CachingTier<?, ?> resource) {
+    }
   }
 
 }
