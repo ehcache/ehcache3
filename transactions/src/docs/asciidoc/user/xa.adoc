@@ -108,6 +108,15 @@ include::{sourcedir}/transactions/src/test/java/org/ehcache/transactions/xa/docs
 
 ==== XA cache with three tiers and persistence
 
+When a cache is configured as persistent, the in-doubt transactions are preserved and can be recovered across restarts.
+
+This `INFO` log informs you about that in-doubt transactions journaling is persistent too:
+
+[source]
+----
+INFO o.e.t.x.j.DefaultJournalProvider - Using persistent XAStore journal
+----
+
 [source,java,indent=0]
 ----
 include::{sourcedir}/transactions/src/test/java/org/ehcache/transactions/xa/docs/XAGettingStarted.java[tag=testXACacheWithThreeTiers]

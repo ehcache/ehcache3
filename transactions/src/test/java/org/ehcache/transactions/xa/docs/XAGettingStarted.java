@@ -163,7 +163,7 @@ public class XAGettingStarted {
     Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) (Class) (SampleLoaderWriter.class);
 
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "testSimpleXACacheWithThreeTiers"))) // <2>
+        .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "testXACacheWithThreeTiers"))) // <2>
         .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder() // <3>
                 .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder() // <4>
                         .heap(10, EntryUnit.ENTRIES)
