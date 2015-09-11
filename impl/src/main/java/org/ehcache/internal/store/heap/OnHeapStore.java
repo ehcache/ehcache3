@@ -481,8 +481,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
           ValueHolder<V> value = fault.get();
           final OnHeapValueHolder<V> newValue;
           if(value != null) {
-            newValue = makeValue(value);
-            setAccessTimeAndExpiry(key, newValue, now);
+            newValue = importValueFromLowerTier(key, value, now);
           } else {
             backEnd.remove(key, fault);
             return null;
@@ -579,22 +578,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     } else {
       return cachedValue;
     }
-  }
-
-  private OnHeapValueHolder<V> makeValue(ValueHolder<V> value) {
-    if(valueCopier instanceof SerializingCopier) {
-      return makeSerializedValue(value, ((SerializingCopier)valueCopier).getSerializer());
-    } else {
-      return makeCopiedValue(value, valueCopier);
-    }
-  }
-
-  private OnHeapValueHolder<V> makeSerializedValue(ValueHolder<V> value, Serializer<V> valueSerializer) {
-    return new SerializedOnHeapValueHolder<V>(value, valueSerializer);
-  }
-
-  private OnHeapValueHolder<V> makeCopiedValue(ValueHolder<V> value, Copier<V> valueCopier) {
-    return new CopiedOnHeapValueHolder<V>(value, valueCopier);
   }
 
   /**
@@ -950,6 +933,16 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     long expirationTime = duration.isForever() ? ValueHolder.NO_EXPIRE : safeExpireTime(now, duration);
 
     return makeValue(value, now, expirationTime, this.valueCopier);
+  }
+
+  private OnHeapValueHolder<V> importValueFromLowerTier(K key, ValueHolder<V> valueHolder, long now) {
+    V realValue = valueHolder.value();
+    Duration expiration = expiry.getExpiryForAccess(key, realValue);
+    if(valueCopier instanceof SerializingCopier) {
+      return new SerializedOnHeapValueHolder<V>(valueHolder, realValue, ((SerializingCopier)valueCopier).getSerializer(), now, expiration);
+    } else {
+      return new CopiedOnHeapValueHolder<V>(valueHolder, realValue, valueCopier, now, expiration);
+    }
   }
 
   private OnHeapValueHolder<V> makeValue(V value, long creationTime, long expirationTime, Copier<V> valueCopier) {

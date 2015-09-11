@@ -21,6 +21,8 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.SerializerException;
 import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.internal.serialization.JavaSerializer;
@@ -37,6 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static java.lang.String.format;
 import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -80,6 +83,52 @@ public class SerializerCountingTest {
     cache.put(42L, "Wrong ...");
     assertCounters(1, 1, 0, 1, 1, 0);
     printSerializationCounters("Put OnHeap (update)");
+  }
+
+  @Test
+  public void testSerializerOffHeapPutGet() {
+    Cache<Long, String> cache = cacheManager.createCache("offHeap", newCacheConfigurationBuilder()
+            .withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
+            .buildConfig(Long.class, String.class)
+    );
+
+    cache.put(42L, "TheAnswer");
+    assertCounters(1, 0, 0, 1, 0, 0);
+    printSerializationCounters("Put Offheap");
+    cache.get(42L);
+    assertCounters(0, 0, 2, 0, 1, 0);
+    printSerializationCounters("Get Offheap fault");
+    cache.get(42L);
+    assertCounters(0, 0, 0, 0, 0, 0);
+    printSerializationCounters("Get Offheap faulted");
+
+    cache.put(42L, "Wrong ...");
+    assertCounters(1, 0, 3, 1, 2, 0);
+    printSerializationCounters("Put OffHeap (update faulted)");
+  }
+
+  @Test
+  public void testSerializerOffHeapOnHeapCopyPutGet() {
+    Cache<Long, String> cache = cacheManager.createCache("offHeap", newCacheConfigurationBuilder()
+            .withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
+            .add(new DefaultCopierConfiguration(SerializingCopier.class, CopierConfiguration.Type.KEY))
+            .add(new DefaultCopierConfiguration(SerializingCopier.class, CopierConfiguration.Type.VALUE))
+            .buildConfig(Long.class, String.class)
+    );
+
+    cache.put(42L, "TheAnswer");
+    assertCounters(1, 0, 0, 1, 0, 0);
+    printSerializationCounters("Put Offheap");
+    cache.get(42L);
+    assertCounters(1, 1, 2, 1, 2, 0);
+    printSerializationCounters("Get Offheap fault");
+    cache.get(42L);
+    assertCounters(0, 0, 0, 0, 2, 0);
+    printSerializationCounters("Get Offheap faulted");
+
+    cache.put(42L, "Wrong ...");
+    assertCounters(1, 0, 3, 1, 2, 0);
+    printSerializationCounters("Put OffHeap (update faulted)");
   }
 
   private void printSerializationCounters(String operation) {
