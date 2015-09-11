@@ -23,6 +23,7 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.internal.serialization.JavaSerializer;
+import org.ehcache.internal.store.heap.holders.SerializedOnHeapValueHolder;
 import org.ehcache.internal.tier.CachingTierFactory;
 import org.ehcache.internal.tier.CachingTierSPITest;
 import org.ehcache.spi.ServiceLocator;

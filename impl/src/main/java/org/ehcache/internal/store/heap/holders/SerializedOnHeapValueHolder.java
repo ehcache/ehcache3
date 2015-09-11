@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.internal.store.heap;
+package org.ehcache.internal.store.heap.holders;
 
 import org.ehcache.exceptions.SerializerException;
 import org.ehcache.spi.cache.Store;
@@ -21,7 +21,7 @@ import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
 
-class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
+public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   private final ByteBuffer buffer;
   private final Serializer<V> serializer;
 
@@ -37,15 +37,15 @@ class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
     this.buffer = serializer.serialize(value).asReadOnlyBuffer();
   }
 
-  protected SerializedOnHeapValueHolder(V value, long creationTime, Serializer<V> serializer) {
+  public SerializedOnHeapValueHolder(V value, long creationTime, Serializer<V> serializer) {
     this(value, creationTime, NO_EXPIRE, serializer);
   }
 
-  protected SerializedOnHeapValueHolder(V value, long creationTime, long expirationTime, Serializer<V> serializer) {
+  public SerializedOnHeapValueHolder(V value, long creationTime, long expirationTime, Serializer<V> serializer) {
     this(-1, value, creationTime, expirationTime, serializer);
   }
 
-  protected SerializedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, Serializer<V> serializer) {
+  public SerializedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, Serializer<V> serializer) {
     this(valueHolder.getId(), valueHolder.value(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), serializer);
     this.setLastAccessTime(valueHolder.lastAccessTime(TIME_UNIT), TIME_UNIT);
     this.setHits(valueHolder.hits());

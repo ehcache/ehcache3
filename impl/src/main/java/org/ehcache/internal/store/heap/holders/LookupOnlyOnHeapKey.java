@@ -14,32 +14,29 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store.heap;
+package org.ehcache.internal.store.heap.holders;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
+public class LookupOnlyOnHeapKey<K> extends BaseOnHeapKey<K> {
 
-import org.ehcache.exceptions.SerializerException;
-import org.ehcache.spi.serialization.Serializer;
+  private final K actualKeyObject;
 
-class SerializedOnHeapKey<K> extends BaseOnHeapKey<K> {
-
-  private final ByteBuffer keyAsStored;
-  private final Serializer<K> serializer;
-
-  SerializedOnHeapKey(K actualKeyObject, Serializer<K> serializer) {
+  public LookupOnlyOnHeapKey(K actualKeyObject) {
     super(actualKeyObject.hashCode());
-    this.keyAsStored = serializer.serialize(actualKeyObject);
-    this.serializer = serializer;
+    this.actualKeyObject = actualKeyObject;
   }
 
   @Override
   public K getActualKeyObject() {
-    try {
-      return serializer.read(keyAsStored);
-    } catch (ClassNotFoundException e) {
-      throw new SerializerException(e);
-    }
+    return actualKeyObject;
   }
 
+  @Override
+  public boolean equals(Object other) {
+    if (other instanceof CopiedOnHeapKey) {
+      return actualKeyObject.equals(((CopiedOnHeapKey)other).getCopiedKey());
+    } else if (other instanceof OnHeapKey) {
+      return actualKeyObject.equals(((OnHeapKey)other).getActualKeyObject());
+    }
+    return false;
+  }
 }

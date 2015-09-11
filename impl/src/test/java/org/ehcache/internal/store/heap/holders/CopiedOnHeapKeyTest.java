@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store.heap;
+package org.ehcache.internal.store.heap.holders;
 
 import org.ehcache.internal.copy.ReadWriteCopier;
+import org.ehcache.internal.store.heap.holders.CopiedOnHeapKey;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;

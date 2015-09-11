@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store.heap;
+package org.ehcache.internal.store.heap.holders;
 
 import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.copy.ReadWriteCopier;
+import org.ehcache.internal.store.heap.holders.CopiedOnHeapValueHolder;
 import org.junit.Test;
 
 import static org.junit.Assert.*;

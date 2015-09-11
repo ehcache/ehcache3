@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store.heap;
+package org.ehcache.internal.store.heap.holders;
 
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
@@ -38,17 +38,17 @@ public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
     this.copiedValue = valueCopier.copyForWrite(value);
   }
 
-  protected CopiedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, Copier<V> valueCopier) {
+  public CopiedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, Copier<V> valueCopier) {
     this(valueHolder.getId(), valueHolder.value(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), valueCopier);
     this.setLastAccessTime(valueHolder.lastAccessTime(TIME_UNIT), TIME_UNIT);
     this.setHits(valueHolder.hits());
   }
 
-  protected CopiedOnHeapValueHolder(V value, long creationTime, Copier<V> valueCopier) {
+  public CopiedOnHeapValueHolder(V value, long creationTime, Copier<V> valueCopier) {
     this(value, creationTime, NO_EXPIRE, valueCopier);
   }
 
-  protected CopiedOnHeapValueHolder(V value, long creationTime, long expirationTime, Copier<V> valueCopier) {
+  public CopiedOnHeapValueHolder(V value, long creationTime, long expirationTime, Copier<V> valueCopier) {
     this(-1, value, creationTime, expirationTime, valueCopier);
   }
 

@@ -97,8 +97,8 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
       }
     });
     assertThat(computed.value(), is(1000L));
-    assertThat(keyCopier.copyForReadCount, is(1));
     assertThat(keyCopier.copyForWriteCount, is(1));
+    assertThat(keyCopier.copyForReadCount, is(0));
   }
 
   @Test

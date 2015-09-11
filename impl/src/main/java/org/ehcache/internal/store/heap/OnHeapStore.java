@@ -40,6 +40,12 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceService;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.copy.SerializingCopier;
+import org.ehcache.internal.store.heap.holders.CopiedOnHeapKey;
+import org.ehcache.internal.store.heap.holders.CopiedOnHeapValueHolder;
+import org.ehcache.internal.store.heap.holders.LookupOnlyOnHeapKey;
+import org.ehcache.internal.store.heap.holders.OnHeapKey;
+import org.ehcache.internal.store.heap.holders.OnHeapValueHolder;
+import org.ehcache.internal.store.heap.holders.SerializedOnHeapValueHolder;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
@@ -1226,18 +1232,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
     
     private OnHeapKey<K> makeKey(K key) {
-      if(keyCopier instanceof Serializer) {
-        return makeSerializedKey(key, (Serializer)keyCopier);
-      } else {
-        return makeCopyKey(key, keyCopier);
-      }
-    }
-
-    private OnHeapKey<K> makeSerializedKey(K key, Serializer<K> keySerializer) {
-      return new SerializedOnHeapKey<K>(key, keySerializer);
-    }
-
-    private OnHeapKey<K> makeCopyKey(K key, Copier<K> keyCopier) {
       return new CopiedOnHeapKey<K>(key, keyCopier);
     }
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store.heap;
+package org.ehcache.internal.store.heap.holders;
 
 abstract class BaseOnHeapKey<K> implements OnHeapKey<K> {
 
