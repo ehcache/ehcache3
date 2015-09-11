@@ -33,6 +33,8 @@ import org.ehcache.management.ManagementRegistry;
 import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.lifecycle.DefaultLifeCycleManager;
+import org.ehcache.spi.lifecycle.LifeCycleManager;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
@@ -52,7 +54,6 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.context.annotations.ContextAttribute;
 import org.terracotta.statistics.StatisticsManager;
 
-import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,7 +68,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
@@ -102,7 +102,7 @@ public class EhcacheManager implements PersistentCacheManager {
 
   private final CopyOnWriteArrayList<CacheManagerListener> listeners = new CopyOnWriteArrayList<CacheManagerListener>();
   private final StatisticsManager statisticsManager = new StatisticsManager();
-  private final EhcacheManagerStatsSettings ehcacheManagerStatsSettings = new EhcacheManagerStatsSettings(Collections.<String, Object>singletonMap("Setting", "CacheManagerName"));
+  private final LifeCycleManager lifeCycleManager;
 
   public EhcacheManager(Configuration config) {
     this(config, Collections.<Service>emptyList(), true);
@@ -112,11 +112,24 @@ public class EhcacheManager implements PersistentCacheManager {
     this(config, services, true);
   }
   public EhcacheManager(Configuration config, Collection<Service> services, boolean useLoaderInAtomics) {
-    this.serviceLocator = new ServiceLocator(services.toArray(new Service[services.size()]));
+    this.serviceLocator = new ServiceLocator();
     this.useLoaderInAtomics = useLoaderInAtomics;
     this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
     this.configuration = config;
-    StatisticsManager.associate(ehcacheManagerStatsSettings).withParent(this);
+
+    // DefaultLifeCycleManager exposed a service to register lifecycle listeners from services
+    DefaultLifeCycleManager defaultLifeCycleManager = new DefaultLifeCycleManager();
+    this.serviceLocator.addService(defaultLifeCycleManager);
+    this.lifeCycleManager = defaultLifeCycleManager;
+
+    // add other services after (this way the LifeCycleService) cannot be override by the user
+    for (Service service : services) {
+      this.serviceLocator.addService(service);
+    }
+
+    // register a state change listener on this cache manager. 
+    // We use a StateChangeListener because they are fired AFTER all init / close hooks
+    this.statusTransitioner.registerListener(lifeCycleManager.createStateChangeListener(this));
   }
 
   public StatisticsManager getStatisticsManager() {
@@ -377,6 +390,11 @@ public class EhcacheManager implements PersistentCacheManager {
     final ManagementRegistry managementRegistry = serviceLocator.getService(ManagementRegistry.class);
     final EhcacheStatsSettings ehcacheStatsSettings = new EhcacheStatsSettings(alias, Collections.<String, Object>singletonMap("Setting", "CacheName"));
 
+    // registers a listener on ehcache status transitioner, when all init / close hoot are done
+    // to provide a way for services to know when an ehcache instance is initialized or closed
+    ehCache.registerListener(lifeCycleManager.createStateChangeListener(ehCache));
+    ehCache.registerListener(lifeCycleManager.createStateChangeListener(new EhcacheBinding(alias, ehCache)));
+
     lifeCycledList.add(new LifeCycled() {
       @Override
       public void init() throws Exception {
@@ -555,7 +573,7 @@ public class EhcacheManager implements PersistentCacheManager {
         @Override
         public void close() {
           persistenceService.stop();
-          statusTransitioner.exitMaintenance();
+          statusTransitioner.exitMaintenance().succeeded();
         }
       };
       st.succeeded();
@@ -664,17 +682,4 @@ public class EhcacheManager implements PersistentCacheManager {
     }
   }
 
-  private static final class EhcacheManagerStatsSettings {
-    private static final AtomicInteger COUNTER = new AtomicInteger();
-
-    @ContextAttribute("CacheManagerName")  private final String name;
-    @ContextAttribute("properties") private final Map<String, Object> properties;
-    @ContextAttribute("tags") private final Set<String> tags = new HashSet<String>(Arrays.asList("cacheManager", "exposed"));
-
-    EhcacheManagerStatsSettings(Map<String, Object> properties) {
-      //TODO: improve cache manager naming
-      this.name = "cache-manager-" + COUNTER.getAndIncrement();
-      this.properties = properties;
-    }
-  }
 }

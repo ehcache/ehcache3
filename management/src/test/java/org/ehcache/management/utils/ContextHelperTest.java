@@ -24,6 +24,8 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.management.registry.DefaultManagementRegistry;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Collection;
@@ -33,6 +35,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.fail;
 
 /**
  * @author Ludovic Orban
@@ -83,7 +86,7 @@ public class ContextHelperTest {
   }
 
   @Test
-  public void testFindCacheManagerNameByCacheManager() throws Exception {
+  public void testCacheManagerNameNotExposedIfNotManaged() throws Exception {
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .buildConfig(Long.class, String.class);
@@ -95,12 +98,50 @@ public class ContextHelperTest {
 
     try {
       cacheManager.createCache("cache3", cacheConfiguration);
-
-      String cacheManagerName = ContextHelper.findCacheManagerName((EhcacheManager) cacheManager);
-      assertThat(cacheManagerName, startsWith("cache-manager-"));
+      ContextHelper.findCacheManagerName((EhcacheManager) cacheManager);
+      fail();
+    } catch (Exception e) {
+      Assert.assertTrue(e.getMessage().startsWith("Cache manager without name setting : "));
     } finally {
       cacheManager.close();
     }
+
+    cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("cache1", cacheConfiguration)
+        .withCache("cache2", cacheConfiguration)
+        .using(new DefaultManagementRegistry())
+        .build(true);
+
+    String cacheManagerName = ContextHelper.findCacheManagerName((EhcacheManager) cacheManager);
+    assertThat(cacheManagerName, startsWith("cache-manager-"));
+  }
+
+  @Test
+  public void testCacheManagerNameEsposedAgainAfterCloseAndInit() throws Exception {
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .buildConfig(Long.class, String.class);
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("cache1", cacheConfiguration)
+        .withCache("cache2", cacheConfiguration)
+        .using(new DefaultManagementRegistry())
+        .build(true);
+
+    assertThat(ContextHelper.findCacheManagerName((EhcacheManager) cacheManager), startsWith("cache-manager-"));
+    
+    cacheManager.close();
+    try {
+      ContextHelper.findCacheManagerName((EhcacheManager) cacheManager);
+      fail();
+    } catch (Exception e) {
+      assertThat(e.getMessage(), startsWith("Cache manager without name setting : "));
+    }
+
+    cacheManager.init();
+    assertThat(ContextHelper.findCacheManagerName((EhcacheManager) cacheManager), startsWith("cache-manager-"));
+    
+    cacheManager.close();
   }
 
   @Test
@@ -112,6 +153,7 @@ public class ContextHelperTest {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("cache1", cacheConfiguration)
         .withCache("cache2", cacheConfiguration)
+        .using(new DefaultManagementRegistry())
         .build(true);
 
     try {
