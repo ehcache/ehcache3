@@ -19,14 +19,18 @@ package org.ehcache;
 import org.ehcache.events.StateChangeListener;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.LifeCycled;
+import org.ehcache.spi.LifeCycledAdapter;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
+import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doThrow;
@@ -248,6 +252,49 @@ public class StatusTransitionerTest {
       // expected
     }
     verify(first).close();
+  }
+
+  @Test
+  public void testLifeCycledAdapterCanBeUsedInsteadOfLifeCycled() {
+    StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+    final List<String> calls = new LinkedList<String>();
+
+    LifeCycledAdapter adapter1 = new LifeCycledAdapter() {
+    };
+    LifeCycledAdapter adapter2 = new LifeCycledAdapter() {
+      @Override
+      public void init() throws Exception {
+        calls.add("adapter2-init");
+      }
+    };
+    LifeCycledAdapter adapter3 = new LifeCycledAdapter() {
+      @Override
+      public void close() throws Exception {
+        calls.add("adapter3-close");
+      }
+    };
+    LifeCycledAdapter adapter4 = new LifeCycledAdapter() {
+      @Override
+      public void init() throws Exception {
+        calls.add("adapter4-init");
+      }
+
+      @Override
+      public void close() throws Exception {
+        calls.add("adapter4-close");
+      }
+    };
+
+    transitioner.addHook(adapter1);
+    transitioner.addHook(adapter2);
+    transitioner.addHook(adapter3);
+    transitioner.addHook(adapter4);
+
+    transitioner.init().succeeded();
+    assertThat(calls, equalTo(asList("adapter2-init", "adapter4-init")));
+
+    transitioner.close().succeeded();
+    assertThat(calls, equalTo(asList("adapter2-init", "adapter4-init", "adapter4-close", "adapter3-close")));
   }
 
   private static class Recorder implements LifeCycled {
