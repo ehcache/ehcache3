@@ -24,6 +24,7 @@ import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CacheWritingException;
+import org.ehcache.exceptions.RethrowingCacheAccessException;
 
 import static java.util.Collections.emptyMap;
 
@@ -211,6 +212,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   private void cleanup(CacheAccessException from) {
+    filterException(from);
     try {
       cache.obliterate();
     } catch (CacheAccessException e) {
@@ -222,6 +224,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
 
   
   private void cleanup(Iterable<? extends K> keys, CacheAccessException from) {
+    filterException(from);
     try {
       cache.obliterate(keys);
     } catch (CacheAccessException e) {
@@ -232,6 +235,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
   
   private void cleanup(K key, CacheAccessException from) {
+    filterException(from);
     try {
       cache.obliterate(key);
     } catch (CacheAccessException e) {
@@ -239,6 +243,13 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
       return;
     }
     recovered(key, from);
+  }
+
+  @Deprecated
+  void filterException(CacheAccessException cae) throws RuntimeException {
+    if (cae instanceof RethrowingCacheAccessException) {
+      throw ((RethrowingCacheAccessException) cae).getCause();
+    }
   }
 
   protected abstract void recovered(K key, CacheAccessException from);
