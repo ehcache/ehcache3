@@ -45,6 +45,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -141,20 +142,23 @@ public class EhCache107ConfigurationIntegrationDocTest {
     CacheRuntimeConfiguration<Long, String> ehcacheConfig = (CacheRuntimeConfiguration<Long, String>)anyCache.getConfiguration(
         Eh107Configuration.class).unwrap(CacheRuntimeConfiguration.class); // <3>
     ehcacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(); // <4>
-
+    
+    anyCache.put(1L, "foo");
+    assertSame("foo", anyCache.get(1L));  // <5>
+    
     MutableConfiguration<String, String> otherConfiguration = new MutableConfiguration<String, String>();
     otherConfiguration.setTypes(String.class, String.class);
-    otherConfiguration.setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(Duration.ONE_MINUTE)); // <5>
+    otherConfiguration.setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(Duration.ONE_MINUTE)); // <6>
 
-    Cache<String, String> foosCache = manager.createCache("foos", otherConfiguration);// <6>
+    Cache<String, String> foosCache = manager.createCache("foos", otherConfiguration);// <7>
     CacheRuntimeConfiguration<Long, String> foosEhcacheConfig = (CacheRuntimeConfiguration<Long, String>)foosCache.getConfiguration(
         Eh107Configuration.class).unwrap(CacheRuntimeConfiguration.class);
-    foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, "Answer!").getAmount(); // <7>
+    foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, "Answer!").getAmount(); // <8>
 
     CompleteConfiguration<String, String> foosConfig = foosCache.getConfiguration(CompleteConfiguration.class);
 
     try {
-      ExpiryPolicy expiryPolicy = foosConfig.getExpiryPolicyFactory().create(); // <8>
+      ExpiryPolicy expiryPolicy = foosConfig.getExpiryPolicyFactory().create(); // <9>
       throw new AssertionError("Expected UnsupportedOperationException");
     } catch (UnsupportedOperationException e) {
       // Expected
