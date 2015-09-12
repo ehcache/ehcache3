@@ -1,8 +1,14 @@
+---
+---
+ifndef::sourcedir[]
 include::common.adoc[]
+endif::sourcedir[]
 
 = Examples
 
+ifdef::notBuildingForSite[]
 include::menu.adoc[]
+endif::notBuildingForSite[]
 
 == Peeper - a simple message board
 

@@ -1,8 +1,14 @@
+---
+---
+ifndef::sourcedir[]
 include::common.adoc[]
+endif::sourcedir[]
 
 = The Ehcache 3.x JSR-107 Provider
 
+ifdef::notBuildingForSite[]
 include::menu.adoc[]
+endif::notBuildingForSite[]
 
 == Getting started with Ehcache 3.0 & JSR-107
 
