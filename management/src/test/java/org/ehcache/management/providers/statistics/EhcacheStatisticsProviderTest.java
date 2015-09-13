@@ -16,8 +16,9 @@
 package org.ehcache.management.providers.statistics;
 
 import org.ehcache.Ehcache;
+import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
-import org.ehcache.management.registry.DefaultManagementRegistry;
+import org.ehcache.management.registry.CacheBinding;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.terracotta.management.capabilities.context.CapabilityContext;
@@ -30,6 +31,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -47,24 +49,24 @@ public class EhcacheStatisticsProviderTest {
 
   @Test
   public void testDescriptions() throws Exception {
-    StatisticsProviderConfiguration statisticsProviderConfiguration = DefaultManagementRegistry.DEFAULT_EHCACHE_STATISTICS_PROVIDER_CONFIGURATION;
+    StatisticsProviderConfiguration statisticsProviderConfiguration = new EhcacheStatisticsProviderConfiguration(5 * 60, TimeUnit.SECONDS, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS);
     ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
-    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(statisticsProviderConfiguration, executor) {
+    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider("cache-manager-0", statisticsProviderConfiguration, executor) {
       @Override
-      EhcacheStatistics createStatistics(Ehcache ehcache) {
+      protected EhcacheStatistics createManagedObject(CacheBinding cacheBinding) {
         EhcacheStatistics mock = mock(EhcacheStatistics.class);
         Set<Descriptor> descriptors = new HashSet<Descriptor>();
         descriptors.add(new StatisticDescriptor("aCounter", StatisticType.COUNTER));
         descriptors.add(new StatisticDescriptor("aDuration", StatisticType.DURATION));
         descriptors.add(new StatisticDescriptor("aSampledRate", StatisticType.SAMPLED_RATE));
-        when(mock.capabilities()).thenReturn(descriptors);
+        when(mock.getDescriptors()).thenReturn(descriptors);
         return mock;
       }
     };
 
-    ehcacheStatisticsProvider.register(mock(Ehcache.class));
+    ehcacheStatisticsProvider.register(new CacheBinding("cache-0", mock(Ehcache.class)));
 
-    Set<Descriptor> descriptions = ehcacheStatisticsProvider.descriptions();
+    Set<Descriptor> descriptions = ehcacheStatisticsProvider.getDescriptors();
     assertThat(descriptions.size(), is(3));
     assertThat(descriptions, (Matcher) containsInAnyOrder(
         new StatisticDescriptor("aCounter", StatisticType.COUNTER),
@@ -77,19 +79,19 @@ public class EhcacheStatisticsProviderTest {
 
   @Test
   public void testCapabilityContext() throws Exception {
-    StatisticsProviderConfiguration statisticsProviderConfiguration = DefaultManagementRegistry.DEFAULT_EHCACHE_STATISTICS_PROVIDER_CONFIGURATION;
+    StatisticsProviderConfiguration statisticsProviderConfiguration = new EhcacheStatisticsProviderConfiguration(5 * 60, TimeUnit.SECONDS, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS);
     ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
-    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(statisticsProviderConfiguration, executor) {
+    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider("cache-manager-0", statisticsProviderConfiguration, executor) {
       @Override
-      EhcacheStatistics createStatistics(Ehcache ehcache) {
+      protected EhcacheStatistics createManagedObject(CacheBinding cacheBinding) {
         return mock(EhcacheStatistics.class);
       }
     };
 
 
-    ehcacheStatisticsProvider.register(mock(Ehcache.class));
+    ehcacheStatisticsProvider.register(new CacheBinding("cache-0", mock(Ehcache.class)));
 
-    CapabilityContext capabilityContext = ehcacheStatisticsProvider.capabilityContext();
+    CapabilityContext capabilityContext = ehcacheStatisticsProvider.getCapabilityContext();
 
     assertThat(capabilityContext.getAttributes().size(), is(2));
 
@@ -106,9 +108,9 @@ public class EhcacheStatisticsProviderTest {
 
   @Test
   public void testCallAction() throws Exception {
-    StatisticsProviderConfiguration statisticsProviderConfiguration = DefaultManagementRegistry.DEFAULT_EHCACHE_STATISTICS_PROVIDER_CONFIGURATION;
+    StatisticsProviderConfiguration statisticsProviderConfiguration = new EhcacheStatisticsProviderConfiguration(5 * 60, TimeUnit.SECONDS, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS);
     ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
-    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(statisticsProviderConfiguration, executor);
+    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider("cache-manager-0", statisticsProviderConfiguration, executor);
 
     try {
       ehcacheStatisticsProvider.callAction(null, null, null, null);

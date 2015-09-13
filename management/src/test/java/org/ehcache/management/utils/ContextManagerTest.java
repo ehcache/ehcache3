@@ -15,13 +15,21 @@
  */
 package org.ehcache.management.utils;
 
+import org.ehcache.Cache;
+import org.ehcache.CacheManager;
+import org.ehcache.CacheManagerBuilder;
 import org.ehcache.Ehcache;
 import org.ehcache.EhcacheManager;
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.ResourcePoolsBuilder;
+import org.ehcache.config.units.EntryUnit;
+import org.ehcache.management.registry.DefaultManagementRegistry;
+import org.junit.Test;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Query;
-import org.terracotta.context.query.QueryBuilder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,6 +37,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 import static org.terracotta.context.query.Matchers.attributes;
 import static org.terracotta.context.query.Matchers.context;
 import static org.terracotta.context.query.Matchers.hasAttribute;
@@ -37,13 +50,99 @@ import static org.terracotta.context.query.QueryBuilder.queryBuilder;
 /**
  * @author Ludovic Orban
  */
-public abstract class ContextHelper {
+public class ContextManagerTest {
 
-  private ContextHelper() {
+  @Test
+  public void testFindCacheNames() throws Exception {
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .buildConfig(Long.class, String.class);
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("cache1", cacheConfiguration)
+        .withCache("cache2", cacheConfiguration)
+        .using(new DefaultManagementRegistry())
+        .build(true);
+
+    try {
+      cacheManager.createCache("cache3", cacheConfiguration);
+
+      Collection<String> cacheNames = findCacheNames((EhcacheManager) cacheManager);
+      assertThat(cacheNames.size(), is(3));
+      assertThat(cacheNames, containsInAnyOrder("cache1", "cache2", "cache3"));
+    } finally {
+      cacheManager.close();
+    }
+  }
+
+  @Test
+  public void testFindCacheName() throws Exception {
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .buildConfig(Long.class, String.class);
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("cache1", cacheConfiguration)
+        .withCache("cache2", cacheConfiguration)
+        .using(new DefaultManagementRegistry())
+        .build(true);
+
+    try {
+      Cache<Long, String> cache3 = cacheManager.createCache("cache3", cacheConfiguration);
+
+      String cacheName = findCacheName((Ehcache<?, ?>) cache3);
+      assertThat(cacheName, equalTo("cache3"));
+    } finally {
+      cacheManager.close();
+    }
+  }
+
+  @Test
+  public void testFindCacheManagerNameByCacheManager() throws Exception {
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .buildConfig(Long.class, String.class);
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("cache1", cacheConfiguration)
+        .withCache("cache2", cacheConfiguration)
+        .using(new DefaultManagementRegistry())
+        .build(true);
+
+    try {
+      cacheManager.createCache("cache3", cacheConfiguration);
+
+      String cacheManagerName = findCacheManagerName((EhcacheManager) cacheManager);
+      assertThat(cacheManagerName, startsWith("cache-manager-"));
+    } finally {
+      cacheManager.close();
+    }
+  }
+
+  @Test
+  public void testFindCacheManagerNameByCache() throws Exception {
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .buildConfig(Long.class, String.class);
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("cache1", cacheConfiguration)
+        .withCache("cache2", cacheConfiguration)
+        .using(new DefaultManagementRegistry())
+        .build(true);
+
+    try {
+      cacheManager.createCache("cache3", cacheConfiguration);
+
+      String cacheManagerName = findCacheManagerName((Ehcache<?, ?>) cacheManager.getCache("cache1", Long.class, String.class));
+      assertThat(cacheManagerName, startsWith("cache-manager-"));
+    } finally {
+      cacheManager.close();
+    }
   }
 
   public static Collection<String> findCacheNames(EhcacheManager ehcacheManager) {
-    Query q = QueryBuilder.queryBuilder().descendants()
+    Query q = queryBuilder().descendants()
         .filter(context(attributes(hasAttribute("CacheName", new Matcher<String>() {
           @Override
           protected boolean matchesSafely(String object) {
@@ -85,7 +184,7 @@ public abstract class ContextHelper {
   }
 
   public static String findCacheManagerName(EhcacheManager ehcacheManager) {
-    Query q = QueryBuilder.queryBuilder().descendants()
+    Query q = queryBuilder().descendants()
         .filter(context(attributes(hasAttribute("CacheManagerName", new Matcher<String>() {
           @Override
           protected boolean matchesSafely(String object) {

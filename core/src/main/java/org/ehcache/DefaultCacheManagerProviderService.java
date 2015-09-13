@@ -13,29 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.management.providers;
 
-import org.ehcache.EhcacheManager;
-import org.ehcache.management.utils.ContextHelper;
+package org.ehcache;
 
-import java.util.Collection;
+import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.CacheManagerProviderService;
 
 /**
- * @author Ludovic Orban
+ * @author Mathieu Carbou
  */
-class EhcacheManagerContext {
+class DefaultCacheManagerProviderService implements CacheManagerProviderService {
+
   private final EhcacheManager ehcacheManager;
 
-  public EhcacheManagerContext(EhcacheManager ehcacheManager) {
+  public DefaultCacheManagerProviderService(EhcacheManager ehcacheManager) {
     this.ehcacheManager = ehcacheManager;
   }
 
-  public String cacheManagerName() {
-    return ContextHelper.findCacheManagerName(ehcacheManager);
+  @Override
+  public EhcacheManager getCacheManager() {
+    return ehcacheManager;
   }
 
-  public Collection<String> cacheNames() {
-    return ContextHelper.findCacheNames(ehcacheManager);
+  @Override
+  public void start(ServiceProvider serviceProvider) {
+
   }
 
+  @Override
+  public void stop() {
+
+  }
 }

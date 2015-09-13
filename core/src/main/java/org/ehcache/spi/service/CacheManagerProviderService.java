@@ -13,22 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.management.annotations;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Inherited;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+package org.ehcache.spi.service;
+
+import org.ehcache.EhcacheManager;
 
 /**
- * Parameter-level annotation used to set the name of a parameter.
+ * Special service that services can depend onto to be able to recover the instance of the current {@link EhcacheManager}
  *
- * @author Ludovic Orban
+ * @author Mathieu Carbou
  */
-@Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.PARAMETER, ElementType.TYPE})
-@Inherited
-public @interface Named {
-  String value();
+public interface CacheManagerProviderService extends Service {
+
+  EhcacheManager getCacheManager();
+
 }
