@@ -192,7 +192,6 @@ public class ServiceLocatorTest {
     assertThat(started.get(), is(true));
   }
 
-  @Ignore("Test for issue 569")
   @Test
   public void testServicesInstanciatedOnceAndStartedOnce() throws Exception {
     
