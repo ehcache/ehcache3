@@ -31,7 +31,6 @@ import org.ehcache.events.CacheEventNotificationListenerServiceProvider;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.CacheManagerListener;
 import org.ehcache.exceptions.CachePersistenceException;
-import org.ehcache.management.ManagementRegistry;
 import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.LifeCycledAdapter;
 import org.ehcache.spi.ServiceLocator;
@@ -54,7 +53,6 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.util.ClassLoading;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.context.annotations.ContextAttribute;
 import org.terracotta.statistics.StatisticsManager;
 
 import java.util.ArrayDeque;
@@ -63,9 +61,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -386,32 +382,10 @@ public class EhcacheManager implements PersistentCacheManager {
     final Ehcache<K, V> ehCache = new Ehcache<K, V>(config, store, decorator, evtService,
         useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
 
-    final ManagementRegistry managementRegistry = serviceLocator.getService(ManagementRegistry.class);
-    final EhcacheStatsSettings ehcacheStatsSettings = new EhcacheStatsSettings(alias, Collections.<String, Object>singletonMap("Setting", "CacheName"));
-
     // registers a listener on ehcache status transitioner, when all init / close hoot are done
     // to provide a way for services to know when an ehcache instance is initialized or closed
     ehCache.registerListener(lifeCycleManager.createStateChangeListener(ehCache));
     ehCache.registerListener(lifeCycleManager.createStateChangeListener(new EhcacheBinding(alias, ehCache)));
-
-    lifeCycledList.add(new LifeCycled() {
-      @Override
-      public void init() throws Exception {
-        StatisticsManager.associate(ehCache).withParent(EhcacheManager.this);
-        StatisticsManager.associate(ehcacheStatsSettings).withParent(ehCache);
-        if (managementRegistry != null) {
-          managementRegistry.register(Ehcache.class, ehCache);
-        }
-      }
-
-      @Override
-      public void close() throws Exception {
-        if (managementRegistry != null) {
-          managementRegistry.unregister(Ehcache.class, ehCache);
-        }
-        StatisticsManager.dissociate(ehCache).fromParent(EhcacheManager.this);
-      }
-    });
 
     final CacheEventListenerProvider evntLsnrFactory = serviceLocator.getService(CacheEventListenerProvider.class);
     if (evntLsnrFactory != null) {
@@ -480,10 +454,6 @@ public class EhcacheManager implements PersistentCacheManager {
       }
 
       statisticsManager.root(this);
-      ManagementRegistry managementRegistry = serviceLocator.getService(ManagementRegistry.class);
-      if (managementRegistry != null) {
-        managementRegistry.register(EhcacheManager.class, this);
-      }
 
       Deque<String> initiatedCaches = new ArrayDeque<String>();
       try {
@@ -519,12 +489,6 @@ public class EhcacheManager implements PersistentCacheManager {
   public void close() {
     final StatusTransitioner.Transition st = statusTransitioner.close();
 
-    ManagementRegistry managementRegistry = serviceLocator.getService(ManagementRegistry.class);
-    if (managementRegistry != null) {
-      managementRegistry.unregister(EhcacheManager.class, this);
-    }
-    statisticsManager.uproot(this);
-
     Exception firstException = null;
     try {
       for (String alias : caches.keySet()) {
@@ -538,6 +502,9 @@ public class EhcacheManager implements PersistentCacheManager {
           }
         }
       }
+
+      statisticsManager.uproot(this);
+
       serviceLocator.stopAllServices();
     } catch (Exception e) {
       if(firstException == null) {
@@ -672,17 +639,6 @@ public class EhcacheManager implements PersistentCacheManager {
       this.cache = cache;
       this.isValueSet = true;
       notifyAll();
-    }
-  }
-
-  private static final class EhcacheStatsSettings {
-    @ContextAttribute("CacheName")  private final String alias;
-    @ContextAttribute("properties") private final Map<String, Object> properties;
-    @ContextAttribute("tags") private final Set<String> tags = new HashSet<String>(Arrays.asList("cache", "exposed"));
-
-    EhcacheStatsSettings(String alias, Map<String, Object> properties) {
-      this.alias = alias;
-      this.properties = properties;
     }
   }
 }

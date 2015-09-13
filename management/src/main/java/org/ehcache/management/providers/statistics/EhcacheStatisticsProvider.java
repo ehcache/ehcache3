@@ -89,7 +89,7 @@ public class EhcacheStatisticsProvider implements ManagementProvider<Ehcache> {
   }
 
   @Override
-  public Collection<Statistic<?>> collectStatistics(Map<String, String> context, String... statisticNames) {
+  public <T extends Statistic<?>> Collection<T> collectStatistics(Map<String, String> context, String... statisticNames) {
     String cacheManagerName = context.get("cacheManagerName");
     if (cacheManagerName == null) {
       throw new IllegalArgumentException("Missing cache manager name from context");
@@ -105,9 +105,9 @@ public class EhcacheStatisticsProvider implements ManagementProvider<Ehcache> {
         continue;
       }
 
-      Collection<Statistic<?>> result = new ArrayList<Statistic<?>>();
+      Collection<T> result = new ArrayList<T>();
       for (String statisticName : statisticNames) {
-        result.addAll(entry.getValue().queryStatistic(statisticName));
+        result.addAll(entry.getValue().<T>queryStatistic(statisticName));
       }
       return result;
     }

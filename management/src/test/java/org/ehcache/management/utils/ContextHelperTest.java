@@ -51,6 +51,7 @@ public class ContextHelperTest {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("cache1", cacheConfiguration)
         .withCache("cache2", cacheConfiguration)
+        .using(new DefaultManagementRegistry())
         .build(true);
 
     try {
@@ -73,6 +74,7 @@ public class ContextHelperTest {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("cache1", cacheConfiguration)
         .withCache("cache2", cacheConfiguration)
+        .using(new DefaultManagementRegistry())
         .build(true);
 
     try {
