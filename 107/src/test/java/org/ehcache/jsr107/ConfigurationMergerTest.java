@@ -63,7 +63,6 @@ import static org.mockito.Mockito.when;
 @SuppressWarnings("unchecked")
 public class ConfigurationMergerTest {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ConfigurationMergerTest.class);
   private ConfigurationMerger merger;
   private XmlConfiguration xmlConfiguration;
   private Jsr107Service jsr107Service;
@@ -74,7 +73,7 @@ public class ConfigurationMergerTest {
     xmlConfiguration = mock(XmlConfiguration.class);
     jsr107Service = mock(Jsr107Service.class);
     cacheLoaderWriterFactory = mock(Eh107CacheLoaderWriterProvider.class);
-    merger = new ConfigurationMerger(xmlConfiguration, jsr107Service, cacheLoaderWriterFactory, LOGGER);
+    merger = new ConfigurationMerger(xmlConfiguration, jsr107Service, cacheLoaderWriterFactory);
   }
 
   @Test

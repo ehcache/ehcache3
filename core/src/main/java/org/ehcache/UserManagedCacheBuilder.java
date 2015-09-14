@@ -168,8 +168,6 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionVeto,
         evictionPrioritizer, classLoader, expiry, resourcePools);
 
-    RuntimeConfiguration<K, V> runtimeConfiguration = new RuntimeConfiguration<K, V>(cacheConfig, cacheEventNotificationService);
-
     lifeCycledList.add(new LifeCycled() {
       @Override
       public void init() throws Exception {
@@ -188,7 +186,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
         throw new IllegalStateException("No LocalPersistenceService could be found - did you configure one?");
       }
 
-      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(runtimeConfiguration, store, storeConfig, persistenceService, cacheLoaderWriter, cacheEventNotificationService, id);
+      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(cacheConfig, store, storeConfig, persistenceService, cacheLoaderWriter, cacheEventNotificationService, id);
       for (LifeCycled lifeCycled : lifeCycledList) {
         cache.addHook(lifeCycled);
       }
@@ -200,7 +198,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
       } else {
         loggerName = Ehcache.class.getName() + "-UserManaged" + instanceId.incrementAndGet();
       }
-      Ehcache<K, V> cache = new Ehcache<K, V>(runtimeConfiguration, store, cacheLoaderWriter, cacheEventNotificationService, LoggerFactory.getLogger(loggerName));
+      Ehcache<K, V> cache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, cacheEventNotificationService, LoggerFactory.getLogger(loggerName));
       for (LifeCycled lifeCycled : lifeCycledList) {
         cache.addHook(lifeCycled);
       }

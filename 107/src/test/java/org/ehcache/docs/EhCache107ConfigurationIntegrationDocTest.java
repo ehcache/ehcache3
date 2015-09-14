@@ -35,6 +35,7 @@ import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.Caching;
 import javax.cache.configuration.CompleteConfiguration;
+import javax.cache.configuration.Factory;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.expiry.CreatedExpiryPolicy;
 import javax.cache.expiry.Duration;
@@ -154,7 +155,8 @@ public class EhCache107ConfigurationIntegrationDocTest {
     CompleteConfiguration<String, String> foosConfig = foosCache.getConfiguration(CompleteConfiguration.class);
 
     try {
-      ExpiryPolicy expiryPolicy = foosConfig.getExpiryPolicyFactory().create(); // <8>
+      final Factory<ExpiryPolicy> expiryPolicyFactory = foosConfig.getExpiryPolicyFactory();
+      ExpiryPolicy expiryPolicy = expiryPolicyFactory.create(); // <8>
       throw new AssertionError("Expected UnsupportedOperationException");
     } catch (UnsupportedOperationException e) {
       // Expected

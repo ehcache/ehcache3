@@ -15,6 +15,19 @@
  */
 package org.ehcache.jsr107;
 
+import org.ehcache.Ehcache;
+import org.ehcache.EhcacheHackAccessor;
+import org.ehcache.Status;
+import org.ehcache.UserManagedCache;
+import org.ehcache.event.EventFiring;
+import org.ehcache.event.EventOrdering;
+import org.ehcache.function.BiFunction;
+import org.ehcache.function.Function;
+import org.ehcache.function.NullaryFunction;
+import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
+import org.ehcache.management.ManagementRegistry;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,17 +46,6 @@ import javax.cache.processor.EntryProcessor;
 import javax.cache.processor.EntryProcessorException;
 import javax.cache.processor.EntryProcessorResult;
 
-import org.ehcache.Ehcache;
-import org.ehcache.EhcacheHackAccessor;
-import org.ehcache.event.EventFiring;
-import org.ehcache.event.EventOrdering;
-import org.ehcache.function.BiFunction;
-import org.ehcache.function.Function;
-import org.ehcache.function.NullaryFunction;
-import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
-import org.ehcache.management.ManagementRegistry;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-
 /**
  * @author teck
  */
@@ -53,7 +55,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   private final org.ehcache.Jsr107Cache<K, V> jsr107Cache;
   private final Eh107CacheManager cacheManager;
   private final String name;
-  private final AtomicBoolean closed = new AtomicBoolean();
+  private final AtomicBoolean hypotheticallyClosed = new AtomicBoolean();
   private final CacheResources<K, V> cacheResources;
   private final Eh107CacheMXBean managementBean;
   private final Eh107CacheStatisticsMXBean statisticsBean;
@@ -436,7 +438,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
   @Override
   public boolean isClosed() {
-    return closed.get();
+    return syncedIsClose();
   }
 
   void closeInternal(MultiCacheException closeException) {
@@ -444,7 +446,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   }
 
   private void closeInternal(boolean destroy, MultiCacheException closeException) {
-    if (closed.compareAndSet(false, true)) {
+    if (hypotheticallyClosed.compareAndSet(false, true)) {
       if (destroy) {
         try {
           clear(false);
@@ -455,6 +457,13 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
       cacheResources.closeResources(closeException);
     }
+  }
+
+  private boolean syncedIsClose() {
+    if (((UserManagedCache)ehCache).getStatus() == Status.UNINITIALIZED && !hypotheticallyClosed.get()) {
+      close();
+    }
+    return hypotheticallyClosed.get();
   }
 
   void destroy(MultiCacheException destroyException) {
@@ -519,7 +528,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   }
 
   private void checkClosed() {
-    if (closed.get()) {
+    if (syncedIsClose()) {
       throw new IllegalStateException("Cache[" + name + "] is closed");
     }
   }

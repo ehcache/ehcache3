@@ -51,7 +51,6 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import static org.ehcache.EhcacheBasicBulkUtil.*;
-import static org.ehcache.EhcacheBasicCrudBase.CACHE_CONFIGURATION;
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -2061,8 +2060,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
   
   private Ehcache<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter, CacheConfiguration<String, String> config) {
-    RuntimeConfiguration<String, String> runtimeConfiguration = new RuntimeConfiguration<String, String>(config, null);
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(runtimeConfiguration, this.store, cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
+    final Ehcache<String, String> ehcache = new Ehcache<String, String>(config, this.store, cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

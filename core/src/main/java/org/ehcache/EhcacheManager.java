@@ -19,8 +19,10 @@ package org.ehcache;
 import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.DefaultConfiguration;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.RuntimeConfiguration;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
@@ -95,7 +97,7 @@ public class EhcacheManager implements PersistentCacheManager {
 
   private final ServiceLocator serviceLocator;
   private final boolean useLoaderInAtomics;
-  private final Configuration configuration;
+  private final RuntimeConfiguration configuration;
 
   private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<String, CacheHolder>();
   private final ClassLoader cacheManagerClassLoader;
@@ -115,7 +117,7 @@ public class EhcacheManager implements PersistentCacheManager {
     this.serviceLocator = new ServiceLocator(services.toArray(new Service[services.size()]));
     this.useLoaderInAtomics = useLoaderInAtomics;
     this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
-    this.configuration = config;
+    this.configuration = new DefaultConfiguration(config);
     StatisticsManager.associate(ehcacheManagerStatsSettings).withParent(this);
   }
 
@@ -353,9 +355,7 @@ public class EhcacheManager implements PersistentCacheManager {
       
     });
     
-    RuntimeConfiguration<K, V> runtimeConfiguration = new RuntimeConfiguration<K, V>(config, evtService);
-    runtimeConfiguration.addCacheConfigurationListener(store.getConfigurationChangeListeners());
-    final Ehcache<K, V> ehCache = new Ehcache<K, V>(runtimeConfiguration, store, decorator, evtService,
+    final Ehcache<K, V> ehCache = new Ehcache<K, V>(config, store, decorator, evtService,
         useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
 
     final ManagementRegistry managementRegistry = serviceLocator.getService(ManagementRegistry.class);
@@ -515,6 +515,11 @@ public class EhcacheManager implements PersistentCacheManager {
       throw st.failed(firstException);
     }
     st.succeeded();
+  }
+
+  @Override
+  public RuntimeConfiguration getRuntimeConfiguration() {
+    return configuration;
   }
 
   @Override

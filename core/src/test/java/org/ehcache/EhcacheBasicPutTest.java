@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.EnumSet;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.CacheConfigurationBuilder;
+
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
@@ -581,8 +581,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
   }
   
   private Ehcache<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter, CacheConfiguration<String, String> config) {
-    RuntimeConfiguration<String, String> runtimeConfiguration = new RuntimeConfiguration<String, String>(config, null);
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(runtimeConfiguration, this.store, cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutTest"));
+    final Ehcache<String, String> ehcache = new Ehcache<String, String>(config, this.store, cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

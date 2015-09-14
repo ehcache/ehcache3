@@ -28,6 +28,7 @@ import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoadingException;
@@ -56,10 +57,10 @@ public class EhcacheLoaderWriterTest {
   public void setUp() throws Exception {
     store = mock(Store.class);
     CacheLoaderWriter<Number, String> loaderWriter = mock(CacheLoaderWriter.class);
-    RuntimeConfiguration<Number, String> runtimeConfiguration
-        = new RuntimeConfiguration<Number, String>(CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, String.class), null);
+    final CacheConfiguration<Number, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .buildConfig(Number.class, String.class);
     cache = new Ehcache<Number, String>(
-        runtimeConfiguration, store, loaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheLoaderWriterTest"));
+        config, store, loaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheLoaderWriterTest"));
     cache.init();
   }
   

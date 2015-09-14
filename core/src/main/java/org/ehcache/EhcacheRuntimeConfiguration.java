@@ -41,7 +41,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * @author rism
  */
-public class RuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, V>, InternalRuntimeConfiguration {
+class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, V>, InternalRuntimeConfiguration {
 
   private final Collection<ServiceConfiguration<?>> serviceConfigurations;
   private final CacheConfiguration<? super K, ? super V> config;
@@ -57,8 +57,8 @@ public class RuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
   private final List<CacheConfigurationChangeListener> cacheConfigurationListenerList
       = new CopyOnWriteArrayList<CacheConfigurationChangeListener>();
 
-  public RuntimeConfiguration(CacheConfiguration<K, V> config,
-                              CacheEventNotificationService<K, V> eventNotifier) {
+  public EhcacheRuntimeConfiguration(CacheConfiguration<K, V> config,
+                                     CacheEventNotificationService<K, V> eventNotifier) {
     this.config = config;
     this.serviceConfigurations = copy(config.getServiceConfigurations());
     this.keyType = config.getKeyType();

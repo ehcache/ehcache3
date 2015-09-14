@@ -30,7 +30,6 @@ import org.hamcrest.CoreMatchers;
 import org.mockito.Mock;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -75,8 +74,7 @@ public class EhcacheEventsTestBase extends EhcacheBasicCrudBase {
     ExecutorService unorderedExecutor = Executors.newCachedThreadPool();
     TimeSource timeSource = SystemTimeSource.INSTANCE;
     cacheEventNotificationService = new CacheEventNotificationServiceImpl<String, String>(orderedExecutor, unorderedExecutor, store, timeSource);
-    RuntimeConfiguration<String, String> runtimeConfiguration = new RuntimeConfiguration<String, String>(config, cacheEventNotificationService);
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(runtimeConfiguration, this.store,
+    final Ehcache<String, String> ehcache = new Ehcache<String, String>(config, this.store,
         cacheLoaderWriter, cacheEventNotificationService,
         LoggerFactory.getLogger(Ehcache.class + "-" + name));
     ehcache.init();

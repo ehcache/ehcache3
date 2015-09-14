@@ -25,16 +25,23 @@ import java.util.Map;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import static java.util.Collections.*;
+import static java.util.Collections.unmodifiableCollection;
 
 /**
  * @author Alex Snaps
  */
-public final class DefaultConfiguration implements Configuration {
+public final class DefaultConfiguration implements Configuration, RuntimeConfiguration {
 
   private final Map<String,CacheConfiguration<?, ?>> caches;
   private final Collection<ServiceCreationConfiguration<?>> services;
   private final ClassLoader classLoader;
-  
+
+  public DefaultConfiguration(Configuration cfg) {
+    this.caches = unmodifiableMap(new HashMap<String, CacheConfiguration<?, ?>>(cfg.getCacheConfigurations()));
+    this.services = unmodifiableCollection(cfg.getServiceCreationConfigurations());
+    this.classLoader = cfg.getClassLoader();
+  }
+
   public DefaultConfiguration(ClassLoader classLoader) {
     this(emptyCacheMap(), classLoader);
   }
