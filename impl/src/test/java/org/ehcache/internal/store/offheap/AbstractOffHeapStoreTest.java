@@ -31,7 +31,6 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.spi.cache.AbstractValueHolder;
 import org.ehcache.spi.cache.Store;
 
@@ -40,11 +39,12 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.ehcache.statistics.StoreOperationOutcomes;
-import org.hamcrest.MatcherAssert;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -389,6 +389,109 @@ public abstract class AbstractOffHeapStoreTest {
         }
       });
       assertThat(getExpirationStatistic(offHeapStore).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
+
+  @Test
+  public void testIteratorSkipsExpiredEntries() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToLiveExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
+
+    try {
+      offHeapStore.put("key1", "value1");
+      offHeapStore.put("key2", "value2");
+      
+      timeSource.advanceTime(11L);
+      
+      offHeapStore.put("key3", "value3");
+      offHeapStore.put("key4", "value4");
+
+      final List<String> expiredKeys = new ArrayList<String>();
+      offHeapStore.enableStoreEventNotifications(new StoreEventListener<String, String>() {
+
+        @Override
+        public void onEviction(final String key, final Store.ValueHolder<String> valueHolder) {
+          throw new AssertionError("This should not have happened.");
+        }
+
+        @Override
+        public void onExpiration(final String key, final Store.ValueHolder<String> valueHolder) {
+          expiredKeys.add(key);
+        }
+      });
+
+      List<String> iteratedKeys = new ArrayList<String>();
+      Store.Iterator<Cache.Entry<String, Store.ValueHolder<String>>> iterator = offHeapStore.iterator();
+      while(iterator.hasNext()) {
+        iteratedKeys.add(iterator.next().getKey());
+      }
+      
+      assertThat(iteratedKeys, containsInAnyOrder("key3", "key4"));
+      assertThat(expiredKeys, containsInAnyOrder("key1", "key2"));
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
+
+  @Test
+  public void testIteratorWithAllExpiredEntries() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToLiveExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
+    try {
+      offHeapStore.put("key1", "value1");
+      offHeapStore.put("key2", "value2");
+
+      timeSource.advanceTime(11L);
+
+      Store.Iterator<Cache.Entry<String, Store.ValueHolder<String>>> iterator = offHeapStore.iterator();
+      assertFalse(iterator.hasNext());
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
+
+  @Test
+  public void testIteratorWithSingleExpiredEntry() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToLiveExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
+    try {
+      offHeapStore.put("key1", "value1");
+
+      timeSource.advanceTime(11L);
+
+      Store.Iterator<Cache.Entry<String, Store.ValueHolder<String>>> iterator = offHeapStore.iterator();
+      assertFalse(iterator.hasNext());
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
+
+  @Test
+  public void testIteratorWithSingleNonExpiredEntry() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToLiveExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
+    try {
+      offHeapStore.put("key1", "value1");
+
+      timeSource.advanceTime(5L);
+
+      Store.Iterator<Cache.Entry<String, Store.ValueHolder<String>>> iterator = offHeapStore.iterator();
+      assertTrue(iterator.hasNext());
+      assertThat(iterator.next().getKey(), is("key1"));
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
+
+  @Test
+  public void testIteratorOnEmptyStore() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToLiveExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
+    try {
+      Store.Iterator<Cache.Entry<String, Store.ValueHolder<String>>> iterator = offHeapStore.iterator();
+      assertFalse(iterator.hasNext());
     } finally {
       destroyStore(offHeapStore);
     }
