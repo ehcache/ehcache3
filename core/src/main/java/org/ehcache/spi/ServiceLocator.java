@@ -57,6 +57,7 @@ public final class ServiceLocator implements ServiceProvider {
   private final ReadWriteLock runningLock = new ReentrantReadWriteLock();
 
   private final AtomicBoolean running = new AtomicBoolean(false);
+  private boolean starting;
 
   public ServiceLocator(Service... services) {
     for (Service service : services) {
@@ -138,7 +139,9 @@ public final class ServiceLocator implements ServiceProvider {
 
       if (running.get()) {
         loadDependenciesOf(service.getClass());
-        service.start(this);
+        if(!starting) {
+          service.start(this); 
+        }
       }
     } finally {
       lock.unlock();
@@ -204,14 +207,19 @@ public final class ServiceLocator implements ServiceProvider {
         throw new IllegalStateException("Already started!");
       }
 
-      resolveMissingDependencies();
-
-      for (Service service : services.values()) {
-        if (!started.contains(service)) {
-          service.start(this);
-          started.push(service);
+      try {
+        starting = true;
+        resolveMissingDependencies();
+        for (Service service : services.values()) {
+          if (!started.contains(service)) {
+            service.start(this);
+            started.push(service);
+          }
         }
+      } finally {
+        starting = false;
       }
+
       LOGGER.info("All Services successfully started.");
     } catch (Exception e) {
       while(!started.isEmpty()) {
