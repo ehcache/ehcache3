@@ -1,8 +1,15 @@
+---
+---
+ifndef::sourcedir[]
 include::common.adoc[]
+endif::sourcedir[]
 
 = Management and Monitoring
 
+
+ifdef::notBuildingForSite[]
 include::menu.adoc[]
+endif::notBuildingForSite[]
 
 == Intro
 

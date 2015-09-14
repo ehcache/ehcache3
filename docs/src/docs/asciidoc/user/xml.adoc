@@ -1,10 +1,16 @@
+---
+---
+ifndef::sourcedir[]
 include::common.adoc[]
+endif::sourcedir[]
 
 = XML Configuration
 
+ifdef::notBuildingForSite[]
 include::menu.adoc[]
+endif::notBuildingForSite[]
 
-== Intro
+== Introduction
 
 Using an XML file you can configure a `CacheManager` at creation time, according to
 link:xsds{outfilesuffix}#_core[this schema definition].

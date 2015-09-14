@@ -1,8 +1,14 @@
+---
+---
+ifndef::sourcedir[]
 include::common.adoc[]
+endif::sourcedir[]
 
 = Ehcache XSDs
 
+ifdef::notBuildingForSite[]
 include::menu.adoc[]
+endif::notBuildingForSite[]
 
 == Core
 

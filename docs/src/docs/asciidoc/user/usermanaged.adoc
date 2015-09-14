@@ -1,8 +1,15 @@
+---
+---
+ifndef::sourcedir[]
 include::common.adoc[]
+endif::sourcedir[]
 
 = User managed caches
 
+ifdef::notBuildingForSite[]
 include::menu.adoc[]
+endif::notBuildingForSite[]
+
 
 == What are user managed caches and what do they offer?
 
@@ -62,4 +69,3 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[
 <3> As usual, indicate here if the data should outlive the cache
 <4> Closing the cache will not delete the data it saved on disk when marked as persistent.
 <5> To delete the data, the cache need to be put in maintenance mode and destroy has to be explicitly invoked.
-
