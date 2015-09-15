@@ -20,6 +20,7 @@ import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.statistics.BulkOps;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -202,6 +203,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verify(this.spiedResilienceStrategy, never()).putAllFailure(eq(Collections.<String, String>emptyMap()), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.SUCCESS));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -231,6 +234,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verify(this.cacheLoaderWriter, never()).writeAll(eq(Collections.<Map.Entry<String, String>>emptyList()));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.SUCCESS));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -258,6 +263,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.SUCCESS));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(contentUpdates.size()));
   }
 
   /**
@@ -290,6 +297,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -320,6 +329,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -353,6 +364,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.SUCCESS));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(contentUpdates.size()));
   }
 
   /**
@@ -392,6 +405,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -432,6 +447,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -474,6 +491,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(KEY_SET_A.size()));
   }
 
   /**
@@ -524,6 +543,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -572,6 +593,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -617,6 +640,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(expectedSuccesses.size()));
   }
 
   /**
@@ -673,9 +698,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThatAllStoreEntriesWithoutFailuresMatchWriterState(fakeStore, fakeLoaderWriter, bcweFailures);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
-
-    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
-        Collections.<String, String>emptyMap(), bcweSuccesses, bcweFailures);
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -730,9 +754,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThatAllStoreEntriesWithoutFailuresMatchWriterState(fakeStore, fakeLoaderWriter, bcweFailures);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
-
-    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
-        expectedSuccesses, bcweSuccesses, bcweFailures);
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -774,6 +797,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -823,6 +848,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         Matchers.<Set<?>>equalTo(contentUpdates.keySet()));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -870,6 +897,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         Matchers.<Set<?>>equalTo(contentUpdates.keySet()));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -904,6 +933,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.SUCCESS));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(contentUpdates.size()));
   }
 
   /**
@@ -944,6 +975,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -982,6 +1015,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -1025,6 +1060,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(expectedSuccesses.size()));
   }
 
   /**
@@ -1075,6 +1112,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -1123,6 +1162,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -1168,6 +1209,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(expectedSuccesses.size()));
   }
 
   /**
@@ -1225,9 +1268,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
 
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
-
-    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
-        expectedSuccesses, bcweSuccesses, bcweFailures);
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -1282,9 +1324,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThatAllStoreEntriesWithoutFailuresMatchWriterState(fakeStore, fakeLoaderWriter, bcweFailures);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
-
-    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
-        expectedSuccesses, bcweSuccesses, bcweFailures);
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -1326,6 +1367,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -1375,6 +1418,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         Matchers.<Set<?>>equalTo(contentUpdates.keySet()));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -1422,6 +1467,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         Matchers.<Set<?>>equalTo(contentUpdates.keySet()));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -1456,6 +1503,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.SUCCESS));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(contentUpdates.size()));
   }
 
   /**
@@ -1496,6 +1545,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -1534,6 +1585,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         .putAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -1577,6 +1630,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(KEY_SET_B.size() + KEY_SET_C.size()));
   }
 
   /**
@@ -1627,6 +1682,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -1675,6 +1732,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -1721,6 +1780,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(expectedSuccesses.size()));
   }
 
   /**
@@ -1778,9 +1839,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThatAllStoreEntriesWithoutFailuresMatchWriterState(fakeStore, fakeLoaderWriter, bcweFailures);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
-
-    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
-        expectedSuccesses, bcweSuccesses, bcweFailures);
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -1836,9 +1896,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThatAllStoreEntriesWithoutFailuresMatchWriterState(fakeStore, fakeLoaderWriter, bcweFailures);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
-
-    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
-        expectedSuccesses, bcweSuccesses, bcweFailures);
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -1881,6 +1940,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -1931,6 +1992,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         Matchers.<Set<?>>equalTo(contentUpdates.keySet()));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   /**
@@ -1979,6 +2042,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         Matchers.<Set<?>>equalTo(contentUpdates.keySet()));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
   @Test
@@ -2007,7 +2072,9 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
-  }  
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.SUCCESS));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(KEY_SET_A.size()));
+  }
 
   @Test
   public void testPutAllPartialIntersectionsImmediatelyExpiredUpdatedEntries() throws Exception {
@@ -2035,7 +2102,9 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
-  }  
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.SUCCESS));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(KEY_SET_C.size() + KEY_SET_D.size()));
+  }
 
   private void assertThatAllStoreEntriesWithoutFailuresMatchWriterState(FakeStore fakeStore, FakeCacheLoaderWriter fakeLoaderWriter, Map<String, Exception> bcweFailures) {
     assertThat(copyWithout(fakeStore.getEntryMap(), bcweFailures.keySet()).entrySet(), everyItem(isIn(fakeLoaderWriter.getEntryMap()

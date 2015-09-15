@@ -21,6 +21,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.statistics.BulkOps;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -156,6 +157,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verify(this.spiedResilienceStrategy, never()).removeAllFailure(eq(Collections.<String>emptySet()), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.SUCCESS));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -186,6 +189,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
     
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.SUCCESS));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -213,6 +218,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.SUCCESS));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(KEY_SET_A.size()));
   }
 
   /**
@@ -245,6 +252,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -275,6 +284,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -308,6 +319,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.SUCCESS));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(KEY_SET_A.size()));
   }
 
   /**
@@ -347,6 +360,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -387,6 +402,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -429,6 +446,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(KEY_SET_A.size()));
   }
 
   /**
@@ -479,6 +498,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -527,6 +548,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -572,6 +595,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(KEY_SET_A.size()));
   }
 
   /**
@@ -631,9 +656,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         equalTo(copyWithout(copyWithout(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
-
-    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
-        expectedSuccesses, bcweSuccesses, bcweFailures);
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -691,9 +715,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         equalTo(copyWithout(copyWithout(originalWriterContent, copyOnly(contentUpdates, bcweSuccesses)), bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
-
-    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
-        expectedSuccesses, bcweSuccesses, bcweFailures);
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -735,6 +758,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -783,6 +808,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(contentUpdates));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -829,6 +856,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(contentUpdates));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -863,6 +892,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.SUCCESS));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(KEY_SET_A.size()));
   }
 
   /**
@@ -903,6 +934,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -941,6 +974,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -984,6 +1019,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(KEY_SET_A.size()));
   }
 
   /**
@@ -1034,6 +1071,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -1082,6 +1121,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -1127,6 +1168,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(KEY_SET_A.size()));
   }
 
   /**
@@ -1187,9 +1230,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
             bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
-
-    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
-        expectedSuccesses, bcweSuccesses, bcweFailures);
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -1248,9 +1290,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
             bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
-
-    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
-        expectedSuccesses, bcweSuccesses, bcweFailures);
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -1292,6 +1333,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -1340,6 +1383,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(contentUpdates));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -1386,6 +1431,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(contentUpdates));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -1420,6 +1467,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.SUCCESS));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(KEY_SET_B.size()));
   }
 
   /**
@@ -1460,6 +1509,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -1498,6 +1549,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -1541,6 +1594,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(KEY_SET_B.size()));
   }
 
   /**
@@ -1591,6 +1646,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -1639,6 +1696,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -1685,6 +1744,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(KEY_SET_B.size()));
   }
 
   /**
@@ -1746,9 +1807,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
             bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
-
-    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
-        expectedSuccesses, bcweSuccesses, bcweFailures);
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -1808,9 +1868,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
             bcweFailures.keySet())));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
-
-    this.dumpResults(fakeStore, originalStoreContent, fakeLoaderWriter, originalWriterContent, contentUpdates, expectedFailures,
-        expectedSuccesses, bcweSuccesses, bcweFailures);
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -1853,6 +1912,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -1902,6 +1963,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(contentUpdates));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**
@@ -1949,6 +2012,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(contentUpdates));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
+    assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
   /**

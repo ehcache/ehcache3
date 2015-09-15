@@ -20,6 +20,7 @@ import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.statistics.BulkOps;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -38,6 +39,7 @@ import java.util.Set;
 import static org.ehcache.EhcacheBasicBulkUtil.*;
 
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.terracotta.statistics.jsr166e.LongAdder;
 
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -150,6 +152,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
   }
 
   /**
@@ -179,6 +182,17 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
+    validateBulkCounters(ehcache, 0, 0);
+  }
+
+  private void validateBulkCounters(Ehcache<?, ?> ehcache, int expectedHitCount, int expectedMissCount) {
+    LongAdder hitAdder = ehcache.getBulkMethodEntries().get(BulkOps.GET_ALL_HITS);
+    LongAdder missAdder = ehcache.getBulkMethodEntries().get(BulkOps.GET_ALL_MISS);
+    int hitCount = hitAdder == null ? 0 : hitAdder.intValue();
+    int missCount = missAdder == null ? 0 : missAdder.intValue();
+    assertThat(hitCount, is(expectedHitCount));
+    assertThat(missCount, is(expectedMissCount));
   }
 
 
@@ -206,6 +220,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
+    validateBulkCounters(ehcache, 0, KEY_SET_A.size());
   }
 
   /**
@@ -236,6 +252,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -275,6 +293,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -313,6 +333,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -351,6 +373,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
   /**
@@ -396,6 +420,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
   /**
@@ -441,6 +467,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     verifyBulkLoadingException(this.bulkExceptionCaptor.getValue(), Collections.<String> emptySet(), KEY_SET_A);
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
   /**
@@ -486,6 +514,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
 
@@ -530,6 +560,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -573,6 +605,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -617,6 +651,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
 
@@ -650,6 +686,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
+    validateBulkCounters(ehcache, 0, KEY_SET_A.size());
   }
 
   /**
@@ -688,6 +726,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -724,6 +764,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -762,6 +804,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -807,6 +851,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -853,6 +899,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -887,6 +935,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
+    validateBulkCounters(ehcache, KEY_SET_C.size(), KEY_SET_A.size());
   }
 
   /**
@@ -927,6 +977,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -965,6 +1017,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -999,6 +1053,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
+    validateBulkCounters(ehcache, KEY_SET_C.size(), KEY_SET_A.size());
   }
 
   /**
@@ -1039,6 +1095,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -1077,6 +1135,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -1111,6 +1171,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
+    validateBulkCounters(ehcache, KEY_SET_A.size() + KEY_SET_C.size(), 0);
   }
 
   /**
@@ -1151,6 +1213,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -1189,6 +1253,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -1217,6 +1283,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
+    validateBulkCounters(ehcache, KEY_SET_A.size(), KEY_SET_C.size());
   }
 
   /**
@@ -1248,6 +1316,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -1287,6 +1357,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, KEY_SET_A.size(), 0);
   }
   
   /**
@@ -1325,6 +1397,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, KEY_SET_A.size(), 0);
   }
 
   /**
@@ -1352,7 +1426,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
       fail();
     } catch (BulkCacheLoadingException e) {
       // Expected
-      assertThat(e.getSuccesses().keySet(), Matchers.<Set<?>>equalTo(getEntryMap(KEY_SET_A, KEY_SET_D).keySet()));
+      assertThat(e.getSuccesses(), Matchers.<Map<?, ?>>equalTo(getEntryMap(KEY_SET_A, KEY_SET_D)));
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_C));
     }
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
@@ -1363,6 +1437,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, KEY_SET_A.size(), 0);
   }
   
   /**
@@ -1409,6 +1485,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
   /**
@@ -1455,6 +1533,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
   /**
@@ -1501,6 +1581,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
 
@@ -1546,6 +1628,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
   /**
@@ -1589,6 +1673,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
   /**
@@ -1633,6 +1719,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
 
@@ -1668,6 +1756,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
+    validateBulkCounters(ehcache, KEY_SET_A.size(), KEY_SET_C.size());
   }
 
   /**
@@ -1708,6 +1798,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -1746,6 +1838,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -1785,6 +1879,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, KEY_SET_A.size(), 0);
   }
   
   /**
@@ -1812,7 +1908,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
       fail();
     } catch (BulkCacheLoadingException e) {
       // Expected
-      assertThat(e.getSuccesses(), Matchers.<Map<?,?>>equalTo(union(getEntryMap(KEY_SET_A), getNullEntryMap(KEY_SET_C))));
+      assertThat(e.getSuccesses(), Matchers.<Map<?,?>>equalTo(union(getEntryMap(KEY_SET_A), getEntryMap(KEY_SET_C))));
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(KEY_SET_D));
     }
 
@@ -1824,6 +1920,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, KEY_SET_A.size(), 0);
   }
 
   /**
@@ -1869,6 +1967,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -1915,6 +2015,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
   /**
@@ -1961,6 +2063,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -1995,6 +2099,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
+    validateBulkCounters(ehcache, KEY_SET_A.size() + KEY_SET_C.size(), KEY_SET_D.size());
   }
 
   /**
@@ -2035,6 +2141,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -2073,6 +2181,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -2113,6 +2223,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, KEY_SET_A.size() + KEY_SET_C.size(), 0);
   }
   
   /**
@@ -2140,8 +2252,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
       fail();
     } catch (BulkCacheLoadingException e) {
       // Expected
-      assertThat(e.getSuccesses(),
-          Matchers.<Map<?,?>>equalTo(union(getEntryMap(KEY_SET_A), getNullEntryMap(KEY_SET_C))));
+      assertThat(e.getSuccesses(),Matchers.<Map<?,?>>equalTo(getEntryMap(KEY_SET_A, KEY_SET_C)));
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(union(KEY_SET_D, KEY_SET_F)));
     }
 
@@ -2153,6 +2264,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, KEY_SET_A.size(), 0);
   }
   
 
@@ -2199,6 +2312,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
   /**
@@ -2229,8 +2344,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
       fail();
     } catch (BulkCacheLoadingException e) {
       // Expected
-      assertThat(e.getSuccesses(),
-          Matchers.<Map<?,?>>equalTo(getNullEntryMap(KEY_SET_E)));
+      assertThat(e.getSuccesses(), Matchers.<Map<?,?>>equalTo(getEntryMap(KEY_SET_E)));
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(union(KEY_SET_A, KEY_SET_C)));
     }
 
@@ -2246,6 +2360,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
 
@@ -2294,6 +2410,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
   /**
@@ -2322,7 +2440,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
       fail();
     } catch (BulkCacheLoadingException e) {
       // Expected
-      assertThat(e.getSuccesses(), Matchers.<Map<?,?>>equalTo(union(getNullEntryMap(KEY_SET_A), getNullEntryMap(KEY_SET_C))));
+      assertThat(e.getSuccesses(), Matchers.<Map<?,?>>equalTo(union(getEntryMap(KEY_SET_A), getEntryMap(KEY_SET_C))));
       assertThat(e.getFailures().keySet(), Matchers.<Set<?>>equalTo(union(KEY_SET_D, KEY_SET_F)));
     }
 
@@ -2334,6 +2452,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -2368,6 +2488,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
+    validateBulkCounters(ehcache, fetchKeys.size(), 0);
   }
 
   /**
@@ -2408,6 +2530,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -2446,6 +2570,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -2474,6 +2600,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
+    validateBulkCounters(ehcache, fetchKeys.size(), 0);
   }
 
   /**
@@ -2505,6 +2633,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -2539,6 +2669,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
+    validateBulkCounters(ehcache, fetchKeys.size(), 0);
   }
 
   /**
@@ -2585,6 +2717,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -2631,6 +2765,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -2678,6 +2814,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
   /**
@@ -2722,6 +2860,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
   /**
@@ -2765,6 +2905,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
   /**
@@ -2809,6 +2951,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -2842,6 +2986,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
+    validateBulkCounters(ehcache, fetchKeys.size(), 0);
   }
 
   /**
@@ -2882,6 +3028,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -2915,6 +3063,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
+    validateBulkCounters(ehcache, fetchKeys.size(), 0);
   }
 
   /**
@@ -2960,6 +3110,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
   /**
@@ -3005,6 +3157,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -3048,6 +3202,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -3081,6 +3237,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
+    validateBulkCounters(ehcache, fetchKeys.size(), 0);
   }
 
   /**
@@ -3120,6 +3278,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -3157,6 +3317,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -3191,6 +3353,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
+    validateBulkCounters(ehcache, fetchKeys.size(), 0);
   }
 
   /**
@@ -3236,6 +3400,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -3283,6 +3449,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   
@@ -3327,6 +3495,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
   /**
@@ -3371,6 +3541,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -3404,6 +3576,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
+    validateBulkCounters(ehcache, fetchKeys.size(), 0);
   }
 
   /**
@@ -3445,6 +3619,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
 
   /**
@@ -3484,6 +3660,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
+    validateBulkCounters(ehcache, 0, 0);
   }
   
   private void verifyBulkLoadingException(BulkCacheLoadingException e, Set<String> successKeys, Set<String> failureKeys) {
