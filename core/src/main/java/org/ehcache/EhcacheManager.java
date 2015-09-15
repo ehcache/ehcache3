@@ -281,7 +281,7 @@ public class EhcacheManager implements PersistentCacheManager {
         if (resources.contains(DISK) || resources.contains(OFFHEAP)) {
           throw new RuntimeException(e);
         } else {
-          LOGGER.info("Could not create serializers for " + alias, e);
+          LOGGER.debug("Could not create serializers for " + alias, e);
         }
       }
       try {
@@ -291,7 +291,7 @@ public class EhcacheManager implements PersistentCacheManager {
         if (resources.contains(DISK) || resources.contains(OFFHEAP)) {
           throw new RuntimeException(e);
         } else {
-          LOGGER.info("Could not create serializers for " + alias, e);
+          LOGGER.debug("Could not create serializers for " + alias, e);
         }
       }
     }
