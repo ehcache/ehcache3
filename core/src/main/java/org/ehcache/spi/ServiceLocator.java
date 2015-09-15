@@ -200,11 +200,11 @@ public final class ServiceLocator implements ServiceProvider {
     final Lock lock = runningLock.writeLock();
     lock.lock();
     try {
+      resolveMissingDependencies();
+
       if (!running.compareAndSet(false, true)) {
         throw new IllegalStateException("Already started!");
       }
-
-      resolveMissingDependencies();
 
       for (Service service : services.values()) {
         if (!started.contains(service)) {
@@ -229,8 +229,12 @@ public final class ServiceLocator implements ServiceProvider {
   }
 
   private void resolveMissingDependencies() {
+    int previousSize = services.size();
     for (Service service : services.values()) {
       loadDependenciesOf(service.getClass());
+    }
+    if (previousSize < services.size()) {
+      resolveMissingDependencies();
     }
   }
 

@@ -29,8 +29,10 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.spi.services.DefaultTestService;
+import org.ehcache.spi.services.TestProvidedService;
 import org.ehcache.spi.services.TestService;
 import org.hamcrest.CoreMatchers;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -38,10 +40,12 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.withSettings;
@@ -187,6 +191,68 @@ public class ServiceLocatorTest {
     serviceLocator.startAllServices();
     assertThat(started.get(), is(true));
   }
+
+  @Test
+  public void testServicesInstanciatedOnceAndStartedOnce() throws Exception {
+    
+    @ServiceDependencies(TestProvidedService.class)
+    class Consumer1 implements Service {
+      @Override
+      public void start(ServiceProvider serviceProvider) {
+      }
+
+      @Override
+      public void stop() {
+
+      }
+    }
+
+    @ServiceDependencies(TestProvidedService.class)
+    class Consumer2 implements Service {
+      TestProvidedService testProvidedService;
+      @Override
+      public void start(ServiceProvider serviceProvider) {
+        testProvidedService = serviceProvider.getService(TestProvidedService.class);
+      }
+
+      @Override
+      public void stop() {
+
+      }
+    }
+
+    Consumer1 consumer1 = spy(new Consumer1());
+    Consumer2 consumer2 = new Consumer2();
+    ServiceLocator serviceLocator = new ServiceLocator();
+
+    // add some services
+    serviceLocator.addService(consumer1);
+    serviceLocator.addService(consumer2);
+    serviceLocator.addService(new TestService() {
+      @Override
+      public void start(ServiceProvider serviceProvider) {
+      }
+
+      @Override
+      public void stop() {
+        // no-op
+      }
+    });
+
+    // simulate what is done in ehcachemanager
+    serviceLocator.loadDependenciesOf(TestServiceConsumerService.class);
+    serviceLocator.startAllServices();
+
+    serviceLocator.stopAllServices();
+
+    verify(consumer1, times(1)).start(serviceLocator);
+    verify(consumer1, times(1)).stop();
+    
+    assertThat(consumer2.testProvidedService.ctors(), equalTo(1));
+    assertThat(consumer2.testProvidedService.stops(), equalTo(1));
+    assertThat(consumer2.testProvidedService.starts(), equalTo(1));
+  }
+
 }
 
 class ExtendedTestService extends DefaultTestService {
