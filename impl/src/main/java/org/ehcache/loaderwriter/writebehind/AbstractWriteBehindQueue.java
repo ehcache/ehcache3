@@ -240,6 +240,7 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
 
           queueWriteLock.lock();
           try {
+            queueIsFull.signal();
             // Wait for new items or until the min write delay has expired.
             // Do not continue if the actual min write delay wasn't at least the
             // one specified in the config
@@ -278,7 +279,6 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
             if (stopping && getQueueSize() == 0) {
               stopTheQueueThread();
             }
-            queueIsFull.signal();
           } finally {
             queueWriteLock.unlock();
           }
