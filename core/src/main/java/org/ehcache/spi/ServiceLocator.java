@@ -281,4 +281,8 @@ public final class ServiceLocator implements ServiceProvider {
       }
     }
   }
+
+  public boolean knowsServiceFor(ServiceConfiguration serviceConfig) {
+    return getService(serviceConfig.getServiceType()) != null;
+  }
 }

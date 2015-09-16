@@ -248,6 +248,16 @@ public class EhcacheManager implements PersistentCacheManager {
     Collection<ServiceConfiguration<?>> adjustedServiceConfigs = new ArrayList<ServiceConfiguration<?>>(config.getServiceConfigurations());
     ServiceConfiguration[] serviceConfigs = adjustedServiceConfigs.toArray(new ServiceConfiguration[adjustedServiceConfigs.size()]);
 
+    List<ServiceConfiguration> unknownServiceConfigs = new ArrayList<ServiceConfiguration>();
+    for (ServiceConfiguration serviceConfig : serviceConfigs) {
+      if (!serviceLocator.knowsServiceFor(serviceConfig)) {
+        unknownServiceConfigs.add(serviceConfig);
+      }
+    }
+    if (!unknownServiceConfigs.isEmpty()) {
+      throw new IllegalStateException("Cannot find service(s) that can handle following configuration(s) : " + unknownServiceConfigs);
+    }
+
     List<LifeCycled> lifeCycledList = new ArrayList<LifeCycled>();
 
     final Store.Provider storeProvider = serviceLocator.getService(Store.Provider.class);
