@@ -29,10 +29,10 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.spi.services.DefaultTestService;
+import org.ehcache.spi.services.FancyCacheProvider;
 import org.ehcache.spi.services.TestProvidedService;
 import org.ehcache.spi.services.TestService;
 import org.hamcrest.CoreMatchers;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -253,6 +253,36 @@ public class ServiceLocatorTest {
     assertThat(consumer2.testProvidedService.starts(), equalTo(1));
   }
 
+  @Test
+  public void testRedefineDefaultServiceWhileDependingOnIt() throws Exception {
+    ServiceLocator serviceLocator = new ServiceLocator(new YetAnotherCacheProvider());
+
+    serviceLocator.startAllServices();
+  }
+}
+
+@ServiceDependencies(FancyCacheProvider.class)
+class YetAnotherCacheProvider implements CacheProvider {
+
+  @Override
+  public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
+    return null;
+  }
+
+  @Override
+  public void releaseCache(Ehcache<?, ?> resource) {
+    // no-op
+  }
+
+  @Override
+  public void start(ServiceProvider serviceProvider) {
+    // no-op
+  }
+
+  @Override
+  public void stop() {
+    // no-op
+  }
 }
 
 class ExtendedTestService extends DefaultTestService {
@@ -294,31 +324,6 @@ class ChildTestService extends ParentTestService {
   @Override
   public void start(final ServiceProvider serviceProvider) {
     throw new UnsupportedOperationException("Implement me!");
-  }
-}
-
-class FancyCacheProvider implements CacheProvider {
-
-  int startStopCounter = 0;
-
-  @Override
-  public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
-    return null;
-  }
-
-  @Override
-  public void releaseCache(final Ehcache<?, ?> resource) {
-    //
-  }
-
-  @Override
-  public void start(final ServiceProvider serviceProvider) {
-    ++startStopCounter;
-  }
-
-  @Override
-  public void stop() {
-    --startStopCounter;
   }
 }
 
