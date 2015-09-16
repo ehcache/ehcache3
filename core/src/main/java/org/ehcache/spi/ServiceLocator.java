@@ -17,6 +17,7 @@
 package org.ehcache.spi;
 
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceFactory;
@@ -64,11 +65,11 @@ public final class ServiceLocator implements ServiceProvider {
     }
   }
 
-  private <T extends Service> T discoverService(Class<T> serviceClass, ServiceCreationConfiguration<T> config) {
+  private <T extends Service> T discoverService(Class<T> serviceClass, ServiceCreationConfiguration<T> config, boolean abstractRegistration) {
     for (ServiceFactory<T> factory : ServiceLocator.<T> getServiceFactories(serviceFactory)) {
       if (serviceClass.isAssignableFrom(factory.getServiceType())) {
         T service = factory.create(config);
-        addService(service, true);
+        addService(service, abstractRegistration);
         return service;
       }
     }
@@ -157,18 +158,18 @@ public final class ServiceLocator implements ServiceProvider {
   }
 
   public <T extends Service> T getOrCreateServiceFor(ServiceCreationConfiguration<T> config) {
-    return findService(config.getServiceType(), config, true);
+    return findService(config.getServiceType(), config, true, true);
   }
 
   @Override
   public <T extends Service> T getService(Class<T> serviceType) {
-    return findService(serviceType, null, false);
+    return findService(serviceType, null, false, true);
   }
 
-  private <T extends Service> T findService(Class<T> serviceType, ServiceCreationConfiguration<T> config, boolean shouldCreate) {
+  private <T extends Service> T findService(Class<T> serviceType, ServiceCreationConfiguration<T> config, boolean shouldCreate, boolean abstractRegistration) {
     T service = serviceType.cast(services.get(serviceType));
     if (service == null && shouldCreate) {
-      return discoverService(serviceType, config);
+      return discoverService(serviceType, config, abstractRegistration);
     } else {
       return service;
     }
@@ -274,10 +275,14 @@ public final class ServiceLocator implements ServiceProvider {
     ServiceDependencies annotation = clazz.getAnnotation(ServiceDependencies.class);
     if (annotation != null) {
       for (Class aClass : annotation.value()) {
-        if (findService(aClass, null, true) == null) {
+        if (findService(aClass, null, true, false) == null) {
           throw new IllegalStateException("Unable to resolve dependent service: " + aClass.getSimpleName());
         }
       }
     }
+  }
+
+  public boolean knowsServiceFor(ServiceConfiguration serviceConfig) {
+    return getService(serviceConfig.getServiceType()) != null;
   }
 }

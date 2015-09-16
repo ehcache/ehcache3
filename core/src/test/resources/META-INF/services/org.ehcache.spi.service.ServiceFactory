@@ -16,3 +16,4 @@
 
 org.ehcache.spi.services.TestServiceFactory
 org.ehcache.spi.services.TestProvidedServiceFactory
+org.ehcache.spi.services.FancyCacheProviderFactory
