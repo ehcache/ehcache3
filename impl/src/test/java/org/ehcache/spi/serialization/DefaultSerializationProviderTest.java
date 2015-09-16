@@ -20,6 +20,7 @@ import static java.lang.ClassLoader.getSystemClassLoader;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.internal.serialization.CompactJavaSerializer;
+import org.ehcache.spi.ServiceProvider;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
@@ -30,6 +31,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import org.hamcrest.core.IsInstanceOf;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 /**
  * @author Ludovic Orban
@@ -98,6 +100,18 @@ public class DefaultSerializationProviderTest {
     assertThat(dsp.createKeySerializer(String.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
     assertThat(dsp.createKeySerializer(Serializable.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
     assertThat(dsp.createKeySerializer(Integer.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
+  }
+
+  @Test
+  public void testRemembersCreationConfigurationAfterStopStart() throws UnsupportedTypeException {
+    DefaultSerializationProviderConfiguration configuration = new DefaultSerializationProviderConfiguration();
+    configuration.addSerializerFor(String.class, (Class) TestSerializer.class);
+    DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(configuration);
+    serializationProvider.start(mock(ServiceProvider.class));
+    assertThat(serializationProvider.createKeySerializer(String.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
+    serializationProvider.stop();
+    serializationProvider.start(mock(ServiceProvider.class));
+    assertThat(serializationProvider.createKeySerializer(String.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
   }
 
   @Serializer.Persistent @Serializer.Transient
