@@ -19,6 +19,7 @@ package org.ehcache.internal.store.offheap;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
@@ -832,44 +833,68 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   class OffHeapStoreIterator implements Iterator<Cache.Entry<K, ValueHolder<V>>> {
     private final java.util.Iterator<Map.Entry<K, OffHeapValueHolder<V>>> mapIterator;
+    private Map.Entry<K, OffHeapValueHolder<V>> next = null;
 
     OffHeapStoreIterator() {
       mapIterator = backingMap().entrySet().iterator();
+      advance();
+    }
+
+    private void advance() {
+      next = null;
+      while (next == null && mapIterator.hasNext()) {
+        Map.Entry<K, OffHeapValueHolder<V>> entry = mapIterator.next();
+        final long now = timeSource.getTimeMillis();
+        if (entry.getValue().isExpired(now, TimeUnit.MILLISECONDS)) {
+          containsKey(entry.getKey());  //This is done here to remove the expired entry without any side effects
+          continue;
+        }
+
+        next = entry;
+      }
     }
 
     @Override
     public boolean hasNext() throws CacheAccessException {
-      return mapIterator.hasNext();
+      return next != null;
     }
 
     @Override
     public Cache.Entry<K, ValueHolder<V>> next() throws CacheAccessException {
-      final Map.Entry<K, OffHeapValueHolder<V>> next = mapIterator.next();
+      if (next == null) {
+        throw new NoSuchElementException();
+      }
+
+      final Map.Entry<K, OffHeapValueHolder<V>> thisEntry = next;
+      advance();
+
+      setAccessTimeAndExpiry(thisEntry.getKey(), thisEntry.getValue(), timeSource.getTimeMillis());
+
       return new Cache.Entry<K, ValueHolder<V>>() {
         @Override
         public K getKey() {
-          return next.getKey();
+          return thisEntry.getKey();
         }
 
         @Override
         public ValueHolder<V> getValue() {
-          return next.getValue();
+          return thisEntry.getValue();
         }
 
         @Override
         public long getCreationTime(TimeUnit unit) {
-          return next.getValue().creationTime(unit);
+          return thisEntry.getValue().creationTime(unit);
         }
 
         @Override
         public long getLastAccessTime(TimeUnit unit) {
-          return next.getValue().lastAccessTime(unit);
+          return thisEntry.getValue().lastAccessTime(unit);
         }
 
         @Override
         public float getHitRate(TimeUnit unit) {
           final long now = timeSource.getTimeMillis();
-          return next.getValue().hitRate(now, unit);
+          return thisEntry.getValue().hitRate(now, unit);
         }
       };
     }
