@@ -24,7 +24,7 @@ import org.ehcache.spi.ServiceProvider;
  */
 public class DefaultJsr107Service implements Jsr107Service {
 
-  private volatile Jsr107Configuration configuration;
+  private final Jsr107Configuration configuration;
 
   public DefaultJsr107Service(Jsr107Configuration configuration) {
     this.configuration = configuration;
@@ -50,7 +50,7 @@ public class DefaultJsr107Service implements Jsr107Service {
 
   @Override
   public void stop() {
-    configuration = null;
+    // no-op
   }
 
   @Override
