@@ -1,1 +1,2 @@
+org.ehcache.transactions.xa.txmgr.provider.DefaultTransactionManagerProviderFactory
 org.ehcache.transactions.xa.journal.DefaultJournalProviderFactory
