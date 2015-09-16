@@ -21,6 +21,7 @@ import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.jsr107.Eh107Configuration;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -35,6 +36,7 @@ import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.Caching;
 import javax.cache.configuration.CompleteConfiguration;
+import javax.cache.configuration.Configuration;
 import javax.cache.configuration.Factory;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.expiry.CreatedExpiryPolicy;
@@ -46,7 +48,11 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * This class uses unit test assertions but serves mostly as the live code repository for Asciidoctor documentation.
@@ -62,6 +68,16 @@ public class EhCache107ConfigurationIntegrationDocTest {
   public void setUp() throws Exception {
     cachingProvider = Caching.getCachingProvider();
     cacheManager = cachingProvider.getCacheManager();
+  }
+
+  @After
+  public void tearDown() throws Exception {
+    if(cacheManager != null) {
+      cacheManager.close();
+    }
+    if(cachingProvider != null) {
+      cachingProvider.close();
+    }
   }
 
   @Test
@@ -143,20 +159,23 @@ public class EhCache107ConfigurationIntegrationDocTest {
         Eh107Configuration.class).unwrap(CacheRuntimeConfiguration.class); // <3>
     ehcacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(); // <4>
 
+    Cache<Long, String> anotherCache = manager.createCache("byRefCache", mutableConfiguration);
+    assertFalse(anotherCache.getConfiguration(Configuration.class).isStoreByValue()); // <5>
+    
     MutableConfiguration<String, String> otherConfiguration = new MutableConfiguration<String, String>();
     otherConfiguration.setTypes(String.class, String.class);
-    otherConfiguration.setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(Duration.ONE_MINUTE)); // <5>
+    otherConfiguration.setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(Duration.ONE_MINUTE)); // <6>
 
-    Cache<String, String> foosCache = manager.createCache("foos", otherConfiguration);// <6>
+    Cache<String, String> foosCache = manager.createCache("foos", otherConfiguration);// <7>
     CacheRuntimeConfiguration<Long, String> foosEhcacheConfig = (CacheRuntimeConfiguration<Long, String>)foosCache.getConfiguration(
         Eh107Configuration.class).unwrap(CacheRuntimeConfiguration.class);
-    foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, "Answer!").getAmount(); // <7>
+    foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, "Answer!").getAmount(); // <8>
 
     CompleteConfiguration<String, String> foosConfig = foosCache.getConfiguration(CompleteConfiguration.class);
 
     try {
       final Factory<ExpiryPolicy> expiryPolicyFactory = foosConfig.getExpiryPolicyFactory();
-      ExpiryPolicy expiryPolicy = expiryPolicyFactory.create(); // <8>
+      ExpiryPolicy expiryPolicy = expiryPolicyFactory.create(); // <9>
       throw new AssertionError("Expected UnsupportedOperationException");
     } catch (UnsupportedOperationException e) {
       // Expected
@@ -165,5 +184,56 @@ public class EhCache107ConfigurationIntegrationDocTest {
     assertThat(ehcacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), is(20L));
     assertThat(foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, "Answer!"),
         is(new org.ehcache.expiry.Duration(2, TimeUnit.MINUTES)));
+  }
+
+  @Test
+  public void testTemplateOverridingStoreByValue() throws Exception {
+    cacheManager = cachingProvider.getCacheManager(
+        getClass().getResource("/org/ehcache/docs/ehcache-jsr107-template-override.xml").toURI(),
+        getClass().getClassLoader());
+
+    MutableConfiguration<Long, String> mutableConfiguration = new MutableConfiguration<Long, String>();
+    mutableConfiguration.setTypes(Long.class, String.class);
+
+    Cache<Long, String> myCache = null; 
+    myCache = cacheManager.createCache("anyCache", mutableConfiguration);
+    myCache.put(1L, "foo");
+    assertNotSame("foo", myCache.get(1L));
+    assertTrue(myCache.getConfiguration(Configuration.class).isStoreByValue());
+
+    myCache = cacheManager.createCache("byRefCache", mutableConfiguration);
+    myCache.put(1L, "foo");
+    assertSame("foo", myCache.get(1L));
+    assertFalse(myCache.getConfiguration(Configuration.class).isStoreByValue());
+
+    myCache = cacheManager.createCache("weirdCache1", mutableConfiguration);
+    myCache.put(1L, "foo");
+    assertNotSame("foo", myCache.get(1L));
+    assertTrue(myCache.getConfiguration(Configuration.class).isStoreByValue());
+
+    myCache = cacheManager.createCache("weirdCache2", mutableConfiguration);
+    myCache.put(1L, "foo");
+    assertSame("foo", myCache.get(1L));
+    assertFalse(myCache.getConfiguration(Configuration.class).isStoreByValue());
+  }
+
+  @Test
+  public void testTemplateOverridingStoreByRef() throws Exception {
+    cacheManager = cachingProvider.getCacheManager(
+        getClass().getResource("/org/ehcache/docs/ehcache-jsr107-template-override.xml").toURI(),
+        getClass().getClassLoader());
+
+    MutableConfiguration<Long, String> mutableConfiguration = new MutableConfiguration<Long, String>();
+    mutableConfiguration.setTypes(Long.class, String.class).setStoreByValue(false);
+
+    Cache<Long, String> myCache = null;
+
+    myCache = cacheManager.createCache("anotherCache", mutableConfiguration);
+    myCache.put(1L, "foo");
+    assertSame("foo", myCache.get(1L));
+
+    myCache = cacheManager.createCache("byValCache", mutableConfiguration);
+    myCache.put(1L, "foo");
+    assertNotSame("foo", myCache.get(1L));
   }
 }
