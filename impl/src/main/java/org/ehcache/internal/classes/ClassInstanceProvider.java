@@ -93,6 +93,6 @@ public class ClassInstanceProvider<T> {
   }
 
   public void stop() {
-    preconfiguredLoaders.clear();
+    // default no-op
   }
 }
