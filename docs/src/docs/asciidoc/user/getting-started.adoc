@@ -114,7 +114,7 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 <2> To update capacity of `ResourcePools`, `updateResourcePools(ResourcePools)` method in `RuntimeConfiguration` can be of help.
     `ResourcePools` object created earlier can then be passed to this method so as to trigger the update.
 
-NOTE: Presently, `updateResourcePools()` only supports updating heap and disk tiers, if they are defined with `EntryUnit.ENTRIES` as the unit of measure.
+NOTE: Presently, `updateResourcePools()` only supports updating tiers that use `EntryUnit.ENTRIES` as the unit of measure.
 
 ==== Cache Event Listeners
 
