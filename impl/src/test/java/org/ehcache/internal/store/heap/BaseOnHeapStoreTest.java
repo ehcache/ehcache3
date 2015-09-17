@@ -27,6 +27,7 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.Iterator;
 import org.ehcache.spi.cache.Store.ValueHolder;
@@ -43,12 +44,14 @@ import org.terracotta.statistics.StatisticsManager;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -837,6 +840,52 @@ public abstract class BaseOnHeapStoreTest {
                 org.terracotta.context.query.Matchers.attributes(org.terracotta.context.query.Matchers.hasAttribute("name", "expiration")))))
         .build());
     return (OperationStatistic<StoreOperationOutcomes.ExpirationOutcome>) treeNode.getContext().attributes().get("this");
+  }
+
+  @Test
+  public void testGetOrComputeIfAbsentContention() throws InterruptedException {
+
+    final OnHeapStore<Long, String> store = newStore();
+
+    int threads = 10;
+    final CountDownLatch startLatch = new CountDownLatch(1);
+    final CountDownLatch endLatch = new CountDownLatch(threads);
+
+    Runnable runnable = new Runnable() {
+
+      @Override
+      public void run() {
+        try {
+          startLatch.await();
+        } catch (InterruptedException e) {
+          fail("Got an exception waiting to start thread " + e);
+        }
+        try {
+          ValueHolder<String> result = store.getOrComputeIfAbsent(42L, new Function<Long, ValueHolder<String>>() {
+            @Override
+            public ValueHolder<String> apply(Long aLong) {
+              return new CopiedOnHeapValueHolder<String>(-1, "theAnswer!", System.currentTimeMillis(), -1, new IdentityCopier<String>());
+            }
+          });
+          assertThat(result.value(), is("theAnswer!"));
+          endLatch.countDown();
+        } catch (Exception e) {
+          e.printStackTrace();
+          fail("Got an exception " + e);
+        }
+      }
+    };
+
+    for (int i = 0; i < threads; i++) {
+      new Thread(runnable).start();
+    }
+
+    startLatch.countDown();
+
+    boolean result = endLatch.await(2, TimeUnit.SECONDS);
+    if (!result) {
+      fail("Wait expired before completion, logs should have exceptions");
+    }
   }
 
   public static <V> ValueHolder<V> valueHolderValueEq(final V value) {
