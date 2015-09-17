@@ -51,6 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -61,6 +62,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import static java.util.Collections.singletonMap;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -338,8 +341,8 @@ public class GettingStarted {
     // tag::cacheSerializingCopiers[]
     CacheConfiguration<Long, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
-        .add(new DefaultCopierConfiguration<Long>((Class)SerializingCopier.class,   //<1>
-            CopierConfiguration.Type.KEY))
+        .add(new DefaultCopierConfiguration<Person>((Class)SerializingCopier.class,   //<1>
+            CopierConfiguration.Type.VALUE))
         .buildConfig(Long.class, Person.class);
     // end::cacheSerializingCopiers[]
 
@@ -353,6 +356,7 @@ public class GettingStarted {
     Person person = new Person("Bar", 24);
     cache.put(1l, person);
     assertThat(cache.get(1l), equalTo(person));
+    assertThat(cache.get(1l), not(sameInstance(person)));
 
     cacheManager.close();
   }
@@ -427,7 +431,7 @@ public class GettingStarted {
     }
   }
 
-  private static class Person {
+  private static class Person implements Serializable {
     String name;
     int age;
 
