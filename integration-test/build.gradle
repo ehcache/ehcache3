@@ -16,5 +16,5 @@
 
 dependencies {
     compile project(':impl'), 'org.slf4j:slf4j-api:1.7.7'
-    testCompile project(':impl')
+    testCompile project(':impl'), project(':transactions')
 }
