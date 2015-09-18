@@ -40,6 +40,12 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceService;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.copy.SerializingCopier;
+import org.ehcache.internal.store.heap.holders.CopiedOnHeapKey;
+import org.ehcache.internal.store.heap.holders.CopiedOnHeapValueHolder;
+import org.ehcache.internal.store.heap.holders.LookupOnlyOnHeapKey;
+import org.ehcache.internal.store.heap.holders.OnHeapKey;
+import org.ehcache.internal.store.heap.holders.OnHeapValueHolder;
+import org.ehcache.internal.store.heap.holders.SerializedOnHeapValueHolder;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
@@ -475,8 +481,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
           ValueHolder<V> value = fault.get();
           final OnHeapValueHolder<V> newValue;
           if(value != null) {
-            newValue = makeValue(value);
-            setAccessTimeAndExpiry(key, newValue, now);
+            newValue = importValueFromLowerTier(key, value, now);
           } else {
             backEnd.remove(key, fault);
             return null;
@@ -573,22 +578,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     } else {
       return cachedValue;
     }
-  }
-
-  private OnHeapValueHolder<V> makeValue(ValueHolder<V> value) {
-    if(valueCopier instanceof SerializingCopier) {
-      return makeSerializedValue(value, ((SerializingCopier)valueCopier).getSerializer());
-    } else {
-      return makeCopiedValue(value, valueCopier);
-    }
-  }
-
-  private OnHeapValueHolder<V> makeSerializedValue(ValueHolder<V> value, Serializer<V> valueSerializer) {
-    return new SerializedOnHeapValueHolder<V>(value, valueSerializer);
-  }
-
-  private OnHeapValueHolder<V> makeCopiedValue(ValueHolder<V> value, Copier<V> valueCopier) {
-    return new CopiedOnHeapValueHolder<V>(value, valueCopier);
   }
 
   /**
@@ -946,6 +935,16 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     return makeValue(value, now, expirationTime, this.valueCopier);
   }
 
+  private OnHeapValueHolder<V> importValueFromLowerTier(K key, ValueHolder<V> valueHolder, long now) {
+    V realValue = valueHolder.value();
+    Duration expiration = expiry.getExpiryForAccess(key, realValue);
+    if(valueCopier instanceof SerializingCopier) {
+      return new SerializedOnHeapValueHolder<V>(valueHolder, realValue, ((SerializingCopier)valueCopier).getSerializer(), now, expiration);
+    } else {
+      return new CopiedOnHeapValueHolder<V>(valueHolder, realValue, valueCopier, now, expiration);
+    }
+  }
+
   private OnHeapValueHolder<V> makeValue(V value, long creationTime, long expirationTime, Copier<V> valueCopier) {
     if(valueCopier instanceof SerializingCopier) {
       return makeSerializedValue(value, creationTime, expirationTime, ((SerializingCopier)valueCopier).getSerializer());
@@ -1226,18 +1225,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     }
     
     private OnHeapKey<K> makeKey(K key) {
-      if(keyCopier instanceof Serializer) {
-        return makeSerializedKey(key, (Serializer)keyCopier);
-      } else {
-        return makeCopyKey(key, keyCopier);
-      }
-    }
-
-    private OnHeapKey<K> makeSerializedKey(K key, Serializer<K> keySerializer) {
-      return new SerializedOnHeapKey<K>(key, keySerializer);
-    }
-
-    private OnHeapKey<K> makeCopyKey(K key, Copier<K> keyCopier) {
       return new CopiedOnHeapKey<K>(key, keyCopier);
     }
 

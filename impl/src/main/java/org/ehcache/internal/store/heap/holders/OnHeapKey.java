@@ -14,29 +14,10 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store.heap;
+package org.ehcache.internal.store.heap.holders;
 
-import org.ehcache.spi.cache.AbstractValueHolder;
+public interface OnHeapKey<K> {
 
-import java.util.concurrent.TimeUnit;
+  K getActualKeyObject();
 
-/**
- * @author Ludovic Orban
- */
-abstract class OnHeapValueHolder<V> extends AbstractValueHolder<V> {
-
-  static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
-
-  protected OnHeapValueHolder(long id, long creationTime) {
-    super(id, creationTime);
-  }
-
-  protected OnHeapValueHolder(long id, long creationTime, long expirationTime) {
-    super(id, creationTime, expirationTime);
-  }
-
-  @Override
-  final protected TimeUnit nativeTimeUnit() {
-    return TIME_UNIT;
-  }
 }

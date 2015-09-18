@@ -28,6 +28,7 @@ import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
+import org.ehcache.internal.store.heap.holders.CopiedOnHeapValueHolder;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.Iterator;
 import org.ehcache.spi.cache.Store.ValueHolder;
@@ -864,7 +865,7 @@ public abstract class BaseOnHeapStoreTest {
           ValueHolder<String> result = store.getOrComputeIfAbsent(42L, new Function<Long, ValueHolder<String>>() {
             @Override
             public ValueHolder<String> apply(Long aLong) {
-              return new CopiedOnHeapValueHolder<String>(-1, "theAnswer!", System.currentTimeMillis(), -1, new IdentityCopier<String>());
+              return new CopiedOnHeapValueHolder<String>("theAnswer!", System.currentTimeMillis(), -1, new IdentityCopier<String>());
             }
           });
           assertThat(result.value(), is("theAnswer!"));

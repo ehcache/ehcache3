@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store.heap;
+package org.ehcache.internal.store.heap.holders;
 
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.serialization.JavaSerializer;

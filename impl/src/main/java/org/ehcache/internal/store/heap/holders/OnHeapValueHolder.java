@@ -14,25 +14,29 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store.heap;
+package org.ehcache.internal.store.heap.holders;
 
-import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.cache.AbstractValueHolder;
+
+import java.util.concurrent.TimeUnit;
 
 /**
- * @author Albin Suresh
+ * @author Ludovic Orban
  */
-public class CopiedOnHeapKey<K> extends BaseOnHeapKey<K> {
-  private final K copiedKey;
-  private final Copier<K> keyCopier;
+public abstract class OnHeapValueHolder<V> extends AbstractValueHolder<V> {
 
-  public CopiedOnHeapKey(final K actualKeyObject, final Copier<K> keyCopier) {
-    super(actualKeyObject.hashCode());
-    this.keyCopier = keyCopier;
-    this.copiedKey = keyCopier.copyForWrite(actualKeyObject);
+  public static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
+
+  protected OnHeapValueHolder(long id, long creationTime) {
+    super(id, creationTime);
+  }
+
+  protected OnHeapValueHolder(long id, long creationTime, long expirationTime) {
+    super(id, creationTime, expirationTime);
   }
 
   @Override
-  public K getActualKeyObject() {
-    return keyCopier.copyForRead(copiedKey);
+  final protected TimeUnit nativeTimeUnit() {
+    return TIME_UNIT;
   }
 }
