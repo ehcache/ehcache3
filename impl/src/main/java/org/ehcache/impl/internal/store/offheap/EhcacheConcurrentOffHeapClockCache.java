@@ -21,6 +21,7 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 
+import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.terracotta.offheapstore.MetadataTuple;
 import org.terracotta.offheapstore.concurrent.AbstractConcurrentOffHeapCache;
 import org.terracotta.offheapstore.pinning.PinnableSegment;
@@ -88,6 +89,12 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
       }
     });
     return result == null ? null : result.value();
+  }
+
+  @Override
+  public V computeIfPresentAndPin(K key, BiFunction<K, V, V> mappingFunction) {
+    EhcacheSegmentFactory.EhcacheSegment<K, V> segment = (EhcacheSegmentFactory.EhcacheSegment) segmentFor(key);
+    return segment.computeIfPresentAndPin(key, mappingFunction);
   }
 
   @Override

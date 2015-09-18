@@ -97,6 +97,12 @@ public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends Abstract
   }
 
   @Override
+  public V computeIfPresentAndPin(K key, BiFunction<K, V, V> mappingFunction) {
+    EhcachePersistentSegmentFactory.EhcachePersistentSegment<K, V> segment = (EhcachePersistentSegmentFactory.EhcachePersistentSegment) segmentFor(key);
+    return segment.computeIfPresentAndPin(key, mappingFunction);
+  }
+
+  @Override
   public boolean computeIfPinned(final K key, final BiFunction<K,V,V> remappingFunction, final Function<V,Boolean> unpinFunction) {
     final AtomicBoolean unpin = new AtomicBoolean();
     computeIfPresentWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
