@@ -320,16 +320,17 @@ CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(xmlConfig); //
 
 == Current release
 
-We released the Milestone 2 on August 11, 2015. In addition to the JSR-107 compatibility,
-it introduces up to 3 level tiering, offering offheap as well as a new disk persistence option; write-behind, ...
+We released the Milestone 3 on September 18th, 2015. In addition to the JSR-107 compatibility,
+it introduces up to 3 level tiering, offering offheap as well as a new disk persistence option; write-behind, XA transactional
+caches, makes custom serialization possible, ...
 
-The https://github.com/ehcache/ehcache3/releases/tag/v3.0.0.m2[release notes] contain the links to the documentation
+The https://github.com/ehcache/ehcache3/releases/tag/v3.0.0.m3[release notes] contain the links to the documentation
 to help you get started
 
 == Current development & next release
 
-We are now working on the next milestone, aka https://github.com/ehcache/ehcache3/milestones/Milestone%203[Milestone 3] :
-All missing features from the existing Ehcache 2.x line, exposed using the new API, but Automatic Resource Control (planned for M4).
+We are now working on the next milestone, aka https://github.com/ehcache/ehcache3/milestones/Milestone%204[Milestone 4] :
+Automatic Resource Control will be the big item in this upcoming release.
 
 See the https://github.com/ehcache/ehcache3/milestones[Milestones on GitHub] for more details on the current status.
 
