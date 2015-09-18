@@ -13,8 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.transactions.xa;
 
-dependencies {
-    compile project(':impl'), 'org.slf4j:slf4j-api:1.7.7'
-    testCompile project(':impl'), project(':transactions')
+import javax.transaction.xa.XAException;
+
+/**
+ * {@link XAException} allowing construction of message, errorCode and throwable.
+ *
+ * @author Ludovic Orban
+ */
+public class EhcacheXAException extends XAException {
+
+  public EhcacheXAException(String msg, int errorCode) {
+    super(msg);
+    this.errorCode = errorCode;
+  }
+
+  public EhcacheXAException(String msg, int errorCode, Throwable t) {
+    this(msg, errorCode);
+    initCause(t);
+  }
 }

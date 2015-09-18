@@ -26,10 +26,22 @@ import org.ehcache.spi.copy.CopyProvider;
 public class DefaultCopierConfiguration<T> extends ClassInstanceConfiguration<Copier<T>> implements CopierConfiguration {
 
   private final Type type;
+  private final Copier<T> instance;
 
   public DefaultCopierConfiguration(Class<? extends Copier<T>> clazz, Type type) {
     super(clazz);
+    this.instance = null;
     this.type = type;
+  }
+
+  public DefaultCopierConfiguration(Copier<T> instance, Type type) {
+    super(null);
+    this.instance = instance;
+    this.type = type;
+  }
+
+  public Copier<T> getInstance() {
+    return instance;
   }
 
   @Override

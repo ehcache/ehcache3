@@ -13,8 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.transactions.xa;
 
-dependencies {
-    compile project(':impl'), 'org.slf4j:slf4j-api:1.7.7'
-    testCompile project(':impl'), project(':transactions')
+/**
+ * The payload exception thrown by the cache when {@link XACacheAccessException} is thrown.
+ *
+ * @author Ludovic Orban
+ */
+public class XACacheException extends RuntimeException {
+  public XACacheException(String message) {
+    super(message);
+  }
+
+  public XACacheException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

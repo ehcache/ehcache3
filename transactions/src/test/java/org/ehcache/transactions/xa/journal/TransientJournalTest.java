@@ -13,8 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.transactions.xa.journal;
 
-dependencies {
-    compile project(':impl'), 'org.slf4j:slf4j-api:1.7.7'
-    testCompile project(':impl'), project(':transactions')
+/**
+ * @author Ludovic Orban
+ */
+public class TransientJournalTest extends AbstractJournalTest {
+  @Override
+  protected Journal<Long> createJournal() {
+    return new TransientJournal<Long>();
+  }
 }

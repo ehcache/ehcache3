@@ -23,11 +23,8 @@ import org.ehcache.internal.classes.ClassInstanceProvider;
 import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.spi.ServiceLocator;
-import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.ServiceDependencies;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,20 +55,24 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Copier<?>> implem
   private <T> Copier<T> createCopier(CopierConfiguration.Type type, Class<T> clazz,
                                      Serializer<T> serializer, ServiceConfiguration<?>... configs) {
     DefaultCopierConfiguration<T> conf = find(type, configs);
-    if(conf != null && conf.getClazz().isAssignableFrom(SerializingCopier.class)) {
-      return new SerializingCopier<T>(serializer);
+    Copier<T> copier;
+    if (conf != null && conf.getInstance() != null) {
+      copier = conf.getInstance();
+    } else if (conf != null && conf.getClazz().isAssignableFrom(SerializingCopier.class)) {
+      copier = new SerializingCopier<T>(serializer);
+    } else {
+      copier = createCopier(clazz, conf);
     }
-    return createCopier(clazz, conf);
+    LOG.info("Copier for <{}> : {}", clazz.getName(), copier);
+    return copier;
   }
 
   private <T> Copier<T> createCopier(Class<T> clazz, DefaultCopierConfiguration<T> config) {
     String alias = (config != null ? null : clazz.getName());
     Copier<T> copier = (Copier<T>) newInstance(alias, config);
     if (copier == null) {
-      LOG.info("No registered copier found for for <{}>. Using the default Identity copier.", clazz.getName());
       copier = new IdentityCopier<T>();
     }
-    LOG.info("Copier for <{}> : {}", clazz.getName(), copier);
     return copier;
   }
 

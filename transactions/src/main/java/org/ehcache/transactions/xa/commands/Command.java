@@ -13,8 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.transactions.xa.commands;
 
-dependencies {
-    compile project(':impl'), 'org.slf4j:slf4j-api:1.7.7'
-    testCompile project(':impl'), project(':transactions')
+import org.ehcache.transactions.xa.XAValueHolder;
+
+/**
+ * A representation of in-flight transaction's modification to the mappings of a {@link org.ehcache.transactions.xa.XAStore}.
+ *
+ * @author Ludovic Orban
+ */
+public interface Command<V> {
+
+  /**
+   * Get the value to rollback to.
+   * @return the old value.
+   */
+  V getOldValue();
+
+  /**
+   * Get the value holder to commit.
+   * @return the new value holder.
+   */
+  XAValueHolder<V> getNewValueHolder();
+
 }

@@ -23,14 +23,19 @@ plugins {
 def shadowBaseName = 'ehcache'
 
 
-def projectNamesToInclude = [':api', ':core', ':impl', ':management', ':107', ':xml']
+def projectNamesToInclude = [':api', ':core', ':impl', ':management', ':107', ':xml', ':transactions']
 def projectsToInclude = projectNamesToInclude.collect {project(it)}
+
+configurations {
+    shadowProvided
+}
 
 dependencies {
   projectsToInclude.each {compile it}
   shadow 'org.slf4j:slf4j-api:1.7.7'
   shadow group: 'org.terracotta', name: 'offheap-store', version: parent.offHeapVersion
-
+  shadowProvided 'javax.transaction:jta:1.1'
+  shadowProvided 'org.codehaus.btm:btm:2.1.4'
 }
 
 shadowJar {
@@ -94,6 +99,7 @@ def artifactFiltering = {
   shadowPom.scopeMappings.mappings.remove(project.configurations.testCompile)
   shadowPom.scopeMappings.mappings.remove(project.configurations.testRuntime)
   shadowPom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadow, Conf2ScopeMappingContainer.COMPILE)
+  shadowPom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadowProvided, Conf2ScopeMappingContainer.PROVIDED)
   pomFiller(shadowPom, 'Ehcache', 'Ehcache single jar, containing all modules')
 }
 

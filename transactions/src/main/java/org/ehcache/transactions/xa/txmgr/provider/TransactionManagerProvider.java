@@ -13,8 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.transactions.xa.txmgr.provider;
 
-dependencies {
-    compile project(':impl'), 'org.slf4j:slf4j-api:1.7.7'
-    testCompile project(':impl'), project(':transactions')
+import org.ehcache.spi.service.Service;
+import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
+
+/**
+ * Provider of {@link TransactionManagerWrapper} instances.
+ *
+ * @author Ludovic Orban
+ */
+public interface TransactionManagerProvider extends Service {
+
+  /**
+   * Return an instance of {@link TransactionManagerWrapper}.
+   * @return the {@link TransactionManagerWrapper}.
+   */
+  TransactionManagerWrapper getTransactionManagerWrapper();
+
 }

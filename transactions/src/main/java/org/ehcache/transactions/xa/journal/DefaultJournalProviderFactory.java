@@ -13,8 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.transactions.xa.journal;
 
-dependencies {
-    compile project(':impl'), 'org.slf4j:slf4j-api:1.7.7'
-    testCompile project(':impl'), project(':transactions')
+import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.spi.service.ServiceFactory;
+
+/**
+ * @author Ludovic Orban
+ */
+public class DefaultJournalProviderFactory implements ServiceFactory<JournalProvider> {
+
+  @Override
+  public JournalProvider create(ServiceCreationConfiguration<JournalProvider> configuration) {
+    return new DefaultJournalProvider();
+  }
+
+  @Override
+  public Class<JournalProvider> getServiceType() {
+    return JournalProvider.class;
+  }
 }

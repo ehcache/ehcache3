@@ -13,8 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.internal.store.offheap;
 
-dependencies {
-    compile project(':impl'), 'org.slf4j:slf4j-api:1.7.7'
-    testCompile project(':impl'), project(':transactions')
+import org.ehcache.internal.store.offheap.OffHeapStore;
+
+/**
+ * @author Ludovic Orban
+ */
+public class OffHeapStoreLifecycleHelper {
+
+  private OffHeapStoreLifecycleHelper() {
+  }
+
+  public static void init(OffHeapStore<?, ?> offHeapStore) {
+    OffHeapStore.Provider.init(offHeapStore);
+  }
+
+  public static void close(OffHeapStore<?, ?> offHeapStore) {
+    OffHeapStore.Provider.close(offHeapStore);
+  }
+
 }

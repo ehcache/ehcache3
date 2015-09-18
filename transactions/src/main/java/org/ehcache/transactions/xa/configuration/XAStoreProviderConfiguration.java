@@ -13,8 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.transactions.xa.configuration;
 
-dependencies {
-    compile project(':impl'), 'org.slf4j:slf4j-api:1.7.7'
-    testCompile project(':impl'), project(':transactions')
+import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.transactions.xa.XAStore;
+
+/**
+ * @author Ludovic Orban
+ */
+public class XAStoreProviderConfiguration implements ServiceCreationConfiguration<XAStore.Provider> {
+  @Override
+  public Class<XAStore.Provider> getServiceType() {
+    return XAStore.Provider.class;
+  }
 }

@@ -13,8 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.transactions.xa.commands;
 
-dependencies {
-    compile project(':impl'), 'org.slf4j:slf4j-api:1.7.7'
-    testCompile project(':impl'), project(':transactions')
+import org.ehcache.transactions.xa.XAValueHolder;
+
+/**
+ * {@link Command} implementation representing an eviction.
+ *
+ * @author Ludovic Orban
+ */
+public class StoreEvictCommand<V> implements Command<V> {
+
+  private final V oldValue;
+
+  public StoreEvictCommand(V oldValue) {
+    this.oldValue = oldValue;
+  }
+
+  @Override
+  public V getOldValue() {
+    return oldValue;
+  }
+
+  @Override
+  public XAValueHolder<V> getNewValueHolder() {
+    return null;
+  }
 }

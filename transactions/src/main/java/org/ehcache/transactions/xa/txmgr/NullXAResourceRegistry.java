@@ -13,8 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.transactions.xa.txmgr;
 
-dependencies {
-    compile project(':impl'), 'org.slf4j:slf4j-api:1.7.7'
-    testCompile project(':impl'), project(':transactions')
+import javax.transaction.xa.XAResource;
+
+/**
+ * No-op {@link XAResourceRegistry} implementation.
+ *
+ * @author Ludovic Orban
+ */
+public class NullXAResourceRegistry implements XAResourceRegistry {
+  @Override
+  public void registerXAResource(String uniqueName, XAResource xaResource) {
+    // no-op
+  }
+
+  @Override
+  public void unregisterXAResource(String uniqueName, XAResource xaResource) {
+    // no-op
+  }
 }
