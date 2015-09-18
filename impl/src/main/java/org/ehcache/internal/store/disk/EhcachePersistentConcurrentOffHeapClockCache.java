@@ -59,6 +59,12 @@ public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends Abstract
   }
 
   @Override
+  public V computeIfPresentAndPin(K key, BiFunction<K, V, V> mappingFunction) {
+    EhcachePersistentSegmentFactory.EhcachePersistentSegment<K, V> segment = (EhcachePersistentSegmentFactory.EhcachePersistentSegment) segmentFor(key);
+    return segment.computeIfPresentAndPin(key, mappingFunction);
+  }
+
+  @Override
   public boolean computeIfPinned(final K key, final BiFunction<K,V,V> remappingFunction, final Function<V,Boolean> pinningFunction) {
     EhcachePersistentSegmentFactory.EhcachePersistentSegment<K, V> segment = (EhcachePersistentSegmentFactory.EhcachePersistentSegment) segmentFor(key);
     return segment.computeIfPinned(key, remappingFunction, pinningFunction);

@@ -48,6 +48,8 @@ import org.ehcache.statistics.StoreOperationOutcomes;
 import org.terracotta.offheapstore.Segment;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import static org.terracotta.statistics.StatisticBuilder.operation;
+
+import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
 import org.terracotta.statistics.observer.OperationObserver;
 
 public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K, V>, LowerCachingTier<K, V> {
@@ -90,7 +92,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     checkKey(key);
     getOperationObserver.begin();
 
-    Store.ValueHolder<V> result = internalGet(key, true);
+    Store.ValueHolder<V> result = internalGet(key, true, true);
     if (result == null) {
       getOperationObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
     } else {
@@ -99,8 +101,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     return result;
   }
 
-  private Store.ValueHolder<V> internalGet(K key, final boolean updateAccess) {
-    return backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+  private Store.ValueHolder<V> internalGet(K key, final boolean updateAccess, final boolean touchValue) {
+    return backingMap().computeIfPresent(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
         @Override
         public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
           long now = timeSource.getTimeMillis();
@@ -114,16 +116,18 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
           if (updateAccess) {
             setAccessTimeAndExpiry(mappedKey, mappedValue, now);
+          } else if (touchValue) {
+            mappedValue.value();
           }
           return mappedValue;
         }
-      }, false);
+      });
   }
 
   @Override
   public boolean containsKey(K key) {
     checkKey(key);
-    return internalGet(key, false) != null;
+    return internalGet(key, false, false) != null;
   }
 
   @Override
@@ -303,7 +307,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   @Override
   public void enableStoreEventNotifications(StoreEventListener<K, V> listener) {
-    eventListener = listener;
+    eventListener = new LazyValueHolderStoreEventListenerWrapper<K, V>(listener);
     mapEvictionListener.setStoreEventListener(eventListener);
   }
 
@@ -526,21 +530,24 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   public ValueHolder<V> getAndFault(K key) throws CacheAccessException {
     getOperationObserver.begin();
     checkKey(key);
-    ValueHolder<V> mappedValue = backingMap().getAndPin(key);
-
-    if(mappedValue != null && mappedValue.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
-      if(backingMap().remove(key, mappedValue)) {
-        onExpiration(key, mappedValue);
+    ValueHolder<V> result = backingMap().computeIfPresentAndPin(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+      @Override
+      public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
+        if(mappedValue.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
+          onExpiration(mappedKey, mappedValue);
+          return null;
+        }
+        mappedValue.prepareForDelayedDeserialization();
+        return mappedValue;
       }
-      mappedValue = null;
-    }
+    });
 
-    if (mappedValue == null) {
+    if (result == null) {
       getOperationObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
     } else {
       getOperationObserver.end(StoreOperationOutcomes.GetOutcome.HIT);
     }
-    return mappedValue;
+    return result;
   }
 
   @Override
@@ -639,7 +646,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           }
           mappedValue = null;
         }
-        valueHolderAtomicReference.set(mappedValue);
+
+        valueHolderAtomicReference.set(newTransferValueHolder(mappedValue));
         return null;
       }
     };
@@ -724,8 +732,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   private OffHeapValueHolder<V> newTransferValueHolder(ValueHolder<V> valueHolder) {
+    if (valueHolder == null) {
+      return null;
+    }
     return new OffHeapValueHolder<V>(valueHolder.getId(), valueHolder.value(), valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT),
-        valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT), valueHolder.hits(), null);
+        valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT), valueHolder.hits());
   }
 
   public void handleOversizeMappingException(K key, OversizeMappingException cause) throws CacheAccessException {
@@ -833,7 +844,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   class OffHeapStoreIterator implements Iterator<Cache.Entry<K, ValueHolder<V>>> {
     private final java.util.Iterator<Map.Entry<K, OffHeapValueHolder<V>>> mapIterator;
-    private Map.Entry<K, OffHeapValueHolder<V>> next = null;
+    private Cache.Entry<K, ValueHolder<V>> next = null;
 
     OffHeapStoreIterator() {
       mapIterator = backingMap().entrySet().iterator();
@@ -843,14 +854,37 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     private void advance() {
       next = null;
       while (next == null && mapIterator.hasNext()) {
-        Map.Entry<K, OffHeapValueHolder<V>> entry = mapIterator.next();
-        final long now = timeSource.getTimeMillis();
-        if (entry.getValue().isExpired(now, TimeUnit.MILLISECONDS)) {
-          containsKey(entry.getKey());  //This is done here to remove the expired entry without any side effects
-          continue;
-        }
+        final Map.Entry<K, OffHeapValueHolder<V>> entry = mapIterator.next();
+        final OffHeapValueHolder<V> value = (OffHeapValueHolder<V>) internalGet(entry.getKey(), false, true);
+        if (value != null) {
+          next = new Cache.Entry<K, ValueHolder<V>>() {
+            @Override
+            public K getKey() {
+              return entry.getKey();
+            }
 
-        next = entry;
+            @Override
+            public ValueHolder<V> getValue() {
+              return value;
+            }
+
+            @Override
+            public long getCreationTime(TimeUnit unit) {
+              return value.creationTime(unit);
+            }
+
+            @Override
+            public long getLastAccessTime(TimeUnit unit) {
+              return value.lastAccessTime(unit);
+            }
+
+            @Override
+            public float getHitRate(TimeUnit unit) {
+              final long now = timeSource.getTimeMillis();
+              return value.hitRate(now, unit);
+            }
+          };
+        }
       }
     }
 
@@ -865,7 +899,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         throw new NoSuchElementException();
       }
 
-      final Map.Entry<K, OffHeapValueHolder<V>> thisEntry = next;
+      final Cache.Entry<K, ValueHolder<V>> thisEntry = next;
       advance();
 
       final long now = timeSource.getTimeMillis();
@@ -879,35 +913,34 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         }
       });
 
-      thisEntry.getValue().accessed(now, expiry.getExpiryForAccess(thisEntry.getKey(), thisEntry.getValue().value()));
+      ((OffHeapValueHolder<V>) thisEntry.getValue()).accessed(now, expiry.getExpiryForAccess(thisEntry.getKey(), thisEntry.getValue().value()));
 
-      return new Cache.Entry<K, ValueHolder<V>>() {
-        @Override
-        public K getKey() {
-          return thisEntry.getKey();
-        }
+      return thisEntry;
+    }
+  }
 
-        @Override
-        public ValueHolder<V> getValue() {
-          return thisEntry.getValue();
-        }
+  private static class LazyValueHolderStoreEventListenerWrapper<K, V> implements StoreEventListener<K, V> {
 
-        @Override
-        public long getCreationTime(TimeUnit unit) {
-          return thisEntry.getValue().creationTime(unit);
-        }
+    private final StoreEventListener<K, V> delegate;
 
-        @Override
-        public long getLastAccessTime(TimeUnit unit) {
-          return thisEntry.getValue().lastAccessTime(unit);
-        }
+    LazyValueHolderStoreEventListenerWrapper(StoreEventListener<K, V> delegate) {
+      this.delegate = delegate;
+    }
 
-        @Override
-        public float getHitRate(TimeUnit unit) {
-          final long now = timeSource.getTimeMillis();
-          return thisEntry.getValue().hitRate(now, unit);
-        }
-      };
+    @Override
+    public void onEviction(K key, ValueHolder<V> valueHolder) {
+      if (valueHolder instanceof OffHeapValueHolder) {
+        ((OffHeapValueHolder<V>) valueHolder).forceDeserialization();
+      }
+      delegate.onEviction(key, valueHolder);
+    }
+
+    @Override
+    public void onExpiration(K key, ValueHolder<V> valueHolder) {
+      if (valueHolder instanceof OffHeapValueHolder) {
+        ((OffHeapValueHolder<V>) valueHolder).forceDeserialization();
+      }
+      delegate.onExpiration(key, valueHolder);
     }
   }
 

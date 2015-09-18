@@ -30,6 +30,8 @@ public interface EhcacheOffHeapBackingMap<K, V> extends ConcurrentMap<K, V> {
   V computeIfPresent(K key, BiFunction<K, V, V> mappingFunction);
 
   boolean computeIfPinned(K key, BiFunction<K,V,V> remappingFunction, Function<V,Boolean> pinningFunction);
+
+  V computeIfPresentAndPin(K key, BiFunction<K, V, V> mappingFunction);
   
   long nextIdFor(K key);
 

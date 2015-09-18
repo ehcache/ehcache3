@@ -173,6 +173,28 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
       }
     }
 
+    public V computeIfPresentAndPin(K key, BiFunction<K, V, V> mappingFunction) {
+      final Lock lock = writeLock();
+      lock.lock();
+      try {
+        final V previousValue = get(key);
+        if (previousValue == null) {
+          return null;
+        }
+        final V newValue = mappingFunction.apply(key, previousValue);
+        if (newValue != previousValue) {
+          if (newValue != null) {
+            put(key, newValue);
+          } else {
+            remove(key);
+          }
+        }
+        getAndSetMetadata(key, Metadata.PINNED, Metadata.PINNED);
+        return newValue;
+      } finally {
+        lock.unlock();
+      }
+    }
 
     @Override
     public V put(K key, V value) {
