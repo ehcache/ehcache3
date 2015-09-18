@@ -16,6 +16,8 @@
 
 package org.ehcache.internal.store.heap.holders;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class LookupOnlyOnHeapKey<K> extends BaseOnHeapKey<K> {
 
   private final K actualKeyObject;
@@ -30,6 +32,7 @@ public class LookupOnlyOnHeapKey<K> extends BaseOnHeapKey<K> {
     return actualKeyObject;
   }
 
+  @SuppressFBWarnings("EQ_CHECK_FOR_OPERAND_NOT_COMPATIBLE_WITH_THIS")
   @Override
   public boolean equals(Object other) {
     if (other instanceof CopiedOnHeapKey) {
