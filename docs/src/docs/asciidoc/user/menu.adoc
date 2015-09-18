@@ -6,6 +6,7 @@ User documentation::
 - link:./usermanaged{outfilesuffix}[User managed caches]
 - link:./107{outfilesuffix}[javax.cache aka jsr-107]
 - link:./management{outfilesuffix}[Management and Monitoring]
+- link:./xa{outfilesuffix}[Transactions support]
 Resources::
 - link:./examples{outfilesuffix}[Java examples]
 - link:./xsds{outfilesuffix}[Configuration XSD]

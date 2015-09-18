@@ -23,3 +23,10 @@ include::{sourcedir}/xml/src/main/resources/ehcache-core.xsd[lines=18..-1]
 ----
 include::{sourcedir}/107/src/main/resources/ehcache-107ext.xsd[lines=18..-1]
 ----
+
+== XA transactions extension
+
+[source,xsd,indent=0]
+----
+include::{sourcedir}/transactions/src/main/resources/ehcache-tx-ext.xsd[lines=18..-1]
+----
