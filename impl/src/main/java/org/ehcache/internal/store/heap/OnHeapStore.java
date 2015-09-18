@@ -503,14 +503,17 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
       }
     }
 
-    if (cachedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
-      if (backEnd.remove(key, cachedValue)) {
-        onExpiration(key, cachedValue);
+    if (!(cachedValue instanceof Fault)) {
+      if (cachedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (backEnd.remove(key, cachedValue)) {
+          onExpiration(key, cachedValue);
+        }
+        return null;
       }
-      return null;
+      // TODO find a way to increment hit count on a fault
+      setAccessTimeAndExpiry(key, cachedValue, now);
     }
 
-    setAccessTimeAndExpiry(key, cachedValue, now);
     return getValue(cachedValue);
   }
 
@@ -519,7 +522,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(final K k, final OnHeapValueHolder<V> present) {
-        notifyInvalidation(key, getValue(present));
+        if (!(present instanceof Fault)) {
+          notifyInvalidation(key, present);
+        }
         return null;
       }
     });
@@ -530,7 +535,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K k, OnHeapValueHolder<V> onHeapValueHolder) {
-        if (onHeapValueHolder != null) {
+        if (onHeapValueHolder != null && !(onHeapValueHolder instanceof Fault)) {
           notifyInvalidation(k, onHeapValueHolder);
         }
         function.apply();
@@ -562,11 +567,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     };
   }
 
-  private ValueHolder<V> getValue(final Object cachedValue) {
+  private ValueHolder<V> getValue(final ValueHolder<V> cachedValue) {
     if (cachedValue instanceof Fault) {
       return ((Fault<V>)cachedValue).get();
     } else {
-      return (ValueHolder<V>)cachedValue;
+      return cachedValue;
     }
   }
 
@@ -587,11 +592,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   }
 
   /**
-   * Document me
+   * Place holder used when loading an entry from the authority into this caching tier
    *
-   * @param <V>
+   * @param <V> the value type of the caching tier
    */
   private static class Fault<V> extends OnHeapValueHolder<V> {
+
+    private static final int FAULT_ID = -1;
 
     private final NullaryFunction<ValueHolder<V>> source;
     private ValueHolder<V> value;
@@ -599,7 +606,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     private boolean complete;
 
     public Fault(final NullaryFunction<ValueHolder<V>> source) {
-      super(-1, 0);
+      super(FAULT_ID, 0);
       this.source = source;
     }
 
