@@ -26,7 +26,9 @@ import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterProviderConfiguration;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.hamcrest.CoreMatchers;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 
@@ -37,6 +39,7 @@ import java.util.Map;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 public class DefaultCacheLoaderWriterProviderTest {
 
@@ -99,6 +102,21 @@ public class DefaultCacheLoaderWriterProviderTest {
         .getServiceConfigurations();
     assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(DefaultCacheLoaderWriterConfiguration.class)));
     cacheManager.close();
+  }
+
+  @Test
+  public void testCreationConfigurationPreservedAfterStopStart() {
+    DefaultCacheLoaderWriterProviderConfiguration configuration = new DefaultCacheLoaderWriterProviderConfiguration();
+    configuration.addLoaderFor("cache", MyLoader.class);
+    DefaultCacheLoaderWriterProvider loaderWriterProvider = new DefaultCacheLoaderWriterProvider(configuration);
+
+    loaderWriterProvider.start(mock(ServiceProvider.class));
+    assertThat(loaderWriterProvider.createCacheLoaderWriter("cache", mock(CacheConfiguration.class)), CoreMatchers.instanceOf(MyLoader.class));
+
+    loaderWriterProvider.stop();
+    loaderWriterProvider.start(mock(ServiceProvider.class));
+
+    assertThat(loaderWriterProvider.createCacheLoaderWriter("cache", mock(CacheConfiguration.class)), CoreMatchers.instanceOf(MyLoader.class));
   }
 
   public static class MyLoader implements CacheLoaderWriter<Object, Object> {

@@ -225,7 +225,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
     @Override
     public void stop() {
-      serializers.clear();
+      // no-op
     }
 
     

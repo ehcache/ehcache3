@@ -33,16 +33,6 @@ class Eh107CacheLoaderWriterProvider extends DefaultCacheLoaderWriterProvider {
     super(null);
   }
 
-  @Override
-  public void start(final ServiceProvider serviceProvider) {
-    //
-  }
-
-  @Override
-  public void stop() {
-    //
-  }
-
   @SuppressWarnings("unchecked")
   @Override
   public <K, V> CacheLoaderWriter<? super K, V> createCacheLoaderWriter(String alias,
