@@ -264,6 +264,10 @@ public class EhcacheManager implements PersistentCacheManager {
     if (config.getResourcePools().getResourceTypeSet().contains(ResourceType.Core.DISK)) {
       LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
       
+      if (persistenceService == null) {
+        throw new IllegalStateException("No LocalPersistenceService could be found - did you configure it at the CacheManager level?");
+      }
+
       if (!config.getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
         try {
           persistenceService.destroyPersistenceSpace(alias);
