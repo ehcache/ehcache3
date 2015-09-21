@@ -205,8 +205,6 @@ public class XAGettingStarted {
     BitronixTransactionManager transactionManager =
         TransactionManagerServices.getTransactionManager(); // <1>
 
-    Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) (Class) (SampleLoaderWriter.class);
-
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .using(new XAStoreProviderConfiguration()) // <2>
         .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "testXACacheWithThreeTiers"))) // <3>
@@ -217,18 +215,17 @@ public class XAGettingStarted {
                         .disk(20, MemoryUnit.MB, true)
                 )
                 .add(new XAStoreConfiguration("xaCache")) // <6>
-                .add(new DefaultCacheLoaderWriterConfiguration(klazz, singletonMap(1L, "eins"))) // <7>
                 .buildConfig(Long.class, String.class)
         )
         .build(true);
 
     final Cache<Long, String> xaCache = persistentCacheManager.getCache("xaCache", Long.class, String.class);
 
-    transactionManager.begin(); // <8>
+    transactionManager.begin(); // <7>
     {
-      xaCache.put(1L, "one"); // <9>
+      xaCache.put(1L, "one"); // <8>
     }
-    transactionManager.commit(); // <10>
+    transactionManager.commit(); // <9>
 
     persistentCacheManager.close();
     transactionManager.shutdown();

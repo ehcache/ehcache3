@@ -157,16 +157,14 @@ include::{sourcedir}/transactions/src/test/java/org/ehcache/docs/transactions/xa
 <1> First start the Bitronix transaction manager. By default, Ehcache 3 will auto-detect it but will throw an exception
     during the cache manager initialization if BTM isn't started.
 <2> Configure the cache manager such as it can handle `XAStoreConfiguration`.
-<3> Register a cache the normal way.
-<4> Give it the resources you wish.
-<5> Add a `XAStoreConfiguration` object to make the cache XA transactional. You must also give the cache a unique
+<3> Register a `LocalPersistenceService` with your `CacheManager` to use disk storage.
+<4> Register a cache the normal way.
+<5> Give it the resources you wish.
+<6> Add a `XAStoreConfiguration` object to make the cache XA transactional. You must also give the cache a unique
     XAResource identifier as some transaction managers require this.
-<6> configure the `CacheLoaderWriter` here. this is a mocked SoR backed by a map for illustration that contains `1L`/`"eins"`
-    key/value pair at startup.
 <7> Begin a JTA transaction the normal way.
-<8> The cache is empty at startup, so the `CacheLoaderWriter` will be called to load the value.
-<9> Update the value. This will make the `CacheLoaderWriter` write to the SoR.
-<10> Commit the JTA transaction. Other transactions can now see the changes you made to the cache and the SoR.
+<8> Update the value.
+<9> Commit the JTA transaction. Other transactions can now see the changes you made to the cache and the SoR.
 
 
 == Configuring it with XML
