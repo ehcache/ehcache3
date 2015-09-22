@@ -33,8 +33,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
@@ -69,7 +67,7 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
   private final ConcurrentHashMap<Integer, ConcurrentLinkedQueue<CacheEventWrapper>> keyBasedEventQueueMap;
   private final EventDispatcher<K, V> unOrderedEventDispatcher;
   private final EventDispatcher<K, V> orderedEventDispatcher;
-  private EventThreadLocal eventThreadLocal;
+  private volatile EventThreadLocal eventThreadLocal;
   private final AtomicInteger orderedListenerCount = new AtomicInteger(0);
   private final Set<EventListenerWrapper> syncListenersSet = new CopyOnWriteArraySet<EventListenerWrapper>();
   private final Set<EventListenerWrapper> aSyncListenersSet = new CopyOnWriteArraySet<EventListenerWrapper>();
@@ -83,6 +81,7 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
     this.store = store;
     this.timeSource = timeSource;
     LOGGER.info("Setting Event Processing Queue Count to {}", numberOfEventProcessingQueues);
+    eventThreadLocal = new NoOpEventThreadLocalImpl();
     this.eventQueueCount = numberOfEventProcessingQueues;
     storeListener.setEventNotificationService(this);
     this.unOrderedEventDispatcher = orderedEventDispatcher;
@@ -124,8 +123,10 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
     if (doRegister) {
       store.enableStoreEventNotifications(storeListener);
     }
-    if (eventThreadLocal == null) {
-      eventThreadLocal = new EventThreadLocal();
+    synchronized (this) {
+      if (eventThreadLocal instanceof NoOpEventThreadLocalImpl) {
+        eventThreadLocal = new EventThreadLocalImpl();
+      }
     }
   }
 
@@ -163,7 +164,12 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
         }
       }
     }
-    if (!hasListeners()) {
+    synchronized (this) {
+      if (!hasListeners()) {
+        if (eventThreadLocal instanceof EventThreadLocalImpl) {
+          eventThreadLocal = new NoOpEventThreadLocalImpl();
+        }
+      }
       store.disableStoreEventNotifications();
     }
     if(!removed) {
@@ -177,6 +183,7 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
     orderedListenerCount.set(0);
     aSyncListenersSet.clear();
     syncListenersSet.clear();
+    eventThreadLocal.cleanUp();
   }
 
   @Override
@@ -189,12 +196,9 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
     final EventType type = event.getType();
     LOGGER.trace("Cache Event notified for event type {}", type);
     CacheEventWrapper<K, V> cacheEventWrapper = new CacheEventWrapper<K, V>(event);
-    if (!(syncListenersSet.isEmpty() && aSyncListenersSet.isEmpty())) {
-      if(eventThreadLocal.get().isEmpty()) {
-        eventThreadLocal.setOrdered(orderedListenerCount.get() != 0);
-      }
-      eventThreadLocal.get().add(cacheEventWrapper);
-      markFailedCacheEventsInThreadLocal();
+    if (hasListeners()) {
+      eventThreadLocal.verifyOrderedDispatch(orderedListenerCount.get() != 0);
+      eventThreadLocal.addToEventList(cacheEventWrapper);
       if (eventThreadLocal.isOrdered()) {
         ConcurrentLinkedQueue<CacheEventWrapper> eventWrapperQueue = getEventQueue(event.getKey());
         eventWrapperQueue.add(cacheEventWrapper);
@@ -210,14 +214,10 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
       while (!eventWrapperQueue.isEmpty() && eventWrapperQueue.peek().isFireable()) {
         CacheEventWrapper event = eventWrapperQueue.peek();
         actualDispatch(event, orderedEventDispatcher);
-        cacheEventWrapper.markFired();
         if (event != eventThreadLocal.get().get(0)) {
-          event.lockEvent();
-          try {
-            event.firedEventCondition.signal();
-          } finally {
-            event.unlockEvent();
-          }
+          event.markFiredAndSignalCondition(true);
+        } else {
+          event.markFiredAndSignalCondition(false);
         }
         eventWrapperQueue.remove();
       }
@@ -229,23 +229,7 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
   private void orderedEventWait(CacheEventWrapper cacheEventWrapper, Queue<CacheEventWrapper> eventWrapperQueue) {
     if (eventThreadLocal.isOrdered()) {
       if (cacheEventWrapper != eventWrapperQueue.peek()) {
-        int interruptCount = 0;
-        while (!cacheEventWrapper.isFired()) {
-          cacheEventWrapper.lockEvent();
-          try {
-            if (!cacheEventWrapper.isFired()) {
-              cacheEventWrapper.firedEventCondition.await();
-            }
-          } catch (InterruptedException ie) {
-            if(++interruptCount > 3) {
-              LOGGER.info("Failed to fire event - " + cacheEventWrapper.cacheEvent.getType() + " due to " + ie.getMessage());
-              Thread.currentThread().interrupt();
-              return;
-            }
-          } finally {
-            cacheEventWrapper.unlockEvent();
-          }
-        }
+        cacheEventWrapper.waitTillFired();
       }
     }
   }
@@ -266,21 +250,6 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
         future.get();
       } catch (Exception e) {
         LOGGER.error("Cache Event Listener failed for event type {} due to ", event.cacheEvent.getType(), e);
-      }
-    }
-  }
-
-  private void markFailedCacheEventsInThreadLocal() {
-    HashMap<Object, CacheEventWrapper> cacheEventMap = new HashMap<Object, CacheEventWrapper>();
-    for (CacheEventWrapper eventWrapper : eventThreadLocal.get()) {
-      if ((eventWrapper.cacheEvent.getType() == EventType.CREATED)
-         || (eventWrapper.cacheEvent.getType() == EventType.UPDATED)
-         || (eventWrapper.cacheEvent.getType() == EventType.REMOVED)) {
-        if (cacheEventMap.containsKey(eventWrapper.cacheEvent.getKey())) {
-          cacheEventMap.remove(eventWrapper.cacheEvent.getKey()).markFailed();
-        } else {
-          cacheEventMap.put(eventWrapper.cacheEvent.getKey(), eventWrapper);
-        }
       }
     }
   }
@@ -313,34 +282,28 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
     return configurationChangeListenerList;
   }
 
-  private final HashSet<CacheEventListener> orderedListenersSet = new HashSet<CacheEventListener>();
-
   @Override
   public void fireAllEvents() {
-    if (eventThreadLocal != null) {
-      while (!eventThreadLocal.get().isEmpty()) {
-        CacheEventWrapper cacheEventWrapper = eventThreadLocal.get().get(0);
-        dispatchEvent(cacheEventWrapper);
-        eventThreadLocal.get().remove(0);
-      }
+    while (!eventThreadLocal.get().isEmpty()) {
+      CacheEventWrapper cacheEventWrapper = eventThreadLocal.get().get(0);
+      dispatchEvent(cacheEventWrapper);
+      eventThreadLocal.get().remove(0);
     }
   }
 
   @Override
   public void processAndFireRemainingEvents() {
-    if (eventThreadLocal != null) {
-      for(CacheEventWrapper cacheEventWrapper : eventThreadLocal.get()) {
-        if((cacheEventWrapper.cacheEvent.getType() == EventType.CREATED)
-          || (cacheEventWrapper.cacheEvent.getType() == EventType.UPDATED)
-          || (cacheEventWrapper.cacheEvent.getType() == EventType.REMOVED)) {
-         cacheEventWrapper.markFailed();
-        }
+    for(CacheEventWrapper cacheEventWrapper : eventThreadLocal.get()) {
+      if((cacheEventWrapper.cacheEvent.getType() == EventType.CREATED)
+        || (cacheEventWrapper.cacheEvent.getType() == EventType.UPDATED)
+        || (cacheEventWrapper.cacheEvent.getType() == EventType.REMOVED)) {
+       cacheEventWrapper.markFailed();
       }
-      try {
-        fireAllEvents();
-      } finally {
-        eventThreadLocal.cleanUp();
-      }
+    }
+    try {
+      fireAllEvents();
+    } finally {
+      eventThreadLocal.cleanUp();
     }
   }
 
@@ -372,33 +335,6 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
 
     public void setSource(Cache<K, V> source) {
       this.source = source;
-    }
-  }
-
-  private static class EventThreadLocal {
-    private final ThreadLocal<Boolean> ordered = new ThreadLocal<Boolean>();
-    private final ThreadLocal<List<CacheEventWrapper>> threadLocal = new ThreadLocal<List<CacheEventWrapper>>() {
-      @Override
-      protected List<CacheEventWrapper> initialValue() {
-        return new ArrayList<CacheEventWrapper>();
-      }
-    };
-
-    public List<CacheEventWrapper> get() {
-      return threadLocal.get();
-    }
-
-    public void setOrdered(boolean ordered) {
-      this.ordered.set(ordered);
-    }
-
-    public boolean isOrdered() {
-      return ordered.get();
-    }
-
-    public void cleanUp() {
-      ordered.remove();
-      threadLocal.remove();
     }
   }
 }

@@ -17,6 +17,9 @@
 package org.ehcache.events;
 
 import org.ehcache.event.CacheEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -27,8 +30,9 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class CacheEventWrapper<K, V> {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(CacheEventWrapper.class);
   public CacheEvent<K, V> cacheEvent;
-  Condition firedEventCondition;
+  private Condition firedEventCondition;
   private Lock lock = new ReentrantLock();
   private AtomicBoolean fireable;
   private AtomicBoolean failed;
@@ -75,10 +79,23 @@ public class CacheEventWrapper<K, V> {
   }
 
   /**
+   * /**
    * This marks events as fired atomically
+   *
+   * @param signal whether {@code firedEventCondition} needs to be signalled
+   * 
+   * <p> May cause spurious signals </p>
    */
-  void markFired() {
+  void markFiredAndSignalCondition(Boolean signal) {
     this.fired.set(true);
+    if (signal) {
+      this.lock.lock();
+      try {
+        firedEventCondition.signal();
+      } finally {
+        this.lock.unlock();
+      }
+    }
   }
 
   /**
@@ -91,16 +108,25 @@ public class CacheEventWrapper<K, V> {
   }
 
   /**
-   * Locks the event so it can be marked
+   * Waits till the {@code firedEventCondition} is signalled for the event
    */
-  void lockEvent() {
-    lock.lock();
-  }
-
-  /**
-   * Unlocks locked Events
-   */
-  void unlockEvent() {
-    lock.unlock();
+  public void waitTillFired() {
+    int interruptCount = 0;
+    while (!this.isFired()) {
+      this.lock.lock();
+      try {
+        if (!this.isFired()) {
+          this.firedEventCondition.await();
+        }
+      } catch (InterruptedException ie) {
+        if(++interruptCount > 3) {
+          LOGGER.info("Failed to fire event - " + this.cacheEvent.getType() + " due to " + ie.getMessage());
+          Thread.currentThread().interrupt();
+          return;
+        }
+      } finally {
+        this.lock.unlock();
+      }
+    }
   }
 }
