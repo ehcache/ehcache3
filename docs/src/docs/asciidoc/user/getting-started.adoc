@@ -230,9 +230,9 @@ In addition, there are a few implicit contracts:
 
 * Your implementation must have a public constructor taking a `ClassLoader` as parameter.
 * There are two annotations that you have to use to mark your `Serializer` - a single implementation can use both:
-  * `org.ehcache.spi.serialization.Serializer.Transient`: With this annotation you indicate that the `Serializer`
+** `org.ehcache.spi.serialization.Serializer.Transient`: With this annotation you indicate that the `Serializer`
   implementation is fit for use inside a transient cache.
-  * `org.ehcache.spi.serialization.Serializer.Persistent`: With this annotation you indicate that the `Serializer`
+** `org.ehcache.spi.serialization.Serializer.Persistent`: With this annotation you indicate that the `Serializer`
   implementation is fit for use inside a persistent cache. The constructor can take an additional parameter, a
   `org.ehcache.spi.service.FileBasedPersistenceContext` which can then be used to persist serialization metadata.
 
