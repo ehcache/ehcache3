@@ -43,4 +43,9 @@ public class SerializingCopierTest {
     assertNotSame(in, copied);
     assertEquals(in, copied);
   }
+
+  @Test(expected = NullPointerException.class)
+  public void testThrowsNPEWhenNoSerializerPassedToConstructor() {
+    new SerializingCopier<Object>(null);
+  }
 }

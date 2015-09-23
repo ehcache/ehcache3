@@ -374,7 +374,7 @@ public class GettingStarted {
 
     DefaultCopyProviderConfiguration defaultCopierConfig = new DefaultCopyProviderConfiguration()
         .addCopierFor(Description.class, DescriptionCopier.class)   //<1>
-        .addCopierFor(Person.class, PersonCopier.class);
+        .addCopierFor(Person.class, (Class) SerializingCopier.class);
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .using(defaultCopierConfig)   //<2>
