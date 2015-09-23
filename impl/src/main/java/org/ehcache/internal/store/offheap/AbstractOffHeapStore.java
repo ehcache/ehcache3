@@ -868,7 +868,16 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       final Map.Entry<K, OffHeapValueHolder<V>> thisEntry = next;
       advance();
 
-      setAccessTimeAndExpiry(thisEntry.getKey(), thisEntry.getValue(), timeSource.getTimeMillis());
+      final K key = thisEntry.getKey();
+      backingMap().computeIfPresent(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+        @Override
+        public OffHeapValueHolder<V> apply(final K k, final OffHeapValueHolder<V> currentMapping) {
+          if (currentMapping.getId() == thisEntry.getValue().getId()) {
+            setAccessTimeAndExpiry(key, currentMapping, timeSource.getTimeMillis());
+          }
+          return currentMapping;
+        }
+      });
 
       return new Cache.Entry<K, ValueHolder<V>>() {
         @Override
