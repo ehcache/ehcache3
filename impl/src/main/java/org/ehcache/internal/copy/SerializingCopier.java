@@ -17,11 +17,7 @@
 package org.ehcache.internal.copy;
 
 import org.ehcache.exceptions.SerializerException;
-import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
 
 /**
  * A helper copier implementation that performs the "copying" using serialization.
@@ -33,6 +29,10 @@ public final class SerializingCopier<T> extends ReadWriteCopier<T> {
   private final Serializer<T> serializer;
 
   public SerializingCopier(Serializer<T> serializer) {
+    if (serializer == null) {
+      throw new NullPointerException("A " + SerializingCopier.class.getName() + " instance requires a "
+                                     + Serializer.class.getName() + " instance to copy!");
+    }
     this.serializer = serializer;
   }
 

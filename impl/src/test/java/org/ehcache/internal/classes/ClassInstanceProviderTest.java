@@ -34,7 +34,7 @@ public class ClassInstanceProviderTest {
   public void testNewInstanceUsingAliasAndNoArgs() throws Exception {
     ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>(null, (Class)ClassInstanceConfiguration.class);
 
-    classInstanceProvider.preconfiguredLoaders.put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class));
+    classInstanceProvider.preconfigured.put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class));
     TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration) null);
 
     assertThat(obj.theString, is(nullValue()));
@@ -44,7 +44,7 @@ public class ClassInstanceProviderTest {
   public void testNewInstanceUsingAliasAndArg() throws Exception {
     ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>(null, (Class)ClassInstanceConfiguration.class);
 
-    classInstanceProvider.preconfiguredLoaders.put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class, "test string"));
+    classInstanceProvider.preconfigured.put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class, "test string"));
     TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration<?>) null);
 
     assertThat(obj.theString, equalTo("test string"));

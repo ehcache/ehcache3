@@ -19,6 +19,7 @@ package org.ehcache.spi.copy;
 import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
+import org.ehcache.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.internal.classes.ClassInstanceProvider;
 import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.copy.SerializingCopier;
@@ -56,9 +57,20 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Copier<?>> implem
                                      Serializer<T> serializer, ServiceConfiguration<?>... configs) {
     DefaultCopierConfiguration<T> conf = find(type, configs);
     Copier<T> copier;
+    final ClassInstanceConfiguration<Copier<?>> preConfigured = preconfigured.get(clazz.getName());
     if (conf != null && conf.getInstance() != null) {
       copier = conf.getInstance();
     } else if (conf != null && conf.getClazz().isAssignableFrom(SerializingCopier.class)) {
+      if (serializer == null) {
+        throw new IllegalStateException("No Serializer configured for type '" + clazz.getName()
+                                        + "' which doesn't implement java.io.Serializable");
+      }
+      copier = new SerializingCopier<T>(serializer);
+    } else if (conf == null &&  preConfigured != null && preConfigured.getClazz().isAssignableFrom(SerializingCopier.class)) {
+      if (serializer == null) {
+        throw new IllegalStateException("No Serializer configured for type '" + clazz.getName()
+                                        + "' which doesn't implement java.io.Serializable");
+      }
       copier = new SerializingCopier<T>(serializer);
     } else {
       copier = createCopier(clazz, conf);

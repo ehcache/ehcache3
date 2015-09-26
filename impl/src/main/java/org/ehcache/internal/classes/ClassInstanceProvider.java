@@ -35,19 +35,19 @@ public class ClassInstanceProvider<T> {
   /**
    * The order in which entries are put in is kept.
    */
-  protected final Map<String, ClassInstanceConfiguration<T>> preconfiguredLoaders = Collections.synchronizedMap(new LinkedHashMap<String, ClassInstanceConfiguration<T>>());
+  protected final Map<String, ClassInstanceConfiguration<T>> preconfigured = Collections.synchronizedMap(new LinkedHashMap<String, ClassInstanceConfiguration<T>>());
 
   private final Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig;
 
   protected ClassInstanceProvider(ClassInstanceProviderConfiguration<T> factoryConfig, Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig) {
     if (factoryConfig != null) {
-      preconfiguredLoaders.putAll(factoryConfig.getDefaults());
+      preconfigured.putAll(factoryConfig.getDefaults());
     }
     this.cacheLevelConfig = cacheLevelConfig;
   }
 
   protected ClassInstanceConfiguration<T> getPreconfigured(String alias) {
-    return preconfiguredLoaders.get(alias);
+    return preconfigured.get(alias);
   }
 
   protected T newInstance(String alias, CacheConfiguration<?, ?> cacheConfiguration) {
