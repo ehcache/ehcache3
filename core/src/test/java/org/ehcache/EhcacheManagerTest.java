@@ -57,6 +57,7 @@ import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfiguration
 import static org.ehcache.config.ConfigurationBuilder.newConfigurationBuilder;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
@@ -148,7 +149,7 @@ public class EhcacheManagerTest {
     cacheManager = new EhcacheManager(builder.build(), getServices(storeProvider, cenlProvider));
     cacheManager.init();
     assertSame(ClassLoading.getDefaultClassLoader(), cacheManager.getClassLoader());
-    assertSame(cacheManager.getClassLoader(), cacheManager.getCache("foo", Object.class, Object.class).getRuntimeConfiguration().getClassLoader());  
+    assertSame(cacheManager.getClassLoader(), cacheManager.getCache("foo", Object.class, Object.class).getRuntimeConfiguration().getClassLoader());
   }
 
   @Test
@@ -567,6 +568,82 @@ public class EhcacheManagerTest {
     cacheManager.close();
     verify(testCache).close();
     verify(cenlServiceMock, times(1)).releaseAllListeners();
+  }
+
+  @Test
+  public void testChangesToManagerAreReflectedInConfig() {
+    Store.Provider storeProvider = mock(Store.Provider.class);
+    Store store = mock(Store.class);
+    CacheEventNotificationListenerServiceProvider cacheEventNotificationListenerServiceProvider = mock(CacheEventNotificationListenerServiceProvider.class);
+
+    when(storeProvider.createStore(any(Store.Configuration.class), Matchers.<ServiceConfiguration>anyVararg())).thenReturn(store);
+    when(store.getConfigurationChangeListeners()).thenReturn(new ArrayList<CacheConfigurationChangeListener>());
+    when(cacheEventNotificationListenerServiceProvider.createCacheEventNotificationService(store)).thenReturn(mock(CacheEventNotificationService.class));
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("cache1", CacheConfigurationBuilder.newCacheConfigurationBuilder()
+            .buildConfig(Long.class, String.class))
+        .using(storeProvider)
+        .using(mock(CacheLoaderWriterProvider.class))
+        .using(mock(WriteBehindDecoratorLoaderWriterProvider.class))
+        .using(cacheEventNotificationListenerServiceProvider)
+        .using(mock(CacheEventListenerProvider.class))
+        .using(mock(LocalPersistenceService.class))
+        .build(true);
+
+    try {
+      final Cache<Long, String> cache = cacheManager.createCache("cache2", CacheConfigurationBuilder.newCacheConfigurationBuilder()
+          .buildConfig(Long.class, String.class));
+      final CacheConfiguration<?, ?> cacheConfiguration = cacheManager.getRuntimeConfiguration()
+          .getCacheConfigurations()
+          .get("cache2");
+
+      assertThat(cacheConfiguration, notNullValue());
+      final CacheConfiguration<?, ?> runtimeConfiguration = cache.getRuntimeConfiguration();
+      assertThat(cacheConfiguration == runtimeConfiguration, is(true));
+      assertThat(cacheManager.getRuntimeConfiguration().getCacheConfigurations().get("cache1")
+                 == cacheManager.getCache("cache1", Long.class, String.class).getRuntimeConfiguration(), is(true));
+
+      cacheManager.removeCache("cache1");
+      assertThat(cacheManager.getRuntimeConfiguration().getCacheConfigurations().containsKey("cache1"), is(false));
+    } finally {
+      cacheManager.close();
+    }
+  }
+
+  @Test
+  public void testCachesAddedAtRuntimeGetReInited() {
+    Store.Provider storeProvider = mock(Store.Provider.class);
+    Store store = mock(Store.class);
+    CacheEventNotificationListenerServiceProvider cacheEventNotificationListenerServiceProvider = mock(CacheEventNotificationListenerServiceProvider.class);
+
+    when(storeProvider.createStore(any(Store.Configuration.class), Matchers.<ServiceConfiguration>anyVararg())).thenReturn(store);
+    when(store.getConfigurationChangeListeners()).thenReturn(new ArrayList<CacheConfigurationChangeListener>());
+    when(cacheEventNotificationListenerServiceProvider.createCacheEventNotificationService(store)).thenReturn(mock(CacheEventNotificationService.class));
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("cache1", CacheConfigurationBuilder.newCacheConfigurationBuilder()
+            .buildConfig(Long.class, String.class))
+        .using(storeProvider)
+        .using(mock(CacheLoaderWriterProvider.class))
+        .using(mock(WriteBehindDecoratorLoaderWriterProvider.class))
+        .using(cacheEventNotificationListenerServiceProvider)
+        .using(mock(CacheEventListenerProvider.class))
+        .using(mock(LocalPersistenceService.class))
+        .build(true);
+
+
+    cacheManager.createCache("cache2", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Long.class, String.class));
+    cacheManager.removeCache("cache1");
+
+    cacheManager.close();
+    cacheManager.init();
+    try {
+      assertThat(cacheManager.getCache("cache1", Long.class, String.class), nullValue());
+      assertThat(cacheManager.getCache("cache2", Long.class, String.class), notNullValue());
+    } finally {
+      cacheManager.close();
+    }
   }
 
   private Collection<Service> getServices(Store.Provider storeProvider, CacheEventNotificationListenerServiceProvider cenlProvider) {

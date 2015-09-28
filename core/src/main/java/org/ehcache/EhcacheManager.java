@@ -97,7 +97,7 @@ public class EhcacheManager implements PersistentCacheManager {
 
   private final ServiceLocator serviceLocator;
   private final boolean useLoaderInAtomics;
-  private final RuntimeConfiguration configuration;
+  private final DefaultConfiguration configuration;
 
   private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<String, CacheHolder>();
   private final ClassLoader cacheManagerClassLoader;
@@ -144,6 +144,10 @@ public class EhcacheManager implements PersistentCacheManager {
 
   @Override
   public void removeCache(final String alias) {
+    removeCache(alias, true);
+  }
+
+  private void removeCache(final String alias, final boolean removeFromConfig) {
     statusTransitioner.checkAvailable();
     final CacheHolder cacheHolder = caches.remove(alias);
     if(cacheHolder != null) {
@@ -154,6 +158,9 @@ public class EhcacheManager implements PersistentCacheManager {
         }
       }
       closeEhcache(alias, ehcache);
+      if (removeFromConfig) {
+        configuration.removeCacheConfiguration(alias);
+      }
       LOGGER.info("Cache '{}' is removed from EhcacheManager.", alias);
     }
   }
@@ -184,11 +191,15 @@ public class EhcacheManager implements PersistentCacheManager {
 
   @Override
   public <K, V> Cache<K, V> createCache(final String alias, CacheConfiguration<K, V> config) throws IllegalArgumentException {
+    return createCache(alias, config, true);
+  }
+
+  private <K, V> Cache<K, V> createCache(final String alias, CacheConfiguration<K, V> originalConfig, boolean addToConfig) throws IllegalArgumentException {
     statusTransitioner.checkAvailable();
 
     LOGGER.info("Cache '{}' is getting created in EhcacheManager.", alias);
 
-    config = adjustConfigurationWithCacheManagerDefaults(config);
+    CacheConfiguration<K, V> config = adjustConfigurationWithCacheManagerDefaults(originalConfig);
     Class<K> keyType = config.getKeyType();
     Class<V> valueType = config.getValueType();
 
@@ -203,6 +214,11 @@ public class EhcacheManager implements PersistentCacheManager {
     try {
       cache = createNewEhcache(alias, config, keyType, valueType);
       cache.init();
+      if (addToConfig) {
+        configuration.addCacheConfiguration(alias, cache.getRuntimeConfiguration());
+      } else {
+        configuration.replaceCacheConfiguration(alias, originalConfig, cache.getRuntimeConfiguration());
+      }
     } catch (RuntimeException e) {
       failure = e;
     }
@@ -471,14 +487,14 @@ public class EhcacheManager implements PersistentCacheManager {
         for (Entry<String, CacheConfiguration<?, ?>> cacheConfigurationEntry : configuration.getCacheConfigurations()
             .entrySet()) {
           final String alias = cacheConfigurationEntry.getKey();
-          createCache(alias, cacheConfigurationEntry.getValue());
+          createCache(alias, cacheConfigurationEntry.getValue(), false);
           initiatedCaches.push(alias);
         }
       } catch (RuntimeException e) {
         while (!initiatedCaches.isEmpty()) {
           String toBeClosed = initiatedCaches.pop();
           try {
-            removeCache(toBeClosed);
+            removeCache(toBeClosed, false);
           } catch (Exception exceptionClosingCache) {
               LOGGER.error("Cache '{}' could not be removed due to ", toBeClosed, exceptionClosingCache);
           }
@@ -510,7 +526,7 @@ public class EhcacheManager implements PersistentCacheManager {
     try {
       for (String alias : caches.keySet()) {
         try {
-          removeCache(alias);
+          removeCache(alias, false);
         } catch (Exception e) {
           if(firstException == null) {
             firstException = e;
