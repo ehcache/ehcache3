@@ -449,11 +449,6 @@ public class CacheStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public void invalidate(K key, NullaryFunction<K> function) throws CacheAccessException {
-      function.apply();
-    }
-
-    @Override
     public void clear() throws CacheAccessException {
       // noop
     }

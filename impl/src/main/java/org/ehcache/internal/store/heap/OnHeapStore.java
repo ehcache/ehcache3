@@ -50,6 +50,7 @@ import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.spi.cache.tiering.HigherCachingTier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -86,7 +87,7 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
 /**
  * @author Alex Snaps
  */
-public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
+public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   private static final Logger LOG = LoggerFactory.getLogger(OnHeapStore.class);
 
@@ -536,14 +537,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   }
 
   @Override
-  public void invalidate(K key, final NullaryFunction<K> function) throws CacheAccessException {
+  public void silentInvalidate(K key, final Function<Store.ValueHolder<V>, Void> function) throws CacheAccessException {
     map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K k, OnHeapValueHolder<V> onHeapValueHolder) {
-        if (onHeapValueHolder != null && !(onHeapValueHolder instanceof Fault)) {
-          notifyInvalidation(k, onHeapValueHolder);
-        }
-        function.apply();
+        function.apply(onHeapValueHolder);
         return null;
       }
     });
