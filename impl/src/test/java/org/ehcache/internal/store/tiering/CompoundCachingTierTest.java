@@ -20,6 +20,7 @@ import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.spi.cache.tiering.HigherCachingTier;
 import org.ehcache.spi.cache.tiering.LowerCachingTier;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -51,7 +52,7 @@ public class CompoundCachingTierTest {
 
   @Test
   public void testGetOrComputeIfAbsentComputesWhenBothTiersEmpty() throws Exception {
-    CachingTier<String, String> higherTier = mock(CachingTier.class);
+    HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
     final Store.ValueHolder<String> valueHolder = mock(Store.ValueHolder.class);
 
@@ -82,7 +83,7 @@ public class CompoundCachingTierTest {
 
   @Test
   public void testGetOrComputeIfAbsentDoesNotComputesWhenHigherTierContainsValue() throws Exception {
-    CachingTier<String, String> higherTier = mock(CachingTier.class);
+    HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
     final Store.ValueHolder<String> valueHolder = mock(Store.ValueHolder.class);
 
@@ -106,7 +107,7 @@ public class CompoundCachingTierTest {
 
   @Test
   public void testGetOrComputeIfAbsentDoesNotComputesWhenLowerTierContainsValue() throws Exception {
-    CachingTier<String, String> higherTier = mock(CachingTier.class);
+    HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
     final Store.ValueHolder<String> valueHolder = mock(Store.ValueHolder.class);
 
@@ -137,7 +138,7 @@ public class CompoundCachingTierTest {
 
   @Test
   public void testGetOrComputeIfAbsentComputesWhenLowerTierExpires() throws Exception {
-    CachingTier<String, String> higherTier = mock(CachingTier.class);
+    HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     final LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
     final Store.ValueHolder<String> originalValueHolder = mock(Store.ValueHolder.class);
     final Store.ValueHolder<String> newValueHolder = mock(Store.ValueHolder.class);
@@ -185,7 +186,7 @@ public class CompoundCachingTierTest {
 
   @Test
   public void testInvalidateNoArg() throws Exception {
-    CachingTier<String, String> higherTier = mock(CachingTier.class);
+    HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
 
     CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
@@ -197,7 +198,7 @@ public class CompoundCachingTierTest {
 
   @Test
   public void testInvalidateWhenNoValueDoesNotFireListener() throws Exception {
-    CachingTier<String, String> higherTier = mock(CachingTier.class);
+    HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
 
     final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
@@ -217,7 +218,7 @@ public class CompoundCachingTierTest {
 
   @Test
   public void testInvalidateWhenValueInLowerTierFiresListener() throws Exception {
-    CachingTier<String, String> higherTier = mock(CachingTier.class);
+    HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
 
     final Store.ValueHolder<String> valueHolder = mock(Store.ValueHolder.class);
@@ -230,10 +231,10 @@ public class CompoundCachingTierTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         higherTierInvalidationListenerArg.getValue().onInvalidation(invocation.getArguments()[0], higherTierValueHolder.getAndSet(null));
-        ((NullaryFunction) invocation.getArguments()[1]).apply();
+        ((Function) invocation.getArguments()[1]).apply(higherTierValueHolder.get());
         return null;
       }
-    }).when(higherTier).invalidate(anyString(), any(NullaryFunction.class));
+    }).when(higherTier).silentInvalidate(anyString(), any(Function.class));
 
     final ArgumentCaptor<Function> functionArg = ArgumentCaptor.forClass(Function.class);
     final ArgumentCaptor<String> keyArg = ArgumentCaptor.forClass(String.class);
@@ -274,7 +275,7 @@ public class CompoundCachingTierTest {
 
   @Test
   public void testInvalidateWhenValueInHigherTierFiresListener() throws Exception {
-    CachingTier<String, String> higherTier = mock(CachingTier.class);
+    HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
 
     final Store.ValueHolder<String> valueHolder = mock(Store.ValueHolder.class);
@@ -287,10 +288,10 @@ public class CompoundCachingTierTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         higherTierInvalidationListenerArg.getValue().onInvalidation(invocation.getArguments()[0], higherTierValueHolder.getAndSet(null));
-        ((NullaryFunction) invocation.getArguments()[1]).apply();
+        ((Function) invocation.getArguments()[1]).apply(higherTierValueHolder.get());
         return null;
       }
-    }).when(higherTier).invalidate(anyString(), any(NullaryFunction.class));
+    }).when(higherTier).silentInvalidate(anyString(), any(Function.class));
     final ArgumentCaptor<Function> functionArg = ArgumentCaptor.forClass(Function.class);
     final ArgumentCaptor<String> keyArg = ArgumentCaptor.forClass(String.class);
     when(lowerTier.getOrComputeIfAbsent(keyArg.capture(), functionArg.capture())).then(new Answer<Object>() {
@@ -387,7 +388,7 @@ public class CompoundCachingTierTest {
     @Override
     public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       assertThat(serviceConfigs.length, is(2));
-      return mock(CachingTier.class);
+      return mock(HigherCachingTier.class);
     }
 
     @Override
