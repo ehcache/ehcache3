@@ -27,7 +27,7 @@
     <ehcache:eviction-prioritizer>LFU</ehcache:eviction-prioritizer>
   </ehcache:cache-template>
 
-  <ehcache:cache alias="foo" usesTemplate="example">
+  <ehcache:cache alias="foo" uses-template="example">
   </ehcache:cache>
 
 </ehcache:config>

@@ -52,8 +52,8 @@ public class Jsr107ServiceConfigurationParser implements CacheManagerServiceConf
   @Override
   public ServiceCreationConfiguration<Jsr107Service> parseServiceCreationConfiguration(final Element fragment) {
     boolean jsr107CompliantAtomics = true;
-    if (fragment.hasAttribute("jsr107CompliantAtomics")) {
-      jsr107CompliantAtomics = Boolean.parseBoolean(fragment.getAttribute("jsr107CompliantAtomics"));
+    if (fragment.hasAttribute("jsr-107-compliant-atomics")) {
+      jsr107CompliantAtomics = Boolean.parseBoolean(fragment.getAttribute("jsr-107-compliant-atomics"));
     }
     final String defaultTemplate = fragment.getAttribute("default-template");
     final HashMap<String, String> templates = new HashMap<String, String>();

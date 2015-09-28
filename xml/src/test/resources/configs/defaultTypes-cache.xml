@@ -25,7 +25,7 @@
   <ehcache:cache alias="foo">
   </ehcache:cache>
 
-  <ehcache:cache alias="bar" usesTemplate="example">
+  <ehcache:cache alias="bar" uses-template="example">
     <ehcache:key-type>java.lang.Number</ehcache:key-type>
   </ehcache:cache>
 </ehcache:config>

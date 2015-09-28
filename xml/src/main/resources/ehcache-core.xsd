@@ -37,10 +37,10 @@
             </xs:documentation>
           </xs:annotation>
         </xs:element>
-        <xs:element name="cache-template" type="ehcache:cacheTemplate-type">
+        <xs:element name="cache-template" type="ehcache:cache-template-type">
           <xs:annotation>
             <xs:documentation xml:lang="en">
-              A cache template definition that can be reference in &lt;cache&gt; definitions using the 'usesTemplate'
+              A cache template definition that can be reference in &lt;cache&gt; definitions using the 'uses-template'
               attribute.
             </xs:documentation>
           </xs:annotation>
@@ -92,7 +92,7 @@
 
   <xs:complexType name="cache-type">
     <xs:complexContent>
-      <xs:extension base="ehcache:baseCache-type">
+      <xs:extension base="ehcache:base-cache-type">
         <xs:attribute name="alias" use="required" type="xs:string">
           <xs:annotation>
             <xs:documentation xml:lang="en">
@@ -100,7 +100,7 @@
             </xs:documentation>
           </xs:annotation>
         </xs:attribute>
-        <xs:attribute name="usesTemplate" use="optional" type="xs:IDREF">
+        <xs:attribute name="uses-template" use="optional" type="xs:IDREF">
           <xs:annotation>
             <xs:documentation xml:lang="en">
               The optional &lt;cache-template&gt; to use to source a default configuration from.
@@ -112,14 +112,14 @@
     </xs:complexContent>
   </xs:complexType>
 
-  <xs:complexType name="cacheTemplate-type">
+  <xs:complexType name="cache-template-type">
     <xs:complexContent>
-      <xs:extension base="ehcache:baseCache-type">
+      <xs:extension base="ehcache:base-cache-type">
         <xs:attribute name="name" type="xs:ID" use="required">
           <xs:annotation>
             <xs:documentation xml:lang="en">
               The name of this &lt;cache-template&gt; definition.
-              Used by cache element's 'usesTemplate' attribute.
+              Used by cache element's 'uses-template' attribute.
             </xs:documentation>
           </xs:annotation>
         </xs:attribute>
@@ -127,7 +127,7 @@
     </xs:complexContent>
   </xs:complexType>
 
-  <xs:complexType name="baseCache-type" abstract="true">
+  <xs:complexType name="base-cache-type" abstract="true">
     <xs:sequence>
       <xs:element name="key-type" type="ehcache:cache-entry-type" minOccurs="0" maxOccurs="1" default="java.lang.Object">
         <xs:annotation>
@@ -166,7 +166,7 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element name="integration" type="ehcache:cache-integration" minOccurs="0" maxOccurs="1">
+      <xs:element name="integration" type="ehcache:cache-integration-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
             Configures the Cache as fronting a system of record that it'll be kept in sync with.
@@ -193,9 +193,9 @@
     </xs:sequence>
   </xs:complexType>
 
-  <xs:complexType name="cache-integration">
+  <xs:complexType name="cache-integration-type">
     <xs:sequence>
-      <xs:element name="loaderwriter" minOccurs="0" maxOccurs="1">
+      <xs:element name="loader-writer" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:sequence>
             <xs:element name="class" type="ehcache:fqcn-type" minOccurs="1" maxOccurs="1">
@@ -211,7 +211,7 @@
           </xs:sequence>
         </xs:complexType>
       </xs:element>
-      <xs:element name="writebehind" minOccurs="0" maxOccurs="1">
+      <xs:element name="write-behind" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:sequence>
             <xs:element name="retry" minOccurs="0" maxOccurs="1">
@@ -224,10 +224,10 @@
           <xs:attribute type="xs:positiveInteger" name="concurrency" default="1" use="optional"/>
           <xs:attribute type="xs:positiveInteger" name="size" default="2147483647" use="optional"/>
           <xs:attribute type="xs:boolean" name="coalesce" default="false" use="optional"/>
-          <xs:attribute name="ratelimitpersecond" type="xs:positiveInteger" default="2147483647" use="optional"/>
-          <xs:attribute name="minWriteDelay" type="xs:nonNegativeInteger" default="0" use="optional"/>
-          <xs:attribute name="maxWriteDelay" type="xs:positiveInteger" default="2147483647" use="optional"/>
-          <xs:attribute name="batchsize" type="xs:positiveInteger" default="1" use="optional"/>
+          <xs:attribute name="rate-limit-per-second" type="xs:positiveInteger" default="2147483647" use="optional"/>
+          <xs:attribute name="min-write-delay" type="xs:nonNegativeInteger" default="0" use="optional"/>
+          <xs:attribute name="max-write-delay" type="xs:positiveInteger" default="2147483647" use="optional"/>
+          <xs:attribute name="batch-size" type="xs:positiveInteger" default="1" use="optional"/>
         </xs:complexType>
       </xs:element>
       <xs:element name="listener" minOccurs="0" maxOccurs="unbounded">
@@ -242,21 +242,21 @@
                 </xs:documentation>
               </xs:annotation>
             </xs:element>
-            <xs:element name="eventFiringMode" type="ehcache:eventFiring-type" minOccurs="1" maxOccurs="1">
+            <xs:element name="event-firing-mode" type="ehcache:event-firing-type" minOccurs="1" maxOccurs="1">
               <xs:annotation>
                 <xs:documentation xml:lang="en">
                   Indicates which EventFiring firing mode to use
                 </xs:documentation>
               </xs:annotation>
             </xs:element>
-            <xs:element name="eventOrderingMode" type="ehcache:eventOrdering-type" minOccurs="1" maxOccurs="1">
+            <xs:element name="event-ordering-mode" type="ehcache:event-ordering-type" minOccurs="1" maxOccurs="1">
               <xs:annotation>
                 <xs:documentation xml:lang="en">
                   Indicates which EventOrdering ordering mode to use
                 </xs:documentation>
               </xs:annotation>
             </xs:element>
-            <xs:element name="eventsToFireOn" type="ehcache:event-type" minOccurs="1" maxOccurs="5">
+            <xs:element name="events-to-fire-on" type="ehcache:event-type" minOccurs="1" maxOccurs="5">
               <xs:annotation>
                 <xs:documentation xml:lang="en">
                   Indicates on which EventType an event has to be fired
@@ -384,13 +384,13 @@
       <xs:enumeration value="pb"/>
     </xs:restriction>
   </xs:simpleType>
-  <xs:simpleType name="eventFiring-type">
+  <xs:simpleType name="event-firing-type">
     <xs:restriction base="xs:string">
       <xs:enumeration value="ASYNCHRONOUS" />
       <xs:enumeration value="SYNCHRONOUS" />
     </xs:restriction>
   </xs:simpleType>
-  <xs:simpleType name="eventOrdering-type">
+  <xs:simpleType name="event-ordering-type">
     <xs:restriction base="xs:string">
       <xs:enumeration value="UNORDERED" />
       <xs:enumeration value="ORDERED" />

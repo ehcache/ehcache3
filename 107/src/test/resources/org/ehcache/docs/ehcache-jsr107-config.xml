@@ -9,9 +9,9 @@
     <key-type>java.lang.Long</key-type>
     <value-type>com.pany.domain.Product</value-type>
     <integration>
-      <loaderwriter>
+      <loader-writer>
         <class>com.pany.ehcache.integration.ProductCacheLoaderWriter</class>
-      </loaderwriter>
+      </loader-writer>
     </integration>
     <heap size="100" unit="entries"/>
   </cache>

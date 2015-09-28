@@ -34,11 +34,11 @@
     <heap size="200" unit="entries"/>
   </cache-template>
 
-  <cache alias="bar" usesTemplate="myDefaults"> <!--6-->
+  <cache alias="bar" uses-template="myDefaults"> <!--6-->
     <key-type>java.lang.Number</key-type>
   </cache>
 
-  <cache alias="simpleCache" usesTemplate="myDefaults" /> <!--7-->
+  <cache alias="simpleCache" uses-template="myDefaults" /> <!--7-->
   <!-- end::gettingStarted[] -->
 
 </config>
