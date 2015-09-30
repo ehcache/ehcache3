@@ -15,3 +15,5 @@ build/
 
 .nb-gradle
 .nb-gradle-properties
+
+/classes
