@@ -81,6 +81,11 @@ public final class OffHeapValueHolder<V> extends AbstractValueHolder<V> implemen
   }
 
   @Override
+  public boolean isBinaryValueAvailable() {
+    return mode == Mode.BOTH;
+  }
+
+  @Override
   public boolean equals(Object other) {
     if (this == other) return true;
     if (other == null || getClass() != other.getClass()) return false;

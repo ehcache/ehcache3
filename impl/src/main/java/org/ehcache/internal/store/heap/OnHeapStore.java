@@ -49,6 +49,7 @@ import org.ehcache.internal.store.heap.holders.SerializedOnHeapValueHolder;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.tiering.BinaryValueHolder;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.cache.tiering.HigherCachingTier;
 import org.ehcache.spi.copy.Copier;
@@ -937,7 +938,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     V realValue = valueHolder.value();
     Duration expiration = expiry.getExpiryForAccess(key, realValue);
     if(valueCopier instanceof SerializingCopier) {
-      return new SerializedOnHeapValueHolder<V>(valueHolder, realValue, ((SerializingCopier)valueCopier).getSerializer(), now, expiration);
+      if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder)valueHolder).isBinaryValueAvailable()) {
+        return new SerializedOnHeapValueHolder<V>(valueHolder, ((BinaryValueHolder) valueHolder).getBinaryValue(), ((SerializingCopier<V>) valueCopier)
+            .getSerializer(), now, expiration);
+      }
+      return new SerializedOnHeapValueHolder<V>(valueHolder, realValue, ((SerializingCopier<V>)valueCopier).getSerializer(), now, expiration);
     } else {
       return new CopiedOnHeapValueHolder<V>(valueHolder, realValue, valueCopier, now, expiration);
     }
@@ -945,7 +950,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   private OnHeapValueHolder<V> makeValue(V value, long creationTime, long expirationTime, Copier<V> valueCopier) {
     if(valueCopier instanceof SerializingCopier) {
-      return makeSerializedValue(value, creationTime, expirationTime, ((SerializingCopier)valueCopier).getSerializer());
+      return makeSerializedValue(value, creationTime, expirationTime, ((SerializingCopier<V>)valueCopier).getSerializer());
     } else {
       return makeCopiedValue(value, creationTime, expirationTime, valueCopier);
     }

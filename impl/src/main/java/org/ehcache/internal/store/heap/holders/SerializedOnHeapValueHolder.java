@@ -52,6 +52,14 @@ public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
     this.accessed(now, expiration);
   }
 
+  public SerializedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, ByteBuffer binaryValue, Serializer<V> serializer, long now, Duration expiration) {
+    super(valueHolder.getId(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT));
+    this.buffer = binaryValue;
+    this.serializer = serializer;
+    this.setHits(valueHolder.hits());
+    this.accessed(now, expiration);
+  }
+
   @Override
   public final V value() {
     try {

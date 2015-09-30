@@ -375,10 +375,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   @Override
   public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
-    return internalComputeIfAbsent(key, mappingFunction, false);
+    return internalComputeIfAbsent(key, mappingFunction, false, false);
   }
 
-  private Store.ValueHolder<V> internalComputeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction, boolean fault) throws CacheAccessException {
+  private Store.ValueHolder<V> internalComputeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction, boolean fault, final boolean delayedDeserialization) throws CacheAccessException {
     checkKey(key);
 
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
@@ -397,6 +397,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
             return newCreateValueHolder(mappedKey, computedValue, now);
           }
         } else {
+          if (delayedDeserialization) {
+            mappedValue.prepareForDelayedDeserialization();
+          }
           setAccessTimeAndExpiry(mappedKey, mappedValue, now);
           return mappedValue;
         }
@@ -552,7 +555,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   @Override
   public ValueHolder<V> computeIfAbsentAndFault(K key, Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
-    return internalComputeIfAbsent(key, mappingFunction, true);
+    return internalComputeIfAbsent(key, mappingFunction, true, true);
   }
 
   @Override
