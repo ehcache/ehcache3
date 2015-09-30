@@ -152,8 +152,6 @@ public class SerializerCountingTest {
     assertThat(CountingSerializer.equalsCounter.get(), is(valueEquals));
   }
 
-  @Serializer.Transient
-  @Serializer.Persistent
   public static class CountingSerializer<T> implements Serializer<T> {
 
     static AtomicInteger serializeCounter = new AtomicInteger(0);

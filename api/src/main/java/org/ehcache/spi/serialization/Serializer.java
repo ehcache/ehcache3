@@ -16,33 +16,31 @@
 package org.ehcache.spi.serialization;
 
 import java.io.Closeable;
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
 import java.nio.ByteBuffer;
 import org.ehcache.exceptions.SerializerException;
 
-import static java.lang.annotation.ElementType.TYPE;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
-
 /**
  * Interface defining the contract used to transform types in a serial form.
- * Implementations must be thread-safe and must define a constructor accepting a single ClassLoader parameter.
+ * Implementations must be thread-safe.
+ * 
+ * When used within the default serialization provider, there is an additional requirement:
+ * The implementations must define either or both of the two constructors:
+ * <ul>
+ *   <li>
+ *     Accepting a single {@link ClassLoader} parameter: This constructor will be used to initialize the serializer for
+ *     transient caches
+ *   </li>
+ *   <li>
+ *     Accepting a {@link ClassLoader} parameter and a file based persistence context: This constructor will be used to
+ *     initialize the serializer for persistent caches 
+ *   </li>
+ * </ul> .
  *
  * @param <T> the type of the instances to serialize
  *
  * @author cdennis
  */
 public interface Serializer<T> extends Closeable {
-
-  /**
-   * Marks a {@code Serializer} that is suitable for operation within a persistent cache.
-   */
-  @Target(TYPE) @Retention(RUNTIME) @interface Persistent {}
-  
-  /**
-   * Marks a {@code Serializer} that is suitable for operation within a transient cache.
-   */
-  @Target(TYPE) @Retention(RUNTIME) @interface Transient {}
 
   /**
    * Transforms the given instance into its serial form.

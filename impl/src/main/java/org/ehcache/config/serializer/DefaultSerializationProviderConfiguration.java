@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 public class DefaultSerializationProviderConfiguration implements ServiceCreationConfiguration<SerializationProvider> {
@@ -41,40 +42,42 @@ public class DefaultSerializationProviderConfiguration implements ServiceCreatio
     if (serializerClass == null) {
       throw new NullPointerException("Serializer class cannot be null");
     }
-    String alias = serializableClass.getName();
     
-    if (serializerClass.isAnnotationPresent(Serializer.Transient.class)) {
-      if (serializerClass.isAnnotationPresent(Serializer.Persistent.class)) {
-        if (transientSerializers.containsKey(alias)) {
-          if (persistentSerializers.containsKey(alias)) {
-            throw new IllegalArgumentException("Duplicate transient & persistent serializer for class : " + alias);
-          } else {
-            persistentSerializers.put(alias, serializerClass);
-          }
-        } else if (persistentSerializers.containsKey(alias)) {
-          transientSerializers.put(alias, serializerClass);
-        } else {
-          persistentSerializers.put(alias, serializerClass);
-          transientSerializers.put(alias, serializerClass);
-        }
+    String alias = serializableClass.getName(); 
+    boolean transientConstructorPresent = false;
+    boolean persistentConstructorPresent = false;
+    
+    if(transientConstructorPresent = isConstructorPresent(serializerClass, ClassLoader.class)) {
+      if (transientSerializers.containsKey(alias)) {
+        throw new IllegalArgumentException("Duplicate transient serializer for class : " + alias);
       } else {
-        if (transientSerializers.containsKey(alias)) {
-            throw new IllegalArgumentException("Duplicate transient serializer for class : " + alias);
-        } else {
-          transientSerializers.put(alias, serializerClass);
-        }
+        transientSerializers.put(alias, serializerClass);
       }
-    } else if (serializerClass.isAnnotationPresent(Serializer.Persistent.class)) {
+    }
+    
+    if(persistentConstructorPresent = isConstructorPresent(serializerClass, ClassLoader.class, FileBasedPersistenceContext.class)) {
       if (persistentSerializers.containsKey(alias)) {
-          throw new IllegalArgumentException("Duplicate persistent serializer for class : " + alias);
+        throw new IllegalArgumentException("Duplicate persistent serializer for class : " + alias);
       } else {
         persistentSerializers.put(alias, serializerClass);
       }
-    } else {
-      throw new IllegalArgumentException("Serializer class '" + serializerClass + "' does not identify as persistent or transient.");
+    }
+
+    if(!transientConstructorPresent && !persistentConstructorPresent) {
+      throw new IllegalArgumentException("The serializer: " + serializerClass.getName()
+                                         + " does not meet the constructor requirements for either transient or persistent caches.");
     }
     return this;
   }
+  
+  private static boolean isConstructorPresent(Class<?> clazz, Class<?>... args) {
+    try {
+      clazz.getConstructor(args);
+      return true;
+    } catch (NoSuchMethodException e) {
+      return false;
+    }
+  } 
 
   public Map<String, Class<? extends Serializer<?>>> getTransientSerializers() {
     return unmodifiableMap(transientSerializers);

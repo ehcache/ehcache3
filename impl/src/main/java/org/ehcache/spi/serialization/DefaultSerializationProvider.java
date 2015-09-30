@@ -127,20 +127,15 @@ public class DefaultSerializationProvider implements SerializationProvider {
     @Override
     protected <T> Serializer<T> createSerializer(String suffix, Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
       String alias = (config != null ? null : clazz.getName());
+      Class<? extends Serializer<T>> klazz = getClassFor(alias, config, classLoader);
       try {
-        Class<? extends Serializer<T>> klazz = getClassFor(alias, config, classLoader);
-        try {
-          Constructor<? extends Serializer<T>> constructor = klazz.getConstructor(ClassLoader.class, FileBasedPersistenceContext.class);
-          PersistenceSpaceIdentifier space = findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) configs);
-          FileBasedPersistenceContext context = persistence.createPersistenceContextWithin(space, DefaultSerializationProvider.class.getSimpleName() + suffix);
-          return constructSerializer(clazz, constructor, classLoader, context);
-        } catch (NoSuchMethodException e) {
-          Constructor<? extends Serializer<T>> constructor = klazz.getConstructor(ClassLoader.class);
-          return constructSerializer(clazz, constructor, classLoader);
-        } catch (CachePersistenceException e) {
-          throw new RuntimeException(e);
-        }
+        Constructor<? extends Serializer<T>> constructor = klazz.getConstructor(ClassLoader.class, FileBasedPersistenceContext.class);
+        PersistenceSpaceIdentifier space = findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) configs);
+        FileBasedPersistenceContext context = persistence.createPersistenceContextWithin(space, DefaultSerializationProvider.class.getSimpleName() + suffix);
+        return constructSerializer(clazz, constructor, classLoader, context);
       } catch (NoSuchMethodException e) {
+        throw new RuntimeException(e);
+      } catch (CachePersistenceException e) {
         throw new RuntimeException(e);
       }
     }

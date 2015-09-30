@@ -114,7 +114,6 @@ public class DefaultSerializationProviderTest {
     assertThat(serializationProvider.createKeySerializer(String.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
   }
 
-  @Serializer.Persistent @Serializer.Transient
   public static class TestSerializer<T> implements Serializer<T> {
     public TestSerializer(ClassLoader classLoader) {
     }

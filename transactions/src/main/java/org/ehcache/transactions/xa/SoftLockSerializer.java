@@ -35,7 +35,6 @@ import java.util.Map;
  *
  * @author Ludovic Orban
  */
-@Serializer.Transient @Serializer.Persistent
 public class SoftLockSerializer implements Serializer<SoftLock> {
 
   private final ClassLoader classLoader;
