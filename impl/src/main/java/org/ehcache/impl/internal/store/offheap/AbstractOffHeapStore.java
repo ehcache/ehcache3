@@ -607,10 +607,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   @Override
   public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
-    return internalComputeIfAbsent(key, mappingFunction, false);
+    return internalComputeIfAbsent(key, mappingFunction, false, false);
   }
 
-  private Store.ValueHolder<V> internalComputeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction, boolean fault) throws CacheAccessException {
+  private Store.ValueHolder<V> internalComputeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction, boolean fault, final boolean delayedDeserialization) throws CacheAccessException {
     if (fault) {
       computeIfAbsentAndFaultObserver.begin();
     } else {
@@ -637,6 +637,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
             return newCreateValueHolder(mappedKey, computedValue, now, eventSink);
           }
         } else {
+          if (delayedDeserialization) {
+            mappedValue.prepareForDelayedDeserialization();
+          }
           return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, eventSink);
         }
       }
@@ -866,7 +869,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   @Override
   public ValueHolder<V> computeIfAbsentAndFault(K key, Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
-    return internalComputeIfAbsent(key, mappingFunction, true);
+    return internalComputeIfAbsent(key, mappingFunction, true, true);
   }
 
   @Override
@@ -992,7 +995,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           }
           return null;
         }
-        valueHolderAtomicReference.set(newTransferValueHolder(mappedValue));
+        mappedValue.prepareForDelayedDeserialization();
+        valueHolderAtomicReference.set(mappedValue);
         return null;
       }
     };
