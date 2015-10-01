@@ -32,7 +32,7 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testNewInstanceUsingAliasAndNoArgs() throws Exception {
-    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>(null, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, (Class)ClassInstanceConfiguration.class);
 
     classInstanceProvider.preconfigured.put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class));
     TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration) null);
@@ -42,7 +42,7 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testNewInstanceUsingAliasAndArg() throws Exception {
-    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>(null, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, (Class)ClassInstanceConfiguration.class);
 
     classInstanceProvider.preconfigured.put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class, "test string"));
     TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration<?>) null);
@@ -52,7 +52,7 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testNewInstanceUsingServiceConfig() throws Exception {
-    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>(null, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, (Class)ClassInstanceConfiguration.class);
 
     TestServiceConfiguration config = new TestServiceConfiguration();
     TestService obj = classInstanceProvider.newInstance("test stuff", config);
@@ -65,7 +65,7 @@ public class ClassInstanceProviderTest {
     TestServiceProviderConfiguration factoryConfig = new TestServiceProviderConfiguration();
     factoryConfig.getDefaults().put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class));
 
-    ClassInstanceProvider<TestService> classInstanceProvider = new ClassInstanceProvider<TestService>(factoryConfig, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(factoryConfig, (Class)ClassInstanceConfiguration.class);
     classInstanceProvider.start(null);
 
     TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration) null);
@@ -103,7 +103,7 @@ public class ClassInstanceProviderTest {
     }
   }
 
-  public static class TestServiceProviderConfiguration extends ClassInstanceProviderConfiguration<TestService> implements ServiceConfiguration<TestService> {
+  public static class TestServiceProviderConfiguration extends ClassInstanceProviderConfiguration<String, TestService> implements ServiceConfiguration<TestService> {
     @Override
     public Class<TestService> getServiceType() {
       return TestService.class;

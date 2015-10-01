@@ -17,7 +17,9 @@
 package org.ehcache.config.xml;
 
 import com.pany.ehcache.copier.AnotherPersonCopier;
+import com.pany.ehcache.copier.Description;
 import com.pany.ehcache.copier.DescriptionCopier;
+import com.pany.ehcache.copier.Person;
 import com.pany.ehcache.copier.PersonCopier;
 import com.pany.ehcache.serializer.TestSerializer;
 import com.pany.ehcache.serializer.TestSerializer2;
@@ -426,9 +428,9 @@ public class XmlConfigurationTest {
 
     DefaultCopyProviderConfiguration factoryConfiguration = (DefaultCopyProviderConfiguration) configuration;
     assertThat(factoryConfiguration.getDefaults().size(), is(2));
-    assertThat(factoryConfiguration.getDefaults().get("com.pany.ehcache.copier.Description").getClazz(),
+    assertThat(factoryConfiguration.getDefaults().get(Description.class).getClazz(),
         Matchers.<Class<? extends Copier>>equalTo(DescriptionCopier.class));
-    assertThat(factoryConfiguration.getDefaults().get("com.pany.ehcache.copier.Person").getClazz(),
+    assertThat(factoryConfiguration.getDefaults().get(Person.class).getClazz(),
         Matchers.<Class<? extends Copier>>equalTo(PersonCopier.class));
 
 

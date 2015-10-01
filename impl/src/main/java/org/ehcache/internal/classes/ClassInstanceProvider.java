@@ -30,27 +30,27 @@ import static org.ehcache.internal.classes.commonslang.reflect.ConstructorUtils.
 /**
  * @author Alex Snaps
  */
-public class ClassInstanceProvider<T> {
+public class ClassInstanceProvider<K, T> {
 
   /**
    * The order in which entries are put in is kept.
    */
-  protected final Map<String, ClassInstanceConfiguration<T>> preconfigured = Collections.synchronizedMap(new LinkedHashMap<String, ClassInstanceConfiguration<T>>());
+  protected final Map<K, ClassInstanceConfiguration<T>> preconfigured = Collections.synchronizedMap(new LinkedHashMap<K, ClassInstanceConfiguration<T>>());
 
   private final Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig;
 
-  protected ClassInstanceProvider(ClassInstanceProviderConfiguration<T> factoryConfig, Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig) {
+  protected ClassInstanceProvider(ClassInstanceProviderConfiguration<K, T> factoryConfig, Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig) {
     if (factoryConfig != null) {
       preconfigured.putAll(factoryConfig.getDefaults());
     }
     this.cacheLevelConfig = cacheLevelConfig;
   }
 
-  protected ClassInstanceConfiguration<T> getPreconfigured(String alias) {
+  protected ClassInstanceConfiguration<T> getPreconfigured(K alias) {
     return preconfigured.get(alias);
   }
 
-  protected T newInstance(String alias, CacheConfiguration<?, ?> cacheConfiguration) {
+  protected T newInstance(K alias, CacheConfiguration<?, ?> cacheConfiguration) {
     ClassInstanceConfiguration<T> config = null;
     for (ServiceConfiguration<?> serviceConfiguration : cacheConfiguration.getServiceConfigurations()) {
       if(cacheLevelConfig.isAssignableFrom(serviceConfiguration.getClass())) {
@@ -60,7 +60,7 @@ public class ClassInstanceProvider<T> {
     return newInstance(alias, config);
   }
 
-  protected T newInstance(String alias, ServiceConfiguration<?> serviceConfiguration) {
+  protected T newInstance(K alias, ServiceConfiguration<?> serviceConfiguration) {
     ClassInstanceConfiguration<T> config = null;
     if (serviceConfiguration != null && cacheLevelConfig.isAssignableFrom(serviceConfiguration.getClass())) {
       config = cacheLevelConfig.cast(serviceConfiguration);
@@ -68,7 +68,7 @@ public class ClassInstanceProvider<T> {
     return newInstance(alias, config);
   }
 
-  private T newInstance(String alias, ClassInstanceConfiguration<T> config) {
+  private T newInstance(K alias, ClassInstanceConfiguration<T> config) {
     if (config == null) {
       config = getPreconfigured(alias);
       if (config == null) {

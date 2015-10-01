@@ -34,7 +34,7 @@ import java.util.Collection;
 /**
  * @author Albin Suresh
  */
-public class DefaultCopyProvider extends ClassInstanceProvider<Copier<?>> implements CopyProvider {
+public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<?>> implements CopyProvider {
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultCopyProvider.class);
 
@@ -57,7 +57,7 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Copier<?>> implem
                                      Serializer<T> serializer, ServiceConfiguration<?>... configs) {
     DefaultCopierConfiguration<T> conf = find(type, configs);
     Copier<T> copier;
-    final ClassInstanceConfiguration<Copier<?>> preConfigured = preconfigured.get(clazz.getName());
+    final ClassInstanceConfiguration<Copier<?>> preConfigured = preconfigured.get(clazz);
     if (conf != null && conf.getInstance() != null) {
       copier = conf.getInstance();
     } else if (conf != null && conf.getClazz().isAssignableFrom(SerializingCopier.class)) {
@@ -80,8 +80,7 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Copier<?>> implem
   }
 
   private <T> Copier<T> createCopier(Class<T> clazz, DefaultCopierConfiguration<T> config) {
-    String alias = (config != null ? null : clazz.getName());
-    Copier<T> copier = (Copier<T>) newInstance(alias, config);
+    Copier<T> copier = (Copier<T>) newInstance(clazz, config);
     if (copier == null) {
       copier = new IdentityCopier<T>();
     }

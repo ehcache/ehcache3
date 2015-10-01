@@ -24,7 +24,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 /**
  * @author Albin Suresh
  */
-public class DefaultCopyProviderConfiguration extends ClassInstanceProviderConfiguration<Copier<?>> implements ServiceCreationConfiguration<CopyProvider> {
+public class DefaultCopyProviderConfiguration extends ClassInstanceProviderConfiguration<Class<?>, Copier<?>> implements ServiceCreationConfiguration<CopyProvider> {
 
   @Override
   public Class<CopyProvider> getServiceType() {
@@ -38,12 +38,11 @@ public class DefaultCopyProviderConfiguration extends ClassInstanceProviderConfi
     if (copierClass == null) {
       throw new NullPointerException("Copier class cannot be null");
     }
-    String alias = clazz.getName();
-    if (getDefaults().containsKey(alias)) {
-      throw new IllegalArgumentException("Duplicate copier for class : " + alias);
+    if (getDefaults().containsKey(clazz)) {
+      throw new IllegalArgumentException("Duplicate copier for class : " + clazz);
     }
-    getDefaults().put(alias, new DefaultCopierConfiguration(copierClass, CopierConfiguration.Type.KEY));
-    getDefaults().put(alias, new DefaultCopierConfiguration(copierClass, CopierConfiguration.Type.VALUE));
+    getDefaults().put(clazz, new DefaultCopierConfiguration(copierClass, CopierConfiguration.Type.KEY));
+    getDefaults().put(clazz, new DefaultCopierConfiguration(copierClass, CopierConfiguration.Type.VALUE));
     return this;
   }
 }

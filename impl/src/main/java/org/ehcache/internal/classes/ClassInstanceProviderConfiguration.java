@@ -25,11 +25,11 @@ import java.util.Map;
  *
  * @author Alex Snaps
  */
-public class ClassInstanceProviderConfiguration<T> {
+public class ClassInstanceProviderConfiguration<K, T> {
 
-  private Map<String, ClassInstanceConfiguration<T>> defaults = new LinkedHashMap<String, ClassInstanceConfiguration<T>>();
+  private Map<K, ClassInstanceConfiguration<T>> defaults = new LinkedHashMap<K, ClassInstanceConfiguration<T>>();
 
-  public Map<String, ClassInstanceConfiguration<T>> getDefaults() {
+  public Map<K, ClassInstanceConfiguration<T>> getDefaults() {
     return defaults;
   }
 
