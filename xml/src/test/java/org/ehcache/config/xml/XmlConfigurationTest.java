@@ -391,10 +391,10 @@ public class XmlConfigurationTest {
 
     DefaultSerializationProviderConfiguration factoryConfiguration = (DefaultSerializationProviderConfiguration) configuration;
     assertThat(factoryConfiguration.getTransientSerializers().size(), is(4));
-    assertThat(factoryConfiguration.getTransientSerializers().get("java.lang.CharSequence"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer.class));
-    assertThat(factoryConfiguration.getTransientSerializers().get("java.lang.Number"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer2.class));
-    assertThat(factoryConfiguration.getTransientSerializers().get("java.lang.Long"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer3.class));
-    assertThat(factoryConfiguration.getTransientSerializers().get("java.lang.Integer"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer4.class));
+    assertThat(factoryConfiguration.getTransientSerializers().get(CharSequence.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer.class));
+    assertThat(factoryConfiguration.getTransientSerializers().get(Number.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer2.class));
+    assertThat(factoryConfiguration.getTransientSerializers().get(Long.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer3.class));
+    assertThat(factoryConfiguration.getTransientSerializers().get(Integer.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer4.class));
 
 
     List<ServiceConfiguration<?>> orderedServiceConfigurations = new ArrayList<ServiceConfiguration<?>>(xmlConfig.getCacheConfigurations().get("baz").getServiceConfigurations());

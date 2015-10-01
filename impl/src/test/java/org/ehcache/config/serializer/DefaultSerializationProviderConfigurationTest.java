@@ -37,7 +37,7 @@ public class DefaultSerializationProviderConfigurationTest {
     config.addSerializerFor(Long.class, TransientSerializer.class);
     
     assertTrue(config.getPersistentSerializers().isEmpty());
-    assertSame(TransientSerializer.class, config.getTransientSerializers().get(Long.class.getName()));
+    assertSame(TransientSerializer.class, config.getTransientSerializers().get(Long.class));
   }
 
   @Test
@@ -46,7 +46,7 @@ public class DefaultSerializationProviderConfigurationTest {
     config.addSerializerFor(Long.class, PersistentSerializer.class);
 
     assertTrue(config.getTransientSerializers().isEmpty());
-    assertSame(PersistentSerializer.class, config.getPersistentSerializers().get(Long.class.getName()));
+    assertSame(PersistentSerializer.class, config.getPersistentSerializers().get(Long.class));
   }
 
   @Test
@@ -54,8 +54,8 @@ public class DefaultSerializationProviderConfigurationTest {
     DefaultSerializationProviderConfiguration config = new DefaultSerializationProviderConfiguration();
     config.addSerializerFor(Long.class, ComboSerializer.class);
 
-    assertSame(ComboSerializer.class, config.getPersistentSerializers().get(Long.class.getName()));
-    assertSame(ComboSerializer.class, config.getTransientSerializers().get(Long.class.getName()));
+    assertSame(ComboSerializer.class, config.getPersistentSerializers().get(Long.class));
+    assertSame(ComboSerializer.class, config.getTransientSerializers().get(Long.class));
   }
 
   @Test(expected = IllegalArgumentException.class)

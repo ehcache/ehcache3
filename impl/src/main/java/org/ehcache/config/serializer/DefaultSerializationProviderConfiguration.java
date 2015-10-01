@@ -27,8 +27,8 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 public class DefaultSerializationProviderConfiguration implements ServiceCreationConfiguration<SerializationProvider> {
 
-  private final Map<String, Class<? extends Serializer<?>>> transientSerializers = new LinkedHashMap<String, Class<? extends Serializer<?>>>();
-  private final Map<String, Class<? extends Serializer<?>>> persistentSerializers = new LinkedHashMap<String, Class<? extends Serializer<?>>>();
+  private final Map<Class<?>, Class<? extends Serializer<?>>> transientSerializers = new LinkedHashMap<Class<?>, Class<? extends Serializer<?>>>();
+  private final Map<Class<?>, Class<? extends Serializer<?>>> persistentSerializers = new LinkedHashMap<Class<?>, Class<? extends Serializer<?>>>();
 
   @Override
   public Class<SerializationProvider> getServiceType() {
@@ -43,23 +43,22 @@ public class DefaultSerializationProviderConfiguration implements ServiceCreatio
       throw new NullPointerException("Serializer class cannot be null");
     }
     
-    String alias = serializableClass.getName(); 
     boolean transientConstructorPresent = false;
     boolean persistentConstructorPresent = false;
     
     if(transientConstructorPresent = isConstructorPresent(serializerClass, ClassLoader.class)) {
-      if (transientSerializers.containsKey(alias)) {
-        throw new IllegalArgumentException("Duplicate transient serializer for class : " + alias);
+      if (transientSerializers.containsKey(serializableClass)) {
+        throw new IllegalArgumentException("Duplicate transient serializer for class : " + serializableClass.getName());
       } else {
-        transientSerializers.put(alias, serializerClass);
+        transientSerializers.put(serializableClass, serializerClass);
       }
     }
     
     if(persistentConstructorPresent = isConstructorPresent(serializerClass, ClassLoader.class, FileBasedPersistenceContext.class)) {
-      if (persistentSerializers.containsKey(alias)) {
-        throw new IllegalArgumentException("Duplicate persistent serializer for class : " + alias);
+      if (persistentSerializers.containsKey(serializableClass)) {
+        throw new IllegalArgumentException("Duplicate persistent serializer for class : " + serializableClass.getName());
       } else {
-        persistentSerializers.put(alias, serializerClass);
+        persistentSerializers.put(serializableClass, serializerClass);
       }
     }
 
@@ -79,11 +78,11 @@ public class DefaultSerializationProviderConfiguration implements ServiceCreatio
     }
   } 
 
-  public Map<String, Class<? extends Serializer<?>>> getTransientSerializers() {
+  public Map<Class<?>, Class<? extends Serializer<?>>> getTransientSerializers() {
     return unmodifiableMap(transientSerializers);
   }
 
-  public Map<String, Class<? extends Serializer<?>>> getPersistentSerializers() {
+  public Map<Class<?>, Class<? extends Serializer<?>>> getPersistentSerializers() {
     return unmodifiableMap(persistentSerializers);
   }
 }
