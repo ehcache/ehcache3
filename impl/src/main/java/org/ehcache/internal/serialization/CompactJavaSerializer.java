@@ -48,7 +48,6 @@ import org.ehcache.spi.serialization.Serializer;
  *
  * @author Chris Dennis
  */
-@Serializer.Transient
 public class CompactJavaSerializer<T> implements Serializer<T> {
 
   private final AtomicInteger nextStreamIndex = new AtomicInteger(0);

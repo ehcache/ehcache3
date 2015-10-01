@@ -37,7 +37,6 @@ import org.ehcache.spi.service.FileBasedPersistenceContext;
  *
  * @author cdennis
  */
-@Serializer.Persistent
 public class CompactPersistentJavaSerializer<T> implements Serializer<T> {
 
   private final File stateFile;

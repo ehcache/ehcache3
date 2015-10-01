@@ -22,7 +22,6 @@ import org.ehcache.internal.serialization.CompactJavaSerializer;
 
 import org.ehcache.spi.serialization.Serializer;
 
-@Serializer.Transient
 public class TestSerializer<T> implements Serializer<T> {
   
   private final Serializer<T> serializer;

@@ -34,7 +34,6 @@ import java.util.Map;
  * 
  * @author cdennis
  */
-@Serializer.Transient @Serializer.Persistent
 public class JavaSerializer<T> implements Serializer<T> {
 
   private final ClassLoader classLoader;

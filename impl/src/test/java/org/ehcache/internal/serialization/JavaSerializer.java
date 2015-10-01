@@ -34,7 +34,6 @@ import org.ehcache.spi.serialization.Serializer;
  * 
  * @author cdennis
  */
-@Serializer.Transient @Serializer.Persistent
 public class JavaSerializer<T> implements Serializer<T> {
 
   private final ClassLoader classLoader;

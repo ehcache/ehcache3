@@ -223,18 +223,29 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 <1> Configure the key's serializer.
 <2> Configure the value's serializer.
 
+Serializer instances are created per cache for keys and values separately.
+That is, even if you configure the same serializer type for multiple caches, different instances are created for each cache.
+The same applies to the serializers configured at the cache manager level as well.
+Similarly, even within a cache, if you configure the same serializer type for both key and value, different instances are created. 
+
 ===== Implementation of a `Serializer`
 
 When implementing a `org.ehcache.spi.serialization.Serializer`, you obviously need to respect the interface contract.
-In addition, there are a few implicit contracts:
 
-* Your implementation must have a public constructor taking a `ClassLoader` as parameter.
-* There are two annotations that you have to use to mark your `Serializer` - a single implementation can use both:
-** `org.ehcache.spi.serialization.Serializer.Transient`: With this annotation you indicate that the `Serializer`
-  implementation is fit for use inside a transient cache.
-** `org.ehcache.spi.serialization.Serializer.Persistent`: With this annotation you indicate that the `Serializer`
-  implementation is fit for use inside a persistent cache. The constructor can take an additional parameter, a
-  `org.ehcache.spi.service.FileBasedPersistenceContext` which can then be used to persist serialization metadata.
+In addition, if you are using the `DefaultSerializationProvider` service provided by Ehcache; which would be the case
+for most of the users, unless they are using their own implementation of `SerializationProvider` service; there are a
+few implicit contracts:
+
+* A serializer implementation to be used with transient caches must have a public constructor taking a `ClassLoader` as parameter.
+* A serializer implementation to be used with persistent caches must have a public two-argument constructor taking a `ClassLoader` and a `FileBasedPersistenceContext` as parameters.
+ 
+You are free to have as many extra constructors as you want. But these are the only constructors that will be used by
+Ehcache to instantiate these serializers. For a transient cache the single-argument constructor will be used and for a
+persistent cache the two-argument constructor will be used. Even though the user is enforced to have either or both the
+constructors in his serializer implementation, the usage of these arguments is up to the user. The user can decide to
+completely ignore these parameters. But the presence of these constructors is a strict requirement. Now, even though the
+usage of the constructor arguments is not enforced, it is highly recommended to use the `FileBasedPersistenceContext` to
+persist the state of the serializers, if there is any. 
 
 ==== Store-By-Value Caches with Copiers
 
