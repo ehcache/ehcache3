@@ -76,6 +76,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import org.ehcache.util.ClassLoading;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -342,7 +343,7 @@ public class XmlConfigurationTest {
   public void testNoClassLoaderSpecified() throws Exception {
     XmlConfiguration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
 
-    assertSame(config.getClassLoader(), Thread.currentThread().getContextClassLoader());
+    assertSame(config.getClassLoader(), ClassLoading.getDefaultClassLoader());
     assertNull(config.getCacheConfigurations().get("bar").getClassLoader());
   }
   
