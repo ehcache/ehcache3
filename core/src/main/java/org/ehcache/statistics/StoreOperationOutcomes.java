@@ -51,9 +51,24 @@ public interface StoreOperationOutcomes {
   };
 
   /**
+   * The access outcomes
+   */
+  enum AccessOutcome implements StoreOperationOutcomes {
+    HIT,
+    MISS,
+    WRITE,
+    REMOVE
+  }
+
+  enum TierHelpfulnessOutcome implements StoreOperationOutcomes {
+    HELPFUL,
+    UNHELPFUL
+  }
+
+  /**
    * The eviction outcomes.
    */
-  enum EvictionOutcome implements CacheOperationOutcomes {
+  enum EvictionOutcome implements StoreOperationOutcomes {
     /** success. */
     SUCCESS,
     /** failure */

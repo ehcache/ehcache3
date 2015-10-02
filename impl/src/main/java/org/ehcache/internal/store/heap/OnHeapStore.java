@@ -124,6 +124,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   };
 
+  private final OperationObserver<StoreOperationOutcomes.AccessOutcome> accessObserver = operation(StoreOperationOutcomes.AccessOutcome.class).named("access").of(this).tag("onheap-store").build();
+  private final OperationObserver<StoreOperationOutcomes.TierHelpfulnessOutcome> tierHelpfulnessObserver = operation(StoreOperationOutcomes.TierHelpfulnessOutcome.class).named("helpfulness").of(this).tag("onheap-store").build();
   private final OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver = operation(StoreOperationOutcomes.EvictionOutcome.class).named("eviction").of(this).tag("onheap-store").build();
   private final OperationObserver<StoreOperationOutcomes.ExpirationOutcome> expirationObserver = operation(StoreOperationOutcomes.ExpirationOutcome.class).named("expiration").of(this).tag("onheap-store").build();
   private final OnHeapStoreStatsSettings onHeapStoreStatsSettings;
@@ -174,7 +176,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
   
   private OnHeapValueHolder<V> internalGet(final K key, final boolean updateAccess) throws CacheAccessException {
-    return map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+    accessObserver.begin();
+    OnHeapValueHolder<V> result = map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
         final long now = timeSource.getTimeMillis();
@@ -187,10 +190,15 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         if (updateAccess) {
           setAccessTimeAndExpiry(key, mappedValue, now);
         }
-
         return mappedValue;
       }
     });
+    if (result == null) {
+      accessObserver.end(StoreOperationOutcomes.AccessOutcome.MISS);
+    } else {
+      accessObserver.end(StoreOperationOutcomes.AccessOutcome.HIT);
+    }
+    return result;
   }
 
   @Override
@@ -205,6 +213,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   private OnHeapValueHolder<V> putReturnHolder(final K key, final V value) throws CacheAccessException {
+    accessObserver.begin();
     checkKey(key);
     checkValue(value);
 
@@ -231,14 +240,18 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     if (entryActuallyAdded.get()) {
       enforceCapacity(1);
     }
-    
+
+    accessObserver.end(StoreOperationOutcomes.AccessOutcome.WRITE);
     return valuePut;
   }
 
   @Override
   public void remove(final K key) throws CacheAccessException {
+    accessObserver.begin();
     checkKey(key);
-    map.remove(key);
+    if (map.remove(key) != null) {
+      accessObserver.end(StoreOperationOutcomes.AccessOutcome.REMOVE);
+    }
   }
 
 
@@ -252,6 +265,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
   
   private OnHeapValueHolder<V> putIfAbsent(final K key, final V value, boolean returnInCacheHolder) throws CacheAccessException {
+    accessObserver.begin();
     checkKey(key);
     checkValue(value);
 
@@ -277,7 +291,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     });
 
     if (entryActuallyAdded.get()) {
+      accessObserver.end(StoreOperationOutcomes.AccessOutcome.WRITE);
       enforceCapacity(1);
+    } else {
+      accessObserver.end(StoreOperationOutcomes.AccessOutcome.HIT);
     }
     
     if (returnInCacheHolder) {
@@ -289,6 +306,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   @Override
   public boolean remove(final K key, final V value) throws CacheAccessException {
+    accessObserver.begin();
     checkKey(key);
     checkValue(value);
 
@@ -311,12 +329,18 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         }
       }
     });
-    
-    return removed.get();
+
+    if (removed.get()) {
+      accessObserver.end(StoreOperationOutcomes.AccessOutcome.REMOVE);
+      return true;
+    } else {
+      return false;
+    }
   }
 
   @Override
   public ValueHolder<V> replace(final K key, final V value) throws CacheAccessException {
+    accessObserver.begin();
     checkKey(key);
     checkValue(value);
    
@@ -336,12 +360,17 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         }
       }
     });
-    
-    return returnValue.get();
+
+    OnHeapValueHolder<V> valueHolder = returnValue.get();
+    if (valueHolder != null) {
+      accessObserver.end(StoreOperationOutcomes.AccessOutcome.WRITE);
+    }
+    return valueHolder;
   }
 
   @Override
   public boolean replace(final K key, final V oldValue, final V newValue) throws CacheAccessException {
+    accessObserver.begin();
     checkKey(key);
     checkValue(oldValue);
     checkValue(newValue);
@@ -367,8 +396,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         }
       }
     });
-    
-    return returnValue.get();
+
+    if (returnValue.get()) {
+      accessObserver.end(StoreOperationOutcomes.AccessOutcome.WRITE);
+      return true;
+    } else {
+      return false;
+    }
   }
 
   @Override
@@ -400,6 +434,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
       
       private void advance() {
+        accessObserver.begin();
         next = null;
         while (next == null && it.hasNext()) {
           Map.Entry<K, OnHeapValueHolder<V>> entry = it.next();
@@ -411,6 +446,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           }
           
           next = entry;
+        }
+        if (next == null) {
+          accessObserver.end(StoreOperationOutcomes.AccessOutcome.MISS);
+        } else {
+          accessObserver.end(StoreOperationOutcomes.AccessOutcome.HIT);
         }
       }
       
@@ -429,7 +469,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         advance();
     
         setAccessTimeAndExpiry(thisEntry.getKey(), thisEntry.getValue(), timeSource.getTimeMillis());
-        
+
         return new Cache.Entry<K, ValueHolder<V>>() {
           @Override
           public K getKey() {
@@ -463,6 +503,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   @Override
   public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) throws CacheAccessException {
+    accessObserver.begin();
+    tierHelpfulnessObserver.begin();
     MapWrapper<K, V> backEnd = map;
 
     OnHeapValueHolder<V> cachedValue = backEnd.get(key);
@@ -484,22 +526,33 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           if(value != null) {
             newValue = importValueFromLowerTier(key, value, now);
           } else {
-            backEnd.remove(key, fault);
+            if (backEnd.remove(key, fault)) {
+              accessObserver.end(StoreOperationOutcomes.AccessOutcome.REMOVE);
+            }
+            tierHelpfulnessObserver.end(StoreOperationOutcomes.TierHelpfulnessOutcome.UNHELPFUL);
             return null;
           }
 
           if (backEnd.replace(key, fault, newValue)) {
+            accessObserver.end(StoreOperationOutcomes.AccessOutcome.WRITE);
+            tierHelpfulnessObserver.end(StoreOperationOutcomes.TierHelpfulnessOutcome.UNHELPFUL);
             return getValue(newValue);
           } else {
             ValueHolder<V> p = getValue(backEnd.remove(key));
             if (p != null) {
               notifyInvalidation(key, p);
               if (p.isExpired(now, TimeUnit.MILLISECONDS)) {
+                accessObserver.end(StoreOperationOutcomes.AccessOutcome.MISS);
+                tierHelpfulnessObserver.end(StoreOperationOutcomes.TierHelpfulnessOutcome.UNHELPFUL);
                 return null;
               } else {
+                accessObserver.end(StoreOperationOutcomes.AccessOutcome.REMOVE);
+                tierHelpfulnessObserver.end(StoreOperationOutcomes.TierHelpfulnessOutcome.UNHELPFUL);
                 return p;
               }
             }
+            accessObserver.end(StoreOperationOutcomes.AccessOutcome.HIT);
+            tierHelpfulnessObserver.end(StoreOperationOutcomes.TierHelpfulnessOutcome.UNHELPFUL);
             return newValue;
           }
         } catch (Throwable e) {
@@ -514,33 +567,53 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         if (backEnd.remove(key, cachedValue)) {
           onExpiration(key, cachedValue);
         }
+        accessObserver.end(StoreOperationOutcomes.AccessOutcome.MISS);
+        tierHelpfulnessObserver.end(StoreOperationOutcomes.TierHelpfulnessOutcome.HELPFUL);
         return null;
       }
       // TODO find a way to increment hit count on a fault
       setAccessTimeAndExpiry(key, cachedValue, now);
     }
 
+    accessObserver.end(StoreOperationOutcomes.AccessOutcome.HIT);
+    tierHelpfulnessObserver.end(StoreOperationOutcomes.TierHelpfulnessOutcome.HELPFUL);
     return getValue(cachedValue);
   }
 
   @Override
   public void invalidate(final K key) throws CacheAccessException {
+    accessObserver.begin();
+    tierHelpfulnessObserver.begin();
+
+    final AtomicBoolean removed = new AtomicBoolean(false);
     map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(final K k, final OnHeapValueHolder<V> present) {
         if (!(present instanceof Fault)) {
           notifyInvalidation(key, present);
         }
+        removed.set(true);
         return null;
       }
     });
+    if (removed.get()) {
+      accessObserver.end(StoreOperationOutcomes.AccessOutcome.REMOVE);
+      tierHelpfulnessObserver.end(StoreOperationOutcomes.TierHelpfulnessOutcome.UNHELPFUL);
+    }
   }
 
   @Override
   public void silentInvalidate(K key, final Function<Store.ValueHolder<V>, Void> function) throws CacheAccessException {
+    accessObserver.begin();
+    tierHelpfulnessObserver.begin();
+
+    final AtomicBoolean removed = new AtomicBoolean(false);
     map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K k, OnHeapValueHolder<V> onHeapValueHolder) {
+        if (onHeapValueHolder != null) {
+          removed.set(true);
+        }
         OnHeapValueHolder<V> holderToPass = onHeapValueHolder;
         if (onHeapValueHolder instanceof Fault) {
           holderToPass = null;
@@ -549,6 +622,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         return null;
       }
     });
+    if (removed.get()) {
+      accessObserver.end(StoreOperationOutcomes.AccessOutcome.REMOVE);
+      tierHelpfulnessObserver.end(StoreOperationOutcomes.TierHelpfulnessOutcome.UNHELPFUL);
+    }
   }
 
   private void notifyInvalidation(final K key, final ValueHolder<V> p) {
@@ -695,9 +772,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   
   @Override
   public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+    accessObserver.begin();
     checkKey(key);
 
     final long now = timeSource.getTimeMillis();
+    final AtomicBoolean write = new AtomicBoolean(false);
     OnHeapValueHolder<V> computeResult = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
@@ -709,6 +788,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         V existingValue = mappedValue == null ? null : mappedValue.value();
         V computedValue = mappingFunction.apply(mappedKey, existingValue);        
         if (computedValue == null) {
+          if (existingValue != null) {
+            write.set(true);
+          }
           return null;
         } else if ((eq(existingValue, computedValue)) && (! replaceEqual.apply())) {
           if (mappedValue != null) {
@@ -718,6 +800,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         }
         
         checkValue(computedValue);
+        write.set(true);
         if (mappedValue != null) {
           long expirationTime = mappedValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
           return newUpdateValueHolder(key, existingValue, computedValue, now, expirationTime);
@@ -726,15 +809,28 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         }
       }
     });
+    if (computeResult == null) {
+      if (write.get()) {
+        accessObserver.end(StoreOperationOutcomes.AccessOutcome.REMOVE);
+      } else {
+        accessObserver.end(StoreOperationOutcomes.AccessOutcome.MISS);
+      }
+    } else if (write.get()) {
+      accessObserver.end(StoreOperationOutcomes.AccessOutcome.WRITE);
+    } else {
+      accessObserver.end(StoreOperationOutcomes.AccessOutcome.HIT);
+    }
     return enforceCapacityIfValueNotNull(computeResult);
   }
 
   @Override
   public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) {
+    accessObserver.begin();
     checkKey(key);
     
     final long now = timeSource.getTimeMillis();
 
+    final AtomicBoolean write = new AtomicBoolean(false);
     OnHeapValueHolder<V> computeResult = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
@@ -742,6 +838,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           if (mappedValue != null) {
             onExpiration(mappedKey, mappedValue);
           }
+          write.set(true);
           V computedValue = mappingFunction.apply(mappedKey);
           if (computedValue == null) {
             return null;
@@ -755,6 +852,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         }
       }
     });
+    if (write.get()) {
+      if (computeResult != null) {
+        accessObserver.end(StoreOperationOutcomes.AccessOutcome.WRITE);
+      }
+    } else {
+      accessObserver.end(StoreOperationOutcomes.AccessOutcome.HIT);
+    }
     return enforceCapacityIfValueNotNull(computeResult);
   }
 
@@ -772,9 +876,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   
   @Override
   public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction, final NullaryFunction<Boolean> replaceEqual) {
+    accessObserver.begin();
     checkKey(key);
 
-    return map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+    final AtomicBoolean write = new AtomicBoolean(false);
+    OnHeapValueHolder<V> computeResult = map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
         final long now = timeSource.getTimeMillis();
@@ -787,6 +893,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         V existingValue = mappedValue.value();
         V computedValue = remappingFunction.apply(mappedKey, existingValue);
         if (computedValue == null) {
+          write.set(true);
           return null;
         }
 
@@ -798,9 +905,23 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         checkValue(computedValue);
 
         long expirationTime = mappedValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
+        write.set(true);
         return newUpdateValueHolder(key, existingValue, computedValue, now, expirationTime);
       }
     });
+
+    if (computeResult == null) {
+      if (write.get()) {
+        accessObserver.end(StoreOperationOutcomes.AccessOutcome.REMOVE);
+      } else {
+        accessObserver.end(StoreOperationOutcomes.AccessOutcome.MISS);
+      }
+    } else if (write.get()) {
+      accessObserver.end(StoreOperationOutcomes.AccessOutcome.WRITE);
+    } else {
+      accessObserver.end(StoreOperationOutcomes.AccessOutcome.HIT);
+    }
+    return computeResult;
   }
   
   @Override
