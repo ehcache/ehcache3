@@ -30,7 +30,7 @@ public class ClassInstanceProviderConfigurationTest {
 
   @Test
   public void testOrdering() throws Exception {
-    ClassInstanceProviderConfiguration<String> classInstanceProviderFactoryConfig = new ClassInstanceProviderConfiguration<String>();
+    ClassInstanceProviderConfiguration<String, String> classInstanceProviderFactoryConfig = new ClassInstanceProviderConfiguration<String, String>();
 
     for (int i = 0; i < 100; i++) {
       classInstanceProviderFactoryConfig.getDefaults().put("" + i, new ClassInstanceConfiguration<String>(String.class));

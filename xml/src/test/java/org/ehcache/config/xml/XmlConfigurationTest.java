@@ -17,7 +17,9 @@
 package org.ehcache.config.xml;
 
 import com.pany.ehcache.copier.AnotherPersonCopier;
+import com.pany.ehcache.copier.Description;
 import com.pany.ehcache.copier.DescriptionCopier;
+import com.pany.ehcache.copier.Person;
 import com.pany.ehcache.copier.PersonCopier;
 import com.pany.ehcache.serializer.TestSerializer;
 import com.pany.ehcache.serializer.TestSerializer2;
@@ -74,6 +76,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import org.ehcache.util.ClassLoading;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -340,7 +343,7 @@ public class XmlConfigurationTest {
   public void testNoClassLoaderSpecified() throws Exception {
     XmlConfiguration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
 
-    assertSame(config.getClassLoader(), Thread.currentThread().getContextClassLoader());
+    assertSame(config.getClassLoader(), ClassLoading.getDefaultClassLoader());
     assertNull(config.getCacheConfigurations().get("bar").getClassLoader());
   }
   
@@ -389,10 +392,10 @@ public class XmlConfigurationTest {
 
     DefaultSerializationProviderConfiguration factoryConfiguration = (DefaultSerializationProviderConfiguration) configuration;
     assertThat(factoryConfiguration.getTransientSerializers().size(), is(4));
-    assertThat(factoryConfiguration.getTransientSerializers().get("java.lang.CharSequence"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer.class));
-    assertThat(factoryConfiguration.getTransientSerializers().get("java.lang.Number"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer2.class));
-    assertThat(factoryConfiguration.getTransientSerializers().get("java.lang.Long"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer3.class));
-    assertThat(factoryConfiguration.getTransientSerializers().get("java.lang.Integer"), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer4.class));
+    assertThat(factoryConfiguration.getTransientSerializers().get(CharSequence.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer.class));
+    assertThat(factoryConfiguration.getTransientSerializers().get(Number.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer2.class));
+    assertThat(factoryConfiguration.getTransientSerializers().get(Long.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer3.class));
+    assertThat(factoryConfiguration.getTransientSerializers().get(Integer.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer4.class));
 
 
     List<ServiceConfiguration<?>> orderedServiceConfigurations = new ArrayList<ServiceConfiguration<?>>(xmlConfig.getCacheConfigurations().get("baz").getServiceConfigurations());
@@ -426,9 +429,9 @@ public class XmlConfigurationTest {
 
     DefaultCopyProviderConfiguration factoryConfiguration = (DefaultCopyProviderConfiguration) configuration;
     assertThat(factoryConfiguration.getDefaults().size(), is(2));
-    assertThat(factoryConfiguration.getDefaults().get("com.pany.ehcache.copier.Description").getClazz(),
+    assertThat(factoryConfiguration.getDefaults().get(Description.class).getClazz(),
         Matchers.<Class<? extends Copier>>equalTo(DescriptionCopier.class));
-    assertThat(factoryConfiguration.getDefaults().get("com.pany.ehcache.copier.Person").getClazz(),
+    assertThat(factoryConfiguration.getDefaults().get(Person.class).getClazz(),
         Matchers.<Class<? extends Copier>>equalTo(PersonCopier.class));
 
 

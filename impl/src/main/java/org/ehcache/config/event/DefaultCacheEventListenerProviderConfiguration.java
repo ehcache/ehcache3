@@ -24,7 +24,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 /**
  * @author rism
  */
-public class DefaultCacheEventListenerProviderConfiguration extends ClassInstanceProviderConfiguration<CacheEventListener<?, ?>> implements ServiceConfiguration<CacheEventListenerProvider> {
+public class DefaultCacheEventListenerProviderConfiguration extends ClassInstanceProviderConfiguration<String, CacheEventListener<?, ?>> implements ServiceConfiguration<CacheEventListenerProvider> {
 
   @Override
   public Class<CacheEventListenerProvider> getServiceType() {

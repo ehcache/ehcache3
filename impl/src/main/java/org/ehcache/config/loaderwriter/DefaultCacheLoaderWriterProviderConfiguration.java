@@ -24,7 +24,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 /**
  * @author Alex Snaps
  */
-public class DefaultCacheLoaderWriterProviderConfiguration extends ClassInstanceProviderConfiguration<CacheLoaderWriter<?, ?>> implements ServiceCreationConfiguration<CacheLoaderWriterProvider> {
+public class DefaultCacheLoaderWriterProviderConfiguration extends ClassInstanceProviderConfiguration<String, CacheLoaderWriter<?, ?>> implements ServiceCreationConfiguration<CacheLoaderWriterProvider> {
 
   @Override
   public Class<CacheLoaderWriterProvider> getServiceType() {
