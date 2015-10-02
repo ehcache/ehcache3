@@ -141,6 +141,29 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<PinnableSe
       }
     }
 
+    public V computeIfPresentAndPin(K key, BiFunction<K, V, V> mappingFunction) {
+      final Lock lock = writeLock();
+      lock.lock();
+      try {
+        final V previousValue = get(key);
+        if (previousValue == null) {
+          return null;
+        }
+        final V newValue = mappingFunction.apply(key, previousValue);
+        if (newValue != previousValue) {
+          if (newValue != null) {
+            put(key, newValue);
+          } else {
+            remove(key);
+          }
+        }
+        getAndSetMetadata(key, Metadata.PINNED, Metadata.PINNED);
+        return newValue;
+      } finally {
+        lock.unlock();
+      }
+    }
+
     /**
      * Computes a new value for the given key if a mapping is present and pinned, <code>BiFunction</code> is invoked under appropriate lock scope
      * The pinning bit from the metadata, will be flipped (i.e. unset) if the <code>Function<V, Boolean></code> returns true

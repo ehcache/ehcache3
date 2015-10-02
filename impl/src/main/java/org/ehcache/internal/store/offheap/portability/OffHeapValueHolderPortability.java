@@ -22,9 +22,7 @@ import org.ehcache.spi.serialization.Serializer;
 import org.terracotta.offheapstore.storage.portability.WriteBackPortability;
 import org.terracotta.offheapstore.storage.portability.WriteContext;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
-import org.ehcache.exceptions.SerializerException;
 
 /**
  * OffHeapValueHolderPortability
@@ -70,16 +68,12 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
 
   @Override
   public OffHeapValueHolder<V> decode(ByteBuffer byteBuffer, WriteContext writeContext) {
-    try {
-      long id = byteBuffer.getLong();
-      long creationTime = byteBuffer.getLong();
-      long lastAccessTime = byteBuffer.getLong();
-      long expireTime = byteBuffer.getLong();
-      long hits = byteBuffer.getLong();
-      OffHeapValueHolder<V> valueHolder = new OffHeapValueHolder<V>(id, serializer.read(byteBuffer), creationTime, expireTime, lastAccessTime, hits, writeContext);
-      return valueHolder;
-    } catch (ClassNotFoundException e) {
-      throw new SerializerException(e);
-    }
+    long id = byteBuffer.getLong();
+    long creationTime = byteBuffer.getLong();
+    long lastAccessTime = byteBuffer.getLong();
+    long expireTime = byteBuffer.getLong();
+    long hits = byteBuffer.getLong();
+    OffHeapValueHolder<V> valueHolder = new OffHeapValueHolder<V>(id, byteBuffer.slice(), serializer, creationTime, expireTime, lastAccessTime, hits, writeContext);
+    return valueHolder;
   }
 }

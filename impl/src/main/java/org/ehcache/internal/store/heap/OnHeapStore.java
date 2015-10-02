@@ -49,7 +49,9 @@ import org.ehcache.internal.store.heap.holders.SerializedOnHeapValueHolder;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.tiering.BinaryValueHolder;
 import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.spi.cache.tiering.HigherCachingTier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -86,7 +88,7 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
 /**
  * @author Alex Snaps
  */
-public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
+public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   private static final Logger LOG = LoggerFactory.getLogger(OnHeapStore.class);
 
@@ -536,14 +538,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   }
 
   @Override
-  public void invalidate(K key, final NullaryFunction<K> function) throws CacheAccessException {
+  public void silentInvalidate(K key, final Function<Store.ValueHolder<V>, Void> function) throws CacheAccessException {
     map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K k, OnHeapValueHolder<V> onHeapValueHolder) {
-        if (onHeapValueHolder != null && !(onHeapValueHolder instanceof Fault)) {
-          notifyInvalidation(k, onHeapValueHolder);
-        }
-        function.apply();
+        function.apply(onHeapValueHolder);
         return null;
       }
     });
@@ -939,7 +938,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
     V realValue = valueHolder.value();
     Duration expiration = expiry.getExpiryForAccess(key, realValue);
     if(valueCopier instanceof SerializingCopier) {
-      return new SerializedOnHeapValueHolder<V>(valueHolder, realValue, ((SerializingCopier)valueCopier).getSerializer(), now, expiration);
+      if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder)valueHolder).isBinaryValueAvailable()) {
+        return new SerializedOnHeapValueHolder<V>(valueHolder, ((BinaryValueHolder) valueHolder).getBinaryValue(), ((SerializingCopier<V>) valueCopier)
+            .getSerializer(), now, expiration);
+      }
+      return new SerializedOnHeapValueHolder<V>(valueHolder, realValue, ((SerializingCopier<V>)valueCopier).getSerializer(), now, expiration);
     } else {
       return new CopiedOnHeapValueHolder<V>(valueHolder, realValue, valueCopier, now, expiration);
     }
@@ -947,7 +950,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
 
   private OnHeapValueHolder<V> makeValue(V value, long creationTime, long expirationTime, Copier<V> valueCopier) {
     if(valueCopier instanceof SerializingCopier) {
-      return makeSerializedValue(value, creationTime, expirationTime, ((SerializingCopier)valueCopier).getSerializer());
+      return makeSerializedValue(value, creationTime, expirationTime, ((SerializingCopier<V>)valueCopier).getSerializer());
     } else {
       return makeCopiedValue(value, creationTime, expirationTime, valueCopier);
     }

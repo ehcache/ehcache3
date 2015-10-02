@@ -48,14 +48,6 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
   void invalidate(K key) throws CacheAccessException;
 
   /**
-   * Remove a mapping, then call a function under the same lock scope irrespectively of a mapping being there or not.
-   * @param key the key.
-   * @param function the function to call.
-   * @throws CacheAccessException
-   */
-  void invalidate(K key, NullaryFunction<K> function) throws CacheAccessException;
-
-  /**
    * Empty out the caching store.
    * @throws CacheAccessException
    */
