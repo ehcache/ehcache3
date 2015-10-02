@@ -21,8 +21,7 @@ import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.config.xml.model.BaseCacheType;
-import org.ehcache.config.xml.model.CacheIntegration;
-import org.ehcache.config.xml.model.CacheIntegration.Writebehind;
+import org.ehcache.config.xml.model.CacheIntegrationType;
 import org.ehcache.config.xml.model.CacheTemplateType;
 import org.ehcache.config.xml.model.CacheType;
 import org.ehcache.config.xml.model.ConfigType;
@@ -254,8 +253,8 @@ class ConfigurationParser {
           public String loaderWriter() {
             String configClass = null;
             for (BaseCacheType source : sources) {
-              final CacheIntegration integration = source.getIntegration();
-              final CacheIntegration.Loaderwriter loaderWriter = integration != null ? integration.getLoaderwriter() : null;
+              final CacheIntegrationType integration = source.getIntegration();
+              final CacheIntegrationType.LoaderWriter loaderWriter = integration != null ? integration.getLoaderWriter() : null;
               if (loaderWriter != null) {
                 configClass = loaderWriter.getClazz();
                 break;
@@ -268,10 +267,10 @@ class ConfigurationParser {
           public Iterable<Listener> listeners() {
             Set<Listener> cacheListenerSet = new HashSet<Listener>();
             for (BaseCacheType source : sources) {
-              final CacheIntegration integration = source.getIntegration();
-              final List<CacheIntegration.Listener> listeners = integration != null ? integration.getListener() : null;
+              final CacheIntegrationType integration = source.getIntegration();
+              final List<CacheIntegrationType.Listener> listeners = integration != null ? integration.getListener() : null;
               if (listeners != null) {
-                for (final CacheIntegration.Listener listener : listeners) {
+                for (final CacheIntegrationType.Listener listener : listeners) {
                   cacheListenerSet.add(new Listener() {
                     @Override
                     public String className() {
@@ -348,8 +347,8 @@ class ConfigurationParser {
           @Override
           public WriteBehind writeBehind() {
             for (BaseCacheType source : sources) {
-              final CacheIntegration integration = source.getIntegration();
-              final CacheIntegration.Writebehind writebehind = integration != null ? integration.getWritebehind() : null;
+              final CacheIntegrationType integration = source.getIntegration();
+              final CacheIntegrationType.WriteBehind writebehind = integration != null ? integration.getWriteBehind() : null;
               if (writebehind != null) {
                 return new XmlWriteBehind(writebehind);
               }
@@ -463,10 +462,10 @@ class ConfigurationParser {
           @Override
           public Iterable<Listener> listeners() {
             Set<Listener> listenerSet = new HashSet<Listener>();
-            final CacheIntegration integration = cacheTemplate.getIntegration();
-            final List<CacheIntegration.Listener> listeners = integration != null ? integration.getListener(): null;
+            final CacheIntegrationType integration = cacheTemplate.getIntegration();
+            final List<CacheIntegrationType.Listener> listeners = integration != null ? integration.getListener(): null;
             if(listeners != null) {
-              for(final CacheIntegration.Listener listener : listeners) {
+              for(final CacheIntegrationType.Listener listener : listeners) {
                 listenerSet.add(new Listener() {
                   @Override
                   public String className() {
@@ -495,8 +494,8 @@ class ConfigurationParser {
 
           @Override
           public String loaderWriter() {
-            final CacheIntegration integration = cacheTemplate.getIntegration();
-            final CacheIntegration.Loaderwriter loaderWriter = integration != null ? integration.getLoaderwriter(): null;
+            final CacheIntegrationType integration = cacheTemplate.getIntegration();
+            final CacheIntegrationType.LoaderWriter loaderWriter = integration != null ? integration.getLoaderWriter(): null;
             return loaderWriter != null ? loaderWriter.getClazz() : null;
           }
 
@@ -540,8 +539,8 @@ class ConfigurationParser {
 
           @Override
           public WriteBehind writeBehind() {
-            final CacheIntegration integration = cacheTemplate.getIntegration();
-            final CacheIntegration.Writebehind writebehind = integration != null ? integration.getWritebehind(): null;
+            final CacheIntegrationType integration = cacheTemplate.getIntegration();
+            final CacheIntegrationType.WriteBehind writebehind = integration != null ? integration.getWriteBehind(): null;
             return writebehind != null ? new XmlWriteBehind(writebehind) : null;
           }
         });
@@ -755,9 +754,9 @@ class ConfigurationParser {
   
   private static class XmlWriteBehind implements WriteBehind {
     
-    private final Writebehind writebehind; 
+    private final CacheIntegrationType.WriteBehind writebehind;
 
-    private XmlWriteBehind(Writebehind writebehind) {
+    private XmlWriteBehind(CacheIntegrationType.WriteBehind writebehind) {
       this.writebehind = writebehind;
     }
     
@@ -768,7 +767,7 @@ class ConfigurationParser {
 
     @Override
     public int batchSize() {
-      return this.writebehind.getBatchsize().intValue();
+      return this.writebehind.getBatchSize().intValue();
     }
 
     @Override
@@ -808,7 +807,7 @@ class ConfigurationParser {
 
     @Override
     public int rateLimitPerSecond() {
-      return this.writebehind.getRatelimitpersecond().intValue();
+      return this.writebehind.getRateLimitPerSecond().intValue();
     }
     
   }

@@ -28,7 +28,7 @@
     </ehcache:resources>
   </ehcache:cache-template>
 
-  <ehcache:cache alias="templatedTieredResource" usesTemplate="tieredResourceTemplate">
+  <ehcache:cache alias="templatedTieredResource" uses-template="tieredResourceTemplate">
   </ehcache:cache>
 
   <ehcache:cache-template name="persistentTieredResourceTemplate">
@@ -40,7 +40,7 @@
     </ehcache:resources>
   </ehcache:cache-template>
 
-  <ehcache:cache alias="persistentTemplatedTieredResource" usesTemplate="persistentTieredResourceTemplate">
+  <ehcache:cache alias="persistentTemplatedTieredResource" uses-template="persistentTieredResourceTemplate">
   </ehcache:cache>
 
   <ehcache:cache-template name="tieredOffHeapResourceTemplate">
@@ -52,7 +52,7 @@
     </ehcache:resources>
   </ehcache:cache-template>
 
-  <ehcache:cache alias="templatedOffHeapTieredResource" usesTemplate="tieredOffHeapResourceTemplate">
+  <ehcache:cache alias="templatedOffHeapTieredResource" uses-template="tieredOffHeapResourceTemplate">
   </ehcache:cache>
 
   <ehcache:cache-template name="explicitHeapResourceTemplate">
@@ -63,7 +63,7 @@
     </ehcache:resources>
   </ehcache:cache-template>
 
-  <ehcache:cache alias="templatedExplicitHeapResource" usesTemplate="explicitHeapResourceTemplate">
+  <ehcache:cache alias="templatedExplicitHeapResource" uses-template="explicitHeapResourceTemplate">
   </ehcache:cache>
 
   <ehcache:cache-template name="implicitHeapResourceTemplate">
@@ -71,7 +71,7 @@
     <ehcache:value-type>java.lang.String</ehcache:value-type>
   </ehcache:cache-template>
 
-  <ehcache:cache alias="templatedImplicitHeapResource" usesTemplate="implicitHeapResourceTemplate">
+  <ehcache:cache alias="templatedImplicitHeapResource" uses-template="implicitHeapResourceTemplate">
   </ehcache:cache>
 
 </ehcache:config>

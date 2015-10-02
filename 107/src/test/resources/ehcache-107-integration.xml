@@ -24,9 +24,9 @@
     <ehcache:eviction-prioritizer>LFU</ehcache:eviction-prioritizer>
 
     <ehcache:integration>
-      <ehcache:loaderwriter>
+      <ehcache:loader-writer>
         <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>
-      </ehcache:loaderwriter>
+      </ehcache:loader-writer>
     </ehcache:integration>
 
     <ehcache:heap size="200" unit="entries"/>
@@ -41,9 +41,9 @@
     </ehcache:expiry>
 
     <ehcache:integration>
-        <ehcache:loaderwriter>
+        <ehcache:loader-writer>
           <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>
-      </ehcache:loaderwriter>
+      </ehcache:loader-writer>
     </ehcache:integration>
 
     <ehcache:heap size="200" unit="entries"/>
@@ -58,7 +58,7 @@
     <ehcache:heap size="200" unit="entries"/>
   </ehcache:cache-template>
 
-  <ehcache:cache alias="customerCache" usesTemplate="myDefaultTemplate">
+  <ehcache:cache alias="customerCache" uses-template="myDefaultTemplate">
     <ehcache:key-type>java.lang.Long</ehcache:key-type>
     <ehcache:value-type>com.pany.domain.Customer</ehcache:value-type>
 

@@ -22,9 +22,9 @@
     <ehcache:key-type>java.lang.Number</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:integration>
-      <ehcache:loaderwriter>
+      <ehcache:loader-writer>
         <ehcache:class>com.pany.ehcache.integration.TestCacheLoaderWriter</ehcache:class>
-      </ehcache:loaderwriter>
+      </ehcache:loader-writer>
     </ehcache:integration>
     <ehcache:resources>
       <ehcache:heap size="10"/>
@@ -35,14 +35,14 @@
     <ehcache:key-type>java.lang.Number</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:integration>
-      <ehcache:loaderwriter>
+      <ehcache:loader-writer>
         <ehcache:class>com.pany.ehcache.integration.TestCacheLoaderWriter</ehcache:class>
-      </ehcache:loaderwriter>
+      </ehcache:loader-writer>
     </ehcache:integration>
     <ehcache:resources>
       <ehcache:heap size="20"/>
     </ehcache:resources>
   </ehcache:cache-template>
 
-  <ehcache:cache alias="template1" usesTemplate="example"/>
+  <ehcache:cache alias="template1" uses-template="example"/>
 </ehcache:config>

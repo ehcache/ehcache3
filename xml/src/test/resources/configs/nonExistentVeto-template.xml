@@ -23,6 +23,6 @@
     <ehcache:eviction-veto>com.foo.NonExistentVetoInTemplate</ehcache:eviction-veto>
   </ehcache:cache-template>
 
-  <ehcache:cache alias="foo" usesTemplate="example">
+  <ehcache:cache alias="foo" uses-template="example">
   </ehcache:cache>
 </ehcache:config>

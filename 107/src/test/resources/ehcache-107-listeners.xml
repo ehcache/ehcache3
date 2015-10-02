@@ -34,9 +34,9 @@
     <integration>
       <listener>
         <class>com.pany.ehcache.TestCacheEventListener</class>
-        <eventFiringMode>SYNCHRONOUS</eventFiringMode>
-        <eventOrderingMode>UNORDERED</eventOrderingMode>
-        <eventsToFireOn>CREATED</eventsToFireOn>
+        <event-firing-mode>SYNCHRONOUS</event-firing-mode>
+        <event-ordering-mode>UNORDERED</event-ordering-mode>
+        <events-to-fire-on>CREATED</events-to-fire-on>
       </listener>
     </integration>
     <heap size="2000" unit="entries"/>

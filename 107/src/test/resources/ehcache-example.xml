@@ -75,10 +75,10 @@
         OPTIONAL
           The FQCN implementing org.ehcache.spi.loaderwriter.CacheLoaderWriter
       -->
-      <ehcache:loaderwriter>
+      <ehcache:loader-writer>
         <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>
         <!-- Any further elements in another namespace -->
-      </ehcache:loaderwriter>
+      </ehcache:loader-writer>
     </ehcache:integration>
 
     <!--
@@ -109,9 +109,9 @@
   </ehcache:cache-template>
 
   <!--
-    A <cache> that uses the template above by referencing the cache-template's name in the usesTemplate attribute:
+    A <cache> that uses the template above by referencing the cache-template's name in the uses-template attribute:
   -->
-  <ehcache:cache alias="customerCache" usesTemplate="myDefaultTemplate">
+  <ehcache:cache alias="customerCache" uses-template="myDefaultTemplate">
     <!--
       Adds the key and value type configuration
     -->
