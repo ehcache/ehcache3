@@ -31,7 +31,6 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.events.CacheEvents;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.exceptions.CachePassThroughException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -209,7 +208,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     } catch (RuntimeException re) {
       handleRuntimeException(re);
     } finally {
-      removeOperationObserver.end(StoreOperationOutcomes.RemoveOutcome.SUCCESS);
+      removeOperationObserver.end(StoreOperationOutcomes.RemoveOutcome.REMOVED);
     }
   }
 
