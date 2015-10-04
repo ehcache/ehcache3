@@ -72,7 +72,7 @@ public interface ManagementProvider<T> {
    * @param statisticNames the statistic names to collect.
    * @return the statistic values.
    */
-  Collection<Statistic<?>> collectStatistics(Map<String, String> context, String[] statisticNames);
+  <T extends Statistic<?>> Collection<T> collectStatistics(Map<String, String> context, String[] statisticNames);
 
   /**
    * Call an action, if the provider supports this.

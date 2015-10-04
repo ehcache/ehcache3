@@ -23,7 +23,10 @@ import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.management.ManagementRegistry;
+import org.ehcache.management.SharedManagementService;
 import org.ehcache.management.registry.DefaultManagementRegistry;
+import org.ehcache.management.registry.DefaultSharedManagementService;
+import org.ehcache.spi.alias.DefaultAliasConfiguration;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Test;
@@ -33,11 +36,12 @@ import org.terracotta.management.capabilities.descriptors.Descriptor;
 import org.terracotta.management.context.ContextContainer;
 import org.terracotta.management.stats.primitive.Counter;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-
 
 /**
  * @author Ludovic Orban
@@ -55,21 +59,22 @@ public class ManagementTest {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache", cacheConfiguration)
         .using(managementRegistry) // <2>
+        .using(DefaultAliasConfiguration.cacheManagerAlias("myCacheManager")) // <3>
         .build(true);
 
 
     Cache<Long, String> aCache = cacheManager.getCache("aCache", Long.class, String.class);
-    aCache.get(0L); // <3>
+    aCache.get(0L); // <4>
     aCache.get(0L);
     aCache.get(0L);
 
-    Map<String, String> context = createContext(managementRegistry); // <4>
+    Map<String, String> context = createContext(managementRegistry); // <5>
 
-    Collection<Counter> counters = managementRegistry.collectStatistics(context, "org.ehcache.management.providers.statistics.EhcacheStatisticsProvider", "GetCounter"); // <5>
+    Collection<Counter> counters = managementRegistry.collectStatistics(context, "org.ehcache.management.providers.statistics.EhcacheStatisticsProvider", "GetCounter"); // <6>
     Assert.assertThat(counters.size(), Matchers.is(1));
     Counter getCounter = counters.iterator().next();
 
-    Assert.assertThat(getCounter.getValue(), Matchers.equalTo(3L)); // <6>
+    Assert.assertThat(getCounter.getValue(), Matchers.equalTo(3L)); // <7>
 
     cacheManager.close();
     // end::usingManagementRegistry[]
@@ -155,17 +160,25 @@ public class ManagementTest {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .buildConfig(Long.class, String.class);
 
-    ManagementRegistry managementRegistry = new DefaultManagementRegistry(); // <1>
+    SharedManagementService sharedManagementService = new DefaultSharedManagementService(); // <1>
+    
     CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache", cacheConfiguration)
-        .using(managementRegistry) // <2>
+        .using(DefaultAliasConfiguration.cacheManagerAlias("myCacheManager"))
+        .using(sharedManagementService) // <2>
         .build(true);
 
     CacheManager cacheManager2 = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache", cacheConfiguration)
-        .using(managementRegistry) // <3>
+        .using(sharedManagementService) // <3>
         .build(true);
 
+    Map<String, String> context = new HashMap<String, String>();
+    context.put("cacheManagerName", "myCacheManager");
+    context.put("cacheName", "aCache");
+    
+    List<Collection<Counter>> counters = sharedManagementService.collectStatistics(Arrays.asList(context), "org.ehcache.management.providers.statistics.EhcacheStatisticsProvider", "GetCounter");
+    
     cacheManager2.close();
     cacheManager1.close();
     // end::managingMultipleCacheManagers[]

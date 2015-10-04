@@ -13,26 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.management.registry;
 
-import org.ehcache.management.ManagementRegistry;
-import org.ehcache.management.ManagementRegistryConfiguration;
+package org.ehcache.spi.alias;
+
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
 /**
- * @author Ludovic Orban
+ * @author Mathieu Carbou
  */
-public class DefaultManagementRegistryFactory implements ServiceFactory<ManagementRegistry> {
-
+public class DefaultAliasServiceFactory implements ServiceFactory<AliasService> {
   @Override
-  public ManagementRegistry create(ServiceCreationConfiguration<ManagementRegistry> configuration) {
-    return new DefaultManagementRegistry((ManagementRegistryConfiguration) configuration);
+  public AliasService create(ServiceCreationConfiguration<AliasService> configuration) {
+    return new DefaultAliasService((AliasConfiguration) configuration);
   }
 
   @Override
-  public Class<ManagementRegistry> getServiceType() {
-    return ManagementRegistry.class;
+  public Class<AliasService> getServiceType() {
+    return AliasService.class;
   }
-
 }

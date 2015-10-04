@@ -13,26 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.management.registry;
 
-import org.ehcache.management.ManagementRegistry;
-import org.ehcache.management.ManagementRegistryConfiguration;
+package org.ehcache.spi.alias;
+
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceFactory;
 
 /**
- * @author Ludovic Orban
+ * Configure the {@link AliasService}
+ *
+ * @author Mathieu Carbou
  */
-public class DefaultManagementRegistryFactory implements ServiceFactory<ManagementRegistry> {
+public interface AliasConfiguration extends ServiceCreationConfiguration<AliasService> {
 
-  @Override
-  public ManagementRegistry create(ServiceCreationConfiguration<ManagementRegistry> configuration) {
-    return new DefaultManagementRegistry((ManagementRegistryConfiguration) configuration);
-  }
-
-  @Override
-  public Class<ManagementRegistry> getServiceType() {
-    return ManagementRegistry.class;
-  }
+  /**
+   * @return The cache manager alias to be used for the cache manager configured with this configuration in case a user would like to customize the default generated name
+   */
+  String getCacheManagerAlias();
 
 }

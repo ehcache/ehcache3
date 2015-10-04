@@ -98,7 +98,8 @@ class EhcacheStatistics {
     statisticsRegistry.registerRatio("Hit", Collections.singleton("cache"), Collections.<String, Object>singletonMap("type", "Ratio"), StandardOperationStatistic.CACHE_GET, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER), ALL_CACHE_GET_OUTCOMES);
   }
 
-  public Collection<Statistic<?>> queryStatistic(String statisticName) {
+  @SuppressWarnings("unchecked")
+  public <T extends Statistic<?>> Collection<T> queryStatistic(String statisticName) {
     Collection<ExposedStatistic> registrations = statisticsRegistry.getRegistrations();
     for (ExposedStatistic registration : registrations) {
       Object type = registration.getProperties().get("type");
@@ -109,19 +110,19 @@ class EhcacheStatistics {
 
         if ((name + "Count").equals(statisticName)) {
           SampledStatistic<Long> count = result.count();
-          return (Collection) Collections.singleton(new SampledCounter(statisticName, buildSamples(count)));
+          return (Collection<T>) Collections.singleton(new SampledCounter(statisticName, buildSamples(count)));
         } else if ((name + "Rate").equals(statisticName)) {
           SampledStatistic<Double> rate = result.rate();
-          return (Collection) Collections.singleton(new SampledRate(statisticName, buildSamples(rate), TimeUnit.SECONDS)); //TODO: get the TimeUnit from config
+          return (Collection<T>) Collections.singleton(new SampledRate(statisticName, buildSamples(rate), TimeUnit.SECONDS)); //TODO: get the TimeUnit from config
         } else if ((name + "LatencyMinimum").equals(statisticName)) {
           SampledStatistic<Long> minimum = result.latency().minimum();
-          return (Collection) Collections.singleton(new SampledDuration(statisticName, buildSamples(minimum), TimeUnit.SECONDS)); //TODO: get the TimeUnit from config
+          return (Collection<T>) Collections.singleton(new SampledDuration(statisticName, buildSamples(minimum), TimeUnit.SECONDS)); //TODO: get the TimeUnit from config
         } else if ((name + "LatencyMaximum").equals(statisticName)) {
           SampledStatistic<Long> maximum = result.latency().maximum();
-          return (Collection) Collections.singleton(new SampledDuration(statisticName, buildSamples(maximum), TimeUnit.SECONDS)); //TODO: get the TimeUnit from config
+          return (Collection<T>) Collections.singleton(new SampledDuration(statisticName, buildSamples(maximum), TimeUnit.SECONDS)); //TODO: get the TimeUnit from config
         } else if ((name + "LatencyAverage").equals(statisticName)) {
           SampledStatistic<Double> average = result.latency().average();
-          return (Collection) Collections.singleton(new SampledRatio(statisticName, buildSamples(average)));
+          return (Collection<T>) Collections.singleton(new SampledRatio(statisticName, buildSamples(average)));
         } else if (name.equals(statisticName)) {
           Collection<Statistic<?>> resultStats = new ArrayList<Statistic<?>>();
           resultStats.add(new SampledCounter(statisticName + "Count", buildSamples(result.count())));
@@ -129,12 +130,12 @@ class EhcacheStatistics {
           resultStats.add(new SampledDuration(statisticName + "LatencyMinimum", buildSamples(result.latency().minimum()), TimeUnit.SECONDS));
           resultStats.add(new SampledDuration(statisticName + "LatencyMaximum", buildSamples(result.latency().maximum()), TimeUnit.SECONDS));
           resultStats.add(new SampledRatio(statisticName + "LatencyAverage", buildSamples(result.latency().average())));
-          return resultStats;
+          return (Collection<T>) resultStats;
         }
       } else if ("Ratio".equals(type)) {
         if ((name + "Ratio").equals(statisticName)) {
           SampledStatistic<Double> ratio = (SampledStatistic) registration.getStat();
-          return (Collection) Collections.singleton(new SampledRatio(statisticName, buildSamples(ratio)));
+          return (Collection<T>) Collections.singleton(new SampledRatio(statisticName, buildSamples(ratio)));
         }
       }
     }

@@ -115,7 +115,7 @@ public abstract class AbstractActionProvider<T, A> implements ManagementProvider
   }
 
   @Override
-  public final Collection<Statistic<?>> collectStatistics(Map<String, String> context, String[] statisticNames) {
+  public final <T extends Statistic<?>> Collection<T> collectStatistics(Map<String, String> context, String[] statisticNames) {
     throw new UnsupportedOperationException("Not a statistics provider : " + getClass().getName());
   }
 }

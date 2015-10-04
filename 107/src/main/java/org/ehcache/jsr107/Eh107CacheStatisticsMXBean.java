@@ -19,7 +19,7 @@ import org.ehcache.Cache;
 import org.ehcache.Ehcache;
 import org.ehcache.EhcacheHackAccessor;
 import org.ehcache.management.ManagementRegistry;
-import org.ehcache.management.utils.ContextHelper;
+import org.ehcache.spi.alias.AliasService;
 import org.ehcache.statistics.BulkOps;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.ehcache.statistics.StoreOperationOutcomes;
@@ -61,18 +61,17 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
   private final OperationStatistic<CacheOperationOutcomes.ConditionalRemoveOutcome> conditionalRemove;
   private final OperationStatistic<StoreOperationOutcomes.EvictionOutcome> authorityEviction;
   private final ManagementRegistry managementRegistry;
-  private final Map<String, String> context;
+  private final AliasService aliasService;
+  private final String cacheName;
   private final Map<BulkOps, LongAdder> bulkMethodEntries;
 
-  Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager, Cache<?, ?> cache, ManagementRegistry managementRegistry) {
+  Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager, Cache<?, ?> cache, ManagementRegistry managementRegistry, AliasService aliasService) {
     super(cacheName, cacheManager, "CacheStatistics");
     this.managementRegistry = managementRegistry;
+    this.aliasService = aliasService;
+    this.cacheName = cacheName;
     this.bulkMethodEntries = EhcacheHackAccessor.getBulkMethodEntries((Ehcache<?, ?>) cache);
-    String cacheManagerName = ContextHelper.findCacheManagerName((Ehcache<?, ?>) cache);
-    Map<String, String> context = new HashMap<String, String>();
-    context.put("cacheManagerName", cacheManagerName);
-    context.put("cacheName", cacheName);
-    this.context = Collections.unmodifiableMap(context);
+    
     StatisticsManager statisticsManager = cacheManager.getEhCacheManager().getStatisticsManager();
 
     get = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.GetOutcome.class, "get");
@@ -143,22 +142,29 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
 
   @Override
   public float getAverageGetTime() {
-    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "org.ehcache.management.providers.statistics.EhcacheStatisticsProvider", "AllCacheGetLatencyAverage");
+    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(createContext(), "org.ehcache.management.providers.statistics.EhcacheStatisticsProvider", "AllCacheGetLatencyAverage");
     return getMostRecentNotClearedValue(statistics);
   }
 
   @Override
   public float getAveragePutTime() {
-    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "org.ehcache.management.providers.statistics.EhcacheStatisticsProvider", "AllCachePutLatencyAverage");
+    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(createContext(), "org.ehcache.management.providers.statistics.EhcacheStatisticsProvider", "AllCachePutLatencyAverage");
     return getMostRecentNotClearedValue(statistics);
   }
 
   @Override
   public float getAverageRemoveTime() {
-    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "org.ehcache.management.providers.statistics.EhcacheStatisticsProvider", "AllCacheRemoveLatencyAverage");
+    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(createContext(), "org.ehcache.management.providers.statistics.EhcacheStatisticsProvider", "AllCacheRemoveLatencyAverage");
     return getMostRecentNotClearedValue(statistics);
   }
 
+  private Map<String, String> createContext() {
+    Map<String, String> context = new HashMap<String, String>();
+    context.put("cacheManagerName", aliasService.getCacheManagerAlias());
+    context.put("cacheName", cacheName);
+    return context;
+  }
+  
   private float getMostRecentNotClearedValue(Collection<SampledRatio> statistics) {
     List<Sample<Double>> samples = statistics.iterator().next().getValue();
     for (int i=samples.size() - 1 ; i>=0 ; i--) {

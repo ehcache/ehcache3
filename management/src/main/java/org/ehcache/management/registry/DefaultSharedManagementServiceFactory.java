@@ -15,24 +15,23 @@
  */
 package org.ehcache.management.registry;
 
-import org.ehcache.management.ManagementRegistry;
-import org.ehcache.management.ManagementRegistryConfiguration;
+import org.ehcache.management.SharedManagementService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
 /**
- * @author Ludovic Orban
+ * @author Mathieu Carbou
  */
-public class DefaultManagementRegistryFactory implements ServiceFactory<ManagementRegistry> {
+public class DefaultSharedManagementServiceFactory implements ServiceFactory<SharedManagementService> {
 
   @Override
-  public ManagementRegistry create(ServiceCreationConfiguration<ManagementRegistry> configuration) {
-    return new DefaultManagementRegistry((ManagementRegistryConfiguration) configuration);
+  public SharedManagementService create(ServiceCreationConfiguration<SharedManagementService> configuration) {
+    return new DefaultSharedManagementService();
   }
 
   @Override
-  public Class<ManagementRegistry> getServiceType() {
-    return ManagementRegistry.class;
+  public Class<SharedManagementService> getServiceType() {
+    return SharedManagementService.class;
   }
 
 }

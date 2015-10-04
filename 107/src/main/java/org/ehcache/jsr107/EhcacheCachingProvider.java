@@ -38,6 +38,7 @@ import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.management.ManagementRegistry;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.alias.AliasService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.util.ClassLoading;
@@ -104,7 +105,7 @@ public class EhcacheCachingProvider implements CachingProvider {
 
         Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory = new Eh107CacheLoaderWriterProvider();
         Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceCreationConfigurations().toArray()));
-        ManagementRegistryCollectorService managementRegistryCollectorService = new ManagementRegistryCollectorService();
+        ServiceCollector serviceCollector = new ServiceCollector();
 
         Collection<Service> services = new ArrayList<Service>();
         services.add(cacheLoaderWriterFactory);
@@ -112,12 +113,12 @@ public class EhcacheCachingProvider implements CachingProvider {
         if(ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, config.getServiceCreationConfigurations().toArray()) == null) {
           services.add(new DefaultJsr107SerializationProvider());
         }
-        services.add(managementRegistryCollectorService);
+        services.add(serviceCollector);
        
         EhcacheManager ehcacheManager = new EhcacheManager(config, services, !jsr107Service.jsr107CompliantAtomics());
         ehcacheManager.init();
         cacheManager = new Eh107CacheManager(this, ehcacheManager, properties, classLoader, uri,
-            managementRegistryCollectorService.managementRegistry, new ConfigurationMerger(config, jsr107Service, cacheLoaderWriterFactory));
+            serviceCollector.managementRegistry, serviceCollector.aliasService, new ConfigurationMerger(config, jsr107Service, cacheLoaderWriterFactory));
         byURI.put(uri, cacheManager);
       }
     }
@@ -125,19 +126,22 @@ public class EhcacheCachingProvider implements CachingProvider {
     return cacheManager;
   }
 
-  @ServiceDependencies(ManagementRegistry.class)
-  static class ManagementRegistryCollectorService implements Service {
+  @ServiceDependencies({ManagementRegistry.class, AliasService.class})
+  static class ServiceCollector implements Service {
 
     public volatile ManagementRegistry managementRegistry;
+    public volatile AliasService aliasService;
 
     @Override
     public void start(ServiceProvider serviceProvider) {
       managementRegistry = serviceProvider.getService(ManagementRegistry.class);
+      aliasService = serviceProvider.getService(AliasService.class);
     }
 
     @Override
     public void stop() {
       managementRegistry = null;
+      aliasService = null;
     }
 
   }

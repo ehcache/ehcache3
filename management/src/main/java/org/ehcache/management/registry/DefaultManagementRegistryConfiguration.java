@@ -15,9 +15,10 @@
  */
 package org.ehcache.management.registry;
 
+import org.ehcache.management.ManagementRegistry;
+import org.ehcache.management.ManagementRegistryConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.ManagementProvider;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,22 +26,23 @@ import java.util.Map;
 /**
  * @author Ludovic Orban
  */
-public class DefaultManagementRegistryConfiguration implements ServiceCreationConfiguration<DefaultManagementRegistry> {
+public class DefaultManagementRegistryConfiguration implements ManagementRegistryConfiguration {
 
   private final Map<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>> configurationMap = new HashMap<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>>();
 
-  public DefaultManagementRegistryConfiguration addConfiguration(StatisticsProviderConfiguration<?> configuration) {
+  public ManagementRegistryConfiguration addConfiguration(StatisticsProviderConfiguration<?> configuration) {
     Class<? extends ManagementProvider> serviceType = configuration.getStatisticsProviderType();
     configurationMap.put(serviceType, configuration);
     return this;
   }
 
+  @Override
   public StatisticsProviderConfiguration getConfigurationFor(Class<? extends ManagementProvider<?>> managementProviderClass) {
     return configurationMap.get(managementProviderClass);
   }
 
   @Override
-  public Class<DefaultManagementRegistry> getServiceType() {
-    return DefaultManagementRegistry.class;
+  public Class<ManagementRegistry> getServiceType() {
+    return ManagementRegistry.class;
   }
 }

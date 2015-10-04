@@ -16,8 +16,8 @@
 package org.ehcache.management.providers.statistics;
 
 import org.ehcache.Ehcache;
+import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
-import org.ehcache.management.registry.DefaultManagementRegistry;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.terracotta.management.capabilities.context.CapabilityContext;
@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -47,7 +48,7 @@ public class EhcacheStatisticsProviderTest {
 
   @Test
   public void testDescriptions() throws Exception {
-    StatisticsProviderConfiguration statisticsProviderConfiguration = DefaultManagementRegistry.DEFAULT_EHCACHE_STATISTICS_PROVIDER_CONFIGURATION;
+    StatisticsProviderConfiguration statisticsProviderConfiguration = new EhcacheStatisticsProviderConfiguration(5 * 60, TimeUnit.SECONDS, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS);
     ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
     EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(statisticsProviderConfiguration, executor) {
       @Override
@@ -77,7 +78,7 @@ public class EhcacheStatisticsProviderTest {
 
   @Test
   public void testCapabilityContext() throws Exception {
-    StatisticsProviderConfiguration statisticsProviderConfiguration = DefaultManagementRegistry.DEFAULT_EHCACHE_STATISTICS_PROVIDER_CONFIGURATION;
+    StatisticsProviderConfiguration statisticsProviderConfiguration = new EhcacheStatisticsProviderConfiguration(5 * 60, TimeUnit.SECONDS, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS);
     ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
     EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(statisticsProviderConfiguration, executor) {
       @Override
@@ -106,7 +107,7 @@ public class EhcacheStatisticsProviderTest {
 
   @Test
   public void testCallAction() throws Exception {
-    StatisticsProviderConfiguration statisticsProviderConfiguration = DefaultManagementRegistry.DEFAULT_EHCACHE_STATISTICS_PROVIDER_CONFIGURATION;
+    StatisticsProviderConfiguration statisticsProviderConfiguration = new EhcacheStatisticsProviderConfiguration(5 * 60, TimeUnit.SECONDS, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS);
     ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
     EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(statisticsProviderConfiguration, executor);
 
