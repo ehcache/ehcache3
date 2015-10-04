@@ -375,7 +375,7 @@ public class CompoundCachingTierTest {
     }
   }
 
-  static class FakeProvider implements CachingTier.Provider {
+  static class FakeProvider implements HigherCachingTier.Provider {
 
     @Override
     public void start(ServiceProvider serviceProvider) {
@@ -386,17 +386,17 @@ public class CompoundCachingTierTest {
     }
 
     @Override
-    public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> HigherCachingTier<K, V> createHigherCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       assertThat(serviceConfigs.length, is(2));
       return mock(HigherCachingTier.class);
     }
 
     @Override
-    public void releaseCachingTier(CachingTier<?, ?> resource) {
+    public void releaseHigherCachingTier(HigherCachingTier<?, ?> resource) {
     }
 
     @Override
-    public void initCachingTier(CachingTier<?, ?> resource) {
+    public void initHigherCachingTier(HigherCachingTier<?, ?> resource) {
     }
   }
 

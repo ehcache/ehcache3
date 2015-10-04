@@ -19,6 +19,8 @@ package org.ehcache.spi.cache.tiering;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * HigherCachingTier
@@ -34,5 +36,13 @@ public interface HigherCachingTier<K, V> extends CachingTier<K, V> {
    * @throws CacheAccessException
    */
   void silentInvalidate(K key, Function<Store.ValueHolder<V>, Void> function) throws CacheAccessException;
+
+  interface Provider extends Service {
+    <K, V> HigherCachingTier<K, V> createHigherCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
+
+    void releaseHigherCachingTier(HigherCachingTier<?, ?> resource);
+
+    void initHigherCachingTier(HigherCachingTier<?, ?> resource);
+  }
 
 }

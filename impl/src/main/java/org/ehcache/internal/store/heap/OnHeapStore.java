@@ -1044,7 +1044,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @ServiceDependencies({TimeSourceService.class, CopyProvider.class})
-  public static class Provider implements Store.Provider, CachingTier.Provider {
+  public static class Provider implements Store.Provider, CachingTier.Provider, HigherCachingTier.Provider {
     
     private volatile ServiceProvider serviceProvider;
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
@@ -1076,6 +1076,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     @Override
     public void initStore(Store<?, ?> resource) {
+      checkResource(resource);
+    }
+
+    private void checkResource(Object resource) {
       if (!createdStores.contains(resource)) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
@@ -1099,12 +1103,28 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     @Override
     public void releaseCachingTier(CachingTier<?, ?> resource) {
+      checkResource(resource);
       ((OnHeapStore)resource).invalidate();
       releaseStore((Store<?, ?>) resource);
     }
 
     @Override
     public void initCachingTier(CachingTier<?, ?> resource) {
+      initStore((Store<?, ?>) resource);
+    }
+
+    @Override
+    public <K, V> HigherCachingTier<K, V> createHigherCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      return createStore(storeConfig, serviceConfigs);
+    }
+
+    @Override
+    public void releaseHigherCachingTier(HigherCachingTier<?, ?> resource) {
+      releaseCachingTier(resource);
+    }
+
+    @Override
+    public void initHigherCachingTier(HigherCachingTier<?, ?> resource) {
       initStore((Store<?, ?>) resource);
     }
   }

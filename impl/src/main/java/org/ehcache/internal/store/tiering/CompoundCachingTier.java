@@ -166,7 +166,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   @SupplementaryService
   public static class Provider implements CachingTier.Provider {
     private volatile ServiceProvider serviceProvider;
-    private final ConcurrentMap<CachingTier<?, ?>, Map.Entry<CachingTier.Provider, LowerCachingTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<CachingTier<?, ?>, Map.Entry<CachingTier.Provider, LowerCachingTier.Provider>>();
+    private final ConcurrentMap<CachingTier<?, ?>, Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<CachingTier<?, ?>, Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider>>();
 
     @Override
     public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
@@ -179,14 +179,14 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
         throw new IllegalArgumentException("Compound caching tier cannot be configured without explicit config");
       }
 
-      CachingTier.Provider higherProvider = serviceProvider.getService(compoundCachingTierServiceConfiguration.higherProvider());
-      HigherCachingTier<K, V> higherCachingTier = (HigherCachingTier<K, V>) higherProvider.createCachingTier(storeConfig, serviceConfigs);
+      HigherCachingTier.Provider higherProvider = serviceProvider.getService(compoundCachingTierServiceConfiguration.higherProvider());
+      HigherCachingTier<K, V> higherCachingTier = higherProvider.createHigherCachingTier(storeConfig, serviceConfigs);
 
       LowerCachingTier.Provider lowerProvider = serviceProvider.getService(compoundCachingTierServiceConfiguration.lowerProvider());
       LowerCachingTier<K, V> lowerCachingTier = lowerProvider.createCachingTier(storeConfig, serviceConfigs);
 
       CompoundCachingTier<K, V> compoundCachingTier = new CompoundCachingTier<K, V>(higherCachingTier, lowerCachingTier);
-      providersMap.put(compoundCachingTier, new AbstractMap.SimpleEntry<CachingTier.Provider, LowerCachingTier.Provider>(higherProvider, lowerProvider));
+      providersMap.put(compoundCachingTier, new AbstractMap.SimpleEntry<HigherCachingTier.Provider, LowerCachingTier.Provider>(higherProvider, lowerProvider));
       return compoundCachingTier;
     }
 
@@ -196,9 +196,9 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
         throw new IllegalArgumentException("Given caching tier is not managed by this provider : " + resource);
       }
       CompoundCachingTier compoundCachingTier = (CompoundCachingTier) resource;
-      Map.Entry<CachingTier.Provider, LowerCachingTier.Provider> entry = providersMap.get(resource);
+      Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider> entry = providersMap.get(resource);
 
-      entry.getKey().releaseCachingTier(compoundCachingTier.higher);
+      entry.getKey().releaseHigherCachingTier(compoundCachingTier.higher);
       entry.getValue().releaseCachingTier(compoundCachingTier.lower);
     }
 
@@ -208,10 +208,10 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
         throw new IllegalArgumentException("Given caching tier is not managed by this provider : " + resource);
       }
       CompoundCachingTier compoundCachingTier = (CompoundCachingTier) resource;
-      Map.Entry<CachingTier.Provider, LowerCachingTier.Provider> entry = providersMap.get(resource);
+      Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider> entry = providersMap.get(resource);
 
       entry.getValue().initCachingTier(compoundCachingTier.lower);
-      entry.getKey().initCachingTier(compoundCachingTier.higher);
+      entry.getKey().initHigherCachingTier(compoundCachingTier.higher);
     }
 
     @Override
