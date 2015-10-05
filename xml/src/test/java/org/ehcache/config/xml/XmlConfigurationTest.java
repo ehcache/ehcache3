@@ -55,7 +55,9 @@ import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsCollectionContaining;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -93,6 +95,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+
 import org.w3c.dom.Element;
 
 /**
@@ -100,6 +104,9 @@ import org.w3c.dom.Element;
  * @author Chris Dennis
  */
 public class XmlConfigurationTest {
+
+  @Rule
+  public ExpectedException thrown= ExpectedException.none();
 
   @SuppressWarnings("rawtypes")
   @Test
@@ -575,6 +582,27 @@ public class XmlConfigurationTest {
     assertThat(nList.item(1).getFirstChild().getNodeValue(), containsString("\n"));
     
 
+  }
+
+  @Test
+  public void testNullUrlInConstructorThrowsNPE() throws Exception {
+    thrown.expect(NullPointerException.class);
+    thrown.expectMessage("The url can not be null");
+    XmlConfiguration xmlConfig = new XmlConfiguration(null, mock(ClassLoader.class), mock(Map.class));
+  }
+
+  @Test
+  public void testNullClassLoaderInConstructorThrowsNPE() throws Exception {
+    thrown.expect(NullPointerException.class);
+    thrown.expectMessage("The classLoader can not be null");
+    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), null, mock(Map.class));
+  }
+
+  @Test
+  public void testNullCacheClassLoaderMapInConstructorThrowsNPE() throws Exception {
+    thrown.expect(NullPointerException.class);
+    thrown.expectMessage("The cacheClassLoaders map can not be null");
+    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), mock(ClassLoader.class), null);
   }
 
   private void checkListenerConfigurationExists(Collection<?> configuration) {

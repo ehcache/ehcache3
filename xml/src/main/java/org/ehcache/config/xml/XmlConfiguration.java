@@ -137,6 +137,7 @@ public class XmlConfiguration implements Configuration {
    *
    * @param url URL pointing to the XML file's location
    * @param classLoader ClassLoader to use to load user types.
+   * @param cacheClassLoaders the map with mappings between cache names and the corresponding class loaders
    *
    * @throws IOException if anything went wrong accessing the URL
    * @throws SAXException if anything went wrong parsing or validating the XML
@@ -146,6 +147,15 @@ public class XmlConfiguration implements Configuration {
    */
   public XmlConfiguration(URL url, final ClassLoader classLoader, final Map<String, ClassLoader> cacheClassLoaders)
       throws ClassNotFoundException, SAXException, InstantiationException, IllegalAccessException, IOException {
+    if(url == null) {
+      throw new NullPointerException("The url can not be null");
+    }
+    if(classLoader == null) {
+      throw new NullPointerException("The classLoader can not be null");
+    }
+    if(cacheClassLoaders == null) {
+      throw new NullPointerException("The cacheClassLoaders map can not be null");
+    }
     this.xml = url;
     this.classLoader = classLoader;
     this.cacheClassLoaders = new HashMap<String, ClassLoader>(cacheClassLoaders);
