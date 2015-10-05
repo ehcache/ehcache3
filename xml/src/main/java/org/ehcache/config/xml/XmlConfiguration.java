@@ -146,6 +146,15 @@ public class XmlConfiguration implements Configuration {
    */
   public XmlConfiguration(URL url, final ClassLoader classLoader, final Map<String, ClassLoader> cacheClassLoaders)
       throws ClassNotFoundException, SAXException, InstantiationException, IllegalAccessException, IOException {
+    if(url == null) {
+      throw new NullPointerException("The url can not be null");
+    }
+    if(classLoader == null) {
+      throw new NullPointerException("The classLoader can not be null");
+    }
+    if(cacheClassLoaders == null) {
+      throw new NullPointerException("The cacheClassLoaders map can not be null");
+    }
     this.xml = url;
     this.classLoader = classLoader;
     this.cacheClassLoaders = new HashMap<String, ClassLoader>(cacheClassLoaders);
