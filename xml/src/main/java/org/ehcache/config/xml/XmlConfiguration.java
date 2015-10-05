@@ -263,9 +263,6 @@ public class XmlConfiguration implements Configuration {
               .concurrencyLevel(writeBehind.concurrency()).queueSize(writeBehind.maxQueueSize()).rateLimit(writeBehind.rateLimitPerSecond())
               .delay(writeBehind.minWriteDelay(), writeBehind.maxWriteDelay())
               .batchSize(writeBehind.batchSize());
-          if (writeBehind.isRetryAttemptsSet()) {
-            writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.retry(writeBehind.retryAttempts(), writeBehind.retryAttemptsDelay());
-          }
           if(writeBehind.isCoalesced()) {
             writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.enableCoalescing();
           }
@@ -452,9 +449,6 @@ public class XmlConfiguration implements Configuration {
             .concurrencyLevel(writeBehind.concurrency()).queueSize(writeBehind.maxQueueSize()).rateLimit(writeBehind.rateLimitPerSecond())
             .delay(writeBehind.minWriteDelay(), writeBehind.maxWriteDelay())
             .batchSize(writeBehind.batchSize());
-        if (writeBehind.isRetryAttemptsSet()) {
-          writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.retry(writeBehind.retryAttempts(), writeBehind.retryAttemptsDelay());
-        }
         if(writeBehind.isCoalesced()) {
           writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.enableCoalescing();
         }

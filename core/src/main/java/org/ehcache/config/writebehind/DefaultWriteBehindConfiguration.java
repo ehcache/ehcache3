@@ -18,8 +18,6 @@ package org.ehcache.config.writebehind;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
 
-import static java.lang.String.format;
-
 /**
  * @author Geert Bevin
  * @author Chris Dennis
@@ -32,8 +30,6 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
   private int rateLimitPerSecond = Integer.MAX_VALUE;
   private boolean writeCoalescing = false;
   private int writeBatchSize = 1;
-  private int retryAttempts = 0;
-  private int retryAttemptDelaySeconds = 1;
   private int writeBehindConcurrency = 1;
   private int writeBehindMaxQueueSize = Integer.MAX_VALUE;
   
@@ -63,16 +59,6 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
   @Override
   public int getWriteBatchSize() {
     return writeBatchSize;
-  }
-  
-  @Override
-  public int getRetryAttempts() {
-    return retryAttempts;
-  }
-  
-  @Override
-  public int getRetryAttemptDelaySeconds() {
-    return retryAttemptDelaySeconds;
   }
   
   @Override
@@ -121,17 +107,6 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
       throw new IllegalArgumentException("Batchsize cannot be less than 1.");
     }
     this.writeBatchSize = writeBatchSize;
-  }
-
-  public void setRetryAttempts(int retryAttempts, int retryAttemptDelaySeconds) {
-    if(retryAttempts < 0) {
-      throw new IllegalArgumentException("RetryAttempts cannot be less than 0.");
-    }
-    if(retryAttemptDelaySeconds < 1) {
-      throw new IllegalArgumentException("RetryAttemptDelaySeconds cannot be less than 1.");
-    }
-    this.retryAttempts = retryAttempts;
-    this.retryAttemptDelaySeconds = retryAttemptDelaySeconds;
   }
 
   public void setWriteBehindConcurrency(int writeBehindConcurrency) {
