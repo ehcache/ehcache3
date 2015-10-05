@@ -25,9 +25,8 @@ import java.util.Map;
  * @author Chris Dennis
  *
  */
-public class CoalesceKeysFilter<K, V> implements OperationsFilter<SingleOperation<K, V>> {
+public class CoalesceKeysFilter<K, V> {
 
-  @Override
   public void filter(List<SingleOperation<K, V>> operations) {
 
     final Map<K, KeyBasedOperation<K>> mostRecent = new HashMap<K, KeyBasedOperation<K>>();

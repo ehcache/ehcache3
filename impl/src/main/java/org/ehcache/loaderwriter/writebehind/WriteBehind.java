@@ -17,8 +17,6 @@ package org.ehcache.loaderwriter.writebehind;
 
 
 import org.ehcache.exceptions.CacheWritingException;
-import org.ehcache.loaderwriter.writebehind.operations.OperationsFilter;
-import org.ehcache.loaderwriter.writebehind.operations.SingleOperation;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
@@ -62,13 +60,6 @@ public interface WriteBehind<K, V> {
    * and not processed.
    */
   void stop();
-  
-  /**
-   * Set the operations filter that should be used.
-   *
-   * @param filter the filter that will be used as of now
-   */
-  void setOperationsFilter(OperationsFilter<SingleOperation<K, V>> filter);
   
   /**
    * Gets the best estimate for items in the queue still awaiting processing.

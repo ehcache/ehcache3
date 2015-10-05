@@ -28,8 +28,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheWritingException;
+import org.ehcache.loaderwriter.writebehind.operations.CoalesceKeysFilter;
 import org.ehcache.loaderwriter.writebehind.operations.DeleteOperation;
-import org.ehcache.loaderwriter.writebehind.operations.OperationsFilter;
 import org.ehcache.loaderwriter.writebehind.operations.SingleOperation;
 import org.ehcache.loaderwriter.writebehind.operations.WriteOperation;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -65,7 +65,7 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
   private boolean stopping;
   private boolean stopped;
   
-  private volatile OperationsFilter<SingleOperation<K, V>> filter = null;
+  private final CoalesceKeysFilter<K, V> coalescingFilter;
 
   private final AtomicLong lastProcessing = new AtomicLong(System.currentTimeMillis());
   private final AtomicLong lastWorkDone = new AtomicLong(System.currentTimeMillis());
@@ -84,6 +84,12 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
 
     this.processingThread = new Thread(new ProcessingThread(), cacheLoaderWriter.getClass().getName() + " write-behind");
     this.processingThread.setDaemon(true);
+    
+    if(config.isWriteCoalescing()) {
+      this.coalescingFilter = new CoalesceKeysFilter<K, V>();
+    } else {
+      this.coalescingFilter = null;
+    }
   }
 
   /**
@@ -215,11 +221,6 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
       queueWriteLock.unlock();
     }
 
-  }
-
-  @Override
-  public void setOperationsFilter(OperationsFilter<SingleOperation<K, V>> filter) {
-    this.filter = filter;
   }
 
   /**
@@ -541,9 +542,8 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
   }
 
   private void filterQuarantined(List<SingleOperation<K, V>> quarantinedItems) {
-    OperationsFilter<SingleOperation<K, V>> operationsFilter = this.filter;
-    if (operationsFilter != null) {
-      operationsFilter.filter(quarantinedItems); 
+    if (coalescingFilter != null) {
+      coalescingFilter.filter(quarantinedItems); 
     }
   }
 

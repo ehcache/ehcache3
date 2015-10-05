@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.loaderwriter.writebehind.operations.CoalesceKeysFilter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 
@@ -44,7 +43,6 @@ public class WriteBehindDecoratorLoaderWriter<K, V> implements CacheLoaderWriter
     this.delegate = loaderWriter;
     writeBehindQueue = new AggregateWriteBehindQueue<K, V>(config, loaderWriter);
     writeBehindQueue.start();
-    if(config.isWriteCoalescing()) writeBehindQueue.setOperationsFilter(new CoalesceKeysFilter<K, V>());
   }
   
 
