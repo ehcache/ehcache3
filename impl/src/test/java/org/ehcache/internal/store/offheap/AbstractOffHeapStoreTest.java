@@ -17,6 +17,7 @@
 package org.ehcache.internal.store.offheap;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -34,6 +35,7 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.spi.cache.AbstractValueHolder;
 import org.ehcache.spi.cache.Store;
 
+import static org.ehcache.internal.util.StatisticsTestUtils.validateStats;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -61,21 +63,29 @@ import org.terracotta.statistics.StatisticsManager;
 public abstract class AbstractOffHeapStoreTest {
 
   @Test
-  public void testGetAndRemove() throws Exception {
+  public void testGetAndRemoveNoValue() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.noExpiration());
 
     try {
       assertThat(offHeapStore.getAndRemove("1"), is(nullValue()));
+      validateStats(offHeapStore, EnumSet.of(StoreOperationOutcomes.AccessOutcome.MISS));
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
 
+  @Test
+  public void testGetAndRemoveValue() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.noExpiration());
+
+    try {
       offHeapStore.put("1", "one");
-
       assertThat(offHeapStore.getAndRemove("1").value(), equalTo("one"));
-      assertThat(offHeapStore.getAndRemove("1"), is(nullValue()));
-
-      offHeapStore.put("1", "one");
-      timeSource.advanceTime(20);
-      assertThat(offHeapStore.getAndRemove("1"), is(nullValue()));
+      validateStats(offHeapStore, EnumSet.of(StoreOperationOutcomes.AccessOutcome.WRITE, StoreOperationOutcomes.AccessOutcome.REMOVE));
+      validateStats(offHeapStore, EnumSet.of(StoreOperationOutcomes.TierHelpfulnessOutcome.HELPFUL));
+      assertThat(offHeapStore.get("1"), is(nullValue()));
     } finally {
       destroyStore(offHeapStore);
     }
@@ -110,7 +120,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testGetOrComputeIfAbsent() throws Exception {
+  public void testInstallMapping() throws Exception {
     final TestTimeSource timeSource = new TestTimeSource();
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
 
@@ -121,6 +131,8 @@ public abstract class AbstractOffHeapStoreTest {
           return new SimpleValueHolder<String>("one", timeSource.getTimeMillis(), 15);
         }
       }).value(), equalTo("one"));
+
+      validateStats(offHeapStore, EnumSet.of(StoreOperationOutcomes.TierHelpfulnessOutcome.UNHELPFUL));
 
       timeSource.advanceTime(20);
 
@@ -160,6 +172,8 @@ public abstract class AbstractOffHeapStoreTest {
       offHeapStore.put("1", "one");
       offHeapStore.invalidate("1");
       assertThat(invalidated.get().value(), equalTo("one"));
+      validateStats(offHeapStore, EnumSet.of(StoreOperationOutcomes.AccessOutcome.WRITE, StoreOperationOutcomes.AccessOutcome.REMOVE));
+      validateStats(offHeapStore, EnumSet.of(StoreOperationOutcomes.TierHelpfulnessOutcome.UNHELPFUL));
 
       assertThat(offHeapStore.get("1"), is(nullValue()));
     } finally {
@@ -168,7 +182,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testInvalidateAll() throws Exception {
+  public void testClear() throws Exception {
     final TestTimeSource timeSource = new TestTimeSource();
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
 

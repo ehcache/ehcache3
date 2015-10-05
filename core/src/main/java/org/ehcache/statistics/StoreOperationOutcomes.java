@@ -22,35 +22,6 @@ package org.ehcache.statistics;
  */
 public interface StoreOperationOutcomes {
   /**
-   * The Enum GetOutcome.
-   */
-  enum GetOutcome {
-
-    /** hit. */
-    HIT,
-    /** miss. */
-    MISS;
-  }
-
-  /**
-   * The Enum PutOutcome.
-   */
-  enum PutOutcome {
-    /** added. */
-    ADDED,
-    /** updated. */
-    UPDATED
-  };
-
-  /**
-   * The Enum RemoveOutcome.
-   */
-  enum RemoveOutcome {
-    /** success. */
-    SUCCESS
-  };
-
-  /**
    * The access outcomes
    */
   enum AccessOutcome implements StoreOperationOutcomes {
