@@ -137,6 +137,7 @@ public class XmlConfiguration implements Configuration {
    *
    * @param url URL pointing to the XML file's location
    * @param classLoader ClassLoader to use to load user types.
+   * @param cacheClassLoaders the map with mappings between cache names and the corresponding class loaders
    *
    * @throws IOException if anything went wrong accessing the URL
    * @throws SAXException if anything went wrong parsing or validating the XML
