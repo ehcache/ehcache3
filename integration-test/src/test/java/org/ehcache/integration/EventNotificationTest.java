@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
@@ -60,16 +61,10 @@ import static org.junit.Assert.assertTrue;
  */
 public class EventNotificationTest {
   private static final TestTimeSource testTimeSource = new TestTimeSource();
-  CacheManager cacheManager;
   Listener listener1 = new Listener();
   Listener listener2 = new Listener();
   Listener listener3 = new Listener();
   AsynchronousListener asyncListener = new AsynchronousListener();
-
-  @After
-  public void tearDown() {
-    cacheManager.close();
-  }
 
   @Test
   public void testNotificationForCacheOperations() throws InterruptedException {
@@ -79,7 +74,7 @@ public class EventNotificationTest {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
             .heap(5L, EntryUnit.ENTRIES).build()).add(notificationConfiguration).buildConfig(Long.class, String.class);
 
-    cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
         .build(true);
     Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
     cache.getRuntimeConfiguration().registerCacheEventListener(listener1, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet
@@ -88,114 +83,115 @@ public class EventNotificationTest {
         .of(EventType.EVICTED, EventType.CREATED, EventType.UPDATED, EventType.REMOVED));
 
     cache.put(1l, "1");
-    assertEquals(1, listener1.created);
-    assertEquals(0, listener1.updated);
-    assertEquals(0, listener1.removed);
-    assertEquals(1, listener2.created);
-    assertEquals(0, listener2.updated);
-    assertEquals(0, listener2.removed);
+    assertEquals(1, listener1.created.get());
+    assertEquals(0, listener1.updated.get());
+    assertEquals(0, listener1.removed.get());
+    assertEquals(1, listener2.created.get());
+    assertEquals(0, listener2.updated.get());
+    assertEquals(0, listener2.removed.get());
 
     Map<Long, String> entries = new HashMap<Long, String>();
     entries.put(2l, "2");
     entries.put(3l, "3");
     cache.putAll(entries);
-    assertEquals(3, listener1.created);
-    assertEquals(0, listener1.updated);
-    assertEquals(0, listener1.removed);
-    assertEquals(3, listener2.created);
-    assertEquals(0, listener2.updated);
-    assertEquals(0, listener2.removed);
+    assertEquals(3, listener1.created.get());
+    assertEquals(0, listener1.updated.get());
+    assertEquals(0, listener1.removed.get());
+    assertEquals(3, listener2.created.get());
+    assertEquals(0, listener2.updated.get());
+    assertEquals(0, listener2.removed.get());
 
     cache.put(1l, "01");
-    assertEquals(3, listener1.created);
-    assertEquals(1, listener1.updated);
-    assertEquals(0, listener1.removed);
-    assertEquals(3, listener2.created);
-    assertEquals(1, listener2.updated);
-    assertEquals(0, listener2.removed);
+    assertEquals(3, listener1.created.get());
+    assertEquals(1, listener1.updated.get());
+    assertEquals(0, listener1.removed.get());
+    assertEquals(3, listener2.created.get());
+    assertEquals(1, listener2.updated.get());
+    assertEquals(0, listener2.removed.get());
 
     cache.remove(2l);
-    assertEquals(3, listener1.created);
-    assertEquals(1, listener1.updated);
-    assertEquals(1, listener1.removed);
-    assertEquals(3, listener2.created);
-    assertEquals(1, listener2.updated);
-    assertEquals(1, listener2.removed);
+    assertEquals(3, listener1.created.get());
+    assertEquals(1, listener1.updated.get());
+    assertEquals(1, listener1.removed.get());
+    assertEquals(3, listener2.created.get());
+    assertEquals(1, listener2.updated.get());
+    assertEquals(1, listener2.removed.get());
 
     cache.replace(1l, "001");
-    assertEquals(3, listener1.created);
-    assertEquals(2, listener1.updated);
-    assertEquals(1, listener1.removed);
-    assertEquals(3, listener2.created);
-    assertEquals(2, listener2.updated);
-    assertEquals(1, listener2.removed);
+    assertEquals(3, listener1.created.get());
+    assertEquals(2, listener1.updated.get());
+    assertEquals(1, listener1.removed.get());
+    assertEquals(3, listener2.created.get());
+    assertEquals(2, listener2.updated.get());
+    assertEquals(1, listener2.removed.get());
 
     cache.replace(3l, "3", "03");
-    assertEquals(3, listener1.created);
-    assertEquals(3, listener1.updated);
-    assertEquals(1, listener1.removed);
-    assertEquals(3, listener2.created);
-    assertEquals(3, listener2.updated);
-    assertEquals(1, listener2.removed);
+    assertEquals(3, listener1.created.get());
+    assertEquals(3, listener1.updated.get());
+    assertEquals(1, listener1.removed.get());
+    assertEquals(3, listener2.created.get());
+    assertEquals(3, listener2.updated.get());
+    assertEquals(1, listener2.removed.get());
 
     cache.get(1L);
-    assertEquals(3, listener1.created);
-    assertEquals(3, listener1.updated);
-    assertEquals(1, listener1.removed);
-    assertEquals(3, listener2.created);
-    assertEquals(3, listener2.updated);
-    assertEquals(1, listener2.removed);
+    assertEquals(3, listener1.created.get());
+    assertEquals(3, listener1.updated.get());
+    assertEquals(1, listener1.removed.get());
+    assertEquals(3, listener2.created.get());
+    assertEquals(3, listener2.updated.get());
+    assertEquals(1, listener2.removed.get());
 
     cache.containsKey(1L);
-    assertEquals(3, listener1.created);
-    assertEquals(3, listener1.updated);
-    assertEquals(1, listener1.removed);
-    assertEquals(3, listener2.created);
-    assertEquals(3, listener2.updated);
-    assertEquals(1, listener2.removed);
+    assertEquals(3, listener1.created.get());
+    assertEquals(3, listener1.updated.get());
+    assertEquals(1, listener1.removed.get());
+    assertEquals(3, listener2.created.get());
+    assertEquals(3, listener2.updated.get());
+    assertEquals(1, listener2.removed.get());
 
     cache.put(1l, "0001");
-    assertEquals(3, listener1.created);
-    assertEquals(4, listener1.updated);
-    assertEquals(1, listener1.removed);
-    assertEquals(3, listener2.created);
-    assertEquals(4, listener2.updated);
-    assertEquals(1, listener2.removed);
+    assertEquals(3, listener1.created.get());
+    assertEquals(4, listener1.updated.get());
+    assertEquals(1, listener1.removed.get());
+    assertEquals(3, listener2.created.get());
+    assertEquals(4, listener2.updated.get());
+    assertEquals(1, listener2.removed.get());
 
     Set<Long> keys = new HashSet<Long>();
     keys.add(1L);
     cache.getAll(keys);
-    assertEquals(3, listener1.created);
-    assertEquals(4, listener1.updated);
-    assertEquals(1, listener1.removed);
-    assertEquals(3, listener2.created);
-    assertEquals(4, listener2.updated);
-    assertEquals(1, listener2.removed);
+    assertEquals(3, listener1.created.get());
+    assertEquals(4, listener1.updated.get());
+    assertEquals(1, listener1.removed.get());
+    assertEquals(3, listener2.created.get());
+    assertEquals(4, listener2.updated.get());
+    assertEquals(1, listener2.removed.get());
 
     cache.getRuntimeConfiguration().registerCacheEventListener(listener3, EventOrdering.ORDERED, EventFiring.SYNCHRONOUS, EnumSet
         .of(EventType.EVICTED, EventType.CREATED, EventType.UPDATED, EventType.REMOVED));
 
     cache.replace(1l, "00001");
-    assertEquals(3, listener1.created);
-    assertEquals(5, listener1.updated);
-    assertEquals(1, listener1.removed);
-    assertEquals(3, listener2.created);
-    assertEquals(5, listener2.updated);
-    assertEquals(1, listener2.removed);
-    assertEquals(0, listener3.created);
-    assertEquals(1, listener3.updated);
-    assertEquals(0, listener3.removed);
+    assertEquals(3, listener1.created.get());
+    assertEquals(5, listener1.updated.get());
+    assertEquals(1, listener1.removed.get());
+    assertEquals(3, listener2.created.get());
+    assertEquals(5, listener2.updated.get());
+    assertEquals(1, listener2.removed.get());
+    assertEquals(0, listener3.created.get());
+    assertEquals(1, listener3.updated.get());
+    assertEquals(0, listener3.removed.get());
 
     cache.remove(1l);
-    assertEquals(3, listener1.created);
-    assertEquals(5, listener1.updated);
-    assertEquals(2, listener1.removed);
-    assertEquals(3, listener2.created);
-    assertEquals(5, listener2.updated);
-    assertEquals(2, listener2.removed);
-    assertEquals(0, listener3.created);
-    assertEquals(1, listener3.updated);
-    assertEquals(1, listener3.removed);
+    assertEquals(3, listener1.created.get());
+    assertEquals(5, listener1.updated.get());
+    assertEquals(2, listener1.removed.get());
+    assertEquals(3, listener2.created.get());
+    assertEquals(5, listener2.updated.get());
+    assertEquals(2, listener2.removed.get());
+    assertEquals(0, listener3.created.get());
+    assertEquals(1, listener3.updated.get());
+    assertEquals(1, listener3.removed.get());
+    asyncListener.resetLatchCount(10);
 
     cache.getRuntimeConfiguration().registerCacheEventListener(asyncListener, EventOrdering.ORDERED, EventFiring.ASYNCHRONOUS, EnumSet
         .of(EventType.EVICTED, EventType.CREATED, EventType.UPDATED, EventType.REMOVED));
@@ -212,22 +208,24 @@ public class EventNotificationTest {
     cache.putAll(entries);
     asyncListener.latch.await();
 
-    assertEquals(10, listener1.created);
-    assertEquals(5, listener1.updated);
-    assertEquals(2, listener1.removed);
-    assertEquals(3, listener1.evicted);
-    assertEquals(10, listener2.created);
-    assertEquals(5, listener2.updated);
-    assertEquals(2, listener2.removed);
-    assertEquals(3, listener2.evicted);
-    assertEquals(7, listener3.created);
-    assertEquals(1, listener3.updated);
-    assertEquals(1, listener3.removed);
-    assertEquals(3, listener3.evicted);
-    assertEquals(7, asyncListener.created);
-    assertEquals(3, asyncListener.evicted);
-    assertEquals(0, asyncListener.removed);
-    assertEquals(0, asyncListener.updated);
+    cacheManager.close();
+
+    assertEquals(10, listener1.created.get());
+    assertEquals(5, listener1.updated.get());
+    assertEquals(2, listener1.removed.get());
+    assertEquals(3, listener1.evicted.get());
+    assertEquals(10, listener2.created.get());
+    assertEquals(5, listener2.updated.get());
+    assertEquals(2, listener2.removed.get());
+    assertEquals(3, listener2.evicted.get());
+    assertEquals(7, listener3.created.get());
+    assertEquals(1, listener3.updated.get());
+    assertEquals(1, listener3.removed.get());
+    assertEquals(3, listener3.evicted.get());
+    assertEquals(7, asyncListener.created.get());
+    assertEquals(3, asyncListener.evicted.get());
+    assertEquals(0, asyncListener.removed.get());
+    assertEquals(0, asyncListener.updated.get());
   }
 
   @Ignore
@@ -237,7 +235,7 @@ public class EventNotificationTest {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
             .heap(1L, EntryUnit.ENTRIES).offheap(1l, MemoryUnit.MB).build()).buildConfig(Long.class, SerializableObject.class);
 
-    cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
         .build(true);
     Cache<Long, SerializableObject> cache = cacheManager.getCache("cache", Long.class, SerializableObject.class);
     cache.getRuntimeConfiguration().registerCacheEventListener(listener1, EventOrdering.ORDERED, EventFiring.SYNCHRONOUS, EnumSet
@@ -248,6 +246,8 @@ public class EventNotificationTest {
     cache.put(1L, object1);
     cache.put(1L, object2);
     assertTrue(listener1.eventTypeHashMap.get(EventType.EVICTED) < listener1.eventTypeHashMap.get(EventType.UPDATED));
+
+    cacheManager.close();
   }
 
   @Test
@@ -257,7 +257,7 @@ public class EventNotificationTest {
         .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)))
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
             .heap(5L, EntryUnit.ENTRIES).build()).buildConfig(Long.class, String.class);
-    cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
         .using(new TimeSourceConfiguration(testTimeSource))
         .build(true);
     testTimeSource.setTimeMillis(0);
@@ -270,7 +270,7 @@ public class EventNotificationTest {
     cache.put(3l, "3");
     cache.put(4l, "4");
     cache.put(5l, "5");
-    assertThat(listener1.expired, is(0));
+    assertThat(listener1.expired.get(), is(0));
     for(Cache.Entry entry : cache) {
       logger.info("Iterating over key : ", entry.getKey());
     }
@@ -280,64 +280,184 @@ public class EventNotificationTest {
       logger.info("Iterating over key : ", entry.getKey());
     }
 
-    assertThat(listener1.expired, is(5));
+    cacheManager.close();
+
+    assertThat(listener1.expired.get(), is(5));
+  }
+  
+  @Test
+  public void testMultiThreadedSyncAsyncNotifications() throws InterruptedException {
+    AsynchronousListener asyncListener = new AsynchronousListener();
+    asyncListener.resetLatchCount(100);
+
+    CacheConfiguration<Number, Number> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)))
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+                .heap(10L, EntryUnit.ENTRIES)
+        )
+        .buildConfig(Number.class, Number.class);
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
+        .using(new TimeSourceConfiguration(testTimeSource))
+        .build(true);
+    testTimeSource.setTimeMillis(0);
+    Cache<Number, Number> cache = cacheManager.getCache("cache", Number.class, Number.class);
+    cache.getRuntimeConfiguration().registerCacheEventListener(asyncListener, EventOrdering.UNORDERED, EventFiring.ASYNCHRONOUS, EnumSet
+        .of(EventType.CREATED, EventType.EXPIRED));
+
+    cache.getRuntimeConfiguration().registerCacheEventListener(listener1, EventOrdering.ORDERED, EventFiring.SYNCHRONOUS, EnumSet
+        .of(EventType.CREATED, EventType.EXPIRED));
+
+    Thread[] operators = new Thread[10];
+    for (int i = 0; i < 10; i++) {
+      operators[i] = new Thread(new CachePutOperator(cache, i), "CACHE-PUT-OPERATOR_" + i);
+      operators[i].start();
+    }
+    for (int i = 0; i < 10; i++) {
+      operators[i].join();
+    }
+    
+    testTimeSource.setTimeMillis(1000);
+    operators = new Thread[10];
+    for (int i = 0; i < 10; i++) {
+      operators[i] = new Thread(new CacheGetOperator(cache, i), "CACHE-GET-OPERATOR_" + i);
+      operators[i].start();
+    }
+    for (int i = 0; i < 10; i++) {
+      operators[i].join();
+    }
+    cacheManager.close();
+
+    assertEquals(100, listener1.created.get());
+    assertEquals(10, listener1.expired.get());
+    assertEquals(100, asyncListener.created.get());
+    assertEquals(10, asyncListener.expired.get());
+  }
+
+  @Test
+  public void testMultiThreadedSyncAsyncNotificationsWithOffheap() throws InterruptedException {
+    AsynchronousListener asyncListener = new AsynchronousListener();
+    asyncListener.resetLatchCount(100);
+
+    CacheConfiguration<Number, Number> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+                .heap(10L, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
+        .buildConfig(Number.class, Number.class);
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
+        .build(true);
+    Cache<Number, Number> cache = cacheManager.getCache("cache", Number.class, Number.class);
+    cache.getRuntimeConfiguration().registerCacheEventListener(asyncListener, EventOrdering.UNORDERED, EventFiring.ASYNCHRONOUS, EnumSet
+        .of(EventType.CREATED, EventType.EXPIRED));
+
+    cache.getRuntimeConfiguration().registerCacheEventListener(listener1, EventOrdering.ORDERED, EventFiring.SYNCHRONOUS, EnumSet
+        .of(EventType.CREATED, EventType.EXPIRED));
+
+    Thread[] operators = new Thread[10];
+    for (int i = 0; i < 10; i++) {
+      operators[i] = new Thread(new CachePutOperator(cache, i), "CACHE-PUT-OPERATOR_" + i);
+      operators[i].start();
+    }
+    for (int i = 0; i < 10; i++) {
+      operators[i].join();
+    }
+    cacheManager.close();
+
+    assertEquals(100, listener1.created.get());
+    assertEquals(100, asyncListener.created.get());
+  }
+
+  @Test
+  public void testMultiThreadedSyncNotifications() throws InterruptedException {
+    CacheConfiguration<Number, Number> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            .heap(10L, EntryUnit.ENTRIES))
+        .buildConfig(Number.class, Number.class);
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
+        .build(true);
+    Cache<Number, Number> cache = cacheManager.getCache("cache", Number.class, Number.class);
+    cache.getRuntimeConfiguration()
+        .registerCacheEventListener(listener1, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet
+            .of(EventType.CREATED, EventType.EVICTED));
+
+    Thread[] operators = new Thread[10];
+    for (int i = 1; i < 11; i++) {
+      operators[i-1] = new Thread(new CachePutOperator(cache, i), "CACHE-PUT-OPERATOR_" + i);
+      operators[i-1].start();
+    }
+    for (int i = 1; i < 11; i++) {
+      operators[i-1].join();
+    }
+    cacheManager.close();
+
+    assertEquals(100, listener1.created.get());
+    assertEquals(90, listener1.evicted.get());
   }
 
   public static class Listener implements CacheEventListener<Object, Object> {
-    private int evicted;
-    private int created;
-    private int updated;
-    private int removed;
-    private int expired;
-    private int eventCounter;
+    private AtomicInteger evicted = new AtomicInteger();
+    private AtomicInteger created = new AtomicInteger();
+    private AtomicInteger updated = new AtomicInteger();
+    private AtomicInteger removed = new AtomicInteger();
+    private AtomicInteger expired = new AtomicInteger();
+    private AtomicInteger eventCounter = new AtomicInteger();
     private HashMap<EventType, Integer> eventTypeHashMap = new HashMap<EventType, Integer>();
 
     @Override
     public void onEvent(CacheEvent<Object, Object> event) {
       Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "EventNotificationTest");
       logger.info(event.getType().toString());
-      eventTypeHashMap.put(event.getType(), eventCounter);
-      eventCounter++;
+      eventTypeHashMap.put(event.getType(), eventCounter.get());
+      eventCounter.getAndIncrement();
       if(event.getType() == EventType.EVICTED){
-        evicted++;
+        evicted.getAndIncrement();
       }
       if(event.getType() == EventType.CREATED){
-        created++;
+        created.getAndIncrement();
       }
       if(event.getType() == EventType.UPDATED){
-        updated++;
+        updated.getAndIncrement();
       }
       if(event.getType() == EventType.REMOVED){
-        removed++;
+        removed.getAndIncrement();
       }
       if(event.getType() == EventType.EXPIRED){
-        expired++;
+        expired.getAndIncrement();
       }
     }
   }
 
   public static class AsynchronousListener implements CacheEventListener<Object, Object> {
-    private int evicted;
-    private int created;
-    private int updated;
-    private int removed;
-    private CountDownLatch latch = new CountDownLatch(10);
+    private AtomicInteger evicted = new AtomicInteger();
+    private AtomicInteger created = new AtomicInteger();
+    private AtomicInteger updated = new AtomicInteger();
+    private AtomicInteger removed = new AtomicInteger();
+    private AtomicInteger expired = new AtomicInteger();
+    private CountDownLatch latch;
+    
+    private void resetLatchCount(int operations) {
+      this.latch = new CountDownLatch(operations);
+    }
 
     @Override
     public void onEvent(final CacheEvent<Object, Object> event) {
-      Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "EventNotificationTest");
+      Logger logger = LoggerFactory.getLogger(EventNotificationTest.class + "-" + "EventNotificationTest");
       logger.info(event.getType().toString());
       if(event.getType() == EventType.EVICTED){
-        evicted++;
+        evicted.getAndIncrement();
       }
       if(event.getType() == EventType.CREATED){
-        created++;
+        created.getAndIncrement();
       }
       if(event.getType() == EventType.UPDATED){
-        updated++;
+        updated.getAndIncrement();
       }
       if(event.getType() == EventType.REMOVED){
-        removed++;
+        removed.getAndIncrement();
+      }
+      if(event.getType() == EventType.EXPIRED){
+        expired.getAndIncrement();
       }
       latch.countDown();
     }
@@ -350,6 +470,42 @@ public class EventNotificationTest {
     SerializableObject(int size) {
       this.size = size;
       this.data = new Byte[size];
+    }
+  }
+  
+  private static class CachePutOperator implements Runnable {
+    Logger logger = LoggerFactory.getLogger(EventNotificationTest.class + "-" + "EventNotificationTest");
+    Cache<Number, Number> cache;
+    int number;
+    
+    CachePutOperator(Cache<Number, Number> cache, int number) {
+      this.cache = cache;
+      this.number = number;
+    }
+
+    @Override
+    public void run() {
+      for (int i = number * 100; i < (number * 100) + 10; i++) {
+        cache.put(i , i);
+        logger.info(Thread.currentThread().getName() + " putting " + i);
+      }
+    }
+  }
+
+  private static class CacheGetOperator implements Runnable {
+    Cache<Number, Number> cache;
+    int number;
+
+    CacheGetOperator(Cache<Number, Number> cache, int number) {
+      this.cache = cache;
+      this.number = number;
+    }
+
+    @Override
+    public void run() {
+      for (int i = number * 100; i < (number * 100) + 10; i++) {
+        cache.get(i);
+      }
     }
   }
 }

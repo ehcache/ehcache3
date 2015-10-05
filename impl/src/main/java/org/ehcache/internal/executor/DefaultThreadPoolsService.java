@@ -67,7 +67,7 @@ public class DefaultThreadPoolsService implements ThreadPoolsService {
   @Override
   public void stop() {
     statisticsExecutor.shutdownNow();
-    eventsOrderedDeliveryExecutor.shutdownNow();
-    eventsUnorderedDeliveryExecutor.shutdownNow();
+    eventsOrderedDeliveryExecutor.shutdown();
+    eventsUnorderedDeliveryExecutor.shutdown();
   }
 }

@@ -50,7 +50,7 @@ public class CacheEventWrapper<K, V> {
    * This marks events fireable atomically
    */
   public void markFireable() {
-    fireable.set(true);
+    fireable.compareAndSet(false, true);
   }
 
   /**
@@ -66,7 +66,7 @@ public class CacheEventWrapper<K, V> {
    * This marks events as failed atomically
    */
   public void markFailed() {
-    this.failed.set(true);
+    this.failed.compareAndSet(false, true);
   }
 
   /**
@@ -87,7 +87,7 @@ public class CacheEventWrapper<K, V> {
    * <p> May cause spurious signals </p>
    */
   void markFiredAndSignalCondition(Boolean signal) {
-    this.fired.set(true);
+    this.fired.compareAndSet(false, true);
     if (signal) {
       this.lock.lock();
       try {

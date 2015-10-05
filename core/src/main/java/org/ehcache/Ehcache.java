@@ -113,11 +113,11 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   };
 
   public Ehcache(CacheConfiguration<K, V> configuration, final Store<K, V> store, Logger logger) {
-    this(configuration, store, null, logger);
+    this(configuration, store, null,logger);
   }
 
   public Ehcache(CacheConfiguration<K, V> configuration, Store<K, V> store, final CacheLoaderWriter<? super K, V> cacheLoaderWriter, Logger logger) {
-    this(configuration, store, cacheLoaderWriter, null, logger);
+    this(configuration, store, cacheLoaderWriter, null,logger);
   }
 
   public Ehcache(CacheConfiguration<K, V> configuration, Store<K, V> store,
@@ -1353,7 +1353,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         removeObserver.end(RemoveOutcome.SUCCESS);
         eventNotificationService.fireAllEvents();
       } else {
-        getObserver.end(GetOutcome.MISS_NO_LOADER);
+        getObserver.end(GetOutcome.MISS_NO_LOADER);          
         eventNotificationService.fireAllEvents();
       }
       return returnValue;
@@ -1405,7 +1405,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         getObserver.end(GetOutcome.HIT_NO_LOADER);
         eventNotificationService.fireAllEvents();
       } else {
-        getObserver.end(GetOutcome.MISS_NO_LOADER);
+        getObserver.end(GetOutcome.MISS_NO_LOADER);          
         eventNotificationService.fireAllEvents();
       }
       putObserver.end(PutOutcome.ADDED);

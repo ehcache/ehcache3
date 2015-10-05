@@ -21,7 +21,6 @@ import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.config.xml.model.BaseCacheType;
-import org.ehcache.config.xml.model.CacheIntegration;
 import org.ehcache.config.xml.model.CacheIntegrationType;
 import org.ehcache.config.xml.model.CacheTemplateType;
 import org.ehcache.config.xml.model.CacheType;
@@ -361,8 +360,8 @@ class ConfigurationParser {
           public Integer eventProcessingQueues() {
             Integer eventProcessingQueueCount = null;
             for (BaseCacheType source : sources) {
-              final CacheIntegration integration = source.getIntegration();
-              final CacheIntegration.EventProcessingQueues eventProcessingQueues = integration != null ? integration.getEventProcessingQueues() : null;
+              final CacheIntegrationType integration = source.getIntegration();
+              final CacheIntegrationType.EventProcessingQueues eventProcessingQueues = integration != null ? integration.getEventProcessingQueues() : null;
               if (eventProcessingQueues != null) {
                 eventProcessingQueueCount = eventProcessingQueues.getCount();
                 break;
@@ -561,8 +560,8 @@ class ConfigurationParser {
 
           @Override
           public Integer eventProcessingQueues() {
-            final CacheIntegration integration = cacheTemplate.getIntegration();
-            final CacheIntegration.EventProcessingQueues eventProcessingQueues = integration != null ? integration.getEventProcessingQueues(): null;
+            final CacheIntegrationType integration = cacheTemplate.getIntegration();
+            final CacheIntegrationType.EventProcessingQueues eventProcessingQueues = integration != null ? integration.getEventProcessingQueues(): null;
             return eventProcessingQueues != null ? eventProcessingQueues() : null;
           }
         });
