@@ -16,10 +16,10 @@
 package org.ehcache.loaderwriter.writebehind;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -32,7 +32,6 @@ import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.loaderwriter.writebehind.operations.DeleteOperation;
 import org.ehcache.loaderwriter.writebehind.operations.OperationsFilter;
 import org.ehcache.loaderwriter.writebehind.operations.SingleOperation;
-import org.ehcache.loaderwriter.writebehind.operations.SingleOperationType;
 import org.ehcache.loaderwriter.writebehind.operations.WriteOperation;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
@@ -397,38 +396,24 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
     final int batchSize = determineBatchSize(quarantinedItems);
 
     // create batches that are separated by operation type
-    final Map<SingleOperationType, List<SingleOperation<K, V>>> separatedItemsPerType = new TreeMap<SingleOperationType, List<SingleOperation<K, V>>>();
-    for (int i = 0; i < batchSize; i++) {
-      final SingleOperation<K, V> item = quarantinedItems.get(i);
-
-      LOGGER.debug("{} : processItems() : adding {} to next batch", getThreadName(), item);
-
-      List<SingleOperation<K, V>> itemsPerType = separatedItemsPerType.get(item.getType());
-      if (null == itemsPerType) {
-        itemsPerType = new ArrayList<SingleOperation<K, V>>();
-        separatedItemsPerType.put(item.getType(), itemsPerType);
-      }
-
-      itemsPerType.add(item);
-    }
-
+    List<List<? extends SingleOperation<K, V>>> batches = createMonomorphicBatches(quarantinedItems.subList(0, batchSize));
 
     Map<?, Exception> failures = null;
     Set<?> successes = null;
     // execute the batch operations
-    for (List<SingleOperation<K, V>> itemsPerType : separatedItemsPerType.values()) {
+    for (List<? extends SingleOperation<K, V>> batch : batches) {
       int executionsLeft = retryAttempts + 1;
       while (executionsLeft-- > 0) {
         try {
-          itemsPerType.get(0).createBatchOperation(itemsPerType).performBatchOperation(cacheLoaderWriter);
+          batch.get(0).createBatchOperation(batch).performBatchOperation(cacheLoaderWriter);
           break;
         } catch (BulkCacheWritingException bulkCacheWritingException) {
           failures = bulkCacheWritingException.getFailures();
           successes = bulkCacheWritingException.getSuccesses();
           // remove successful items
-          for (SingleOperation<K, V> singleOperation : itemsPerType) {
+          for (SingleOperation<K, V> singleOperation : batch) {
             if (successes.contains(singleOperation.getKey()))
-              itemsPerType.remove(singleOperation);
+              batch.remove(singleOperation);
           }
           if (executionsLeft <= 0) {
             if (failures != null) {
@@ -453,8 +438,8 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
           if (executionsLeft <= 0) {
             LOGGER.warn("Exception while bulk processing in write behind queue", e);
             if(cacheLoaderWriter instanceof ResilientCacheWriter ) {
-              for (SingleOperation<K, V> opr : itemsPerType) {
-                ((ResilientCacheWriter<K, V>) cacheLoaderWriter).throwAway(opr.getKey(), opr.getType() == SingleOperationType.WRITE ? ((WriteOperation<K, V>)opr).getValue() : null, e);
+              for (SingleOperation<K, V> opr : batch) {
+                ((ResilientCacheWriter<K, V>) cacheLoaderWriter).throwAway(opr.getKey(), opr instanceof WriteOperation ? ((WriteOperation<K, V>)opr).getValue() : null, e);
               }
             }
           } else {
@@ -483,6 +468,50 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
     
   }
 
+  private List<List<? extends SingleOperation<K, V>>> createMonomorphicBatches(List<SingleOperation<K, V>> batch) {
+
+    final List<List<? extends SingleOperation<K, V>>> closedBatches = new ArrayList<List<? extends SingleOperation<K, V>>>();
+
+    Set<K> deletedKeys = new HashSet<K>();
+    Set<K> writtenKeys = new HashSet<K>();
+    List<DeleteOperation<K, V>> deleteBatch = new ArrayList<DeleteOperation<K, V>>();
+    List<WriteOperation<K, V>> writeBatch = new ArrayList<WriteOperation<K, V>>();
+
+    for (SingleOperation<K, V> item : batch) {
+      LOGGER.debug("{} : processItems() : adding {} to next batch", getThreadName(), item);
+
+      if (item instanceof WriteOperation) {
+        if (deletedKeys.contains(item.getKey())) {
+          //close the current delete batch
+          closedBatches.add(deleteBatch);
+          deleteBatch = new ArrayList<DeleteOperation<K, V>>();
+          deletedKeys = new HashSet<K>();
+        }
+        writeBatch.add((WriteOperation<K, V>) item);
+        writtenKeys.add(item.getKey());
+      } else if (item instanceof DeleteOperation) {
+        if (writtenKeys.contains(item.getKey())) {
+          //close the current write batch
+          closedBatches.add(writeBatch);
+          writeBatch = new ArrayList<WriteOperation<K, V>>();
+          writtenKeys = new HashSet<K>();
+        }
+        deleteBatch.add((DeleteOperation<K, V>) item);
+        deletedKeys.add(item.getKey());
+      } else {
+        throw new AssertionError();
+      }
+    }
+    
+    if (!writeBatch.isEmpty()) {
+      closedBatches.add(writeBatch);
+    }
+    if (!deleteBatch.isEmpty()) {
+      closedBatches.add(deleteBatch);
+    }
+    return closedBatches;
+  }
+
   private void processSingleOperation(List<SingleOperation<K, V>> quarantinedItems) throws Exception {
     
     while (!quarantinedItems.isEmpty()) {
@@ -500,7 +529,7 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
             LOGGER.warn("Exception while processing key '{}' write behind queue : {}", item.getKey(), e);
             //TODO : How to handle this properly 
             if(cacheLoaderWriter instanceof ResilientCacheWriter ) {
-              ((ResilientCacheWriter<K, V>) cacheLoaderWriter).throwAway(item.getKey(), item.getType() == SingleOperationType.WRITE ? ((WriteOperation<K, V>)item).getValue() : null,  e);
+              ((ResilientCacheWriter<K, V>) cacheLoaderWriter).throwAway(item.getKey(), item instanceof WriteOperation ? ((WriteOperation<K, V>)item).getValue() : null,  e);
             }
           } else {
             LOGGER.warn("Exception while processing write behind queue, retrying in {} seconds, {} retries left : {}", retryAttemptDelaySeconds, executionsLeft, e);

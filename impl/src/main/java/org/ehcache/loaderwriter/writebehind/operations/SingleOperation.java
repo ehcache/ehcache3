@@ -40,12 +40,5 @@ public interface SingleOperation<K, V> extends KeyBasedOperation<K> {
    * {@code CacheWriter} that will be used to execute the batch operation.
    *
    */
-  BatchOperation<K, V> createBatchOperation(List<SingleOperation<K, V>> operations);
-
-  /**
-   * Returns a stable identifier for the type this operation can be classified in. This is used to group and order
-   * batched operations.
-   */
-  SingleOperationType getType();
-
+  BatchOperation<K, V> createBatchOperation(List<? extends SingleOperation<K, V>> operations);
 }
