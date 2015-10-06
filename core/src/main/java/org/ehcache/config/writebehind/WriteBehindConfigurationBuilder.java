@@ -26,7 +26,6 @@ public class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfi
   
   private Integer minWriteDelay;
   private Integer maxWriteDelay;
-  private Integer rateLimitPerSecond;
   private Boolean writeCoalescing;
   private Integer writeBatchSize;
   private Integer writeBehindConcurrency;
@@ -39,7 +38,6 @@ public class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfi
   private WriteBehindConfigurationBuilder(WriteBehindConfigurationBuilder other) {
     minWriteDelay = other.minWriteDelay;
     maxWriteDelay = other.maxWriteDelay;
-    rateLimitPerSecond = other.rateLimitPerSecond;
     writeCoalescing = other.writeCoalescing;
     writeBatchSize = other.writeBatchSize;
     writeBehindConcurrency = other.writeBehindConcurrency;
@@ -57,9 +55,6 @@ public class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfi
     }
     if (maxWriteDelay != null) {
       configuration.setMaxWriteDelay(maxWriteDelay);
-    }
-    if (rateLimitPerSecond != null) {
-      configuration.setRateLimitPerSecond(rateLimitPerSecond);
     }
     if (writeCoalescing != null) {
       configuration.setWriteCoalescing(writeCoalescing);
@@ -103,12 +98,6 @@ public class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfi
   public WriteBehindConfigurationBuilder batchSize(int batchSize) {
     WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
     otherBuilder.writeBatchSize = batchSize;
-    return otherBuilder;
-  }
-  
-  public WriteBehindConfigurationBuilder rateLimit(int rateLimitPerSecond) {
-    WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
-    otherBuilder.rateLimitPerSecond = rateLimitPerSecond;
     return otherBuilder;
   }
   

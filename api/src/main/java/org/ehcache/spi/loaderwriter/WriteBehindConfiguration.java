@@ -41,15 +41,6 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
   int getMaxWriteDelay();
 
   /**
-   * The maximum number of write operations to allow per second.
-   *
-   * Only positive values are legal.
-   *
-   * @return Retrieves the maximum number of write operations to allow per second.
-   */
-  int getRateLimitPerSecond();
-
-  /**
    * Whether write operations can be coalesced.
    *
    * @return Retrieves the write coalescing behavior is enabled or not

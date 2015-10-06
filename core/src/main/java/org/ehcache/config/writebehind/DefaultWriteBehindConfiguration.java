@@ -27,7 +27,6 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
 
   private int minWriteDelay = 0;
   private int maxWriteDelay = Integer.MAX_VALUE;
-  private int rateLimitPerSecond = Integer.MAX_VALUE;
   private boolean writeCoalescing = false;
   private int writeBatchSize = 1;
   private int writeBehindConcurrency = 1;
@@ -44,11 +43,6 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
   @Override
   public int getMaxWriteDelay() {
     return maxWriteDelay;
-  }
-  
-  @Override
-  public int getRateLimitPerSecond() {
-    return rateLimitPerSecond;
   }
   
   @Override
@@ -89,13 +83,6 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
                                          ") must be larger than or equal to minimum write delay (" + minWriteDelay + ")");
     }
     this.maxWriteDelay = maxWriteDelay;
-  }
-
-  public void setRateLimitPerSecond(int rateLimitPerSecond) {
-    if(rateLimitPerSecond < 1) {
-      throw new IllegalArgumentException("RateLimitPerSecond cannot be less than 1.");
-    }
-    this.rateLimitPerSecond = rateLimitPerSecond;
   }
 
   public void setWriteCoalescing(boolean writeCoalescing) {

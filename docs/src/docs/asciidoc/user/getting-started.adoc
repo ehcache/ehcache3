@@ -181,8 +181,7 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 <5> Enable write-behind queue to batch the updates to underlying resource.
 <6> Enable the write coalescing behavior, which ensures that only latest update on a key hits the
     underlying resource.
-<7> Control maximum number of updates allowed per second.
-<8> Configure maximum and minimum number of seconds to wait before writing to the underlying resource.
+<7> Configure maximum and minimum number of seconds to wait before writing to the underlying resource.
 
 === Serializers
 

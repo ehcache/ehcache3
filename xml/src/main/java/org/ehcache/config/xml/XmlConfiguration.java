@@ -260,7 +260,7 @@ public class XmlConfiguration implements Configuration {
         if(cacheDefinition.writeBehind() != null) {
           WriteBehind writeBehind = cacheDefinition.writeBehind();
           WriteBehindConfigurationBuilder writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
-              .concurrencyLevel(writeBehind.concurrency()).queueSize(writeBehind.maxQueueSize()).rateLimit(writeBehind.rateLimitPerSecond())
+              .concurrencyLevel(writeBehind.concurrency()).queueSize(writeBehind.maxQueueSize())
               .delay(writeBehind.minWriteDelay(), writeBehind.maxWriteDelay())
               .batchSize(writeBehind.batchSize());
           if(writeBehind.isCoalesced()) {
@@ -446,7 +446,7 @@ public class XmlConfiguration implements Configuration {
       if(cacheTemplate.writeBehind() != null) {
         WriteBehind writeBehind = cacheTemplate.writeBehind();
         WriteBehindConfigurationBuilder writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
-            .concurrencyLevel(writeBehind.concurrency()).queueSize(writeBehind.maxQueueSize()).rateLimit(writeBehind.rateLimitPerSecond())
+            .concurrencyLevel(writeBehind.concurrency()).queueSize(writeBehind.maxQueueSize())
             .delay(writeBehind.minWriteDelay(), writeBehind.maxWriteDelay())
             .batchSize(writeBehind.batchSize());
         if(writeBehind.isCoalesced()) {

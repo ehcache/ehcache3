@@ -45,11 +45,8 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WriteBehind.class);
 
-  private static final int MS_IN_SEC = 1000;
-
   private final long minWriteDelayMs;
   private final long maxWriteDelayMs;
-  private final int rateLimitPerSecond;
   private final int maxQueueSize;
   private final int writeBatchSize;
   private final Thread processingThread;
@@ -77,7 +74,6 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
     
     this.minWriteDelayMs = TimeUnit.SECONDS.toMillis(config.getMinWriteDelay());
     this.maxWriteDelayMs = TimeUnit.SECONDS.toMillis(config.getMaxWriteDelay());
-    this.rateLimitPerSecond = config.getRateLimitPerSecond();
     this.maxQueueSize = config.getWriteBehindMaxQueueSize();
     this.writeBatchSize = config.getWriteBatchSize();
     this.cacheLoaderWriter = cacheLoaderWriter;
@@ -348,15 +344,6 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
             waitUntilEnoughWorkItemsAvailable(quarantinedItems, workSize);
             return;
           }
-          // enforce the rate limit and wait for another round if too much would
-          // be processed compared to the last time when a batch was executed
-          final long secondsSinceLastWorkDone = (System.currentTimeMillis() - lastWorkDone.get()) / MS_IN_SEC;
-          final long maxBatchSizeSinceLastWorkDone = rateLimitPerSecond * secondsSinceLastWorkDone;
-          final int batchSize = determineBatchSize(quarantinedItems);
-          if (batchSize > maxBatchSizeSinceLastWorkDone) {
-            waitUntilEnoughTimeHasPassed(quarantinedItems, batchSize, secondsSinceLastWorkDone);
-            return;
-          }
         }
 
         // set some state related to this processing run
@@ -500,12 +487,6 @@ public abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V
 
   private void waitUntilEnoughWorkItemsAvailable(List<SingleOperation<K, V>> quarantinedItems, int workSize) {
     LOGGER.debug("{} : processItems() : only {} work items available, waiting for {} items to fill up a batch", getThreadName(), workSize, writeBatchSize);
-    reassemble(quarantinedItems);
-  }
-
-  private void waitUntilEnoughTimeHasPassed(List<SingleOperation<K, V>> quarantinedItems, int batchSize, long secondsSinceLastWorkDone) {
-    LOGGER.debug("{} : processItems() : last work was done {} seconds ago, processing {} batch items would exceed the rate limit of {} ,"
-        + " waiting for a while.", getThreadName(), secondsSinceLastWorkDone, batchSize, rateLimitPerSecond);
     reassemble(quarantinedItems);
   }
 

@@ -673,8 +673,6 @@ class ConfigurationParser {
     
     int maxWriteDelay();
     
-    int rateLimitPerSecond();
-    
   }
 
   private static class XmlExpiry implements Expiry {
@@ -784,10 +782,5 @@ class ConfigurationParser {
       return this.writebehind.getMaxWriteDelay().intValue();
     }
 
-    @Override
-    public int rateLimitPerSecond() {
-      return this.writebehind.getRateLimitPerSecond().intValue();
-    }
-    
   }
 }
