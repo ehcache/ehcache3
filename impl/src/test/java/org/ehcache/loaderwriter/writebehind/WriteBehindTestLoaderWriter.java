@@ -15,11 +15,12 @@
  */
 package org.ehcache.loaderwriter.writebehind;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -30,121 +31,70 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
  */
 public class WriteBehindTestLoaderWriter<K, V> implements CacheLoaderWriter<K, V> {
 
-  private final Map<K, Pair<K, V>> data = new HashMap<K, Pair<K,V>>(); 
-  private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+  private final Map<K, List<V>> data = new HashMap<K, List<V>>();
   private CountDownLatch latch;
   
-  public CountDownLatch getLatch() {
-    return latch;
-  }
-
-  public void setLatch(CountDownLatch latch) {
+  public synchronized void setLatch(CountDownLatch latch) {
     this.latch = latch;
   }
 
   @Override
-  public V load(K key) throws Exception {
-    V v = null;
-    lock.readLock().lock();
-    try {
-      Pair<K, V> kVPair = data.get(key); 
-      v = kVPair == null ? null : kVPair.getValue();
-    } finally {
-      lock.readLock().unlock();
+  public synchronized  V load(K key) throws Exception {
+    List<V> values = getValueList(key);
+    if (values.isEmpty()) {
+      return null;
+    } else {
+      return values.get(values.size() - 1);
     }
-    return v;
   }
 
   @Override
-  public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
+  public synchronized Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
     Map<K, V> loaded = new HashMap<K, V>();
-    lock.readLock().lock();
-    try {
-      for (K k : keys) {
-        Pair<K, V> pair = data.get(k);
-        loaded.put(k, pair == null ? null : pair.getValue());
-      }
-    } finally {
-      lock.readLock().unlock();
+    for (K k : keys) {
+      loaded.put(k, load(k));
     }
     return loaded;
   }
 
   @Override
-  public void write(K key, V value) throws Exception {
-    lock.writeLock().lock();
-    try {
-      data.put(key, new Pair<K, V>(key, value));
-      if(latch != null) latch.countDown();
-    } finally {
-      lock.writeLock().unlock();
+  public synchronized void write(K key, V value) throws Exception {
+    getValueList(key).add(value);
+    if(latch != null) latch.countDown();
+  }
+
+  @Override
+  public synchronized void writeAll(Iterable<? extends Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception {
+    for (Entry<? extends K, ? extends V> entry : entries) {
+      write(entry.getKey(), entry.getValue());
     }
   }
 
   @Override
-  public void writeAll(Iterable<? extends Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception {
-
-    lock.writeLock().lock();
-    try {
-      for (Entry<? extends K, ? extends V> entry : entries) {
-       data.put(entry.getKey(), new Pair<K, V>(entry.getKey(), entry.getValue()));
-       if(latch != null) latch.countDown();
-      }
-    } finally {
-      lock.writeLock().unlock();
-    }
+  public synchronized void delete(K key) throws Exception {
+    getValueList(key).add(null);
+    if(latch != null) latch.countDown();
   }
 
   @Override
-  public void delete(K key) throws Exception {
-    lock.writeLock().lock();
-    try {
-      data.remove(key);
-      if(latch != null) latch.countDown();
-    } finally {
-      lock.writeLock().unlock();
-    }
-  }
-
-  @Override
-  public void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException, Exception {
-    lock.writeLock().lock();
-    try {
-      for (K k : keys) {
-        data.remove(k);
-        if(latch != null) latch.countDown();
-      }
-    } finally {
-      lock.writeLock().unlock();
+  public synchronized void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException, Exception {
+    for (K k : keys) {
+      delete(k);
     }
   }
   
-  public Map<K, Pair<K, V>> getData() {
+  public synchronized Map<K, List<V>> getData() {
     return this.data;
   }
 
-  public static class Pair<K, V> {
-    
-    private K key;
-    private V value;
-    
-    /**
-     * 
-     */
-    public Pair(K k, V v) {
-      this.key = k;
-      this.value = v;
+  protected List<V> getValueList(K key) {
+    List<V> values = data.get(key);
+    if (values == null) {
+      values = new ArrayList<V>();
+      data.put(key, values);
     }
-    
-    public K getKey() {
-      return key;
-    }
-
-    public V getValue() {
-      return value;
-    }
+    return values;
   }
-  
 }
 
 
