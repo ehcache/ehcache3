@@ -50,6 +50,7 @@ import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.spi.cache.tiering.HigherCachingTier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -86,7 +87,7 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
 /**
  * @author Alex Snaps
  */
-public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
+public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   private static final Logger LOG = LoggerFactory.getLogger(OnHeapStore.class);
 
@@ -536,14 +537,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   }
 
   @Override
-  public void invalidate(K key, final NullaryFunction<K> function) throws CacheAccessException {
+  public void silentInvalidate(K key, final Function<Store.ValueHolder<V>, Void> function) throws CacheAccessException {
     map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K k, OnHeapValueHolder<V> onHeapValueHolder) {
-        if (onHeapValueHolder != null && !(onHeapValueHolder instanceof Fault)) {
-          notifyInvalidation(k, onHeapValueHolder);
-        }
-        function.apply();
+        function.apply(onHeapValueHolder);
         return null;
       }
     });
@@ -1046,7 +1044,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
   }
 
   @ServiceDependencies({TimeSourceService.class, CopyProvider.class})
-  public static class Provider implements Store.Provider, CachingTier.Provider {
+  public static class Provider implements Store.Provider, CachingTier.Provider, HigherCachingTier.Provider {
     
     private volatile ServiceProvider serviceProvider;
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
@@ -1078,6 +1076,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
 
     @Override
     public void initStore(Store<?, ?> resource) {
+      checkResource(resource);
+    }
+
+    private void checkResource(Object resource) {
       if (!createdStores.contains(resource)) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
@@ -1101,12 +1103,28 @@ public class OnHeapStore<K, V> implements Store<K,V>, CachingTier<K, V> {
 
     @Override
     public void releaseCachingTier(CachingTier<?, ?> resource) {
+      checkResource(resource);
       ((OnHeapStore)resource).invalidate();
       releaseStore((Store<?, ?>) resource);
     }
 
     @Override
     public void initCachingTier(CachingTier<?, ?> resource) {
+      initStore((Store<?, ?>) resource);
+    }
+
+    @Override
+    public <K, V> HigherCachingTier<K, V> createHigherCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      return createStore(storeConfig, serviceConfigs);
+    }
+
+    @Override
+    public void releaseHigherCachingTier(HigherCachingTier<?, ?> resource) {
+      releaseCachingTier(resource);
+    }
+
+    @Override
+    public void initHigherCachingTier(HigherCachingTier<?, ?> resource) {
       initStore((Store<?, ?>) resource);
     }
   }

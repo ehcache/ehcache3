@@ -16,6 +16,7 @@
 package org.ehcache.internal.store.tiering;
 
 import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.spi.cache.tiering.HigherCachingTier;
 import org.ehcache.spi.cache.tiering.LowerCachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -24,14 +25,14 @@ import org.ehcache.spi.service.ServiceConfiguration;
  */
 public class CompoundCachingTierServiceConfiguration implements ServiceConfiguration<CompoundCachingTier.Provider> {
 
-  private Class<? extends CachingTier.Provider> higherProvider;
+  private Class<? extends HigherCachingTier.Provider> higherProvider;
   private Class<? extends LowerCachingTier.Provider> lowerProvider;
 
-  public Class<? extends CachingTier.Provider> higherProvider() {
+  public Class<? extends HigherCachingTier.Provider> higherProvider() {
     return higherProvider;
   }
 
-  public CompoundCachingTierServiceConfiguration higherProvider(Class<? extends CachingTier.Provider> higherProvider) {
+  public CompoundCachingTierServiceConfiguration higherProvider(Class<? extends HigherCachingTier.Provider> higherProvider) {
     this.higherProvider = higherProvider;
     return this;
   }
