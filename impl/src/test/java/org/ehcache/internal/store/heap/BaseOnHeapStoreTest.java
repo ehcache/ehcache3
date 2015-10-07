@@ -32,6 +32,7 @@ import org.ehcache.internal.store.heap.holders.CopiedOnHeapValueHolder;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.Iterator;
 import org.ehcache.spi.cache.Store.ValueHolder;
+import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.statistics.StoreOperationOutcomes;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
@@ -47,12 +48,15 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -886,6 +890,109 @@ public abstract class BaseOnHeapStoreTest {
     boolean result = endLatch.await(2, TimeUnit.SECONDS);
     if (!result) {
       fail("Wait expired before completion, logs should have exceptions");
+    }
+  }
+
+  @Test
+  public void testConcurrentFaultingAndInvalidate() throws Exception {
+    final OnHeapStore<Long, String> store = newStore();
+    CachingTier.InvalidationListener<Long, String> invalidationListener = mock(CachingTier.InvalidationListener.class);
+    store.setInvalidationListener(invalidationListener);
+
+    final AtomicReference<AssertionError> failedInThread = new AtomicReference<AssertionError>();
+
+    final CountDownLatch getLatch = new CountDownLatch(1);
+    final CountDownLatch invalidateLatch = new CountDownLatch(1);
+
+    new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          store.getOrComputeIfAbsent(42L, new Function<Long, ValueHolder<String>>() {
+            @Override
+            public ValueHolder<String> apply(Long aLong) {
+              invalidateLatch.countDown();
+              try {
+                boolean await = getLatch.await(5, TimeUnit.SECONDS);
+                if (!await) {
+                  failedInThread.set(new AssertionError("latch timed out"));
+                }
+              } catch (InterruptedException e) {
+                failedInThread.set(new AssertionError("Interrupted exception: " + e.getMessage()));
+              }
+              return new CopiedOnHeapValueHolder<String>("TheAnswer!", System.currentTimeMillis(), new IdentityCopier<String>());
+            }
+          });
+        } catch (CacheAccessException caex) {
+          failedInThread.set(new AssertionError("CacheAccessException: " + caex.getMessage()));
+        }
+      }
+    }).start();
+
+    boolean await = invalidateLatch.await(5, TimeUnit.SECONDS);
+    if (!await) {
+      fail("latch timed out");
+    }
+    store.invalidate(42L);
+    getLatch.countDown();
+
+    verify(invalidationListener, never()).onInvalidation(any(Long.class), any(ValueHolder.class));
+    if (failedInThread.get() != null) {
+      throw failedInThread.get();
+    }
+  }
+
+  @Test
+  public void testConcurrentSilentFaultingAndInvalidate() throws Exception {
+    final OnHeapStore<Long, String> store = newStore();
+
+    final AtomicReference<AssertionError> failedInThread = new AtomicReference<AssertionError>();
+
+    final CountDownLatch getLatch = new CountDownLatch(1);
+    final CountDownLatch invalidateLatch = new CountDownLatch(1);
+
+    new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          store.getOrComputeIfAbsent(42L, new Function<Long, ValueHolder<String>>() {
+            @Override
+            public ValueHolder<String> apply(Long aLong) {
+              invalidateLatch.countDown();
+              try {
+                boolean await = getLatch.await(5, TimeUnit.SECONDS);
+                if (!await) {
+                  failedInThread.set(new AssertionError("latch timed out"));
+                }
+              } catch (InterruptedException e) {
+                failedInThread.set(new AssertionError("Interrupted exception: " + e.getMessage()));
+              }
+              return new CopiedOnHeapValueHolder<String>("TheAnswer!", System.currentTimeMillis(), new IdentityCopier<String>());
+            }
+          });
+        } catch (CacheAccessException caex) {
+          failedInThread.set(new AssertionError("CacheAccessException: " + caex.getMessage()));
+        }
+      }
+    }).start();
+
+    boolean await = invalidateLatch.await(5, TimeUnit.SECONDS);
+    if (!await) {
+      fail("latch timed out");
+    }
+    store.silentInvalidate(42L, new Function<ValueHolder<String>, Void>() {
+      @Override
+      public Void apply(ValueHolder<String> stringValueHolder) {
+        if (stringValueHolder != null) {
+          assertThat("Expected a null parameter otherwise we leak a Fault", stringValueHolder, nullValue());
+        }
+        return null;
+      }
+    });
+    getLatch.countDown();
+
+    if (failedInThread.get() != null) {
+      throw failedInThread.get();
     }
   }
 
