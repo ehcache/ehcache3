@@ -59,7 +59,7 @@ public class WriteOperation<K, V> implements SingleOperation<K, V> {
   }
 
   @Override
-  public BatchOperation<K, V> createBatchOperation(List<SingleOperation<K, V>> operations) {
+  public BatchOperation<K, V> createBatchOperation(List<? extends SingleOperation<K, V>> operations) {
     final List<Map.Entry<K, V>> entries = new ArrayList<Map.Entry<K, V>>();
     for (final KeyBasedOperation<K> operation : operations) {
       entries.add(new Map.Entry<K, V>() {
@@ -95,11 +95,6 @@ public class WriteOperation<K, V> implements SingleOperation<K, V> {
   @Override
   public long getCreationTime() {
     return creationTime;
-  }
-
-  @Override
-  public SingleOperationType getType() {
-    return SingleOperationType.WRITE;
   }
 
   @Override

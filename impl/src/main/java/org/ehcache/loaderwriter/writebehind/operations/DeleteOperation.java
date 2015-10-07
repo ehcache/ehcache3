@@ -18,7 +18,6 @@ package org.ehcache.loaderwriter.writebehind.operations;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.ehcache.loaderwriter.writebehind.operations.SingleOperation;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
@@ -54,7 +53,7 @@ public class DeleteOperation<K, V> implements SingleOperation<K, V> {
     cacheLoaderWriter.delete(key);
   }
 
-  public BatchOperation<K, V> createBatchOperation(List<SingleOperation<K, V>> operations) {
+  public BatchOperation<K, V> createBatchOperation(List<? extends SingleOperation<K, V>> operations) {
     final List<K> keys = new ArrayList<K>();
       for (KeyBasedOperation<K> operation : operations) {
         keys.add(operation.getKey());
@@ -70,11 +69,6 @@ public class DeleteOperation<K, V> implements SingleOperation<K, V> {
   @Override
   public long getCreationTime() {
     return creationTime;
-  }
-
-  @Override
-  public SingleOperationType getType() {
-    return SingleOperationType.DELETE;
   }
 
   @Override
