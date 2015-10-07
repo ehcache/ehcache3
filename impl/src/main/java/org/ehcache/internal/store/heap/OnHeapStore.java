@@ -541,7 +541,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K k, OnHeapValueHolder<V> onHeapValueHolder) {
-        function.apply(onHeapValueHolder);
+        OnHeapValueHolder<V> holderToPass = onHeapValueHolder;
+        if (onHeapValueHolder instanceof Fault) {
+          holderToPass = null;
+        }
+        function.apply(holderToPass);
         return null;
       }
     });
