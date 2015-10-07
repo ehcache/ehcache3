@@ -175,13 +175,12 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
     and register using `DefaultCacheLoaderWriterConfiguration`.
 <2> Additionally, register a `WriteBehindDecoratorLoaderWriterProvider` service to Cache by adding
     `WriteBehindConfiguration`.
-<3> Configure maximum size of the writebehind queue.
-<4> Define the concurrency level of writebehind queue, at a time these many writer threads will update
+<3> Enable write-behind queue to batch the updates to underlying resource.
+<4> Configure maximum size of the writebehind queue.
+<5> Define the concurrency level of writebehind queue, at a time these many writer threads will update
     the  underlying resource asynchronously.
-<5> Enable write-behind queue to batch the updates to underlying resource.
 <6> Enable the write coalescing behavior, which ensures that only latest update on a key hits the
     underlying resource.
-<7> Configure maximum and minimum number of seconds to wait before writing to the underlying resource.
 
 === Serializers
 

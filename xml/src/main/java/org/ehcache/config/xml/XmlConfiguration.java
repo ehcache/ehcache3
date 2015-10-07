@@ -66,6 +66,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
+import org.ehcache.config.xml.ConfigurationParser.Batching;
 
 /**
  * Exposes {@link org.ehcache.config.Configuration} and {@link org.ehcache.config.CacheConfigurationBuilder} expressed
@@ -259,14 +261,19 @@ public class XmlConfiguration implements Configuration {
         builder = builder.add(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriterClass));
         if(cacheDefinition.writeBehind() != null) {
           WriteBehind writeBehind = cacheDefinition.writeBehind();
-          WriteBehindConfigurationBuilder writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
-              .concurrencyLevel(writeBehind.concurrency()).queueSize(writeBehind.maxQueueSize())
-              .delay(writeBehind.minWriteDelay(), writeBehind.maxWriteDelay())
-              .batchSize(writeBehind.batchSize());
-          if(writeBehind.isCoalesced()) {
-            writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.enableCoalescing();
+          WriteBehindConfigurationBuilder writeBehindConfigurationBuilder;
+          if (writeBehind.batching() == null) {
+            writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration();
+          } else {
+            Batching batching = writeBehind.batching();
+            writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration(batching.maxDelay(), batching.maxDelayUnit(), batching.batchSize());
+            if (batching.isCoalesced()) {
+              writeBehindConfigurationBuilder = ((BatchedWriteBehindConfigurationBuilder) writeBehindConfigurationBuilder).enableCoalescing();
+            }
           }
-          builder = builder.add(writeBehindConfigurationBuilder);
+          builder = builder.add(writeBehindConfigurationBuilder
+                  .concurrencyLevel(writeBehind.concurrency())
+                  .queueSize(writeBehind.maxQueueSize()));
         }
       }
       if(cacheDefinition.listeners()!= null) {
@@ -445,14 +452,19 @@ public class XmlConfiguration implements Configuration {
       builder = builder.add(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriterClass));
       if(cacheTemplate.writeBehind() != null) {
         WriteBehind writeBehind = cacheTemplate.writeBehind();
-        WriteBehindConfigurationBuilder writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
-            .concurrencyLevel(writeBehind.concurrency()).queueSize(writeBehind.maxQueueSize())
-            .delay(writeBehind.minWriteDelay(), writeBehind.maxWriteDelay())
-            .batchSize(writeBehind.batchSize());
-        if(writeBehind.isCoalesced()) {
-          writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.enableCoalescing();
+        WriteBehindConfigurationBuilder writeBehindConfigurationBuilder;
+        if (writeBehind.batching() == null) {
+          writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration();
+        } else {
+          Batching batching = writeBehind.batching();
+          writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration(batching.maxDelay(), batching.maxDelayUnit(), batching.batchSize());
+          if (batching.isCoalesced()) {
+            writeBehindConfigurationBuilder = ((BatchedWriteBehindConfigurationBuilder) writeBehindConfigurationBuilder).enableCoalescing();
+          }
         }
-        builder = builder.add(writeBehindConfigurationBuilder);
+        builder = builder.add(writeBehindConfigurationBuilder
+                .concurrencyLevel(writeBehind.concurrency())
+                .queueSize(writeBehind.maxQueueSize()));
       }
     }
     if(cacheTemplate.listeners()!= null) {

@@ -677,18 +677,22 @@ class ConfigurationParser {
   
   interface WriteBehind {
     
-    boolean isCoalesced();
-    
-    int batchSize();
-    
     int maxQueueSize();
     
     int concurrency();
 
-    int minWriteDelay();
-    
-    int maxWriteDelay();
-    
+    Batching batching();
+  }
+
+  interface Batching {
+
+    boolean isCoalesced();
+
+    int batchSize();
+
+    long maxDelay();
+
+    TimeUnit maxDelayUnit();
   }
 
   private static class XmlExpiry implements Expiry {
@@ -739,22 +743,7 @@ class ConfigurationParser {
         time = type.getTtl();
       }
       if(time != null) {
-        switch (time.getUnit()) {
-          case NANOS:
-            return TimeUnit.NANOSECONDS;
-          case MICROS:
-          return TimeUnit.MICROSECONDS;
-          case MILLIS:
-            return TimeUnit.MILLISECONDS;
-          case SECONDS:
-            return TimeUnit.SECONDS;
-          case MINUTES:
-            return TimeUnit.MINUTES;
-          case HOURS:
-            return TimeUnit.HOURS;
-          case DAYS:
-            return TimeUnit.DAYS;
-        }
+        return convertToJavaTimeUnit(time.getUnit());
       }
       return null;
     }
@@ -769,16 +758,6 @@ class ConfigurationParser {
     }
     
     @Override
-    public boolean isCoalesced() {
-      return this.writebehind.isCoalesce();
-    }
-
-    @Override
-    public int batchSize() {
-      return this.writebehind.getBatchSize().intValue();
-    }
-
-    @Override
     public int maxQueueSize() {
       return this.writebehind.getSize().intValue();
     }
@@ -789,14 +768,64 @@ class ConfigurationParser {
     }
 
     @Override
-    public int minWriteDelay() {
-      return this.writebehind.getMinWriteDelay().intValue();
+    public Batching batching() {
+      CacheIntegrationType.WriteBehind.Batching batching = writebehind.getBatching();
+      if (batching == null) {
+        return null;
+      } else {
+        return new XmlBatching(batching);
+      }
+    }
+
+  }
+
+  private static class XmlBatching implements Batching {
+
+    private final CacheIntegrationType.WriteBehind.Batching batching;
+
+    private XmlBatching(CacheIntegrationType.WriteBehind.Batching batching) {
+      this.batching = batching;
     }
 
     @Override
-    public int maxWriteDelay() {
-      return this.writebehind.getMaxWriteDelay().intValue();
+    public boolean isCoalesced() {
+      return this.batching.isCoalesce();
     }
 
+    @Override
+    public int batchSize() {
+      return this.batching.getBatchSize().intValue();
+    }
+
+    @Override
+    public long maxDelay() {
+      return this.batching.getMaxWriteDelay().getValue().longValue();
+    }
+
+    @Override
+    public TimeUnit maxDelayUnit() {
+      return convertToJavaTimeUnit(this.batching.getMaxWriteDelay().getUnit());
+    }
+  }
+
+  private static TimeUnit convertToJavaTimeUnit(org.ehcache.config.xml.model.TimeUnit unit) {
+    switch (unit) {
+      case NANOS:
+        return TimeUnit.NANOSECONDS;
+      case MICROS:
+      return TimeUnit.MICROSECONDS;
+      case MILLIS:
+        return TimeUnit.MILLISECONDS;
+      case SECONDS:
+        return TimeUnit.SECONDS;
+      case MINUTES:
+        return TimeUnit.MINUTES;
+      case HOURS:
+        return TimeUnit.HOURS;
+      case DAYS:
+        return TimeUnit.DAYS;
+      default:
+        throw new IllegalArgumentException("Unknown time unit: " + unit);
+    }
   }
 }

@@ -36,7 +36,7 @@ public class AggregateWriteBehindQueue<K, V> implements WriteBehind<K, V> {
   private final List<WriteBehind<K, V>> queues = new ArrayList<WriteBehind<K, V>>();
 
   protected AggregateWriteBehindQueue(WriteBehindConfiguration config, WriteBehindQueueFactory<K, V> queueFactory, CacheLoaderWriter<K, V> cacheLoaderWriter) {
-    int writeBehindConcurrency = config.getWriteBehindConcurrency();
+    int writeBehindConcurrency = config.getConcurrency();
     for (int i = 0; i < writeBehindConcurrency; i++) {
       this.queues.add(queueFactory.createQueue(i, config, cacheLoaderWriter));
     }
@@ -129,7 +129,11 @@ public class AggregateWriteBehindQueue<K, V> implements WriteBehind<K, V> {
      *
      */
     protected WriteBehind<K, V> createQueue(int index, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
-      return new LocalHeapWriteBehindQueue<K, V>(config, cacheLoaderWriter);
+      if (config.getBatchingConfiguration() == null) {
+        return new NonBatchingLocalHeapWriteBehindQueue(config, cacheLoaderWriter);
+      } else {
+        return new BatchingLocalHeapWriteBehindQueue<K, V>(config, cacheLoaderWriter);
+      }
     }
   }
 

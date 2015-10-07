@@ -25,85 +25,38 @@ import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
  */
 public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration {
 
-  private int minWriteDelay = 0;
-  private int maxWriteDelay = Integer.MAX_VALUE;
-  private boolean writeCoalescing = false;
-  private int writeBatchSize = 1;
+  private final BatchingConfiguration batchingConfig;
+
   private int writeBehindConcurrency = 1;
   private int writeBehindMaxQueueSize = Integer.MAX_VALUE;
   
-  public DefaultWriteBehindConfiguration() {
+  public DefaultWriteBehindConfiguration(BatchingConfiguration batchingConfig) {
+    this.batchingConfig = batchingConfig;
   }
   
   @Override
-  public int getMinWriteDelay() {
-    return minWriteDelay;
-  }
-  
-  @Override
-  public int getMaxWriteDelay() {
-    return maxWriteDelay;
-  }
-  
-  @Override
-  public boolean isWriteCoalescing() {
-    return writeCoalescing;
-  }
-  
-  @Override
-  public int getWriteBatchSize() {
-    return writeBatchSize;
-  }
-  
-  @Override
-  public int getWriteBehindConcurrency() {
+  public int getConcurrency() {
     return writeBehindConcurrency;
   }
   
   @Override
-  public int getWriteBehindMaxQueueSize() {
+  public int getMaxQueueSize() {
     return writeBehindMaxQueueSize;
   }
 
-  public void setMinWriteDelay(int minWriteDelay) {
-    if (minWriteDelay < 0) {
-      throw new IllegalArgumentException("Minimum write delay seconds cannot be less than 0");
-    } else if (minWriteDelay > maxWriteDelay) {
-      throw new IllegalArgumentException("Minimum write delay (" + minWriteDelay +
-                                         ") must be smaller than or equal to maximum write delay (" + maxWriteDelay + ")");
-    }
-    this.minWriteDelay = minWriteDelay;
+  @Override
+  public BatchingConfiguration getBatchingConfiguration() {
+    return batchingConfig;
   }
 
-  public void setMaxWriteDelay(int maxWriteDelay) {
-    if (maxWriteDelay < 0) {
-      throw new IllegalArgumentException("Maximum write delay cannot be less than 1");
-    } else if (maxWriteDelay < minWriteDelay) {
-      throw new IllegalArgumentException("Maximum write delay (" + maxWriteDelay +
-                                         ") must be larger than or equal to minimum write delay (" + minWriteDelay + ")");
-    }
-    this.maxWriteDelay = maxWriteDelay;
-  }
-
-  public void setWriteCoalescing(boolean writeCoalescing) {
-    this.writeCoalescing = writeCoalescing;
-  }
-
-  public void setWriteBatchSize(int writeBatchSize) {
-    if(writeBatchSize < 1) {
-      throw new IllegalArgumentException("Batchsize cannot be less than 1.");
-    }
-    this.writeBatchSize = writeBatchSize;
-  }
-
-  public void setWriteBehindConcurrency(int writeBehindConcurrency) {
+  public void setConcurrency(int writeBehindConcurrency) {
     if(writeBehindConcurrency < 1) {
       throw new IllegalArgumentException("Concurrency Level cannot be less than 1.");
     }
     this.writeBehindConcurrency = writeBehindConcurrency;
   }
 
-  public void setWriteBehindMaxQueueSize(int writeBehindMaxQueueSize) {
+  public void setMaxQueueSize(int writeBehindMaxQueueSize) {
     if(writeBehindMaxQueueSize < 1) {
       throw new IllegalArgumentException("WriteBehind queue size cannot be less than 1.");
     }

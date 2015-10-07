@@ -57,6 +57,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static java.util.Collections.singletonMap;
@@ -253,12 +254,11 @@ public class GettingStarted {
     final Cache<Long, String> writeBehindCache = cacheManager.createCache("writeBehindCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder()
             .add(new DefaultCacheLoaderWriterConfiguration(klazz, singletonMap(41L, "zero"))) // <1>
-            .add(WriteBehindConfigurationBuilder.newWriteBehindConfiguration() // <2>
-                .queueSize(3)// <3>
-                .concurrencyLevel(1) // <4>
-                .batchSize(3) // <5>
-                .enableCoalescing() // <6>
-                .delay(1, 1)) // <7>
+            .add(WriteBehindConfigurationBuilder // <2>
+                .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)// <3>
+                .queueSize(3)// <4>
+                .concurrencyLevel(1) // <5>
+                .enableCoalescing()) // <6>
             .buildConfig(Long.class, String.class));
     
     assertThat(writeBehindCache.get(41L), is("zero"));

@@ -16,6 +16,7 @@
 
 package org.ehcache.spi.loaderwriter;
 
+import java.util.concurrent.TimeUnit;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
@@ -23,47 +24,11 @@ import org.ehcache.spi.service.ServiceConfiguration;
  */
 public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehindDecoratorLoaderWriterProvider> {
   /**
-   * The minimum number of seconds to wait before writing behind.
-   *
-   * Lower than or equal to {@see getMaxWriteDelay}.
-   *
-   * @return Retrieves the minimum number of seconds to wait before writing behind
-   */
-  int getMinWriteDelay();
-
-  /**
-   * The maximum number of seconds to wait before writing behind.
-   *
-   * Greater than or equal to {@see getMinWriteDelay}
-   *
-   * @return Retrieves the maximum number of seconds to wait before writing behind
-   */
-  int getMaxWriteDelay();
-
-  /**
-   * Whether write operations can be coalesced.
-   *
-   * @return Retrieves the write coalescing behavior is enabled or not
-   */
-  boolean isWriteCoalescing();
-
-  /**
-   * The recommended size of a batch of operations.
-   *
-   * Only positive values are legal. A value of 1 indicates that no batching should happen.
-   *
-   * Real batch size will be influenced by arrival frequency of operations and max write delay.
-   *
-   * @return Retrieves the size of the batch operation.
-   */
-  int getWriteBatchSize();
-
-  /**
    * A number of bucket/thread pairs configured for this cache's write behind.
    *
    * @return Retrieves the amount of bucket/thread pairs configured for this cache's write behind
    */
-  int getWriteBehindConcurrency();
+  int getConcurrency();
 
   /**
    * The maximum number of operations allowed on the write behind queue.
@@ -72,5 +37,50 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
    *
    * @return Retrieves the maximum amount of operations allowed on the write behind queue
    */
-  int getWriteBehindMaxQueueSize();
+  int getMaxQueueSize();
+
+  /**
+   * Returns the batching configuration or {@code null} if batching is not enabled.
+   * 
+   * @return the batching configuration
+   */
+  BatchingConfiguration getBatchingConfiguration();
+
+  /**
+   * BatchingConfiguration
+   */
+  public interface BatchingConfiguration {
+    /**
+     * The recommended size of a batch of operations.
+     *
+     * Only positive values are legal. A value of 1 indicates that no batching should happen.
+     *
+     * Real batch size will be influenced by arrival frequency of operations and max write delay.
+     *
+     * @return Retrieves the size of the batch operation.
+     */
+    int getBatchSize();
+
+    /**
+     * The maximum time to wait before writing behind.
+     *
+     * @return Retrieves the maximum time to wait before writing behind
+     */
+    long getMaxDelay();
+
+    /**
+     * The time unit for the maximum delay.
+     *
+     * @return Retrieves the unit for the maximum delay
+     */
+    TimeUnit getMaxDelayUnit();
+    
+    /**
+     * Whether write operations can be coalesced.
+     *
+     * @return Retrieves the write coalescing behavior is enabled or not
+     */
+    boolean isCoalescing();
+
+  }
 }

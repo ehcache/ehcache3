@@ -75,9 +75,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfiguration;
 import org.ehcache.util.ClassLoading;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -513,12 +515,13 @@ public class XmlConfigurationTest {
     
     for (ServiceConfiguration<?> configuration : serviceConfiguration) {
       if(configuration instanceof DefaultWriteBehindConfiguration) {
-        assertThat(((WriteBehindConfiguration) configuration).getMaxWriteDelay(), is(Integer.MAX_VALUE));
-        assertThat(((WriteBehindConfiguration) configuration).getMinWriteDelay(), is(0));
-        assertThat(((WriteBehindConfiguration) configuration).isWriteCoalescing(), is(false));
-        assertThat(((WriteBehindConfiguration) configuration).getWriteBatchSize(), is(2));
-        assertThat(((WriteBehindConfiguration) configuration).getWriteBehindConcurrency(), is(1));
-        assertThat(((WriteBehindConfiguration) configuration).getWriteBehindMaxQueueSize(), is(10));
+        BatchingConfiguration batchingConfig = ((WriteBehindConfiguration) configuration).getBatchingConfiguration();
+        assertThat(batchingConfig.getMaxDelay(), is(10L));
+        assertThat(batchingConfig.getMaxDelayUnit(), is(SECONDS));
+        assertThat(batchingConfig.isCoalescing(), is(false));
+        assertThat(batchingConfig.getBatchSize(), is(2));
+        assertThat(((WriteBehindConfiguration) configuration).getConcurrency(), is(1));
+        assertThat(((WriteBehindConfiguration) configuration).getMaxQueueSize(), is(10));
         break;
       }
       

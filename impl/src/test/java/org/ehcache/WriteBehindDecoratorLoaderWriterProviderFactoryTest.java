@@ -31,6 +31,7 @@ import org.junit.rules.ExpectedException;
 
 import java.util.Collection;
 import java.util.Map;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
@@ -48,8 +49,8 @@ public class WriteBehindDecoratorLoaderWriterProviderFactoryTest {
   @Test
   public void testAddingWriteBehindConfigurationAtCacheLevel() {
     CacheManagerBuilder<CacheManager> cacheManagerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
-    WriteBehindConfiguration writeBehindConfiguration = WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
-        .concurrencyLevel(3).batchSize(1)
+    WriteBehindConfiguration writeBehindConfiguration = WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration(Long.MAX_VALUE, SECONDS, 1)
+        .concurrencyLevel(3)
         .queueSize(10)
         .build();
     Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) (Class) (SampleLoaderWriter.class);

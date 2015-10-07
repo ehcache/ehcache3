@@ -15,6 +15,7 @@
  */
 package org.ehcache.config.writebehind;
 
+import java.util.concurrent.TimeUnit;
 import org.ehcache.config.Builder;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 
@@ -22,89 +23,138 @@ import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
  * @author Abhilash
  *
  */
-public class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfiguration> {
+public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfiguration>  {
   
-  private Integer minWriteDelay;
-  private Integer maxWriteDelay;
-  private Boolean writeCoalescing;
-  private Integer writeBatchSize;
-  private Integer writeBehindConcurrency;
-  private Integer writeBehindMaxQueueSize;
+  protected Integer writeBehindConcurrency;
+  protected Integer writeBehindMaxQueueSize;
   
   
   private WriteBehindConfigurationBuilder() {
   }
 
   private WriteBehindConfigurationBuilder(WriteBehindConfigurationBuilder other) {
-    minWriteDelay = other.minWriteDelay;
-    maxWriteDelay = other.maxWriteDelay;
-    writeCoalescing = other.writeCoalescing;
-    writeBatchSize = other.writeBatchSize;
     writeBehindConcurrency = other.writeBehindConcurrency;
     writeBehindMaxQueueSize = other.writeBehindMaxQueueSize;
   }
 
-  public static WriteBehindConfigurationBuilder newWriteBehindConfiguration() {
-    return new WriteBehindConfigurationBuilder();
+  public static BatchedWriteBehindConfigurationBuilder newBatchedWriteBehindConfiguration(long maxDelay, TimeUnit maxDelayUnit, int batchSize) {
+    return new BatchedWriteBehindConfigurationBuilder(maxDelay, maxDelayUnit, batchSize);
   }
   
-  public WriteBehindConfiguration build() {
-    DefaultWriteBehindConfiguration configuration = new DefaultWriteBehindConfiguration();
-    if (minWriteDelay != null) {
-      configuration.setMinWriteDelay(minWriteDelay);
+  public static UnBatchedWriteBehindConfigurationBuilder newUnBatchedWriteBehindConfiguration() {
+    return new UnBatchedWriteBehindConfigurationBuilder();
+  }
+
+  public static class BatchedWriteBehindConfigurationBuilder extends WriteBehindConfigurationBuilder {
+    private TimeUnit maxDelayUnit;
+    private long maxDelay;
+    private int batchSize;
+    
+    private Boolean coalescing;
+
+    private BatchedWriteBehindConfigurationBuilder(long maxDelay, TimeUnit maxDelayUnit, int batchSize) {
+      this.maxDelay = maxDelay;
+      this.maxDelayUnit = maxDelayUnit;
+      this.batchSize = batchSize;
     }
-    if (maxWriteDelay != null) {
-      configuration.setMaxWriteDelay(maxWriteDelay);
+
+    private BatchedWriteBehindConfigurationBuilder(BatchedWriteBehindConfigurationBuilder other) {
+      super(other);
+      maxDelay = other.maxDelay;
+      maxDelayUnit = other.maxDelayUnit;
+      coalescing = other.coalescing;
+      batchSize = other.batchSize;
     }
-    if (writeCoalescing != null) {
-      configuration.setWriteCoalescing(writeCoalescing);
+
+    public BatchedWriteBehindConfigurationBuilder enableCoalescing() {
+      BatchedWriteBehindConfigurationBuilder otherBuilder = new BatchedWriteBehindConfigurationBuilder(this);
+      otherBuilder.coalescing = true;
+      return otherBuilder;
     }
-    if (writeBatchSize != null) {
-      configuration.setWriteBatchSize(writeBatchSize);
+
+    public BatchedWriteBehindConfigurationBuilder disableCoalescing() {
+      BatchedWriteBehindConfigurationBuilder otherBuilder = new BatchedWriteBehindConfigurationBuilder(this);
+      otherBuilder.coalescing = false;
+      return otherBuilder;
     }
+
+    public BatchedWriteBehindConfigurationBuilder batchSize(int batchSize) {
+      BatchedWriteBehindConfigurationBuilder otherBuilder = new BatchedWriteBehindConfigurationBuilder(this);
+      otherBuilder.batchSize = batchSize;
+      return otherBuilder;
+    }
+
+    public BatchedWriteBehindConfigurationBuilder maxWriteDelay(long maxDelay, TimeUnit maxDelayUnit) {
+      BatchedWriteBehindConfigurationBuilder otherBuilder = new BatchedWriteBehindConfigurationBuilder(this);
+      otherBuilder.maxDelay = maxDelay;
+      otherBuilder.maxDelayUnit = maxDelayUnit;
+      return otherBuilder;
+    }
+
+    @Override
+    public BatchedWriteBehindConfigurationBuilder queueSize(int size) {
+      BatchedWriteBehindConfigurationBuilder otherBuilder = new BatchedWriteBehindConfigurationBuilder(this);
+      otherBuilder.writeBehindMaxQueueSize = size;
+      return otherBuilder;
+    }
+
+    @Override
+    public BatchedWriteBehindConfigurationBuilder concurrencyLevel(int concurrency) {
+      BatchedWriteBehindConfigurationBuilder otherBuilder = new BatchedWriteBehindConfigurationBuilder(this);
+      otherBuilder.writeBehindConcurrency = concurrency;
+      return otherBuilder;
+    }
+
+    @Override
+    public WriteBehindConfiguration build() {
+      DefaultBatchingConfiguration configuration = new DefaultBatchingConfiguration(maxDelay, maxDelayUnit, batchSize);
+      if (coalescing != null) {
+        configuration.setCoalescing(coalescing);
+      }
+      return buildOn(new DefaultWriteBehindConfiguration(configuration));
+    }
+  }
+  
+  public static class UnBatchedWriteBehindConfigurationBuilder extends WriteBehindConfigurationBuilder {
+
+    private UnBatchedWriteBehindConfigurationBuilder() {
+    }
+    
+    private UnBatchedWriteBehindConfigurationBuilder(UnBatchedWriteBehindConfigurationBuilder other) {
+      super(other);
+    }
+
+    @Override
+    public WriteBehindConfiguration build() {
+      return buildOn(new DefaultWriteBehindConfiguration(null));
+    }
+
+    @Override
+    public UnBatchedWriteBehindConfigurationBuilder queueSize(int size) {
+      UnBatchedWriteBehindConfigurationBuilder otherBuilder = new UnBatchedWriteBehindConfigurationBuilder(this);
+      otherBuilder.writeBehindMaxQueueSize = size;
+      return otherBuilder;
+    }
+
+    @Override
+    public UnBatchedWriteBehindConfigurationBuilder concurrencyLevel(int concurrency) {
+      UnBatchedWriteBehindConfigurationBuilder otherBuilder = new UnBatchedWriteBehindConfigurationBuilder(this);
+      otherBuilder.writeBehindConcurrency = concurrency;
+      return otherBuilder;
+    }
+  }
+
+  public WriteBehindConfiguration buildOn(DefaultWriteBehindConfiguration configuration) {
     if (writeBehindConcurrency != null) {
-      configuration.setWriteBehindConcurrency(writeBehindConcurrency);
+      configuration.setConcurrency(writeBehindConcurrency);
     }
     if (writeBehindMaxQueueSize != null) {
-      configuration.setWriteBehindMaxQueueSize(writeBehindMaxQueueSize);
+      configuration.setMaxQueueSize(writeBehindMaxQueueSize);
     }
     return configuration;
   }
   
-  public WriteBehindConfigurationBuilder queueSize(int size) {
-    WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
-    otherBuilder.writeBehindMaxQueueSize = size;
-    return otherBuilder;
-  }
+  public abstract WriteBehindConfigurationBuilder queueSize(int size);
   
-  public WriteBehindConfigurationBuilder concurrencyLevel(int concurrency) {
-    WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
-    otherBuilder.writeBehindConcurrency = concurrency;
-    return otherBuilder;
-  }
-  
-  public WriteBehindConfigurationBuilder enableCoalescing() {
-    WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
-    otherBuilder.writeCoalescing = true;
-    return otherBuilder;
-  }
-  
-  public WriteBehindConfigurationBuilder disableCoalescing() {
-    WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
-    otherBuilder.writeCoalescing = false;
-    return otherBuilder;
-  }
-  
-  public WriteBehindConfigurationBuilder batchSize(int batchSize) {
-    WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
-    otherBuilder.writeBatchSize = batchSize;
-    return otherBuilder;
-  }
-  
-  public WriteBehindConfigurationBuilder delay(int minWriteDelay, int maxWriteDelay) {
-    WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
-    otherBuilder.maxWriteDelay = maxWriteDelay;
-    otherBuilder.minWriteDelay = minWriteDelay;
-    return otherBuilder;
-  }
+  public abstract WriteBehindConfigurationBuilder concurrencyLevel(int concurrency);
 }

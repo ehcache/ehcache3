@@ -27,7 +27,9 @@
         <ehcache:loader-writer>
           <ehcache:class>com.pany.ehcache.integration.TestCacheLoaderWriter</ehcache:class>
         </ehcache:loader-writer>
-        <ehcache:write-behind concurrency="1" size="10"/>
+        <ehcache:write-behind concurrency="1" size="10">
+          <ehcache:non-batching/>
+        </ehcache:write-behind>
       </ehcache:integration>
       <ehcache:resources>
         <ehcache:heap size="10"/>
@@ -41,7 +43,11 @@
         <ehcache:loader-writer>
           <ehcache:class>com.pany.ehcache.integration.TestCacheLoaderWriter</ehcache:class>
         </ehcache:loader-writer>
-        <ehcache:write-behind coalesce="false" concurrency="1" size="10" batch-size="2"/>
+        <ehcache:write-behind concurrency="1" size="10">
+          <ehcache:batching batch-size="2" coalesce="false">
+            <ehcache:max-write-delay unit="seconds">10</ehcache:max-write-delay>
+          </ehcache:batching>
+        </ehcache:write-behind>
       </ehcache:integration>
       <ehcache:resources>
         <ehcache:heap size="20"/>
