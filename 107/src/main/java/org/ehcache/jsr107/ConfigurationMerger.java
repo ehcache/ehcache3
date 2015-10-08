@@ -20,11 +20,16 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
+import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.xml.XmlConfiguration;
+import org.ehcache.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.copy.SerializingCopier;
+import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +44,7 @@ import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
 
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * ConfigurationMerger
@@ -78,7 +84,7 @@ class ConfigurationMerger {
         }
       }
 
-      builder = handleStoreByValue(jsr107Configuration, builder);
+      builder = handleStoreByValue(jsr107Configuration, builder, cacheName);
 
       final boolean useJsr107Expiry = builder.hasDefaultExpiry();
       if (useJsr107Expiry) {
@@ -123,15 +129,38 @@ class ConfigurationMerger {
     }
   }
 
-  private <K, V> CacheConfigurationBuilder<K, V> handleStoreByValue(Eh107CompleteConfiguration<K, V> jsr107Configuration, CacheConfigurationBuilder<K, V> builder) {
+  private <K, V> CacheConfigurationBuilder<K, V> handleStoreByValue(Eh107CompleteConfiguration<K, V> jsr107Configuration, CacheConfigurationBuilder<K, V> builder, String cacheName) {
     DefaultCopierConfiguration copierConfig = builder.getExistingServiceConfiguration(DefaultCopierConfiguration.class);
-    LOG.info("No user configured copiers found. Falling back to JSR-107 defaults.");
     if(copierConfig == null) {
       if(jsr107Configuration.isStoreByValue()) {
+        if (xmlConfiguration != null) {
+          DefaultCopyProviderConfiguration defaultCopyProviderConfiguration = findSingletonAmongst(DefaultCopyProviderConfiguration.class,
+              xmlConfiguration.getServiceCreationConfigurations().toArray());
+          if (defaultCopyProviderConfiguration != null) {
+            Map<Class<?>, ClassInstanceConfiguration<Copier<?>>> defaults = defaultCopyProviderConfiguration.getDefaults();
+            boolean matchingDefault = false;
+            if (defaults.containsKey(jsr107Configuration.getKeyType())) {
+              matchingDefault = true;
+            } else {
+              builder = builder.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.KEY));
+            }
+            if (defaults.containsKey(jsr107Configuration.getValueType())) {
+              matchingDefault = true;
+            } else {
+              builder = builder.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.VALUE));
+            }
+            if (matchingDefault) {
+              LOG.info("CacheManager level copier configuration overwriting JSR-107 by-value semantics for cache {}", cacheName);
+            }
+            return builder;
+          }
+        }
         builder = builder.add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, CopierConfiguration.Type.KEY))
             .add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, CopierConfiguration.Type.VALUE));
-        LOG.info("Using default SerializingCopier for JSR-107 store-by-value cache.");
+        LOG.debug("Using default SerializingCopier for JSR-107 store-by-value cache {}", cacheName);
       }
+    } else {
+      LOG.info("Cache level copier configuration overwriting JSR-107 by-value semantics for cache {}", cacheName);
     }
     return builder;
   }
