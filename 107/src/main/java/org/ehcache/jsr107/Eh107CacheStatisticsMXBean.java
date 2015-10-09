@@ -19,7 +19,6 @@ import org.ehcache.Cache;
 import org.ehcache.Ehcache;
 import org.ehcache.EhcacheHackAccessor;
 import org.ehcache.management.ManagementRegistry;
-import org.ehcache.management.utils.ContextHelper;
 import org.ehcache.statistics.BulkOps;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.ehcache.statistics.StoreOperationOutcomes;
@@ -68,9 +67,9 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
     super(cacheName, cacheManager, "CacheStatistics");
     this.managementRegistry = managementRegistry;
     this.bulkMethodEntries = EhcacheHackAccessor.getBulkMethodEntries((Ehcache<?, ?>) cache);
-    String cacheManagerName = ContextHelper.findCacheManagerName((Ehcache<?, ?>) cache);
+
     Map<String, String> context = new HashMap<String, String>();
-    context.put("cacheManagerName", cacheManagerName);
+    context.put("cacheManagerName", managementRegistry.getConfiguration().getCacheManagerAlias());
     context.put("cacheName", cacheName);
     this.context = Collections.unmodifiableMap(context);
     StatisticsManager statisticsManager = cacheManager.getEhCacheManager().getStatisticsManager();
@@ -143,19 +142,19 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
 
   @Override
   public float getAverageGetTime() {
-    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "org.ehcache.management.providers.statistics.EhcacheStatisticsProvider", "AllCacheGetLatencyAverage");
+    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "StatisticsCapability", "AllCacheGetLatencyAverage");
     return getMostRecentNotClearedValue(statistics);
   }
 
   @Override
   public float getAveragePutTime() {
-    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "org.ehcache.management.providers.statistics.EhcacheStatisticsProvider", "AllCachePutLatencyAverage");
+    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "StatisticsCapability", "AllCachePutLatencyAverage");
     return getMostRecentNotClearedValue(statistics);
   }
 
   @Override
   public float getAverageRemoveTime() {
-    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "org.ehcache.management.providers.statistics.EhcacheStatisticsProvider", "AllCacheRemoveLatencyAverage");
+    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "StatisticsCapability", "AllCacheRemoveLatencyAverage");
     return getMostRecentNotClearedValue(statistics);
   }
 

@@ -15,19 +15,37 @@
  */
 package org.ehcache.management.registry;
 
+import org.ehcache.management.ManagementRegistry;
+import org.ehcache.management.ManagementRegistryConfiguration;
+import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.ManagementProvider;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Ludovic Orban
  */
-public class DefaultManagementRegistryConfiguration implements ServiceCreationConfiguration<DefaultManagementRegistry> {
+public class DefaultManagementRegistryConfiguration implements ManagementRegistryConfiguration {
+
+  private static final AtomicLong COUNTER = new AtomicLong();
 
   private final Map<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>> configurationMap = new HashMap<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>>();
+  private String cacheManagerAlias;
+
+  public DefaultManagementRegistryConfiguration() {
+    // defaults
+    this.cacheManagerAlias = "cache-manager-" + COUNTER.getAndIncrement();
+    addConfiguration(new EhcacheStatisticsProviderConfiguration(5 * 60, TimeUnit.SECONDS, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS));
+  }
+
+  public DefaultManagementRegistryConfiguration setCacheManagerAlias(String alias) {
+    this.cacheManagerAlias = alias;
+    return this;
+  }
 
   public DefaultManagementRegistryConfiguration addConfiguration(StatisticsProviderConfiguration<?> configuration) {
     Class<? extends ManagementProvider> serviceType = configuration.getStatisticsProviderType();
@@ -35,12 +53,19 @@ public class DefaultManagementRegistryConfiguration implements ServiceCreationCo
     return this;
   }
 
+  @Override
+  public String getCacheManagerAlias() {
+    return cacheManagerAlias;
+  }
+
+  @Override
   public StatisticsProviderConfiguration getConfigurationFor(Class<? extends ManagementProvider<?>> managementProviderClass) {
     return configurationMap.get(managementProviderClass);
   }
 
   @Override
-  public Class<DefaultManagementRegistry> getServiceType() {
-    return DefaultManagementRegistry.class;
+  public Class<ManagementRegistry> getServiceType() {
+    return ManagementRegistry.class;
   }
+
 }

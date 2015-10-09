@@ -15,6 +15,7 @@
  */
 package org.ehcache.management.providers.actions;
 
+import org.ehcache.Cache;
 import org.ehcache.Ehcache;
 import org.ehcache.management.annotations.Exposed;
 import org.ehcache.management.annotations.Named;
@@ -26,34 +27,37 @@ import static org.ehcache.management.utils.ConversionHelper.convert;
  */
 public class EhcacheActionWrapper {
 
-  private final Ehcache ehcache;
+  private final Cache cache;
 
-  public EhcacheActionWrapper(Ehcache ehcache) {
-    this.ehcache = ehcache;
+  public EhcacheActionWrapper(Cache cache) {
+    this.cache = cache;
   }
 
   @Exposed
   public void clear() {
-    ehcache.clear();
+    cache.clear();
   }
 
+  @SuppressWarnings("unchecked")
   @Exposed
   public Object get(@Named("key") Object key) {
-    Object convertedKey = convert(key, ehcache.getRuntimeConfiguration().getKeyType());
-    return ehcache.get(convertedKey);
+    Object convertedKey = convert(key, cache.getRuntimeConfiguration().getKeyType());
+    return cache.get(convertedKey);
   }
 
+  @SuppressWarnings("unchecked")
   @Exposed
   public void remove(@Named("key") Object key) {
-    Object convertedKey = convert(key, ehcache.getRuntimeConfiguration().getKeyType());
-    ehcache.remove(convertedKey);
+    Object convertedKey = convert(key, cache.getRuntimeConfiguration().getKeyType());
+    cache.remove(convertedKey);
   }
 
+  @SuppressWarnings("unchecked")
   @Exposed
   public void put(@Named("key") Object key, @Named("value") Object value) {
-    Object convertedKey = convert(key, ehcache.getRuntimeConfiguration().getKeyType());
-    Object convertedValue = convert(value, ehcache.getRuntimeConfiguration().getValueType());
-    ehcache.put(convertedKey, convertedValue);
+    Object convertedKey = convert(key, cache.getRuntimeConfiguration().getKeyType());
+    Object convertedValue = convert(value, cache.getRuntimeConfiguration().getValueType());
+    cache.put(convertedKey, convertedValue);
   }
 
 }

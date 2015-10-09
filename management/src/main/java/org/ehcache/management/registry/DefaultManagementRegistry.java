@@ -15,68 +15,263 @@
  */
 package org.ehcache.management.registry;
 
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
-import org.ehcache.management.config.StatisticsProviderConfiguration;
+import org.ehcache.Cache;
+import org.ehcache.EhcacheManager;
+import org.ehcache.Status;
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.events.CacheManagerListener;
+import org.ehcache.management.ManagementRegistry;
+import org.ehcache.management.ManagementRegistryConfiguration;
+import org.ehcache.management.providers.ManagementProvider;
 import org.ehcache.management.providers.actions.EhcacheActionProvider;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.CacheManagerProviderService;
+import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.ThreadPoolsService;
+import org.terracotta.context.annotations.ContextAttribute;
+import org.terracotta.management.capabilities.Capability;
+import org.terracotta.management.context.ContextContainer;
+import org.terracotta.management.stats.Statistic;
+import org.terracotta.statistics.StatisticsManager;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @author Ludovic Orban
  */
-public class DefaultManagementRegistry extends AbstractManagementRegistry {
+@ServiceDependencies({CacheManagerProviderService.class, ThreadPoolsService.class})
+public class DefaultManagementRegistry implements ManagementRegistry, CacheManagerListener {
 
-  public static final EhcacheStatisticsProviderConfiguration DEFAULT_EHCACHE_STATISTICS_PROVIDER_CONFIGURATION = new EhcacheStatisticsProviderConfiguration(5 * 60, TimeUnit.SECONDS, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS);
-  private final DefaultManagementRegistryConfiguration defaultManagementRegistryConfiguration;
-  private volatile ScheduledExecutorService executor;
+  private final ManagementRegistryConfiguration configuration;
+  private final List<ManagementProvider<?>> managementProviders = new CopyOnWriteArrayList<ManagementProvider<?>>();
 
-  private final AtomicInteger startedCounter = new AtomicInteger();
+  // must be kept as strong references because the StatisticsManager class is using weak references to hold these objects
+  private volatile EhcacheManagerStatsSetting ehcacheManagerStatsSetting;
+  private final ConcurrentMap<String, EhcacheStatsSetting> ehcacheStatsSettings = new ConcurrentHashMap<String, EhcacheStatsSetting>();
+
+  private volatile ThreadPoolsService threadPoolsService;
+  private volatile EhcacheManager cacheManager;
 
   public DefaultManagementRegistry() {
-    this(null);
+    this(new DefaultManagementRegistryConfiguration());
   }
 
-  public DefaultManagementRegistry(DefaultManagementRegistryConfiguration defaultManagementRegistryConfiguration) {
-    this.defaultManagementRegistryConfiguration = defaultManagementRegistryConfiguration;
+  public DefaultManagementRegistry(ManagementRegistryConfiguration configuration) {
+    if (configuration == null) {
+      throw new NullPointerException();
+    }
+    this.configuration = configuration;
   }
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
-    if (startedCounter.getAndIncrement() > 0) {
-      return;
-    }
+  public void start(final ServiceProvider serviceProvider) {
+    this.threadPoolsService = serviceProvider.getService(ThreadPoolsService.class);
+    this.cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
 
-    StatisticsProviderConfiguration statisticsProviderConfiguration;
-    if (defaultManagementRegistryConfiguration == null) {
-        statisticsProviderConfiguration = DEFAULT_EHCACHE_STATISTICS_PROVIDER_CONFIGURATION;
-    } else {
-      statisticsProviderConfiguration = defaultManagementRegistryConfiguration.getConfigurationFor(EhcacheStatisticsProvider.class);
-    }
-
-    //TODO: get this from appropriate service (see #350)
-    executor = Executors.newScheduledThreadPool(1);
-
-    addSupportFor(new EhcacheStatisticsProvider(statisticsProviderConfiguration, executor));
-    addSupportFor(new EhcacheActionProvider());
-
-    super.start(serviceProvider);
+    this.cacheManager.registerListener(this);
   }
 
   @Override
   public void stop() {
-    int count = startedCounter.decrementAndGet();
-    if (count < 0) {
-      startedCounter.incrementAndGet();
+    this.cacheManager.deregisterListener(this);
+
+    for (ManagementProvider<?> managementProvider : managementProviders) {
+      managementProvider.close();
     }
-    if (count == 0) {
-      super.stop();
-      executor.shutdown();
-      executor = null;
+
+    StatisticsManager.dissociate(ehcacheManagerStatsSetting).fromParent(cacheManager);
+
+    managementProviders.clear();
+    ehcacheStatsSettings.clear();
+    ehcacheManagerStatsSetting = null;
+    threadPoolsService = null;
+    cacheManager = null;
+  }
+
+  @Override
+  public void cacheAdded(String alias, Cache<?, ?> cache) {
+    StatisticsManager.associate(cache).withParent(cacheManager);
+
+    EhcacheStatsSetting ehcacheStatsSetting = new EhcacheStatsSetting(alias, Collections.<String, Object>singletonMap("Setting", "CacheName"));
+    StatisticsManager.associate(ehcacheStatsSetting).withParent(cache);
+
+    ehcacheStatsSettings.put(alias, ehcacheStatsSetting);
+
+    register(cache);
+    register(new CacheBinding(alias, cache));
+  }
+
+  @Override
+  public void cacheRemoved(String alias, Cache<?, ?> cache) {
+    ehcacheStatsSettings.remove(alias);
+
+    unregister(cache);
+    unregister(new CacheBinding(alias, cache));
+
+    StatisticsManager.dissociate(cache).fromParent(cacheManager);
+  }
+
+  @Override
+  public void stateTransition(Status from, Status to) {
+    // we are only interested when cache manager is initializing (but at the end of the initialization) 
+    if (from == Status.UNINITIALIZED && to == Status.AVAILABLE) {
+
+      ehcacheManagerStatsSetting = new EhcacheManagerStatsSetting(
+          getConfiguration().getCacheManagerAlias(),
+          Collections.<String, Object>singletonMap("Setting", "CacheManagerName"));
+
+      StatisticsManager.associate(ehcacheManagerStatsSetting).withParent(cacheManager);
+
+      // initialize management capabilities (stats, action calls, etc)
+      addManagementProvider(new EhcacheActionProvider(getConfiguration().getCacheManagerAlias()));
+      addManagementProvider(new EhcacheStatisticsProvider(
+          getConfiguration().getCacheManagerAlias(),
+          getConfiguration().getConfigurationFor(EhcacheStatisticsProvider.class),
+          threadPoolsService.getStatisticsExecutor()));
+
+      register(cacheManager);
+
+      // we need to fire cacheAdded events because cacheAdded are not fired when caches are created at init because we are within a transition
+      for (Map.Entry<String, CacheConfiguration<?, ?>> entry : cacheManager.getRuntimeConfiguration().getCacheConfigurations().entrySet()) {
+        String alias = entry.getKey();
+        CacheConfiguration<?, ?> configuration = entry.getValue();
+        Cache<?, ?> cache = cacheManager.getCache(alias, configuration.getKeyType(), configuration.getValueType());
+        cacheAdded(alias, cache);
+      }
+    }
+  }
+
+  @Override
+  public ManagementRegistryConfiguration getConfiguration() {
+    return configuration;
+  }
+
+  @Override
+  public void addManagementProvider(ManagementProvider<?> provider) {
+    String name = provider.getCapabilityName();
+    for (ManagementProvider<?> managementProvider : managementProviders) {
+      if (managementProvider.getCapabilityName().equals(name)) {
+        throw new IllegalStateException("Duplicated management provider name : " + name);
+      }
+    }
+    managementProviders.add(provider);
+  }
+
+  @Override
+  public void removeManagementProvider(ManagementProvider<?> provider) {
+    managementProviders.remove(provider);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public void register(Object managedObject) {
+    for (ManagementProvider managementProvider : managementProviders) {
+      if (managementProvider.managedType().isInstance(managedObject)) {
+        managementProvider.register(managedObject);
+      }
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public void unregister(Object managedObject) {
+    for (ManagementProvider managementProvider : managementProviders) {
+      if (managementProvider.managedType().isInstance(managedObject)) {
+        managementProvider.unregister(managedObject);
+      }
+    }
+  }
+
+  @Override
+  public ContextContainer getContext() {
+    Collection<ContextContainer> cacheCtx = new ArrayList<ContextContainer>();
+    for (String cacheName : this.cacheManager.getRuntimeConfiguration().getCacheConfigurations().keySet()) {
+      cacheCtx.add(new ContextContainer("cacheName", cacheName, null));
+    }
+    return new ContextContainer("cacheManagerName", getConfiguration().getCacheManagerAlias(), cacheCtx);
+  }
+
+  @Override
+  public Collection<Capability> getCapabilities() {
+    Collection<Capability> capabilities = new ArrayList<Capability>();
+    for (ManagementProvider<?> managementProvider : managementProviders) {
+      capabilities.add(managementProvider.getCapability());
+    }
+    return capabilities;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T extends Statistic<?>> Collection<T> collectStatistics(Map<String, String> context, String capabilityName, String... statisticNames) {
+    return this.<T>collectStatistics(Collections.singletonList(context), capabilityName, statisticNames).get(0);
+  }
+
+  @Override
+  public <T extends Statistic<?>> List<Collection<T>> collectStatistics(List<Map<String, String>> contextList, String capabilityName, String... statisticNames) {
+    List<Collection<T>> list = new ArrayList<Collection<T>>(contextList.size());
+    for (ManagementProvider<?> managementProvider : getManagementProvidersByCapability(capabilityName)) {
+      for (Map<String, String> context : contextList) {
+        if (managementProvider.supports(context)) {
+          list.add(managementProvider.<T>collectStatistics(context, statisticNames));
+        } else {
+          list.add(Collections.<T>emptyList());
+        }
+      }
+    }
+    return list;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T> T callAction(Map<String, String> context, String capabilityName, String methodName, String[] argClassNames, Object[] args) {
+    for (ManagementProvider<?> managementProvider : getManagementProvidersByCapability(capabilityName)) {
+      if (managementProvider.supports(context)) {
+        return (T) managementProvider.callAction(context, methodName, argClassNames, args);
+      }
+    }
+    throw new IllegalArgumentException("No such capability registered or context supported for : " + capabilityName + " / " + context);
+  }
+
+  private List<ManagementProvider<?>> getManagementProvidersByCapability(String capabilityName) {
+    List<ManagementProvider<?>> allproviders = new ArrayList<ManagementProvider<?>>();
+    for (ManagementProvider<?> provider : managementProviders) {
+      if (provider.getCapabilityName().equals(capabilityName)) {
+        allproviders.add(provider);
+      }
+    }
+    return allproviders;
+  }
+
+  private static final class EhcacheStatsSetting {
+    @ContextAttribute("CacheName") private final String alias;
+    @ContextAttribute("properties") private final Map<String, Object> properties;
+    @ContextAttribute("tags") private final Set<String> tags = new HashSet<String>(Arrays.asList("cache", "exposed"));
+
+    EhcacheStatsSetting(String alias, Map<String, Object> properties) {
+      this.alias = alias;
+      this.properties = properties;
+    }
+  }
+
+  private static final class EhcacheManagerStatsSetting {
+    @ContextAttribute("CacheManagerName") private final String name;
+    @ContextAttribute("properties") private final Map<String, Object> properties;
+    @ContextAttribute("tags") private final Set<String> tags = new HashSet<String>(Arrays.asList("cacheManager", "exposed"));
+
+    EhcacheManagerStatsSetting(String name, Map<String, Object> properties) {
+      this.name = name;
+      this.properties = properties;
     }
   }
 

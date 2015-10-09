@@ -15,6 +15,7 @@
  */
 package org.ehcache.management.providers;
 
+import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.capabilities.context.CapabilityContext;
 import org.terracotta.management.capabilities.descriptors.Descriptor;
 import org.terracotta.management.stats.Statistic;
@@ -56,14 +57,24 @@ public interface ManagementProvider<T> {
    *
    * @return the set of capability descriptors.
    */
-  Set<Descriptor> descriptions();
+  Collection<Descriptor> getDescriptors();
 
   /**
    * Get the context that the provided capabilities need to run.
    *
    * @return the context requirements.
    */
-  CapabilityContext capabilityContext();
+  CapabilityContext getCapabilityContext();
+
+  /**
+   * @return The full capability of this management provider
+   */
+  Capability getCapability();
+
+  /**
+   * @return The name of this capability
+   */
+  String getCapabilityName();
 
   /**
    * Collect statistics, if the provider supports this.
@@ -72,7 +83,7 @@ public interface ManagementProvider<T> {
    * @param statisticNames the statistic names to collect.
    * @return the statistic values.
    */
-  Collection<Statistic<?>> collectStatistics(Map<String, String> context, String[] statisticNames);
+  <T extends Statistic<?>> Collection<T> collectStatistics(Map<String, String> context, String... statisticNames);
 
   /**
    * Call an action, if the provider supports this.
@@ -84,4 +95,17 @@ public interface ManagementProvider<T> {
    * @return the action's return value.
    */
   Object callAction(Map<String, String> context, String methodName, String[] argClassNames, Object[] args);
+
+  /**
+   * Check wheter this management provider supports the given context
+   * 
+   * @param context The management context, passed from the {@link org.ehcache.management.ManagementRegistry} methods
+   * @return true if the context is supported by this management provider
+   */
+  boolean supports(Map<String, String> context);
+
+  /**
+   * Closes the management provider. Called when cache manager is closing.
+   */
+  void close();
 }

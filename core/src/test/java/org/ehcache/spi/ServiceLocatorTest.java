@@ -28,11 +28,13 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.SupplementaryService;
+import org.ehcache.spi.services.DefaultTestProvidedService;
 import org.ehcache.spi.services.DefaultTestService;
 import org.ehcache.spi.services.FancyCacheProvider;
 import org.ehcache.spi.services.TestProvidedService;
 import org.ehcache.spi.services.TestService;
 import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -43,6 +45,7 @@ import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.notNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -258,6 +261,78 @@ public class ServiceLocatorTest {
     ServiceLocator serviceLocator = new ServiceLocator(new YetAnotherCacheProvider());
 
     serviceLocator.startAllServices();
+  }
+
+  @Test
+  public void testCircularDeps() throws Exception {
+    
+    @ServiceDependencies(TestProvidedService.class)
+    class Consumer1 implements Service {
+      @Override
+      public void start(ServiceProvider serviceProvider) {
+        assertThat(serviceProvider.getService(TestProvidedService.class), is(notNull()));
+      }
+      @Override
+      public void stop() {}
+    }
+
+    @ServiceDependencies(Consumer1.class)
+    class Consumer2 implements Service {
+      TestProvidedService testProvidedService;
+      @Override
+      public void start(ServiceProvider serviceProvider) {
+        assertThat(serviceProvider.getService(Consumer1.class), is(notNull()));
+      }
+      @Override
+      public void stop() {}
+    }
+    
+    @ServiceDependencies(Consumer2.class)
+    class MyTestProvidedService extends DefaultTestProvidedService {
+      @Override
+      public void start(ServiceProvider serviceProvider) {
+        assertThat(serviceProvider.getService(Consumer2.class), is(notNull()));
+        super.start(serviceProvider);
+      }
+    }
+    
+    @ServiceDependencies(DependsOnMe.class)
+    class DependsOnMe implements Service {
+      @Override
+      public void start(ServiceProvider serviceProvider) {
+        assertThat(serviceProvider.getService(DependsOnMe.class), sameInstance(this));;
+      }
+      @Override
+      public void stop() {}
+    }
+
+    ServiceLocator serviceLocator = new ServiceLocator();
+
+    Consumer1 consumer1 = mock(Consumer1.class);
+    Consumer2 consumer2 = mock(Consumer2.class);
+    MyTestProvidedService myTestProvidedService = mock(MyTestProvidedService.class);
+    DependsOnMe dependsOnMe = mock(DependsOnMe.class);
+    
+    // add some services
+    serviceLocator.addService(consumer1);
+    serviceLocator.addService(consumer2);
+    serviceLocator.addService(myTestProvidedService);
+    serviceLocator.addService(dependsOnMe);
+
+    // simulate what is done in ehcachemanager
+    serviceLocator.startAllServices();
+
+    serviceLocator.stopAllServices();
+
+    verify(consumer1, times(1)).start(serviceLocator);
+    verify(consumer2, times(1)).start(serviceLocator);
+    verify(myTestProvidedService, times(1)).start(serviceLocator);
+    verify(dependsOnMe, times(1)).start(serviceLocator);
+
+    verify(consumer1, times(1)).stop();
+    verify(consumer2, times(1)).stop();
+    verify(myTestProvidedService, times(1)).stop();
+    verify(dependsOnMe, times(1)).stop();
   }
 }
 

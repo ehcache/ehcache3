@@ -15,7 +15,7 @@
  */
 package org.ehcache.management.providers.statistics;
 
-import org.ehcache.Ehcache;
+import org.ehcache.Cache;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.statistics.CacheOperationOutcomes;
@@ -78,10 +78,10 @@ class EhcacheStatistics {
   private static final Set<CacheOperationOutcomes.CacheLoadingOutcome> ALL_CACHE_LOADER_OUTCOMES = EnumSet.allOf(CacheOperationOutcomes.CacheLoadingOutcome.class);
 
   private final StatisticsRegistry statisticsRegistry;
-  private final Ehcache<?, ?> contextObject;
+  private final Cache<?, ?> contextObject;
   private final ConcurrentMap<String, OperationStatistic<?>> operationStatistics;
 
-  EhcacheStatistics(Ehcache<?, ?> contextObject, StatisticsProviderConfiguration configuration, ScheduledExecutorService executor) {
+  EhcacheStatistics(Cache<?, ?> contextObject, StatisticsProviderConfiguration configuration, ScheduledExecutorService executor) {
     this.contextObject = contextObject;
     this.operationStatistics = discoverOperationObservers();
     this.statisticsRegistry = new StatisticsRegistry(StandardOperationStatistic.class, contextObject, executor, configuration.averageWindowDuration(),
@@ -98,7 +98,8 @@ class EhcacheStatistics {
     statisticsRegistry.registerRatio("Hit", Collections.singleton("cache"), Collections.<String, Object>singletonMap("type", "Ratio"), StandardOperationStatistic.CACHE_GET, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER), ALL_CACHE_GET_OUTCOMES);
   }
 
-  public Collection<Statistic<?>> queryStatistic(String statisticName) {
+  @SuppressWarnings("unchecked")
+  public <T extends Statistic<?>> Collection<T> queryStatistic(String statisticName) {
     Collection<ExposedStatistic> registrations = statisticsRegistry.getRegistrations();
     for (ExposedStatistic registration : registrations) {
       Object type = registration.getProperties().get("type");
@@ -109,19 +110,19 @@ class EhcacheStatistics {
 
         if ((name + "Count").equals(statisticName)) {
           SampledStatistic<Long> count = result.count();
-          return (Collection) Collections.singleton(new SampledCounter(statisticName, buildSamples(count)));
+          return (Collection<T>) Collections.singleton(new SampledCounter(statisticName, buildSamples(count)));
         } else if ((name + "Rate").equals(statisticName)) {
           SampledStatistic<Double> rate = result.rate();
-          return (Collection) Collections.singleton(new SampledRate(statisticName, buildSamples(rate), TimeUnit.SECONDS)); //TODO: get the TimeUnit from config
+          return (Collection<T>) Collections.singleton(new SampledRate(statisticName, buildSamples(rate), TimeUnit.SECONDS)); //TODO: get the TimeUnit from config
         } else if ((name + "LatencyMinimum").equals(statisticName)) {
           SampledStatistic<Long> minimum = result.latency().minimum();
-          return (Collection) Collections.singleton(new SampledDuration(statisticName, buildSamples(minimum), TimeUnit.SECONDS)); //TODO: get the TimeUnit from config
+          return (Collection<T>) Collections.singleton(new SampledDuration(statisticName, buildSamples(minimum), TimeUnit.SECONDS)); //TODO: get the TimeUnit from config
         } else if ((name + "LatencyMaximum").equals(statisticName)) {
           SampledStatistic<Long> maximum = result.latency().maximum();
-          return (Collection) Collections.singleton(new SampledDuration(statisticName, buildSamples(maximum), TimeUnit.SECONDS)); //TODO: get the TimeUnit from config
+          return (Collection<T>) Collections.singleton(new SampledDuration(statisticName, buildSamples(maximum), TimeUnit.SECONDS)); //TODO: get the TimeUnit from config
         } else if ((name + "LatencyAverage").equals(statisticName)) {
           SampledStatistic<Double> average = result.latency().average();
-          return (Collection) Collections.singleton(new SampledRatio(statisticName, buildSamples(average)));
+          return (Collection<T>) Collections.singleton(new SampledRatio(statisticName, buildSamples(average)));
         } else if (name.equals(statisticName)) {
           Collection<Statistic<?>> resultStats = new ArrayList<Statistic<?>>();
           resultStats.add(new SampledCounter(statisticName + "Count", buildSamples(result.count())));
@@ -129,12 +130,12 @@ class EhcacheStatistics {
           resultStats.add(new SampledDuration(statisticName + "LatencyMinimum", buildSamples(result.latency().minimum()), TimeUnit.SECONDS));
           resultStats.add(new SampledDuration(statisticName + "LatencyMaximum", buildSamples(result.latency().maximum()), TimeUnit.SECONDS));
           resultStats.add(new SampledRatio(statisticName + "LatencyAverage", buildSamples(result.latency().average())));
-          return resultStats;
+          return (Collection<T>) resultStats;
         }
       } else if ("Ratio".equals(type)) {
         if ((name + "Ratio").equals(statisticName)) {
           SampledStatistic<Double> ratio = (SampledStatistic) registration.getStat();
-          return (Collection) Collections.singleton(new SampledRatio(statisticName, buildSamples(ratio)));
+          return (Collection<T>) Collections.singleton(new SampledRatio(statisticName, buildSamples(ratio)));
         }
       }
     }
@@ -158,7 +159,7 @@ class EhcacheStatistics {
 
         Object setting = attributes.get("Setting");
         if (setting != null && setting.equals(statisticName)) {
-          return (Collection) Collections.singleton(new Setting<String>(statisticName, (String) treeNode.getContext().attributes().get("CacheName")));
+          return (Collection) Collections.singleton(new Setting<String>(statisticName, (String) treeNode.getContext().attributes().get(statisticName)));
         }
       }
     }
@@ -183,7 +184,7 @@ class EhcacheStatistics {
     return result;
   }
 
-  public Set<Descriptor> capabilities() {
+  public Set<Descriptor> getDescriptors() {
     Set<Descriptor> capabilities = new HashSet<Descriptor>();
 
     capabilities.addAll(searchContextTreeForSettings());

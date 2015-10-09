@@ -17,6 +17,7 @@ package org.ehcache.management.providers.actions;
 
 import org.ehcache.Ehcache;
 import org.ehcache.config.CacheRuntimeConfiguration;
+import org.ehcache.management.registry.CacheBinding;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.terracotta.management.capabilities.context.CapabilityContext;
@@ -48,11 +49,12 @@ public class EhcacheActionProviderTest {
 
   @Test
   public void testDescriptions() throws Exception {
-    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider();
+    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("myCacheManagerName");
 
-    ehcacheActionProvider.register(mock(Ehcache.class));
+    ehcacheActionProvider.register(new CacheBinding("myCacheName1", mock(Ehcache.class)));
+    ehcacheActionProvider.register(new CacheBinding("myCacheName2", mock(Ehcache.class)));
 
-    Set<Descriptor> descriptions = ehcacheActionProvider.descriptions();
+    Set<Descriptor> descriptions = ehcacheActionProvider.getDescriptors();
     assertThat(descriptions.size(), is(4));
     assertThat(descriptions, (Matcher) containsInAnyOrder(
         new CallDescriptor("remove", "void", Collections.singletonList(new CallDescriptor.Parameter("key", "java.lang.Object"))),
@@ -64,11 +66,12 @@ public class EhcacheActionProviderTest {
 
   @Test
   public void testCapabilityContext() throws Exception {
-    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider();
+    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("myCacheManagerName");
 
-    ehcacheActionProvider.register(mock(Ehcache.class));
+    ehcacheActionProvider.register(new CacheBinding("myCacheName1", mock(Ehcache.class)));
+    ehcacheActionProvider.register(new CacheBinding("myCacheName2", mock(Ehcache.class)));
 
-    CapabilityContext capabilityContext = ehcacheActionProvider.capabilityContext();
+    CapabilityContext capabilityContext = ehcacheActionProvider.getCapabilityContext();
 
     assertThat(capabilityContext.getAttributes().size(), is(2));
 
@@ -83,7 +86,7 @@ public class EhcacheActionProviderTest {
 
   @Test
   public void testCollectStatistics() throws Exception {
-    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider();
+    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("myCacheManagerName");
 
     try {
       ehcacheActionProvider.collectStatistics(null, null);
@@ -95,23 +98,13 @@ public class EhcacheActionProviderTest {
 
   @Test
   public void testCallAction_happyPathNoParam() throws Exception {
-    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider() {
-      @Override
-      String findCacheName(Map.Entry<Ehcache, EhcacheActionWrapper> entry) {
-        return "cache-0";
-      }
-
-      @Override
-      String findCacheManagerName(Map.Entry<Ehcache, EhcacheActionWrapper> entry) {
-        return "cache-manager-0";
-      }
-    };
+    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("cache-manager-0");
 
     Ehcache ehcache = mock(Ehcache.class);
     CacheRuntimeConfiguration cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
     when(cacheRuntimeConfiguration.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
     when(ehcache.getRuntimeConfiguration()).thenReturn(cacheRuntimeConfiguration);
-    ehcacheActionProvider.register(ehcache);
+    ehcacheActionProvider.register(new CacheBinding("cache-0", ehcache));
 
 
     Map<String, String> context = new HashMap<String, String>();
@@ -125,24 +118,14 @@ public class EhcacheActionProviderTest {
 
   @Test
   public void testCallAction_happyPathWithParams() throws Exception {
-    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider() {
-      @Override
-      String findCacheName(Map.Entry<Ehcache, EhcacheActionWrapper> entry) {
-        return "cache-0";
-      }
-
-      @Override
-      String findCacheManagerName(Map.Entry<Ehcache, EhcacheActionWrapper> entry) {
-        return "cache-manager-0";
-      }
-    };
+    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("cache-manager-0");
 
     Ehcache ehcache = mock(Ehcache.class);
     CacheRuntimeConfiguration cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
     when(cacheRuntimeConfiguration.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
     when(cacheRuntimeConfiguration.getKeyType()).thenReturn(Long.class);
     when(ehcache.getRuntimeConfiguration()).thenReturn(cacheRuntimeConfiguration);
-    ehcacheActionProvider.register(ehcache);
+    ehcacheActionProvider.register(new CacheBinding("cache-0", ehcache));
 
 
     Map<String, String> context = new HashMap<String, String>();
@@ -156,20 +139,10 @@ public class EhcacheActionProviderTest {
 
   @Test
   public void testCallAction_noSuchCache() throws Exception {
-    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider() {
-      @Override
-      String findCacheName(Map.Entry<Ehcache, EhcacheActionWrapper> entry) {
-        return "cache-0";
-      }
-
-      @Override
-      String findCacheManagerName(Map.Entry<Ehcache, EhcacheActionWrapper> entry) {
-        return "cache-manager-0";
-      }
-    };
+    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("cache-manager-0");
 
     Ehcache ehcache = mock(Ehcache.class);
-    ehcacheActionProvider.register(ehcache);
+    ehcacheActionProvider.register(new CacheBinding("cache-0", ehcache));
 
     Map<String, String> context = new HashMap<String, String>();
     context.put("cacheManagerName", "cache-manager-0");
@@ -187,20 +160,10 @@ public class EhcacheActionProviderTest {
 
   @Test
   public void testCallAction_noSuchCacheManager() throws Exception {
-    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider() {
-      @Override
-      String findCacheName(Map.Entry<Ehcache, EhcacheActionWrapper> entry) {
-        return "cache-0";
-      }
-
-      @Override
-      String findCacheManagerName(Map.Entry<Ehcache, EhcacheActionWrapper> entry) {
-        return "cache-manager-0";
-      }
-    };
+    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("cache-manager-0");
 
     Ehcache ehcache = mock(Ehcache.class);
-    ehcacheActionProvider.register(ehcache);
+    ehcacheActionProvider.register(new CacheBinding("cache-0", ehcache));
 
     Map<String, String> context = new HashMap<String, String>();
     context.put("cacheManagerName", "cache-manager-1");
@@ -218,23 +181,13 @@ public class EhcacheActionProviderTest {
 
   @Test
   public void testCallAction_noSuchMethodName() throws Exception {
-    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider() {
-      @Override
-      String findCacheName(Map.Entry<Ehcache, EhcacheActionWrapper> entry) {
-        return "cache-0";
-      }
-
-      @Override
-      String findCacheManagerName(Map.Entry<Ehcache, EhcacheActionWrapper> entry) {
-        return "cache-manager-0";
-      }
-    };
+    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("cache-manager-0");
 
     Ehcache ehcache = mock(Ehcache.class);
     CacheRuntimeConfiguration cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
     when(cacheRuntimeConfiguration.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
     when(ehcache.getRuntimeConfiguration()).thenReturn(cacheRuntimeConfiguration);
-    ehcacheActionProvider.register(ehcache);
+    ehcacheActionProvider.register(new CacheBinding("cache-0", ehcache));
 
     Map<String, String> context = new HashMap<String, String>();
     context.put("cacheManagerName", "cache-manager-0");
@@ -250,23 +203,13 @@ public class EhcacheActionProviderTest {
 
   @Test
   public void testCallAction_noSuchMethod() throws Exception {
-    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider() {
-      @Override
-      String findCacheName(Map.Entry<Ehcache, EhcacheActionWrapper> entry) {
-        return "cache-0";
-      }
-
-      @Override
-      String findCacheManagerName(Map.Entry<Ehcache, EhcacheActionWrapper> entry) {
-        return "cache-manager-0";
-      }
-    };
+    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("cache-manager-0");
 
     Ehcache ehcache = mock(Ehcache.class);
     CacheRuntimeConfiguration cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
     when(cacheRuntimeConfiguration.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
     when(ehcache.getRuntimeConfiguration()).thenReturn(cacheRuntimeConfiguration);
-    ehcacheActionProvider.register(ehcache);
+    ehcacheActionProvider.register(new CacheBinding("cache-0", ehcache));
 
     Map<String, String> context = new HashMap<String, String>();
     context.put("cacheManagerName", "cache-manager-0");
