@@ -28,8 +28,6 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.junit.Test;
@@ -95,7 +93,6 @@ public abstract class AbstractWriteBehindTestBase {
     CacheManager cacheManager = newCacheManagerBuilder().using(cacheLoaderWriterProvider).build(true);
     try {
       Cache<String, String> testCache = cacheManager.createCache("testWrites", CacheConfigurationBuilder.newCacheConfigurationBuilder()
-          .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)))
           .add(newWriteBehindConfiguration().concurrencyLevel(3).queueSize(10).build())
           .buildConfig(String.class, String.class));
 
@@ -125,7 +122,6 @@ public abstract class AbstractWriteBehindTestBase {
     CacheManager cacheManager = newCacheManagerBuilder().using(cacheLoaderWriterProvider).build(true);
     try {
       Cache<String, String> testCache = cacheManager.createCache("testBulkWrites", CacheConfigurationBuilder.newCacheConfigurationBuilder()
-          .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)))
           .add(newWriteBehindConfiguration().concurrencyLevel(3).queueSize(10).build())
           .buildConfig(String.class, String.class));
 
@@ -175,7 +171,7 @@ public abstract class AbstractWriteBehindTestBase {
     CacheManager cacheManager = newCacheManagerBuilder().using(cacheLoaderWriterProvider).build(true);
     try {
       Cache<String, String> testCache = cacheManager.createCache("testThatAllGetsReturnLatestData", configurationBuilder()
-          .add(newWriteBehindConfiguration().queueSize(10).batchSize(10).delay(1, 2).build())
+          .add(newWriteBehindConfiguration().concurrencyLevel(3).queueSize(10).build())
           .buildConfig(String.class, String.class));
 
       for(int i=0 ; i<10; i++) {
@@ -223,7 +219,7 @@ public abstract class AbstractWriteBehindTestBase {
     CacheManager cacheManager = newCacheManagerBuilder().using(cacheLoaderWriterProvider).build(true);
     try {
       Cache<String, String> testCache = cacheManager.createCache("testAllGetsReturnLatestDataWithKeyCollision", configurationBuilder()
-          .add(newWriteBehindConfiguration().queueSize(10).batchSize(10).delay(1, 2).build())
+          .add(newWriteBehindConfiguration().concurrencyLevel(3).queueSize(10).build())
           .buildConfig(String.class, String.class));
 
       Random random = new Random();
