@@ -16,6 +16,7 @@
 package org.ehcache.internal.store.tiering;
 
 import org.ehcache.function.Function;
+import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
@@ -237,7 +238,7 @@ public class CompoundCachingTierTest {
 
     final ArgumentCaptor<Function> functionArg = ArgumentCaptor.forClass(Function.class);
     final ArgumentCaptor<String> keyArg = ArgumentCaptor.forClass(String.class);
-    when(lowerTier.getOrComputeIfAbsent(keyArg.capture(), functionArg.capture())).then(new Answer<Object>() {
+    when(lowerTier.installMapping(keyArg.capture(), functionArg.capture())).then(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         return lowerTierValueHolder.get();
@@ -293,7 +294,7 @@ public class CompoundCachingTierTest {
     }).when(higherTier).silentInvalidate(anyString(), any(Function.class));
     final ArgumentCaptor<Function> functionArg = ArgumentCaptor.forClass(Function.class);
     final ArgumentCaptor<String> keyArg = ArgumentCaptor.forClass(String.class);
-    when(lowerTier.getOrComputeIfAbsent(keyArg.capture(), functionArg.capture())).then(new Answer<Object>() {
+    when(lowerTier.installMapping(keyArg.capture(), functionArg.capture())).then(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         Object apply = functionArg.getValue().apply(keyArg.getValue());

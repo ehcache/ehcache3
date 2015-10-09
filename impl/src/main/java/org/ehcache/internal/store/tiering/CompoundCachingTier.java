@@ -18,6 +18,7 @@ package org.ehcache.internal.store.tiering;
 import org.ehcache.CacheConfigurationChangeListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
+import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
@@ -55,7 +56,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       @Override
       public void onInvalidation(final K key, final Store.ValueHolder<V> valueHolder) {
         try {
-          CompoundCachingTier.this.lower.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
+          CompoundCachingTier.this.lower.installMapping(key, new Function<K, Store.ValueHolder<V>>() {
             @Override
             public Store.ValueHolder<V> apply(K k) {
               return valueHolder;

@@ -38,7 +38,7 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
    * @return the value holder, or null.
    * @throws CacheAccessException
    */
-  Store.ValueHolder<V> getOrComputeIfAbsent(K key, Function<K, Store.ValueHolder<V>> source) throws CacheAccessException;
+  Store.ValueHolder<V> installMapping(K key, Function<K, Store.ValueHolder<V>> source) throws CacheAccessException;
 
   /**
    * Return the value holder currently in the caching tier and remove it.
