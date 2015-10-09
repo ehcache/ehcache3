@@ -213,18 +213,9 @@
       </xs:element>
       <xs:element name="write-behind" minOccurs="0" maxOccurs="1">
         <xs:complexType>
-          <xs:sequence>
-            <xs:element name="retry" minOccurs="0" maxOccurs="1">
-              <xs:complexType>
-                <xs:attribute type="xs:positiveInteger" name="attempts" use="required"/>
-                <xs:attribute type="xs:positiveInteger" name="delay" use="required"/>
-              </xs:complexType>
-            </xs:element>
-          </xs:sequence>
           <xs:attribute name="concurrency" type="xs:positiveInteger" default="1" use="optional"/>
           <xs:attribute name="size" type="xs:positiveInteger" default="2147483647" use="optional"/>
           <xs:attribute name="coalesce" type="xs:boolean" default="false" use="optional"/>
-          <xs:attribute name="rate-limit-per-second" type="xs:positiveInteger" default="2147483647" use="optional"/>
           <xs:attribute name="min-write-delay" type="xs:nonNegativeInteger" default="0" use="optional"/>
           <xs:attribute name="max-write-delay" type="xs:positiveInteger" default="2147483647" use="optional"/>
           <xs:attribute name="batch-size" type="xs:positiveInteger" default="1" use="optional"/>

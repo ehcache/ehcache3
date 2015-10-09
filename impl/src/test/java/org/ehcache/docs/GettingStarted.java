@@ -258,9 +258,7 @@ public class GettingStarted {
                 .concurrencyLevel(1) // <4>
                 .batchSize(3) // <5>
                 .enableCoalescing() // <6>
-                .retry(2, 1) // <7>
-                .rateLimit(2) // <8>
-                .delay(1, 1)) // <9>
+                .delay(1, 1)) // <7>
             .buildConfig(Long.class, String.class));
     
     assertThat(writeBehindCache.get(41L), is("zero"));

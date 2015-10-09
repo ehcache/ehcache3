@@ -20,8 +20,6 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.ehcache.exceptions.CacheWritingException;
-import org.ehcache.loaderwriter.writebehind.operations.OperationsFilter;
-import org.ehcache.loaderwriter.writebehind.operations.SingleOperation;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 
@@ -106,19 +104,6 @@ public class AggregateWriteBehindQueue<K, V> implements WriteBehind<K, V> {
     } finally {
       writeLock.unlock();
     }
-  }
-
-  @Override
-  public void setOperationsFilter(OperationsFilter<SingleOperation<K, V>> filter) {
-    readLock.lock();
-    try {
-      for (WriteBehind<K, V> queue : queues) {
-        queue.setOperationsFilter(filter);
-      }
-    } finally {
-      readLock.unlock();
-    }
-
   }
 
   @Override

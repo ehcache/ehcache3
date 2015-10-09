@@ -41,15 +41,6 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
   int getMaxWriteDelay();
 
   /**
-   * The maximum number of write operations to allow per second.
-   *
-   * Only positive values are legal.
-   *
-   * @return Retrieves the maximum number of write operations to allow per second.
-   */
-  int getRateLimitPerSecond();
-
-  /**
    * Whether write operations can be coalesced.
    *
    * @return Retrieves the write coalescing behavior is enabled or not
@@ -66,20 +57,6 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
    * @return Retrieves the size of the batch operation.
    */
   int getWriteBatchSize();
-
-  /**
-   * The number of times the write of a mapping will be retried in the case of failure.
-   *
-   * @return Retrieves the number of times the write of element is retried.
-   */
-  int getRetryAttempts();
-
-  /**
-   * A number of seconds to wait before retrying an failed operation.
-   *
-   * @return Retrieves the number of seconds to wait before retrying an failed operation.
-   */
-  int getRetryAttemptDelaySeconds();
 
   /**
    * A number of bucket/thread pairs configured for this cache's write behind.

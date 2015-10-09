@@ -97,16 +97,4 @@ public class DefaultWriteBehindConfigurationTest {
   public void testMaxQueueSizeInvalid() {
     new DefaultWriteBehindConfiguration().setWriteBehindMaxQueueSize(0);
   }
-
-  @Test
-  public void testRateLimitDefault() {
-    DefaultWriteBehindConfiguration configuration = new DefaultWriteBehindConfiguration();
-    assertThat(configuration.getRateLimitPerSecond(), is(Integer.MAX_VALUE));
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testRateLimitInvalid() {
-    new DefaultWriteBehindConfiguration().setRateLimitPerSecond(0);
-  }
-
 }

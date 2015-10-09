@@ -26,11 +26,8 @@ public class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfi
   
   private Integer minWriteDelay;
   private Integer maxWriteDelay;
-  private Integer rateLimitPerSecond;
   private Boolean writeCoalescing;
   private Integer writeBatchSize;
-  private Integer retryAttempts;
-  private Integer retryAttemptDelaySeconds;
   private Integer writeBehindConcurrency;
   private Integer writeBehindMaxQueueSize;
   
@@ -41,11 +38,8 @@ public class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfi
   private WriteBehindConfigurationBuilder(WriteBehindConfigurationBuilder other) {
     minWriteDelay = other.minWriteDelay;
     maxWriteDelay = other.maxWriteDelay;
-    rateLimitPerSecond = other.rateLimitPerSecond;
     writeCoalescing = other.writeCoalescing;
     writeBatchSize = other.writeBatchSize;
-    retryAttempts = other.retryAttempts;
-    retryAttemptDelaySeconds = other.retryAttemptDelaySeconds;
     writeBehindConcurrency = other.writeBehindConcurrency;
     writeBehindMaxQueueSize = other.writeBehindMaxQueueSize;
   }
@@ -62,17 +56,11 @@ public class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfi
     if (maxWriteDelay != null) {
       configuration.setMaxWriteDelay(maxWriteDelay);
     }
-    if (rateLimitPerSecond != null) {
-      configuration.setRateLimitPerSecond(rateLimitPerSecond);
-    }
     if (writeCoalescing != null) {
       configuration.setWriteCoalescing(writeCoalescing);
     }
     if (writeBatchSize != null) {
       configuration.setWriteBatchSize(writeBatchSize);
-    }
-    if (retryAttempts != null) {
-      configuration.setRetryAttempts(retryAttempts, retryAttemptDelaySeconds);
     }
     if (writeBehindConcurrency != null) {
       configuration.setWriteBehindConcurrency(writeBehindConcurrency);
@@ -110,19 +98,6 @@ public class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfi
   public WriteBehindConfigurationBuilder batchSize(int batchSize) {
     WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
     otherBuilder.writeBatchSize = batchSize;
-    return otherBuilder;
-  }
-  
-  public WriteBehindConfigurationBuilder retry(int retryAttempts, int retryAttemptDelaySeconds) {
-    WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
-    otherBuilder.retryAttempts = retryAttempts;
-    otherBuilder.retryAttemptDelaySeconds = retryAttemptDelaySeconds;
-    return otherBuilder;
-  }
-  
-  public WriteBehindConfigurationBuilder rateLimit(int rateLimitPerSecond) {
-    WriteBehindConfigurationBuilder otherBuilder = new WriteBehindConfigurationBuilder(this);
-    otherBuilder.rateLimitPerSecond = rateLimitPerSecond;
     return otherBuilder;
   }
   

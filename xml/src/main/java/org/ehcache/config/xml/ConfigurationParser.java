@@ -669,17 +669,9 @@ class ConfigurationParser {
     
     int concurrency();
 
-    boolean isRetryAttemptsSet();
-    
-    int retryAttempts();
-    
-    int retryAttemptsDelay();
-    
     int minWriteDelay();
     
     int maxWriteDelay();
-    
-    int rateLimitPerSecond();
     
   }
 
@@ -781,21 +773,6 @@ class ConfigurationParser {
     }
 
     @Override
-    public boolean isRetryAttemptsSet() {
-      return this.writebehind.getRetry() != null;
-    }
-
-    @Override
-    public int retryAttempts() {
-      return this.writebehind.getRetry().getAttempts().intValue();
-    }
-
-    @Override
-    public int retryAttemptsDelay() {
-      return this.writebehind.getRetry().getDelay().intValue();
-    }
-
-    @Override
     public int minWriteDelay() {
       return this.writebehind.getMinWriteDelay().intValue();
     }
@@ -805,10 +782,5 @@ class ConfigurationParser {
       return this.writebehind.getMaxWriteDelay().intValue();
     }
 
-    @Override
-    public int rateLimitPerSecond() {
-      return this.writebehind.getRateLimitPerSecond().intValue();
-    }
-    
   }
 }
