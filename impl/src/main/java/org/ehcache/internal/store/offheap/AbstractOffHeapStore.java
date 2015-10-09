@@ -873,7 +873,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
    * Note that this implementation is only valid for a lower caching tier.
    */
   @Override
-  public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) throws CacheAccessException {
+  public ValueHolder<V> installMapping(final K key, final Function<K, ValueHolder<V>> source) throws CacheAccessException {
     installMappingObserver.begin();
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
       @Override

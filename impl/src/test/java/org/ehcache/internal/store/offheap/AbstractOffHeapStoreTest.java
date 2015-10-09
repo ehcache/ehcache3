@@ -127,7 +127,7 @@ public abstract class AbstractOffHeapStoreTest {
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
 
     try {
-      assertThat(offHeapStore.getOrComputeIfAbsent("1", new Function<String, Store.ValueHolder<String>>() {
+      assertThat(offHeapStore.installMapping("1", new Function<String, Store.ValueHolder<String>>() {
         @Override
         public Store.ValueHolder<String> apply(String key) {
           return new SimpleValueHolder<String>("one", timeSource.getTimeMillis(), 15);
@@ -139,7 +139,7 @@ public abstract class AbstractOffHeapStoreTest {
       timeSource.advanceTime(20);
 
       try {
-        offHeapStore.getOrComputeIfAbsent("1", new Function<String, Store.ValueHolder<String>>() {
+        offHeapStore.installMapping("1", new Function<String, Store.ValueHolder<String>>() {
           @Override
           public Store.ValueHolder<String> apply(String key) {
             return new SimpleValueHolder<String>("un", timeSource.getTimeMillis(), 15);

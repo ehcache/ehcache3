@@ -55,7 +55,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       @Override
       public void onInvalidation(final K key, final Store.ValueHolder<V> valueHolder) {
         try {
-          CompoundCachingTier.this.lower.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
+          CompoundCachingTier.this.lower.installMapping(key, new Function<K, Store.ValueHolder<V>>() {
             @Override
             public Store.ValueHolder<V> apply(K k) {
               return valueHolder;

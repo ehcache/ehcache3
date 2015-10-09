@@ -31,7 +31,6 @@ import org.mockito.stubbing.Answer;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -237,7 +236,7 @@ public class CompoundCachingTierTest {
 
     final ArgumentCaptor<Function> functionArg = ArgumentCaptor.forClass(Function.class);
     final ArgumentCaptor<String> keyArg = ArgumentCaptor.forClass(String.class);
-    when(lowerTier.getOrComputeIfAbsent(keyArg.capture(), functionArg.capture())).then(new Answer<Object>() {
+    when(lowerTier.installMapping(keyArg.capture(), functionArg.capture())).then(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         return lowerTierValueHolder.get();
@@ -293,7 +292,7 @@ public class CompoundCachingTierTest {
     }).when(higherTier).silentInvalidate(anyString(), any(Function.class));
     final ArgumentCaptor<Function> functionArg = ArgumentCaptor.forClass(Function.class);
     final ArgumentCaptor<String> keyArg = ArgumentCaptor.forClass(String.class);
-    when(lowerTier.getOrComputeIfAbsent(keyArg.capture(), functionArg.capture())).then(new Answer<Object>() {
+    when(lowerTier.installMapping(keyArg.capture(), functionArg.capture())).then(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         Object apply = functionArg.getValue().apply(keyArg.getValue());
