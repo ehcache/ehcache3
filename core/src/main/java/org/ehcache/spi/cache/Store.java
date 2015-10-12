@@ -216,9 +216,8 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * class that provides a guarantee).
    *
    * @return an iterator over the mappings in this set
-   * @throws CacheAccessException
    */
-  Store.Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() throws CacheAccessException;
+  Store.Iterator<Cache.Entry<K, ValueHolder<V>>> iterator();
 
   /**
    * Compute the value for the given key by invoking the given function to produce the value.
@@ -522,9 +521,8 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      * rather than throwing a {@link java.util.NoSuchElementException}.)
      *
      * @return <tt>true</tt> if the iterator has more elements.
-     * @throws CacheAccessException if verifying the presence of further elements failed
      */
-    boolean hasNext() throws CacheAccessException;
+    boolean hasNext();
 
     /**
      * Returns the next element in the iteration.

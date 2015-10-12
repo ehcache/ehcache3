@@ -1395,19 +1395,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
 
     public CacheEntryIterator(boolean quiet) {
       this.quiet = quiet;
-      
-      Store.Iterator<Entry<K, Store.ValueHolder<V>>> storeIterator = null;
-      try {
-        storeIterator = store.iterator();
-      } catch (CacheAccessException e) {
-        cacheAccessError(e);
-      }
-      this.iterator = storeIterator;
-    }
-
-    private void cacheAccessError(CacheAccessException e) {
-      resilienceStrategy.iteratorFailure(e);
-      cacheAccessError = true;
+      this.iterator = store.iterator();
     }
     
     @Override
@@ -1417,20 +1405,13 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       if (cacheAccessError) {
         return false;
       }
-      
-      try {
-        return iterator.hasNext();
-      } catch (CacheAccessException e) {
-        cacheAccessError(e);
-        return false;
-      }
+
+      return iterator.hasNext();
     }
 
     @Override
     public Entry<K, V> next() {
-      statusTransitioner.checkAvailable();
-      
-      if (cacheAccessError) {
+      if (!hasNext()) {
         throw new NoSuchElementException();
       }
       
@@ -1440,10 +1421,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         if (!quiet) getObserver.end(GetOutcome.HIT_NO_LOADER);
       } catch (CacheAccessException e) {
         if (!quiet) getObserver.end(GetOutcome.FAILURE);
-        cacheAccessError(e);
-        
-        // XXX: not what we want!
-        throw new RuntimeException(e);
+        cacheAccessError = true;
+        return resilienceStrategy.iteratorFailure(e);
       }
       
       return new ValueHolderBasedEntry<K, V>(current);

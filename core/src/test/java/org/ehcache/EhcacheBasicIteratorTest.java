@@ -17,6 +17,8 @@
 package org.ehcache;
 
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CacheIterationException;
+import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -34,9 +36,9 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Matchers.any;
 
 /**
@@ -317,12 +319,36 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorCacheAccessException() throws Exception {
-    doThrow(new CacheAccessException("")).when(this.store).iterator();
+    Store.ValueHolder<String> valueHolder = mock(Store.ValueHolder.class);
+    doReturn("bar").when(valueHolder).value();
+    
+    Cache.Entry<String, Store.ValueHolder<String>> storeEntry = mock(Cache.Entry.class);
+    doReturn(valueHolder).when(storeEntry).getValue();
+    doReturn("foo").when(storeEntry).getKey();
+    
+    Store.Iterator<Cache.Entry<String, Store.ValueHolder<String>>> storeIterator = mock(Store.Iterator.class);
+    doReturn(true).when(storeIterator).hasNext();
+    doReturn(storeEntry).when(storeIterator).next();
+    
+    doReturn(storeIterator).when(this.store).iterator();
+    
     final Ehcache<String, String> ehcache = this.getEhcache();
-
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     assertThat(iterator, is(notNullValue()));
-    verify(this.spiedResilienceStrategy).iteratorFailure(any(CacheAccessException.class));
+    assertThat(iterator.hasNext(), is(true));
+    Cache.Entry<String, String> entry = iterator.next();
+    assertThat(entry.getKey(), is("foo"));
+    assertThat(entry.getValue(), is("bar"));
+    
+    doThrow(new CacheAccessException("")).when(storeIterator).next();
+    
+    try {
+      iterator.next();
+      fail();
+    } catch (CacheIterationException e) {
+      // Expected
+    }
+
     assertThat(iterator.hasNext(), is(false));
 
     try {
@@ -330,6 +356,12 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
       fail();
     } catch (NoSuchElementException e) {
       // Expected
+    }
+
+    try {
+      iterator.remove();
+    } catch (Exception e) {
+      fail();
     }
 
     try {

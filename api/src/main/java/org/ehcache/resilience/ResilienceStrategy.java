@@ -145,8 +145,9 @@ public interface ResilienceStrategy<K, V> {
    * failure.
    * 
    * @param e the triggered failure
+   * @return an entry to return on a failed iteration
    */
-  void iteratorFailure(CacheAccessException e);
+  Cache.Entry<K, V> iteratorFailure(CacheAccessException e);
 
   /**
    * Called when a {@link Cache#putIfAbsent(java.lang.Object, java.lang.Object)}

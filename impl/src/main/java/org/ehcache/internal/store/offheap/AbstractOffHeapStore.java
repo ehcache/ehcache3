@@ -314,7 +314,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() throws CacheAccessException {
+  public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() {
     return new OffHeapStoreIterator();
   }
 
@@ -834,6 +834,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   class OffHeapStoreIterator implements Iterator<Cache.Entry<K, ValueHolder<V>>> {
     private final java.util.Iterator<Map.Entry<K, OffHeapValueHolder<V>>> mapIterator;
     private Map.Entry<K, OffHeapValueHolder<V>> next = null;
+    private CacheAccessException prefetchFailure = null;
 
     OffHeapStoreIterator() {
       mapIterator = backingMap().entrySet().iterator();
@@ -842,25 +843,33 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
     private void advance() {
       next = null;
-      while (next == null && mapIterator.hasNext()) {
-        Map.Entry<K, OffHeapValueHolder<V>> entry = mapIterator.next();
-        final long now = timeSource.getTimeMillis();
-        if (entry.getValue().isExpired(now, TimeUnit.MILLISECONDS)) {
-          containsKey(entry.getKey());  //This is done here to remove the expired entry without any side effects
-          continue;
-        }
+      try {
+        while (next == null && mapIterator.hasNext()) {
+          Map.Entry<K, OffHeapValueHolder<V>> entry = mapIterator.next();
+          final long now = timeSource.getTimeMillis();
+          if (entry.getValue().isExpired(now, TimeUnit.MILLISECONDS)) {
+            containsKey(entry.getKey());  //This is done here to remove the expired entry without any side effects
+            continue;
+          }
 
-        next = entry;
+          next = entry;
+        }
+      } catch (RuntimeException re) {
+        prefetchFailure = new CacheAccessException(re);
       }
     }
 
     @Override
-    public boolean hasNext() throws CacheAccessException {
+    public boolean hasNext() {
       return next != null;
     }
 
     @Override
     public Cache.Entry<K, ValueHolder<V>> next() throws CacheAccessException {
+      if(prefetchFailure != null) {
+        throw prefetchFailure;
+      }
+
       if (next == null) {
         throw new NoSuchElementException();
       }

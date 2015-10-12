@@ -383,7 +383,7 @@ public abstract class EhcacheBasicCrudBase {
      * must not throw {@link java.util.ConcurrentModificationException ConcurrentModification}.
      */
     @Override
-    public Iterator<Cache.Entry<String, ValueHolder<String>>> iterator() throws CacheAccessException {
+    public Iterator<Cache.Entry<String, ValueHolder<String>>> iterator() {
 
       return new Iterator<Cache.Entry<String, ValueHolder<String>>>() {
 
@@ -391,7 +391,7 @@ public abstract class EhcacheBasicCrudBase {
             FakeStore.this.entries.entrySet().iterator();
 
         @Override
-        public boolean hasNext() throws CacheAccessException {
+        public boolean hasNext() {
           return this.iterator.hasNext();
         }
 

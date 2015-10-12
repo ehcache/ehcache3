@@ -236,7 +236,7 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() throws CacheAccessException {
+  public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() {
     return authoritativeTier.iterator();
   }
 

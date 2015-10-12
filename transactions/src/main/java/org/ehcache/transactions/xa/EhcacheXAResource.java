@@ -262,7 +262,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
     }
   }
 
-  public XATransactionContext<K, V> getCurrentContext() throws CacheAccessException {
+  public XATransactionContext<K, V> getCurrentContext() {
     if (currentXid == null) {
       return null;
     }

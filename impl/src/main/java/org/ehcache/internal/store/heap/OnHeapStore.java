@@ -390,10 +390,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() throws CacheAccessException {
+  public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() {
     final java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>> it = map.entrySetIterator();
     return new Iterator<Cache.Entry<K, ValueHolder<V>>>() {
       private Map.Entry<K, OnHeapValueHolder<V>> next = null;
+      private CacheAccessException prefetchFailure = null;
       
       {
         advance();
@@ -401,26 +402,34 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       
       private void advance() {
         next = null;
-        while (next == null && it.hasNext()) {
-          Map.Entry<K, OnHeapValueHolder<V>> entry = it.next();
-          final long now = timeSource.getTimeMillis();
-          if (entry.getValue().isExpired(now, TimeUnit.MILLISECONDS)) {
-            it.remove();
-            onExpiration(entry.getKey(), entry.getValue());
-            continue;
+        try {
+          while (next == null && it.hasNext()) {
+            Map.Entry<K, OnHeapValueHolder<V>> entry = it.next();
+            final long now = timeSource.getTimeMillis();
+            if (entry.getValue().isExpired(now, TimeUnit.MILLISECONDS)) {
+              it.remove();
+              onExpiration(entry.getKey(), entry.getValue());
+              continue;
+            }
+
+            next = entry;
           }
-          
-          next = entry;
+        } catch (RuntimeException re) {
+          prefetchFailure = new CacheAccessException(re);
         }
       }
       
       @Override
-      public boolean hasNext() throws CacheAccessException {
+      public boolean hasNext() {
         return next != null;
       }
 
       @Override
       public Cache.Entry<K, ValueHolder<V>> next() throws CacheAccessException {
+        if(prefetchFailure != null) {
+          throw prefetchFailure;
+        }
+        
         if (next == null) {
           throw new NoSuchElementException();
         }
