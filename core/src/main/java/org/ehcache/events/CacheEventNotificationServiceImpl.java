@@ -17,27 +17,30 @@
 package org.ehcache.events;
 
 import org.ehcache.Cache;
+import org.ehcache.CacheConfigurationChangeEvent;
+import org.ehcache.CacheConfigurationChangeListener;
+import org.ehcache.CacheConfigurationProperty;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
-import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.internal.TimeSource;
-import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Per-cache component that manages cache event listener registrations, and provides event delivery based on desired
@@ -56,16 +59,37 @@ import java.util.concurrent.Future;
 public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotificationService<K, V> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CacheEventNotificationServiceImpl.class);
+  private static final int DEFAULT_EVENT_PROCESSING_QUEUE_COUNT = 4;
   private final StoreListener<K, V> storeListener = new StoreListener<K, V>();
   private final Store<K, V> store;
   private final TimeSource timeSource;
+  private final int eventQueueCount;
+  private final ConcurrentHashMap<Integer, ConcurrentLinkedQueue<CacheEventWrapper>> keyBasedEventQueueMap;
+  private final EventDispatcher<K, V> unOrderedEventDispatcher;
+  private final EventDispatcher<K, V> orderedEventDispatcher;
+  private volatile EventThreadLocal eventThreadLocal;
+  private final AtomicInteger orderedListenerCount = new AtomicInteger(0);
+  private final Set<EventListenerWrapper> syncListenersSet = new CopyOnWriteArraySet<EventListenerWrapper>();
+  private final Set<EventListenerWrapper> aSyncListenersSet = new CopyOnWriteArraySet<EventListenerWrapper>();
 
-  public CacheEventNotificationServiceImpl(ExecutorService orderedDelivery, ExecutorService unorderedDelivery, Store<K, V> store, TimeSource timeSource) {
-    this.orderedDelivery = orderedDelivery;
-    this.unorderedDelivery = unorderedDelivery;
+  public CacheEventNotificationServiceImpl(Store<K, V> store, OrderedEventDispatcher<K, V> orderedEventDispatcher, UnorderedEventDispatcher<K, V> unorderedEventDispatcher, TimeSource timeSource) {
+    this(store, orderedEventDispatcher, unorderedEventDispatcher, DEFAULT_EVENT_PROCESSING_QUEUE_COUNT, timeSource);
+  }
+
+  public CacheEventNotificationServiceImpl(Store<K, V> store, OrderedEventDispatcher<K, V> orderedEventDispatcher,
+                                           UnorderedEventDispatcher<K, V> unorderedEventDispatcher, int numberOfEventProcessingQueues, final TimeSource timeSource) {
     this.store = store;
     this.timeSource = timeSource;
+    LOGGER.info("Setting Event Processing Queue Count to {}", numberOfEventProcessingQueues);
+    eventThreadLocal = new NoOpEventThreadLocalImpl();
+    this.eventQueueCount = numberOfEventProcessingQueues;
     storeListener.setEventNotificationService(this);
+    this.unOrderedEventDispatcher = unorderedEventDispatcher;
+    this.orderedEventDispatcher = orderedEventDispatcher;
+    this.keyBasedEventQueueMap = new ConcurrentHashMap<Integer, ConcurrentLinkedQueue<CacheEventWrapper>>();
+    for (int i = 0; i < this.eventQueueCount; i++) {
+      this.keyBasedEventQueueMap.put(i , new ConcurrentLinkedQueue<CacheEventWrapper>());
+    }
   }
 
   /**
@@ -82,11 +106,27 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
   public void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener,
                                   EventOrdering ordering, EventFiring firing, EnumSet<EventType> forEventTypes) {
     boolean doRegister = forEventTypes.contains(EventType.EVICTED) || forEventTypes.contains(EventType.EXPIRED);
-    if (!registeredListeners.add(new EventListenerWrapper(listener, firing, ordering, forEventTypes))) {
+    EventListenerWrapper wrapper = new EventListenerWrapper(listener, firing, ordering, forEventTypes);
+    if(wrapper.config.orderingMode() == EventOrdering.ORDERED) {
+      orderedListenerCount.incrementAndGet();
+    }
+
+    if(aSyncListenersSet.contains(wrapper) || syncListenersSet.contains(wrapper)) {
       throw new IllegalStateException("Cache Event Listener already registered: " + listener);
+    }
+
+    if (firing == EventFiring.ASYNCHRONOUS) {
+      aSyncListenersSet.add(wrapper);
+    } else {
+      syncListenersSet.add(wrapper);
     }
     if (doRegister) {
       store.enableStoreEventNotifications(storeListener);
+    }
+    synchronized (this) {
+      if (eventThreadLocal instanceof NoOpEventThreadLocalImpl) {
+        eventThreadLocal = new EventThreadLocalImpl();
+      }
     }
   }
 
@@ -99,20 +139,54 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
    */
   @Override
   public void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener) {
-    if (!registeredListeners.remove(new EventListenerWrapper(listener,
-        EventFiring.ASYNCHRONOUS, EventOrdering.UNORDERED, EnumSet.allOf(EventType.class)))) {
-      throw new IllegalStateException("Unknown cache event listener: " + listener);
+    EventListenerWrapper wrapper = new EventListenerWrapper(listener,
+        EventFiring.ASYNCHRONOUS, EventOrdering.UNORDERED, EnumSet.allOf(EventType.class));
+    boolean removed = false;
+    for (EventListenerWrapper listenerWrapper : aSyncListenersSet) {
+      if(listenerWrapper.equals(wrapper)) {
+        aSyncListenersSet.remove(listenerWrapper);
+        removed = true;
+        if(listenerWrapper.config.orderingMode() == EventOrdering.ORDERED) {
+          orderedListenerCount.decrementAndGet();
+        }
+        break;
+      }
     }
-    if (!hasListeners()) {
-      store.disableStoreEventNotifications();
+    if (!removed) {
+      for (EventListenerWrapper listenerWrapper : syncListenersSet) {
+        if(listenerWrapper.equals(wrapper)) {
+          syncListenersSet.remove(listenerWrapper);
+          removed = true;
+          if(listenerWrapper.config.orderingMode() == EventOrdering.ORDERED) {
+            orderedListenerCount.decrementAndGet();
+          }
+          break;
+        }
+      }
+    }
+    synchronized (this) {
+      if (!hasListeners()) {
+        if (eventThreadLocal instanceof EventThreadLocalImpl) {
+          eventThreadLocal = new NoOpEventThreadLocalImpl();
+        }
+        store.disableStoreEventNotifications();
+      }
+    }
+    if(!removed) {
+      throw new IllegalStateException("Unknown cache event listener: " + listener);
     }
   }
 
   // TODO this should be really the shutdown method for the service
   @Override
   public void releaseAllListeners() {
-    for (EventListenerWrapper wrapper: registeredListeners) {
-      registeredListeners.remove(wrapper);
+    orderedListenerCount.set(0);
+    aSyncListenersSet.clear();
+    syncListenersSet.clear();
+    synchronized (this) {
+      if (eventThreadLocal instanceof EventThreadLocalImpl) {
+        eventThreadLocal = new NoOpEventThreadLocalImpl();
+      }
     }
   }
 
@@ -122,45 +196,65 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
   }
 
   @Override
-  public void onEvent(final CacheEvent<K, V> event) {
+  public void onEvent(CacheEvent<K, V> event) {
     final EventType type = event.getType();
+    EventThreadLocal threadLocal = eventThreadLocal;
     LOGGER.trace("Cache Event notified for event type {}", type);
-    Map<EventListenerWrapper, Future<?>> notificationResults = 
-        new HashMap<CacheEventNotificationServiceImpl.EventListenerWrapper, Future<?>>(registeredListeners.size());
-    
-    for (final EventListenerWrapper wrapper: registeredListeners) {
-      if (!wrapper.config.fireOn().contains(type)) {
-        continue;
+    CacheEventWrapper<K, V> cacheEventWrapper = new CacheEventWrapper<K, V>(event);
+    if (hasListeners()) {
+      threadLocal.verifyOrderedDispatch(orderedListenerCount.get() != 0);
+      threadLocal.addToEventList(cacheEventWrapper);
+      if (threadLocal.isOrdered()) {
+        ConcurrentLinkedQueue<CacheEventWrapper> eventWrapperQueue = getEventQueue(event.getKey());
+        eventWrapperQueue.add(cacheEventWrapper);
       }
-      Runnable notificationTask = new Runnable() {
-        @Override
-        public void run() {
-          CacheEventListener<K, V> listener = wrapper.getListener();
-          listener.onEvent(event);
-        }
-      };
-      
-      ExecutorService eventDelivery = wrapper.config.orderingMode().equals(EventOrdering.UNORDERED) ? unorderedDelivery : orderedDelivery;
-      notificationResults.put(wrapper, eventDelivery.submit(notificationTask));
     }
-    
-    for (Map.Entry<EventListenerWrapper, Future<?>> entry: notificationResults.entrySet()) {
-      EventListenerWrapper wrapper = entry.getKey();
-      Future<?> f = entry.getValue();
-      if ((EventFiring.SYNCHRONOUS.equals(wrapper.config.firingMode()))) {
-        boolean interrupted = false;
-        try {
-          f.get();
-        } catch (ExecutionException e) {
-            LOGGER.error("Cache Event Listener failed for event type {} due to ", type, e);
-          // XXX delegate to resilience strategy (#52), and/or just log
-        } catch (InterruptedException e) {
-          interrupted = true;
-        } finally {
-          if (interrupted) {
-            Thread.currentThread().interrupt();
-          }
+  }
+
+  private void dispatchEvent(CacheEventWrapper cacheEventWrapper, EventThreadLocal currentEventThreadLocal) {
+    cacheEventWrapper.markFireable();
+    ConcurrentLinkedQueue<CacheEventWrapper> eventWrapperQueue = getEventQueue((K)cacheEventWrapper.cacheEvent.getKey());
+    orderedEventWait(cacheEventWrapper, eventWrapperQueue, currentEventThreadLocal);
+    if (currentEventThreadLocal.isOrdered()) {
+      CacheEventWrapper event = eventWrapperQueue.poll();
+      while (event != null) {
+        actualDispatch(event, orderedEventDispatcher);
+        if (event != currentEventThreadLocal.get().get(0)) {
+          event.markFiredAndSignalCondition(true);
+        } else {
+          event.markFiredAndSignalCondition(false);
         }
+        event = eventWrapperQueue.poll();
+      }
+    } else {
+      actualDispatch(cacheEventWrapper, unOrderedEventDispatcher);
+    }
+  }
+
+  private void orderedEventWait(CacheEventWrapper cacheEventWrapper, Queue<CacheEventWrapper> eventWrapperQueue, EventThreadLocal currentEventThreadLocal) {
+    if (currentEventThreadLocal.isOrdered()) {
+      if (cacheEventWrapper != eventWrapperQueue.peek()) {
+        cacheEventWrapper.waitTillFired();
+      }
+    }
+  }
+
+  private void actualDispatch(CacheEventWrapper event, EventDispatcher<K, V> eventDispatcher) {
+    if (event.hasFailed()) {
+      return;
+    }
+    Future<?> future = null;
+    if (!syncListenersSet.isEmpty()) {
+      future = eventDispatcher.dispatch(event, syncListenersSet);
+    }
+    if (!aSyncListenersSet.isEmpty()) {
+      eventDispatcher.dispatch(event, aSyncListenersSet);
+    }
+    if (future != null) {
+      try {
+        future.get();
+      } catch (Exception e) {
+        LOGGER.error("Cache Event Listener failed for event type {} due to ", event.cacheEvent.getType(), e);
       }
     }
   }
@@ -170,62 +264,59 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
    */
   @Override
   public boolean hasListeners() {
-    return !registeredListeners.isEmpty();
+    return !syncListenersSet.isEmpty() || !aSyncListenersSet.isEmpty();
   }
 
-  private final Set<EventListenerWrapper> registeredListeners = new CopyOnWriteArraySet<EventListenerWrapper>();
-  private final ExecutorService orderedDelivery;
-  private final ExecutorService unorderedDelivery;
-
-  private static final class EventListenerWrapper {
-    final CacheEventListener<?, ?> listener;
-    final CacheEventListenerConfiguration config;
-    
-    EventListenerWrapper(CacheEventListener<?, ?> listener, final EventFiring firing, final EventOrdering ordering, 
-        final EnumSet<EventType> forEvents) {
-      this.listener = listener;
-      this.config = new CacheEventListenerConfiguration() {
-        
-        @Override
-        public Class<CacheEventListenerProvider> getServiceType() {
-          return CacheEventListenerProvider.class;
+  @Override
+  public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
+    List<CacheConfigurationChangeListener> configurationChangeListenerList = new ArrayList<CacheConfigurationChangeListener>();
+    configurationChangeListenerList.add(new CacheConfigurationChangeListener() {
+      @Override
+      public void cacheConfigurationChange(final CacheConfigurationChangeEvent event) {
+        if (event.getProperty().equals(CacheConfigurationProperty.ADDLISTENER)) {
+          EventListenerWrapper newListener = (EventListenerWrapper)event.getNewValue();
+          CacheEventListenerConfiguration listenerConfiguration = newListener.config;
+          registerCacheEventListener(newListener.getListener(), listenerConfiguration.orderingMode(),
+              listenerConfiguration.firingMode(), listenerConfiguration.fireOn());
+        } else if (event.getProperty().equals(CacheConfigurationProperty.REMOVELISTENER)) {
+          CacheEventListener<K, V> oldListener = (CacheEventListener)event.getOldValue();
+          deregisterCacheEventListener(oldListener);
         }
-        
-        @Override
-        public EventOrdering orderingMode() {
-          return ordering;
-        }
-        
-        @Override
-        public EventFiring firingMode() {
-          return firing;
-        }
-        
-        @Override
-        public EnumSet<EventType> fireOn() {
-          return forEvents;
-        }
-      };
-    }
-    
-    @SuppressWarnings("unchecked")
-    <K, V> CacheEventListener<K, V> getListener() {
-      return (CacheEventListener<K, V>) listener;
-    }
-
-    @Override
-    public int hashCode() {
-      return listener.hashCode();
-    }
-    
-    @Override
-    public boolean equals(Object other) {
-      if (!(other instanceof EventListenerWrapper)) {
-        return false;
       }
-      EventListenerWrapper l2 = (EventListenerWrapper)other;
-      return listener.equals(l2.listener);
+    });
+    return configurationChangeListenerList;
+  }
+
+  @Override
+  public void fireAllEvents() {
+    EventThreadLocal currentThreadLocal = eventThreadLocal;
+    while (!currentThreadLocal.get().isEmpty()) {
+      CacheEventWrapper cacheEventWrapper = currentThreadLocal.get().get(0);
+      dispatchEvent(cacheEventWrapper, currentThreadLocal);
+      currentThreadLocal.get().remove(0);
     }
+  }
+
+  @Override
+  public void processAndFireRemainingEvents() {
+    EventThreadLocal currentThreadLocal = eventThreadLocal;
+    for(CacheEventWrapper cacheEventWrapper : currentThreadLocal.get()) {
+      if((cacheEventWrapper.cacheEvent.getType() == EventType.CREATED)
+        || (cacheEventWrapper.cacheEvent.getType() == EventType.UPDATED)
+        || (cacheEventWrapper.cacheEvent.getType() == EventType.REMOVED)) {
+       cacheEventWrapper.markFailed();
+      }
+    }
+    try {
+      fireAllEvents();
+    } finally {
+      currentThreadLocal.cleanUp();
+    }
+  }
+
+  private ConcurrentLinkedQueue<CacheEventWrapper> getEventQueue (K key) {
+    int mapKeyForQueue = Math.abs(key.hashCode() % eventQueueCount);
+    return keyBasedEventQueueMap.get(mapKeyForQueue);
   }
 
   private final class StoreListener<K, V> implements StoreEventListener<K, V> {
@@ -235,12 +326,14 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
 
     @Override
     public void onEviction(final K key, final Store.ValueHolder<V> valueHolder) {
-      eventNotificationService.onEvent(CacheEvents.eviction(key, valueHolder.value(), this.source));
+      CacheEvent<K, V> cacheEvent = CacheEvents.eviction(key, valueHolder.value(), this.source);
+      eventNotificationService.onEvent(cacheEvent);
     }
 
     @Override
     public void onExpiration(final K key, final Store.ValueHolder<V> valueHolder) {
-      eventNotificationService.onEvent(CacheEvents.expiry(key, valueHolder.value(), this.source));
+      CacheEvent<K, V> cacheEvent = CacheEvents.expiry(key, valueHolder.value(), this.source);
+      eventNotificationService.onEvent(cacheEvent);
     }
 
     public void setEventNotificationService(CacheEventNotificationService<K, V> eventNotificationService) {
@@ -251,5 +344,4 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
       this.source = source;
     }
   }
-
 }

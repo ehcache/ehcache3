@@ -152,6 +152,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       this.eventNotificationService = new DisabledCacheEventNotificationService<K, V>();
     }
     this.runtimeConfiguration = runtimeConfiguration;
+    runtimeConfiguration.addCacheConfigurationListener(this.eventNotificationService.getConfigurationChangeListeners());
     this.jsr107Cache = new Jsr107CacheImpl();
 
     this.useLoaderInAtomics = useLoaderInAtomics;
@@ -201,9 +202,11 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       // Check for expiry first
       if (valueHolder == null) {
         getObserver.end(cacheLoaderWriter == null ? GetOutcome.MISS_NO_LOADER : GetOutcome.MISS_WITH_LOADER);
+        eventNotificationService.fireAllEvents();
         return null;
       } else {
         getObserver.end(cacheLoaderWriter == null ? GetOutcome.HIT_NO_LOADER : GetOutcome.HIT_WITH_LOADER);
+        eventNotificationService.fireAllEvents();
         return valueHolder.value();
       }
     } catch (CacheAccessException e) {
@@ -221,6 +224,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         }
       } finally {
         getObserver.end(GetOutcome.FAILURE);
+        eventNotificationService.processAndFireRemainingEvents();
       }
     }
   }
@@ -258,6 +262,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } else {
         putObserver.end(PutOutcome.NOOP);
       }
+      eventNotificationService.fireAllEvents();
     } catch (CacheAccessException e) {
       try {
         if (cacheLoaderWriter == null) {
@@ -274,6 +279,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } finally {
         putObserver.end(PutOutcome.FAILURE);
       }
+    } finally {
+      eventNotificationService.processAndFireRemainingEvents();
     }
   }
   
@@ -337,8 +344,10 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       store.compute(key, remappingFunction);
       if (modified.get()) {
         removeObserver.end(RemoveOutcome.SUCCESS);
+        eventNotificationService.fireAllEvents();
       } else {
         removeObserver.end(RemoveOutcome.NOOP);
+        eventNotificationService.fireAllEvents();
       }
     } catch (CacheAccessException e) {
       try {
@@ -351,6 +360,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } finally {
         removeObserver.end(RemoveOutcome.FAILURE);
       }
+    } finally {
+      eventNotificationService.processAndFireRemainingEvents();
     }
     
     return modified.get();
@@ -568,6 +579,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         putAllObserver.end(PutAllOutcome.FAILURE);
         throw cacheWritingException;
       }
+      eventNotificationService.fireAllEvents();
     } catch (CacheAccessException e) {
       try {
         if (cacheLoaderWriter == null) {
@@ -586,6 +598,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } finally {
         putAllObserver.end(PutAllOutcome.FAILURE);
       }
+      eventNotificationService.processAndFireRemainingEvents();
     }
   }
 
@@ -711,6 +724,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         removeAllObserver.end(RemoveAllOutcome.FAILURE);
         throw new BulkCacheWritingException(failures, successes);
       }
+      eventNotificationService.fireAllEvents();
     } catch (CacheAccessException e) {
       try {
         if (cacheLoaderWriter == null) {
@@ -729,6 +743,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } finally {
         removeAllObserver.end(RemoveAllOutcome.FAILURE);
       }
+      eventNotificationService.processAndFireRemainingEvents();
     }
   }
 
@@ -803,6 +818,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       ValueHolder<V> inCache = store.computeIfAbsent(key, mappingFunction);
       if (installed.get()) {
         putIfAbsentObserver.end(PutIfAbsentOutcome.PUT);
+        eventNotificationService.fireAllEvents();
         return null;
       } else if (inCache == null) {
         /*
@@ -810,9 +826,11 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
          * there is a loader/writer or not.
          */
         putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
+        eventNotificationService.fireAllEvents();
         return null;
       } else {
         putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
+        eventNotificationService.fireAllEvents();
         return inCache.value();
       }
     } catch (CacheAccessException e) {
@@ -832,6 +850,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } finally {
         putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
       }
+    } finally {
+      eventNotificationService.processAndFireRemainingEvents();
     }
   }
 
@@ -880,6 +900,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       store.compute(key, remappingFunction, REPLACE_FALSE);
       if (removed.get()) {
         conditionalRemoveObserver.end(ConditionalRemoveOutcome.SUCCESS);
+        eventNotificationService.fireAllEvents();
       } else {
         if (hit.get()) {
           conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_PRESENT);
@@ -904,6 +925,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } finally {
         conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE);
       }
+    } finally {
+      eventNotificationService.processAndFireRemainingEvents();
     }
     return removed.get();
   }
@@ -955,8 +978,10 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       store.compute(key, remappingFunction);
       if (old.get() != null) {
         replaceObserver.end(ReplaceOutcome.HIT);
+        eventNotificationService.fireAllEvents();
       } else {
         replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
+        eventNotificationService.fireAllEvents();
       }
       return old.get();
     } catch (CacheAccessException e) {
@@ -972,6 +997,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } finally {
         replaceObserver.end(ReplaceOutcome.FAILURE);
       }
+    } finally {
+      eventNotificationService.processAndFireRemainingEvents();
     }
   }
 
@@ -1028,11 +1055,14 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       store.compute(key, remappingFunction, REPLACE_FALSE);
       if (success.get()) {
         replaceObserver.end(ReplaceOutcome.HIT);
+        eventNotificationService.fireAllEvents();
       } else {
         if (hit.get()) {
           replaceObserver.end(ReplaceOutcome.MISS_PRESENT);
+          eventNotificationService.fireAllEvents();
         } else {
           replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
+          eventNotificationService.fireAllEvents();
         }
       }
       return success.get();
@@ -1053,6 +1083,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } finally {
         replaceObserver.end(ReplaceOutcome.FAILURE);
       }        
+    } finally {
+      eventNotificationService.processAndFireRemainingEvents();
     }
   }
 
@@ -1274,8 +1306,10 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         };
 
         ValueHolder<V> valueHolder = store.compute(key, fn, replaceEqual);
+        eventNotificationService.fireAllEvents();
         return valueHolder == null ? null : valueHolder.value();
       } catch (CacheAccessException e) {
+        eventNotificationService.processAndFireRemainingEvents();
         // XXX:
         throw new RuntimeException(e);
       }
@@ -1308,6 +1342,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } catch (CacheAccessException e) {
         getObserver.end(GetOutcome.FAILURE);
         removeObserver.end(RemoveOutcome.FAILURE);
+        eventNotificationService.processAndFireRemainingEvents();
         // XXX:
         throw new RuntimeException(e);
       }
@@ -1316,8 +1351,10 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       if (returnValue != null) {
         getObserver.end(GetOutcome.HIT_NO_LOADER);
         removeObserver.end(RemoveOutcome.SUCCESS);
+        eventNotificationService.fireAllEvents();
       } else {
         getObserver.end(GetOutcome.MISS_NO_LOADER);          
+        eventNotificationService.fireAllEvents();
       }
       return returnValue;
     }
@@ -1358,6 +1395,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } catch (CacheAccessException e) {
         getObserver.end(GetOutcome.FAILURE);
         putObserver.end(PutOutcome.FAILURE);
+        eventNotificationService.processAndFireRemainingEvents();
         // XXX:
         throw new RuntimeException(e);
       }
@@ -1365,10 +1403,13 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       V returnValue = existingValue.get();        
       if (returnValue != null) {
         getObserver.end(GetOutcome.HIT_NO_LOADER);
+        eventNotificationService.fireAllEvents();
       } else {
         getObserver.end(GetOutcome.MISS_NO_LOADER);          
+        eventNotificationService.fireAllEvents();
       }
       putObserver.end(PutOutcome.ADDED);
+      eventNotificationService.fireAllEvents();
       return returnValue;
     }
 
@@ -1423,6 +1464,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       } catch (CacheAccessException e) {
         cacheAccessError(e);
         return false;
+      } finally {
+        eventNotificationService.processAndFireRemainingEvents();
       }
     }
 
@@ -1444,6 +1487,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         
         // XXX: not what we want!
         throw new RuntimeException(e);
+      } finally {
+        eventNotificationService.processAndFireRemainingEvents();
       }
       
       return new ValueHolderBasedEntry<K, V>(current);

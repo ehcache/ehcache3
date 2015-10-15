@@ -31,6 +31,7 @@ import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
+import org.ehcache.config.event.CacheEventNotificationServiceConfigurationBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
@@ -41,6 +42,7 @@ import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
+import org.ehcache.events.CacheEventNotificationServiceConfiguration;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.internal.copy.ReadWriteCopier;
 import org.ehcache.internal.copy.SerializingCopier;
@@ -305,6 +307,22 @@ public class GettingStarted {
     }
     assertThat(ListenerObject.evicted, is(0));
 
+    cacheManager.close();
+  }
+
+  @Test
+  public void configuringEventProcessingQueues() {
+    CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
+        .newEventListenerConfiguration(ListenerObject.class, EventType.EVICTED).ordered().synchronous();
+    // tag::configuringEventProcessingQueues[]
+    CacheEventNotificationServiceConfiguration notificationConfiguration = CacheEventNotificationServiceConfigurationBuilder
+        .withEventProcessingQueueCount(10).build();  // <1>
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(5L, EntryUnit.ENTRIES).build())
+        .add(notificationConfiguration).buildConfig(Long.class, String.class);  // <2>
+    // end::configuringEventProcessingQueues[]
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
+        .build(true);
     cacheManager.close();
   }
 

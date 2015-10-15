@@ -17,13 +17,16 @@
 package org.ehcache.events;
 
 import org.ehcache.Cache;
+import org.ehcache.CacheConfigurationChangeListener;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 
 /**
  * @author Ludovic Orban
@@ -53,5 +56,19 @@ public class DisabledCacheEventNotificationService<K, V> implements CacheEventNo
 
   @Override
   public void setStoreListenerSource(Cache<K, V> source) {
+  }
+
+  @Override
+  public void fireAllEvents() {
+  }
+
+  @Override
+  public void processAndFireRemainingEvents() {
+
+  }
+
+  @Override
+  public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
+    return Collections.emptyList();
   }
 }

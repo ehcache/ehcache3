@@ -17,8 +17,12 @@ package org.ehcache.internal.events;
 
 import org.ehcache.events.CacheEventNotificationListenerServiceProvider;
 import org.ehcache.events.CacheEventNotificationService;
+import org.ehcache.events.CacheEventNotificationServiceConfiguration;
 import org.ehcache.events.CacheEventNotificationServiceImpl;
 import org.ehcache.events.DisabledCacheEventNotificationService;
+import org.ehcache.events.EventDispatchProvider;
+import org.ehcache.events.OrderedEventDispatcher;
+import org.ehcache.events.UnorderedEventDispatcher;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceConfiguration;
@@ -35,7 +39,7 @@ import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
  * @author palmanojkumar
  *
  */
-@ServiceDependencies({ TimeSourceService.class, ThreadPoolsService.class })
+@ServiceDependencies({ TimeSourceService.class, ThreadPoolsService.class, EventDispatchProvider.class })
 public class CacheEventNotificationListenerServiceProviderImpl implements CacheEventNotificationListenerServiceProvider {
 
   private volatile ServiceProvider serviceProvider;
@@ -52,11 +56,21 @@ public class CacheEventNotificationListenerServiceProviderImpl implements CacheE
 
   public <K, V> CacheEventNotificationService<K, V> createCacheEventNotificationService(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs) {
     ThreadPoolsService threadPoolsService = serviceProvider.getService(ThreadPoolsService.class);
-    TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[]) serviceConfigs);
+    CacheEventNotificationServiceConfiguration cacheEventNotificationServiceConfiguration = findSingletonAmongst(CacheEventNotificationServiceConfiguration.class, (Object[])serviceConfigs);
+    TimeSourceConfiguration timeSourceConfig = findSingletonAmongst(TimeSourceConfiguration.class, (Object[])serviceConfigs);
     TimeSource timeSource = timeSourceConfig != null ? timeSourceConfig.getTimeSource() : SystemTimeSource.INSTANCE;
+    OrderedEventDispatcher<K, V> orderedEventDispatcher = serviceProvider.getService(EventDispatchProvider.class).createOrderedEventDispatchers();
+    UnorderedEventDispatcher<K, V> unorderedEventDispatcher = serviceProvider.getService(EventDispatchProvider.class).createUnorderedEventDispatchers();
+    if (orderedEventDispatcher == null || unorderedEventDispatcher == null) {
+      throw new IllegalArgumentException();
+    }
     if (threadPoolsService != null) {
-      return new CacheEventNotificationServiceImpl<K, V>(threadPoolsService.getEventsOrderedDeliveryExecutor(),
-                                                         threadPoolsService.getEventsUnorderedDeliveryExecutor(), store, timeSource);
+      if (cacheEventNotificationServiceConfiguration != null) {
+        return new CacheEventNotificationServiceImpl<K, V>(store, orderedEventDispatcher, unorderedEventDispatcher,
+            cacheEventNotificationServiceConfiguration.getNumberOfEventProcessingQueues(), timeSource);
+      } else {
+        return new CacheEventNotificationServiceImpl<K, V>(store, orderedEventDispatcher, unorderedEventDispatcher, timeSource);
+      }
     } else {
       return new DisabledCacheEventNotificationService<K, V>();
     }

@@ -23,6 +23,8 @@ import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.events.CacheEventNotificationServiceImpl;
+import org.ehcache.events.OrderedEventDispatcher;
+import org.ehcache.events.UnorderedEventDispatcher;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -73,8 +75,11 @@ public class EhcacheEventsTestBase extends EhcacheBasicCrudBase {
     ExecutorService orderedExecutor = Executors.newSingleThreadExecutor();
     ExecutorService unorderedExecutor = Executors.newCachedThreadPool();
     TimeSource timeSource = SystemTimeSource.INSTANCE;
-    cacheEventNotificationService = new CacheEventNotificationServiceImpl<String, String>(orderedExecutor, unorderedExecutor, store, timeSource);
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(config, this.store,
+    cacheEventNotificationService = new CacheEventNotificationServiceImpl<String, String>(store, new OrderedEventDispatcher<String, String>(orderedExecutor),
+        new UnorderedEventDispatcher<String, String>(unorderedExecutor), timeSource);
+    EhcacheRuntimeConfiguration<String, String> runtimeConfiguration = new EhcacheRuntimeConfiguration<String, String>(config, cacheEventNotificationService);
+    runtimeConfiguration.addCacheConfigurationListener(cacheEventNotificationService.getConfigurationChangeListeners());
+    final Ehcache<String, String> ehcache = new Ehcache<String, String>(runtimeConfiguration, this.store,
         cacheLoaderWriter, cacheEventNotificationService,
         LoggerFactory.getLogger(Ehcache.class + "-" + name));
     ehcache.init();
