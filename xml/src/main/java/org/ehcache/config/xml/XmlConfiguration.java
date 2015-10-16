@@ -266,12 +266,15 @@ public class XmlConfiguration implements Configuration {
             writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration();
           } else {
             Batching batching = writeBehind.batching();
-            writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration(batching.maxDelay(), batching.maxDelayUnit(), batching.batchSize());
+            writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder
+                    .newBatchedWriteBehindConfiguration(batching.maxDelay(), batching.maxDelayUnit(), batching.batchSize())
+                    .useScheduledExecutor(batching.scheduledExecutor());
             if (batching.isCoalesced()) {
               writeBehindConfigurationBuilder = ((BatchedWriteBehindConfigurationBuilder) writeBehindConfigurationBuilder).enableCoalescing();
             }
           }
           builder = builder.add(writeBehindConfigurationBuilder
+                  .useExecutor(writeBehind.executor())
                   .concurrencyLevel(writeBehind.concurrency())
                   .queueSize(writeBehind.maxQueueSize()));
         }

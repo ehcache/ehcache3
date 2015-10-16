@@ -22,6 +22,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
+import org.ehcache.spi.service.ExecutionService;
 
 /**
  * @author Alex Snaps
@@ -35,15 +36,15 @@ public class AggregateWriteBehindQueue<K, V> implements WriteBehind<K, V> {
 
   private final List<WriteBehind<K, V>> queues = new ArrayList<WriteBehind<K, V>>();
 
-  protected AggregateWriteBehindQueue(WriteBehindConfiguration config, WriteBehindQueueFactory<K, V> queueFactory, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+  protected AggregateWriteBehindQueue(ExecutionService executionService, WriteBehindConfiguration config, WriteBehindQueueFactory<K, V> queueFactory, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     int writeBehindConcurrency = config.getConcurrency();
     for (int i = 0; i < writeBehindConcurrency; i++) {
-      this.queues.add(queueFactory.createQueue(i, config, cacheLoaderWriter));
+      this.queues.add(queueFactory.createQueue(i, executionService, config, cacheLoaderWriter));
     }
   }
 
-  public AggregateWriteBehindQueue(WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
-    this(config, new WriteBehindQueueFactory<K, V>(), cacheLoaderWriter);
+  public AggregateWriteBehindQueue(ExecutionService executionService, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+    this(executionService, config, new WriteBehindQueueFactory<K, V>(), cacheLoaderWriter);
   }
 
   private WriteBehind<K, V> getQueue(final Object key) {
@@ -128,11 +129,11 @@ public class AggregateWriteBehindQueue<K, V> implements WriteBehind<K, V> {
      * Create a write behind queue stripe.
      *
      */
-    protected WriteBehind<K, V> createQueue(int index, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+    protected WriteBehind<K, V> createQueue(int index, ExecutionService executionService, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
       if (config.getBatchingConfiguration() == null) {
-        return new NonBatchingLocalHeapWriteBehindQueue(config, cacheLoaderWriter);
+        return new NonBatchingLocalHeapWriteBehindQueue(executionService, config, cacheLoaderWriter);
       } else {
-        return new BatchingLocalHeapWriteBehindQueue<K, V>(config, cacheLoaderWriter);
+        return new BatchingLocalHeapWriteBehindQueue<K, V>(executionService, config, cacheLoaderWriter);
       }
     }
   }

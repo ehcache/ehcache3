@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
+import org.ehcache.spi.service.ExecutionService;
 
 /**
  * @author Abhilash
@@ -39,9 +40,9 @@ public class WriteBehindDecoratorLoaderWriter<K, V> implements CacheLoaderWriter
   }
 
 
-  public WriteBehindDecoratorLoaderWriter(CacheLoaderWriter<K, V> loaderWriter, WriteBehindConfiguration config) {
+  public WriteBehindDecoratorLoaderWriter(CacheLoaderWriter<K, V> loaderWriter, ExecutionService executionService, WriteBehindConfiguration config) {
     this.delegate = loaderWriter;
-    writeBehindQueue = new AggregateWriteBehindQueue<K, V>(config, loaderWriter);
+    writeBehindQueue = new AggregateWriteBehindQueue<K, V>(executionService, config, loaderWriter);
     writeBehindQueue.start();
   }
   

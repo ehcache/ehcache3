@@ -19,7 +19,9 @@ import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
+import org.ehcache.spi.service.ExecutionService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceFactory;
 
 /**
@@ -33,7 +35,13 @@ public class WriteBehindDecoratorLoaderWriterProviderFactory implements ServiceF
     if (configuration != null) {
       throw new IllegalArgumentException("WriteBehind configuration must not be provided at CacheManager level");
     }
-    return new WriteBehindDecoratorLoaderWriterProvider() {
+    return new Provider();
+  }
+
+  @ServiceDependencies(ExecutionService.class)
+  public static class Provider implements WriteBehindDecoratorLoaderWriterProvider {
+      
+      private volatile ExecutionService executionService;
       
       @Override
       public void stop() {
@@ -43,7 +51,7 @@ public class WriteBehindDecoratorLoaderWriterProviderFactory implements ServiceF
       
       @Override
       public void start(ServiceProvider serviceProvider) {
-        // no-op
+        executionService = serviceProvider.getService(ExecutionService.class);
       }
       
       @Override
@@ -51,7 +59,7 @@ public class WriteBehindDecoratorLoaderWriterProviderFactory implements ServiceF
         if (cacheLoaderWriter == null) {
           throw new NullPointerException("WriteBehind requires non null CacheLoaderWriter.");
         }
-        return new WriteBehindDecoratorLoaderWriter<K, V>(cacheLoaderWriter, configuration);
+        return new WriteBehindDecoratorLoaderWriter<K, V>(cacheLoaderWriter, executionService, configuration);
       }
 
       @Override
@@ -60,7 +68,6 @@ public class WriteBehindDecoratorLoaderWriterProviderFactory implements ServiceF
           ((WriteBehindDecoratorLoaderWriter)cacheLoaderWriter).getWriteBehindQueue().stop();
         }
       }
-    };
   }
 
   @Override

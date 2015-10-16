@@ -10,6 +10,7 @@ org.ehcache.spi.serialization.DefaultSerializationProviderFactory
 org.ehcache.spi.loaderwriter.DefaultCacheLoaderWriterProviderFactory
 org.ehcache.spi.event.DefaultCacheEventListenerProviderFactory
 org.ehcache.internal.executor.DefaultThreadPoolsServiceFactory
+org.ehcache.internal.executor.DefaultExecutionServiceFactory
 org.ehcache.internal.persistence.DefaultLocalPersistenceServiceFactory
 org.ehcache.loaderwriter.writebehind.WriteBehindDecoratorLoaderWriterProviderFactory
 org.ehcache.internal.events.CacheEventNotificationListenerServiceProviderFactory

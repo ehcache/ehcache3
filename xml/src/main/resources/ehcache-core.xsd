@@ -244,6 +244,7 @@
                   </xs:all>
                   <xs:attribute name="batch-size" type="xs:positiveInteger" use="required"/>
                   <xs:attribute name="coalesce" type="xs:boolean" default="false" use="optional"/>
+                  <xs:attribute name="scheduled-executor" type="xs:string" use="optional"/>
                 </xs:complexType>
               </xs:element>
               <xs:element name="non-batching"/>
@@ -251,6 +252,7 @@
           </xs:sequence>
           <xs:attribute name="concurrency" type="xs:positiveInteger" default="1" use="optional"/>
           <xs:attribute name="size" type="xs:positiveInteger" default="2147483647" use="optional"/>
+          <xs:attribute name="executor" type="xs:string" use="optional"/>
         </xs:complexType>
       </xs:element>
       <xs:element name="listener" minOccurs="0" maxOccurs="unbounded">

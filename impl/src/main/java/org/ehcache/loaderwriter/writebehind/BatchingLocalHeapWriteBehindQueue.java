@@ -16,18 +16,19 @@
 package org.ehcache.loaderwriter.writebehind;
 
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.loaderwriter.writebehind.operations.BatchOperation;
 import org.ehcache.loaderwriter.writebehind.operations.DeleteOperation;
+import org.ehcache.loaderwriter.writebehind.operations.DeleteAllOperation;
 import org.ehcache.loaderwriter.writebehind.operations.SingleOperation;
 import org.ehcache.loaderwriter.writebehind.operations.WriteOperation;
+import org.ehcache.loaderwriter.writebehind.operations.WriteAllOperation;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
+import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfiguration;
+import org.ehcache.spi.service.ExecutionService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.ehcache.loaderwriter.writebehind.operations.BatchOperation;
-import org.ehcache.loaderwriter.writebehind.operations.DeleteAllOperation;
-import org.ehcache.loaderwriter.writebehind.operations.WriteAllOperation;
 
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
@@ -36,18 +37,16 @@ import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadPoolExecutor;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfiguration;
 
 /**
  *
@@ -61,7 +60,8 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
   
   private final ConcurrentMap<K, SingleOperation<K, V>> latest = new ConcurrentHashMap<K, SingleOperation<K, V>>();
   
-  private final ThreadPoolExecutor executor;
+  private final BlockingQueue executorQueue;
+  private final ExecutorService executor;
   private final ScheduledExecutorService scheduledExecutor;
   
   private final long maxWriteDelayMs;
@@ -70,22 +70,16 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
 
   private Batch openBatch;
   
-  public BatchingLocalHeapWriteBehindQueue(WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+  public BatchingLocalHeapWriteBehindQueue(ExecutionService executionService, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     super(cacheLoaderWriter);
     this.cacheLoaderWriter = cacheLoaderWriter;
     BatchingConfiguration batchingConfig = config.getBatchingConfiguration();
     this.maxWriteDelayMs = batchingConfig.getMaxDelayUnit().toMillis(batchingConfig.getMaxDelay());
-    this.batchSize = config.getBatchingConfiguration().getBatchSize();
-    this.coalescing = config.getBatchingConfiguration().isCoalescing();
-    this.executor = new ThreadPoolExecutor(1, 1, 0, MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>(config.getMaxQueueSize() / batchSize),
-            new RejectedExecutionHandler() {
-      @Override
-      public void rejectedExecution(Runnable r, ThreadPoolExecutor tpe) {
-        putUninterruptibly(tpe.getQueue(), r);
-      }
-    });
-    this.scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
+    this.batchSize = batchingConfig.getBatchSize();
+    this.coalescing = batchingConfig.isCoalescing();
+    this.executorQueue = new LinkedBlockingQueue<Runnable>(config.getMaxQueueSize() / batchSize);
+    this.executor = executionService.getOrderedExecutor(config.getExecutorAlias(), executorQueue);
+    this.scheduledExecutor = executionService.getScheduledExecutor(batchingConfig.getSchedulerAlias());
   }
 
   @Override
@@ -149,7 +143,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
   
   @Override
   public long getQueueSize() {
-    return executor.getQueue().size() * batchSize;
+    return executorQueue.size() * batchSize;
   }
 
   abstract class Batch implements Runnable {

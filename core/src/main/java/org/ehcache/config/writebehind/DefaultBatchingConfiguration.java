@@ -30,7 +30,8 @@ public class DefaultBatchingConfiguration implements BatchingConfiguration {
   private final int batchSize;
   
   private boolean coalescing = false;
-
+  private String schedulerAlias = null;
+  
   public DefaultBatchingConfiguration(long maxDelay, TimeUnit maxDelayUnit, int batchSize) {
     if (maxDelay <= 0) {
       throw new IllegalArgumentException("Maximum write delay must be positive");
@@ -65,7 +66,16 @@ public class DefaultBatchingConfiguration implements BatchingConfiguration {
     return batchSize;
   }
 
+  @Override
+  public String getSchedulerAlias() {
+    return schedulerAlias;
+  }
+
   public void setCoalescing(boolean writeCoalescing) {
     this.coalescing = writeCoalescing;
+  }
+
+  public void setSchedulerAlias(String schedulerAlias) {
+    this.schedulerAlias = schedulerAlias;
   }
 }

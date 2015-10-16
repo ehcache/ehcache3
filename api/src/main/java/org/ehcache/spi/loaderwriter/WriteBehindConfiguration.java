@@ -47,6 +47,13 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
   BatchingConfiguration getBatchingConfiguration();
 
   /**
+   * Returns the alias of the thread resource pool to use for write behind task execution.
+   * 
+   * @return the execution thread pool alias
+   */
+  String getExecutorAlias();
+
+  /**
    * BatchingConfiguration
    */
   public interface BatchingConfiguration {
@@ -82,5 +89,11 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
      */
     boolean isCoalescing();
 
+    /**
+     * Returns the alias of the thread resource pool to use for scheduling delayed batches
+     * 
+     * @return the batch schedule execution alias
+     */
+    public String getSchedulerAlias();
   }
 }

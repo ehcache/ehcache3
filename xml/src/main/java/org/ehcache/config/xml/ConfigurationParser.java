@@ -681,6 +681,8 @@ class ConfigurationParser {
     
     int concurrency();
 
+    String executor();
+
     Batching batching();
   }
 
@@ -693,6 +695,8 @@ class ConfigurationParser {
     long maxDelay();
 
     TimeUnit maxDelayUnit();
+
+    String scheduledExecutor();
   }
 
   private static class XmlExpiry implements Expiry {
@@ -768,6 +772,11 @@ class ConfigurationParser {
     }
 
     @Override
+    public String executor() {
+      return this.writebehind.getExecutor();
+    }
+
+    @Override
     public Batching batching() {
       CacheIntegrationType.WriteBehind.Batching batching = writebehind.getBatching();
       if (batching == null) {
@@ -806,6 +815,12 @@ class ConfigurationParser {
     public TimeUnit maxDelayUnit() {
       return convertToJavaTimeUnit(this.batching.getMaxWriteDelay().getUnit());
     }
+
+    @Override
+    public String scheduledExecutor() {
+      return this.batching.getScheduledExecutor();
+    }
+
   }
 
   private static TimeUnit convertToJavaTimeUnit(org.ehcache.config.xml.model.TimeUnit unit) {

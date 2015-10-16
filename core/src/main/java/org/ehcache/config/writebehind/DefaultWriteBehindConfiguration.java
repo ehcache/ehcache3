@@ -29,6 +29,7 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
 
   private int writeBehindConcurrency = 1;
   private int writeBehindMaxQueueSize = Integer.MAX_VALUE;
+  private String executorAlias = null;
   
   public DefaultWriteBehindConfiguration(BatchingConfiguration batchingConfig) {
     this.batchingConfig = batchingConfig;
@@ -42,6 +43,11 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
   @Override
   public int getMaxQueueSize() {
     return writeBehindMaxQueueSize;
+  }
+
+  @Override
+  public String getExecutorAlias() {
+    return executorAlias;
   }
 
   @Override
@@ -61,6 +67,10 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
       throw new IllegalArgumentException("WriteBehind queue size cannot be less than 1.");
     }
     this.writeBehindMaxQueueSize = writeBehindMaxQueueSize;
+  }
+
+  public void setExecutorAlias(String executorAlias) {
+    this.executorAlias = executorAlias;
   }
 
   @Override

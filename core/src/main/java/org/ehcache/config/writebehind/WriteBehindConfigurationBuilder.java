@@ -27,6 +27,7 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
   
   protected Integer writeBehindConcurrency;
   protected Integer writeBehindMaxQueueSize;
+  protected String executorAlias;
   
   
   private WriteBehindConfigurationBuilder() {
@@ -35,6 +36,7 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
   private WriteBehindConfigurationBuilder(WriteBehindConfigurationBuilder other) {
     writeBehindConcurrency = other.writeBehindConcurrency;
     writeBehindMaxQueueSize = other.writeBehindMaxQueueSize;
+    executorAlias = other.executorAlias;
   }
 
   public static BatchedWriteBehindConfigurationBuilder newBatchedWriteBehindConfiguration(long maxDelay, TimeUnit maxDelayUnit, int batchSize) {
@@ -51,7 +53,8 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
     private int batchSize;
     
     private Boolean coalescing;
-
+    private String scheduledExecutorAlias;
+    
     private BatchedWriteBehindConfigurationBuilder(long maxDelay, TimeUnit maxDelayUnit, int batchSize) {
       this.maxDelay = maxDelay;
       this.maxDelayUnit = maxDelayUnit;
@@ -91,6 +94,12 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
       return otherBuilder;
     }
 
+    public BatchedWriteBehindConfigurationBuilder useScheduledExecutor(String alias) {
+      BatchedWriteBehindConfigurationBuilder otherBuilder = new BatchedWriteBehindConfigurationBuilder(this);
+      otherBuilder.scheduledExecutorAlias = alias;
+      return otherBuilder;
+    }
+
     @Override
     public BatchedWriteBehindConfigurationBuilder queueSize(int size) {
       BatchedWriteBehindConfigurationBuilder otherBuilder = new BatchedWriteBehindConfigurationBuilder(this);
@@ -104,12 +113,22 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
       otherBuilder.writeBehindConcurrency = concurrency;
       return otherBuilder;
     }
+    
+    @Override
+    public BatchedWriteBehindConfigurationBuilder useExecutor(String alias) {
+      BatchedWriteBehindConfigurationBuilder otherBuilder = new BatchedWriteBehindConfigurationBuilder(this);
+      otherBuilder.executorAlias = alias;
+      return otherBuilder;
+    }
 
     @Override
     public WriteBehindConfiguration build() {
       DefaultBatchingConfiguration configuration = new DefaultBatchingConfiguration(maxDelay, maxDelayUnit, batchSize);
       if (coalescing != null) {
         configuration.setCoalescing(coalescing);
+      }
+      if (scheduledExecutorAlias != null) {
+        configuration.setSchedulerAlias(scheduledExecutorAlias);
       }
       return buildOn(new DefaultWriteBehindConfiguration(configuration));
     }
@@ -142,6 +161,13 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
       otherBuilder.writeBehindConcurrency = concurrency;
       return otherBuilder;
     }
+    
+    @Override
+    public UnBatchedWriteBehindConfigurationBuilder useExecutor(String alias) {
+      UnBatchedWriteBehindConfigurationBuilder otherBuilder = new UnBatchedWriteBehindConfigurationBuilder(this);
+      otherBuilder.executorAlias = alias;
+      return otherBuilder;
+    }
   }
 
   public WriteBehindConfiguration buildOn(DefaultWriteBehindConfiguration configuration) {
@@ -151,10 +177,15 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
     if (writeBehindMaxQueueSize != null) {
       configuration.setMaxQueueSize(writeBehindMaxQueueSize);
     }
+    if (executorAlias != null) {
+      configuration.setExecutorAlias(executorAlias);
+    }
     return configuration;
   }
   
   public abstract WriteBehindConfigurationBuilder queueSize(int size);
   
   public abstract WriteBehindConfigurationBuilder concurrencyLevel(int concurrency);
+
+  public abstract WriteBehindConfigurationBuilder useExecutor(String alias);
 }
