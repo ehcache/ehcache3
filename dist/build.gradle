@@ -17,6 +17,7 @@
 plugins {
   id 'java'
   id 'maven'
+  id 'osgi'
   id 'com.github.johnrengelman.shadow' version '1.2.2'
 }
 
@@ -25,6 +26,8 @@ def shadowBaseName = 'ehcache'
 
 def projectNamesToInclude = [':api', ':core', ':impl', ':management', ':107', ':xml', ':transactions']
 def projectsToInclude = projectNamesToInclude.collect {project(it)}
+def buildDir = project.getBuildDir().getPath()
+def OSGI_OVERRIDE_KEYS = ['Import-Package', 'Export-Package', 'Tool', 'Bnd-LastModified', 'Created-By']
 
 configurations {
     shadowProvided
@@ -32,21 +35,83 @@ configurations {
 
 dependencies {
   projectsToInclude.each {compile it}
-  shadow 'org.slf4j:slf4j-api:1.7.7'
-  shadow group: 'org.terracotta', name: 'offheap-store', version: parent.offHeapVersion
-  shadowProvided 'javax.transaction:jta:1.1'
-  shadowProvided 'org.codehaus.btm:btm:2.1.4'
+  shadow 'org.slf4j:slf4j-api:1.7.7', "org.terracotta:offheap-store:$parent.offHeapVersion"
+  shadowProvided 'javax.transaction:jta:1.1', 'org.codehaus.btm:btm:2.1.4', 'org.terracotta:management-model:0.1.0'
+}
+
+// Skip a number of defaults for this aggregation project
+jar.onlyIf { false }
+sourceJar.onlyIf { false }
+javadoc.onlyIf { false }
+javadocJar.onlyIf { false }
+
+configurations.archives.artifacts.with { archives ->
+  archives.removeAll {
+    it.name == 'ehcache-dist'
+  }
 }
 
 shadowJar {
-  baseName = shadowBaseName
+  baseName = "$shadowBaseName-shadow"
   classifier = ''
   projectNamesToInclude.each {projName -> dependencies {include(project(projName))}}
   dependencies {
     include(dependency('org.terracotta:statistics:1.1.0'))
   }
-  fillManifest(manifest, shadowBaseName)
+
   mergeServiceFiles()
+}
+
+task unzipShadowJarClasses(type: Copy, dependsOn: 'shadowJar') {
+  from(project.zipTree(project.shadowJar.archivePath.getPath())) {
+    include("**/*.class")
+  }
+  into("$buildDir/tmp/osgiShadowJar-classes")
+}
+
+task osgiShadowJar(type: Jar, dependsOn: 'unzipShadowJarClasses') {
+  baseName = shadowBaseName
+  def osgiConvention = project.convention.getPlugin(OsgiPluginConvention.class)
+  def osgiManifest = osgiConvention.osgiManifest {
+    // Metadata
+    instructionReplace 'Bundle-Name', 'Ehcache 3'
+    instructionReplace 'Bundle-SymbolicName', "org.ehcache.$shadowBaseName"
+    instruction 'Bundle-Description', 'Ehcache is an open-source caching library, compliant with the JSR-107 standard.'
+    instruction 'Bundle-DocURL', 'http://ehcache.org'
+    instruction 'Bundle-License', 'LICENSE'
+    instruction 'Bundle-Vendor', 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
+    instruction 'Bundle-RequiredExecutionEnvironment', 'JavaSE-1.6'
+
+    // Optional packages
+    instruction 'Import-Package', 'bitronix.tm.*;resolution:=optional', 'javax.cache.*;resolution:=optional',
+            'javax.transaction.*;resolution:=optional', 'org.terracotta.offheapstore.*;resolution:=optional',
+            'org.terracotta.management.*;resolution:=optional', 'com.sun.jmx.*;resolution:=optional'
+    // Ignored packages
+    instruction 'Import-Package', '!sun.misc', '!sun.security.action', '*'
+    classesDir = new File("$buildDir/tmp/osgiShadowJar-classes")
+    classpath = project.configurations.shadow + project.configurations.shadowProvided
+  }
+
+  manifest = new com.github.jengelman.gradle.plugins.shadow.tasks.DefaultInheritManifest(getServices().get(org.gradle.api.internal.file.FileResolver.class))
+
+  manifest.inheritFrom project.shadowJar.manifest
+
+  fillManifest(manifest, shadowBaseName)
+
+  manifest.inheritFrom(osgiManifest) {
+    eachEntry {
+      if (it.getKey().startsWith('Bundle') || OSGI_OVERRIDE_KEYS.contains(it.getKey())) {
+        it.setValue(it.getMergeValue())
+      } else {
+        it.setValue(it.getBaseValue())
+      }
+    }
+  }
+
+  from(project.zipTree(project.shadowJar.archivePath.getPath())) {
+    exclude("META-INF/MANIFEST.MF")
+  }
+
 }
 
 task shadowSourceJar(type: Jar, dependsOn: shadowJar) {
@@ -80,7 +145,7 @@ task asciidocZip(type: Zip, dependsOn: ':docs:asciidoctor') {
 }
 
 artifacts {
-  archives shadowJar
+  archives osgiShadowJar
   archives shadowSourceJar
   archives shadowJavadocJar
   archives asciidocZip

@@ -114,7 +114,7 @@ def fillManifest(manifest, title) {
   manifest.attributes(
           'provider': 'gradle',
           'Implementation-Title': title,
-          'Implementation-Version': project.version,
+          'Implementation-Version': baseVersion,
           'Built-By': System.getProperty('user.name'),
           'Built-JDK': System.getProperty('java.version'),
           'Build-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
@@ -122,6 +122,7 @@ def fillManifest(manifest, title) {
 }
 
 ext {
+  baseVersion = '3.0.0-SNAPSHOT'
   offHeapVersion = '2.1.0'
 }
 
@@ -135,7 +136,7 @@ subprojects {
   apply plugin: 'jacoco'
 
   group = 'org.ehcache.modules'
-  version = '3.0.0-SNAPSHOT'
+  version = baseVersion
 
   ext.isReleaseVersion = !version.endsWith('SNAPSHOT')
 
