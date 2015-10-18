@@ -27,6 +27,7 @@ import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.SerializerException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -50,6 +51,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.fail;
@@ -107,8 +109,8 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
     try {
       store.put("key1", new ArrayList<Object>() {{ add(new Object()); }});
       fail();
-    } catch (SerializerException se) {
-      // expected
+    } catch (CacheAccessException cae) {
+      assertThat(cae.getCause(), instanceOf(SerializerException.class));
     }
   }
   
@@ -118,8 +120,8 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
     try {
       store.put(new ArrayList<Object>() {{ add(new Object()); }}, "value");
       fail();
-    } catch (SerializerException se) {
-      // expected
+    } catch (CacheAccessException cae) {
+      assertThat(cae.getCause(), instanceOf(SerializerException.class));
     }
   }
 

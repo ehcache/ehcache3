@@ -31,6 +31,7 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.events.CacheEvents;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CachePassThroughException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -86,7 +87,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public Store.ValueHolder<V> get(K key) {
+  public Store.ValueHolder<V> get(K key) throws CacheAccessException {
     checkKey(key);
     getOperationObserver.begin();
 
@@ -99,8 +100,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     return result;
   }
 
-  private Store.ValueHolder<V> internalGet(K key, final boolean updateAccess) {
-    return backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+  private Store.ValueHolder<V> internalGet(K key, final boolean updateAccess) throws CacheAccessException {
+    try {
+      return backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
         @Override
         public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
           long now = timeSource.getTimeMillis();
@@ -118,10 +120,20 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           return mappedValue;
         }
       }, false);
+    } catch (CachePassThroughException cpte) {
+      Throwable cause = cpte.getCause();
+      if(cause instanceof RuntimeException) {
+        throw   (RuntimeException) cause;
+      } else {
+        throw wrapAsCacheAccessException(cause);
+      }
+    } catch (RuntimeException re) {
+      throw wrapAsCacheAccessException(re);
+    }
   }
 
   @Override
-  public boolean containsKey(K key) {
+  public boolean containsKey(K key) throws CacheAccessException {
     checkKey(key);
     return internalGet(key, false) != null;
   }
@@ -152,6 +164,15 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         return;
       } catch (OversizeMappingException ex) {
         handleOversizeMappingException(key, ex);
+      } catch (CachePassThroughException cpte) {
+        Throwable cause = cpte.getCause();
+        if(cause instanceof RuntimeException) {
+          throw   (RuntimeException) cause;
+        } else {
+          throw wrapAsCacheAccessException(cause);
+        }
+      } catch (RuntimeException re) {
+        throw wrapAsCacheAccessException(re);
       }
     }
   }
@@ -184,45 +205,74 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         return returnValue.get();
       } catch (OversizeMappingException ex) {
         handleOversizeMappingException(key, ex);
+      } catch (CachePassThroughException cpte) {
+        Throwable cause = cpte.getCause();
+        if(cause instanceof RuntimeException) {
+          throw   (RuntimeException) cause;
+        } else {
+          throw wrapAsCacheAccessException(cause);
+        }
+      } catch (RuntimeException re) {
+        throw wrapAsCacheAccessException(re);
       }
     }
   }
 
   @Override
-  public void remove(K key) {
+  public void remove(K key) throws CacheAccessException {
     checkKey(key);
     removeOperationObserver.begin();
     try {
       backingMap().remove(key);
+    } catch (CachePassThroughException cpte) {
+      Throwable cause = cpte.getCause();
+      if(cause instanceof RuntimeException) {
+        throw   (RuntimeException) cause;
+      } else {
+        throw wrapAsCacheAccessException(cause);
+      }
+    } catch (RuntimeException re) {
+      throw wrapAsCacheAccessException(re);
     } finally {
       removeOperationObserver.end(StoreOperationOutcomes.RemoveOutcome.SUCCESS);
     }
   }
 
   @Override
-  public boolean remove(final K key, final V value) throws NullPointerException {
+  public boolean remove(final K key, final V value) throws CacheAccessException {
     checkKey(key);
     checkValue(value);
 
     final AtomicBoolean removed = new AtomicBoolean(false);
 
-    backingMap().computeIfPresent(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
-      @Override
-      public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
-        long now = timeSource.getTimeMillis();
-
-        if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
-          onExpiration(mappedKey, mappedValue);
-          return null;
-        } else if (mappedValue.value().equals(value)) {
-          removed.set(true);
-          return null;
-        } else {
-          setAccessTimeAndExpiry(mappedKey, mappedValue, now);
-          return mappedValue;
+    try {
+      backingMap().computeIfPresent(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+        @Override
+        public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
+          long now = timeSource.getTimeMillis();
+          
+          if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+            onExpiration(mappedKey, mappedValue);
+            return null;
+          } else if (mappedValue.value().equals(value)) {
+            removed.set(true);
+            return null;
+          } else {
+            setAccessTimeAndExpiry(mappedKey, mappedValue, now);
+            return mappedValue;
+          }
         }
+      });
+    } catch (CachePassThroughException cpte) {
+      Throwable cause = cpte.getCause();
+      if(cause instanceof RuntimeException) {
+        throw   (RuntimeException) cause;
+      } else {
+        throw wrapAsCacheAccessException(cause);
       }
-    });
+    } catch (RuntimeException re) {
+      throw wrapAsCacheAccessException(re);
+    }
 
     return removed.get();
   }
@@ -255,6 +305,15 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         return returnValue.get();
       } catch (OversizeMappingException ex) {
         handleOversizeMappingException(key, ex);
+      } catch (CachePassThroughException cpte) {
+        Throwable cause = cpte.getCause();
+        if(cause instanceof RuntimeException) {
+          throw   (RuntimeException) cause;
+        } else {
+          throw wrapAsCacheAccessException(cause);
+        }
+      } catch (RuntimeException re) {
+        throw wrapAsCacheAccessException(re);
       }
     }
   }
@@ -292,13 +351,33 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         return replaced.get();
       } catch (OversizeMappingException ex) {
         handleOversizeMappingException(key, ex);
+      } catch (CachePassThroughException cpte) {
+        Throwable cause = cpte.getCause();
+        if(cause instanceof RuntimeException) {
+          throw   (RuntimeException) cause;
+        } else {
+          throw wrapAsCacheAccessException(cause);
+        }
+      } catch (RuntimeException re) {
+        throw wrapAsCacheAccessException(re);
       }
     }
   }
 
   @Override
   public void clear() throws CacheAccessException {
-    backingMap().clear();
+    try {
+      backingMap().clear();
+    } catch (CachePassThroughException cpte) {
+      Throwable cause = cpte.getCause();
+      if(cause instanceof RuntimeException) {
+        throw   (RuntimeException) cause;
+      } else {
+        throw wrapAsCacheAccessException(cause);
+      }
+    } catch (RuntimeException re) {
+      throw wrapAsCacheAccessException(re);
+    }
   }
 
   @Override
@@ -365,6 +444,15 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         return backingMap().compute(key, computeFunction, false);
       } catch (OversizeMappingException e) {
         handleOversizeMappingException(key, e);
+      } catch (CachePassThroughException cpte) {
+        Throwable cause = cpte.getCause();
+        if(cause instanceof RuntimeException) {
+          throw   (RuntimeException) cause;
+        } else {
+          throw wrapAsCacheAccessException(cause);
+        }
+      } catch (RuntimeException re) {
+        throw wrapAsCacheAccessException(re);
       }
     }
   }
@@ -404,6 +492,15 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         return backingMap().compute(key, computeFunction, fault);
       } catch (OversizeMappingException e) {
         handleOversizeMappingException(key, e);
+      } catch (CachePassThroughException cpte) {
+        Throwable cause = cpte.getCause();
+        if(cause instanceof RuntimeException) {
+          throw   (RuntimeException) cause;
+        } else {
+          throw wrapAsCacheAccessException(cause);
+        }
+      } catch (RuntimeException re) {
+        throw wrapAsCacheAccessException(re);
       }
     }
   }
@@ -448,6 +545,15 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         return backingMap().compute(key, computeFunction, false);
       } catch (OversizeMappingException e) {
         handleOversizeMappingException(key, e);
+      } catch (CachePassThroughException cpte) {
+        Throwable cause = cpte.getCause();
+        if(cause instanceof RuntimeException) {
+          throw   (RuntimeException) cause;
+        } else {
+          throw wrapAsCacheAccessException(cause);
+        }
+      } catch (RuntimeException re) {
+        throw wrapAsCacheAccessException(re);
       }
     }
   }
@@ -526,19 +632,31 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   public ValueHolder<V> getAndFault(K key) throws CacheAccessException {
     getOperationObserver.begin();
     checkKey(key);
-    ValueHolder<V> mappedValue = backingMap().getAndPin(key);
-
-    if(mappedValue != null && mappedValue.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
-      if(backingMap().remove(key, mappedValue)) {
-        onExpiration(key, mappedValue);
+    ValueHolder<V> mappedValue = null;
+    try {
+      mappedValue = backingMap().getAndPin(key);
+      
+      if(mappedValue != null && mappedValue.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
+        if(backingMap().remove(key, mappedValue)) {
+          onExpiration(key, mappedValue);
+        }
+        mappedValue = null;
       }
-      mappedValue = null;
-    }
-
-    if (mappedValue == null) {
-      getOperationObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
-    } else {
-      getOperationObserver.end(StoreOperationOutcomes.GetOutcome.HIT);
+    } catch (CachePassThroughException cpte) {
+      Throwable cause = cpte.getCause();
+      if(cause instanceof RuntimeException) {
+        throw   (RuntimeException) cause;
+      } else {
+        throw wrapAsCacheAccessException(cause);
+      }
+    } catch (RuntimeException re) {
+      throw wrapAsCacheAccessException(re);
+    } finally {
+      if (mappedValue == null) {
+        getOperationObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
+      } else {
+        getOperationObserver.end(StoreOperationOutcomes.GetOutcome.HIT);
+      }
     }
     return mappedValue;
   }
@@ -590,27 +708,49 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   @Override
   public void invalidate(final K key) throws CacheAccessException {
-    backingMap().computeIfPresent(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
-      @Override
-      public OffHeapValueHolder<V> apply(final K k, final OffHeapValueHolder<V> present) {
-        notifyInvalidation(key, present);
-        return null;
+    try {
+      backingMap().computeIfPresent(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+        @Override
+        public OffHeapValueHolder<V> apply(final K k, final OffHeapValueHolder<V> present) {
+          notifyInvalidation(key, present);
+          return null;
+        }
+      });
+    } catch (CachePassThroughException cpte) {
+      Throwable cause = cpte.getCause();
+      if(cause instanceof RuntimeException) {
+        throw   (RuntimeException) cause;
+      } else {
+        throw wrapAsCacheAccessException(cause);
       }
-    });
+    } catch (RuntimeException re) {
+      throw wrapAsCacheAccessException(re);
+    }
   }
 
   @Override
   public void invalidate(K key, final NullaryFunction<K> function) throws CacheAccessException {
-    backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
-      @Override
-      public OffHeapValueHolder<V> apply(K k, OffHeapValueHolder<V> offHeapValueHolder) {
-        if (offHeapValueHolder != null) {
-          notifyInvalidation(k, offHeapValueHolder);
+    try {
+      backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+        @Override
+        public OffHeapValueHolder<V> apply(K k, OffHeapValueHolder<V> offHeapValueHolder) {
+          if (offHeapValueHolder != null) {
+            notifyInvalidation(k, offHeapValueHolder);
+          }
+          function.apply();
+          return null;
         }
-        function.apply();
-        return null;
+      }, false);
+    } catch (CachePassThroughException cpte) {
+      Throwable cause = cpte.getCause();
+      if(cause instanceof RuntimeException) {
+        throw   (RuntimeException) cause;
+      } else {
+        throw wrapAsCacheAccessException(cause);
       }
-    }, false);
+    } catch (RuntimeException re) {
+      throw wrapAsCacheAccessException(re);
+    }
   }
 
   private void notifyInvalidation(final K key, final ValueHolder<V> p) {
@@ -644,8 +784,19 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       }
     };
 
-    backingMap().compute(key, computeFunction, false);
-    return valueHolderAtomicReference.get();
+    try {
+      backingMap().compute(key, computeFunction, false);
+      return valueHolderAtomicReference.get();
+    } catch (CachePassThroughException cpte) {
+      Throwable cause = cpte.getCause();
+      if(cause instanceof RuntimeException) {
+        throw   (RuntimeException) cause;
+      } else {
+        throw wrapAsCacheAccessException(cause);
+      }
+    } catch (RuntimeException re) {
+      throw wrapAsCacheAccessException(re);
+    }
   }
 
   /**
@@ -654,24 +805,35 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
    */
   @Override
   public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) throws CacheAccessException {
-    return backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
-      @Override
-      public OffHeapValueHolder<V> apply(K k, OffHeapValueHolder<V> offHeapValueHolder) {
-        if (offHeapValueHolder != null) {
-          throw new AssertionError();
-        }
-        ValueHolder<V> valueHolder = source.apply(k);
-        if (valueHolder != null) {
-          if (valueHolder.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
-            onExpiration(key, valueHolder);
-            return null;
-          } else {
-            return newTransferValueHolder(valueHolder);
+    try {
+      return backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+        @Override
+        public OffHeapValueHolder<V> apply(K k, OffHeapValueHolder<V> offHeapValueHolder) {
+          if (offHeapValueHolder != null) {
+            throw new AssertionError();
           }
+          ValueHolder<V> valueHolder = source.apply(k);
+          if (valueHolder != null) {
+            if (valueHolder.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
+              onExpiration(key, valueHolder);
+              return null;
+            } else {
+              return newTransferValueHolder(valueHolder);
+            }
+          }
+          return null;
         }
-        return null;
+      }, false);
+    } catch (CachePassThroughException cpte) {
+      Throwable cause = cpte.getCause();
+      if(cause instanceof RuntimeException) {
+        throw   (RuntimeException) cause;
+      } else {
+        throw wrapAsCacheAccessException(cause);
       }
-    }, false);
+    } catch (RuntimeException re) {
+      throw wrapAsCacheAccessException(re);
+    }
   }
 
   //TODO wire that in if/when needed
@@ -814,6 +976,14 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     return new OffHeapEvictionVetoWrapper<K, V>(delegate, timeSource);
   }
 
+  private static CacheAccessException wrapAsCacheAccessException(Throwable t) {
+    if(t instanceof CacheAccessException) {
+      return  (CacheAccessException) t;
+    } else {
+      return new CacheAccessException(t);
+    }
+  }
+
   private static class OffHeapEvictionVetoWrapper<K, V> implements Predicate<Map.Entry<K, OffHeapValueHolder<V>>> {
 
     private final EvictionVeto<K, V> delegate;
@@ -854,6 +1024,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
           next = entry;
         }
+      } catch (CacheAccessException ce) {
+        prefetchFailure = ce;
       } catch (RuntimeException re) {
         prefetchFailure = new CacheAccessException(re);
       }
