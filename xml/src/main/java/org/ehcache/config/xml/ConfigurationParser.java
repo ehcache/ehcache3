@@ -68,6 +68,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import org.ehcache.config.xml.model.ThreadPoolsType;
 
 /**
  * @author Alex Snaps
@@ -134,6 +135,10 @@ class ConfigurationParser {
 
   public PersistenceType getPersistence() {
     return config.getPersistence();
+  }
+
+  public ThreadPoolsType getThreadPools() {
+    return config.getThreadPools();
   }
 
   public Iterable<CacheDefinition> getCacheElements() {

@@ -66,8 +66,10 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import org.ehcache.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
 import org.ehcache.config.xml.ConfigurationParser.Batching;
+import org.ehcache.config.xml.model.ThreadPoolsType;
 
 /**
  * Exposes {@link org.ehcache.config.Configuration} and {@link org.ehcache.config.CacheConfigurationBuilder} expressed
@@ -188,7 +190,8 @@ public class XmlConfiguration implements Configuration {
         }
       }
       serviceConfigs.add(configuration);
-    } else if(configurationParser.getDefaultCopiers() != null) {
+    }
+    if (configurationParser.getDefaultCopiers() != null) {
       DefaultCopyProviderConfiguration configuration = new DefaultCopyProviderConfiguration();
 
       for (CopierType.Copier copier : configurationParser.getDefaultCopiers().getCopier()) {
@@ -199,10 +202,18 @@ public class XmlConfiguration implements Configuration {
         }
       }
       serviceConfigs.add(configuration);
-    } else if (configurationParser.getPersistence() != null) {
+    }
+    if (configurationParser.getPersistence() != null) {
       serviceConfigs.add(new CacheManagerPersistenceConfiguration(new File(configurationParser.getPersistence().getDirectory())));
     }
-
+    if (configurationParser.getThreadPools() != null) {
+      PooledExecutionServiceConfiguration poolsConfiguration = new PooledExecutionServiceConfiguration();
+      for (ThreadPoolsType.ThreadPool pool : configurationParser.getThreadPools().getThreadPool()) {
+        poolsConfiguration.addPool(pool.getAlias(), pool.getMinSize().intValue(), pool.getMaxSize().intValue());
+      }
+      serviceConfigs.add(poolsConfiguration);
+    }
+        
     for (ServiceCreationConfiguration<?> serviceConfiguration : Collections.unmodifiableList(serviceConfigs)) {
       serviceConfigurations.add(serviceConfiguration);
     }

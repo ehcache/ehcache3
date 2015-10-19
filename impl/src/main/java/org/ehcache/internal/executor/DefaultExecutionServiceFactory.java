@@ -31,9 +31,9 @@ public class DefaultExecutionServiceFactory implements ExecutionServiceFactory {
     if (configuration == null) {
       return new OnDemandExecutionService();
     } else if (configuration instanceof PooledExecutionServiceConfiguration) {
-      throw new UnsupportedOperationException();
+      return new PooledExecutionService((PooledExecutionServiceConfiguration) configuration);
     } else {
-      throw new IllegalArgumentException("Expected a configuration of type DefaultSerializationProviderConfiguration but got " + configuration
+      throw new IllegalArgumentException("Expected a configuration of type PooledExecutionServiceConfiguration but got " + configuration
           .getClass()
           .getSimpleName());
     }

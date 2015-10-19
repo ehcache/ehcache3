@@ -54,6 +54,13 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
+      <xs:element name="thread-pools" type="ehcache:thread-pools-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            This element configures the sets of constrained threads used to run asynchronous tasks for the caches of this manager.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
       <xs:choice minOccurs="0" maxOccurs="unbounded">
         <xs:element name="cache" type="ehcache:cache-type">
           <xs:annotation>
@@ -112,6 +119,17 @@
     </xs:sequence>
   </xs:complexType>
 
+  <xs:complexType name="thread-pools-type">
+    <xs:sequence>
+      <xs:element name="thread-pool" maxOccurs="unbounded" minOccurs="1">
+        <xs:complexType>
+          <xs:attribute name="alias" use="required" type="xs:string"/>
+          <xs:attribute name="min-size" use="required" type="xs:nonNegativeInteger"/>
+          <xs:attribute name="max-size" use="required" type="xs:positiveInteger"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
   <xs:complexType name="cache-type">
     <xs:complexContent>
       <xs:extension base="ehcache:base-cache-type">

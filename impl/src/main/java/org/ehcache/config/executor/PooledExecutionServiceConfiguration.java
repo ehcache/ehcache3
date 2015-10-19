@@ -15,8 +15,12 @@
  */
 package org.ehcache.config.executor;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.ehcache.spi.service.ExecutionService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+
+import static java.util.Collections.unmodifiableMap;
 
 /**
  *
@@ -24,8 +28,41 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
  */
 public class PooledExecutionServiceConfiguration implements ServiceCreationConfiguration<ExecutionService> {
 
+  private final Map<String, PoolConfiguration> poolConfigurations = new HashMap<String, PoolConfiguration>();
+
+  public void addPool(String alias, int minSize, int maxSize) {
+    if (poolConfigurations.containsKey(alias)) {
+      throw new IllegalArgumentException("A pool with the alias " + alias + " is already configured");
+    } else {
+      poolConfigurations.put(alias, new PoolConfiguration(minSize, maxSize));
+    }
+  }
+
+  public Map<String, PoolConfiguration> getPoolConfigurations() {
+    return unmodifiableMap(poolConfigurations);
+  }
+
   @Override
   public Class<ExecutionService> getServiceType() {
     return ExecutionService.class;
+  }
+
+  public static final class PoolConfiguration {
+
+    private final int minSize;
+    private final int maxSize;
+
+    private PoolConfiguration(int minSize, int maxSize) {
+      this.minSize = minSize;
+      this.maxSize = maxSize;
+    }
+
+    public int minSize() {
+      return minSize;
+    }
+
+    public int maxSize() {
+      return maxSize;
+    }
   }
 }

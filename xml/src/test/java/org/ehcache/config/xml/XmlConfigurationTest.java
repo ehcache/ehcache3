@@ -79,13 +79,17 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import org.ehcache.config.executor.PooledExecutionServiceConfiguration;
+import org.ehcache.config.executor.PooledExecutionServiceConfiguration.PoolConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfiguration;
 import org.ehcache.util.ClassLoading;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
@@ -423,6 +427,26 @@ public class XmlConfigurationTest {
 
   public static <T> Matcher<T> isIn(T... elements) {
     return org.hamcrest.collection.IsIn.isIn(elements);
+  }
+
+  @Test
+  public void testThreadPoolsConfiguration() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/thread-pools.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+
+    assertThat(xmlConfig.getServiceCreationConfigurations(), contains(instanceOf(PooledExecutionServiceConfiguration.class)));
+
+    PooledExecutionServiceConfiguration configuration = (PooledExecutionServiceConfiguration) xmlConfig.getServiceCreationConfigurations().iterator().next();
+
+    assertThat(configuration.getPoolConfigurations().keySet(), containsInAnyOrder("big", "small"));
+
+    PoolConfiguration small = configuration.getPoolConfigurations().get("small");
+    assertThat(small.minSize(), is(1));
+    assertThat(small.maxSize(), is(1));
+
+    PoolConfiguration big = configuration.getPoolConfigurations().get("big");
+    assertThat(big.minSize(), is(4));
+    assertThat(big.maxSize(), is(32));
   }
 
   @Test
