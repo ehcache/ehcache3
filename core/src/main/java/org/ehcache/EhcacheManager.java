@@ -471,6 +471,11 @@ public class EhcacheManager implements PersistentCacheManager {
               LOGGER.error("Cache '{}' could not be removed due to ", toBeClosed, exceptionClosingCache);
           }
         }
+        try {
+          serviceLocator.stopAllServices();
+        } catch (Exception exceptionStoppingServices) {
+          LOGGER.error("Stopping services failed due to ", exceptionStoppingServices);
+        }
         throw e;
       }
     } catch (Exception e) {
