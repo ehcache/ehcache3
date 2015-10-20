@@ -22,9 +22,12 @@ import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.internal.copy.ReadWriteCopier;
 import org.ehcache.internal.copy.SerializingCopier;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.Option;
@@ -32,6 +35,9 @@ import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerMethod;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.Serializable;
 
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
@@ -48,6 +54,9 @@ import static org.ops4j.pax.exam.CoreOptions.options;
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerMethod.class)
 public class SimpleOsgiTest {
+
+  @Rule
+  public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
   @Configuration
   public Option[] config() {
@@ -85,7 +94,6 @@ public class SimpleOsgiTest {
 
     myCache.put(42L, new Person("Arthur"));
     assertTrue(myCache.get(42L) instanceof Person);
-    System.out.println(myCache.get(42L));
   }
 
   @Test
@@ -93,7 +101,7 @@ public class SimpleOsgiTest {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("myCache", newCacheConfigurationBuilder().withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
             .add(new DefaultCopierConfiguration<String>(StringCopier.class, CopierConfiguration.Type.VALUE))
-            .withClassLoader(Person.class.getClassLoader())
+            .withClassLoader(getClass().getClassLoader())
             .buildConfig(Long.class, String.class))
         .build(true);
 
@@ -101,6 +109,32 @@ public class SimpleOsgiTest {
 
     cache.put(42L, "What's the question again?");
     cache.get(42L);
+  }
+
+  @Test
+  public void testEhcacheXMLConfig() throws Exception {
+    File config = writeEhcacheConfig();
+
+    new XmlConfiguration(config.toURI().toURL(), getClass().getClassLoader());
+  }
+
+  private File writeEhcacheConfig() throws IOException {
+    File config = temporaryFolder.newFile("ehcache-config.xml");
+
+    PrintWriter writer = new PrintWriter(config);
+    writer.println("<ehcache:config\n" +
+                   "  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'\n" +
+                   "  xmlns:foo='http://www.example.com/foo'\n" +
+                   "  xmlns:ehcache='http://www.ehcache.org/v3'\n" +
+                   "  xsi:schemaLocation=\"http://www.ehcache.org/v3 ../../../../xml/src/main/resources/ehcache-core.xsd\">\n" +
+                   "\n" +
+                   "  <ehcache:cache alias=\"bar\">\n" +
+                   "    <ehcache:key-type>java.lang.String</ehcache:key-type>\n" +
+                   "    <ehcache:value-type>java.lang.String</ehcache:value-type>\n" +
+                   "  </ehcache:cache>\n" +
+                   "</ehcache:config>");
+    writer.close();
+    return config;
   }
 
   public static class StringCopier extends ReadWriteCopier<String> {
