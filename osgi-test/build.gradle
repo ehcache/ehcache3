@@ -39,7 +39,8 @@ dependencies {
           "org.ops4j.pax.exam:pax-exam-container-native:$paxExamVersion",
           "org.ops4j.pax.exam:pax-exam-link-mvn:$paxExamVersion",
           "org.ops4j.pax.url:pax-url-aether:$urlVersion",
-          'org.terracotta:management-model:0.2.0'
+          'org.terracotta:management-model:0.2.0',
+          'org.terracotta:offheap-store:2.1.1'
 
 
 }
