@@ -16,6 +16,8 @@
 package org.ehcache.loaderwriter.writebehind;
 
 import java.util.concurrent.TimeUnit;
+import org.ehcache.CacheManagerBuilder;
+import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
 
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.units.EntryUnit;
@@ -36,5 +38,10 @@ public class WriteBehindEvictionTest extends AbstractWriteBehindTestBase {
     return newCacheConfigurationBuilder()
             .withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
             .withExpiry(Expirations.timeToLiveExpiration(new Duration(100, TimeUnit.MILLISECONDS)));
+  }
+
+  @Override
+  protected CacheManagerBuilder managerBuilder() {
+    return newCacheManagerBuilder();
   }
 }

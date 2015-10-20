@@ -16,9 +16,9 @@
 package org.ehcache.loaderwriter.writebehind;
 
 import java.util.concurrent.TimeUnit;
-
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 
@@ -26,11 +26,11 @@ import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 
 /**
- * @author Abhilash
  *
+ * @author cdennis
  */
-public class WriteBehindTest extends AbstractWriteBehindTestBase {
-    
+public class PooledExecutorWriteBehindTest extends AbstractWriteBehindTestBase {
+
   @Override
   protected CacheConfigurationBuilder<Object, Object> configurationBuilder() {
     return newCacheConfigurationBuilder()
@@ -39,6 +39,8 @@ public class WriteBehindTest extends AbstractWriteBehindTestBase {
 
   @Override
   protected CacheManagerBuilder managerBuilder() {
-    return newCacheManagerBuilder();
+    PooledExecutionServiceConfiguration threadPoolConfig = new PooledExecutionServiceConfiguration();
+    threadPoolConfig.addPool(null, 2, 8);
+    return newCacheManagerBuilder().using(threadPoolConfig);
   }
 }

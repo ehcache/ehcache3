@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -50,6 +49,7 @@ public class PooledExecutionService implements ExecutionService {
   private final Map<String, ThreadPoolExecutor> pools = new HashMap<String, ThreadPoolExecutor>();
 
   private volatile boolean running = false;
+  private volatile OutOfBandScheduledExecutor scheduledExecutor;
   
   PooledExecutionService(PooledExecutionServiceConfiguration configuration) {
     this.poolConfigurations = configuration.getPoolConfigurations();
@@ -58,7 +58,12 @@ public class PooledExecutionService implements ExecutionService {
   @Override
   public ScheduledExecutorService getScheduledExecutor(String poolAlias) {
     if (running) {
-      return Executors.newSingleThreadScheduledExecutor();
+      ThreadPoolExecutor executor = pools.get(poolAlias);
+      if (executor == null) {
+        throw new IllegalStateException("Pool '" + poolAlias + "' is not in the set of available pools " + pools.keySet());
+      } else {
+        return new PartitionedScheduledExecutor(scheduledExecutor, pools.get(poolAlias));
+      }
     } else {
       throw new IllegalStateException("Service cannot be used, it isn't running");
     }
@@ -92,12 +97,15 @@ public class PooledExecutionService implements ExecutionService {
     for (Entry<String, PoolConfiguration> e : poolConfigurations.entrySet()) {
       pools.put(e.getKey(), createPool(e.getKey(), e.getValue()));
     }
+    scheduledExecutor = new OutOfBandScheduledExecutor();
     running = true;
   }
 
   @Override
   public void stop() {
+    LOGGER.info("Shutting down PooledExecutionService");
     running = false;
+    //scheduledExecutor.shutdown();
     for (Iterator<Entry<String, ThreadPoolExecutor>> it = pools.entrySet().iterator(); it.hasNext(); ) {
       Entry<String, ThreadPoolExecutor> e = it.next();
       try {
