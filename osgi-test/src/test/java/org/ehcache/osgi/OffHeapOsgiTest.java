@@ -35,6 +35,7 @@ import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfiguration
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.ops4j.pax.exam.CoreOptions.bundle;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 import static org.ops4j.pax.exam.CoreOptions.options;
@@ -49,10 +50,10 @@ public class OffHeapOsgiTest {
   @Configuration
   public Option[] config() {
     return options(
-        mavenBundle("org.slf4j", "slf4j-api", "1.7.7"),
-        mavenBundle("org.slf4j", "slf4j-simple", "1.7.7").noStart(),
-        mavenBundle("org.ehcache", "ehcache", "3.0.0-SNAPSHOT"),
-        mavenBundle("org.terracotta", "offheap-store", "2.1.1"),
+        mavenBundle("org.slf4j", "slf4j-api", System.getProperty("ehcache.osgi.slf4j.version")),
+        mavenBundle("org.slf4j", "slf4j-simple", System.getProperty("ehcache.osgi.slf4j.version")).noStart(),
+        bundle("file:" + System.getProperty("ehcache.osgi.jar")),
+        mavenBundle("org.terracotta", "offheap-store", System.getProperty("ehcache.osgi.offheap.version")),
         junitBundles()
     );
   }

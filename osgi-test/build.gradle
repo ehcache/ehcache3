@@ -14,14 +14,6 @@
  * limitations under the License.
  */
 
-apply plugin: 'java'
-
-repositories {
-  mavenCentral()
-  maven { url "http://repo.terracotta.org/maven2" }
-  mavenLocal()
-}
-
 dependencies {
   ext {
     paxExamVersion = '3.5.0'
@@ -29,18 +21,39 @@ dependencies {
     felixVersion = '4.4.0'
   }
 
-  testCompile 'junit:junit:4.11', 'org.hamcrest:hamcrest-library:1.3',
+  testCompile project(':impl'), project(':xml'), project(':107'),
+          'junit:junit:4.11',
           "org.ops4j.pax.exam:pax-exam-junit4:$paxExamVersion",
           "org.apache.felix:org.apache.felix.framework:$felixVersion",
-          "org.ehcache:ehcache:3.0.0-SNAPSHOT",
-          'javax.cache:cache-api:1.0.0'
+          "javax.cache:cache-api:$parent.jcacheVersion"
 
-  testRuntime 'org.slf4j:slf4j-simple:1.7.7',
+  testRuntime "org.slf4j:slf4j-simple:$parent.slf4jVersion",
           "org.ops4j.pax.exam:pax-exam-container-native:$paxExamVersion",
           "org.ops4j.pax.exam:pax-exam-link-mvn:$paxExamVersion",
           "org.ops4j.pax.url:pax-url-aether:$urlVersion",
-          'org.terracotta:management-model:0.2.0',
-          'org.terracotta:offheap-store:2.1.1'
+          "org.terracotta:management-model:$parent.managementVersion",
+          "org.terracotta:offheap-store:$parent.offheapVersion"
 
 
 }
+
+sourceSets {
+  test {
+    // Needed for PaxExam which makes the dynamic bundle load content of a single dir
+    // matching the package of the test class
+    output.resourcesDir = "$buildDir/classes/test"
+  }
+}
+
+test {
+  systemProperty 'ehcache.osgi.jar', project(':dist').osgiShadowJar.archivePath.getPath()
+  systemProperty 'ehcache.osgi.offheap.version', parent.offheapVersion
+  systemProperty 'ehcache.osgi.jcache.version', parent.jcacheVersion
+  systemProperty 'ehcache.osgi.management.version', parent.managementVersion
+  systemProperty 'ehcache.osgi.slf4j.version', parent.slf4jVersion
+}
+
+test.dependsOn ':dist:osgiShadowJar'
+
+uploadArchives.onlyIf { false }
+install.onlyIf { false }

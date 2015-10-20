@@ -14,6 +14,156 @@
  * limitations under the License.
  */
 
+ext {
+  baseVersion = '3.0.0-SNAPSHOT'
+  offheapVersion = '2.1.1'
+  managementVersion = '0.2.0'
+  statisticVersion = '1.1.0'
+  jcacheVersion = '1.0.0'
+  slf4jVersion = '1.7.7'
+}
+
+subprojects {
+  apply plugin: 'java'
+  apply plugin: 'maven'
+  apply plugin: 'signing'
+  apply plugin: 'eclipse'
+  apply plugin: 'checkstyle'
+  apply plugin: 'findbugs'
+  apply plugin: 'jacoco'
+
+  group = 'org.ehcache.modules'
+  version = baseVersion
+
+  ext.isReleaseVersion = !version.endsWith('SNAPSHOT')
+
+  archivesBaseName = "ehcache-${project.name}"
+
+  sourceCompatibility = 1.6
+  targetCompatibility = 1.6
+
+  repositories {
+    mavenCentral()
+    maven { url "http://repo.terracotta.org/maven2" }
+    mavenLocal()
+  }
+
+  sourceSets {
+    slowTest {
+      java.srcDir 'src/slow-test/java'
+      resources.srcDir 'src/slow-test/resources'
+      compileClasspath += sourceSets.test.compileClasspath
+      runtimeClasspath += sourceSets.test.runtimeClasspath
+    }
+  }
+
+  dependencies {
+    if (JavaVersion.current().compareTo(JavaVersion.VERSION_1_7) >= 0) {
+      compile 'com.google.code.findbugs:annotations:3.0.0'
+    } else {
+      compile 'com.google.code.findbugs:annotations:2.0.3'
+    }
+    testCompile 'junit:junit:4.11', 'org.hamcrest:hamcrest-library:1.3', 'org.mockito:mockito-core:1.9.5'
+    testRuntime "org.slf4j:slf4j-simple:$parent.slf4jVersion"
+  }
+
+  jar {
+    fillManifest(manifest,"ehcache-${project.name}")
+  }
+
+  task slowTest(type: Test) {
+    testClassesDir = sourceSets.slowTest.output.classesDir
+    classpath += sourceSets.slowTest.runtimeClasspath
+
+    binResultsDir file("$buildDir/slow-tests-results/binary/$name")
+    reports.junitXml.destination = "$buildDir/slow-tests-results"
+    reports.html.destination = "$buildDir/reports/slow-tests"
+  }
+
+  task sourceJar(type: Jar, dependsOn: classes) {
+    from sourceSets.main.allJava
+    classifier = 'sources'
+  }
+
+  if (JavaVersion.current().isJava8Compatible()) {
+    allprojects {
+      tasks.withType(Javadoc) {
+        options.addStringOption('Xdoclint:none', '-quiet')
+      }
+    }
+  }
+
+  task javadocJar(type: Jar, dependsOn: javadoc) {
+    from javadoc.destinationDir
+    classifier = 'javadoc'
+  }
+
+  artifacts {
+    archives jar
+
+    archives javadocJar
+    archives sourceJar
+  }
+
+  signing {
+    required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives")}
+    sign configurations.archives
+  }
+
+  uploadArchives {
+    repositories {
+      mavenDeployer {
+        beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment)}
+
+        if (isReleaseVersion) {
+          repository(id: 'sonatype-nexus-staging', url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
+            authentication(userName: sonatypeUser, password: sonatypePwd)
+          }
+        } else {
+          repository(id: 'sonatype-nexus-snapshot', url: 'https://oss.sonatype.org/content/repositories/snapshots') {
+            authentication(userName: sonatypeUser, password: sonatypePwd)
+          }
+        }
+      }
+    }
+  }
+
+  def installer = install.repositories.mavenInstaller
+  def deployer = uploadArchives.repositories.mavenDeployer
+
+  [installer, deployer]*.pom*.whenConfigured {pom ->
+    pomFiller(pom, project.subPomName, project.subPomDesc)
+  }
+
+  checkstyle {
+    configFile = file("$rootDir/config/checkstyle.xml")
+    configProperties = ['projectDir':projectDir, 'rootDir':rootDir]
+    toolVersion = '5.7'
+  }
+
+  findbugs {
+    ignoreFailures = false
+    sourceSets = [sourceSets.main]
+    if (JavaVersion.current().compareTo(JavaVersion.VERSION_1_7) >= 0) {
+      findbugs.toolVersion = '3.0.1'
+    } else {
+      findbugs.toolVersion = '2.0.3'
+    }
+  }
+
+
+  jacoco {
+    toolVersion = '0.7.1.201405082137'
+  }
+
+  jacocoTestReport {
+    reports {
+      xml.enabled false
+      csv.enabled false
+    }
+  }
+}
+
 def pomFiller(pom, nameVar, descriptionVar) {
   pom.project {
     name = nameVar
@@ -119,153 +269,6 @@ def fillManifest(manifest, title) {
           'Built-JDK': System.getProperty('java.version'),
           'Build-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
   )
-}
-
-ext {
-  baseVersion = '3.0.0-SNAPSHOT'
-  offHeapVersion = '2.1.1'
-  managementVersion = '0.2.0'
-}
-
-subprojects {
-  apply plugin: 'java'
-  apply plugin: 'maven'
-  apply plugin: 'signing'
-  apply plugin: 'eclipse'
-  apply plugin: 'checkstyle'
-  apply plugin: 'findbugs'
-  apply plugin: 'jacoco'
-
-  group = 'org.ehcache.modules'
-  version = baseVersion
-
-  ext.isReleaseVersion = !version.endsWith('SNAPSHOT')
-
-  archivesBaseName = "ehcache-${project.name}"
-
-  sourceCompatibility = 1.6
-  targetCompatibility = 1.6
-
-  repositories {
-    mavenCentral()
-    maven { url "http://repo.terracotta.org/maven2" }
-    mavenLocal()
-  }
-
-  sourceSets {
-    slowTest {
-      java.srcDir 'src/slow-test/java'
-      resources.srcDir 'src/slow-test/resources'
-      compileClasspath += sourceSets.test.compileClasspath
-      runtimeClasspath += sourceSets.test.runtimeClasspath
-    }
-  }
-
-  dependencies {
-    if (JavaVersion.current().compareTo(JavaVersion.VERSION_1_7) >= 0) {
-      compile 'com.google.code.findbugs:annotations:3.0.0'
-    } else {
-      compile 'com.google.code.findbugs:annotations:2.0.3'
-    }
-    testCompile 'junit:junit:4.11', 'org.hamcrest:hamcrest-library:1.3', 'org.mockito:mockito-core:1.9.5'
-    testRuntime 'org.slf4j:slf4j-simple:1.7.7'
-  }
-
-  jar {
-    fillManifest(manifest,"ehcache-${project.name}")
-  }
-
-  task slowTest(type: Test) {
-    testClassesDir = sourceSets.slowTest.output.classesDir
-    classpath += sourceSets.slowTest.runtimeClasspath
-
-    binResultsDir file("$buildDir/slow-tests-results/binary/$name")
-    reports.junitXml.destination = "$buildDir/slow-tests-results"
-    reports.html.destination = "$buildDir/reports/slow-tests"
-  }
-
-  task sourceJar(type: Jar, dependsOn: classes) {
-    from sourceSets.main.allJava
-    classifier = 'sources'
-  }
-
-  if (JavaVersion.current().isJava8Compatible()) {
-    allprojects {
-      tasks.withType(Javadoc) {
-        options.addStringOption('Xdoclint:none', '-quiet')
-      }
-    }
-  }
-
-  task javadocJar(type: Jar, dependsOn: javadoc) {
-    from javadoc.destinationDir
-    classifier = 'javadoc'
-  }
-
-  artifacts {
-    archives jar
-
-    archives javadocJar
-    archives sourceJar
-  }
-
-  signing {
-    required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives")}
-    sign configurations.archives
-  }
-
-  uploadArchives {
-    repositories {
-      mavenDeployer {
-        beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment)}
-
-        if (isReleaseVersion) {
-          repository(id: 'sonatype-nexus-staging', url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
-            authentication(userName: sonatypeUser, password: sonatypePwd)
-          }
-        } else {
-          repository(id: 'sonatype-nexus-snapshot', url: 'https://oss.sonatype.org/content/repositories/snapshots') {
-            authentication(userName: sonatypeUser, password: sonatypePwd)
-          }
-        }
-      }
-    }
-  }
-
-  def installer = install.repositories.mavenInstaller
-  def deployer = uploadArchives.repositories.mavenDeployer
-
-  [installer, deployer]*.pom*.whenConfigured {pom ->
-    pomFiller(pom, project.subPomName, project.subPomDesc)
-  }
-
-  checkstyle {
-    configFile = file("$rootDir/config/checkstyle.xml")
-    configProperties = ['projectDir':projectDir, 'rootDir':rootDir]
-    toolVersion = '5.7'
-  }
-
-  findbugs {
-    ignoreFailures = false
-    sourceSets = [sourceSets.main]
-    if (JavaVersion.current().compareTo(JavaVersion.VERSION_1_7) >= 0) {
-      findbugs.toolVersion = '3.0.1'
-    } else {
-      findbugs.toolVersion = '2.0.3'
-    }
-  }
-
-
-  jacoco {
-    toolVersion = '0.7.1.201405082137'
-  }
-
-  jacocoTestReport {
-    reports {
-      xml.enabled false
-      csv.enabled false
-    }
-  }
 }
 
 task wrapper(type: Wrapper) {

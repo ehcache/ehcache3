@@ -15,4 +15,4 @@
  */
 
 include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "integration-test", "dist", "demos/00-NoCache", "demos/01-CacheAside", "docs"
+        "integration-test", "dist", "osgi-test", "demos/00-NoCache", "demos/01-CacheAside", "docs"
