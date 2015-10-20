@@ -85,7 +85,7 @@ task osgiShadowJar(type: Jar, dependsOn: 'unzipShadowJarClasses') {
     // Optional packages
     instruction 'Import-Package', 'bitronix.tm.*;resolution:=optional', 'javax.cache.*;resolution:=optional',
             'javax.transaction.*;resolution:=optional', 'org.terracotta.offheapstore.*;resolution:=optional',
-            'org.terracotta.management.*;resolution:=optional', 'com.sun.jmx.*;resolution:=optional'
+            'org.terracotta.management.*;resolution:=optional'
     // Ignored packages
     instruction 'Import-Package', '!sun.misc', '!sun.security.action', '*'
     classesDir = new File("$buildDir/tmp/osgiShadowJar-classes")
