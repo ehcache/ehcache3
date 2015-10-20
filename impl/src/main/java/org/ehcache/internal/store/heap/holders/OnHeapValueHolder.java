@@ -39,4 +39,12 @@ public abstract class OnHeapValueHolder<V> extends AbstractValueHolder<V> {
   final protected TimeUnit nativeTimeUnit() {
     return TIME_UNIT;
   }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj != null && this.getClass().equals(obj.getClass())) {
+      return super.equals(obj);
+    }
+    return false;
+  }
 }
