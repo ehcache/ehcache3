@@ -127,6 +127,28 @@ public class EhcacheManagerTest {
   }
   
   @Test
+  public void testStopAllServicesWhenCacheInitializationFails() {
+    Store.Provider storeProvider = mock(Store.Provider.class);
+    
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("myCache", mock(CacheConfiguration.class))
+        .using(storeProvider)
+        .using(mock(CacheLoaderWriterProvider.class))
+        .using(mock(WriteBehindDecoratorLoaderWriterProvider.class))
+        .using(mock(CacheEventNotificationListenerServiceProvider.class))
+        .using(mock(CacheEventListenerProvider.class))
+        .using(mock(LocalPersistenceService.class))
+        .build(false);
+    
+    try {
+      cacheManager.init();
+      fail("Should have thrown...");
+    } catch (StateTransitionException ste) {
+      verify(storeProvider).stop();
+    }
+  }
+  
+  @Test
   public void testNoClassLoaderSpecified() {
     ConfigurationBuilder builder = newConfigurationBuilder().addCache("foo", newCacheConfigurationBuilder().buildConfig(Object.class, Object.class));
     final Store.Provider storeProvider = mock(Store.Provider.class);
