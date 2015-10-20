@@ -36,7 +36,7 @@ configurations {
 dependencies {
   projectsToInclude.each {compile it}
   shadow 'org.slf4j:slf4j-api:1.7.7', "org.terracotta:offheap-store:$parent.offHeapVersion"
-  shadowProvided 'javax.transaction:jta:1.1', 'org.codehaus.btm:btm:2.1.4', 'org.terracotta:management-model:0.1.0'
+  shadowProvided 'javax.transaction:jta:1.1', 'org.codehaus.btm:btm:2.1.4', "org.terracotta:management-model:$parent.managementVersion"
 }
 
 // Skip a number of defaults for this aggregation project

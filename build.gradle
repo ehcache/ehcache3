@@ -124,6 +124,7 @@ def fillManifest(manifest, title) {
 ext {
   baseVersion = '3.0.0-SNAPSHOT'
   offHeapVersion = '2.1.0'
+  managementVersion = '0.2.0'
 }
 
 subprojects {
