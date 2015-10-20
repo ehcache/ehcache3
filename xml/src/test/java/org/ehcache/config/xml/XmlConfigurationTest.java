@@ -447,6 +447,8 @@ public class XmlConfigurationTest {
     PoolConfiguration big = configuration.getPoolConfigurations().get("big");
     assertThat(big.minSize(), is(4));
     assertThat(big.maxSize(), is(32));
+
+    assertThat(configuration.getDefaultPoolAlias(), is("big"));
   }
 
   @Test

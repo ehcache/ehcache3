@@ -124,6 +124,7 @@
       <xs:element name="thread-pool" maxOccurs="unbounded" minOccurs="1">
         <xs:complexType>
           <xs:attribute name="alias" use="required" type="xs:string"/>
+          <xs:attribute name="default" use="optional" type="xs:boolean" default="false"/>
           <xs:attribute name="min-size" use="required" type="xs:nonNegativeInteger"/>
           <xs:attribute name="max-size" use="required" type="xs:positiveInteger"/>
         </xs:complexType>

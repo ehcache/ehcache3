@@ -216,6 +216,27 @@ public class IntegrationConfigurationTest {
     }
   }
 
+  @Test
+  public void testThreadPoolsUsingDefaultPool() throws Exception {
+    Configuration configuration = new XmlConfiguration(this.getClass().getResource("/configs/thread-pools.xml"));
+    final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
+    cacheManager.init();
+    try {
+      Cache<String, String> cache = cacheManager.createCache("testThreadPools", newCacheConfigurationBuilder()
+              .add(new DefaultCacheLoaderWriterConfiguration(ThreadRememberingLoaderWriter.class))
+              .add(newUnBatchedWriteBehindConfiguration())
+              .buildConfig(String.class, String.class));
+
+      cache.put("foo", "bar");
+
+      ThreadRememberingLoaderWriter.USED.acquireUninterruptibly();
+
+      assertThat(ThreadRememberingLoaderWriter.LAST_SEEN_THREAD.getName(), containsString("[big]"));
+    } finally {
+      cacheManager.close();
+    }
+  }
+
   private static void resetValues() {
     TestCacheEventListener.FIRED_EVENT = null;
     TestSecondCacheEventListener.SECOND_LISTENER_FIRED_EVENT= null;

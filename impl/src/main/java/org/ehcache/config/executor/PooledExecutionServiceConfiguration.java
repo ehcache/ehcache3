@@ -29,6 +29,17 @@ import static java.util.Collections.unmodifiableMap;
 public class PooledExecutionServiceConfiguration implements ServiceCreationConfiguration<ExecutionService> {
 
   private final Map<String, PoolConfiguration> poolConfigurations = new HashMap<String, PoolConfiguration>();
+  
+  private String defaultAlias;
+  
+  public void addDefaultPool(String alias, int minSize, int maxSize) {
+    if (defaultAlias == null) {
+      addPool(alias, minSize, maxSize);
+      defaultAlias = alias;
+    } else {
+      throw new IllegalArgumentException("'" + defaultAlias + "' is already configured as the default pool");
+    }
+  }
 
   public void addPool(String alias, int minSize, int maxSize) {
     if (poolConfigurations.containsKey(alias)) {
@@ -42,6 +53,10 @@ public class PooledExecutionServiceConfiguration implements ServiceCreationConfi
     return unmodifiableMap(poolConfigurations);
   }
 
+  public String getDefaultPoolAlias() {
+    return defaultAlias;
+  }
+  
   @Override
   public Class<ExecutionService> getServiceType() {
     return ExecutionService.class;

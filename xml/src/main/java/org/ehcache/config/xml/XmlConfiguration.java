@@ -209,7 +209,11 @@ public class XmlConfiguration implements Configuration {
     if (configurationParser.getThreadPools() != null) {
       PooledExecutionServiceConfiguration poolsConfiguration = new PooledExecutionServiceConfiguration();
       for (ThreadPoolsType.ThreadPool pool : configurationParser.getThreadPools().getThreadPool()) {
-        poolsConfiguration.addPool(pool.getAlias(), pool.getMinSize().intValue(), pool.getMaxSize().intValue());
+        if (pool.isDefault()) {
+          poolsConfiguration.addDefaultPool(pool.getAlias(), pool.getMinSize().intValue(), pool.getMaxSize().intValue());
+        } else {
+          poolsConfiguration.addPool(pool.getAlias(), pool.getMinSize().intValue(), pool.getMaxSize().intValue());
+        }
       }
       serviceConfigs.add(poolsConfiguration);
     }

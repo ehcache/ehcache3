@@ -40,7 +40,7 @@ public class PooledExecutorWriteBehindTest extends AbstractWriteBehindTestBase {
   @Override
   protected CacheManagerBuilder managerBuilder() {
     PooledExecutionServiceConfiguration threadPoolConfig = new PooledExecutionServiceConfiguration();
-    threadPoolConfig.addPool(null, 2, 8);
+    threadPoolConfig.addDefaultPool("threadpool", 2, 8);
     return newCacheManagerBuilder().using(threadPoolConfig);
   }
 }

@@ -45,6 +45,7 @@ public class PooledExecutionService implements ExecutionService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PooledExecutionService.class);
   
+  private final String defaultPoolAlias;
   private final Map<String, PoolConfiguration> poolConfigurations;
   private final Map<String, ThreadPoolExecutor> pools = new HashMap<String, ThreadPoolExecutor>();
 
@@ -52,6 +53,7 @@ public class PooledExecutionService implements ExecutionService {
   private volatile OutOfBandScheduledExecutor scheduledExecutor;
   
   PooledExecutionService(PooledExecutionServiceConfiguration configuration) {
+    this.defaultPoolAlias = configuration.getDefaultPoolAlias();
     this.poolConfigurations = configuration.getPoolConfigurations();
   }
 
@@ -97,6 +99,14 @@ public class PooledExecutionService implements ExecutionService {
     for (Entry<String, PoolConfiguration> e : poolConfigurations.entrySet()) {
       pools.put(e.getKey(), createPool(e.getKey(), e.getValue()));
     }
+    if (defaultPoolAlias != null) {
+      ThreadPoolExecutor defaultPool = pools.get(defaultPoolAlias);
+      if (defaultPool == null) {
+        throw new IllegalStateException("Pool for default pool alias is null");
+      } else {
+        pools.put(null, defaultPool);
+      }
+    }
     scheduledExecutor = new OutOfBandScheduledExecutor();
     running = true;
   }
@@ -109,7 +119,9 @@ public class PooledExecutionService implements ExecutionService {
     for (Iterator<Entry<String, ThreadPoolExecutor>> it = pools.entrySet().iterator(); it.hasNext(); ) {
       Entry<String, ThreadPoolExecutor> e = it.next();
       try {
-        destroyPool(e.getKey(), e.getValue());
+        if (e.getKey() != null) {
+          destroyPool(e.getKey(), e.getValue());
+        }
       } finally {
         it.remove();
       }

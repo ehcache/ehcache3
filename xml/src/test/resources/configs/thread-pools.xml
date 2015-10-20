@@ -20,6 +20,6 @@
 
   <ehcache:thread-pools>
     <ehcache:thread-pool alias="small" min-size="1" max-size="1"/>
-    <ehcache:thread-pool alias="big" min-size="4" max-size="32"/>
+    <ehcache:thread-pool alias="big" default="true" min-size="4" max-size="32"/>
   </ehcache:thread-pools>
 </ehcache:config>
