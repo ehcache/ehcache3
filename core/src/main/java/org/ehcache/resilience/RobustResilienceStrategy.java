@@ -92,9 +92,6 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
-  public abstract void iteratorFailure(CacheAccessException e);
-
-  @Override
   public V putIfAbsentFailure(K key, V value, CacheAccessException e, boolean knownToBeAbsent) {
     cleanup(key, e);
     return null;

@@ -65,11 +65,7 @@ public class StoreIteratorHasNextTest<K, V> extends SPIStoreTester<K, V> {
     Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();
 
     for (int i = 0; i < nbElements; i++) {
-      try {
-        assertThat(iterator.hasNext(), is(true));
-      } catch (CacheAccessException e) {
-        throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
-      }
+      assertThat(iterator.hasNext(), is(true));
     }
   }
 
@@ -80,10 +76,6 @@ public class StoreIteratorHasNextTest<K, V> extends SPIStoreTester<K, V> {
 
     Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();
 
-    try {
-      assertThat(iterator.hasNext(), is(false));
-    } catch (CacheAccessException e) {
-      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
-    }
+    assertThat(iterator.hasNext(), is(false));
   }
 }

@@ -35,6 +35,7 @@ import org.ehcache.event.CacheEvent;
 import org.ehcache.event.EventType;
 import org.ehcache.events.CacheEventNotificationService;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CachePassThroughException;
 import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
@@ -159,7 +160,11 @@ public class EhcacheEventTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0], null);
+        try {
+          function.apply((Number)invocation.getArguments()[0], null);
+        } catch (CachePassThroughException e) {
+          throw e.getCause();
+        }
         return null;
       }
     });
@@ -192,7 +197,11 @@ public class EhcacheEventTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0], null);
+        try {
+          function.apply((Number)invocation.getArguments()[0], null);
+        } catch (CachePassThroughException e) {
+          throw e.getCause();
+        }
         return null;
       }
     });
@@ -229,7 +238,11 @@ public class EhcacheEventTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0], expected);
+        try {
+          function.apply((Number)invocation.getArguments()[0], expected);
+        } catch (CachePassThroughException e) {
+          throw e.getCause();
+        }
         return null;
       }
     });
@@ -284,7 +297,11 @@ public class EhcacheEventTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0], null);
+        try {
+          function.apply((Number)invocation.getArguments()[0], null);
+        } catch (CachePassThroughException e) {
+          throw e.getCause();
+        }
         return null;
       }
     });
@@ -299,7 +316,11 @@ public class EhcacheEventTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
-        return function.apply((Number)invocation.getArguments()[0], "old");
+        try {
+          return function.apply((Number)invocation.getArguments()[0], "old");
+        } catch (CachePassThroughException e) {
+          throw e.getCause();
+        }
       }
     });
     doThrow(new Exception()).when(cache.getCacheLoaderWriter()).write(any(Number.class), anyString());
@@ -312,7 +333,12 @@ public class EhcacheEventTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         Function<Number, String> function = asFunction(invocation);
-        final String applied = function.apply((Number)invocation.getArguments()[0]);
+        final String applied;
+        try {
+          applied = function.apply((Number)invocation.getArguments()[0]);
+        } catch (CachePassThroughException e) {
+          throw e.getCause();
+        }
         final Store.ValueHolder mock = mock(Store.ValueHolder.class);
         when(mock.value()).thenReturn(applied);
         return mock;
@@ -329,7 +355,11 @@ public class EhcacheEventTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         Function<Number, String> function = asFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0]);
+        try {
+          function.apply((Number)invocation.getArguments()[0]);
+        } catch (CachePassThroughException e) {
+          throw e.getCause();
+        }
         return null;
       }
     });
@@ -377,7 +407,11 @@ public class EhcacheEventTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0], null);
+        try {
+          function.apply((Number)invocation.getArguments()[0], null);
+        } catch (CachePassThroughException e) {
+          throw e.getCause();
+        }
         return null;
       }
     });
@@ -394,7 +428,12 @@ public class EhcacheEventTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
-        final String applied = function.apply((Number)invocation.getArguments()[0], expected);
+        final String applied;
+        try {
+          applied = function.apply((Number)invocation.getArguments()[0], expected);
+        } catch (CachePassThroughException e) {
+          throw e.getCause();
+        }
         final Store.ValueHolder mock = mock(Store.ValueHolder.class);
         when(mock.value()).thenReturn(applied);
         return mock;

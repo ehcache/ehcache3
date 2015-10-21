@@ -21,6 +21,7 @@ import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CachePassThroughException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
@@ -383,7 +384,7 @@ public abstract class EhcacheBasicCrudBase {
      * must not throw {@link java.util.ConcurrentModificationException ConcurrentModification}.
      */
     @Override
-    public Iterator<Cache.Entry<String, ValueHolder<String>>> iterator() throws CacheAccessException {
+    public Iterator<Cache.Entry<String, ValueHolder<String>>> iterator() {
 
       return new Iterator<Cache.Entry<String, ValueHolder<String>>>() {
 
@@ -391,7 +392,7 @@ public abstract class EhcacheBasicCrudBase {
             FakeStore.this.entries.entrySet().iterator();
 
         @Override
-        public boolean hasNext() throws CacheAccessException {
+        public boolean hasNext() {
           return this.iterator.hasNext();
         }
 
@@ -468,9 +469,21 @@ public abstract class EhcacheBasicCrudBase {
         final String key,
         final FakeValueHolder currentValue,
         final BiFunction<? super String, ? super String, ? extends String> mappingFunction,
-        final NullaryFunction<Boolean> replaceEqual) {
+        final NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
 
-      final String remappedValue = mappingFunction.apply(key, (currentValue == null ? null : currentValue.value()));
+      String remappedValue = null;
+      try {
+        remappedValue = mappingFunction.apply(key, (currentValue == null ? null : currentValue.value()));
+      } catch (CachePassThroughException cpte) {
+        Throwable cause = cpte.getCause();
+        if(cause instanceof RuntimeException) {
+          throw   (RuntimeException) cause;
+        } else if(cause instanceof CacheAccessException){
+          throw   (CacheAccessException) cause;
+        } else {
+          throw new CacheAccessException(cause);
+        }
+      }
       FakeValueHolder newValue = (remappedValue == null ? null : new FakeValueHolder(remappedValue));
       if (newValue == null) {
         /* Remove entry from store */
@@ -509,7 +522,19 @@ public abstract class EhcacheBasicCrudBase {
       this.checkFailingKey(key);
       FakeValueHolder currentValue = this.entries.get(key);
       if (currentValue == null) {
-        final String newValue = mappingFunction.apply(key);
+        String newValue = null;
+        try {
+          newValue = mappingFunction.apply(key);
+        } catch (CachePassThroughException cpte) {
+          Throwable cause = cpte.getCause();
+          if(cause instanceof RuntimeException) {
+            throw   (RuntimeException) cause;
+          } else if(cause instanceof CacheAccessException){
+            throw   (CacheAccessException) cause;
+          } else {
+            throw new CacheAccessException(cause);
+          }
+        }
         if (newValue != null) {
           final FakeValueHolder newValueHolder = new FakeValueHolder(newValue);
           this.entries.put(key, newValueHolder);

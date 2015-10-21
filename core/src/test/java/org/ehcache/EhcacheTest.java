@@ -431,7 +431,7 @@ public class EhcacheTest {
     }
 
     @Override
-    public Iterator<Cache.Entry<String, ValueHolder<String>>> iterator() throws CacheAccessException {
+    public Iterator<Cache.Entry<String, ValueHolder<String>>> iterator() {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 

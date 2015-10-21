@@ -16,7 +16,9 @@
 
 package org.ehcache.resilience;
 
+import org.ehcache.Cache;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CacheIterationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,8 +35,9 @@ public class LoggingRobustResilienceStrategy<K, V> extends RobustResilienceStrat
   }
   
   @Override
-  public void iteratorFailure(CacheAccessException e) {
+  public Cache.Entry<K, V> iteratorFailure(CacheAccessException e) {
     LOGGER.error("Ehcache iterator terminated early due to exception", e);
+    throw new CacheIterationException(e);
   }
 
   @Override

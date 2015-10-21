@@ -32,6 +32,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoadingException;
+import org.ehcache.exceptions.CachePassThroughException;
 import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
@@ -93,7 +94,11 @@ public class EhcacheLoaderWriterTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         Function<Number, String> function = asFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0]);
+        try {
+          function.apply((Number)invocation.getArguments()[0]);
+        } catch (CachePassThroughException e) {
+          throw e.getCause();
+        }
         return null;
       }
     });
@@ -129,7 +134,11 @@ public class EhcacheLoaderWriterTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0], null);
+        try {
+          function.apply((Number)invocation.getArguments()[0], null);
+        } catch (CachePassThroughException e) {
+          throw e.getCause();
+        }
         return null;
       }
     });
@@ -165,7 +174,11 @@ public class EhcacheLoaderWriterTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0], null);
+        try {
+          function.apply((Number)invocation.getArguments()[0], null);
+        } catch (CachePassThroughException e) {
+          throw e.getCause();
+        }
         return null;
       }
     });
@@ -222,7 +235,11 @@ public class EhcacheLoaderWriterTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         Function<Number, String> function = asFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0]);
+        try {
+          function.apply((Number)invocation.getArguments()[0]);
+        } catch (CachePassThroughException e) {
+          throw e.getCause();
+        }
         return null;
       }
     });
@@ -292,7 +309,11 @@ public class EhcacheLoaderWriterTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0], expected);
+        try {
+          function.apply((Number)invocation.getArguments()[0], expected);
+        } catch (CachePassThroughException e) {
+          throw e.getCause();
+        }
         return null;
       }
     });
@@ -334,7 +355,11 @@ public class EhcacheLoaderWriterTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
-        function.apply((Number)invocation.getArguments()[0], expected);
+        try {
+          function.apply((Number)invocation.getArguments()[0], expected);
+        } catch (CachePassThroughException e) {
+          throw e.getCause();
+        }
         return null;
       }
     });
@@ -396,7 +421,12 @@ public class EhcacheLoaderWriterTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
-        final String applied = function.apply((Number)invocation.getArguments()[0], "old");
+        final String applied;
+        try {
+          applied = function.apply((Number)invocation.getArguments()[0], "old");
+        } catch (CachePassThroughException e) {
+          throw e.getCause();
+        }
         
         @SuppressWarnings("unchecked")
         final Store.ValueHolder<Object> mock = mock(Store.ValueHolder.class);

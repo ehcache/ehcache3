@@ -112,11 +112,11 @@ public class XAStore<K, V> implements Store<K, V> {
     return underlyingStore.get(key);
   }
 
-  private XATransactionContext<K, V> getCurrentContext() throws CacheAccessException {
+  private XATransactionContext<K, V> getCurrentContext() {
     try {
       final Transaction transaction = transactionManagerWrapper.getTransactionManager().getTransaction();
       if (transaction == null) {
-        throw new XACacheAccessException(new XACacheException("Cannot access XA cache outside of XA transaction scope"));
+        throw new XACacheException("Cannot access XA cache outside of XA transaction scope");
       }
       EhcacheXAResource<K, V> xaResource = xaResources.get(transaction);
       if (xaResource == null) {
@@ -139,13 +139,13 @@ public class XAStore<K, V> implements Store<K, V> {
       }
       XATransactionContext<K, V> currentContext = xaResource.getCurrentContext();
       if (currentContext.hasTimedOut()) {
-        throw new XACacheAccessException(new XACacheException("Current XA transaction has timed out"));
+        throw new XACacheException("Current XA transaction has timed out");
       }
       return currentContext;
     } catch (SystemException se) {
-      throw new XACacheAccessException(new XACacheException("Cannot get current XA transaction", se));
+      throw new XACacheException("Cannot get current XA transaction", se);
     } catch (RollbackException re) {
-      throw new XACacheAccessException(new XACacheException("XA Transaction has been marked for rollback only", re));
+      throw new XACacheException("XA Transaction has been marked for rollback only", re);
     }
   }
 
@@ -318,7 +318,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() throws CacheAccessException {
+  public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() {
     XATransactionContext<K, V> currentContext = getCurrentContext();
     Map<K, XAValueHolder<V>> valueHolderMap = transactionContextFactory.listPuts(currentContext.getTransactionId());
     return new XAIterator(valueHolderMap, underlyingStore.iterator(), currentContext.getTransactionId());
@@ -330,15 +330,16 @@ public class XAStore<K, V> implements Store<K, V> {
     private final Iterator<Cache.Entry<K, ValueHolder<SoftLock<V>>>> underlyingIterator;
     private final TransactionId transactionId;
     private Cache.Entry<K, ValueHolder<V>> next;
+    private CacheAccessException prefetchFailure = null;
 
-    XAIterator(Map<K, XAValueHolder<V>> valueHolderMap, Iterator<Cache.Entry<K, ValueHolder<SoftLock<V>>>> underlyingIterator, TransactionId transactionId) throws CacheAccessException {
+    XAIterator(Map<K, XAValueHolder<V>> valueHolderMap, Iterator<Cache.Entry<K, ValueHolder<SoftLock<V>>>> underlyingIterator, TransactionId transactionId) {
       this.transactionId = transactionId;
       this.iterator = valueHolderMap.entrySet().iterator();
       this.underlyingIterator = underlyingIterator;
       advance();
     }
 
-    void advance() throws CacheAccessException {
+    void advance() {
       next = null;
 
       if (iterator.hasNext()) {
@@ -373,7 +374,13 @@ public class XAStore<K, V> implements Store<K, V> {
       }
 
       while (underlyingIterator.hasNext()) {
-        final Cache.Entry<K, ValueHolder<SoftLock<V>>> next = underlyingIterator.next();
+        final Cache.Entry<K, ValueHolder<SoftLock<V>>> next;
+        try {
+          next = underlyingIterator.next();
+        } catch (CacheAccessException e) {
+          prefetchFailure = e;
+          break;
+        }
 
         if (!transactionContextFactory.isTouched(transactionId, next.getKey())) {
           ValueHolder<SoftLock<V>> valueHolder = next.getValue();
@@ -418,25 +425,20 @@ public class XAStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public boolean hasNext() throws CacheAccessException {
-      try {
-        if (!getCurrentContext().getTransactionId().equals(transactionId)) {
-          throw new IllegalStateException("Iterator has been created in another transaction, it can only be used in the transaction it has been created in.");
-        }
-      } catch (XACacheAccessException xacae) {
-        throw xacae.getCause();
+    public boolean hasNext() {
+      if (!getCurrentContext().getTransactionId().equals(transactionId)) {
+        throw new IllegalStateException("Iterator has been created in another transaction, it can only be used in the transaction it has been created in.");
       }
-      return next != null;
+      return next != null | prefetchFailure != null;
     }
 
     @Override
     public Cache.Entry<K, ValueHolder<V>> next() throws CacheAccessException {
-      try {
-        if (!getCurrentContext().getTransactionId().equals(transactionId)) {
-          throw new IllegalStateException("Iterator has been created in another transaction, it can only be used in the transaction it has been created in.");
-        }
-      } catch (XACacheAccessException xacae) {
-        throw xacae.getCause();
+      if(prefetchFailure != null) {
+        throw prefetchFailure;
+      }
+      if (!getCurrentContext().getTransactionId().equals(transactionId)) {
+        throw new IllegalStateException("Iterator has been created in another transaction, it can only be used in the transaction it has been created in.");
       }
       if (next == null) {
         throw new NoSuchElementException();

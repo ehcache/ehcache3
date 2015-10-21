@@ -26,6 +26,7 @@ import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoadingException;
+import org.ehcache.exceptions.CachePassThroughException;
 import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.function.BiFunction;
@@ -188,7 +189,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
               }
             } catch (Exception e) {
               cacheLoadingObserver.end(CacheLoadingOutcome.FAILURE);
-              throw newCacheLoadingException(e);
+              throw new CachePassThroughException(newCacheLoadingException(e));
             }
             
             return loaded;
@@ -214,8 +215,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
           V fromLoader;
           try {
             fromLoader = mappingFunction.apply(key);
-          } catch (CacheLoadingException f) {
-            return resilienceStrategy.getFailure(key, e, f);
+          } catch (CachePassThroughException cpte) {
+            return resilienceStrategy.getFailure(key, e, (CacheLoadingException) cpte.getCause());
           }
           return resilienceStrategy.getFailure(key, fromLoader, e);
         }
@@ -238,7 +239,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
             cacheLoaderWriter.write(key, value);
           }
         } catch (Exception e) {
-          throw newCacheWritingException(e);
+          throw new CachePassThroughException(newCacheWritingException(e));
         }
         
         if (newValueAlreadyExpired(key, previousValue, value)) {
@@ -265,8 +266,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         } else {
           try {
             remappingFunction.apply(key, value);
-          } catch (CacheWritingException f) {
-            resilienceStrategy.putFailure(key, value, e, f);
+          } catch (CachePassThroughException cpte) {
+            resilienceStrategy.putFailure(key, value, e, (CacheWritingException) cpte.getCause());
             return;
           }
           resilienceStrategy.putFailure(key, value, e);
@@ -326,7 +327,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
             cacheLoaderWriter.delete(key);
           }
         } catch (Exception e) {
-          throw newCacheWritingException(e);
+          throw new CachePassThroughException(newCacheWritingException(e));
         }
         eventNotificationService.onEvent(CacheEvents.removal(key, previousValue, Ehcache.this));
         return null;
@@ -344,8 +345,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       try {
         try {
           remappingFunction.apply(key, null);
-        } catch (CacheWritingException f) {
-          resilienceStrategy.removeFailure(key, e, f);
+        } catch (CachePassThroughException f) {
+          resilienceStrategy.removeFailure(key, e, (CacheWritingException) f.getCause());
         }
         resilienceStrategy.removeFailure(key, e);
       } finally {
@@ -773,7 +774,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
                 return loaded; // populate the cache
               }
             } catch (Exception e) {
-              throw newCacheLoadingException(e);
+              throw new CachePassThroughException(newCacheLoadingException(e));
             }
           }
 
@@ -781,7 +782,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
             try {
               cacheLoaderWriter.write(k, value);
             } catch (Exception e) {
-              throw newCacheWritingException(e);
+              throw new CachePassThroughException(newCacheWritingException(e));
             }
           }
 
@@ -822,10 +823,15 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         } else {
           try {
             mappingFunction.apply(key);
-          } catch (CacheLoadingException f) {
-            return resilienceStrategy.putIfAbsentFailure(key, value, e, f);
-          } catch (CacheWritingException f) {
-            return resilienceStrategy.putIfAbsentFailure(key, value, e, f);
+          } catch (CachePassThroughException f) {
+            Throwable cause = f.getCause();
+            if(cause instanceof CacheLoadingException) {
+              return resilienceStrategy.putIfAbsentFailure(key, value, e, (CacheLoadingException) cause);
+            } else if(cause instanceof CacheWritingException) {
+              return resilienceStrategy.putIfAbsentFailure(key, value, e, (CacheWritingException) cause);
+            } else {
+              throw new AssertionError();
+            }
           }
           return resilienceStrategy.putIfAbsentFailure(key, value, e, installed.get());
         }
@@ -853,7 +859,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
                 return null;
               }
             } catch (Exception e) {
-              throw newCacheLoadingException(e);
+              throw new CachePassThroughException(newCacheLoadingException(e));
             }
           } else {
             return null;
@@ -866,7 +872,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
             try {
               cacheLoaderWriter.delete(k);
             } catch (Exception e) {
-              throw newCacheWritingException(e);
+              throw new CachePassThroughException(newCacheWritingException(e));
             }
           }
           eventNotificationService.onEvent(CacheEvents.removal(k, value, Ehcache.this));
@@ -894,10 +900,15 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         } else {
           try {
             remappingFunction.apply(key, null);
-          } catch (CacheLoadingException f) {
-            return resilienceStrategy.removeFailure(key, value, e, f);
-          } catch (CacheWritingException f) {
-            return resilienceStrategy.removeFailure(key, value, e, f);
+          } catch (CachePassThroughException f) {
+            Throwable cause = f.getCause();
+            if(cause instanceof CacheLoadingException) {
+              return resilienceStrategy.removeFailure(key, value, e, (CacheLoadingException) cause);
+            } else if(cause instanceof CacheWritingException) {
+              return resilienceStrategy.removeFailure(key, value, e, (CacheWritingException) cause);
+            } else {
+              throw new AssertionError();
+            }
           }
           return resilienceStrategy.removeFailure(key, value, e, removed.get());
         }
@@ -925,7 +936,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
                 return null;
               }
             } catch (Exception e) {
-              throw newCacheLoadingException(e);
+              throw new CachePassThroughException(newCacheLoadingException(e));
             }
           } else {
             return null;
@@ -936,7 +947,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
           try {
             cacheLoaderWriter.write(key, value);
           } catch (Exception e) {
-            throw newCacheWritingException(e);
+            throw new CachePassThroughException(newCacheWritingException(e));
           }
         }
         
@@ -963,10 +974,15 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       try {
         try {
           remappingFunction.apply(key, null);
-        } catch (CacheLoadingException f) {
-          return resilienceStrategy.replaceFailure(key, value, e, f);
-        } catch (CacheWritingException f) {
-          return resilienceStrategy.replaceFailure(key, value, e, f);
+        } catch (CachePassThroughException f) {
+          Throwable cause = f.getCause();
+          if(cause instanceof CacheLoadingException) {
+            return resilienceStrategy.replaceFailure(key, value, e, (CacheLoadingException) cause);
+          } else if(cause instanceof CacheWritingException) {
+            return resilienceStrategy.replaceFailure(key, value, e, (CacheWritingException)cause);
+          } else {
+            throw new AssertionError();
+          }
         }
         return resilienceStrategy.replaceFailure(key, value, e);
       } finally {
@@ -995,7 +1011,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
                 return null;
               }
             } catch (Exception e) {
-              throw newCacheLoadingException(e);
+              throw new CachePassThroughException(newCacheLoadingException(e));
             }
           } else {
             return null;
@@ -1008,7 +1024,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
             try {
               cacheLoaderWriter.write(key, newValue);
             } catch (Exception e) {
-              throw newCacheWritingException(e);
+              throw new CachePassThroughException(newCacheWritingException(e));
             }
           }
 
@@ -1043,10 +1059,15 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         } else {
           try {
             remappingFunction.apply(key, null);
-          } catch (CacheLoadingException f) {
-            return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, f);
-          } catch (CacheWritingException f) {
-            return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, f);
+          } catch (CachePassThroughException f) {
+            Throwable cause = f.getCause();
+            if(cause instanceof CacheLoadingException) {
+              return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, (CacheLoadingException) cause);
+            } else if(cause instanceof CacheWritingException) {
+              return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, (CacheWritingException)cause);
+            } else {
+              throw new AssertionError();
+            }
           }
           return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, success.get());
         }
@@ -1245,7 +1266,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
                   cacheLoaderWriter.delete(mappedKey);
                 }
               } catch (Exception e) {
-                throw newCacheWritingException(e);
+                throw new CachePassThroughException(newCacheWritingException(e));
               }
             }
             
@@ -1297,7 +1318,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
               try {
                 cacheLoaderWriter.delete(mappedKey);
               } catch (Exception e) {
-                throw newCacheWritingException(e);
+                throw new CachePassThroughException(newCacheWritingException(e));
               }
             }
 
@@ -1338,7 +1359,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
               try {
                 cacheLoaderWriter.write(mappedKey, value);
               } catch (Exception e) {
-                throw newCacheWritingException(e);
+                throw new CachePassThroughException(newCacheWritingException(e));
               }
             }
             
@@ -1395,19 +1416,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
 
     public CacheEntryIterator(boolean quiet) {
       this.quiet = quiet;
-      
-      Store.Iterator<Entry<K, Store.ValueHolder<V>>> storeIterator = null;
-      try {
-        storeIterator = store.iterator();
-      } catch (CacheAccessException e) {
-        cacheAccessError(e);
-      }
-      this.iterator = storeIterator;
-    }
-
-    private void cacheAccessError(CacheAccessException e) {
-      resilienceStrategy.iteratorFailure(e);
-      cacheAccessError = true;
+      this.iterator = store.iterator();
     }
     
     @Override
@@ -1417,20 +1426,13 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       if (cacheAccessError) {
         return false;
       }
-      
-      try {
-        return iterator.hasNext();
-      } catch (CacheAccessException e) {
-        cacheAccessError(e);
-        return false;
-      }
+
+      return iterator.hasNext();
     }
 
     @Override
     public Entry<K, V> next() {
-      statusTransitioner.checkAvailable();
-      
-      if (cacheAccessError) {
+      if (!hasNext()) {
         throw new NoSuchElementException();
       }
       
@@ -1440,10 +1442,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         if (!quiet) getObserver.end(GetOutcome.HIT_NO_LOADER);
       } catch (CacheAccessException e) {
         if (!quiet) getObserver.end(GetOutcome.FAILURE);
-        cacheAccessError(e);
-        
-        // XXX: not what we want!
-        throw new RuntimeException(e);
+        cacheAccessError = true;
+        return resilienceStrategy.iteratorFailure(e);
       }
       
       return new ValueHolderBasedEntry<K, V>(current);

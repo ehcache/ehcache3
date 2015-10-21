@@ -513,8 +513,8 @@ public abstract class BaseOnHeapStoreTest {
         }
       });
       throw new AssertionError();
-    } catch (RuntimeException re) {
-      assertThat(re, is(RUNTIME_EXCEPTION));
+    } catch (CacheAccessException cae) {
+      assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
     }
     assertThat(store.get("key").value(), equalTo("value"));
   }
@@ -619,8 +619,8 @@ public abstract class BaseOnHeapStoreTest {
         }
       });
       throw new AssertionError();
-    } catch (RuntimeException re) {
-      assertThat(re, is(RUNTIME_EXCEPTION));
+    } catch (CacheAccessException cae) {
+      assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
     }
 
     assertThat(store.get("key"), nullValue());
@@ -676,8 +676,8 @@ public abstract class BaseOnHeapStoreTest {
     try {
       store.put("key", "value");
       throw new AssertionError();
-    } catch (RuntimeException re) {
-      assertThat(re, is(RUNTIME_EXCEPTION));
+    } catch (CacheAccessException cae) {
+      assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
     }
 
     assertThat(store.get("key"), nullValue());
@@ -709,8 +709,8 @@ public abstract class BaseOnHeapStoreTest {
     try {
       store.get("key");
       throw new AssertionError();
-    } catch (RuntimeException re) {
-      assertThat(re, is(RUNTIME_EXCEPTION));
+    } catch (CacheAccessException cae) {
+      assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
     }
 
     // containsKey() doesn't update access time -- shouldn't throw exception
@@ -778,8 +778,8 @@ public abstract class BaseOnHeapStoreTest {
         }
       });
       throw new AssertionError();
-    } catch (RuntimeException re) {
-      assertThat(re, is(RUNTIME_EXCEPTION));
+    } catch (CacheAccessException cae) {
+      assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
     }
 
     assertThat(store.get("key").value(), equalTo("value"));
@@ -895,8 +895,8 @@ public abstract class BaseOnHeapStoreTest {
 
   @Test
   public void testConcurrentFaultingAndInvalidate() throws Exception {
-    final OnHeapStore<Long, String> store = newStore();
-    CachingTier.InvalidationListener<Long, String> invalidationListener = mock(CachingTier.InvalidationListener.class);
+    final OnHeapStore<String, String> store = newStore();
+    CachingTier.InvalidationListener<String, String> invalidationListener = mock(CachingTier.InvalidationListener.class);
     store.setInvalidationListener(invalidationListener);
 
     final AtomicReference<AssertionError> failedInThread = new AtomicReference<AssertionError>();
@@ -908,9 +908,9 @@ public abstract class BaseOnHeapStoreTest {
       @Override
       public void run() {
         try {
-          store.getOrComputeIfAbsent(42L, new Function<Long, ValueHolder<String>>() {
+          store.getOrComputeIfAbsent("42", new Function<String, ValueHolder<String>>() {
             @Override
-            public ValueHolder<String> apply(Long aLong) {
+            public ValueHolder<String> apply(String aString) {
               invalidateLatch.countDown();
               try {
                 boolean await = getLatch.await(5, TimeUnit.SECONDS);
@@ -933,10 +933,10 @@ public abstract class BaseOnHeapStoreTest {
     if (!await) {
       fail("latch timed out");
     }
-    store.invalidate(42L);
+    store.invalidate("42");
     getLatch.countDown();
 
-    verify(invalidationListener, never()).onInvalidation(any(Long.class), any(ValueHolder.class));
+    verify(invalidationListener, never()).onInvalidation(any(String.class), any(ValueHolder.class));
     if (failedInThread.get() != null) {
       throw failedInThread.get();
     }
@@ -944,7 +944,7 @@ public abstract class BaseOnHeapStoreTest {
 
   @Test
   public void testConcurrentSilentFaultingAndInvalidate() throws Exception {
-    final OnHeapStore<Long, String> store = newStore();
+    final OnHeapStore<String, String> store = newStore();
 
     final AtomicReference<AssertionError> failedInThread = new AtomicReference<AssertionError>();
 
@@ -955,9 +955,9 @@ public abstract class BaseOnHeapStoreTest {
       @Override
       public void run() {
         try {
-          store.getOrComputeIfAbsent(42L, new Function<Long, ValueHolder<String>>() {
+          store.getOrComputeIfAbsent("42", new Function<String, ValueHolder<String>>() {
             @Override
-            public ValueHolder<String> apply(Long aLong) {
+            public ValueHolder<String> apply(String aString) {
               invalidateLatch.countDown();
               try {
                 boolean await = getLatch.await(5, TimeUnit.SECONDS);
@@ -980,7 +980,7 @@ public abstract class BaseOnHeapStoreTest {
     if (!await) {
       fail("latch timed out");
     }
-    store.silentInvalidate(42L, new Function<ValueHolder<String>, Void>() {
+    store.silentInvalidate("42", new Function<ValueHolder<String>, Void>() {
       @Override
       public Void apply(ValueHolder<String> stringValueHolder) {
         if (stringValueHolder != null) {
