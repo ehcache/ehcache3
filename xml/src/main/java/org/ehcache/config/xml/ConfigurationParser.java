@@ -107,9 +107,10 @@ class ConfigurationParser {
     final Element config = domBuilder.parse(xml).getDocumentElement();
 
     try {
-      JAXBContext jc = JAXBContext.newInstance("org.ehcache.config.xml.model");
+      Class<ConfigType> configTypeClass = ConfigType.class;
+      JAXBContext jc = JAXBContext.newInstance("org.ehcache.config.xml.model", configTypeClass.getClassLoader());
       Unmarshaller u = jc.createUnmarshaller();
-      this.config = u.unmarshal(config, ConfigType.class).getValue();
+      this.config = u.unmarshal(config, configTypeClass).getValue();
     } catch (JAXBException e) {
       throw new RuntimeException(e);
     }

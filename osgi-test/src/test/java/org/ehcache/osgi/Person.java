@@ -14,7 +14,19 @@
  * limitations under the License.
  */
 
-dependencies {
-    compile project(':impl'), "org.slf4j:slf4j-api:$parent.slf4jVersion"
-    testCompile project(':impl'), project(':transactions')
+package org.ehcache.osgi;
+
+import java.io.Serializable;
+
+/**
+ * Person
+ */
+public class Person implements Serializable {
+
+  final String name;
+
+  Person(String name) {
+    this.name = name;
+  }
+
 }
