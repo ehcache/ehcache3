@@ -848,6 +848,58 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   @Test
+  public void testGetOrComputeIfAbsentRemovesFault() throws CacheAccessException {
+    final OnHeapStore<String, String> store = newStore();
+    final CountDownLatch testCompletionLatch = new CountDownLatch(1);
+    final CountDownLatch threadFaultCompletionLatch = new CountDownLatch(1);
+    final CountDownLatch mainFaultCreationLatch = new CountDownLatch(1);
+    
+
+    Thread thread = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          try {
+            mainFaultCreationLatch.await();
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+          store.remove("1");
+          store.getOrComputeIfAbsent("1", new Function<String, ValueHolder<String>>() {
+            @Override
+            public ValueHolder<String> apply(final String s) {
+              threadFaultCompletionLatch.countDown();
+              try {
+                testCompletionLatch.await();
+              } catch (InterruptedException e) {
+                e.printStackTrace();
+              }
+              return null;
+            }
+          });
+        } catch (CacheAccessException e) {
+          e.printStackTrace();
+        }
+      }
+    });
+    thread.start();
+      
+    store.getOrComputeIfAbsent("1", new Function<String, ValueHolder<String>>() {
+      @Override
+      public ValueHolder<String> apply(final String s) {
+        try {
+          mainFaultCreationLatch.countDown();
+          threadFaultCompletionLatch.await();
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        } 
+        return null;
+      }
+    });
+    testCompletionLatch.countDown();
+  }
+
+  @Test
   public void testGetOrComputeIfAbsentContention() throws InterruptedException {
 
     final OnHeapStore<Long, String> store = newStore();

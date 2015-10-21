@@ -746,6 +746,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     public String toString() {
       return "[Fault : " + (complete ? (throwable == null ? value.toString() : throwable.getMessage()) : "???") + "]";
     }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj == this;
+    }
   }
 
   @Override
