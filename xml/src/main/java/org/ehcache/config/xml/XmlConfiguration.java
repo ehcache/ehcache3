@@ -66,9 +66,11 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import org.ehcache.config.event.CacheEventDispatcherFactoryConfiguration;
 import org.ehcache.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
 import org.ehcache.config.xml.ConfigurationParser.Batching;
+import org.ehcache.config.xml.model.EventDispatchType;
 import org.ehcache.config.xml.model.ThreadPoolsType;
 
 /**
@@ -216,6 +218,10 @@ public class XmlConfiguration implements Configuration {
         }
       }
       serviceConfigs.add(poolsConfiguration);
+    }
+    if (configurationParser.getEventDispatch() != null) {
+      EventDispatchType eventDispatch = configurationParser.getEventDispatch();
+      serviceConfigs.add(new CacheEventDispatcherFactoryConfiguration(eventDispatch.getOrderedExecutor(), eventDispatch.getUnorderedExecutor()));
     }
         
     for (ServiceCreationConfiguration<?> serviceConfiguration : Collections.unmodifiableList(serviceConfigs)) {

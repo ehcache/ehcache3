@@ -22,25 +22,25 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * A provider {@link org.ehcache.spi.service.Service} that will facilitate {@link CacheEventNotificationService} instance
+ * A provider {@link org.ehcache.spi.service.Service} that will facilitate {@link CacheEventDispatcher} instance
  *
  * @author palmanojkumar
  *
  */
-public interface CacheEventNotificationListenerServiceProvider extends Service {
+public interface CacheEventDispatcherFactory extends Service {
 
   /**
-   * Creates an instance of {@link CacheEventNotificationService} to be used by {@link CacheManager}
+   * Creates an instance of {@link CacheEventDispatcher} to be used by {@link CacheManager}
    * 
-   * @return the {@link CacheEventNotificationService} 
+   * @return the {@link CacheEventDispatcher} 
    */
-  <K, V> CacheEventNotificationService<K, V> createCacheEventNotificationService(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs);
+  <K, V> CacheEventDispatcher<K, V> createCacheEventDispatcher(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs);
   
   
   /**
-   * Invoked by {@link CacheManager} to release all {@link CacheEventListener} listeners registered with {@link CacheEventNotificationService}
+   * Invoked by {@link CacheManager} to release all {@link CacheEventListener} listeners registered with {@link CacheEventDispatcher}
    * 
-   * @param cenlService the {@link CacheEventNotificationService}
+   * @param cenlService the {@link CacheEventDispatcher}
    */
-  <K, V> void releaseCacheEventNotificationService(CacheEventNotificationService<K, V> cenlService);
+  <K, V> void releaseCacheEventDispatcher(CacheEventDispatcher<K, V> cenlService);
 }

@@ -24,8 +24,6 @@ import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
-import org.ehcache.internal.TimeSource;
-import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,18 +51,16 @@ import java.util.concurrent.Future;
  * 
  * @author vfunshte
  */
-public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotificationService<K, V> {
+public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(CacheEventNotificationServiceImpl.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(CacheEventDispatcherImpl.class);
   private final StoreListener<K, V> storeListener = new StoreListener<K, V>();
   private final Store<K, V> store;
-  private final TimeSource timeSource;
 
-  public CacheEventNotificationServiceImpl(ExecutorService orderedDelivery, ExecutorService unorderedDelivery, Store<K, V> store, TimeSource timeSource) {
+  public CacheEventDispatcherImpl(ExecutorService orderedDelivery, ExecutorService unorderedDelivery, Store<K, V> store) {
     this.orderedDelivery = orderedDelivery;
     this.unorderedDelivery = unorderedDelivery;
     this.store = store;
-    this.timeSource = timeSource;
     storeListener.setEventNotificationService(this);
   }
 
@@ -126,7 +122,7 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
     final EventType type = event.getType();
     LOGGER.trace("Cache Event notified for event type {}", type);
     Map<EventListenerWrapper, Future<?>> notificationResults = 
-        new HashMap<CacheEventNotificationServiceImpl.EventListenerWrapper, Future<?>>(registeredListeners.size());
+        new HashMap<CacheEventDispatcherImpl.EventListenerWrapper, Future<?>>(registeredListeners.size());
     
     for (final EventListenerWrapper wrapper: registeredListeners) {
       if (!wrapper.config.fireOn().contains(type)) {
@@ -230,7 +226,7 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
 
   private final class StoreListener<K, V> implements StoreEventListener<K, V> {
 
-    private CacheEventNotificationService<K, V> eventNotificationService;
+    private CacheEventDispatcher<K, V> eventNotificationService;
     private Cache<K, V> source;
 
     @Override
@@ -243,7 +239,7 @@ public class CacheEventNotificationServiceImpl<K, V> implements CacheEventNotifi
       eventNotificationService.onEvent(CacheEvents.expiry(key, valueHolder.value(), this.source));
     }
 
-    public void setEventNotificationService(CacheEventNotificationService<K, V> eventNotificationService) {
+    public void setEventNotificationService(CacheEventDispatcher<K, V> eventNotificationService) {
       this.eventNotificationService = eventNotificationService;
     }
 

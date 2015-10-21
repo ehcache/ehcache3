@@ -28,7 +28,7 @@ import java.util.EnumSet;
 /**
  * @author Ludovic Orban
  */
-public interface CacheEventNotificationService<K, V> {
+public interface CacheEventDispatcher<K, V> {
 
   void onEvent(CacheEvent<K, V> kvCacheEvent);
 

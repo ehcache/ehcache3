@@ -34,6 +34,13 @@ public interface ManagementRegistryConfiguration extends ServiceCreationConfigur
   String getCacheManagerAlias();
 
   /**
+   * Gets the alias of the executor to use for asynchronous statistics tasks.
+   *
+   * @return The static executor alias
+   */
+  String getStatisticsExecutorAlias();
+
+  /**
    * Returns the configuration of a specific {@link ManagementProvider} type.
    *
    * @param managementProviderClass The type of the class managing statistics, capabilities, actions, etc.

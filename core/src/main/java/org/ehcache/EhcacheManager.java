@@ -27,8 +27,8 @@ import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
-import org.ehcache.events.CacheEventNotificationListenerServiceProvider;
-import org.ehcache.events.CacheEventNotificationService;
+import org.ehcache.events.CacheEventDispatcherFactory;
+import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.events.CacheManagerListener;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.spi.LifeCycled;
@@ -77,7 +77,7 @@ public class EhcacheManager implements PersistentCacheManager {
   @ServiceDependencies({ Store.Provider.class,
       CacheLoaderWriterProvider.class,
       WriteBehindDecoratorLoaderWriterProvider.class,
-      CacheEventNotificationListenerServiceProvider.class,
+      CacheEventDispatcherFactory.class,
       CacheEventListenerProvider.class })
   private static class ServiceDeps {
     private ServiceDeps() {
@@ -374,12 +374,12 @@ public class EhcacheManager implements PersistentCacheManager {
       decorator = null;
     }
 
-    final CacheEventNotificationListenerServiceProvider cenlProvider = serviceLocator.getService(CacheEventNotificationListenerServiceProvider.class);
-    final CacheEventNotificationService<K, V> evtService = cenlProvider.createCacheEventNotificationService(store, serviceConfigs);
+    final CacheEventDispatcherFactory cenlProvider = serviceLocator.getService(CacheEventDispatcherFactory.class);
+    final CacheEventDispatcher<K, V> evtService = cenlProvider.createCacheEventDispatcher(store, serviceConfigs);
     lifeCycledList.add(new LifeCycledAdapter() {
       @Override
       public void close() {
-        cenlProvider.releaseCacheEventNotificationService(evtService);
+        cenlProvider.releaseCacheEventDispatcher(evtService);
       }
       
     });

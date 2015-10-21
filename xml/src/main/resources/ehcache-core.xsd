@@ -54,6 +54,13 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
+      <xs:element name="event-dispatch" type="ehcache:event-dispatch-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            The element configures the thread pools used for cache event dispatch.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element> 
       <xs:element name="thread-pools" type="ehcache:thread-pools-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
@@ -131,6 +138,12 @@
       </xs:element>
     </xs:sequence>
   </xs:complexType>
+  
+  <xs:complexType name="event-dispatch-type">
+    <xs:attribute name="ordered-executor" use="required" type="xs:string"/>
+    <xs:attribute name="unordered-executor" use="required" type="xs:string"/>
+  </xs:complexType>
+
   <xs:complexType name="cache-type">
     <xs:complexContent>
       <xs:extension base="ehcache:base-cache-type">

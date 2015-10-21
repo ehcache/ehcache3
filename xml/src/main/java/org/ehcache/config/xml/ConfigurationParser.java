@@ -68,6 +68,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import org.ehcache.config.xml.model.EventDispatchType;
 import org.ehcache.config.xml.model.ThreadPoolsType;
 
 /**
@@ -135,6 +136,10 @@ class ConfigurationParser {
 
   public PersistenceType getPersistence() {
     return config.getPersistence();
+  }
+
+  public EventDispatchType getEventDispatch() {
+    return config.getEventDispatch();
   }
 
   public ThreadPoolsType getThreadPools() {

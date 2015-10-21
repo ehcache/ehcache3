@@ -29,6 +29,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static org.ehcache.internal.executor.ExecutorUtil.shutdown;
+
 /**
  *
  * @author cdennis

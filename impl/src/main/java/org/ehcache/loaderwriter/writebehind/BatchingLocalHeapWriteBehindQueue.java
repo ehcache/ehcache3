@@ -47,6 +47,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.ehcache.internal.executor.ExecutorUtil.shutdown;
+import static org.ehcache.internal.executor.ExecutorUtil.shutdownNow;
+import static org.ehcache.internal.executor.ExecutorUtil.waitFor;
 
 /**
  *

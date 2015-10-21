@@ -21,8 +21,6 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
-import org.ehcache.internal.SystemTimeSource;
-import org.ehcache.internal.TimeSource;
 import org.ehcache.spi.cache.Store;
 import org.junit.After;
 import org.junit.Before;
@@ -55,7 +53,7 @@ import static org.junit.Assert.assertThat;
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class CacheEventNotificationServiceImplTest {
-  private CacheEventNotificationServiceImpl<Number, String> eventService;
+  private CacheEventDispatcherImpl<Number, String> eventService;
   private CacheEventListener<Number, String> listener;
   private ExecutorService orderedExecutor;
   private ExecutorService unorderedExecutor;
@@ -66,8 +64,7 @@ public class CacheEventNotificationServiceImplTest {
     orderedExecutor = Executors.newSingleThreadExecutor();
     unorderedExecutor = Executors.newCachedThreadPool();
     store = mock(Store.class);
-    TimeSource timeSource = SystemTimeSource.INSTANCE;
-    eventService = new CacheEventNotificationServiceImpl<Number, String>(orderedExecutor, unorderedExecutor, store, timeSource);
+    eventService = new CacheEventDispatcherImpl<Number, String>(orderedExecutor, unorderedExecutor, store);
     listener = mock(CacheEventListener.class);
   }
 

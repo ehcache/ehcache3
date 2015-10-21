@@ -29,7 +29,6 @@ import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.CacheManagerProviderService;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.spi.service.ThreadPoolsService;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.context.ContextContainer;
 import org.terracotta.statistics.StatisticsManager;
@@ -39,17 +38,21 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ScheduledExecutorService;
+import org.ehcache.spi.service.ExecutionService;
+
+import static org.ehcache.internal.executor.ExecutorUtil.shutdownNow;
 
 /**
  * @author Ludovic Orban
  */
-@ServiceDependencies({CacheManagerProviderService.class, ThreadPoolsService.class})
+@ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class})
 public class DefaultManagementRegistry implements ManagementRegistry, CacheManagerListener {
 
   private final ManagementRegistryConfiguration configuration;
   private final List<ManagementProvider<?>> managementProviders = new CopyOnWriteArrayList<ManagementProvider<?>>();
 
-  private volatile ThreadPoolsService threadPoolsService;
+  private volatile ScheduledExecutorService statisticsExecutor;
   private volatile EhcacheManager cacheManager;
 
   public DefaultManagementRegistry() {
@@ -65,9 +68,8 @@ public class DefaultManagementRegistry implements ManagementRegistry, CacheManag
 
   @Override
   public void start(final ServiceProvider serviceProvider) {
-    this.threadPoolsService = serviceProvider.getService(ThreadPoolsService.class);
+    this.statisticsExecutor = serviceProvider.getService(ExecutionService.class).getScheduledExecutor(configuration.getStatisticsExecutorAlias());
     this.cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
-
     this.cacheManager.registerListener(this);
   }
 
@@ -80,7 +82,7 @@ public class DefaultManagementRegistry implements ManagementRegistry, CacheManag
     }
 
     managementProviders.clear();
-    threadPoolsService = null;
+    shutdownNow(statisticsExecutor);
     cacheManager = null;
   }
 
@@ -110,7 +112,7 @@ public class DefaultManagementRegistry implements ManagementRegistry, CacheManag
       addManagementProvider(new EhcacheStatisticsProvider(
           getConfiguration().getCacheManagerAlias(),
           getConfiguration().getConfigurationFor(EhcacheStatisticsProvider.class),
-          threadPoolsService.getStatisticsExecutor()));
+          statisticsExecutor));
 
       register(cacheManager);
 

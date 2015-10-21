@@ -33,7 +33,7 @@ import static org.junit.Assert.assertThat;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.EventType;
-import org.ehcache.events.CacheEventNotificationService;
+import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CachePassThroughException;
 import org.ehcache.exceptions.CacheWritingException;
@@ -69,12 +69,12 @@ public class EhcacheEventTest {
   
   private Ehcache<Number, String> cache;
   private Store<Number, String> store;
-  private CacheEventNotificationService<Number, String> eventNotifier;
+  private CacheEventDispatcher<Number, String> eventNotifier;
 
   @Before
   public void setUp() throws Exception {
     store = mock(Store.class);
-    eventNotifier = mock(CacheEventNotificationService.class);
+    eventNotifier = mock(CacheEventDispatcher.class);
     CacheLoaderWriter<Number, String> loaderWriter = mock(CacheLoaderWriter.class);
 
     final CacheConfiguration<Number, String> cacheConfiguration = newCacheConfigurationBuilder()
