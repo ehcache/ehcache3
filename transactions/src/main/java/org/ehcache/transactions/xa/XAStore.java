@@ -429,7 +429,7 @@ public class XAStore<K, V> implements Store<K, V> {
       if (!getCurrentContext().getTransactionId().equals(transactionId)) {
         throw new IllegalStateException("Iterator has been created in another transaction, it can only be used in the transaction it has been created in.");
       }
-      return next != null;
+      return next != null | prefetchFailure != null;
     }
 
     @Override

@@ -45,4 +45,17 @@ public class CachePassThroughException extends RuntimeException {
   public CachePassThroughException(final Throwable cause) {
     super(cause);
   }
+  
+  public static void handleRuntimeException(RuntimeException re) throws CacheAccessException {
+    if(re instanceof CachePassThroughException) {
+      Throwable cause = re.getCause();
+      if(cause instanceof RuntimeException) {
+        throw   (RuntimeException) cause;
+      } else {
+        throw new CacheAccessException(cause);
+      }
+    } else {
+      throw new CacheAccessException(re);
+    }
+  }
 }

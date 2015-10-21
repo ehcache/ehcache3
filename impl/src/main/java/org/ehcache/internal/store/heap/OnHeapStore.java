@@ -83,6 +83,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.ehcache.exceptions.CachePassThroughException.handleRuntimeException;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
@@ -193,15 +194,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           return mappedValue;
         }
       });
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
+      return null;
     }
   }
 
@@ -246,15 +241,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
       
       return valuePut;
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
+      return null;
     }
   }
 
@@ -263,15 +252,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     checkKey(key);
     try {
       map.remove(key);
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
     }
   }
 
@@ -318,15 +300,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       if (returnInCacheHolder) {
         return inCache;
       }
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
     }
     
     return returnValue.get();
@@ -357,15 +332,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           }
         }
       });
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
     }
     
     return removed.get();
@@ -393,15 +361,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           }
         }
       });
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
     }
     
     return returnValue.get();
@@ -435,15 +396,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           }
         }
       });
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
     }
     
     return returnValue.get();
@@ -453,15 +407,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   public void clear() throws CacheAccessException {
     try {
       map.clear();
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
     }
   }
 
@@ -510,7 +457,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       
       @Override
       public boolean hasNext() {
-        return next != null;
+        return next != null || prefetchFailure != null;
       }
 
       @Override
@@ -620,15 +567,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
       
       return getValue(cachedValue);
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
+      return null;
     }
   }
 
@@ -645,15 +586,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           return null;
         }
       });
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
     }
   }
 
@@ -672,15 +606,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           return null;
         }
       });
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
     }
   }
 
@@ -861,15 +788,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         }
       });
       return enforceCapacityIfValueNotNull(computeResult);
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
+      return null;
     }
   }
 
@@ -901,15 +822,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         }
       });
       return enforceCapacityIfValueNotNull(computeResult);
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
+      return null;
     }
   }
 
@@ -957,15 +872,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           return newUpdateValueHolder(key, existingValue, computedValue, now, expirationTime);
         }
       });
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
+      return null;
     }
   }
   
@@ -1323,14 +1232,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   private static <K, V> Cache.Entry<K, V> wrap(final Map.Entry<K, OnHeapValueHolder<V>> value, final TimeSource timeSource) {
     return CacheStoreHelper.cacheEntry(value.getKey(), value.getValue(), timeSource);
-  }
-
-  private static CacheAccessException wrapAsCacheAccessException(Throwable t) {
-    if(t instanceof CacheAccessException) {
-      return  (CacheAccessException) t;
-    } else {
-      return new CacheAccessException(t);
-    }
   }
 
   // The idea of this wrapper is to let all the other code deal in terms of <K> and hide

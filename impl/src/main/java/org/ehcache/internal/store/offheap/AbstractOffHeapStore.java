@@ -48,6 +48,8 @@ import org.ehcache.spi.cache.tiering.LowerCachingTier;
 import org.ehcache.statistics.StoreOperationOutcomes;
 import org.terracotta.offheapstore.Segment;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
+
+import static org.ehcache.exceptions.CachePassThroughException.handleRuntimeException;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 import org.terracotta.statistics.observer.OperationObserver;
 
@@ -120,15 +122,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           return mappedValue;
         }
       }, false);
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
+      return null;
     }
   }
 
@@ -164,15 +160,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         return;
       } catch (OversizeMappingException ex) {
         handleOversizeMappingException(key, ex);
-      } catch (CachePassThroughException cpte) {
-        Throwable cause = cpte.getCause();
-        if(cause instanceof RuntimeException) {
-          throw   (RuntimeException) cause;
-        } else {
-          throw wrapAsCacheAccessException(cause);
-        }
       } catch (RuntimeException re) {
-        throw wrapAsCacheAccessException(re);
+        handleRuntimeException(re);
       }
     }
   }
@@ -205,15 +194,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         return returnValue.get();
       } catch (OversizeMappingException ex) {
         handleOversizeMappingException(key, ex);
-      } catch (CachePassThroughException cpte) {
-        Throwable cause = cpte.getCause();
-        if(cause instanceof RuntimeException) {
-          throw   (RuntimeException) cause;
-        } else {
-          throw wrapAsCacheAccessException(cause);
-        }
       } catch (RuntimeException re) {
-        throw wrapAsCacheAccessException(re);
+        handleRuntimeException(re);
       }
     }
   }
@@ -224,15 +206,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     removeOperationObserver.begin();
     try {
       backingMap().remove(key);
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
     } finally {
       removeOperationObserver.end(StoreOperationOutcomes.RemoveOutcome.SUCCESS);
     }
@@ -263,15 +238,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           }
         }
       });
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
     }
 
     return removed.get();
@@ -305,15 +273,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         return returnValue.get();
       } catch (OversizeMappingException ex) {
         handleOversizeMappingException(key, ex);
-      } catch (CachePassThroughException cpte) {
-        Throwable cause = cpte.getCause();
-        if(cause instanceof RuntimeException) {
-          throw   (RuntimeException) cause;
-        } else {
-          throw wrapAsCacheAccessException(cause);
-        }
       } catch (RuntimeException re) {
-        throw wrapAsCacheAccessException(re);
+        handleRuntimeException(re);
       }
     }
   }
@@ -351,15 +312,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         return replaced.get();
       } catch (OversizeMappingException ex) {
         handleOversizeMappingException(key, ex);
-      } catch (CachePassThroughException cpte) {
-        Throwable cause = cpte.getCause();
-        if(cause instanceof RuntimeException) {
-          throw   (RuntimeException) cause;
-        } else {
-          throw wrapAsCacheAccessException(cause);
-        }
       } catch (RuntimeException re) {
-        throw wrapAsCacheAccessException(re);
+        handleRuntimeException(re);
       }
     }
   }
@@ -368,15 +322,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   public void clear() throws CacheAccessException {
     try {
       backingMap().clear();
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
     }
   }
 
@@ -444,15 +391,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         return backingMap().compute(key, computeFunction, false);
       } catch (OversizeMappingException e) {
         handleOversizeMappingException(key, e);
-      } catch (CachePassThroughException cpte) {
-        Throwable cause = cpte.getCause();
-        if(cause instanceof RuntimeException) {
-          throw   (RuntimeException) cause;
-        } else {
-          throw wrapAsCacheAccessException(cause);
-        }
       } catch (RuntimeException re) {
-        throw wrapAsCacheAccessException(re);
+        handleRuntimeException(re);
       }
     }
   }
@@ -492,15 +432,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         return backingMap().compute(key, computeFunction, fault);
       } catch (OversizeMappingException e) {
         handleOversizeMappingException(key, e);
-      } catch (CachePassThroughException cpte) {
-        Throwable cause = cpte.getCause();
-        if(cause instanceof RuntimeException) {
-          throw   (RuntimeException) cause;
-        } else {
-          throw wrapAsCacheAccessException(cause);
-        }
       } catch (RuntimeException re) {
-        throw wrapAsCacheAccessException(re);
+        handleRuntimeException(re);
       }
     }
   }
@@ -545,15 +478,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         return backingMap().compute(key, computeFunction, false);
       } catch (OversizeMappingException e) {
         handleOversizeMappingException(key, e);
-      } catch (CachePassThroughException cpte) {
-        Throwable cause = cpte.getCause();
-        if(cause instanceof RuntimeException) {
-          throw   (RuntimeException) cause;
-        } else {
-          throw wrapAsCacheAccessException(cause);
-        }
       } catch (RuntimeException re) {
-        throw wrapAsCacheAccessException(re);
+        handleRuntimeException(re);
       }
     }
   }
@@ -642,15 +568,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         }
         mappedValue = null;
       }
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
     } finally {
       if (mappedValue == null) {
         getOperationObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
@@ -716,15 +635,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           return null;
         }
       });
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
     }
   }
 
@@ -741,15 +653,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           return null;
         }
       }, false);
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
     }
   }
 
@@ -787,15 +692,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     try {
       backingMap().compute(key, computeFunction, false);
       return valueHolderAtomicReference.get();
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
+      return null;
     }
   }
 
@@ -824,15 +723,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           return null;
         }
       }, false);
-    } catch (CachePassThroughException cpte) {
-      Throwable cause = cpte.getCause();
-      if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
-      } else {
-        throw wrapAsCacheAccessException(cause);
-      }
     } catch (RuntimeException re) {
-      throw wrapAsCacheAccessException(re);
+      handleRuntimeException(re);
+      return null;
     }
   }
 
@@ -976,14 +869,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     return new OffHeapEvictionVetoWrapper<K, V>(delegate, timeSource);
   }
 
-  private static CacheAccessException wrapAsCacheAccessException(Throwable t) {
-    if(t instanceof CacheAccessException) {
-      return  (CacheAccessException) t;
-    } else {
-      return new CacheAccessException(t);
-    }
-  }
-
   private static class OffHeapEvictionVetoWrapper<K, V> implements Predicate<Map.Entry<K, OffHeapValueHolder<V>>> {
 
     private final EvictionVeto<K, V> delegate;
@@ -1033,7 +918,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
     @Override
     public boolean hasNext() {
-      return next != null;
+      return next != null || prefetchFailure != null;
     }
 
     @Override
