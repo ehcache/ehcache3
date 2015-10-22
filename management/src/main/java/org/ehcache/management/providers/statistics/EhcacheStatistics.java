@@ -80,8 +80,10 @@ class EhcacheStatistics {
   private final StatisticsRegistry statisticsRegistry;
   private final Cache<?, ?> contextObject;
   private final ConcurrentMap<String, OperationStatistic<?>> operationStatistics;
+  private final StatisticsProviderConfiguration configuration;
 
   EhcacheStatistics(Cache<?, ?> contextObject, StatisticsProviderConfiguration configuration, ScheduledExecutorService executor) {
+    this.configuration = configuration;
     this.contextObject = contextObject;
     this.operationStatistics = discoverOperationObservers();
     this.statisticsRegistry = new StatisticsRegistry(StandardOperationStatistic.class, contextObject, executor, configuration.averageWindowDuration(),
@@ -113,22 +115,22 @@ class EhcacheStatistics {
           return (Collection<T>) Collections.singleton(new SampledCounter(statisticName, buildSamples(count)));
         } else if ((name + "Rate").equals(statisticName)) {
           SampledStatistic<Double> rate = result.rate();
-          return (Collection<T>) Collections.singleton(new SampledRate(statisticName, buildSamples(rate), TimeUnit.SECONDS)); //TODO: get the TimeUnit from config
+          return (Collection<T>) Collections.singleton(new SampledRate(statisticName, buildSamples(rate), configuration.historyIntervalUnit()));
         } else if ((name + "LatencyMinimum").equals(statisticName)) {
           SampledStatistic<Long> minimum = result.latency().minimum();
-          return (Collection<T>) Collections.singleton(new SampledDuration(statisticName, buildSamples(minimum), TimeUnit.SECONDS)); //TODO: get the TimeUnit from config
+          return (Collection<T>) Collections.singleton(new SampledDuration(statisticName, buildSamples(minimum), configuration.historyIntervalUnit()));
         } else if ((name + "LatencyMaximum").equals(statisticName)) {
           SampledStatistic<Long> maximum = result.latency().maximum();
-          return (Collection<T>) Collections.singleton(new SampledDuration(statisticName, buildSamples(maximum), TimeUnit.SECONDS)); //TODO: get the TimeUnit from config
+          return (Collection<T>) Collections.singleton(new SampledDuration(statisticName, buildSamples(maximum), configuration.historyIntervalUnit()));
         } else if ((name + "LatencyAverage").equals(statisticName)) {
           SampledStatistic<Double> average = result.latency().average();
           return (Collection<T>) Collections.singleton(new SampledRatio(statisticName, buildSamples(average)));
         } else if (name.equals(statisticName)) {
           Collection<Statistic<?>> resultStats = new ArrayList<Statistic<?>>();
           resultStats.add(new SampledCounter(statisticName + "Count", buildSamples(result.count())));
-          resultStats.add(new SampledRate(statisticName + "Rate", buildSamples(result.rate()), TimeUnit.SECONDS));
-          resultStats.add(new SampledDuration(statisticName + "LatencyMinimum", buildSamples(result.latency().minimum()), TimeUnit.SECONDS));
-          resultStats.add(new SampledDuration(statisticName + "LatencyMaximum", buildSamples(result.latency().maximum()), TimeUnit.SECONDS));
+          resultStats.add(new SampledRate(statisticName + "Rate", buildSamples(result.rate()), configuration.historyIntervalUnit()));
+          resultStats.add(new SampledDuration(statisticName + "LatencyMinimum", buildSamples(result.latency().minimum()), configuration.historyIntervalUnit()));
+          resultStats.add(new SampledDuration(statisticName + "LatencyMaximum", buildSamples(result.latency().maximum()), configuration.historyIntervalUnit()));
           resultStats.add(new SampledRatio(statisticName + "LatencyAverage", buildSamples(result.latency().average())));
           return (Collection<T>) resultStats;
         }
