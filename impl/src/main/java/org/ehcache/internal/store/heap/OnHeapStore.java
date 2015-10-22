@@ -619,8 +619,16 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public void setInvalidationListener(final InvalidationListener<K, V> invalidationListener) {
-    this.invalidationListener = invalidationListener;
+  public void setInvalidationListener(final InvalidationListener<K, V> providedInvalidationListener) {
+    this.invalidationListener = new InvalidationListener<K, V>() {
+      @Override
+      public void onInvalidation(final K key, final ValueHolder<V> valueHolder) {
+        if (!(valueHolder instanceof Fault)) {
+          providedInvalidationListener.onInvalidation(key, valueHolder);
+        }
+      }
+    };
+
     this.eventListener = new StoreEventListener<K, V>() {
       @Override
       public void onEviction(final K key, final ValueHolder<V> valueHolder) {

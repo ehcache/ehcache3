@@ -16,8 +16,12 @@
 package org.ehcache.internal.store.heap;
 
 import org.ehcache.Cache.Entry;
+import org.ehcache.CacheConfigurationChangeEvent;
+import org.ehcache.CacheConfigurationChangeListener;
+import org.ehcache.CacheConfigurationProperty;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
@@ -51,6 +55,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -893,6 +898,62 @@ public abstract class BaseOnHeapStoreTest {
         } catch (InterruptedException e) {
           e.printStackTrace();
         } 
+        return null;
+      }
+    });
+    testCompletionLatch.countDown();
+  }
+
+  @Test
+  public void testGetOrComputeIfAbsentInvalidatesFault() throws CacheAccessException, InterruptedException {
+    final OnHeapStore<String, String> store = newStore();
+    final CountDownLatch testCompletionLatch = new CountDownLatch(1);
+    final CountDownLatch threadFaultCompletionLatch = new CountDownLatch(1);
+    CacheConfigurationChangeListener listener = store.getConfigurationChangeListeners().get(0);
+    CachingTier.InvalidationListener<String, String> invalidationListener = new CachingTier.InvalidationListener<String, String>() {
+      @Override
+      public void onInvalidation(final String key, final ValueHolder<String> valueHolder) {
+        try {
+          valueHolder.getId();
+        } catch (Exception e) {
+          e.printStackTrace();
+          fail("Test tried to invalidate Fault");
+        }
+      }
+    };
+
+    store.setInvalidationListener(invalidationListener);
+    listener.cacheConfigurationChange(new CacheConfigurationChangeEvent(CacheConfigurationProperty.UPDATESIZE, 
+        newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES).build(), 
+        newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).build()));
+
+    Thread thread = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          store.getOrComputeIfAbsent("1", new Function<String, ValueHolder<String>>() {
+            @Override
+            public ValueHolder<String> apply(final String s) {
+              threadFaultCompletionLatch.countDown();
+              try {
+                testCompletionLatch.await();
+              } catch (InterruptedException e) {
+                e.printStackTrace();
+              }
+              return null;
+            }
+          });
+        } catch (CacheAccessException e) {
+          e.printStackTrace();
+        }
+      }
+    });
+    thread.start();
+
+    threadFaultCompletionLatch.await();
+    store.getOrComputeIfAbsent("10", new Function<String, ValueHolder<String>>() {
+      @Override
+      public ValueHolder<String> apply(final String s) {
         return null;
       }
     });
