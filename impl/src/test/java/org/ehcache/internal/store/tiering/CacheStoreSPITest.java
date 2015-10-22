@@ -58,6 +58,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.ResourceType.Core.DISK;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.internal.executor.OnDemandExecutionService;
 import org.ehcache.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.internal.store.disk.OffHeapDiskStoreSPITest;
 import org.ehcache.spi.service.LocalPersistenceService;
@@ -130,7 +131,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
           MemoryUnit unit = (MemoryUnit) diskPool.getUnit();
 
           long sizeInBytes = unit.toBytes(diskPool.getSize());
-          OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(persistenceContext, config, timeSource, sizeInBytes);
+          OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(persistenceContext, new OnDemandExecutionService(), config, timeSource, sizeInBytes);
           CacheStore<String, String> cacheStore = new CacheStore<String, String>(onHeapStore, diskStore);
           provider.registerStore(cacheStore, new CachingTier.Provider() {
             @Override

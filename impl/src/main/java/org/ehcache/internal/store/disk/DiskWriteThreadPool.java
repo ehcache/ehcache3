@@ -20,34 +20,31 @@ import org.terracotta.offheapstore.util.Factory;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
-public class DiskWriteThreadPool implements Factory<ThreadPoolExecutor> {
+import org.ehcache.spi.service.ExecutionService;
 
-  private final List<ThreadPoolExecutor> writers = new CopyOnWriteArrayList<ThreadPoolExecutor>();
-  private final String                   name;
-  private final int                      threads;
+public class DiskWriteThreadPool implements Factory<ExecutorService> {
 
-  private int                            index   = 0;
+  private final List<ExecutorService> writers = new CopyOnWriteArrayList<ExecutorService>();
+  private final ExecutionService executionService;
+  private final String poolAlias;
+  private final int threads;
 
-  public DiskWriteThreadPool(String name, int threads) {
-    this.name = name;
+  private int index   = 0;
+
+  public DiskWriteThreadPool(ExecutionService executionService, String poolAlias, int threads) {
+    this.executionService = executionService;
+    this.poolAlias = poolAlias;
     this.threads = threads;
   }
 
-  public ThreadPoolExecutor newInstance() {
-    ThreadPoolExecutor writer;
+  @Override
+  public ExecutorService newInstance() {
+    ExecutorService writer;
     if (writers.size() < threads) {
-      final int threadIndex = writers.size();
-      writer = new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(),
-                                      new ThreadFactory() {
-                                        public Thread newThread(Runnable r) {
-                                          return new Thread(r, "Ehcache Disk Write Thread [" + name + "] - " + threadIndex);
-                                        }
-                                      });
+      writer = executionService.getOrderedExecutor(poolAlias, new LinkedBlockingQueue<Runnable>());
       writers.add(writer);
     } else {
       writer = writers.get(index++);
@@ -56,13 +53,5 @@ public class DiskWriteThreadPool implements Factory<ThreadPoolExecutor> {
       }
     }
     return writer;
-  }
-
-  public long getTotalQueueSize() {
-    long size = 0;
-    for (ThreadPoolExecutor e : writers) {
-      size += e.getQueue().size();
-    }
-    return size;
   }
 }

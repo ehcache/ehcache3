@@ -31,7 +31,7 @@ import org.ehcache.spi.service.ExecutionService;
  *
  * @author cdennis
  */
-class OnDemandExecutionService implements ExecutionService {
+public class OnDemandExecutionService implements ExecutionService {
 
   private static final RejectedExecutionHandler WAIT_FOR_SPACE = new RejectedExecutionHandler() {
 

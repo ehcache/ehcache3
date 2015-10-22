@@ -70,6 +70,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.ehcache.internal.store.offheap.AbstractOffHeapStore;
 import org.ehcache.internal.store.offheap.EhcacheOffHeapBackingMap;
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
+import org.ehcache.spi.service.ExecutionService;
 import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 
 /**
@@ -87,12 +88,14 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   private final Serializer<V> valueSerializer;
   private final long sizeInBytes;
   private final FileBasedPersistenceContext fileBasedPersistenceContext;
-
+  private final ExecutionService executionService;
+  
   private volatile EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
 
-  public OffHeapDiskStore(FileBasedPersistenceContext fileBasedPersistenceContext, final Configuration<K, V> config, TimeSource timeSource, long sizeInBytes) {
+  public OffHeapDiskStore(FileBasedPersistenceContext fileBasedPersistenceContext, ExecutionService executionService, final Configuration<K, V> config, TimeSource timeSource, long sizeInBytes) {
     super("local-disk", config, timeSource);
     this.fileBasedPersistenceContext = fileBasedPersistenceContext;
+    this.executionService = executionService;
     EvictionVeto<? super K, ? super V> veto = config.getEvictionVeto();
     if (veto != null) {
       evictionVeto = wrap(veto, timeSource);
@@ -154,7 +157,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       try {
         PersistentPortability<K> keyPortability = persistent(new SerializerPortability<K>(keySerializer));
         PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<V>(valueSerializer));
-        DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool("identifier", 1);
+        DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, null, 1);
 
         Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
                 keyPortability, elementPortability, writeWorkers, false);
@@ -195,7 +198,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
     PersistentPortability<K> keyPortability = persistent(new SerializerPortability<K>(keySerializer));
     PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<V>(valueSerializer));
-    DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool("identifier", 1);
+    DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, null, 1);
 
     Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
         keyPortability, elementPortability, writeWorkers, true);
@@ -224,7 +227,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   }
 
   @SupplementaryService
-  @ServiceDependencies({TimeSourceService.class, SerializationProvider.class})
+  @ServiceDependencies({TimeSourceService.class, SerializationProvider.class, ExecutionService.class})
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
     private volatile ServiceProvider serviceProvider;
@@ -236,6 +239,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         throw new NullPointerException("ServiceProvider is null in OffHeapDiskStore.Provider.");
       }
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
+      ExecutionService executionService = serviceProvider.getService(ExecutionService.class);
 
       ResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
       if (!(offHeapPool.getUnit() instanceof MemoryUnit)) {
@@ -252,7 +256,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       try {
         FileBasedPersistenceContext persistenceContext = localPersistenceService.createPersistenceContextWithin(space , "offheap-disk-store");
 
-        OffHeapDiskStore<K, V> offHeapStore = new OffHeapDiskStore<K, V>(persistenceContext, storeConfig, timeSource, unit
+        OffHeapDiskStore<K, V> offHeapStore = new OffHeapDiskStore<K, V>(persistenceContext, executionService, storeConfig, timeSource, unit
             .toBytes(offHeapPool.getSize()));
         createdStores.add(offHeapStore);
         return offHeapStore;
