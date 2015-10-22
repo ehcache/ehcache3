@@ -64,7 +64,7 @@ public class PooledExecutionService implements ExecutionService {
       if (executor == null) {
         throw new IllegalStateException("Pool '" + poolAlias + "' is not in the set of available pools " + pools.keySet());
       } else {
-        return new PartitionedScheduledExecutor(scheduledExecutor, pools.get(poolAlias));
+        return new PartitionedScheduledExecutor(scheduledExecutor, executor);
       }
     } else {
       throw new IllegalStateException("Service cannot be used, it isn't running");
@@ -78,7 +78,7 @@ public class PooledExecutionService implements ExecutionService {
       if (executor == null) {
         throw new IllegalStateException("Pool '" + poolAlias + "' is not in the set of available pools " + pools.keySet());
       } else {
-        return new PartitionedOrderedExecutor(queue, pools.get(poolAlias));
+        return new PartitionedOrderedExecutor(queue, executor);
       }
     } else {
       throw new IllegalStateException("Service cannot be used, it isn't running");
@@ -88,7 +88,12 @@ public class PooledExecutionService implements ExecutionService {
   @Override
   public ExecutorService getUnorderedExecutor(String poolAlias, BlockingQueue<Runnable> queue) {
     if (running) {
-      return getOrderedExecutor(poolAlias, queue);
+      ThreadPoolExecutor executor = pools.get(poolAlias);
+      if (executor == null) {
+        throw new IllegalStateException("Pool '" + poolAlias + "' is not in the set of available pools " + pools.keySet());
+      } else {
+        return new PartitionedUnorderedExecutor(queue, executor, executor.getMaximumPoolSize());
+      }
     } else {
       throw new IllegalStateException("Service cannot be used, it isn't running");
     }
