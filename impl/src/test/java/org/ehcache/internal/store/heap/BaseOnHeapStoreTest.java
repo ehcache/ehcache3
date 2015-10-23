@@ -963,7 +963,7 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testGetOrComputeIfAbsentContention() throws InterruptedException {
 
-    final OnHeapStore<Long, String> store = newStore();
+    final OnHeapStore<String, String> store = newStore();
 
     int threads = 10;
     final CountDownLatch startLatch = new CountDownLatch(1);
@@ -979,9 +979,9 @@ public abstract class BaseOnHeapStoreTest {
           fail("Got an exception waiting to start thread " + e);
         }
         try {
-          ValueHolder<String> result = store.getOrComputeIfAbsent(42L, new Function<Long, ValueHolder<String>>() {
+          ValueHolder<String> result = store.getOrComputeIfAbsent("42", new Function<String, ValueHolder<String>>() {
             @Override
-            public ValueHolder<String> apply(Long aLong) {
+            public ValueHolder<String> apply(String key) {
               return new CopiedOnHeapValueHolder<String>("theAnswer!", System.currentTimeMillis(), -1, new IdentityCopier<String>());
             }
           });
