@@ -1163,6 +1163,49 @@ public abstract class BaseOnHeapStoreTest {
     store.put("keyC", "valueC");
   }
 
+  @Test
+  public void testIteratorExpiryHappensUnderExpiredKeyLockScope() throws Exception {
+    TestTimeSource testTimeSource = new TestTimeSource();
+    final OnHeapStore<String, String> store = newStore(testTimeSource, Expirations.timeToLiveExpiration(new Duration(10, TimeUnit.MILLISECONDS)));
+
+    store.put("key", "value");
+
+    final CountDownLatch expiryLatch = new CountDownLatch(1);
+
+    final Thread thread = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          expiryLatch.await();
+          store.put("key", "newValue");
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        } catch (CacheAccessException e) {
+          e.printStackTrace();
+        }
+      }
+    });
+    thread.start();
+
+    store.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
+      @Override
+      public void onInvalidation(String key, ValueHolder<String> valueHolder) {
+        expiryLatch.countDown();
+        long now = System.nanoTime();
+        while (!thread.getState().equals(Thread.State.BLOCKED)) {
+          Thread.yield();
+          if (System.nanoTime() - now > TimeUnit.MILLISECONDS.toNanos(500)) {
+            assertThat(thread.getState(), is(Thread.State.BLOCKED));
+          }
+        }
+      }
+    });
+
+    testTimeSource.advanceTime(20);
+
+    store.iterator();
+  }
+
   public static <V> ValueHolder<V> valueHolderValueEq(final V value) {
     return argThat(new ArgumentMatcher<ValueHolder<V>>() {
 

@@ -443,8 +443,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
             Map.Entry<K, OnHeapValueHolder<V>> entry = it.next();
             final long now = timeSource.getTimeMillis();
             if (entry.getValue().isExpired(now, TimeUnit.MILLISECONDS)) {
-              it.remove();
-              onExpiration(entry.getKey(), entry.getValue());
+              internalGet(entry.getKey(), false);
               continue;
             }
 
@@ -452,6 +451,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           }
         } catch (RuntimeException re) {
           prefetchFailure = new CacheAccessException(re);
+        } catch (CacheAccessException e) {
+          prefetchFailure = e;
         }
       }
       
