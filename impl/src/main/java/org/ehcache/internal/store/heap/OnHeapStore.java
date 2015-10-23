@@ -1094,11 +1094,23 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       return false;
     } else {
       @SuppressWarnings("unchecked")
-      Map.Entry<K, OnHeapValueHolder<V>> evict = Collections.max(values, (Comparator<? super Map.Entry<K, OnHeapValueHolder<V>>>)evictionPrioritizer);
-      
-      if (map.remove(evict.getKey(), evict.getValue())) {
+      final Map.Entry<K, OnHeapValueHolder<V>> evict = Collections.max(values, (Comparator<? super Map.Entry<K, OnHeapValueHolder<V>>>)evictionPrioritizer);
+
+
+      final AtomicBoolean removed = new AtomicBoolean(false);
+      map.computeIfPresent(evict.getKey(), new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+        @Override
+        public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+          if (mappedValue.equals(evict.getValue())) {
+            removed.set(true);
+            eventListener.onEviction(evict.getKey(), evict.getValue());
+            return null;
+          }
+          return mappedValue;
+        }
+      });
+      if (removed.get()) {
         evictionObserver.end(StoreOperationOutcomes.EvictionOutcome.SUCCESS);
-        eventListener.onEviction(evict.getKey(), evict.getValue());
         return true;
       } else {
         evictionObserver.end(StoreOperationOutcomes.EvictionOutcome.FAILURE);
