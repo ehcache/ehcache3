@@ -131,7 +131,10 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
           MemoryUnit unit = (MemoryUnit) diskPool.getUnit();
 
           long sizeInBytes = unit.toBytes(diskPool.getSize());
-          OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(persistenceContext, new OnDemandExecutionService(), config, timeSource, sizeInBytes);
+          OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(
+                  persistenceContext,
+                  new OnDemandExecutionService(), null, 1,
+                  config, timeSource, sizeInBytes);
           CacheStore<String, String> cacheStore = new CacheStore<String, String>(onHeapStore, diskStore);
           provider.registerStore(cacheStore, new CachingTier.Provider() {
             @Override

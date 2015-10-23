@@ -68,9 +68,12 @@ import java.util.Set;
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import org.ehcache.config.event.CacheEventDispatcherFactoryConfiguration;
 import org.ehcache.config.executor.PooledExecutionServiceConfiguration;
+import org.ehcache.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
+import org.ehcache.config.store.disk.OffHeapDiskStoreConfiguration;
+import org.ehcache.config.store.disk.OffHeapDiskStoreProviderConfiguration;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
 import org.ehcache.config.xml.ConfigurationParser.Batching;
-import org.ehcache.config.xml.model.EventDispatchType;
+import org.ehcache.config.xml.model.ThreadPoolReferenceType;
 import org.ehcache.config.xml.model.ThreadPoolsType;
 
 /**
@@ -220,10 +223,18 @@ public class XmlConfiguration implements Configuration {
       serviceConfigs.add(poolsConfiguration);
     }
     if (configurationParser.getEventDispatch() != null) {
-      EventDispatchType eventDispatch = configurationParser.getEventDispatch();
-      serviceConfigs.add(new CacheEventDispatcherFactoryConfiguration(eventDispatch.getOrderedExecutor(), eventDispatch.getUnorderedExecutor()));
+      ThreadPoolReferenceType eventDispatchThreading = configurationParser.getEventDispatch();
+      serviceConfigs.add(new CacheEventDispatcherFactoryConfiguration(eventDispatchThreading.getThreadPool()));
     }
-        
+    if (configurationParser.getWriteBehind() != null) {
+      ThreadPoolReferenceType writeBehindThreading = configurationParser.getWriteBehind();
+      serviceConfigs.add(new WriteBehindProviderConfiguration(writeBehindThreading.getThreadPool()));
+    }
+    if (configurationParser.getDiskStore() != null) {
+      ThreadPoolReferenceType diskStoreThreading = configurationParser.getDiskStore();
+      serviceConfigs.add(new OffHeapDiskStoreProviderConfiguration(diskStoreThreading.getThreadPool()));
+    }
+
     for (ServiceCreationConfiguration<?> serviceConfiguration : Collections.unmodifiableList(serviceConfigs)) {
       serviceConfigurations.add(serviceConfiguration);
     }
@@ -274,6 +285,10 @@ public class XmlConfiguration implements Configuration {
         resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool.getType(), resourcePool.getSize(), resourcePool.getUnit(), resourcePool.isPersistent());
       }
       builder = builder.withResourcePools(resourcePoolsBuilder);
+      final ConfigurationParser.DiskStoreSettings parsedDiskStoreSettings = cacheDefinition.diskStoreSettings();
+      if (parsedDiskStoreSettings != null) {
+        builder.add(new OffHeapDiskStoreConfiguration(parsedDiskStoreSettings.threadPool(), parsedDiskStoreSettings.writerConcurrency()));
+      }
       for (ServiceConfiguration<?> serviceConfig : cacheDefinition.serviceConfigs()) {
         builder = builder.add(serviceConfig);
       }
@@ -288,14 +303,13 @@ public class XmlConfiguration implements Configuration {
           } else {
             Batching batching = writeBehind.batching();
             writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder
-                    .newBatchedWriteBehindConfiguration(batching.maxDelay(), batching.maxDelayUnit(), batching.batchSize())
-                    .useScheduledExecutor(batching.scheduledExecutor());
+                    .newBatchedWriteBehindConfiguration(batching.maxDelay(), batching.maxDelayUnit(), batching.batchSize());
             if (batching.isCoalesced()) {
               writeBehindConfigurationBuilder = ((BatchedWriteBehindConfigurationBuilder) writeBehindConfigurationBuilder).enableCoalescing();
             }
           }
           builder = builder.add(writeBehindConfigurationBuilder
-                  .useExecutor(writeBehind.executor())
+                  .useExecutor(writeBehind.threadPool())
                   .concurrencyLevel(writeBehind.concurrency())
                   .queueSize(writeBehind.maxQueueSize()));
         }

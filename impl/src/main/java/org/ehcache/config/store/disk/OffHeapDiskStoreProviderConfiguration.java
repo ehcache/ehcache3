@@ -13,15 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.config.store.disk;
 
-package org.ehcache.internal.store.disk;
-
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.internal.store.disk.OffHeapDiskStore;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 /**
- * @author Chris Dennis
+ *
+ * @author cdennis
  */
-public class OffHeapDiskStoreServiceConfiguration implements ServiceConfiguration<OffHeapDiskStore.Provider> {
+public class OffHeapDiskStoreProviderConfiguration implements ServiceCreationConfiguration<OffHeapDiskStore.Provider> {
+  
+  private final String threadPoolAlias;
+
+  public OffHeapDiskStoreProviderConfiguration(String threadPoolAlias) {
+    this.threadPoolAlias = threadPoolAlias;
+  }
+  
+  public String getThreadPoolAlias() {
+    return threadPoolAlias;
+  }
 
   @Override
   public Class<OffHeapDiskStore.Provider> getServiceType() {

@@ -53,7 +53,6 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
     private int batchSize;
     
     private Boolean coalescing;
-    private String scheduledExecutorAlias;
     
     private BatchedWriteBehindConfigurationBuilder(long maxDelay, TimeUnit maxDelayUnit, int batchSize) {
       this.maxDelay = maxDelay;
@@ -94,12 +93,6 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
       return otherBuilder;
     }
 
-    public BatchedWriteBehindConfigurationBuilder useScheduledExecutor(String alias) {
-      BatchedWriteBehindConfigurationBuilder otherBuilder = new BatchedWriteBehindConfigurationBuilder(this);
-      otherBuilder.scheduledExecutorAlias = alias;
-      return otherBuilder;
-    }
-
     @Override
     public BatchedWriteBehindConfigurationBuilder queueSize(int size) {
       BatchedWriteBehindConfigurationBuilder otherBuilder = new BatchedWriteBehindConfigurationBuilder(this);
@@ -126,9 +119,6 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
       DefaultBatchingConfiguration configuration = new DefaultBatchingConfiguration(maxDelay, maxDelayUnit, batchSize);
       if (coalescing != null) {
         configuration.setCoalescing(coalescing);
-      }
-      if (scheduledExecutorAlias != null) {
-        configuration.setSchedulerAlias(scheduledExecutorAlias);
       }
       return buildOn(new DefaultWriteBehindConfiguration(configuration));
     }

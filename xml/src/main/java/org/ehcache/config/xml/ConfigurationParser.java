@@ -26,10 +26,12 @@ import org.ehcache.config.xml.model.CacheTemplateType;
 import org.ehcache.config.xml.model.CacheType;
 import org.ehcache.config.xml.model.ConfigType;
 import org.ehcache.config.xml.model.CopierType;
+import org.ehcache.config.xml.model.DiskStoreSettingsType;
 import org.ehcache.config.xml.model.EventFiringType;
 import org.ehcache.config.xml.model.EventOrderingType;
 import org.ehcache.config.xml.model.EventType;
 import org.ehcache.config.xml.model.ExpiryType;
+import org.ehcache.config.xml.model.ListenersType;
 import org.ehcache.config.xml.model.PersistableResourceType;
 import org.ehcache.config.xml.model.PersistenceType;
 import org.ehcache.config.xml.model.ResourceType;
@@ -68,7 +70,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import org.ehcache.config.xml.model.EventDispatchType;
+import org.ehcache.config.xml.model.ThreadPoolReferenceType;
 import org.ehcache.config.xml.model.ThreadPoolsType;
 
 /**
@@ -138,8 +140,16 @@ class ConfigurationParser {
     return config.getPersistence();
   }
 
-  public EventDispatchType getEventDispatch() {
+  public ThreadPoolReferenceType getEventDispatch() {
     return config.getEventDispatch();
+  }
+
+  public ThreadPoolReferenceType getWriteBehind() {
+    return config.getWriteBehind();
+  }
+
+  public ThreadPoolReferenceType getDiskStore() {
+    return config.getDiskStore();
   }
 
   public ThreadPoolsType getThreadPools() {
@@ -293,10 +303,10 @@ class ConfigurationParser {
           public Iterable<Listener> listeners() {
             Set<Listener> cacheListenerSet = new HashSet<Listener>();
             for (BaseCacheType source : sources) {
-              final CacheIntegrationType integration = source.getIntegration();
-              final List<CacheIntegrationType.Listener> listeners = integration != null ? integration.getListener() : null;
+              final ListenersType integration = source.getListeners();
+              final List<ListenersType.Listener> listeners = integration != null ? integration.getListener() : null;
               if (listeners != null) {
-                for (final CacheIntegrationType.Listener listener : listeners) {
+                for (final ListenersType.Listener listener : listeners) {
                   cacheListenerSet.add(new Listener() {
                     @Override
                     public String className() {
@@ -380,6 +390,20 @@ class ConfigurationParser {
               }
             }
             return null;
+          }
+
+          @Override
+          public DiskStoreSettings diskStoreSettings() {
+            DiskStoreSettingsType value = null;
+            for (BaseCacheType source : sources) {
+              value = source.getDiskStoreSettings();
+              if (value != null) break;
+            }
+            if (value != null) {
+              return new XmlDiskStoreSettings(value);
+            } else {
+              return null;
+            }
           }
         });
       }
@@ -488,10 +512,10 @@ class ConfigurationParser {
           @Override
           public Iterable<Listener> listeners() {
             Set<Listener> listenerSet = new HashSet<Listener>();
-            final CacheIntegrationType integration = cacheTemplate.getIntegration();
-            final List<CacheIntegrationType.Listener> listeners = integration != null ? integration.getListener(): null;
+            final ListenersType integration = cacheTemplate.getListeners();
+            final List<ListenersType.Listener> listeners = integration != null ? integration.getListener(): null;
             if(listeners != null) {
-              for(final CacheIntegrationType.Listener listener : listeners) {
+              for(final ListenersType.Listener listener : listeners) {
                 listenerSet.add(new Listener() {
                   @Override
                   public String className() {
@@ -568,6 +592,12 @@ class ConfigurationParser {
             final CacheIntegrationType integration = cacheTemplate.getIntegration();
             final CacheIntegrationType.WriteBehind writebehind = integration != null ? integration.getWriteBehind(): null;
             return writebehind != null ? new XmlWriteBehind(writebehind) : null;
+          }
+
+          @Override
+          public DiskStoreSettings diskStoreSettings() {
+            final DiskStoreSettingsType diskStoreSettings = cacheTemplate.getDiskStoreSettings();
+            return diskStoreSettings == null ? null : new XmlDiskStoreSettings(diskStoreSettings);
           }
         });
       }
@@ -648,7 +678,8 @@ class ConfigurationParser {
     Iterable<ResourcePool> resourcePools();
     
     WriteBehind writeBehind();
-
+    
+    DiskStoreSettings diskStoreSettings();
   }
 
   interface CacheDefinition extends CacheTemplate {
@@ -691,7 +722,7 @@ class ConfigurationParser {
     
     int concurrency();
 
-    String executor();
+    String threadPool();
 
     Batching batching();
   }
@@ -705,8 +736,13 @@ class ConfigurationParser {
     long maxDelay();
 
     TimeUnit maxDelayUnit();
+  }
 
-    String scheduledExecutor();
+  interface DiskStoreSettings {
+    
+    int writerConcurrency();
+    
+    String threadPool();
   }
 
   private static class XmlExpiry implements Expiry {
@@ -782,8 +818,8 @@ class ConfigurationParser {
     }
 
     @Override
-    public String executor() {
-      return this.writebehind.getExecutor();
+    public String threadPool() {
+      return this.writebehind.getThreadPool();
     }
 
     @Override
@@ -826,9 +862,24 @@ class ConfigurationParser {
       return convertToJavaTimeUnit(this.batching.getMaxWriteDelay().getUnit());
     }
 
+  }
+
+  private static class XmlDiskStoreSettings implements DiskStoreSettings {
+
+    private final DiskStoreSettingsType diskStoreSettings;
+
+    private XmlDiskStoreSettings(DiskStoreSettingsType diskStoreSettings) {
+      this.diskStoreSettings = diskStoreSettings;
+    }
+
     @Override
-    public String scheduledExecutor() {
-      return this.batching.getScheduledExecutor();
+    public int writerConcurrency() {
+      return this.diskStoreSettings.getWriterThreads().intValue();
+    }
+
+    @Override
+    public String threadPool() {
+      return this.diskStoreSettings.getThreadPool();
     }
 
   }

@@ -16,10 +16,13 @@
 package org.ehcache.loaderwriter.writebehind;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.ehcache.exceptions.BulkCacheWritingException;
 
-import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.service.ExecutionService;
@@ -28,34 +31,34 @@ import org.ehcache.spi.service.ExecutionService;
  * @author Alex Snaps
  *
  */
-public class AggregateWriteBehindQueue<K, V> implements WriteBehind<K, V> {
+public class StripedWriteBehind<K, V> implements WriteBehind<K, V> {
 
   private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
   private final ReentrantReadWriteLock.ReadLock readLock = rwLock.readLock();
   private final ReentrantReadWriteLock.WriteLock writeLock = rwLock.writeLock();
 
-  private final List<WriteBehind<K, V>> queues = new ArrayList<WriteBehind<K, V>>();
+  private final List<WriteBehind<K, V>> stripes = new ArrayList<WriteBehind<K, V>>();
 
-  protected AggregateWriteBehindQueue(ExecutionService executionService, WriteBehindConfiguration config, WriteBehindQueueFactory<K, V> queueFactory, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+  public StripedWriteBehind(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     int writeBehindConcurrency = config.getConcurrency();
     for (int i = 0; i < writeBehindConcurrency; i++) {
-      this.queues.add(queueFactory.createQueue(i, executionService, config, cacheLoaderWriter));
+      if (config.getBatchingConfiguration() == null) {
+        this.stripes.add(new NonBatchingLocalHeapWriteBehindQueue<K, V>(executionService, defaultThreadPool, config, cacheLoaderWriter));
+      } else {
+        this.stripes.add(new BatchingLocalHeapWriteBehindQueue<K, V>(executionService, defaultThreadPool, config, cacheLoaderWriter));
+      }
     }
   }
 
-  public AggregateWriteBehindQueue(ExecutionService executionService, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
-    this(executionService, config, new WriteBehindQueueFactory<K, V>(), cacheLoaderWriter);
-  }
-
-  private WriteBehind<K, V> getQueue(final Object key) {
-    return queues.get(Math.abs(key.hashCode() % queues.size()));
+  private WriteBehind<K, V> getStripe(final Object key) {
+    return stripes.get(Math.abs(key.hashCode() % stripes.size()));
   }
 
   @Override
   public void start() {
     writeLock.lock();
     try {
-      for (WriteBehind<K, V> queue : queues) {
+      for (WriteBehind<K, V> queue : stripes) {
         queue.start();
       }
     } finally {
@@ -68,7 +71,7 @@ public class AggregateWriteBehindQueue<K, V> implements WriteBehind<K, V> {
     V v = null;
     readLock.lock();
     try {
-      v = getQueue(key).load(key);
+      v = getStripe(key).load(key);
     } finally {
       readLock.unlock();
     }
@@ -76,22 +79,45 @@ public class AggregateWriteBehindQueue<K, V> implements WriteBehind<K, V> {
   }
 
   @Override
-  public void write(K key, V value) throws CacheWritingException {
+  public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
+    Map<K, V> entries = new HashMap<K, V>();
+    for (K k : keys) {
+      entries.put(k, load(k)) ; 
+    }
+    return entries;
+  }
+
+  @Override
+  public void write(K key, V value) throws Exception {
     readLock.lock();
     try {
-      getQueue(key).write(key, value);
+      getStripe(key).write(key, value);
     } finally {
       readLock.unlock();
     }
   }
 
   @Override
-  public void delete(K key) throws CacheWritingException {
+  public void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception {
+    for (Entry<? extends K, ? extends V> entry : entries) {
+      write(entry.getKey(), entry.getValue());
+    }
+  }
+
+  @Override
+  public void delete(K key) throws Exception {
     readLock.lock();
     try {
-      getQueue(key).delete(key);
+      getStripe(key).delete(key);
     } finally {
       readLock.unlock();
+    }
+  }
+
+  @Override
+  public void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException, Exception {
+    for (K k : keys) {
+      delete(k);
     }
   }
 
@@ -99,7 +125,7 @@ public class AggregateWriteBehindQueue<K, V> implements WriteBehind<K, V> {
   public void stop() {
     writeLock.lock();
     try {
-      for (WriteBehind<K, V> queue : queues) {
+      for (WriteBehind<K, V> queue : stripes) {
         queue.stop();
       }
     } finally {
@@ -112,31 +138,12 @@ public class AggregateWriteBehindQueue<K, V> implements WriteBehind<K, V> {
     int size = 0;
     readLock.lock();
     try {
-      for (WriteBehind<K, V> queue : queues) {
-        size += queue.getQueueSize();
+      for (WriteBehind<K, V> stripe : stripes) {
+        size += stripe.getQueueSize();
       }
     } finally {
       readLock.unlock();
     }
     return size;
   }
-
-  /**
-   * Factory used to create write behind queues.
-   */
-  protected static class WriteBehindQueueFactory<K, V> {
-    /**
-     * Create a write behind queue stripe.
-     *
-     */
-    protected WriteBehind<K, V> createQueue(int index, ExecutionService executionService, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
-      if (config.getBatchingConfiguration() == null) {
-        return new NonBatchingLocalHeapWriteBehindQueue(executionService, config, cacheLoaderWriter);
-      } else {
-        return new BatchingLocalHeapWriteBehindQueue<K, V>(executionService, config, cacheLoaderWriter);
-      }
-    }
-  }
-
-
 }

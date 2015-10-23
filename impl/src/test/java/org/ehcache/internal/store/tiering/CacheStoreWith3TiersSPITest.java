@@ -137,7 +137,10 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
           ResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
           long diskSize = ((MemoryUnit) diskPool.getUnit()).toBytes(diskPool.getSize());
 
-          OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(persistenceContext, new OnDemandExecutionService(), config, timeSource, diskSize);
+          OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(
+                  persistenceContext,
+                  new OnDemandExecutionService(), null, 1,
+                  config, timeSource, diskSize);
 
           CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(onHeapStore, offHeapStore);
 

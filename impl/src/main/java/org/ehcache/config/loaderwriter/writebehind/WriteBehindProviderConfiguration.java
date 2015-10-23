@@ -13,20 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.config.event;
+package org.ehcache.config.loaderwriter.writebehind;
 
-import org.ehcache.events.CacheEventDispatcherFactory;
+import org.ehcache.spi.loaderwriter.WriteBehindProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 /**
  *
  * @author cdennis
  */
-public class CacheEventDispatcherFactoryConfiguration implements ServiceCreationConfiguration<CacheEventDispatcherFactory> {
+public class WriteBehindProviderConfiguration implements ServiceCreationConfiguration<WriteBehindProvider> {
 
   private final String threadPoolAlias;
-
-  public CacheEventDispatcherFactoryConfiguration(String threadPoolAlias) {
+  
+  public WriteBehindProviderConfiguration(String threadPoolAlias) {
     this.threadPoolAlias = threadPoolAlias;
   }
   
@@ -35,7 +35,7 @@ public class CacheEventDispatcherFactoryConfiguration implements ServiceCreation
   }
   
   @Override
-  public Class<CacheEventDispatcherFactory> getServiceType() {
-    return CacheEventDispatcherFactory.class;
+  public Class<WriteBehindProvider> getServiceType() {
+    return WriteBehindProvider.class;
   }
 }

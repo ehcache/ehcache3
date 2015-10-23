@@ -34,7 +34,7 @@ import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
-import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
+import org.ehcache.spi.loaderwriter.WriteBehindProvider;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
@@ -93,7 +93,7 @@ public class EhcacheManagerTest {
         .withCache("aCache", cacheConfiguration)
         .using(storeProvider)
         .using(mock(CacheLoaderWriterProvider.class))
-        .using(mock(WriteBehindDecoratorLoaderWriterProvider.class))
+        .using(mock(WriteBehindProvider.class))
         .using(cacheEventNotificationListenerServiceProvider)
         .using(mock(CacheEventListenerProvider.class))
         .using(mock(LocalPersistenceService.class))
@@ -134,7 +134,7 @@ public class EhcacheManagerTest {
         .withCache("myCache", mock(CacheConfiguration.class))
         .using(storeProvider)
         .using(mock(CacheLoaderWriterProvider.class))
-        .using(mock(WriteBehindDecoratorLoaderWriterProvider.class))
+        .using(mock(WriteBehindProvider.class))
         .using(mock(CacheEventDispatcherFactory.class))
         .using(mock(CacheEventListenerProvider.class))
         .using(mock(LocalPersistenceService.class))
@@ -333,7 +333,7 @@ public class EhcacheManagerTest {
 
     CacheLoaderWriter fooLoaderWriter = mock(CacheLoaderWriter.class);
     
-    final WriteBehindDecoratorLoaderWriterProvider decoratorLoaderWriterProvider = mock(WriteBehindDecoratorLoaderWriterProvider.class);
+    final WriteBehindProvider decoratorLoaderWriterProvider = mock(WriteBehindProvider.class);
 
     when(cacheLoaderWriterProvider.createCacheLoaderWriter("foo", fooConfig)).thenReturn(fooLoaderWriter);
     
@@ -607,7 +607,7 @@ public class EhcacheManagerTest {
             .buildConfig(Long.class, String.class))
         .using(storeProvider)
         .using(mock(CacheLoaderWriterProvider.class))
-        .using(mock(WriteBehindDecoratorLoaderWriterProvider.class))
+        .using(mock(WriteBehindProvider.class))
         .using(cacheEventNotificationListenerServiceProvider)
         .using(mock(CacheEventListenerProvider.class))
         .using(mock(LocalPersistenceService.class))
@@ -648,7 +648,7 @@ public class EhcacheManagerTest {
             .buildConfig(Long.class, String.class))
         .using(storeProvider)
         .using(mock(CacheLoaderWriterProvider.class))
-        .using(mock(WriteBehindDecoratorLoaderWriterProvider.class))
+        .using(mock(WriteBehindProvider.class))
         .using(cacheEventNotificationListenerServiceProvider)
         .using(mock(CacheEventListenerProvider.class))
         .using(mock(LocalPersistenceService.class))
@@ -669,13 +669,13 @@ public class EhcacheManagerTest {
   }
 
   private Collection<Service> getServices(Store.Provider storeProvider, CacheEventDispatcherFactory cenlProvider) {
-    return getServices(mock(CacheLoaderWriterProvider.class), mock(WriteBehindDecoratorLoaderWriterProvider.class),
+    return getServices(mock(CacheLoaderWriterProvider.class), mock(WriteBehindProvider.class),
         storeProvider != null ? storeProvider : mock(Store.Provider.class),
         cenlProvider != null ? cenlProvider : mock(CacheEventDispatcherFactory.class));
   }
 
   private Collection<Service> getServices(CacheLoaderWriterProvider cacheLoaderWriterProvider,
-                                     WriteBehindDecoratorLoaderWriterProvider decoratorLoaderWriterProvider,
+                                     WriteBehindProvider decoratorLoaderWriterProvider,
                                      Store.Provider storeProvider,
                                      CacheEventDispatcherFactory cenlProvider) {
     return new ArrayList<Service>(Arrays.asList(cacheLoaderWriterProvider, storeProvider, decoratorLoaderWriterProvider, cenlProvider, mock(CacheEventListenerProvider.class)));

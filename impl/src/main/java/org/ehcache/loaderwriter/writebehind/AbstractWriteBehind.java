@@ -15,23 +15,22 @@
  */
 package org.ehcache.loaderwriter.writebehind;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import org.ehcache.exceptions.BulkCacheWritingException;
 
 import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.loaderwriter.writebehind.operations.DeleteOperation;
 import org.ehcache.loaderwriter.writebehind.operations.SingleOperation;
 import org.ehcache.loaderwriter.writebehind.operations.WriteOperation;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V> {
+abstract class AbstractWriteBehind<K, V> implements WriteBehind<K, V> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractWriteBehindQueue.class);
-  
   private final CacheLoaderWriter<K, V> cacheLoaderWriter;
   
-  public AbstractWriteBehindQueue(CacheLoaderWriter<K, V> cacheLoaderWriter) {
+  public AbstractWriteBehind(CacheLoaderWriter<K, V> cacheLoaderWriter) {
     this.cacheLoaderWriter = cacheLoaderWriter;
   }
 
@@ -42,13 +41,36 @@ abstract class AbstractWriteBehindQueue<K, V> implements WriteBehind<K, V> {
   }
 
   @Override
+  public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
+    Map<K, V> entries = new HashMap<K, V>();
+    for (K k : keys) {
+      entries.put(k, load(k)) ; 
+    }
+    return entries;
+  }
+
+  @Override
   public void write(K key, V value) throws CacheWritingException {
     addOperation(new WriteOperation<K, V>(key, value));
   }
 
   @Override
+  public void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception {
+    for (Map.Entry<? extends K, ? extends V> entry : entries) {
+      write(entry.getKey(), entry.getValue());
+    }
+  }
+
+  @Override
   public void delete(K key) throws CacheWritingException {
     addOperation(new DeleteOperation<K, V>(key));
+  }
+
+  @Override
+  public void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException, Exception {
+    for (K k : keys) {
+      delete(k);
+    }
   }
 
   protected abstract SingleOperation<K, V> getOperation(K key);

@@ -55,7 +55,7 @@ import static org.ehcache.internal.executor.ExecutorUtil.waitFor;
  *
  * @author cdennis
  */
-public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehindQueue<K, V> {
+public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind<K, V> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(BatchingLocalHeapWriteBehindQueue.class);
 
@@ -73,7 +73,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
 
   private Batch openBatch;
   
-  public BatchingLocalHeapWriteBehindQueue(ExecutionService executionService, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+  public BatchingLocalHeapWriteBehindQueue(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     super(cacheLoaderWriter);
     this.cacheLoaderWriter = cacheLoaderWriter;
     BatchingConfiguration batchingConfig = config.getBatchingConfiguration();
@@ -81,8 +81,16 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
     this.batchSize = batchingConfig.getBatchSize();
     this.coalescing = batchingConfig.isCoalescing();
     this.executorQueue = new LinkedBlockingQueue<Runnable>(config.getMaxQueueSize() / batchSize);
-    this.executor = executionService.getOrderedExecutor(config.getExecutorAlias(), executorQueue);
-    this.scheduledExecutor = executionService.getScheduledExecutor(batchingConfig.getSchedulerAlias());
+    if (config.getThreadPoolAlias() == null) {
+      this.executor = executionService.getOrderedExecutor(defaultThreadPool, executorQueue);
+    } else {
+      this.executor = executionService.getOrderedExecutor(config.getThreadPoolAlias(), executorQueue);
+    }
+    if (config.getThreadPoolAlias() == null) {
+      this.scheduledExecutor = executionService.getScheduledExecutor(defaultThreadPool);
+    } else {
+      this.scheduledExecutor = executionService.getScheduledExecutor(config.getThreadPoolAlias());
+    }
   }
 
   @Override

@@ -38,7 +38,7 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
-import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
+import org.ehcache.spi.loaderwriter.WriteBehindProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
@@ -76,7 +76,7 @@ public class EhcacheManager implements PersistentCacheManager {
 
   @ServiceDependencies({ Store.Provider.class,
       CacheLoaderWriterProvider.class,
-      WriteBehindDecoratorLoaderWriterProvider.class,
+      WriteBehindProvider.class,
       CacheEventDispatcherFactory.class,
       CacheEventListenerProvider.class })
   private static class ServiceDeps {
@@ -345,20 +345,19 @@ public class EhcacheManager implements PersistentCacheManager {
     if(cacheLoaderWriterProvider != null) {
       loaderWriter = cacheLoaderWriterProvider.createCacheLoaderWriter(alias, config);
       WriteBehindConfiguration writeBehindConfiguration = ServiceLocator.findSingletonAmongst(WriteBehindConfiguration.class, config.getServiceConfigurations().toArray());
-      if(writeBehindConfiguration != null) {
-        final WriteBehindDecoratorLoaderWriterProvider factory = serviceLocator.getService(WriteBehindDecoratorLoaderWriterProvider.class);
-        decorator = factory.createWriteBehindDecoratorLoaderWriter((CacheLoaderWriter<K, V>)loaderWriter, writeBehindConfiguration);
+      if(writeBehindConfiguration == null) {
+        decorator = loaderWriter;
+      } else {
+        final WriteBehindProvider factory = serviceLocator.getService(WriteBehindProvider.class);
+        decorator = factory.createWriteBehindLoaderWriter(loaderWriter, writeBehindConfiguration);
         if(decorator != null) {
           lifeCycledList.add(new LifeCycledAdapter() {
             @Override
             public void close() {
-              factory.releaseWriteBehindDecoratorCacheLoaderWriter(decorator);
+              factory.releaseWriteBehindLoaderWriter(decorator);
             }
           });
         }
-      }
-      else {
-        decorator = loaderWriter;
       }
       
       if (loaderWriter != null) {

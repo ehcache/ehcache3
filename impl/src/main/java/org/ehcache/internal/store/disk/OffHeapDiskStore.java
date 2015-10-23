@@ -67,6 +67,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import org.ehcache.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.internal.store.offheap.AbstractOffHeapStore;
 import org.ehcache.internal.store.offheap.EhcacheOffHeapBackingMap;
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
@@ -89,13 +90,20 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   private final long sizeInBytes;
   private final FileBasedPersistenceContext fileBasedPersistenceContext;
   private final ExecutionService executionService;
+  private final String threadPoolAlias;
+  private final int writerConcurrency;
   
   private volatile EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
 
-  public OffHeapDiskStore(FileBasedPersistenceContext fileBasedPersistenceContext, ExecutionService executionService, final Configuration<K, V> config, TimeSource timeSource, long sizeInBytes) {
+  public OffHeapDiskStore(FileBasedPersistenceContext fileBasedPersistenceContext,
+          ExecutionService executionService, String threadPoolAlias, int writerConcurrency,
+          final Configuration<K, V> config, TimeSource timeSource, long sizeInBytes) {
     super("local-disk", config, timeSource);
     this.fileBasedPersistenceContext = fileBasedPersistenceContext;
     this.executionService = executionService;
+    this.threadPoolAlias = threadPoolAlias;
+    this.writerConcurrency = writerConcurrency;
+
     EvictionVeto<? super K, ? super V> veto = config.getEvictionVeto();
     if (veto != null) {
       evictionVeto = wrap(veto, timeSource);
@@ -157,7 +165,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       try {
         PersistentPortability<K> keyPortability = persistent(new SerializerPortability<K>(keySerializer));
         PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<V>(valueSerializer));
-        DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, null, 1);
+        DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
 
         Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
                 keyPortability, elementPortability, writeWorkers, false);
@@ -198,7 +206,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
     PersistentPortability<K> keyPortability = persistent(new SerializerPortability<K>(keySerializer));
     PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<V>(valueSerializer));
-    DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, null, 1);
+    DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
 
     Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
         keyPortability, elementPortability, writeWorkers, true);
@@ -230,8 +238,17 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class, ExecutionService.class})
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
-    private volatile ServiceProvider serviceProvider;
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
+    private final String defaultThreadPool;
+    private volatile ServiceProvider serviceProvider;
+
+    public Provider() {
+      this(null);
+    }
+
+    public Provider(String threadPoolAlias) {
+      this.defaultThreadPool = threadPoolAlias;
+    }
 
     @Override
     public <K, V> OffHeapDiskStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
@@ -241,23 +258,34 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
       ExecutionService executionService = serviceProvider.getService(ExecutionService.class);
 
-      ResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
-      if (!(offHeapPool.getUnit() instanceof MemoryUnit)) {
+      ResourcePool diskPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
+      if (!(diskPool.getUnit() instanceof MemoryUnit)) {
         throw new IllegalArgumentException("OffHeapDiskStore only supports resources configuration expressed in \"memory\" unit");
       }
-      MemoryUnit unit = (MemoryUnit)offHeapPool.getUnit();
+      MemoryUnit unit = (MemoryUnit)diskPool.getUnit();
 
       LocalPersistenceService localPersistenceService = serviceProvider.getService(LocalPersistenceService.class);
       if (localPersistenceService == null) {
         throw new IllegalStateException("No LocalPersistenceService could be found - did you configure it at the CacheManager level?");
       }
 
+      String threadPoolAlias;
+      int writerConcurrency;
+      OffHeapDiskStoreConfiguration config = findSingletonAmongst(OffHeapDiskStoreConfiguration.class, serviceConfigs);
+      if (config == null) {
+        threadPoolAlias = defaultThreadPool;
+        writerConcurrency = 1;
+      } else {
+        threadPoolAlias = config.getThreadPoolAlias();
+        writerConcurrency = config.getWriterConcurrency();
+      }
       PersistenceSpaceIdentifier space = findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) serviceConfigs);
       try {
         FileBasedPersistenceContext persistenceContext = localPersistenceService.createPersistenceContextWithin(space , "offheap-disk-store");
 
-        OffHeapDiskStore<K, V> offHeapStore = new OffHeapDiskStore<K, V>(persistenceContext, executionService, storeConfig, timeSource, unit
-            .toBytes(offHeapPool.getSize()));
+        OffHeapDiskStore<K, V> offHeapStore = new OffHeapDiskStore<K, V>(persistenceContext,
+                executionService, threadPoolAlias, writerConcurrency,
+                storeConfig, timeSource, unit.toBytes(diskPool.getSize()));
         createdStores.add(offHeapStore);
         return offHeapStore;
       } catch (CachePersistenceException cpex) {

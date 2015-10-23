@@ -35,7 +35,7 @@ import static org.ehcache.internal.executor.ExecutorUtil.shutdown;
  *
  * @author cdennis
  */
-public class NonBatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehindQueue<K, V> {
+public class NonBatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind<K, V> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(NonBatchingLocalHeapWriteBehindQueue.class);
 
@@ -44,11 +44,15 @@ public class NonBatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBeh
   private final BlockingQueue<Runnable> executorQueue;
   private final ExecutorService executor;
   
-  public NonBatchingLocalHeapWriteBehindQueue(ExecutionService executionService, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+  public NonBatchingLocalHeapWriteBehindQueue(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     super(cacheLoaderWriter);
     this.cacheLoaderWriter = cacheLoaderWriter;
     this.executorQueue = new LinkedBlockingQueue<Runnable>(config.getMaxQueueSize());
-    this.executor = executionService.getOrderedExecutor(config.getExecutorAlias(), executorQueue);
+    if (config.getThreadPoolAlias() == null) {
+      this.executor = executionService.getOrderedExecutor(defaultThreadPool, executorQueue);
+    } else {
+      this.executor = executionService.getOrderedExecutor(config.getThreadPoolAlias(), executorQueue);
+    }
   }
 
   @Override

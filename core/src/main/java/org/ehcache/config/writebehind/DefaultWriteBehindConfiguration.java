@@ -16,7 +16,7 @@
 package org.ehcache.config.writebehind;
 
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
-import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
+import org.ehcache.spi.loaderwriter.WriteBehindProvider;
 
 /**
  * @author Geert Bevin
@@ -46,7 +46,7 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
   }
 
   @Override
-  public String getExecutorAlias() {
+  public String getThreadPoolAlias() {
     return executorAlias;
   }
 
@@ -74,8 +74,8 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
   }
 
   @Override
-  public Class<WriteBehindDecoratorLoaderWriterProvider> getServiceType() {
-    return WriteBehindDecoratorLoaderWriterProvider.class;
+  public Class<WriteBehindProvider> getServiceType() {
+    return WriteBehindProvider.class;
   }
   
 }

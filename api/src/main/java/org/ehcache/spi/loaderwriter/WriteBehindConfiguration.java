@@ -22,7 +22,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 /**
  * WriteBehindConfiguration
  */
-public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehindDecoratorLoaderWriterProvider> {
+public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehindProvider> {
   /**
    * A number of bucket/thread pairs configured for this cache's write behind.
    *
@@ -49,9 +49,9 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
   /**
    * Returns the alias of the thread resource pool to use for write behind task execution.
    * 
-   * @return the execution thread pool alias
+   * @return the thread pool alias
    */
-  String getExecutorAlias();
+  String getThreadPoolAlias();
 
   /**
    * BatchingConfiguration
@@ -88,12 +88,5 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
      * @return Retrieves the write coalescing behavior is enabled or not
      */
     boolean isCoalescing();
-
-    /**
-     * Returns the alias of the thread resource pool to use for scheduling delayed batches
-     * 
-     * @return the batch schedule execution alias
-     */
-    public String getSchedulerAlias();
   }
 }

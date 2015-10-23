@@ -20,7 +20,7 @@ import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
-import org.ehcache.loaderwriter.writebehind.WriteBehindDecoratorLoaderWriterProviderFactory;
+import org.ehcache.loaderwriter.writebehind.WriteBehindProviderFactory;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -40,7 +40,7 @@ import static org.junit.Assert.assertThat;
 /**
  * @author rism
  */
-public class WriteBehindDecoratorLoaderWriterProviderFactoryTest {
+public class WriteBehindProviderFactoryTest {
   
   @Rule
   public ExpectedException expectedEx = ExpectedException.none();
@@ -71,10 +71,10 @@ public class WriteBehindDecoratorLoaderWriterProviderFactoryTest {
   @Test
   public void testWriteBehindWithoutCacheLoaderWriter() {
     expectedEx.expect(NullPointerException.class);
-    expectedEx.expectMessage("WriteBehind requires non null CacheLoaderWriter");
+    expectedEx.expectMessage("WriteBehind requires a non null CacheLoaderWriter");
 
-    WriteBehindDecoratorLoaderWriterProviderFactory factory = new WriteBehindDecoratorLoaderWriterProviderFactory();
-    factory.create(null).createWriteBehindDecoratorLoaderWriter(null, null);
+    WriteBehindProviderFactory factory = new WriteBehindProviderFactory();
+    factory.create(null).createWriteBehindLoaderWriter(null, null);
   }
 
   public static class SampleLoaderWriter<K, V> implements CacheLoaderWriter<K, V> {

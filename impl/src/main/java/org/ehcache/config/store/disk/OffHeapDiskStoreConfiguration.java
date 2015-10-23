@@ -13,29 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.config.event;
+package org.ehcache.config.store.disk;
 
-import org.ehcache.events.CacheEventDispatcherFactory;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.internal.store.disk.OffHeapDiskStore;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  *
  * @author cdennis
  */
-public class CacheEventDispatcherFactoryConfiguration implements ServiceCreationConfiguration<CacheEventDispatcherFactory> {
+public class OffHeapDiskStoreConfiguration implements ServiceConfiguration<OffHeapDiskStore.Provider> {
 
   private final String threadPoolAlias;
+  private final int writerConcurrency;
 
-  public CacheEventDispatcherFactoryConfiguration(String threadPoolAlias) {
+  public OffHeapDiskStoreConfiguration(String threadPoolAlias, int writerConcurrency) {
     this.threadPoolAlias = threadPoolAlias;
+    this.writerConcurrency = writerConcurrency;
   }
-  
+
   public String getThreadPoolAlias() {
     return threadPoolAlias;
   }
-  
+
+  public int getWriterConcurrency() {
+    return writerConcurrency;
+  }
+
   @Override
-  public Class<CacheEventDispatcherFactory> getServiceType() {
-    return CacheEventDispatcherFactory.class;
+  public Class<OffHeapDiskStore.Provider> getServiceType() {
+    return OffHeapDiskStore.Provider.class;
   }
 }

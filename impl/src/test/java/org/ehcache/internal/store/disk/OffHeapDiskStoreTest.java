@@ -81,7 +81,10 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
       StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, null, classLoader, expiry, null, keySerializer, valueSerializer);
-      OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<String, String>(getPersistenceContext(), new OnDemandExecutionService(), storeConfiguration, timeSource, MemoryUnit.MB.toBytes(1));
+      OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<String, String>(
+              getPersistenceContext(),
+              new OnDemandExecutionService(), null, 1,
+              storeConfiguration, timeSource, MemoryUnit.MB.toBytes(1));
       OffHeapDiskStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {
@@ -98,7 +101,10 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
       StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class, evictionVeto, null, getClass().getClassLoader(), expiry, null, keySerializer, valueSerializer);
-      OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<String, byte[]>(getPersistenceContext(), new OnDemandExecutionService(), storeConfiguration, timeSource, MemoryUnit.MB.toBytes(1));
+      OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<String, byte[]>(
+              getPersistenceContext(),
+              new OnDemandExecutionService(), null, 1,
+              storeConfiguration, timeSource, MemoryUnit.MB.toBytes(1));
       OffHeapDiskStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {

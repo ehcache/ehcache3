@@ -37,8 +37,7 @@ import static org.ehcache.internal.executor.ExecutorUtil.shutdown;
 @ServiceDependencies(ExecutionService.class)
 public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFactory {
 
-  private final String orderedExecutorAlias;
-  private final String unorderedExecutorAlias;
+  private final String threadPoolAlias;
   
   private volatile ExecutionService executionService;
   
@@ -46,13 +45,11 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
   private volatile ExecutorService unorderedExecutor;
 
   public CacheEventDispatcherFactoryImpl() {
-    this.orderedExecutorAlias = null;
-    this.unorderedExecutorAlias = null;
+    this.threadPoolAlias = null;
   }
   
   public CacheEventDispatcherFactoryImpl(CacheEventDispatcherFactoryConfiguration configuration) {
-    this.orderedExecutorAlias = configuration.getOrderedExecutorAlias();
-    this.unorderedExecutorAlias = configuration.getUnorderedExecutorAlias();
+    this.threadPoolAlias = configuration.getThreadPoolAlias();
   }
 
   @Override
@@ -93,14 +90,14 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
 
   private synchronized ExecutorService getOrderedExecutor() {
     if (orderedExecutor == null) {
-      orderedExecutor = executionService.getOrderedExecutor(orderedExecutorAlias, new LinkedBlockingQueue<Runnable>());
+      orderedExecutor = executionService.getOrderedExecutor(threadPoolAlias, new LinkedBlockingQueue<Runnable>());
     }
     return orderedExecutor;
   }
 
   private synchronized ExecutorService getUnorderedExecutor() {
     if (unorderedExecutor == null) {
-      unorderedExecutor = executionService.getUnorderedExecutor(unorderedExecutorAlias, new LinkedBlockingQueue<Runnable>());
+      unorderedExecutor = executionService.getUnorderedExecutor(threadPoolAlias, new LinkedBlockingQueue<Runnable>());
     }
     return unorderedExecutor;
   }
