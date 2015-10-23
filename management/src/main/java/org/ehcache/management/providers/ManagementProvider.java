@@ -15,6 +15,8 @@
  */
 package org.ehcache.management.providers;
 
+import org.ehcache.management.Context;
+import org.ehcache.management.Parameter;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.capabilities.context.CapabilityContext;
 import org.terracotta.management.capabilities.descriptors.Descriptor;
@@ -22,7 +24,6 @@ import org.terracotta.management.stats.Statistic;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Interface to a provider of management capabilities for certain object class.
@@ -81,20 +82,21 @@ public interface ManagementProvider<T> {
    *
    * @param context the context.
    * @param statisticNames the statistic names to collect.
-   * @return the statistic values.
+   * @param since The unix time in ms from where to return the statistics for statistics based on samples.
+   * @return the statistic map, the key being the statistic namesø.
    */
-  <T extends Statistic<?>> Collection<T> collectStatistics(Map<String, String> context, String... statisticNames);
+  Map<String, Statistic<?, ?>> collectStatistics(Context context, Collection<String> statisticNames, long since);
 
   /**
    * Call an action, if the provider supports this.
    *
    * @param context the context.
    * @param methodName the method name.
-   * @param argClassNames the class names of the method arguments.
-   * @param args the method arguments.
+   * @param parameters the action method's parameters (objects and class names)
+   * @param returnType The expected return type
    * @return the action's return value.
    */
-  Object callAction(Map<String, String> context, String methodName, String[] argClassNames, Object[] args);
+  <T> T callAction(Context context, String methodName, Class<T> returnType, Parameter... parameters);
 
   /**
    * Check wheter this management provider supports the given context
@@ -102,7 +104,7 @@ public interface ManagementProvider<T> {
    * @param context The management context, passed from the {@link org.ehcache.management.ManagementRegistry} methods
    * @return true if the context is supported by this management provider
    */
-  boolean supports(Map<String, String> context);
+  boolean supports(Context context);
 
   /**
    * Closes the management provider. Called when cache manager is closing.

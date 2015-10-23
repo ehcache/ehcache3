@@ -15,6 +15,7 @@
  */
 package org.ehcache.management.providers.statistics;
 
+import org.ehcache.management.Context;
 import org.ehcache.management.annotations.Named;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.CacheBindingManagementProviderSkeleton;
@@ -27,7 +28,9 @@ import org.terracotta.management.stats.Statistic;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
@@ -75,12 +78,12 @@ public class EhcacheStatisticsProvider extends CacheBindingManagementProviderSke
   }
 
   @Override
-  public <T extends Statistic<?>> Collection<T> collectStatistics(Map<String, String> context, String... statisticNames) {
-    Collection<T> statistics = new ArrayList<T>();
+  public Map<String, Statistic<?, ?>> collectStatistics(Context context, Collection<String> statisticNames, long since) {
+    Map<String, Statistic<?, ?>> statistics = new HashMap<String, Statistic<?, ?>>(statisticNames.size());
     Map.Entry<CacheBinding, EhcacheStatistics> entry = findManagedObject(context);
     if (entry != null) {
       for (String statisticName : statisticNames) {
-        statistics.addAll(entry.getValue().<T>queryStatistic(statisticName));
+        statistics.putAll(entry.getValue().queryStatistic(statisticName, since));
       }
     }
     return statistics;

@@ -52,7 +52,6 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.util.ClassLoading;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.statistics.StatisticsManager;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -99,7 +98,6 @@ public class EhcacheManager implements PersistentCacheManager {
   private final ClassLoader cacheManagerClassLoader;
 
   private final CopyOnWriteArrayList<CacheManagerListener> listeners = new CopyOnWriteArrayList<CacheManagerListener>();
-  private final StatisticsManager statisticsManager = new StatisticsManager();
 
   public EhcacheManager(Configuration config) {
     this(config, Collections.<Service>emptyList(), true);
@@ -113,10 +111,6 @@ public class EhcacheManager implements PersistentCacheManager {
     this.useLoaderInAtomics = useLoaderInAtomics;
     this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
     this.configuration = new DefaultConfiguration(config);
-  }
-
-  public StatisticsManager getStatisticsManager() {
-    return statisticsManager;
   }
 
   @Override
@@ -452,8 +446,6 @@ public class EhcacheManager implements PersistentCacheManager {
         throw st.failed(e);
       }
 
-      statisticsManager.root(this);
-
       Deque<String> initiatedCaches = new ArrayDeque<String>();
       try {
         for (Entry<String, CacheConfiguration<?, ?>> cacheConfigurationEntry : configuration.getCacheConfigurations()
@@ -506,8 +498,6 @@ public class EhcacheManager implements PersistentCacheManager {
           }
         }
       }
-
-      statisticsManager.uproot(this);
 
       serviceLocator.stopAllServices();
     } catch (Exception e) {

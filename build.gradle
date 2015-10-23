@@ -17,7 +17,7 @@
 ext {
   baseVersion = '3.0.0-SNAPSHOT'
   offheapVersion = '2.1.1'
-  managementVersion = '0.2.0'
+  managementVersion = '1.0.0'
   statisticVersion = '1.1.0'
   jcacheVersion = '1.0.0'
   slf4jVersion = '1.7.7'
