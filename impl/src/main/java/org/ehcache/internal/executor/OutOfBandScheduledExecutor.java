@@ -15,6 +15,7 @@
  */
 package org.ehcache.internal.executor;
 
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.ExecutionException;
@@ -45,6 +46,10 @@ class OutOfBandScheduledExecutor {
       return new OutOfBandRsf(((ExecutorCarrier) r).executor(), rsf);
     }
   };
+  
+  public BlockingQueue<Runnable> getQueue() {
+    return scheduler.getQueue();
+  }
   
   public ScheduledFuture<?> schedule(ExecutorService using, Runnable command,
                                      long delay, TimeUnit unit) {
@@ -127,6 +132,10 @@ class OutOfBandScheduledExecutor {
     OutOfBandRsf(ExecutorService worker, RunnableScheduledFuture<T> original) {
       this.worker = worker;
       this.delegate = original;
+    }
+
+    public ExecutorService getExecutor() {
+      return worker;
     }
 
     @Override

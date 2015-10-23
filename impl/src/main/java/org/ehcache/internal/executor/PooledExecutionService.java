@@ -64,7 +64,7 @@ public class PooledExecutionService implements ExecutionService {
       if (executor == null) {
         throw new IllegalStateException("Pool '" + poolAlias + "' is not in the set of available pools " + pools.keySet());
       } else {
-        return new PartitionedScheduledExecutor(scheduledExecutor, executor);
+        return new PartitionedScheduledExecutor(scheduledExecutor, getUnorderedExecutor(poolAlias, new LinkedBlockingQueue<Runnable>()));
       }
     } else {
       throw new IllegalStateException("Service cannot be used, it isn't running");
