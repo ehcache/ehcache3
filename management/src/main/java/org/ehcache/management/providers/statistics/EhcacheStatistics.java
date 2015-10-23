@@ -55,7 +55,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import static org.terracotta.context.query.Matchers.attributes;
 import static org.terracotta.context.query.Matchers.context;
@@ -101,7 +100,7 @@ class EhcacheStatistics {
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends Statistic<?>> Collection<T> queryStatistic(String statisticName) {
+  public Collection<? extends Statistic<?>> queryStatistic(String statisticName) {
     Collection<ExposedStatistic> registrations = statisticsRegistry.getRegistrations();
     for (ExposedStatistic registration : registrations) {
       Object type = registration.getProperties().get("type");
@@ -112,19 +111,19 @@ class EhcacheStatistics {
 
         if ((name + "Count").equals(statisticName)) {
           SampledStatistic<Long> count = result.count();
-          return (Collection<T>) Collections.singleton(new SampledCounter(statisticName, buildSamples(count)));
+          return Collections.singleton(new SampledCounter(statisticName, buildSamples(count)));
         } else if ((name + "Rate").equals(statisticName)) {
           SampledStatistic<Double> rate = result.rate();
-          return (Collection<T>) Collections.singleton(new SampledRate(statisticName, buildSamples(rate), configuration.historyIntervalUnit()));
+          return Collections.singleton(new SampledRate(statisticName, buildSamples(rate), configuration.historyIntervalUnit()));
         } else if ((name + "LatencyMinimum").equals(statisticName)) {
           SampledStatistic<Long> minimum = result.latency().minimum();
-          return (Collection<T>) Collections.singleton(new SampledDuration(statisticName, buildSamples(minimum), configuration.historyIntervalUnit()));
+          return Collections.singleton(new SampledDuration(statisticName, buildSamples(minimum), configuration.historyIntervalUnit()));
         } else if ((name + "LatencyMaximum").equals(statisticName)) {
           SampledStatistic<Long> maximum = result.latency().maximum();
-          return (Collection<T>) Collections.singleton(new SampledDuration(statisticName, buildSamples(maximum), configuration.historyIntervalUnit()));
+          return Collections.singleton(new SampledDuration(statisticName, buildSamples(maximum), configuration.historyIntervalUnit()));
         } else if ((name + "LatencyAverage").equals(statisticName)) {
           SampledStatistic<Double> average = result.latency().average();
-          return (Collection<T>) Collections.singleton(new SampledRatio(statisticName, buildSamples(average)));
+          return Collections.singleton(new SampledRatio(statisticName, buildSamples(average)));
         } else if (name.equals(statisticName)) {
           Collection<Statistic<?>> resultStats = new ArrayList<Statistic<?>>();
           resultStats.add(new SampledCounter(statisticName + "Count", buildSamples(result.count())));
@@ -132,12 +131,12 @@ class EhcacheStatistics {
           resultStats.add(new SampledDuration(statisticName + "LatencyMinimum", buildSamples(result.latency().minimum()), configuration.historyIntervalUnit()));
           resultStats.add(new SampledDuration(statisticName + "LatencyMaximum", buildSamples(result.latency().maximum()), configuration.historyIntervalUnit()));
           resultStats.add(new SampledRatio(statisticName + "LatencyAverage", buildSamples(result.latency().average())));
-          return (Collection<T>) resultStats;
+          return resultStats;
         }
       } else if ("Ratio".equals(type)) {
         if ((name + "Ratio").equals(statisticName)) {
           SampledStatistic<Double> ratio = (SampledStatistic) registration.getStat();
-          return (Collection<T>) Collections.singleton(new SampledRatio(statisticName, buildSamples(ratio)));
+          return Collections.singleton(new SampledRatio(statisticName, buildSamples(ratio)));
         }
       }
     }

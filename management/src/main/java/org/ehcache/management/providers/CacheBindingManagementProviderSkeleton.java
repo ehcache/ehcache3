@@ -18,7 +18,6 @@ package org.ehcache.management.providers;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.management.annotations.Named;
 import org.ehcache.management.registry.CacheBinding;
-import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.capabilities.context.CapabilityContext;
 import org.terracotta.management.capabilities.descriptors.Descriptor;
@@ -108,7 +107,7 @@ public abstract class CacheBindingManagementProviderSkeleton<V> implements Manag
   }
 
   @Override
-  public <T extends Statistic<?>> Collection<T> collectStatistics(Map<String, String> context, String[] statisticNames) {
+  public Collection<Statistic<?>> collectStatistics(Map<String, String> context, String[] statisticNames) {
     throw new UnsupportedOperationException("Not a statistics provider : " + getCapabilityName());
   }
 

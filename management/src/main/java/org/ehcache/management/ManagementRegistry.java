@@ -92,7 +92,7 @@ public interface ManagementRegistry extends Service {
    * @param statisticNames the statistic names.
    * @return a collection of statistics.
    */
-  <T extends Statistic<?>> Collection<T> collectStatistics(Map<String, String> context, String capabilityName, String... statisticNames);
+  Collection<Statistic<?>> collectStatistics(Map<String, String> context, String capabilityName, String... statisticNames);
 
   /**
    * Collect statistics from a managed object's capability and several contexts at once.
@@ -102,7 +102,7 @@ public interface ManagementRegistry extends Service {
    * @param statisticNames the statistic names.
    * @return a list of collection of statistics, in the same order and index of the context list
    */
-  <T extends Statistic<?>> List<Collection<T>> collectStatistics(List<Map<String, String>> contextList, String capabilityName, String... statisticNames);
+  List<Collection<Statistic<?>>> collectStatistics(List<Map<String, String>> contextList, String capabilityName, String... statisticNames);
 
   /**
    * Call an action of a managed object's capability.
@@ -112,9 +112,8 @@ public interface ManagementRegistry extends Service {
    * @param methodName the action's method name.
    * @param argClassNames the action method's argument class names.
    * @param args the action method's arguments.
-   * @param <T> the returned type.
    * @return the action method's return value.
    */
-  <T> T callAction(Map<String, String> context, String capabilityName, String methodName, String[] argClassNames, Object[] args);
+  Object callAction(Map<String, String> context, String capabilityName, String methodName, String[] argClassNames, Object[] args);
 
 }

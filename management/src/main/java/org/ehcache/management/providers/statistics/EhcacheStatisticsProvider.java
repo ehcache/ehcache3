@@ -75,12 +75,12 @@ public class EhcacheStatisticsProvider extends CacheBindingManagementProviderSke
   }
 
   @Override
-  public <T extends Statistic<?>> Collection<T> collectStatistics(Map<String, String> context, String... statisticNames) {
-    Collection<T> statistics = new ArrayList<T>();
+  public Collection<Statistic<?>> collectStatistics(Map<String, String> context, String... statisticNames) {
+    Collection<Statistic<?>> statistics = new ArrayList<Statistic<?>>();
     Map.Entry<CacheBinding, EhcacheStatistics> entry = findManagedObject(context);
     if (entry != null) {
       for (String statisticName : statisticNames) {
-        statistics.addAll(entry.getValue().<T>queryStatistic(statisticName));
+        statistics.addAll(entry.getValue().queryStatistic(statisticName));
       }
     }
     return statistics;

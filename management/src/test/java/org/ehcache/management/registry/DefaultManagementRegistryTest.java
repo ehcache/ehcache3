@@ -25,7 +25,7 @@ import org.ehcache.management.ManagementRegistry;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.terracotta.management.capabilities.Capability;
-import org.terracotta.management.stats.primitive.Counter;
+import org.terracotta.management.stats.Statistic;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -121,18 +121,18 @@ public class DefaultManagementRegistryTest {
     cacheManager1.getCache("aCache2", Long.class, String.class).put(4L, "4");
     cacheManager1.getCache("aCache2", Long.class, String.class).put(5L, "5");
 
-    Collection<Counter> counters = managementRegistry.collectStatistics(context1, "StatisticsCapability", "PutCounter");
+    Collection<Statistic<?>> counters = managementRegistry.collectStatistics(context1, "StatisticsCapability", "PutCounter");
 
     assertThat(counters, hasSize(1));
-    assertThat(counters.iterator().next().getValue(), equalTo(2L));
+    assertThat((Long) counters.iterator().next().getValue(), equalTo(2L));
 
-    List<Collection<Counter>> allCounters = managementRegistry.collectStatistics(Arrays.asList(context1, context2), "StatisticsCapability", "PutCounter");
+    List<Collection<Statistic<?>>> allCounters = managementRegistry.collectStatistics(Arrays.asList(context1, context2), "StatisticsCapability", "PutCounter");
 
     assertThat(allCounters, hasSize(2));
     assertThat(allCounters.get(0), hasSize(1));
     assertThat(allCounters.get(1), hasSize(1));
-    assertThat(allCounters.get(0).iterator().next().getValue(), equalTo(2L));
-    assertThat(allCounters.get(1).iterator().next().getValue(), equalTo(3L));
+    assertThat((Long) allCounters.get(0).iterator().next().getValue(), equalTo(2L));
+    assertThat((Long) allCounters.get(1).iterator().next().getValue(), equalTo(3L));
 
     cacheManager1.close();
   }

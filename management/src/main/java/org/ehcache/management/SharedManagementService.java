@@ -56,7 +56,7 @@ public interface SharedManagementService extends Service {
    * @param statisticNames the statistic names.
    * @return a list of collection of statistics, with the same order and indexes of the context list
    */
-  <T extends Statistic<?>> List<Collection<T>> collectStatistics(List<Map<String, String>> contextList, String capabilityName, String... statisticNames);
+  List<Collection<Statistic<?>>> collectStatistics(List<Map<String, String>> contextList, String capabilityName, String... statisticNames);
 
   /**
    * Call an action on several managed object's capability, based on the contexts.
@@ -66,9 +66,8 @@ public interface SharedManagementService extends Service {
    * @param methodName     the action's method name.
    * @param argClassNames  the action method's argument class names.
    * @param args           the action method's arguments.
-   * @param <T>            the returned type.
    * @return the list of action method's return value for each context passed, in same order and with same indexes.
    */
-  <T> List<T> callAction(List<Map<String, String>> contextList, String capabilityName, String methodName, String[] argClassNames, Object[] args);
+  List<Object> callAction(List<Map<String, String>> contextList, String capabilityName, String methodName, String[] argClassNames, Object[] args);
 
 }

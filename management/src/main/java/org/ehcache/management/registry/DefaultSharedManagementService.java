@@ -99,40 +99,40 @@ public class DefaultSharedManagementService implements SharedManagementService {
   }
 
   @Override
-  public <T extends Statistic<?>> List<Collection<T>> collectStatistics(List<Map<String, String>> contextList, String capabilityName, String... statisticNames) {
+  public List<Collection<Statistic<?>>> collectStatistics(List<Map<String, String>> contextList, String capabilityName, String... statisticNames) {
     // pre-validation
     for (Map<String, String> ctx : contextList) {
       if (ctx.get("cacheManagerName") == null) {
         throw new IllegalArgumentException("Missing cache manager name from context : " + ctx + " in context list " + contextList);
       }
     }
-    List<Collection<T>> statistics = new ArrayList<Collection<T>>(contextList.size());
+    List<Collection<Statistic<?>>> statistics = new ArrayList<Collection<Statistic<?>>>(contextList.size());
     for (Map<String, String> context : contextList) {
       ManagementRegistry registry = delegates.get(context.get("cacheManagerName"));
       if (registry == null) {
-        statistics.add(Collections.<T>emptyList());
+        statistics.add(Collections.<Statistic<?>>emptyList());
       } else {
-        statistics.add(registry.<T>collectStatistics(context, capabilityName, statisticNames));
+        statistics.add(registry.collectStatistics(context, capabilityName, statisticNames));
       }
     }
     return statistics;
   }
 
   @Override
-  public <T> List<T> callAction(List<Map<String, String>> contextList, String capabilityName, String methodName, String[] argClassNames, Object[] args) {
+  public List<Object> callAction(List<Map<String, String>> contextList, String capabilityName, String methodName, String[] argClassNames, Object[] args) {
     // pre-validation
     for (Map<String, String> ctx : contextList) {
       if (ctx.get("cacheManagerName") == null) {
         throw new IllegalArgumentException("Missing cache manager name from context : " + ctx + " in context list " + contextList);
       }
     }
-    List<T> returns = new ArrayList<T>();
+    List<Object> returns = new ArrayList<Object>();
     for (Map<String, String> context : contextList) {
       ManagementRegistry registry = delegates.get(context.get("cacheManagerName"));
       if (registry == null) {
         returns.add(null);
       } else {
-        returns.add(registry.<T>callAction(context, capabilityName, methodName, argClassNames, args));
+        returns.add(registry.callAction(context, capabilityName, methodName, argClassNames, args));
       }
     }
     return returns;

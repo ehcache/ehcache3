@@ -34,6 +34,7 @@ import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.capabilities.context.CapabilityContext;
 import org.terracotta.management.capabilities.descriptors.Descriptor;
 import org.terracotta.management.context.ContextContainer;
+import org.terracotta.management.stats.Statistic;
 import org.terracotta.management.stats.primitive.Counter;
 
 import java.util.Arrays;
@@ -71,9 +72,9 @@ public class ManagementTest {
 
     Map<String, String> context = createContext(managementRegistry); // <5>
 
-    Collection<Counter> counters = managementRegistry.collectStatistics(context, "StatisticsCapability", "GetCounter"); // <6>
+    Collection<Statistic<?>> counters = managementRegistry.collectStatistics(context, "StatisticsCapability", "GetCounter"); // <6>
     Assert.assertThat(counters.size(), Matchers.is(1));
-    Counter getCounter = counters.iterator().next();
+    Counter getCounter = (Counter) counters.iterator().next();
 
     Assert.assertThat(getCounter.getValue(), Matchers.equalTo(3L)); // <7>
 
@@ -175,7 +176,7 @@ public class ManagementTest {
     context.put("cacheManagerName", "myCacheManager");
     context.put("cacheName", "aCache");
 
-    List<Collection<Counter>> counters = sharedManagementService.collectStatistics(Arrays.asList(context), "StatisticsCapability", "GetCounter");
+    List<Collection<Statistic<?>>> counters = sharedManagementService.collectStatistics(Arrays.asList(context), "StatisticsCapability", "GetCounter");
 
     cacheManager2.close();
     cacheManager1.close();

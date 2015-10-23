@@ -30,7 +30,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.context.ContextContainer;
-import org.terracotta.management.stats.primitive.Counter;
+import org.terracotta.management.stats.Statistic;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -150,7 +150,7 @@ public class DefaultSharedManagementServiceTest {
     cacheManager2.getCache("aCache2", Long.class, String.class).put(2L, "2");
     cacheManager2.getCache("aCache3", Long.class, String.class).put(3L, "3");
 
-    List<Collection<Counter>> allCounters = service.collectStatistics(contextList, "StatisticsCapability", "PutCounter");
+    List<Collection<Statistic<?>>> allCounters = service.collectStatistics(contextList, "StatisticsCapability", "PutCounter");
 
     assertThat(allCounters, hasSize(3));
 
@@ -158,9 +158,9 @@ public class DefaultSharedManagementServiceTest {
     assertThat(allCounters.get(1), hasSize(1));
     assertThat(allCounters.get(2), hasSize(1));
 
-    assertThat(allCounters.get(0).iterator().next().getValue(), equalTo(1L));
-    assertThat(allCounters.get(1).iterator().next().getValue(), equalTo(1L));
-    assertThat(allCounters.get(2).iterator().next().getValue(), equalTo(1L));
+    assertThat((Long) allCounters.get(0).iterator().next().getValue(), equalTo(1L));
+    assertThat((Long) allCounters.get(1).iterator().next().getValue(), equalTo(1L));
+    assertThat((Long) allCounters.get(2).iterator().next().getValue(), equalTo(1L));
   }
 
   @Test

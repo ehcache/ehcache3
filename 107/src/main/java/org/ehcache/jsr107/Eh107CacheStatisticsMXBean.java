@@ -27,6 +27,7 @@ import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
 import org.terracotta.management.stats.Sample;
+import org.terracotta.management.stats.Statistic;
 import org.terracotta.management.stats.sampled.SampledRatio;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
@@ -142,24 +143,24 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
 
   @Override
   public float getAverageGetTime() {
-    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "StatisticsCapability", "AllCacheGetLatencyAverage");
-    return getMostRecentNotClearedValue(statistics);
+    Collection<Statistic<?>> statistics = managementRegistry.collectStatistics(context, "StatisticsCapability", "AllCacheGetLatencyAverage");
+    return getMostRecentNotClearedValue((SampledRatio) statistics.iterator().next());
   }
 
   @Override
   public float getAveragePutTime() {
-    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "StatisticsCapability", "AllCachePutLatencyAverage");
-    return getMostRecentNotClearedValue(statistics);
+    Collection<Statistic<?>> statistics = managementRegistry.collectStatistics(context, "StatisticsCapability", "AllCachePutLatencyAverage");
+    return getMostRecentNotClearedValue((SampledRatio) statistics.iterator().next());
   }
 
   @Override
   public float getAverageRemoveTime() {
-    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "StatisticsCapability", "AllCacheRemoveLatencyAverage");
-    return getMostRecentNotClearedValue(statistics);
+    Collection<Statistic<?>> statistics = managementRegistry.collectStatistics(context, "StatisticsCapability", "AllCacheRemoveLatencyAverage");
+    return getMostRecentNotClearedValue((SampledRatio) statistics.iterator().next());
   }
 
-  private float getMostRecentNotClearedValue(Collection<SampledRatio> statistics) {
-    List<Sample<Double>> samples = statistics.iterator().next().getValue();
+  private float getMostRecentNotClearedValue(SampledRatio ratio) {
+    List<Sample<Double>> samples = ratio.getValue();
     for (int i=samples.size() - 1 ; i>=0 ; i--) {
       Sample<Double> doubleSample = samples.get(i);
       if (doubleSample.getTimestamp() >= compensatingCounters.timestamp) {

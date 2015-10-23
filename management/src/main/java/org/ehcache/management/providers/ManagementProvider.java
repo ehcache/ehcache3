@@ -22,7 +22,6 @@ import org.terracotta.management.stats.Statistic;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Interface to a provider of management capabilities for certain object class.
@@ -83,7 +82,7 @@ public interface ManagementProvider<T> {
    * @param statisticNames the statistic names to collect.
    * @return the statistic values.
    */
-  <T extends Statistic<?>> Collection<T> collectStatistics(Map<String, String> context, String... statisticNames);
+  Collection<Statistic<?>> collectStatistics(Map<String, String> context, String... statisticNames);
 
   /**
    * Call an action, if the provider supports this.

@@ -213,19 +213,19 @@ public class DefaultManagementRegistry implements ManagementRegistry, CacheManag
 
   @SuppressWarnings("unchecked")
   @Override
-  public <T extends Statistic<?>> Collection<T> collectStatistics(Map<String, String> context, String capabilityName, String... statisticNames) {
-    return this.<T>collectStatistics(Collections.singletonList(context), capabilityName, statisticNames).get(0);
+  public Collection<Statistic<?>> collectStatistics(Map<String, String> context, String capabilityName, String... statisticNames) {
+    return collectStatistics(Collections.singletonList(context), capabilityName, statisticNames).get(0);
   }
 
   @Override
-  public <T extends Statistic<?>> List<Collection<T>> collectStatistics(List<Map<String, String>> contextList, String capabilityName, String... statisticNames) {
-    List<Collection<T>> list = new ArrayList<Collection<T>>(contextList.size());
+  public List<Collection<Statistic<?>>> collectStatistics(List<Map<String, String>> contextList, String capabilityName, String... statisticNames) {
+    List<Collection<Statistic<?>>> list = new ArrayList<Collection<Statistic<?>>>(contextList.size());
     for (ManagementProvider<?> managementProvider : getManagementProvidersByCapability(capabilityName)) {
       for (Map<String, String> context : contextList) {
         if (managementProvider.supports(context)) {
-          list.add(managementProvider.<T>collectStatistics(context, statisticNames));
+          list.add(managementProvider.collectStatistics(context, statisticNames));
         } else {
-          list.add(Collections.<T>emptyList());
+          list.add(Collections.<Statistic<?>>emptyList());
         }
       }
     }
@@ -234,23 +234,23 @@ public class DefaultManagementRegistry implements ManagementRegistry, CacheManag
 
   @SuppressWarnings("unchecked")
   @Override
-  public <T> T callAction(Map<String, String> context, String capabilityName, String methodName, String[] argClassNames, Object[] args) {
+  public Object callAction(Map<String, String> context, String capabilityName, String methodName, String[] argClassNames, Object[] args) {
     for (ManagementProvider<?> managementProvider : getManagementProvidersByCapability(capabilityName)) {
       if (managementProvider.supports(context)) {
-        return (T) managementProvider.callAction(context, methodName, argClassNames, args);
+        return managementProvider.callAction(context, methodName, argClassNames, args);
       }
     }
     throw new IllegalArgumentException("No such capability registered or context supported for : " + capabilityName + " / " + context);
   }
 
   private List<ManagementProvider<?>> getManagementProvidersByCapability(String capabilityName) {
-    List<ManagementProvider<?>> allproviders = new ArrayList<ManagementProvider<?>>();
+    List<ManagementProvider<?>> allProviders = new ArrayList<ManagementProvider<?>>();
     for (ManagementProvider<?> provider : managementProviders) {
       if (provider.getCapabilityName().equals(capabilityName)) {
-        allproviders.add(provider);
+        allProviders.add(provider);
       }
     }
-    return allproviders;
+    return allProviders;
   }
 
   private static final class EhcacheStatsSetting {
