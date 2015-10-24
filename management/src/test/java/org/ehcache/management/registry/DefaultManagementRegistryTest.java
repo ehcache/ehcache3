@@ -24,17 +24,22 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.management.ContextualResult;
 import org.ehcache.management.ContextualStatistics;
 import org.ehcache.management.ManagementRegistry;
+import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
+import org.ehcache.spi.service.ThreadPoolsService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.stats.Statistic;
 import org.terracotta.management.stats.primitive.Counter;
+import org.terracotta.management.stats.sampled.SampledCounter;
+import org.terracotta.management.stats.sampled.SampledRate;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -148,6 +153,95 @@ public class DefaultManagementRegistryTest {
     assertThat(allCounters.get(1).getStatistics(), hasSize(1));
     assertThat(allCounters.get(0).getStatistic(0, Counter.class).getValue(), equalTo(2L));
     assertThat(allCounters.get(1).getStatistic(0, Counter.class).getValue(), equalTo(3L));
+
+    cacheManager1.close();
+  }
+
+  @Test
+  public void testCanGetStatsSinceTime() throws InterruptedException {
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .buildConfig(Long.class, String.class);
+
+    ManagementRegistry managementRegistry = new DefaultManagementRegistry(new DefaultManagementRegistryConfiguration()
+        .addConfiguration(new EhcacheStatisticsProviderConfiguration(5 * 60, TimeUnit.SECONDS, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS))
+        .setCacheManagerAlias("myCM"));
+
+    CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("aCache1", cacheConfiguration)
+        .using(managementRegistry)
+        .build(true);
+
+    Map<String, String> context = new HashMap<String, String>();
+    context.put("cacheManagerName", "myCM");
+    context.put("cacheName", "aCache1");
+
+    // first call to start collecting this stat
+    managementRegistry.withCapability("StatisticsCapability")
+        .queryStatistics("AllCachePutCount", "AllCachePutRate")
+        .on(context)
+        .build()
+        .execute();
+
+    cacheManager1.getCache("aCache1", Long.class, String.class).put(1L, "1");
+    cacheManager1.getCache("aCache1", Long.class, String.class).put(2L, "2");
+    cacheManager1.getCache("aCache1", Long.class, String.class).put(2L, "2");
+    Thread.sleep(1200);
+
+    ContextualStatistics statistic = managementRegistry.withCapability("StatisticsCapability")
+        .queryStatistics("AllCachePutCount", "AllCachePutRate")
+        .on(context)
+        .build()
+        .execute()
+        .get(0);
+    SampledCounter putCount = statistic.getStatistic(0, SampledCounter.class);
+    SampledRate putRate = statistic.getStatistic(1, SampledRate.class);
+
+    long timestamp = System.currentTimeMillis();
+
+    assertThat(putCount.getValue(), hasSize(1));
+    assertThat(putCount.getValue().get(0).getValue(), equalTo(3L));
+
+    assertThat(putRate.getValue(), hasSize(1));
+    assertThat(putRate.getValue().get(0).getValue(), equalTo(0.01));
+
+    cacheManager1.getCache("aCache1", Long.class, String.class).put(1L, "1");
+    cacheManager1.getCache("aCache1", Long.class, String.class).put(2L, "2");
+    Thread.sleep(1200);
+
+    statistic = managementRegistry.withCapability("StatisticsCapability")
+        .queryStatistics("AllCachePutCount", "AllCachePutRate")
+        .on(context)
+        .build()
+        .execute()
+        .get(0);
+    putCount = statistic.getStatistic(0, SampledCounter.class);
+    putRate = statistic.getStatistic(1, SampledRate.class);
+
+    assertThat(putCount.getValue(), hasSize(2));
+    assertThat(putCount.getValue().get(0).getValue(), equalTo(3L));
+    assertThat(putCount.getValue().get(1).getValue(), equalTo(5L));
+
+    assertThat(putRate.getValue(), hasSize(2));
+    assertThat(putRate.getValue().get(0).getValue(), equalTo(0.01));
+    assertThat(putRate.getValue().get(1).getValue(), equalTo(0.016666666666666666));
+
+    // only get latest 3 values based on a timestamp
+    statistic = managementRegistry.withCapability("StatisticsCapability")
+        .queryStatistics("AllCachePutCount", "AllCachePutRate")
+        .on(context)
+        .since(timestamp)
+        .build()
+        .execute()
+        .get(0);
+    putCount = statistic.getStatistic(0, SampledCounter.class);
+    putRate = statistic.getStatistic(1, SampledRate.class);
+
+    assertThat(putCount.getValue(), hasSize(1));
+    assertThat(putCount.getValue().get(0).getValue(), equalTo(5L));
+
+    assertThat(putRate.getValue(), hasSize(1));
+    assertThat(putRate.getValue().get(0).getValue(), equalTo(0.016666666666666666));
 
     cacheManager1.close();
   }

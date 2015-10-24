@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * This class holds the {@link Statistic} list queried from a specific context
+ * This class holds the {@link Statistic} list quered from a specific context
  *
  * @author Mathieu Carbou
  */
@@ -48,7 +48,11 @@ public final class ContextualStatistics implements Iterable<Statistic<?>> {
   }
 
   public <T extends Statistic<?>> T getStatistic(int index, Class<T> type) {
-    return type.cast(statistics.get(index));
+    Statistic<?> stat = statistics.get(index);
+    if (!type.isInstance(stat)) {
+      throw new IllegalArgumentException("Expected type " + type.getName() + " but got " + stat.getClass().getName());
+    }
+    return type.cast(stat);
   }
 
   public <T extends Statistic<?>> List<T> getStatistics(Class<T> type) {

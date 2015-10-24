@@ -111,32 +111,32 @@ class EhcacheStatistics {
 
         if ((name + "Count").equals(statisticName)) {
           SampledStatistic<Long> count = result.count();
-          return Collections.singletonList(new SampledCounter(statisticName, buildSamples(count)));
+          return Collections.singletonList(new SampledCounter(statisticName, buildSamples(count, since)));
         } else if ((name + "Rate").equals(statisticName)) {
           SampledStatistic<Double> rate = result.rate();
-          return Collections.singletonList(new SampledRate(statisticName, buildSamples(rate), configuration.historyIntervalUnit()));
+          return Collections.singletonList(new SampledRate(statisticName, buildSamples(rate, since), configuration.historyIntervalUnit()));
         } else if ((name + "LatencyMinimum").equals(statisticName)) {
           SampledStatistic<Long> minimum = result.latency().minimum();
-          return Collections.singletonList(new SampledDuration(statisticName, buildSamples(minimum), configuration.historyIntervalUnit()));
+          return Collections.singletonList(new SampledDuration(statisticName, buildSamples(minimum, since), configuration.historyIntervalUnit()));
         } else if ((name + "LatencyMaximum").equals(statisticName)) {
           SampledStatistic<Long> maximum = result.latency().maximum();
-          return Collections.singletonList(new SampledDuration(statisticName, buildSamples(maximum), configuration.historyIntervalUnit()));
+          return Collections.singletonList(new SampledDuration(statisticName, buildSamples(maximum, since), configuration.historyIntervalUnit()));
         } else if ((name + "LatencyAverage").equals(statisticName)) {
           SampledStatistic<Double> average = result.latency().average();
-          return Collections.singletonList(new SampledRatio(statisticName, buildSamples(average)));
+          return Collections.singletonList(new SampledRatio(statisticName, buildSamples(average, since)));
         } else if (name.equals(statisticName)) {
           List<Statistic<?>> resultStats = new ArrayList<Statistic<?>>();
-          resultStats.add(new SampledCounter(statisticName + "Count", buildSamples(result.count())));
-          resultStats.add(new SampledRate(statisticName + "Rate", buildSamples(result.rate()), configuration.historyIntervalUnit()));
-          resultStats.add(new SampledDuration(statisticName + "LatencyMinimum", buildSamples(result.latency().minimum()), configuration.historyIntervalUnit()));
-          resultStats.add(new SampledDuration(statisticName + "LatencyMaximum", buildSamples(result.latency().maximum()), configuration.historyIntervalUnit()));
-          resultStats.add(new SampledRatio(statisticName + "LatencyAverage", buildSamples(result.latency().average())));
+          resultStats.add(new SampledCounter(statisticName + "Count", buildSamples(result.count(), since)));
+          resultStats.add(new SampledRate(statisticName + "Rate", buildSamples(result.rate(), since), configuration.historyIntervalUnit()));
+          resultStats.add(new SampledDuration(statisticName + "LatencyMinimum", buildSamples(result.latency().minimum(), since), configuration.historyIntervalUnit()));
+          resultStats.add(new SampledDuration(statisticName + "LatencyMaximum", buildSamples(result.latency().maximum(), since), configuration.historyIntervalUnit()));
+          resultStats.add(new SampledRatio(statisticName + "LatencyAverage", buildSamples(result.latency().average(), since)));
           return resultStats;
         }
       } else if ("Ratio".equals(type)) {
         if ((name + "Ratio").equals(statisticName)) {
           SampledStatistic<Double> ratio = (SampledStatistic) registration.getStat();
-          return Collections.singletonList(new SampledRatio(statisticName, buildSamples(ratio)));
+          return Collections.singletonList(new SampledRatio(statisticName, buildSamples(ratio, since)));
         }
       }
     }
@@ -174,12 +174,14 @@ class EhcacheStatistics {
     throw new IllegalArgumentException("Unknown statistic name : " + statisticName);
   }
 
-  private <T extends Number> List<Sample<T>> buildSamples(SampledStatistic<T> sampledStatistic) {
+  private <T extends Number> List<Sample<T>> buildSamples(SampledStatistic<T> sampledStatistic, long since) {
     List<Sample<T>> result = new ArrayList<Sample<T>>();
 
     List<Timestamped<T>> history = sampledStatistic.history();
     for (Timestamped<T> timestamped : history) {
-      result.add(new Sample<T>(timestamped.getTimestamp(), timestamped.getSample()));
+      if(timestamped.getTimestamp() >= since) {
+        result.add(new Sample<T>(timestamped.getTimestamp(), timestamped.getSample()));
+      }
     }
 
     return result;
