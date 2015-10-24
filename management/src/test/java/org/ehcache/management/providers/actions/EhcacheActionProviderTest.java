@@ -89,7 +89,7 @@ public class EhcacheActionProviderTest {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("myCacheManagerName");
 
     try {
-      ehcacheActionProvider.collectStatistics(null, null);
+      ehcacheActionProvider.collectStatistics(null, null, System.currentTimeMillis());
       fail("expected UnsupportedOperationException");
     } catch (UnsupportedOperationException uoe) {
       // expected

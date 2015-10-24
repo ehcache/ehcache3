@@ -19,6 +19,7 @@ import org.ehcache.Cache;
 import org.ehcache.Ehcache;
 import org.ehcache.EhcacheHackAccessor;
 import org.ehcache.management.ManagementRegistry;
+import org.ehcache.management.StatisticQuery;
 import org.ehcache.statistics.BulkOps;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.ehcache.statistics.StoreOperationOutcomes;
@@ -27,14 +28,12 @@ import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
 import org.terracotta.management.stats.Sample;
-import org.terracotta.management.stats.Statistic;
 import org.terracotta.management.stats.sampled.SampledRatio;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.jsr166e.LongAdder;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -60,19 +59,15 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
   private final OperationStatistic<CacheOperationOutcomes.ReplaceOutcome> replace;
   private final OperationStatistic<CacheOperationOutcomes.ConditionalRemoveOutcome> conditionalRemove;
   private final OperationStatistic<StoreOperationOutcomes.EvictionOutcome> authorityEviction;
-  private final ManagementRegistry managementRegistry;
-  private final Map<String, String> context;
   private final Map<BulkOps, LongAdder> bulkMethodEntries;
+  private final StatisticQuery averageGetTime;
+  private final StatisticQuery averagePutTime;
+  private final StatisticQuery averageRemoveTime;
 
   Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager, Cache<?, ?> cache, ManagementRegistry managementRegistry) {
     super(cacheName, cacheManager, "CacheStatistics");
-    this.managementRegistry = managementRegistry;
     this.bulkMethodEntries = EhcacheHackAccessor.getBulkMethodEntries((Ehcache<?, ?>) cache);
 
-    Map<String, String> context = new HashMap<String, String>();
-    context.put("cacheManagerName", managementRegistry.getConfiguration().getCacheManagerAlias());
-    context.put("cacheName", cacheName);
-    this.context = Collections.unmodifiableMap(context);
     StatisticsManager statisticsManager = cacheManager.getEhCacheManager().getStatisticsManager();
 
     get = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.GetOutcome.class, "get");
@@ -82,6 +77,27 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
     replace = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.ReplaceOutcome.class, "replace");
     conditionalRemove = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.ConditionalRemoveOutcome.class, "conditionalRemove");
     authorityEviction = findAuthoritativeTierStatistic(cacheName, statisticsManager, StoreOperationOutcomes.EvictionOutcome.class, "eviction");
+
+    Map<String, String> context = new HashMap<String, String>();
+    context.put("cacheManagerName", managementRegistry.getConfiguration().getCacheManagerAlias());
+    context.put("cacheName", cacheName);
+
+    averageGetTime = managementRegistry
+        .withCapability("StatisticsCapability")
+        .queryStatistics("AllCacheGetLatencyAverage")
+        .on(context)
+        .build();
+    averagePutTime = managementRegistry
+        .withCapability("StatisticsCapability")
+        .queryStatistics("AllCachePutLatencyAverage")
+        .on(context)
+        .build();
+    averageRemoveTime= managementRegistry
+        .withCapability("StatisticsCapability")
+        .queryStatistics("AllCacheRemoveLatencyAverage")
+        .on(context)
+        .build();
+
   }
 
   @Override
@@ -143,20 +159,17 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
 
   @Override
   public float getAverageGetTime() {
-    Collection<Statistic<?>> statistics = managementRegistry.collectStatistics(context, "StatisticsCapability", "AllCacheGetLatencyAverage");
-    return getMostRecentNotClearedValue((SampledRatio) statistics.iterator().next());
+    return getMostRecentNotClearedValue(averageGetTime.execute().get(0).getStatistic(0, SampledRatio.class));
   }
 
   @Override
   public float getAveragePutTime() {
-    Collection<Statistic<?>> statistics = managementRegistry.collectStatistics(context, "StatisticsCapability", "AllCachePutLatencyAverage");
-    return getMostRecentNotClearedValue((SampledRatio) statistics.iterator().next());
+    return getMostRecentNotClearedValue(averagePutTime.execute().get(0).getStatistic(0, SampledRatio.class));
   }
 
   @Override
   public float getAverageRemoveTime() {
-    Collection<Statistic<?>> statistics = managementRegistry.collectStatistics(context, "StatisticsCapability", "AllCacheRemoveLatencyAverage");
-    return getMostRecentNotClearedValue((SampledRatio) statistics.iterator().next());
+    return getMostRecentNotClearedValue(averageRemoveTime.execute().get(0).getStatistic(0, SampledRatio.class));
   }
 
   private float getMostRecentNotClearedValue(SampledRatio ratio) {

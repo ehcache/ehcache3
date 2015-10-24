@@ -21,6 +21,7 @@ import org.terracotta.management.capabilities.descriptors.Descriptor;
 import org.terracotta.management.stats.Statistic;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -80,9 +81,10 @@ public interface ManagementProvider<T> {
    *
    * @param context the context.
    * @param statisticNames the statistic names to collect.
+   * @param since The unix time in ms from where to return the statistics for statistics based on samples.
    * @return the statistic values.
    */
-  Collection<Statistic<?>> collectStatistics(Map<String, String> context, String... statisticNames);
+  List<Statistic<?>> collectStatistics(Map<String, String> context, Collection<String> statisticNames, long since);
 
   /**
    * Call an action, if the provider supports this.

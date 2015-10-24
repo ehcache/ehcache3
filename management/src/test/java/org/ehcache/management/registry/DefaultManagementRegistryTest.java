@@ -21,24 +21,28 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.management.ContextualResult;
+import org.ehcache.management.ContextualStatistics;
 import org.ehcache.management.ManagementRegistry;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.stats.Statistic;
+import org.terracotta.management.stats.primitive.Counter;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * @author Ludovic Orban, Mathoeu Carbou
@@ -121,18 +125,29 @@ public class DefaultManagementRegistryTest {
     cacheManager1.getCache("aCache2", Long.class, String.class).put(4L, "4");
     cacheManager1.getCache("aCache2", Long.class, String.class).put(5L, "5");
 
-    Collection<Statistic<?>> counters = managementRegistry.collectStatistics(context1, "StatisticsCapability", "PutCounter");
+    List<Statistic<?>> counters = managementRegistry.withCapability("StatisticsCapability")
+        .queryStatistic("PutCounter")
+        .on(context1)
+        .build()
+        .execute()
+        .get(0)
+        .getStatistics();
 
     assertThat(counters, hasSize(1));
-    assertThat((Long) counters.iterator().next().getValue(), equalTo(2L));
+    assertThat((Long) counters.get(0).getValue(), equalTo(2L));
 
-    List<Collection<Statistic<?>>> allCounters = managementRegistry.collectStatistics(Arrays.asList(context1, context2), "StatisticsCapability", "PutCounter");
+    List<ContextualStatistics> allCounters = managementRegistry.withCapability("StatisticsCapability")
+        .queryStatistic("PutCounter")
+        .on(context1)
+        .on(context2)
+        .build()
+        .execute();
 
     assertThat(allCounters, hasSize(2));
-    assertThat(allCounters.get(0), hasSize(1));
-    assertThat(allCounters.get(1), hasSize(1));
-    assertThat((Long) allCounters.get(0).iterator().next().getValue(), equalTo(2L));
-    assertThat((Long) allCounters.get(1).iterator().next().getValue(), equalTo(3L));
+    assertThat(allCounters.get(0).getStatistics(), hasSize(1));
+    assertThat(allCounters.get(1).getStatistics(), hasSize(1));
+    assertThat(allCounters.get(0).getStatistic(0, Counter.class).getValue(), equalTo(2L));
+    assertThat(allCounters.get(1).getStatistic(0, Counter.class).getValue(), equalTo(3L));
 
     cacheManager1.close();
   }
@@ -160,10 +175,53 @@ public class DefaultManagementRegistryTest {
 
     assertThat(cacheManager1.getCache("aCache1", Long.class, String.class).get(1L), equalTo("1"));
 
-    Object result = managementRegistry.callAction(context, "ActionsCapability", "clear", new String[0], new Object[0]);
-    assertThat(result, is(nullValue()));
+    ContextualResult result = managementRegistry.withCapability("ActionsCapability")
+        .call("clear")
+        .on(context)
+        .build()
+        .execute()
+        .get(0);
+
+    assertThat(result.hasResult(), is(true));
+    assertThat(result.getResult(Object.class), is(nullValue()));
 
     assertThat(cacheManager1.getCache("aCache1", Long.class, String.class).get(1L), is(Matchers.nullValue()));
+  }
+
+  @Test
+  public void testCallOnInexistignContext() {
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .buildConfig(Long.class, String.class);
+
+    ManagementRegistry managementRegistry = new DefaultManagementRegistry(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
+
+    CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("aCache1", cacheConfiguration)
+        .withCache("aCache2", cacheConfiguration)
+        .using(managementRegistry)
+        .build(true);
+
+    Map<String, String> context = new HashMap<String, String>() {{
+      put("cacheManagerName", "myCM2");
+      put("cacheName", "aCache2");
+    }};
+
+    List<ContextualResult> results = managementRegistry.withCapability("ActionsCapability")
+        .call("clear")
+        .on(context)
+        .build()
+        .execute();
+
+    assertThat(results, hasSize(1));
+    assertThat(results.get(0).hasResult(), is(false));
+
+    try {
+      results.get(0).getResult(Object.class);
+      fail();
+    } catch (Exception e) {
+      assertThat(e, instanceOf(NoSuchElementException.class));
+    }
   }
 
 }

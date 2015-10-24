@@ -16,7 +16,6 @@
 package org.ehcache.management.providers.actions;
 
 import org.ehcache.Cache;
-import org.ehcache.Ehcache;
 import org.ehcache.management.annotations.Exposed;
 import org.ehcache.management.annotations.Named;
 

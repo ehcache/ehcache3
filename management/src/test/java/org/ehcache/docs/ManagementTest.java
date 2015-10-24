@@ -22,6 +22,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.management.ContextualStatistics;
 import org.ehcache.management.ManagementRegistry;
 import org.ehcache.management.SharedManagementService;
 import org.ehcache.management.registry.DefaultManagementRegistry;
@@ -37,7 +38,6 @@ import org.terracotta.management.context.ContextContainer;
 import org.terracotta.management.stats.Statistic;
 import org.terracotta.management.stats.primitive.Counter;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -72,7 +72,14 @@ public class ManagementTest {
 
     Map<String, String> context = createContext(managementRegistry); // <5>
 
-    Collection<Statistic<?>> counters = managementRegistry.collectStatistics(context, "StatisticsCapability", "GetCounter"); // <6>
+    Collection<Statistic<?>> counters = managementRegistry.withCapability("StatisticsCapability") // <6>
+        .queryStatistic("GetCounter")
+        .on(context)
+        .build()
+        .execute()
+        .get(0)
+        .getStatistics();
+
     Assert.assertThat(counters.size(), Matchers.is(1));
     Counter getCounter = (Counter) counters.iterator().next();
 
@@ -145,7 +152,11 @@ public class ManagementTest {
 
     Map<String, String> context = createContext(managementRegistry); // <2>
 
-    managementRegistry.callAction(context, "ActionsCapability", "clear", new String[0], new Object[0]); // <3>
+    managementRegistry.withCapability("ActionsCapability") // <3>
+        .call("clear")
+        .on(context)
+        .build()
+        .execute();
 
     Assert.assertThat(aCache.get(0L), Matchers.is(Matchers.nullValue())); // <4>
 
@@ -163,20 +174,30 @@ public class ManagementTest {
     SharedManagementService sharedManagementService = new DefaultSharedManagementService(); // <1>
     CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache", cacheConfiguration)
-        .using(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager"))
+        .using(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager-1"))
         .using(sharedManagementService) // <2>
         .build(true);
 
     CacheManager cacheManager2 = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache", cacheConfiguration)
+        .using(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager-2"))
         .using(sharedManagementService) // <3>
         .build(true);
 
-    Map<String, String> context = new HashMap<String, String>();
-    context.put("cacheManagerName", "myCacheManager");
-    context.put("cacheName", "aCache");
+    Map<String, String> context1 = new HashMap<String, String>();
+    context1.put("cacheManagerName", "myCacheManager-1");
+    context1.put("cacheName", "aCache");
 
-    List<Collection<Statistic<?>>> counters = sharedManagementService.collectStatistics(Arrays.asList(context), "StatisticsCapability", "GetCounter");
+    Map<String, String> context2 = new HashMap<String, String>();
+    context2.put("cacheManagerName", "myCacheManager-2");
+    context2.put("cacheName", "aCache");
+
+    List<ContextualStatistics> counters = sharedManagementService.withCapability("StatisticsCapability")
+        .queryStatistic("GetCounter")
+        .on(context1)
+        .on(context2)
+        .build()
+        .execute();
 
     cacheManager2.close();
     cacheManager1.close();

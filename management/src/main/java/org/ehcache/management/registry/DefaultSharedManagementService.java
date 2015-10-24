@@ -20,18 +20,18 @@ import org.ehcache.EhcacheManager;
 import org.ehcache.Status;
 import org.ehcache.events.CacheManagerListener;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.management.CapabilityBasedQuery;
 import org.ehcache.management.ManagementRegistry;
 import org.ehcache.management.SharedManagementService;
+import org.ehcache.management.providers.ManagementProvider;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.CacheManagerProviderService;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.context.ContextContainer;
-import org.terracotta.management.stats.Statistic;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,43 +99,17 @@ public class DefaultSharedManagementService implements SharedManagementService {
   }
 
   @Override
-  public List<Collection<Statistic<?>>> collectStatistics(List<Map<String, String>> contextList, String capabilityName, String... statisticNames) {
-    // pre-validation
-    for (Map<String, String> ctx : contextList) {
-      if (ctx.get("cacheManagerName") == null) {
-        throw new IllegalArgumentException("Missing cache manager name from context : " + ctx + " in context list " + contextList);
-      }
+  public Collection<ManagementProvider<?>> getManagementProvidersByCapability(String capabilityName) {
+    List<ManagementProvider<?>> allProviders = new ArrayList<ManagementProvider<?>>();
+    for (ManagementRegistry managementRegistry : delegates.values()) {
+      allProviders.addAll(managementRegistry.getManagementProvidersByCapability(capabilityName));
     }
-    List<Collection<Statistic<?>>> statistics = new ArrayList<Collection<Statistic<?>>>(contextList.size());
-    for (Map<String, String> context : contextList) {
-      ManagementRegistry registry = delegates.get(context.get("cacheManagerName"));
-      if (registry == null) {
-        statistics.add(Collections.<Statistic<?>>emptyList());
-      } else {
-        statistics.add(registry.collectStatistics(context, capabilityName, statisticNames));
-      }
-    }
-    return statistics;
+    return allProviders;
   }
 
   @Override
-  public List<Object> callAction(List<Map<String, String>> contextList, String capabilityName, String methodName, String[] argClassNames, Object[] args) {
-    // pre-validation
-    for (Map<String, String> ctx : contextList) {
-      if (ctx.get("cacheManagerName") == null) {
-        throw new IllegalArgumentException("Missing cache manager name from context : " + ctx + " in context list " + contextList);
-      }
-    }
-    List<Object> returns = new ArrayList<Object>();
-    for (Map<String, String> context : contextList) {
-      ManagementRegistry registry = delegates.get(context.get("cacheManagerName"));
-      if (registry == null) {
-        returns.add(null);
-      } else {
-        returns.add(registry.callAction(context, capabilityName, methodName, argClassNames, args));
-      }
-    }
-    return returns;
+  public CapabilityBasedQuery withCapability(String capabilityName) {
+    return new DefaultCapabilityBasedQuery(this, capabilityName);
   }
 
 }

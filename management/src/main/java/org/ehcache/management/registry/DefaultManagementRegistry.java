@@ -20,6 +20,7 @@ import org.ehcache.EhcacheManager;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.events.CacheManagerListener;
+import org.ehcache.management.CapabilityBasedQuery;
 import org.ehcache.management.ManagementRegistry;
 import org.ehcache.management.ManagementRegistryConfiguration;
 import org.ehcache.management.providers.ManagementProvider;
@@ -32,7 +33,6 @@ import org.ehcache.spi.service.ThreadPoolsService;
 import org.terracotta.context.annotations.ContextAttribute;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.context.ContextContainer;
-import org.terracotta.management.stats.Statistic;
 import org.terracotta.statistics.StatisticsManager;
 
 import java.util.ArrayList;
@@ -203,6 +203,11 @@ public class DefaultManagementRegistry implements ManagementRegistry, CacheManag
   }
 
   @Override
+  public CapabilityBasedQuery withCapability(String capabilityName) {
+    return new DefaultCapabilityBasedQuery(this, capabilityName);
+  }
+
+  @Override
   public Collection<Capability> getCapabilities() {
     Collection<Capability> capabilities = new ArrayList<Capability>();
     for (ManagementProvider<?> managementProvider : managementProviders) {
@@ -211,39 +216,8 @@ public class DefaultManagementRegistry implements ManagementRegistry, CacheManag
     return capabilities;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public Collection<Statistic<?>> collectStatistics(Map<String, String> context, String capabilityName, String... statisticNames) {
-    return collectStatistics(Collections.singletonList(context), capabilityName, statisticNames).get(0);
-  }
-
-  @Override
-  public List<Collection<Statistic<?>>> collectStatistics(List<Map<String, String>> contextList, String capabilityName, String... statisticNames) {
-    List<Collection<Statistic<?>>> list = new ArrayList<Collection<Statistic<?>>>(contextList.size());
-    for (ManagementProvider<?> managementProvider : getManagementProvidersByCapability(capabilityName)) {
-      for (Map<String, String> context : contextList) {
-        if (managementProvider.supports(context)) {
-          list.add(managementProvider.collectStatistics(context, statisticNames));
-        } else {
-          list.add(Collections.<Statistic<?>>emptyList());
-        }
-      }
-    }
-    return list;
-  }
-
-  @SuppressWarnings("unchecked")
-  @Override
-  public Object callAction(Map<String, String> context, String capabilityName, String methodName, String[] argClassNames, Object[] args) {
-    for (ManagementProvider<?> managementProvider : getManagementProvidersByCapability(capabilityName)) {
-      if (managementProvider.supports(context)) {
-        return managementProvider.callAction(context, methodName, argClassNames, args);
-      }
-    }
-    throw new IllegalArgumentException("No such capability registered or context supported for : " + capabilityName + " / " + context);
-  }
-
-  private List<ManagementProvider<?>> getManagementProvidersByCapability(String capabilityName) {
+  public List<ManagementProvider<?>> getManagementProvidersByCapability(String capabilityName) {
     List<ManagementProvider<?>> allProviders = new ArrayList<ManagementProvider<?>>();
     for (ManagementProvider<?> provider : managementProviders) {
       if (provider.getCapabilityName().equals(capabilityName)) {

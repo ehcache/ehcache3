@@ -100,7 +100,7 @@ class EhcacheStatistics {
   }
 
   @SuppressWarnings("unchecked")
-  public Collection<? extends Statistic<?>> queryStatistic(String statisticName) {
+  public List<? extends Statistic<?>> queryStatistic(String statisticName, long since) {
     Collection<ExposedStatistic> registrations = statisticsRegistry.getRegistrations();
     for (ExposedStatistic registration : registrations) {
       Object type = registration.getProperties().get("type");
@@ -111,21 +111,21 @@ class EhcacheStatistics {
 
         if ((name + "Count").equals(statisticName)) {
           SampledStatistic<Long> count = result.count();
-          return Collections.singleton(new SampledCounter(statisticName, buildSamples(count)));
+          return Collections.singletonList(new SampledCounter(statisticName, buildSamples(count)));
         } else if ((name + "Rate").equals(statisticName)) {
           SampledStatistic<Double> rate = result.rate();
-          return Collections.singleton(new SampledRate(statisticName, buildSamples(rate), configuration.historyIntervalUnit()));
+          return Collections.singletonList(new SampledRate(statisticName, buildSamples(rate), configuration.historyIntervalUnit()));
         } else if ((name + "LatencyMinimum").equals(statisticName)) {
           SampledStatistic<Long> minimum = result.latency().minimum();
-          return Collections.singleton(new SampledDuration(statisticName, buildSamples(minimum), configuration.historyIntervalUnit()));
+          return Collections.singletonList(new SampledDuration(statisticName, buildSamples(minimum), configuration.historyIntervalUnit()));
         } else if ((name + "LatencyMaximum").equals(statisticName)) {
           SampledStatistic<Long> maximum = result.latency().maximum();
-          return Collections.singleton(new SampledDuration(statisticName, buildSamples(maximum), configuration.historyIntervalUnit()));
+          return Collections.singletonList(new SampledDuration(statisticName, buildSamples(maximum), configuration.historyIntervalUnit()));
         } else if ((name + "LatencyAverage").equals(statisticName)) {
           SampledStatistic<Double> average = result.latency().average();
-          return Collections.singleton(new SampledRatio(statisticName, buildSamples(average)));
+          return Collections.singletonList(new SampledRatio(statisticName, buildSamples(average)));
         } else if (name.equals(statisticName)) {
-          Collection<Statistic<?>> resultStats = new ArrayList<Statistic<?>>();
+          List<Statistic<?>> resultStats = new ArrayList<Statistic<?>>();
           resultStats.add(new SampledCounter(statisticName + "Count", buildSamples(result.count())));
           resultStats.add(new SampledRate(statisticName + "Rate", buildSamples(result.rate()), configuration.historyIntervalUnit()));
           resultStats.add(new SampledDuration(statisticName + "LatencyMinimum", buildSamples(result.latency().minimum()), configuration.historyIntervalUnit()));
@@ -136,7 +136,7 @@ class EhcacheStatistics {
       } else if ("Ratio".equals(type)) {
         if ((name + "Ratio").equals(statisticName)) {
           SampledStatistic<Double> ratio = (SampledStatistic) registration.getStat();
-          return Collections.singleton(new SampledRatio(statisticName, buildSamples(ratio)));
+          return Collections.singletonList(new SampledRatio(statisticName, buildSamples(ratio)));
         }
       }
     }
@@ -160,7 +160,7 @@ class EhcacheStatistics {
 
         Object setting = attributes.get("Setting");
         if (setting != null && setting.equals(statisticName)) {
-          return (Collection) Collections.singleton(new Setting<String>(statisticName, (String) treeNode.getContext().attributes().get(statisticName)));
+          return Collections.singletonList(new Setting<String>(statisticName, (String) treeNode.getContext().attributes().get(statisticName)));
         }
       }
     }
@@ -168,7 +168,7 @@ class EhcacheStatistics {
     OperationStatistic<?> operationStatistic = operationStatistics.get(statisticName);
     if (operationStatistic != null) {
       long sum = operationStatistic.sum();
-      return (Collection) Collections.singleton(new Counter(statisticName, sum));
+      return Collections.singletonList(new Counter(statisticName, sum));
     }
 
     throw new IllegalArgumentException("Unknown statistic name : " + statisticName);

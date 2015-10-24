@@ -25,6 +25,7 @@ import org.terracotta.management.stats.Statistic;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
@@ -107,7 +108,7 @@ public abstract class CacheBindingManagementProviderSkeleton<V> implements Manag
   }
 
   @Override
-  public Collection<Statistic<?>> collectStatistics(Map<String, String> context, String[] statisticNames) {
+  public List<Statistic<?>> collectStatistics(Map<String, String> context, Collection<String> statisticNames, long since) {
     throw new UnsupportedOperationException("Not a statistics provider : " + getCapabilityName());
   }
 
@@ -126,11 +127,6 @@ public abstract class CacheBindingManagementProviderSkeleton<V> implements Manag
 
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder(getClass().getSimpleName()).append("{");
-    sb.append("cacheManagerAlias='").append(cacheManagerAlias).append('\'');
-    sb.append(", name='").append(name).append('\'');
-    sb.append(", managedObjects=").append(managedObjects.keySet());
-    sb.append('}');
-    return sb.toString();
+    return "{" + "cacheManagerAlias='" + cacheManagerAlias + '\'' + ", name='" + name + '\'' + ", managedObjects=" + managedObjects.keySet() + '}';
   }
 }
