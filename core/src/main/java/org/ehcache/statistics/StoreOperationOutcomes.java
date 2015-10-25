@@ -22,38 +22,94 @@ package org.ehcache.statistics;
  */
 public interface StoreOperationOutcomes {
   /**
-   * The Enum GetOutcome.
+   * The get outcomes
    */
-  enum GetOutcome {
-
-    /** hit. */
+  enum GetOutcome implements StoreOperationOutcomes {
     HIT,
-    /** miss. */
-    MISS;
+    MISS
   }
 
   /**
-   * The Enum PutOutcome.
+   * The put outcomes
    */
-  enum PutOutcome {
-    /** added. */
-    ADDED,
-    /** updated. */
-    UPDATED
-  };
+  enum PutOutcome implements StoreOperationOutcomes {
+    PUT,
+    REPLACED
+  }
 
   /**
-   * The Enum RemoveOutcome.
+   * The remove outcomes
    */
-  enum RemoveOutcome {
-    /** success. */
-    SUCCESS
-  };
+  enum RemoveOutcome implements StoreOperationOutcomes {
+    REMOVED,
+    MISS
+  }
+
+  /**
+   * the putIfAbsent outcomes
+   */
+  enum PutIfAbsentOutcome implements StoreOperationOutcomes {
+    PUT,
+    HIT
+  }
+
+  /**
+   * the conditional remove outcomes
+   */
+  enum ConditionalRemoveOutcome implements StoreOperationOutcomes {
+    REMOVED,
+    MISS
+  }
+
+  /**
+   * the replace outcomes
+   */
+  enum ReplaceOutcome implements StoreOperationOutcomes {
+    REPLACED,
+    MISS
+  }
+
+  /**
+   * the conditional replace outcomes
+   */
+  enum ConditionalReplaceOutcome implements StoreOperationOutcomes {
+    REPLACED,
+    MISS
+  }
+
+  /**
+   * the compute outcomes
+   */
+  enum ComputeOutcome implements StoreOperationOutcomes {
+    HIT,
+    MISS,
+    PUT,
+    REMOVED
+  }
+
+  /**
+   * the computeIfAbsent outcomes
+   */
+  enum ComputeIfAbsentOutcome implements StoreOperationOutcomes {
+    HIT,
+    PUT,
+    NOOP
+  }
+
+  /**
+   * the computeIfPresent outcomes
+   */
+  enum ComputeIfPresentOutcome implements StoreOperationOutcomes {
+    MISS,
+    HIT,
+    PUT,
+    REMOVED
+  }
 
   /**
    * The eviction outcomes.
    */
-  enum EvictionOutcome implements CacheOperationOutcomes {
+  enum EvictionOutcome implements StoreOperationOutcomes {
     /** success. */
     SUCCESS,
     /** failure */

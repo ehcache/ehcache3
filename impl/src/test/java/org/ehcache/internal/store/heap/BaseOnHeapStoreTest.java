@@ -33,20 +33,18 @@ import org.ehcache.function.NullaryFunction;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.store.heap.holders.CopiedOnHeapValueHolder;
+import org.ehcache.internal.util.StatisticsTestUtils;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.Iterator;
 import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.statistics.CachingTierOperationOutcomes;
 import org.ehcache.statistics.StoreOperationOutcomes;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Matchers;
-import org.terracotta.context.ContextElement;
-import org.terracotta.context.TreeNode;
-import org.terracotta.context.query.QueryBuilder;
-import org.terracotta.statistics.OperationStatistic;
-import org.terracotta.statistics.StatisticsManager;
 
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -91,6 +89,7 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(store.evict(), is(true));
     assertThat(storeSize(store), is(99));
     verify(listener, times(1)).onEviction(Matchers.<String>any(), Matchers.<Store.ValueHolder<String>>any());
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.EvictionOutcome.SUCCESS));
   }
 
   @Test
@@ -103,6 +102,7 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(store.evict(), is(true));
     assertThat(storeSize(store), is(99));
     verify(listener, times(1)).onEviction(Matchers.<String>any(), Matchers.<Store.ValueHolder<String>>any());
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.EvictionOutcome.SUCCESS));
   }
 
   @Test
@@ -110,6 +110,14 @@ public abstract class BaseOnHeapStoreTest {
     OnHeapStore<String, String> store = newStore();
     store.put("key", "value");
     assertThat(store.get("key").value(), equalTo("value"));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.HIT));
+  }
+
+  @Test
+  public void testGetNoPut() throws Exception {
+    OnHeapStore<String, String> store = newStore();
+    assertThat(store.get("key"), nullValue());
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.MISS));
   }
 
   @Test
@@ -123,7 +131,8 @@ public abstract class BaseOnHeapStoreTest {
     timeSource.advanceTime(1);
     assertThat(store.get("key"), nullValue());
     checkExpiryEvent(listener, "key", "value");
-    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.HIT, StoreOperationOutcomes.GetOutcome.MISS));
   }
 
   @Test
@@ -133,9 +142,10 @@ public abstract class BaseOnHeapStoreTest {
         Expirations.timeToLiveExpiration(new Duration(2, TimeUnit.MILLISECONDS)));
     StoreEventListener<String, String> listener = addListener(store);
     store.put("key", "value");
-    assertThat(store.get("key").value(), equalTo("value"));
     timeSource.advanceTime(1);
+    assertThat(store.get("key").value(), equalTo("value"));
     verify(listener, never()).onExpiration(Matchers.<String>any(), Matchers.<Store.ValueHolder<String>>any());
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.HIT));
   }
 
   @Test
@@ -155,9 +165,16 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testContainsKey() throws Exception {
     OnHeapStore<String, String> store = newStore();
-    assertThat(store.containsKey("key"), is(false));
     store.put("key", "value");
     assertThat(store.containsKey("key"), is(true));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.HIT));
+  }
+
+  @Test
+  public void testNotContainsKey() throws Exception {
+    OnHeapStore<String, String> store = newStore();
+    assertThat(store.containsKey("key"), is(false));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.MISS));
   }
 
   @Test
@@ -167,21 +184,26 @@ public abstract class BaseOnHeapStoreTest {
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
     StoreEventListener<String, String> listener = addListener(store);
 
-    assertThat(store.containsKey("key"), is(false));
     store.put("key", "value");
-    assertThat(store.containsKey("key"), is(true));
     timeSource.advanceTime(1);
     assertThat(store.containsKey("key"), is(false));
     checkExpiryEvent(listener, "key", "value");
-    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.MISS));
   }
 
   @Test
   public void testPut() throws Exception {
     OnHeapStore<String, String> store = newStore();
-    assertThat(store.get("key"), nullValue());
     store.put("key", "value");
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.PutOutcome.PUT));
     assertThat(store.get("key").value(), equalTo("value"));
+  }
+
+  @Test
+  public void testPutOverwrite() throws Exception {
+    OnHeapStore<String, String> store = newStore();
+    store.put("key", "value");
     store.put("key", "value2");
     assertThat(store.get("key").value(), equalTo("value2"));
   }
@@ -197,25 +219,30 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   @Test
-  public void testRemove() throws Exception {
+  public void testInvalidate() throws Exception {
     OnHeapStore<String, String> store = newStore();
-    assertThat(store.get("key"), nullValue());
     store.put("key", "value");
-    assertThat(store.get("key").value(), equalTo("value"));
     store.invalidate("key");
     assertThat(store.get("key"), nullValue());
+    StatisticsTestUtils.validateStats(store, EnumSet.of(CachingTierOperationOutcomes.InvalidateOutcome.REMOVED));
   }
 
   @Test
-  public void testPutIfAbsent() throws Exception {
+  public void testPutIfAbsentNoValue() throws Exception {
     OnHeapStore<String, String> store = newStore();
-    assertThat(store.get("key"), nullValue());
     ValueHolder<String> prev = store.putIfAbsent("key", "value");
     assertThat(prev, nullValue());
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.PUT));
     assertThat(store.get("key").value(), equalTo("value"));
-    prev = store.putIfAbsent("key", "value2");
+  }
+
+  @Test
+  public void testPutIfAbsentValuePresent() throws Exception {
+    OnHeapStore<String, String> store = newStore();
+    store.put("key", "value");
+    ValueHolder<String> prev = store.putIfAbsent("key", "value2");
     assertThat(prev.value(), equalTo("value"));
-    assertThat(store.get("key").value(), equalTo("value"));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.HIT));
   }
 
   @Test
@@ -242,20 +269,27 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(prev, nullValue());
     assertThat(store.get("key").value(), equalTo("value2"));
     checkExpiryEvent(listener, "key", "value");
-    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
   }
 
   @Test
-  public void testRemoveTwoArg() throws Exception {
+  public void testRemoveTwoArgMatch() throws Exception {
     OnHeapStore<String, String> store = newStore();
     store.put("key", "value");
-    assertThat(store.get("key").value(), equalTo("value"));
+    boolean removed = store.remove("key", "value");
+    assertThat(removed, equalTo(true));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED));
+    assertThat(store.get("key"), nullValue());
+  }
+
+  @Test
+  public void testRemoveTwoArgNoMatch() throws Exception {
+    OnHeapStore<String, String> store = newStore();
+    store.put("key", "value");
     boolean removed = store.remove("key", "not value");
     assertThat(removed, equalTo(false));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS));
     assertThat(store.get("key").value(), equalTo("value"));
-    removed = store.remove("key", "value");
-    assertThat(removed, equalTo(true));
-    assertThat(store.get("key"), nullValue());
   }
 
   @Test
@@ -270,22 +304,28 @@ public abstract class BaseOnHeapStoreTest {
     boolean removed = store.remove("key", "value");
     assertThat(removed, equalTo(false));
     checkExpiryEvent(listener, "key", "value");
-    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
   }
 
   @Test
-  public void testReplaceTwoArg() throws Exception {
+  public void testReplaceTwoArgPresent() throws Exception {
     OnHeapStore<String, String> store = newStore();
 
-    assertThat(store.get("key"), nullValue());
-    ValueHolder<String> existing = store.replace("key", "value");
-    assertThat(existing, nullValue());
-    assertThat(store.get("key"), nullValue());
-
     store.put("key", "value");
-    existing = store.replace("key", "value2");
+    ValueHolder<String> existing = store.replace("key", "value2");
     assertThat(existing.value(), equalTo("value"));
     assertThat(store.get("key").value(), equalTo("value2"));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.REPLACED));
+  }
+
+  @Test
+  public void testReplaceTwoArgAbsent() throws Exception {
+    OnHeapStore<String, String> store = newStore();
+
+    ValueHolder<String> existing = store.replace("key", "value");
+    assertThat(existing, nullValue());
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.MISS));
+    assertThat(store.get("key"), nullValue());
   }
 
   @Test
@@ -301,26 +341,34 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(existing, nullValue());
     assertThat(store.get("key"), nullValue());
     checkExpiryEvent(listener, "key", "value");
-    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
   }
 
   @Test
-  public void testReplaceThreeArg() throws Exception {
+  public void testReplaceThreeArgMatch() throws Exception {
     OnHeapStore<String, String> store = newStore();
 
-    assertThat(store.get("key"), nullValue());
+    store.put("key", "value");
+
+    boolean replaced = store.replace("key", "value", "value2");
+    assertThat(replaced, equalTo(true));
+    assertThat(store.get("key").value(), equalTo("value2"));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED));
+  }
+
+  @Test
+  public void testReplaceThreeArgNoMatch() throws Exception {
+    OnHeapStore<String, String> store = newStore();
+
     boolean replaced = store.replace("key", "value", "value2");
     assertThat(replaced, equalTo(false));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ConditionalReplaceOutcome.MISS));
 
     store.put("key", "value");
 
     replaced = store.replace("key", "not value", "value2");
     assertThat(replaced, equalTo(false));
-    assertThat(store.get("key").value(), equalTo("value"));
-
-    replaced = store.replace("key", "value", "value2");
-    assertThat(replaced, equalTo(true));
-    assertThat(store.get("key").value(), equalTo("value2"));
+    StatisticsTestUtils.validateStat(store, StoreOperationOutcomes.ConditionalReplaceOutcome.MISS, 2L);
   }
 
   @Test
@@ -336,7 +384,7 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(replaced, equalTo(false));
     assertThat(store.get("key"), nullValue());
     checkExpiryEvent(listener, "key", "value");
-    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
   }
 
   @Test
@@ -347,7 +395,7 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(iter.hasNext(), equalTo(false));
     try {
       iter.next();
-      throw new AssertionError();
+      fail("NoSuchElementException expected");
     } catch (NoSuchElementException nse) {
       // expected
     }
@@ -386,7 +434,7 @@ public abstract class BaseOnHeapStoreTest {
     checkExpiryEvent(listener, "key1", "value1");
     checkExpiryEvent(listener, "key2", "value2");
     checkExpiryEvent(listener, "key3", "value3");
-    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(3L));
+    StatisticsTestUtils.validateStat(store, StoreOperationOutcomes.ExpirationOutcome.SUCCESS, 3L);
   }
 
   @Test
@@ -431,10 +479,11 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(newValue.value(), equalTo("value"));
     assertThat(createTime + 1, equalTo(newValue.creationTime(TimeUnit.MILLISECONDS)));
     assertThat(accessTime + 1, equalTo(newValue.lastAccessTime(TimeUnit.MILLISECONDS)));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ComputeOutcome.PUT));
   }
 
   @Test
-  public void testComputeRepalceFalse() throws Exception {
+  public void testComputeReplaceFalse() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource, Expirations.noExpiration());
 
@@ -459,6 +508,7 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(newValue.value(), equalTo("value"));
     assertThat(createTime, equalTo(newValue.creationTime(TimeUnit.MILLISECONDS)));
     assertThat(accessTime + 1, equalTo(newValue.lastAccessTime(TimeUnit.MILLISECONDS)));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ComputeOutcome.HIT));
   }
 
   @Test
@@ -475,6 +525,7 @@ public abstract class BaseOnHeapStoreTest {
     });
 
     assertThat(newValue.value(), equalTo("value"));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ComputeOutcome.PUT));
     assertThat(store.get("key").value(), equalTo("value"));
   }
 
@@ -491,9 +542,9 @@ public abstract class BaseOnHeapStoreTest {
 
     assertThat(newValue, nullValue());
     assertThat(store.get("key"), nullValue());
+    StatisticsTestUtils.validateStat(store, StoreOperationOutcomes.ComputeOutcome.MISS, 1L);
 
     store.put("key", "value");
-    assertThat(store.get("key").value(), equalTo("value"));
     newValue = store.compute("key", new BiFunction<String, String, String>() {
       @Override
       public String apply(String mappedKey, String mappedValue) {
@@ -503,6 +554,7 @@ public abstract class BaseOnHeapStoreTest {
 
     assertThat(newValue, nullValue());
     assertThat(store.get("key"), nullValue());
+    StatisticsTestUtils.validateStat(store, StoreOperationOutcomes.ComputeOutcome.REMOVED, 1L);
   }
 
   @Test
@@ -517,7 +569,7 @@ public abstract class BaseOnHeapStoreTest {
           throw RUNTIME_EXCEPTION;
         }
       });
-      throw new AssertionError();
+      fail("RuntimeException expected");
     } catch (CacheAccessException cae) {
       assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
     }
@@ -539,6 +591,7 @@ public abstract class BaseOnHeapStoreTest {
     });
 
     assertThat(newValue.value(), equalTo("value2"));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ComputeOutcome.PUT));
     assertThat(store.get("key").value(), equalTo("value2"));
   }
 
@@ -562,7 +615,7 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(newValue.value(), equalTo("value2"));
     assertThat(store.get("key").value(), equalTo("value2"));
     checkExpiryEvent(listener, "key", "value");
-    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
   }
 
   @Test
@@ -578,6 +631,7 @@ public abstract class BaseOnHeapStoreTest {
     });
 
     assertThat(newValue.value(), equalTo("value"));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ComputeIfAbsentOutcome.PUT));
     assertThat(store.get("key").value(), equalTo("value"));
   }
 
@@ -589,11 +643,13 @@ public abstract class BaseOnHeapStoreTest {
     ValueHolder<String> newValue = store.computeIfAbsent("key", new Function<String, String>() {
       @Override
       public String apply(String mappedKey) {
-        throw new AssertionError();
+        fail("Should not be called");
+        return null;
       }
     });
 
     assertThat(newValue.value(), equalTo("value"));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ComputeIfAbsentOutcome.HIT));
     assertThat(store.get("key").value(), equalTo("value"));
   }
 
@@ -609,6 +665,7 @@ public abstract class BaseOnHeapStoreTest {
     });
 
     assertThat(newValue, nullValue());
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ComputeIfAbsentOutcome.NOOP));
     assertThat(store.get("key"), nullValue());
   }
 
@@ -623,7 +680,7 @@ public abstract class BaseOnHeapStoreTest {
           throw RUNTIME_EXCEPTION;
         }
       });
-      throw new AssertionError();
+      fail("Expected exception");
     } catch (CacheAccessException cae) {
       assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
     }
@@ -654,7 +711,7 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(store.get("key").value(), equalTo("value2"));
     final String value = "value";
     verify(listener).onExpiration(eq("key"), valueHolderValueEq(value));
-    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
   }
 
   @Test
@@ -680,7 +737,7 @@ public abstract class BaseOnHeapStoreTest {
 
     try {
       store.put("key", "value");
-      throw new AssertionError();
+      fail("Expected exception");
     } catch (CacheAccessException cae) {
       assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
     }
@@ -713,7 +770,7 @@ public abstract class BaseOnHeapStoreTest {
 
     try {
       store.get("key");
-      throw new AssertionError();
+      fail("Expected exception");
     } catch (CacheAccessException cae) {
       assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
     }
@@ -737,6 +794,7 @@ public abstract class BaseOnHeapStoreTest {
     });
 
     assertThat(newValue.value(), equalTo("value2"));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ComputeIfPresentOutcome.PUT));
     assertThat(store.get("key").value(), equalTo("value2"));
   }
 
@@ -747,11 +805,13 @@ public abstract class BaseOnHeapStoreTest {
     ValueHolder<String> newValue = store.computeIfPresent("key", new BiFunction<String, String, String>() {
       @Override
       public String apply(String mappedKey, String mappedValue) {
-        throw new AssertionError();
+        fail("Should not have been called");
+        return null;
       }
     });
 
     assertThat(newValue, nullValue());
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ComputeIfPresentOutcome.MISS));
   }
 
   @Test
@@ -767,6 +827,7 @@ public abstract class BaseOnHeapStoreTest {
     });
 
     assertThat(newValue, nullValue());
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ComputeIfPresentOutcome.REMOVED));
     assertThat(store.get("key"), nullValue());
   }
 
@@ -782,7 +843,7 @@ public abstract class BaseOnHeapStoreTest {
           throw RUNTIME_EXCEPTION;
         }
       });
-      throw new AssertionError();
+      fail("Expected exception");
     } catch (CacheAccessException cae) {
       assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
     }
@@ -811,7 +872,7 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(newValue, nullValue());
     assertThat(store.get("key"), nullValue());
     verify(listener).onExpiration(eq("key"), valueHolderValueEq("value"));
-    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
   }
 
   @Test
@@ -836,20 +897,7 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(store.get("key"), nullValue());
     verify(listener).onExpiration(eq("key"), valueHolderValueEq("value"));
     assertThat(storeSize(store), is(0));
-    assertThat(getExpirationStatistic(store).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
-  }
-
-  private OperationStatistic<StoreOperationOutcomes.ExpirationOutcome> getExpirationStatistic(OnHeapStore<String, String> store) {
-    StatisticsManager statisticsManager = new StatisticsManager();
-    statisticsManager.root(store);
-    TreeNode treeNode = statisticsManager.queryForSingleton(QueryBuilder.queryBuilder()
-        .descendants()
-        .filter(org.terracotta.context.query.Matchers.context(
-            org.terracotta.context.query.Matchers.<ContextElement>allOf(org.terracotta.context.query.Matchers.identifier(org.terracotta.context.query.Matchers
-                .subclassOf(OperationStatistic.class)),
-                org.terracotta.context.query.Matchers.attributes(org.terracotta.context.query.Matchers.hasAttribute("name", "expiration")))))
-        .build());
-    return (OperationStatistic<StoreOperationOutcomes.ExpirationOutcome>) treeNode.getContext().attributes().get("this");
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
   }
 
   @Test
