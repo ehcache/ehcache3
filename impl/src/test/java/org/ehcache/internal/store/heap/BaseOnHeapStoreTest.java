@@ -51,8 +51,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Exchanger;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -909,7 +909,6 @@ public abstract class BaseOnHeapStoreTest {
     final OnHeapStore<String, String> store = newStore();
     final CountDownLatch testCompletionLatch = new CountDownLatch(1);
     final CountDownLatch threadFaultCompletionLatch = new CountDownLatch(1);
-    CacheConfigurationChangeListener listener = store.getConfigurationChangeListeners().get(0);
     CachingTier.InvalidationListener<String, String> invalidationListener = new CachingTier.InvalidationListener<String, String>() {
       @Override
       public void onInvalidation(final String key, final ValueHolder<String> valueHolder) {
@@ -923,9 +922,7 @@ public abstract class BaseOnHeapStoreTest {
     };
 
     store.setInvalidationListener(invalidationListener);
-    listener.cacheConfigurationChange(new CacheConfigurationChangeEvent(CacheConfigurationProperty.UPDATESIZE, 
-        newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES).build(), 
-        newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).build()));
+    updateStoreCapacity(store, 1);
 
     Thread thread = new Thread(new Runnable() {
       @Override
@@ -963,7 +960,7 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testGetOrComputeIfAbsentContention() throws InterruptedException {
 
-    final OnHeapStore<Long, String> store = newStore();
+    final OnHeapStore<String, String> store = newStore();
 
     int threads = 10;
     final CountDownLatch startLatch = new CountDownLatch(1);
@@ -979,9 +976,9 @@ public abstract class BaseOnHeapStoreTest {
           fail("Got an exception waiting to start thread " + e);
         }
         try {
-          ValueHolder<String> result = store.getOrComputeIfAbsent(42L, new Function<Long, ValueHolder<String>>() {
+          ValueHolder<String> result = store.getOrComputeIfAbsent("42", new Function<String, ValueHolder<String>>() {
             @Override
-            public ValueHolder<String> apply(Long aLong) {
+            public ValueHolder<String> apply(String key) {
               return new CopiedOnHeapValueHolder<String>("theAnswer!", System.currentTimeMillis(), -1, new IdentityCopier<String>());
             }
           });
@@ -1109,6 +1106,106 @@ public abstract class BaseOnHeapStoreTest {
     }
   }
 
+  @Test
+  public void testEvictionDoneUnderEvictedKeyLockScope() throws Exception {
+    final OnHeapStore<String, String> store = newStore();
+
+    updateStoreCapacity(store, 2);
+
+    // Fill in store at capacity
+    store.put("keyA", "valueA");
+    store.put("keyB", "valueB");
+
+    final Exchanger<String> keyExchanger = new Exchanger<String>();
+    final AtomicReference<String> reference = new AtomicReference<String>();
+    final CountDownLatch faultingLatch = new CountDownLatch(1);
+
+    // prepare concurrent faulting
+    final Thread thread = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        String key;
+
+        try {
+          key = keyExchanger.exchange("ready to roll!");
+          store.put(key, "updateValue");
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        } catch (CacheAccessException e) {
+          e.printStackTrace();
+        }
+      }
+    });
+    thread.start();
+
+    store.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
+      @Override
+      public void onInvalidation(String key, ValueHolder<String> valueHolder) {
+        // Only want to exchange on the first invalidation!
+        if (reference.compareAndSet(null, key)) {
+          try {
+            keyExchanger.exchange(key);
+            long now = System.nanoTime();
+            while (!thread.getState().equals(Thread.State.BLOCKED)) {
+              Thread.yield();
+              if (System.nanoTime() - now > TimeUnit.MILLISECONDS.toNanos(500)) {
+                assertThat(thread.getState(), is(Thread.State.BLOCKED));
+              }
+            }
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    });
+
+    //trigger eviction
+    store.put("keyC", "valueC");
+  }
+
+  @Test
+  public void testIteratorExpiryHappensUnderExpiredKeyLockScope() throws Exception {
+    TestTimeSource testTimeSource = new TestTimeSource();
+    final OnHeapStore<String, String> store = newStore(testTimeSource, Expirations.timeToLiveExpiration(new Duration(10, TimeUnit.MILLISECONDS)));
+
+    store.put("key", "value");
+
+    final CountDownLatch expiryLatch = new CountDownLatch(1);
+
+    final Thread thread = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          expiryLatch.await();
+          store.put("key", "newValue");
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        } catch (CacheAccessException e) {
+          e.printStackTrace();
+        }
+      }
+    });
+    thread.start();
+
+    store.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
+      @Override
+      public void onInvalidation(String key, ValueHolder<String> valueHolder) {
+        expiryLatch.countDown();
+        long now = System.nanoTime();
+        while (!thread.getState().equals(Thread.State.BLOCKED)) {
+          Thread.yield();
+          if (System.nanoTime() - now > TimeUnit.MILLISECONDS.toNanos(500)) {
+            assertThat(thread.getState(), is(Thread.State.BLOCKED));
+          }
+        }
+      }
+    });
+
+    testTimeSource.advanceTime(20);
+
+    store.iterator();
+  }
+
   public static <V> ValueHolder<V> valueHolderValueEq(final V value) {
     return argThat(new ArgumentMatcher<ValueHolder<V>>() {
 
@@ -1165,6 +1262,13 @@ public abstract class BaseOnHeapStoreTest {
   private static void assertEntry(Entry<String, ValueHolder<String>> entry, String key, String value) {
     assertThat(entry.getKey(), equalTo(key));
     assertThat(entry.getValue().value(), equalTo(value));
+  }
+
+  private void updateStoreCapacity(OnHeapStore<?, ?> store, int newCapacity) {
+    CacheConfigurationChangeListener listener = store.getConfigurationChangeListeners().get(0);
+    listener.cacheConfigurationChange(new CacheConfigurationChangeEvent(CacheConfigurationProperty.UPDATESIZE,
+        newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES).build(),
+        newResourcePoolsBuilder().heap(newCapacity, EntryUnit.ENTRIES).build()));
   }
 
   private static class TestTimeSource implements TimeSource {
