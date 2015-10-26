@@ -55,7 +55,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import static org.terracotta.context.query.Matchers.attributes;
 import static org.terracotta.context.query.Matchers.context;
@@ -101,7 +100,7 @@ class EhcacheStatistics {
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends Statistic<?>> Collection<T> queryStatistic(String statisticName) {
+  public List<? extends Statistic<?>> queryStatistic(String statisticName, long since) {
     Collection<ExposedStatistic> registrations = statisticsRegistry.getRegistrations();
     for (ExposedStatistic registration : registrations) {
       Object type = registration.getProperties().get("type");
@@ -112,32 +111,32 @@ class EhcacheStatistics {
 
         if ((name + "Count").equals(statisticName)) {
           SampledStatistic<Long> count = result.count();
-          return (Collection<T>) Collections.singleton(new SampledCounter(statisticName, buildSamples(count)));
+          return Collections.singletonList(new SampledCounter(statisticName, buildSamples(count, since)));
         } else if ((name + "Rate").equals(statisticName)) {
           SampledStatistic<Double> rate = result.rate();
-          return (Collection<T>) Collections.singleton(new SampledRate(statisticName, buildSamples(rate), configuration.historyIntervalUnit()));
+          return Collections.singletonList(new SampledRate(statisticName, buildSamples(rate, since), configuration.historyIntervalUnit()));
         } else if ((name + "LatencyMinimum").equals(statisticName)) {
           SampledStatistic<Long> minimum = result.latency().minimum();
-          return (Collection<T>) Collections.singleton(new SampledDuration(statisticName, buildSamples(minimum), configuration.historyIntervalUnit()));
+          return Collections.singletonList(new SampledDuration(statisticName, buildSamples(minimum, since), configuration.historyIntervalUnit()));
         } else if ((name + "LatencyMaximum").equals(statisticName)) {
           SampledStatistic<Long> maximum = result.latency().maximum();
-          return (Collection<T>) Collections.singleton(new SampledDuration(statisticName, buildSamples(maximum), configuration.historyIntervalUnit()));
+          return Collections.singletonList(new SampledDuration(statisticName, buildSamples(maximum, since), configuration.historyIntervalUnit()));
         } else if ((name + "LatencyAverage").equals(statisticName)) {
           SampledStatistic<Double> average = result.latency().average();
-          return (Collection<T>) Collections.singleton(new SampledRatio(statisticName, buildSamples(average)));
+          return Collections.singletonList(new SampledRatio(statisticName, buildSamples(average, since)));
         } else if (name.equals(statisticName)) {
-          Collection<Statistic<?>> resultStats = new ArrayList<Statistic<?>>();
-          resultStats.add(new SampledCounter(statisticName + "Count", buildSamples(result.count())));
-          resultStats.add(new SampledRate(statisticName + "Rate", buildSamples(result.rate()), configuration.historyIntervalUnit()));
-          resultStats.add(new SampledDuration(statisticName + "LatencyMinimum", buildSamples(result.latency().minimum()), configuration.historyIntervalUnit()));
-          resultStats.add(new SampledDuration(statisticName + "LatencyMaximum", buildSamples(result.latency().maximum()), configuration.historyIntervalUnit()));
-          resultStats.add(new SampledRatio(statisticName + "LatencyAverage", buildSamples(result.latency().average())));
-          return (Collection<T>) resultStats;
+          List<Statistic<?>> resultStats = new ArrayList<Statistic<?>>();
+          resultStats.add(new SampledCounter(statisticName + "Count", buildSamples(result.count(), since)));
+          resultStats.add(new SampledRate(statisticName + "Rate", buildSamples(result.rate(), since), configuration.historyIntervalUnit()));
+          resultStats.add(new SampledDuration(statisticName + "LatencyMinimum", buildSamples(result.latency().minimum(), since), configuration.historyIntervalUnit()));
+          resultStats.add(new SampledDuration(statisticName + "LatencyMaximum", buildSamples(result.latency().maximum(), since), configuration.historyIntervalUnit()));
+          resultStats.add(new SampledRatio(statisticName + "LatencyAverage", buildSamples(result.latency().average(), since)));
+          return resultStats;
         }
       } else if ("Ratio".equals(type)) {
         if ((name + "Ratio").equals(statisticName)) {
           SampledStatistic<Double> ratio = (SampledStatistic) registration.getStat();
-          return (Collection<T>) Collections.singleton(new SampledRatio(statisticName, buildSamples(ratio)));
+          return Collections.singletonList(new SampledRatio(statisticName, buildSamples(ratio, since)));
         }
       }
     }
@@ -161,7 +160,7 @@ class EhcacheStatistics {
 
         Object setting = attributes.get("Setting");
         if (setting != null && setting.equals(statisticName)) {
-          return (Collection) Collections.singleton(new Setting<String>(statisticName, (String) treeNode.getContext().attributes().get(statisticName)));
+          return Collections.singletonList(new Setting<String>(statisticName, (String) treeNode.getContext().attributes().get(statisticName)));
         }
       }
     }
@@ -169,18 +168,20 @@ class EhcacheStatistics {
     OperationStatistic<?> operationStatistic = operationStatistics.get(statisticName);
     if (operationStatistic != null) {
       long sum = operationStatistic.sum();
-      return (Collection) Collections.singleton(new Counter(statisticName, sum));
+      return Collections.singletonList(new Counter(statisticName, sum));
     }
 
     throw new IllegalArgumentException("Unknown statistic name : " + statisticName);
   }
 
-  private <T extends Number> List<Sample<T>> buildSamples(SampledStatistic<T> sampledStatistic) {
+  private <T extends Number> List<Sample<T>> buildSamples(SampledStatistic<T> sampledStatistic, long since) {
     List<Sample<T>> result = new ArrayList<Sample<T>>();
 
     List<Timestamped<T>> history = sampledStatistic.history();
     for (Timestamped<T> timestamped : history) {
-      result.add(new Sample<T>(timestamped.getTimestamp(), timestamped.getSample()));
+      if(timestamped.getTimestamp() >= since) {
+        result.add(new Sample<T>(timestamped.getTimestamp(), timestamped.getSample()));
+      }
     }
 
     return result;

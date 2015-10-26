@@ -19,22 +19,19 @@ import org.ehcache.management.providers.ManagementProvider;
 import org.ehcache.spi.service.Service;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.context.ContextContainer;
-import org.terracotta.management.stats.Statistic;
 
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Repository of objects exposing capabilities via the
  * management and monitoring facilities.
  * <p/>
- * A ManagementRegistry manages one and only one cache manager. 
+ * A ManagementRegistry manages one and only one cache manager.
  * If you need to manage or monitor several cache managers at a time, you can use the {@link SharedManagementService} and register it into several cache managers.
  *
  * @author Ludovic Orban
  */
-public interface ManagementRegistry extends Service {
+public interface ManagementRegistry extends CapabilityManagement, Service {
 
   /**
    * @return This registry configuration
@@ -83,38 +80,5 @@ public interface ManagementRegistry extends Service {
    * @return a this management registry context.
    */
   ContextContainer getContext();
-
-  /**
-   * Collect statistics from a managed object's capability.
-   *
-   * @param context the capability's context.
-   * @param capabilityName the capability name.
-   * @param statisticNames the statistic names.
-   * @return a collection of statistics.
-   */
-  <T extends Statistic<?>> Collection<T> collectStatistics(Map<String, String> context, String capabilityName, String... statisticNames);
-
-  /**
-   * Collect statistics from a managed object's capability and several contexts at once.
-   *
-   * @param contextList the capability's context list.
-   * @param capabilityName the capability name.
-   * @param statisticNames the statistic names.
-   * @return a list of collection of statistics, in the same order and index of the context list
-   */
-  <T extends Statistic<?>> List<Collection<T>> collectStatistics(List<Map<String, String>> contextList, String capabilityName, String... statisticNames);
-
-  /**
-   * Call an action of a managed object's capability.
-   *
-   * @param context the capability's context.
-   * @param capabilityName the capability name.
-   * @param methodName the action's method name.
-   * @param argClassNames the action method's argument class names.
-   * @param args the action method's arguments.
-   * @param <T> the returned type.
-   * @return the action method's return value.
-   */
-  <T> T callAction(Map<String, String> context, String capabilityName, String methodName, String[] argClassNames, Object[] args);
 
 }

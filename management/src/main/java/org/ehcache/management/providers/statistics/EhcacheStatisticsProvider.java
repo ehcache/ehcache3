@@ -28,6 +28,7 @@ import org.terracotta.management.stats.Statistic;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
@@ -75,12 +76,12 @@ public class EhcacheStatisticsProvider extends CacheBindingManagementProviderSke
   }
 
   @Override
-  public <T extends Statistic<?>> Collection<T> collectStatistics(Map<String, String> context, String... statisticNames) {
-    Collection<T> statistics = new ArrayList<T>();
+  public List<Statistic<?>> collectStatistics(Map<String, String> context, Collection<String> statisticNames, long since) {
+    List<Statistic<?>> statistics = new ArrayList<Statistic<?>>();
     Map.Entry<CacheBinding, EhcacheStatistics> entry = findManagedObject(context);
     if (entry != null) {
       for (String statisticName : statisticNames) {
-        statistics.addAll(entry.getValue().<T>queryStatistic(statisticName));
+        statistics.addAll(entry.getValue().queryStatistic(statisticName, since));
       }
     }
     return statistics;
