@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Collections.emptyList;
+import java.util.concurrent.Future;
 
 /**
  *
@@ -39,6 +40,7 @@ class PartitionedOrderedExecutor extends AbstractExecutorService {
 
   private final CountDownLatch termination = new CountDownLatch(1);
   private volatile boolean shutdown;
+  private volatile Future<?> currentTask;
   
   public PartitionedOrderedExecutor(BlockingQueue<Runnable> queue, ExecutorService executor) {
     this.queue = queue;
@@ -62,6 +64,7 @@ class PartitionedOrderedExecutor extends AbstractExecutorService {
     } else {
       List<Runnable> failed = new ArrayList<Runnable>(queue.size());
       queue.drainTo(failed);
+      currentTask.cancel(true);
       return failed;
     }
   }
@@ -121,7 +124,7 @@ class PartitionedOrderedExecutor extends AbstractExecutorService {
             if (queue.isEmpty()) {
               if (runner.compareAndSet(this, null)) {
                 if (!queue.isEmpty() && runner.compareAndSet(null, this)) {
-                  executor.submit(this);
+                  currentTask = executor.submit(this);
                 } else if (isTerminated()) {
                   termination.countDown();
                 }
@@ -129,13 +132,13 @@ class PartitionedOrderedExecutor extends AbstractExecutorService {
                 throw new AssertionError();
               }
             } else {
-              executor.submit(this);
+              currentTask = executor.submit(this);
             }
           }
         }
       };
       if (runner.compareAndSet(null, newRunner)) {
-        executor.submit(newRunner);
+        currentTask = executor.submit(newRunner);
       }
     }
   }
