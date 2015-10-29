@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.jsr107;
+
+package org.ehcache.jsr107.tck;
 
 import javax.management.ListenerNotFoundException;
 import javax.management.MBeanNotificationInfo;
