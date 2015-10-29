@@ -178,7 +178,7 @@ public class ConfigurationMergerTest {
   public void jsr107LoaderGetsOverriddenByTemplate() throws Exception {
     when(jsr107Service.getTemplateNameForCache("cache")).thenReturn("cacheTemplate");
     when(xmlConfiguration.newCacheConfigurationBuilderFromTemplate("cacheTemplate", Object.class, Object.class)).thenReturn(
-        newCacheConfigurationBuilder().add(new DefaultCacheLoaderWriterConfiguration(null))
+        newCacheConfigurationBuilder().add(new DefaultCacheLoaderWriterConfiguration((Class)null))
     );
 
     MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();

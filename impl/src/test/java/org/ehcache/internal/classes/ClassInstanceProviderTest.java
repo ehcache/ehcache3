@@ -26,6 +26,7 @@ import java.io.IOException;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -106,6 +107,18 @@ public class ClassInstanceProviderTest {
     classInstanceProvider.releaseInstance(closeable);
   }
 
+  @Test
+  public void testNewInstanceWithActualInstanceInServiceConfig() throws Exception {
+    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, (Class)ClassInstanceConfiguration.class);
+
+    TestService service = new TestService();
+    TestServiceConfiguration config = new TestServiceConfiguration(service);
+    
+    TestService newService = classInstanceProvider.newInstance("test stuff", config);
+
+    assertThat(newService, sameInstance(service));
+  }
+
   public static class TestService implements Service {
     public final String theString;
 
@@ -129,6 +142,10 @@ public class ClassInstanceProviderTest {
   public static class TestServiceConfiguration extends ClassInstanceConfiguration<TestService> implements ServiceConfiguration<TestService> {
     public TestServiceConfiguration() {
       super(TestService.class);
+    }
+
+    public TestServiceConfiguration(TestService service) {
+      super(service);
     }
 
     @Override

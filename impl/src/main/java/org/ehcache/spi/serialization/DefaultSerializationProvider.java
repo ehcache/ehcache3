@@ -181,12 +181,22 @@ public class DefaultSerializationProvider implements SerializationProvider {
     @Override
     public <T> Serializer<T> createKeySerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
       DefaultSerializerConfiguration<T> conf = find(SerializerConfiguration.Type.KEY, configs);
+      if(conf != null) {
+        if(conf.getInstance() != null) {
+          return conf.getInstance();
+        }
+      }
       return createSerializer("-Key", clazz, classLoader, conf, configs);
     }
 
     @Override
     public <T> Serializer<T> createValueSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
       DefaultSerializerConfiguration<T> conf = find(SerializerConfiguration.Type.VALUE, configs);
+      if(conf != null) {
+        if(conf.getInstance() != null) {
+          return conf.getInstance();
+        }
+      }
       return createSerializer("-Value", clazz, classLoader, conf, configs);
     }
 

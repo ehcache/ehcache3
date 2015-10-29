@@ -26,10 +26,19 @@ public class ClassInstanceConfiguration<T> {
 
   private final Class<? extends T> clazz;
   private final List<Object> arguments;
+  
+  private final T instance;
 
   public ClassInstanceConfiguration(Class<? extends T> clazz, Object... arguments) {
     this.clazz = clazz;
     this.arguments = asList(arguments.clone());
+    this.instance = null;
+  }
+
+  public ClassInstanceConfiguration(T instance) {
+    this.instance = instance;
+    this.clazz = (Class) instance.getClass();
+    this.arguments = null;
   }
 
   public Class<? extends T> getClazz() {
@@ -38,5 +47,9 @@ public class ClassInstanceConfiguration<T> {
 
   public Object[] getArguments() {
     return arguments.toArray();
+  }
+
+  public T getInstance() {
+    return instance;
   }
 }

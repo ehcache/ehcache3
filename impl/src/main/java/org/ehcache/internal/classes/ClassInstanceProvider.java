@@ -84,6 +84,10 @@ public class ClassInstanceProvider<K, T> {
         return null;
       }
     }
+    if(config.getInstance() != null) {
+      return config.getInstance();
+    }
+    
     try {
       T instance = invokeConstructor(config.getClazz(), config.getArguments());
       created.add(instance);

@@ -33,6 +33,11 @@ public class DefaultSerializerConfiguration<T> extends ClassInstanceConfiguratio
     this.type = type;
   }
 
+  public DefaultSerializerConfiguration(Serializer<T> serializer, Type type) {
+    super(serializer);
+    this.type = type;
+  }
+
   @Override
   public Class<SerializationProvider> getServiceType() {
     return SerializationProvider.class;
