@@ -17,8 +17,10 @@ package org.ehcache.internal.executor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
@@ -37,16 +39,18 @@ class PartitionedUnorderedExecutor extends AbstractExecutorService {
   private final BlockingQueue<Runnable> queue;
   private final ExecutorService executor;
   private final Semaphore runnerPermit;
+  private final Set<Thread> liveThreads;
   private final int maxWorkers;
   private final CountDownLatch termination = new CountDownLatch(1);
 
   private volatile boolean shutdown;
 
-  public PartitionedUnorderedExecutor(BlockingQueue<Runnable> queue, ExecutorService executor, int maxWorkers) {
+  PartitionedUnorderedExecutor(BlockingQueue<Runnable> queue, ExecutorService executor, int maxWorkers) {
     this.queue = queue;
     this.executor = executor;
     this.maxWorkers = maxWorkers;
     this.runnerPermit = new Semaphore(maxWorkers);
+    this.liveThreads = new CopyOnWriteArraySet<Thread>();
   }
 
   @Override
@@ -66,6 +70,9 @@ class PartitionedUnorderedExecutor extends AbstractExecutorService {
     } else {
       List<Runnable> failed = new ArrayList<Runnable>(queue.size());
       queue.drainTo(failed);
+      for (Thread t : liveThreads) {
+        t.interrupt();
+      }
       return failed;
     }
   }
@@ -114,13 +121,18 @@ class PartitionedUnorderedExecutor extends AbstractExecutorService {
     if (shutdown && queue.remove(r)) {
       throw new RejectedExecutionException("Executor is shutting down");
     } else if (runnerPermit.tryAcquire()) {
+      
       executor.submit(new Runnable() {
 
         @Override
         public void run() {
           try {
-            Runnable task = queue.remove();
-            task.run();
+            liveThreads.add(Thread.currentThread());
+            try {
+              queue.remove().run();
+            } finally {
+              liveThreads.remove(Thread.currentThread());
+            }
           } finally {
             if (queue.isEmpty()) {
               runnerPermit.release();
