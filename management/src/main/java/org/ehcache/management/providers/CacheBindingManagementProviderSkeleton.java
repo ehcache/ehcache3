@@ -16,9 +16,10 @@
 package org.ehcache.management.providers;
 
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.management.Context;
+import org.ehcache.management.Parameter;
 import org.ehcache.management.annotations.Named;
 import org.ehcache.management.registry.CacheBinding;
-import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.capabilities.context.CapabilityContext;
 import org.terracotta.management.capabilities.descriptors.Descriptor;
@@ -82,7 +83,7 @@ public abstract class CacheBindingManagementProviderSkeleton<V> implements Manag
   }
 
   @Override
-  public final boolean supports(Map<String, String> context) {
+  public final boolean supports(Context context) {
     return findManagedObject(context) != null;
   }
 
@@ -93,7 +94,7 @@ public abstract class CacheBindingManagementProviderSkeleton<V> implements Manag
     }
   }
 
-  protected final Map.Entry<CacheBinding, V> findManagedObject(Map<String, String> context) {
+  protected final Map.Entry<CacheBinding, V> findManagedObject(Context context) {
     String cacheManagerName = context.get("cacheManagerName");
     String cacheName = context.get("cacheName");
     if (!this.cacheManagerAlias.equals(cacheManagerName)) {
@@ -108,12 +109,12 @@ public abstract class CacheBindingManagementProviderSkeleton<V> implements Manag
   }
 
   @Override
-  public <T extends Statistic<?>> Collection<T> collectStatistics(Map<String, String> context, String[] statisticNames) {
+  public Map<String, Statistic<?, ?>> collectStatistics(Context context, Collection<String> statisticNames, long since) {
     throw new UnsupportedOperationException("Not a statistics provider : " + getCapabilityName());
   }
 
   @Override
-  public Object callAction(Map<String, String> context, String methodName, String[] argClassNames, Object[] args) {
+  public <T> T callAction(Context context, String methodName, Class<T> returnType, Parameter... parameters) {
     throw new UnsupportedOperationException("Not an action provider : " + getCapabilityName());
   }
 
@@ -127,11 +128,6 @@ public abstract class CacheBindingManagementProviderSkeleton<V> implements Manag
 
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder(getClass().getSimpleName()).append("{");
-    sb.append("cacheManagerAlias='").append(cacheManagerAlias).append('\'');
-    sb.append(", name='").append(name).append('\'');
-    sb.append(", managedObjects=").append(managedObjects.keySet());
-    sb.append('}');
-    return sb.toString();
+    return "{" + "cacheManagerAlias='" + cacheManagerAlias + '\'' + ", name='" + name + '\'' + ", managedObjects=" + managedObjects.keySet() + '}';
   }
 }

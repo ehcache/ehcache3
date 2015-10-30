@@ -18,10 +18,8 @@ package org.ehcache.management;
 import org.ehcache.spi.service.Service;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.context.ContextContainer;
-import org.terracotta.management.stats.Statistic;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -31,7 +29,7 @@ import java.util.Map;
  *
  * @author Mathieu Carbou
  */
-public interface SharedManagementService extends Service {
+public interface SharedManagementService extends CapabilityManagementSupport, Service {
 
   /**
    * Get the management contexts required to make use of the
@@ -42,33 +40,10 @@ public interface SharedManagementService extends Service {
   Collection<ContextContainer> getContexts();
 
   /**
-   * Get the management capabilities of the registered objects across several cache managers.
+   * Get the management capabilities of all the registered objects across several cache managers.
    *
    * @return a map of capabilities, where the key is the alias of the cache manager
    */
   Map<String, Collection<Capability>> getCapabilities();
-
-  /**
-   * Collect statistics from a managed object's capability and several contexts at once.
-   *
-   * @param contextList    the capability's context list.
-   * @param capabilityName the capability name.
-   * @param statisticNames the statistic names.
-   * @return a list of collection of statistics, with the same order and indexes of the context list
-   */
-  <T extends Statistic<?>> List<Collection<T>> collectStatistics(List<Map<String, String>> contextList, String capabilityName, String... statisticNames);
-
-  /**
-   * Call an action on several managed object's capability, based on the contexts.
-   *
-   * @param contextList    a list of the capability's context.
-   * @param capabilityName the capability name.
-   * @param methodName     the action's method name.
-   * @param argClassNames  the action method's argument class names.
-   * @param args           the action method's arguments.
-   * @param <T>            the returned type.
-   * @return the list of action method's return value for each context passed, in same order and with same indexes.
-   */
-  <T> List<T> callAction(List<Map<String, String>> contextList, String capabilityName, String methodName, String[] argClassNames, Object[] args);
 
 }

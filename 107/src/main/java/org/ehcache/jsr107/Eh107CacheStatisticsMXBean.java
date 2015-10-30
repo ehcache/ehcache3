@@ -18,25 +18,26 @@ package org.ehcache.jsr107;
 import org.ehcache.Cache;
 import org.ehcache.Ehcache;
 import org.ehcache.EhcacheHackAccessor;
+import org.ehcache.management.Context;
 import org.ehcache.management.ManagementRegistry;
+import org.ehcache.management.StatisticQuery;
 import org.ehcache.statistics.BulkOps;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.ehcache.statistics.StoreOperationOutcomes;
+import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
 import org.terracotta.management.stats.Sample;
-import org.terracotta.management.stats.sampled.SampledRatio;
+import org.terracotta.management.stats.StatisticHistory;
+import org.terracotta.management.stats.history.AverageHistory;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.jsr166e.LongAdder;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -59,28 +60,43 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
   private final OperationStatistic<CacheOperationOutcomes.ReplaceOutcome> replace;
   private final OperationStatistic<CacheOperationOutcomes.ConditionalRemoveOutcome> conditionalRemove;
   private final OperationStatistic<StoreOperationOutcomes.EvictionOutcome> authorityEviction;
-  private final ManagementRegistry managementRegistry;
-  private final Map<String, String> context;
   private final Map<BulkOps, LongAdder> bulkMethodEntries;
+  private final StatisticQuery averageGetTime;
+  private final StatisticQuery averagePutTime;
+  private final StatisticQuery averageRemoveTime;
 
   Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager, Cache<?, ?> cache, ManagementRegistry managementRegistry) {
     super(cacheName, cacheManager, "CacheStatistics");
-    this.managementRegistry = managementRegistry;
     this.bulkMethodEntries = EhcacheHackAccessor.getBulkMethodEntries((Ehcache<?, ?>) cache);
 
-    Map<String, String> context = new HashMap<String, String>();
-    context.put("cacheManagerName", managementRegistry.getConfiguration().getCacheManagerAlias());
-    context.put("cacheName", cacheName);
-    this.context = Collections.unmodifiableMap(context);
-    StatisticsManager statisticsManager = cacheManager.getEhCacheManager().getStatisticsManager();
+    get = findCacheStatistic(cache, CacheOperationOutcomes.GetOutcome.class, "get");
+    put = findCacheStatistic(cache, CacheOperationOutcomes.PutOutcome.class, "put");
+    remove = findCacheStatistic(cache, CacheOperationOutcomes.RemoveOutcome.class, "remove");
+    putIfAbsent = findCacheStatistic(cache, CacheOperationOutcomes.PutIfAbsentOutcome.class, "putIfAbsent");
+    replace = findCacheStatistic(cache, CacheOperationOutcomes.ReplaceOutcome.class, "replace");
+    conditionalRemove = findCacheStatistic(cache, CacheOperationOutcomes.ConditionalRemoveOutcome.class, "conditionalRemove");
+    authorityEviction = findAuthoritativeTierStatistic(cache, StoreOperationOutcomes.EvictionOutcome.class, "eviction");
 
-    get = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.GetOutcome.class, "get");
-    put = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.PutOutcome.class, "put");
-    remove = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.RemoveOutcome.class, "remove");
-    putIfAbsent = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.PutIfAbsentOutcome.class, "putIfAbsent");
-    replace = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.ReplaceOutcome.class, "replace");
-    conditionalRemove = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.ConditionalRemoveOutcome.class, "conditionalRemove");
-    authorityEviction = findAuthoritativeTierStatistic(cacheName, statisticsManager, StoreOperationOutcomes.EvictionOutcome.class, "eviction");
+    Context context = Context.create()
+      .with("cacheManagerName", managementRegistry.getConfiguration().getCacheManagerAlias())
+      .with("cacheName", cacheName);
+
+    averageGetTime = managementRegistry
+        .withCapability("StatisticsCapability")
+        .queryStatistic("AllCacheGetLatencyAverage")
+        .on(context)
+        .build();
+    averagePutTime = managementRegistry
+        .withCapability("StatisticsCapability")
+        .queryStatistic("AllCachePutLatencyAverage")
+        .on(context)
+        .build();
+    averageRemoveTime= managementRegistry
+        .withCapability("StatisticsCapability")
+        .queryStatistic("AllCacheRemoveLatencyAverage")
+        .on(context)
+        .build();
+
   }
 
   @Override
@@ -142,24 +158,21 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
 
   @Override
   public float getAverageGetTime() {
-    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "StatisticsCapability", "AllCacheGetLatencyAverage");
-    return getMostRecentNotClearedValue(statistics);
+    return getMostRecentNotClearedValue(averageGetTime.execute().getSingleResult().getStatistic(AverageHistory.class));
   }
 
   @Override
   public float getAveragePutTime() {
-    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "StatisticsCapability", "AllCachePutLatencyAverage");
-    return getMostRecentNotClearedValue(statistics);
+    return getMostRecentNotClearedValue(averagePutTime.execute().getSingleResult().getStatistic(AverageHistory.class));
   }
 
   @Override
   public float getAverageRemoveTime() {
-    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "StatisticsCapability", "AllCacheRemoveLatencyAverage");
-    return getMostRecentNotClearedValue(statistics);
+    return getMostRecentNotClearedValue(averageRemoveTime.execute().getSingleResult().getStatistic(AverageHistory.class));
   }
 
-  private float getMostRecentNotClearedValue(Collection<SampledRatio> statistics) {
-    List<Sample<Double>> samples = statistics.iterator().next().getValue();
+  private float getMostRecentNotClearedValue(StatisticHistory<Double, ?> ratio) {
+    List<Sample<Double>> samples = ratio.getValue();
     for (int i=samples.size() - 1 ; i>=0 ; i--) {
       Sample<Double> doubleSample = samples.get(i);
       if (doubleSample.getTimestamp() >= compensatingCounters.timestamp) {
@@ -200,27 +213,13 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
     return Math.min(1.0f, Math.max(0.0f, value));
   }
 
-  static <T extends Enum<T>> OperationStatistic<T> findCacheStatistic(StatisticsManager statisticsManager, String cacheName, Class<T> type, String statName) {
+  static <T extends Enum<T>> OperationStatistic<T> findCacheStatistic(Cache<?, ?> cache, Class<T> type, String statName) {
     Query query = queryBuilder()
-        .descendants()
-        .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("tags", new Matcher<Set<String>>() {
-          @Override
-          protected boolean matchesSafely(Set<String> object) {
-            return object.containsAll(Arrays.asList("cache", "exposed"));
-          }
-        }), hasAttribute("CacheName", cacheName)))))
-        .parent()
         .children()
-        .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
-            hasAttribute("tags", new Matcher<Set<String>>() {
-              @Override
-              protected boolean matchesSafely(Set<String> object) {
-                return object.containsAll(Collections.singleton("cache"));
-              }
-            }), hasAttribute("name", statName), hasAttribute("type", type)))))
+        .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("name", statName), hasAttribute("type", type)))))
         .build();
 
-    Set<TreeNode> result = statisticsManager.query(query);
+    Set<TreeNode> result = query.execute(Collections.singleton(ContextManager.nodeFor(cache)));
     if (result.size() > 1) {
       throw new RuntimeException("result must be unique");
     }
@@ -230,17 +229,8 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
     return (OperationStatistic<T>) result.iterator().next().getContext().attributes().get("this");
   }
 
-  <T extends Enum<T>> OperationStatistic<T> findAuthoritativeTierStatistic(String cacheName, StatisticsManager statisticsManager, Class<T> type, String statName) {
+  <T extends Enum<T>> OperationStatistic<T> findAuthoritativeTierStatistic(Cache<?, ?> cache, Class<T> type, String statName) {
     Query storeQuery = queryBuilder()
-        .descendants()
-        .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
-            hasAttribute("tags", new Matcher<Set<String>>() {
-              @Override
-              protected boolean matchesSafely(Set<String> object) {
-                return object.containsAll(Arrays.asList("cache", "exposed"));
-              }
-            }), hasAttribute("CacheName", cacheName)))))
-        .parent()
         .children()
         .children()
         .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
@@ -252,7 +242,7 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
             })))))
         .build();
 
-    Set<TreeNode> storeResult = statisticsManager.query(storeQuery);
+    Set<TreeNode> storeResult = storeQuery.execute(Collections.singleton(ContextManager.nodeFor(cache)));
     if (storeResult.size() > 1) {
       throw new RuntimeException("store result must be unique");
     }
@@ -261,7 +251,8 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
     }
     Object authoritativeTier = storeResult.iterator().next().getContext().attributes().get("authoritativeTier");
 
-    Query statQuery = queryBuilder().children()
+    Query statQuery = queryBuilder()
+        .children()
         .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("name", statName), hasAttribute("type", type)))))
         .build();
 

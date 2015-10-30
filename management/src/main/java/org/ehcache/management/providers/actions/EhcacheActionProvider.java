@@ -15,6 +15,8 @@
  */
 package org.ehcache.management.providers.actions;
 
+import org.ehcache.management.Context;
+import org.ehcache.management.Parameter;
 import org.ehcache.management.annotations.Exposed;
 import org.ehcache.management.annotations.Named;
 import org.ehcache.management.providers.CacheBindingManagementProviderSkeleton;
@@ -114,14 +116,22 @@ public class EhcacheActionProvider extends CacheBindingManagementProviderSkeleto
   }
 
   @Override
-  public Object callAction(Map<String, String> context, String methodName, String[] argClassNames, Object[] args) {
+  public <T> T callAction(Context context, String methodName, Class<T> returnType, Parameter... parameters) {
     Map.Entry<CacheBinding, ?> entry = findManagedObject(context);
     if (entry != null) {
       Object managedObject = entry.getValue();
       ClassLoader classLoader = entry.getKey().getCache().getRuntimeConfiguration().getClassLoader();
+
+      String[] argClassNames = new String[parameters.length];
+      Object[] args = new Object[parameters.length];
+      for (int i = 0; i < parameters.length; i++) {
+        argClassNames[i] =  parameters[i].getClassName();
+        args[i] =  parameters[i].getValue();
+      }
+
       try {
         Method method = managedObject.getClass().getMethod(methodName, ClassLoadingHelper.toClasses(classLoader, argClassNames));
-        return method.invoke(managedObject, args);
+        return returnType.cast(method.invoke(managedObject, args));
       } catch (NoSuchMethodException e) {
         throw new IllegalArgumentException("No such method : " + methodName + " with arg(s) " + Arrays.toString(argClassNames), e);
       } catch (IllegalAccessException e) {

@@ -21,6 +21,10 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.management.Context;
+import org.ehcache.management.ContextualReturn;
+import org.ehcache.management.ContextualStatistics;
+import org.ehcache.management.ResultSet;
 import org.ehcache.management.SharedManagementService;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -35,17 +39,19 @@ import org.terracotta.management.stats.primitive.Counter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * @author Mathieu Carbou
@@ -131,54 +137,53 @@ public class DefaultSharedManagementServiceTest {
 
   @Test
   public void testStats() {
-    List<Map<String, String>> contextList = Arrays.<Map<String, String>>asList(
-        new HashMap<String, String>() {{
-          put("cacheManagerName", "myCM1");
-          put("cacheName", "aCache1");
-        }},
-        new HashMap<String, String>() {{
-          put("cacheManagerName", "myCM2");
-          put("cacheName", "aCache2");
-        }},
-        new HashMap<String, String>() {{
-          put("cacheManagerName", "myCM2");
-          put("cacheName", "aCache3");
-        }}
-    );
+    List<Context> contextList = Arrays.asList(
+        Context.create()
+            .with("cacheManagerName", "myCM1")
+            .with("cacheName", "aCache1"),
+        Context.create()
+            .with("cacheManagerName", "myCM2")
+            .with("cacheName", "aCache2"),
+        Context.create()
+            .with("cacheManagerName", "myCM2")
+            .with("cacheName", "aCache3"));
 
     cacheManager1.getCache("aCache1", Long.class, String.class).put(1L, "1");
     cacheManager2.getCache("aCache2", Long.class, String.class).put(2L, "2");
     cacheManager2.getCache("aCache3", Long.class, String.class).put(3L, "3");
 
-    List<Collection<Counter>> allCounters = service.collectStatistics(contextList, "StatisticsCapability", "PutCounter");
+    ResultSet<ContextualStatistics> allCounters = service.withCapability("StatisticsCapability")
+        .queryStatistic("PutCounter")
+        .on(contextList)
+        .build()
+        .execute();
 
-    assertThat(allCounters, hasSize(3));
+    assertThat(allCounters.size(), equalTo(3));
 
-    assertThat(allCounters.get(0), hasSize(1));
-    assertThat(allCounters.get(1), hasSize(1));
-    assertThat(allCounters.get(2), hasSize(1));
+    assertThat(allCounters.getResult(contextList.get(0)).size(), equalTo(1));
+    assertThat(allCounters.getResult(contextList.get(1)).size(), equalTo(1));
+    assertThat(allCounters.getResult(contextList.get(2)).size(), equalTo(1));
 
-    assertThat(allCounters.get(0).iterator().next().getValue(), equalTo(1L));
-    assertThat(allCounters.get(1).iterator().next().getValue(), equalTo(1L));
-    assertThat(allCounters.get(2).iterator().next().getValue(), equalTo(1L));
+    assertThat(allCounters.getResult(contextList.get(0)).getStatistic(Counter.class).getValue(), equalTo(1L));
+    assertThat(allCounters.getResult(contextList.get(1)).getStatistic(Counter.class).getValue(), equalTo(1L));
+    assertThat(allCounters.getResult(contextList.get(2)).getStatistic(Counter.class).getValue(), equalTo(1L));
   }
 
   @Test
   public void testCall() {
-    List<Map<String, String>> contextList = Arrays.<Map<String, String>>asList(
-        new HashMap<String, String>() {{
-          put("cacheManagerName", "myCM1");
-          put("cacheName", "aCache1");
-        }},
-        new HashMap<String, String>() {{
-          put("cacheManagerName", "myCM1");
-          put("cacheName", "aCache4");
-        }},
-        new HashMap<String, String>() {{
-          put("cacheManagerName", "myCM2");
-          put("cacheName", "aCache2");
-        }}
-    );
+    List<Context> contextList = Arrays.asList(
+        Context.create()
+            .with("cacheManagerName", "myCM1")
+            .with("cacheName", "aCache1"),
+        Context.create()
+            .with("cacheManagerName", "myCM1")
+            .with("cacheName", "aCache4"),
+        Context.create()
+            .with("cacheManagerName", "myCM2")
+            .with("cacheName", "aCache2"),
+        Context.create()
+            .with("cacheManagerName", "myCM55")
+            .with("cacheName", "aCache55"));
 
     cacheManager1.getCache("aCache1", Long.class, String.class).put(1L, "1");
     cacheManager2.getCache("aCache2", Long.class, String.class).put(2L, "2");
@@ -194,11 +199,29 @@ public class DefaultSharedManagementServiceTest {
     cacheManager1.getCache("aCache4", Long.class, String.class).put(4L, "4");
     assertThat(cacheManager1.getCache("aCache4", Long.class, String.class).get(4L), equalTo("4"));
 
-    List<Object> results = service.callAction(contextList, "ActionsCapability", "clear", new String[0], new Object[0]);
-    assertThat(results, hasSize(3));
-    assertThat(results.get(0), is(nullValue()));
-    assertThat(results.get(1), is(nullValue()));
-    assertThat(results.get(2), is(nullValue()));
+    ResultSet<ContextualReturn<Void>> results = service.withCapability("ActionsCapability")
+        .call("clear")
+        .on(contextList)
+        .build()
+        .execute();
+
+    assertThat(results.size(), Matchers.equalTo(4));
+
+    assertThat(results.getResult(contextList.get(0)).hasValue(), is(true));
+    assertThat(results.getResult(contextList.get(1)).hasValue(), is(true));
+    assertThat(results.getResult(contextList.get(2)).hasValue(), is(true));
+    assertThat(results.getResult(contextList.get(3)).hasValue(), is(false));
+
+    assertThat(results.getResult(contextList.get(0)).getValue(), is(nullValue()));
+    assertThat(results.getResult(contextList.get(1)).getValue(), is(nullValue()));
+    assertThat(results.getResult(contextList.get(2)).getValue(), is(nullValue()));
+
+    try {
+      results.getResult(contextList.get(3)).getValue();
+      fail();
+    } catch (Exception e) {
+      assertThat(e, instanceOf(NoSuchElementException.class));
+    }
 
     assertThat(cacheManager1.getCache("aCache1", Long.class, String.class).get(1L), is(Matchers.nullValue()));
     assertThat(cacheManager2.getCache("aCache2", Long.class, String.class).get(2L), is(Matchers.nullValue()));

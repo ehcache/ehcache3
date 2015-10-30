@@ -58,7 +58,7 @@ public class EhcacheStatisticsProviderTest {
         Set<Descriptor> descriptors = new HashSet<Descriptor>();
         descriptors.add(new StatisticDescriptor("aCounter", StatisticType.COUNTER));
         descriptors.add(new StatisticDescriptor("aDuration", StatisticType.DURATION));
-        descriptors.add(new StatisticDescriptor("aSampledRate", StatisticType.SAMPLED_RATE));
+        descriptors.add(new StatisticDescriptor("aSampledRate", StatisticType.RATE_HISTORY));
         when(mock.getDescriptors()).thenReturn(descriptors);
         return mock;
       }
@@ -71,7 +71,7 @@ public class EhcacheStatisticsProviderTest {
     assertThat(descriptions, (Matcher) containsInAnyOrder(
         new StatisticDescriptor("aCounter", StatisticType.COUNTER),
         new StatisticDescriptor("aDuration", StatisticType.DURATION),
-        new StatisticDescriptor("aSampledRate", StatisticType.SAMPLED_RATE)
+        new StatisticDescriptor("aSampledRate", StatisticType.RATE_HISTORY)
     ));
 
     executor.shutdown();

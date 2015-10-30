@@ -39,7 +39,7 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   public DefaultManagementRegistryConfiguration() {
     // defaults
     this.cacheManagerAlias = "cache-manager-" + COUNTER.getAndIncrement();
-    addConfiguration(new EhcacheStatisticsProviderConfiguration(5 * 60, TimeUnit.SECONDS, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS));
+    addConfiguration(new EhcacheStatisticsProviderConfiguration(1, TimeUnit.MINUTES, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS));
   }
 
   public DefaultManagementRegistryConfiguration setCacheManagerAlias(String alias) {
