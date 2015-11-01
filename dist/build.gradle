@@ -98,7 +98,7 @@ task osgiShadowJar(type: Jar, dependsOn: 'unzipShadowJarClasses') {
 
   manifest.inheritFrom project.shadowJar.manifest
 
-  fillManifest(manifest, shadowBaseName)
+  utils.fillManifest(manifest, shadowBaseName)
 
   manifest.inheritFrom(osgiManifest) {
     eachEntry {
@@ -167,7 +167,7 @@ def artifactFiltering = {
   shadowPom.scopeMappings.mappings.remove(project.configurations.testRuntime)
   shadowPom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadow, Conf2ScopeMappingContainer.COMPILE)
   shadowPom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadowProvided, Conf2ScopeMappingContainer.PROVIDED)
-  pomFiller(shadowPom, 'Ehcache', 'Ehcache single jar, containing all modules')
+  utils.pomFiller(shadowPom, 'Ehcache', 'Ehcache single jar, containing all modules')
 }
 
 install {
