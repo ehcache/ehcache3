@@ -27,7 +27,7 @@ def shadowBaseName = 'ehcache'
 def projectNamesToInclude = [':api', ':core', ':impl', ':management', ':107', ':xml', ':transactions']
 def projectsToInclude = projectNamesToInclude.collect {project(it)}
 def buildDir = project.getBuildDir().getPath()
-def OSGI_OVERRIDE_KEYS = ['Import-Package', 'Export-Package', 'Private-Package', 'Tool', 'Bnd-LastModified', 'Created-By']
+def OSGI_OVERRIDE_KEYS = ['Import-Package', 'Export-Package', 'Private-Package', 'Tool', 'Bnd-LastModified', 'Created-By', 'Require-Capability']
 
 configurations {
     shadowProvided
