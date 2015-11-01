@@ -25,6 +25,3 @@ buildscript {
 }
 
 apply plugin: 'org.asciidoctor.convert'
-
-uploadArchives.onlyIf { false }
-install.onlyIf { false }

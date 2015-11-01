@@ -28,8 +28,6 @@ ext {
 
 subprojects {
   apply plugin: 'java'
-  apply plugin: 'maven'
-  apply plugin: 'signing'
   apply plugin: 'eclipse'
   apply plugin: 'checkstyle'
   apply plugin: 'findbugs'
@@ -108,6 +106,40 @@ subprojects {
     archives sourceJar
   }
 
+  checkstyle {
+    configFile = file("$rootDir/config/checkstyle.xml")
+    configProperties = ['projectDir':projectDir, 'rootDir':rootDir]
+    toolVersion = '5.7'
+  }
+
+  findbugs {
+    ignoreFailures = false
+    sourceSets = [sourceSets.main]
+    if (JavaVersion.current().compareTo(JavaVersion.VERSION_1_7) >= 0) {
+      findbugs.toolVersion = '3.0.1'
+    } else {
+      findbugs.toolVersion = '2.0.3'
+    }
+  }
+
+  jacoco {
+    toolVersion = '0.7.1.201405082137'
+  }
+
+  jacocoTestReport {
+    reports {
+      xml.enabled false
+      csv.enabled false
+    }
+  }
+}
+
+def projectsToDeploy = [':api', ':107', ':core', ':impl', ':management', ':transactions', ':xml']
+
+configure(projectsToDeploy.collect {project(it)}) {
+  apply plugin: 'signing'
+  apply plugin: 'maven'
+
   signing {
     required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives")}
     sign configurations.archives
@@ -136,32 +168,5 @@ subprojects {
 
   [installer, deployer]*.pom*.whenConfigured {pom ->
     utils.pomFiller(pom, project.subPomName, project.subPomDesc)
-  }
-
-  checkstyle {
-    configFile = file("$rootDir/config/checkstyle.xml")
-    configProperties = ['projectDir':projectDir, 'rootDir':rootDir]
-    toolVersion = '5.7'
-  }
-
-  findbugs {
-    ignoreFailures = false
-    sourceSets = [sourceSets.main]
-    if (JavaVersion.current().compareTo(JavaVersion.VERSION_1_7) >= 0) {
-      findbugs.toolVersion = '3.0.1'
-    } else {
-      findbugs.toolVersion = '2.0.3'
-    }
-  }
-
-  jacoco {
-    toolVersion = '0.7.1.201405082137'
-  }
-
-  jacocoTestReport {
-    reports {
-      xml.enabled false
-      csv.enabled false
-    }
   }
 }

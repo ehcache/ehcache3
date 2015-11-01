@@ -17,6 +17,7 @@
 plugins {
   id 'java'
   id 'maven'
+  id 'signing'
   id 'osgi'
   id 'com.github.johnrengelman.shadow' version '1.2.2'
 }
@@ -151,6 +152,11 @@ artifacts {
   archives shadowSourceJar
   archives shadowJavadocJar
   archives asciidocZip
+}
+
+signing {
+  required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives")}
+  sign configurations.archives
 }
 
 def artifactFiltering = {
