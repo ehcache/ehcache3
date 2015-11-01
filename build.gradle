@@ -24,6 +24,7 @@ ext {
   slf4jVersion = '1.7.7'
 
   utils = new Utils(version: baseVersion)
+  isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
 }
 
 subprojects {
@@ -35,8 +36,6 @@ subprojects {
 
   group = 'org.ehcache.modules'
   version = baseVersion
-
-  ext.isReleaseVersion = !version.endsWith('SNAPSHOT')
 
   archivesBaseName = "ehcache-${project.name}"
 

@@ -41,10 +41,10 @@ dependencies {
 }
 
 // Skip a number of defaults for this aggregation project
-jar.onlyIf { false }
-sourceJar.onlyIf { false }
-javadoc.onlyIf { false }
-javadocJar.onlyIf { false }
+jar.enabled false
+sourceJar.enabled false
+javadoc.enabled false
+javadocJar.enabled false
 
 configurations.archives.artifacts.with { archives ->
   archives.removeAll {
@@ -92,7 +92,7 @@ task osgiShadowJar(type: Jar, dependsOn: 'unzipShadowJarClasses') {
     // Ignored packages
     instruction 'Import-Package', '!sun.misc', '!sun.security.action', '!com.sun.jmx.mbeanserver', '*'
     classesDir = new File("$buildDir/tmp/osgiShadowJar-classes")
-    classpath = project.configurations.shadow + project.configurations.shadowProvided
+    classpath = files(project.configurations.shadow, project.configurations.shadowProvided)
   }
 
   manifest = new com.github.jengelman.gradle.plugins.shadow.tasks.DefaultInheritManifest(getServices().get(org.gradle.api.internal.file.FileResolver.class))
