@@ -171,34 +171,34 @@ public class XmlConfiguration implements Configuration {
     final ArrayList<ServiceCreationConfiguration<?>> serviceConfigs = new ArrayList<ServiceCreationConfiguration<?>>();
 
     for (ServiceType serviceType : configurationParser.getServiceElements()) {
-      if (serviceType.getDefaultSerializers() != null) {
-        DefaultSerializationProviderConfiguration configuration = new DefaultSerializationProviderConfiguration();
-
-        for (SerializerType.Serializer serializer : serviceType.getDefaultSerializers().getSerializer()) {
-          try {
-            configuration.addSerializerFor(getClassForName(serializer.getType(), classLoader), (Class) getClassForName(serializer.getValue(), classLoader));
-          } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-          }
-        }
-        serviceConfigs.add(configuration);
-      } else if(serviceType.getDefaultCopiers() != null) {
-        DefaultCopyProviderConfiguration configuration = new DefaultCopyProviderConfiguration();
-
-        for (CopierType.Copier copier : serviceType.getDefaultCopiers().getCopier()) {
-          try {
-            configuration.addCopierFor(getClassForName(copier.getType(), classLoader), (Class)getClassForName(copier.getValue(), classLoader));
-          } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-          }
-        }
-        serviceConfigs.add(configuration);
-      } else if (serviceType.getPersistence() != null) {
-        serviceConfigs.add(new CacheManagerPersistenceConfiguration(new File(serviceType.getPersistence().getDirectory())));
-      } else {
-        final ServiceCreationConfiguration<?> serviceConfiguration1 = configurationParser.parseExtension((Element)serviceType.getAny());
+      final ServiceCreationConfiguration<?> serviceConfiguration1 = configurationParser.parseExtension((Element)serviceType.getAny());
         serviceConfigs.add(serviceConfiguration1);
+    }
+
+    if (configurationParser.getDefaultSerializers() != null) {
+      DefaultSerializationProviderConfiguration configuration = new DefaultSerializationProviderConfiguration();
+
+      for (SerializerType.Serializer serializer : configurationParser.getDefaultSerializers().getSerializer()) {
+        try {
+          configuration.addSerializerFor(getClassForName(serializer.getType(), classLoader), (Class) getClassForName(serializer.getValue(), classLoader));
+        } catch (ClassNotFoundException e) {
+          throw new RuntimeException(e);
+        }
       }
+      serviceConfigs.add(configuration);
+    } else if(configurationParser.getDefaultCopiers() != null) {
+      DefaultCopyProviderConfiguration configuration = new DefaultCopyProviderConfiguration();
+
+      for (CopierType.Copier copier : configurationParser.getDefaultCopiers().getCopier()) {
+        try {
+          configuration.addCopierFor(getClassForName(copier.getType(), classLoader), (Class)getClassForName(copier.getValue(), classLoader));
+        } catch (ClassNotFoundException e) {
+          throw new RuntimeException(e);
+        }
+      }
+      serviceConfigs.add(configuration);
+    } else if (configurationParser.getPersistence() != null) {
+      serviceConfigs.add(new CacheManagerPersistenceConfiguration(new File(configurationParser.getPersistence().getDirectory())));
     }
 
     for (ServiceCreationConfiguration<?> serviceConfiguration : Collections.unmodifiableList(serviceConfigs)) {

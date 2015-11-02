@@ -29,6 +29,27 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
+      <xs:element name="default-serializers" type="ehcache:serializer-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Type and fully qualified class name of serializers that are to be registered 
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="default-copiers" type="ehcache:copier-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Type and fully qualified class name of copiers that are to be registered
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="persistence" type="ehcache:persistence-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Location where data needs be stored on disk
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
       <xs:choice minOccurs="0" maxOccurs="unbounded">
         <xs:element name="cache" type="ehcache:cache-type">
           <xs:annotation>
@@ -51,9 +72,6 @@
 
   <xs:complexType name="service-type">
     <xs:choice>
-      <xs:element name="default-serializers" type="ehcache:serializer-type" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="default-copiers" type="ehcache:copier-type" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="persistence" type="ehcache:persistence-type" minOccurs="0" maxOccurs="1"/>
       <xs:any namespace="##other" minOccurs="0" maxOccurs="1"/>
     </xs:choice>
   </xs:complexType>

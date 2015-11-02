@@ -35,6 +35,21 @@ These `Service` instances can then be used by `Cache` instances managed by the `
 extension point of the XML configuration (and Ehcache 3's modular architecture), as explained in the
 link:107{outfilesuffix}#_supplement_jsr_107_s_configurations[JSR-107 configuration section].
 
+=== `<default-serializers>` element
+
+A `<default-serializers>` element represents `Serializers` configured at `CacheManager` level. 
+Requires serializer `type` and a fully qualified class name of the `Serializer`.   
+
+=== `<default-copiers>` element
+
+A `<default-copiers>` element represents `Copiers` configured at `CacheManager` level.
+Requires copier `type` and a fully qualified class name of the `Copier`.
+
+=== `<persistence>` element
+
+A `<persistence>` element represents `Persistence`, to be used in case of persistent `Cache` instances.
+Requires the `directory` location where data needs be stored on disk.
+
 === `<cache>` elements
 
 A `<cache>` element represent a `Cache` instance that will be created and managed by the `CacheManager`.

@@ -25,13 +25,16 @@ import org.ehcache.config.xml.model.CacheIntegrationType;
 import org.ehcache.config.xml.model.CacheTemplateType;
 import org.ehcache.config.xml.model.CacheType;
 import org.ehcache.config.xml.model.ConfigType;
+import org.ehcache.config.xml.model.CopierType;
 import org.ehcache.config.xml.model.EventFiringType;
 import org.ehcache.config.xml.model.EventOrderingType;
 import org.ehcache.config.xml.model.EventType;
 import org.ehcache.config.xml.model.ExpiryType;
 import org.ehcache.config.xml.model.PersistableResourceType;
+import org.ehcache.config.xml.model.PersistenceType;
 import org.ehcache.config.xml.model.ResourceType;
 import org.ehcache.config.xml.model.ResourcesType;
+import org.ehcache.config.xml.model.SerializerType;
 import org.ehcache.config.xml.model.ServiceType;
 import org.ehcache.config.xml.model.TimeType;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -119,6 +122,18 @@ class ConfigurationParser {
 
   public Iterable<ServiceType> getServiceElements() {
     return config.getService();
+  }
+
+  public SerializerType getDefaultSerializers() {
+    return config.getDefaultSerializers();
+  }
+
+  public CopierType getDefaultCopiers() {
+    return config.getDefaultCopiers();
+  }
+
+  public PersistenceType getPersistence() {
+    return config.getPersistence();
   }
 
   public Iterable<CacheDefinition> getCacheElements() {

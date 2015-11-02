@@ -25,11 +25,9 @@
       </jsr107:defaults>
     </ehcache:service>
 
-  <ehcache:service>
-    <ehcache:default-copiers>
-      <ehcache:copier type="com.pany.domain.Client">com.pany.ehcache.ClientCopier</ehcache:copier>
-    </ehcache:default-copiers>
-  </ehcache:service>
+  <ehcache:default-copiers>
+    <ehcache:copier type="com.pany.domain.Client">com.pany.ehcache.ClientCopier</ehcache:copier>
+  </ehcache:default-copiers>
 
   <ehcache:cache-template name="bartemplate">
     <ehcache:key-type>java.lang.Long</ehcache:key-type>
