@@ -23,26 +23,18 @@ import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfigurati
  *
  * @author cdennis
  */
-public class DefaultBatchingConfiguration implements BatchingConfiguration {
+class DefaultBatchingConfiguration implements BatchingConfiguration {
 
   private final long maxDelay;
   private final TimeUnit maxDelayUnit;
   private final int batchSize;
+  private final boolean coalescing;
   
-  private boolean coalescing = false;
-  
-  public DefaultBatchingConfiguration(long maxDelay, TimeUnit maxDelayUnit, int batchSize) {
-    if (maxDelay <= 0) {
-      throw new IllegalArgumentException("Maximum write delay must be positive");
-    } else {
-      this.maxDelay = maxDelay;
-    }
+  DefaultBatchingConfiguration(long maxDelay, TimeUnit maxDelayUnit, int batchSize, boolean coalescing) {
+    this.maxDelay = maxDelay;
     this.maxDelayUnit = maxDelayUnit;
-    if(batchSize < 1) {
-      throw new IllegalArgumentException("Batchsize cannot be less than 1.");
-    } else {
-      this.batchSize = batchSize;
-    }
+    this.batchSize = batchSize;
+    this.coalescing = coalescing;
   }
 
   @Override
@@ -63,9 +55,5 @@ public class DefaultBatchingConfiguration implements BatchingConfiguration {
   @Override
   public int getBatchSize() {
     return batchSize;
-  }
-
-  public void setCoalescing(boolean writeCoalescing) {
-    this.coalescing = writeCoalescing;
   }
 }

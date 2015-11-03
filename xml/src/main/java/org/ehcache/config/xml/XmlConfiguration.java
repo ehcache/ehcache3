@@ -309,7 +309,7 @@ public class XmlConfiguration implements Configuration {
             }
           }
           builder = builder.add(writeBehindConfigurationBuilder
-                  .useExecutor(writeBehind.threadPool())
+                  .useThreadPool(writeBehind.threadPool())
                   .concurrencyLevel(writeBehind.concurrency())
                   .queueSize(writeBehind.maxQueueSize()));
         }

@@ -18,6 +18,7 @@ package org.ehcache.config.writebehind;
 import java.util.concurrent.TimeUnit;
 import org.ehcache.config.Builder;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
+import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfiguration;
 
 /**
  * @author Abhilash
@@ -25,18 +26,17 @@ import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
  */
 public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfiguration>  {
   
-  protected Integer writeBehindConcurrency;
-  protected Integer writeBehindMaxQueueSize;
-  protected String executorAlias;
-  
+  protected int concurrency = 1;
+  protected int queueSize = Integer.MAX_VALUE;
+  protected String threadPoolAlias = null;
   
   private WriteBehindConfigurationBuilder() {
   }
 
   private WriteBehindConfigurationBuilder(WriteBehindConfigurationBuilder other) {
-    writeBehindConcurrency = other.writeBehindConcurrency;
-    writeBehindMaxQueueSize = other.writeBehindMaxQueueSize;
-    executorAlias = other.executorAlias;
+    concurrency = other.concurrency;
+    queueSize = other.queueSize;
+    threadPoolAlias = other.threadPoolAlias;
   }
 
   public static BatchedWriteBehindConfigurationBuilder newBatchedWriteBehindConfiguration(long maxDelay, TimeUnit maxDelayUnit, int batchSize) {
@@ -47,17 +47,15 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
     return new UnBatchedWriteBehindConfigurationBuilder();
   }
 
-  public static class BatchedWriteBehindConfigurationBuilder extends WriteBehindConfigurationBuilder {
+  public static final class BatchedWriteBehindConfigurationBuilder extends WriteBehindConfigurationBuilder {
     private TimeUnit maxDelayUnit;
     private long maxDelay;
     private int batchSize;
-    
-    private Boolean coalescing;
+    private boolean coalescing = false;
     
     private BatchedWriteBehindConfigurationBuilder(long maxDelay, TimeUnit maxDelayUnit, int batchSize) {
-      this.maxDelay = maxDelay;
-      this.maxDelayUnit = maxDelayUnit;
-      this.batchSize = batchSize;
+      setMaxWriteDelay(maxDelay, maxDelayUnit);
+      setBatchSize(batchSize);
     }
 
     private BatchedWriteBehindConfigurationBuilder(BatchedWriteBehindConfigurationBuilder other) {
@@ -82,45 +80,61 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
 
     public BatchedWriteBehindConfigurationBuilder batchSize(int batchSize) {
       BatchedWriteBehindConfigurationBuilder otherBuilder = new BatchedWriteBehindConfigurationBuilder(this);
-      otherBuilder.batchSize = batchSize;
+      otherBuilder.setBatchSize(batchSize);
       return otherBuilder;
+    }
+
+    private void setBatchSize(int batchSize) throws IllegalArgumentException {
+      if (batchSize < 1) {
+        throw new IllegalArgumentException("Batch size must be a positive integer, was: " + batchSize);
+      }
+      this.batchSize = batchSize;
     }
 
     public BatchedWriteBehindConfigurationBuilder maxWriteDelay(long maxDelay, TimeUnit maxDelayUnit) {
       BatchedWriteBehindConfigurationBuilder otherBuilder = new BatchedWriteBehindConfigurationBuilder(this);
-      otherBuilder.maxDelay = maxDelay;
-      otherBuilder.maxDelayUnit = maxDelayUnit;
+      otherBuilder.setMaxWriteDelay(maxDelay, maxDelayUnit);
       return otherBuilder;
+    }
+
+    private void setMaxWriteDelay(long maxDelay, TimeUnit maxDelayUnit) throws IllegalArgumentException {
+      if (maxDelay < 1) {
+        throw new IllegalArgumentException("Max batch delay must be positive, was: " + maxDelay + " " + maxDelayUnit);
+      }
+      this.maxDelay = maxDelay;
+      this.maxDelayUnit = maxDelayUnit;
     }
 
     @Override
     public BatchedWriteBehindConfigurationBuilder queueSize(int size) {
+      if (size < 1) {
+        throw new IllegalArgumentException("Queue size must be positive, was: " + size);
+      }
       BatchedWriteBehindConfigurationBuilder otherBuilder = new BatchedWriteBehindConfigurationBuilder(this);
-      otherBuilder.writeBehindMaxQueueSize = size;
+      otherBuilder.queueSize = size;
       return otherBuilder;
     }
 
     @Override
     public BatchedWriteBehindConfigurationBuilder concurrencyLevel(int concurrency) {
+      if (concurrency < 1) {
+        throw new IllegalArgumentException("Concurrency must be positive, was: " + concurrency);
+      }
       BatchedWriteBehindConfigurationBuilder otherBuilder = new BatchedWriteBehindConfigurationBuilder(this);
-      otherBuilder.writeBehindConcurrency = concurrency;
+      otherBuilder.concurrency = concurrency;
       return otherBuilder;
     }
     
     @Override
-    public BatchedWriteBehindConfigurationBuilder useExecutor(String alias) {
+    public BatchedWriteBehindConfigurationBuilder useThreadPool(String alias) {
       BatchedWriteBehindConfigurationBuilder otherBuilder = new BatchedWriteBehindConfigurationBuilder(this);
-      otherBuilder.executorAlias = alias;
+      otherBuilder.threadPoolAlias = alias;
       return otherBuilder;
     }
 
     @Override
     public WriteBehindConfiguration build() {
-      DefaultBatchingConfiguration configuration = new DefaultBatchingConfiguration(maxDelay, maxDelayUnit, batchSize);
-      if (coalescing != null) {
-        configuration.setCoalescing(coalescing);
-      }
-      return buildOn(new DefaultWriteBehindConfiguration(configuration));
+      return buildWith(new DefaultBatchingConfiguration(maxDelay, maxDelayUnit, batchSize, coalescing));
     }
   }
   
@@ -135,47 +149,44 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
 
     @Override
     public WriteBehindConfiguration build() {
-      return buildOn(new DefaultWriteBehindConfiguration(null));
+      return buildWith(null);
     }
 
     @Override
     public UnBatchedWriteBehindConfigurationBuilder queueSize(int size) {
+      if (size < 1) {
+        throw new IllegalArgumentException("Queue size must be positive, was: " + size);
+      }
       UnBatchedWriteBehindConfigurationBuilder otherBuilder = new UnBatchedWriteBehindConfigurationBuilder(this);
-      otherBuilder.writeBehindMaxQueueSize = size;
+      otherBuilder.queueSize = size;
       return otherBuilder;
     }
 
     @Override
     public UnBatchedWriteBehindConfigurationBuilder concurrencyLevel(int concurrency) {
+      if (concurrency < 1) {
+        throw new IllegalArgumentException("Concurrency must be positive, was: " + concurrency);
+      }
       UnBatchedWriteBehindConfigurationBuilder otherBuilder = new UnBatchedWriteBehindConfigurationBuilder(this);
-      otherBuilder.writeBehindConcurrency = concurrency;
+      otherBuilder.concurrency = concurrency;
       return otherBuilder;
     }
     
     @Override
-    public UnBatchedWriteBehindConfigurationBuilder useExecutor(String alias) {
+    public UnBatchedWriteBehindConfigurationBuilder useThreadPool(String alias) {
       UnBatchedWriteBehindConfigurationBuilder otherBuilder = new UnBatchedWriteBehindConfigurationBuilder(this);
-      otherBuilder.executorAlias = alias;
+      otherBuilder.threadPoolAlias = alias;
       return otherBuilder;
     }
   }
 
-  public WriteBehindConfiguration buildOn(DefaultWriteBehindConfiguration configuration) {
-    if (writeBehindConcurrency != null) {
-      configuration.setConcurrency(writeBehindConcurrency);
-    }
-    if (writeBehindMaxQueueSize != null) {
-      configuration.setMaxQueueSize(writeBehindMaxQueueSize);
-    }
-    if (executorAlias != null) {
-      configuration.setExecutorAlias(executorAlias);
-    }
-    return configuration;
+  public WriteBehindConfiguration buildWith(BatchingConfiguration batching) {
+    return new DefaultWriteBehindConfiguration(threadPoolAlias, concurrency, queueSize, batching);
   }
   
   public abstract WriteBehindConfigurationBuilder queueSize(int size);
   
   public abstract WriteBehindConfigurationBuilder concurrencyLevel(int concurrency);
 
-  public abstract WriteBehindConfigurationBuilder useExecutor(String alias);
+  public abstract WriteBehindConfigurationBuilder useThreadPool(String alias);
 }

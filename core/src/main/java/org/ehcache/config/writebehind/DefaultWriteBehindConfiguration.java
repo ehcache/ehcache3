@@ -23,26 +23,28 @@ import org.ehcache.spi.loaderwriter.WriteBehindProvider;
  * @author Chris Dennis
  *
  */
-public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration {
+class DefaultWriteBehindConfiguration implements WriteBehindConfiguration {
 
   private final BatchingConfiguration batchingConfig;
-
-  private int writeBehindConcurrency = 1;
-  private int writeBehindMaxQueueSize = Integer.MAX_VALUE;
-  private String executorAlias = null;
+  private final int concurrency;
+  private final int queueSize;
+  private final String executorAlias;
   
-  public DefaultWriteBehindConfiguration(BatchingConfiguration batchingConfig) {
+  DefaultWriteBehindConfiguration(String executorAlias, int concurrency, int queueSize, BatchingConfiguration batchingConfig) {
+    this.concurrency = concurrency;
+    this.queueSize = queueSize;
+    this.executorAlias = executorAlias;
     this.batchingConfig = batchingConfig;
   }
   
   @Override
   public int getConcurrency() {
-    return writeBehindConcurrency;
+    return concurrency;
   }
   
   @Override
   public int getMaxQueueSize() {
-    return writeBehindMaxQueueSize;
+    return queueSize;
   }
 
   @Override
@@ -53,24 +55,6 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
   @Override
   public BatchingConfiguration getBatchingConfiguration() {
     return batchingConfig;
-  }
-
-  public void setConcurrency(int writeBehindConcurrency) {
-    if(writeBehindConcurrency < 1) {
-      throw new IllegalArgumentException("Concurrency Level cannot be less than 1.");
-    }
-    this.writeBehindConcurrency = writeBehindConcurrency;
-  }
-
-  public void setMaxQueueSize(int writeBehindMaxQueueSize) {
-    if(writeBehindMaxQueueSize < 1) {
-      throw new IllegalArgumentException("WriteBehind queue size cannot be less than 1.");
-    }
-    this.writeBehindMaxQueueSize = writeBehindMaxQueueSize;
-  }
-
-  public void setExecutorAlias(String executorAlias) {
-    this.executorAlias = executorAlias;
   }
 
   @Override

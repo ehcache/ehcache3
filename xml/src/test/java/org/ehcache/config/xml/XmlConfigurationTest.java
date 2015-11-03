@@ -41,7 +41,6 @@ import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.config.writebehind.DefaultWriteBehindConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -540,7 +539,7 @@ public class XmlConfigurationTest {
     assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
     
     for (ServiceConfiguration<?> configuration : serviceConfiguration) {
-      if(configuration instanceof DefaultWriteBehindConfiguration) {
+      if(configuration instanceof WriteBehindConfiguration) {
         BatchingConfiguration batchingConfig = ((WriteBehindConfiguration) configuration).getBatchingConfiguration();
         assertThat(batchingConfig.getMaxDelay(), is(10L));
         assertThat(batchingConfig.getMaxDelayUnit(), is(SECONDS));
@@ -550,9 +549,7 @@ public class XmlConfigurationTest {
         assertThat(((WriteBehindConfiguration) configuration).getMaxQueueSize(), is(10));
         break;
       }
-      
     }
-    
   }
 
   @Test

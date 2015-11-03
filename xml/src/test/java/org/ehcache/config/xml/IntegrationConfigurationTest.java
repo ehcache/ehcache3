@@ -203,7 +203,7 @@ public class IntegrationConfigurationTest {
     try {
       Cache<String, String> cache = cacheManager.createCache("testThreadPools", newCacheConfigurationBuilder()
               .add(new DefaultCacheLoaderWriterConfiguration(ThreadRememberingLoaderWriter.class))
-              .add(newUnBatchedWriteBehindConfiguration().useExecutor("small"))
+              .add(newUnBatchedWriteBehindConfiguration().useThreadPool("small"))
               .buildConfig(String.class, String.class));
 
       cache.put("foo", "bar");
