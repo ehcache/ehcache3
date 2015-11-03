@@ -171,8 +171,8 @@ public class XmlConfiguration implements Configuration {
     final ArrayList<ServiceCreationConfiguration<?>> serviceConfigs = new ArrayList<ServiceCreationConfiguration<?>>();
 
     for (ServiceType serviceType : configurationParser.getServiceElements()) {
-      final ServiceCreationConfiguration<?> serviceConfiguration1 = configurationParser.parseExtension((Element)serviceType.getAny());
-        serviceConfigs.add(serviceConfiguration1);
+      final ServiceCreationConfiguration<?> serviceConfiguration = configurationParser.parseExtension((Element)serviceType.getAny());
+        serviceConfigs.add(serviceConfiguration);
     }
 
     if (configurationParser.getDefaultSerializers() != null) {

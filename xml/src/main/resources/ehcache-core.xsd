@@ -32,14 +32,18 @@
       <xs:element name="default-serializers" type="ehcache:serializer-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
-            Type and fully qualified class name of serializers that are to be registered 
+            This element represents Serializers.
+            It is a collection of serializer tags that require a type and fully qualified class names of serializers 
+            that are to be registered 
           </xs:documentation>
         </xs:annotation>
       </xs:element>
       <xs:element name="default-copiers" type="ehcache:copier-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
-            Type and fully qualified class name of copiers that are to be registered
+            This element represents Copiers.
+            It is a collection of copier tags that require a type and fully qualified class names of copiers 
+            that are to be registered
           </xs:documentation>
         </xs:annotation>
       </xs:element>
