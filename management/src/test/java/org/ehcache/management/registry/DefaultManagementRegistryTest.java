@@ -31,9 +31,8 @@ import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.terracotta.management.capabilities.Capability;
-import org.terracotta.management.stats.history.AverageHistory;
+import org.terracotta.management.stats.Sample;
 import org.terracotta.management.stats.history.CounterHistory;
-import org.terracotta.management.stats.history.RateHistory;
 import org.terracotta.management.stats.primitive.Counter;
 
 import java.util.ArrayList;
@@ -42,10 +41,11 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.everyItem;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -177,13 +177,11 @@ public class DefaultManagementRegistryTest {
       .with("cacheName", "aCache1");
 
     StatisticQuery.Builder builder = managementRegistry.withCapability("StatisticsCapability")
-        .queryStatistics(Arrays.asList("AllCachePutCount", "AllCachePutRate", "AllCachePutLatencyAverage"))
+        .queryStatistic("AllCachePutCount")
         .on(context);
 
     ContextualStatistics statistics;
     CounterHistory putCount;
-    RateHistory putRate;
-    AverageHistory putAverageLatency;
     long timestamp;
 
     // ------
@@ -206,16 +204,11 @@ public class DefaultManagementRegistryTest {
       putCount = statistics.getStatistic(CounterHistory.class);
     } while (putCount.getValue().size() < 1);
 
-    putRate = statistics.getStatistic(RateHistory.class);
-
-    // keep time for next call (since)
-    timestamp = System.currentTimeMillis();
-
     // within 1 second of history there has been 3 puts
     assertThat(putCount.getValue().get(0).getValue(), equalTo(3L));
 
-    // within 5 seconds of window (averageWindow configured above), there has been 3 puts => rate is 3/5
-    assertThat(putRate.getValue().get(0).getValue(), equalTo(.6));
+    // keep time for next call (since)
+    timestamp = putCount.getValue().get(0).getTimestamp();
 
     // ------
     // 2 puts and we wait more than 1 second (history frequency) to be sure the scheduler thread has computed a new stat in the history
@@ -235,80 +228,15 @@ public class DefaultManagementRegistryTest {
       putCount = statistics.getStatistic(CounterHistory.class);
     } while (putCount.getValue().size() < 2);
 
-    putRate = statistics.getStatistic(RateHistory.class);
-
-    // get the counter for each computation at each 1 second
-    assertThat(putCount.getValue().get(0).getValue(), equalTo(3L)); // put count just increase time after time
-    assertThat(putCount.getValue().get(1).getValue(), equalTo(5L));
-
-    // get the rate computed at each 1 second for a 5 second window
-    assertThat(putRate.getValue().get(0).getValue(), equalTo(.6));
-    assertThat(putRate.getValue().get(1).getValue(), equalTo(1.0));
-
     // ------
     // WITH since: the history will have 1 value
     // ------
 
-    statistics = builder.since(timestamp).build().execute().getResult(context);
+    statistics = builder.since(timestamp + 1).build().execute().getResult(context);
     putCount = statistics.getStatistic(CounterHistory.class);
-    putRate = statistics.getStatistic(RateHistory.class);
 
     // get the counter for each computation at each 1 second
-    assertThat(putCount.getValue(), hasSize(1));
-    assertThat(putCount.getValue().get(0).getValue(), equalTo(5L));
-
-    // get the rate computed at each 1 second for a 5 second window
-    assertThat(putRate.getValue(), hasSize(1));
-    assertThat(putRate.getValue().get(0).getValue(), equalTo(1.0));
-
-    // ------
-    // puts, until 10, then wait to pass the average window size, and 5 puts again
-    // ------
-
-    cacheManager1.getCache("aCache1", Long.class, String.class).put(1L, "1");
-    cacheManager1.getCache("aCache1", Long.class, String.class).put(2L, "2");
-    cacheManager1.getCache("aCache1", Long.class, String.class).put(1L, "1");
-    cacheManager1.getCache("aCache1", Long.class, String.class).put(2L, "2");
-    cacheManager1.getCache("aCache1", Long.class, String.class).put(2L, "2");
-
-    do {
-      Thread.sleep(100);
-      statistics = builder.build().execute().getResult(context);
-      putCount = statistics.getStatistic(CounterHistory.class);
-    } while (putCount.getValue().size() < 5); // 5 seconds
-
-    cacheManager1.getCache("aCache1", Long.class, String.class).put(2L, "2");
-    cacheManager1.getCache("aCache1", Long.class, String.class).put(2L, "2");
-
-    do {
-      Thread.sleep(100);
-      statistics = builder.build().execute().getResult(context);
-      putCount = statistics.getStatistic(CounterHistory.class);
-    } while (putCount.getValue().size() < 7); // 7 seconds
-
-    putRate = statistics.getStatistic(RateHistory.class);
-    putAverageLatency = statistics.getStatistic(AverageHistory.class);
-
-    // 7 entries in history => at least 7 seconds of tests because 1 stat computation per SECOND as configured
-    // total of 10 puts within the window average + 2 other puts
-
-    assertThat(putCount.getValue().get(0).getValue(), equalTo(3L));
-    assertThat(putCount.getValue().get(1).getValue(), equalTo(5L));
-    assertThat(putCount.getValue().get(2).getValue(), equalTo(10L));
-    assertThat(putCount.getValue().get(3).getValue(), equalTo(10L));
-    assertThat(putCount.getValue().get(4).getValue(), equalTo(10L));
-    assertThat(putCount.getValue().get(5).getValue(), equalTo(12L)); // we passed the window size of 5 seconds
-    assertThat(putCount.getValue().get(6).getValue(), equalTo(12L));
-
-    assertThat(putRate.getValue().get(0).getValue(), equalTo(.6));
-    assertThat(putRate.getValue().get(1).getValue(), equalTo(1.0));
-    assertThat(putRate.getValue().get(2).getValue(), equalTo(2.0));
-    assertThat(putRate.getValue().get(3).getValue(), equalTo(2.0));
-    assertThat(putRate.getValue().get(4).getValue(), lessThanOrEqualTo(2.0));
-    assertThat(putRate.getValue().get(5).getValue(), lessThanOrEqualTo(2.0)); // we passed the window size of 5 seconds.
-    assertThat(putRate.getValue().get(6).getValue(), lessThanOrEqualTo(2.0));
-
-    assertThat(putAverageLatency.getValue(), hasSize(7));
+    assertThat(putCount.getValue(), everyItem(Matchers.<Sample<Long>>hasProperty("timestamp", greaterThan(timestamp))));
 
     cacheManager1.close();
   }
