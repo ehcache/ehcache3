@@ -323,11 +323,6 @@ public class CacheCopierTest {
     public boolean equals(final Person object, final ByteBuffer binary) throws ClassNotFoundException, SerializerException {
       return object.equals(read(binary));
     }
-
-    @Override
-    public void close() throws IOException {
-      //Nothing
-    }
   }
 
 }

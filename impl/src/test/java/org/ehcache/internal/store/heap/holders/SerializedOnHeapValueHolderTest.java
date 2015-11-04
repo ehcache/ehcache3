@@ -128,11 +128,6 @@ public class SerializedOnHeapValueHolderTest {
     public boolean equals(String object, ByteBuffer binary) throws ClassNotFoundException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
-
-    @Override
-    public void close() {
-      //nothing
-    }
   }
 
   private static <V extends Serializable> ValueHolder<V> newValueHolder(V value) {

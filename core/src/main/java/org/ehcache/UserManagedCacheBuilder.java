@@ -38,6 +38,7 @@ import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.LifeCycled;
+import org.ehcache.spi.LifeCycledAdapter;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -56,7 +57,6 @@ import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 import org.ehcache.spi.service.ServiceConfiguration;
-import static org.ehcache.util.LifeCycleUtils.closerFor;
 
 /**
  * @author Alex Snaps
@@ -134,24 +134,30 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     
     Serializer<K> keySerializer = null;
     Serializer<V> valueSerializer = null;
-    SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
+    final SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
     if (serialization != null) {
       try {
-        keySerializer = serialization.createKeySerializer(keyType, classLoader, serviceConfigs);
-        try {
-          valueSerializer = serialization.createValueSerializer(valueType, classLoader, serviceConfigs);
-        } catch (UnsupportedTypeException e) {
-          try {
-            keySerializer.close();
-          } catch (IOException f) {
-            LOGGER.warn("Exception shutting down key serializer, after value serializer was unavailable.", f);
-          } finally {
-            keySerializer = null;
-          }
-          throw e;
-        }
-        lifeCycledList.add(closerFor(keySerializer));
-        lifeCycledList.add(closerFor(valueSerializer));
+        final Serializer<K> keySer = serialization.createKeySerializer(keyType, classLoader, serviceConfigs);
+        lifeCycledList.add(
+            new LifeCycledAdapter() {
+              @Override
+              public void close() throws Exception {
+                serialization.releaseSerializer(keySer);
+              }
+            }
+        );
+        keySerializer = keySer;
+
+        final Serializer<V> valueSer = serialization.createValueSerializer(valueType, classLoader, serviceConfigs);
+        lifeCycledList.add(
+            new LifeCycledAdapter() {
+              @Override
+              public void close() throws Exception {
+                serialization.releaseSerializer(valueSer);
+              }
+            }
+        );
+        valueSerializer = valueSer;
       } catch (UnsupportedTypeException e) {
         if (resources.contains(OFFHEAP) || resources.contains(DISK)) {
           throw new RuntimeException(e);

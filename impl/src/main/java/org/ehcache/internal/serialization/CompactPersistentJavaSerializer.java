@@ -20,13 +20,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInput;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.io.OutputStream;
-import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import org.ehcache.exceptions.SerializerException;
@@ -51,13 +48,8 @@ public class CompactPersistentJavaSerializer<T> implements Serializer<T> {
     }
   }
 
-  @Override
-  public final void close() throws IOException {
-    try {
-      writeSerializationMappings(stateFile, serializer.getSerializationMappings());
-    } finally {
-      serializer.close();
-    }
+  public void close() throws IOException {
+    writeSerializationMappings(stateFile, serializer.getSerializationMappings());
   }
 
   private static Map<Integer, ObjectStreamClass> readSerializationMappings(File stateFile) throws IOException, ClassNotFoundException {

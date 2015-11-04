@@ -56,6 +56,8 @@ import javax.transaction.RollbackException;
 import javax.transaction.Synchronization;
 import javax.transaction.SystemException;
 import javax.transaction.Transaction;
+
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -838,7 +840,10 @@ public class XAStore<K, V> implements Store<K, V> {
         // release the underlying store first, as it may still need the serializer to flush down to lower tiers
         underlyingStoreProvider.releaseStore(xaStore.underlyingStore);
         try {
-          helper.softLockSerializerRef.getAndSet(null).close();
+          Serializer<?> serializer = helper.softLockSerializerRef.getAndSet(null);
+          if(serializer instanceof Closeable) {
+            ((Closeable)serializer).close();
+          }
           xaStore.journal.close();
         } catch (IOException ioe) {
           throw new RuntimeException(ioe);

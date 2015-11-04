@@ -83,11 +83,6 @@ public class DefaultSerializationProviderConfigurationTest {
     public boolean equals(final Long object, final ByteBuffer binary) throws ClassNotFoundException, SerializerException {
       throw new UnsupportedOperationException("Implement me!");
     }
-
-    @Override
-    public void close() throws IOException {
-      throw new UnsupportedOperationException("Implement me!");
-    }
   }
 
   private static class PersistentSerializer implements Serializer<Long> {
@@ -107,11 +102,6 @@ public class DefaultSerializationProviderConfigurationTest {
 
     @Override
     public boolean equals(final Long object, final ByteBuffer binary) throws ClassNotFoundException, SerializerException {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-
-    @Override
-    public void close() throws IOException {
       throw new UnsupportedOperationException("Implement me!");
     }
   }
@@ -138,11 +128,6 @@ public class DefaultSerializationProviderConfigurationTest {
     public boolean equals(final Long object, final ByteBuffer binary) throws ClassNotFoundException, SerializerException {
       throw new UnsupportedOperationException("Implement me!");
     }
-
-    @Override
-    public void close() throws IOException {
-      throw new UnsupportedOperationException("Implement me!");
-    }
   }
 
   private static class UnusableSerializer implements Serializer<Long> {
@@ -159,11 +144,6 @@ public class DefaultSerializationProviderConfigurationTest {
 
     @Override
     public boolean equals(final Long object, final ByteBuffer binary) throws ClassNotFoundException, SerializerException {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-
-    @Override
-    public void close() throws IOException {
       throw new UnsupportedOperationException("Implement me!");
     }
   }

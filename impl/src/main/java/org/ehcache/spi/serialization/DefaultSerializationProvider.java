@@ -29,13 +29,17 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+
 import org.ehcache.internal.serialization.CompactJavaSerializer;
 import org.ehcache.internal.serialization.CompactPersistentJavaSerializer;
 
@@ -51,6 +55,8 @@ public class DefaultSerializationProvider implements SerializationProvider {
   private final TransientProvider transientProvider;
   private final PersistentProvider persistentProvider;
   
+  final Set<Serializer<?>> created = new HashSet<Serializer<?>>();
+  
   public DefaultSerializationProvider(DefaultSerializationProviderConfiguration configuration) {
     if (configuration != null) {
       transientProvider = new TransientProvider(configuration.getTransientSerializers());
@@ -63,22 +69,42 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
   @Override
   public <T> Serializer<T> createKeySerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
+    Serializer<T> serializer;
     if (findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) configs) == null) {
-      return transientProvider.createKeySerializer(clazz, classLoader, configs);
+      serializer = transientProvider.createKeySerializer(clazz, classLoader, configs); 
     } else {
-      return persistentProvider.createKeySerializer(clazz, classLoader, configs);
+      serializer = persistentProvider.createKeySerializer(clazz, classLoader, configs);
     }
+    created.add(serializer);
+    return serializer;
   }
 
   @Override
   public <T> Serializer<T> createValueSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
+    Serializer<T> serializer;
     if (findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) configs) == null) {
-      return transientProvider.createValueSerializer(clazz, classLoader, configs);
+      serializer = transientProvider.createValueSerializer(clazz, classLoader, configs);
     } else {
-      return persistentProvider.createValueSerializer(clazz, classLoader, configs);
+      serializer = persistentProvider.createValueSerializer(clazz, classLoader, configs);
     }
+    created.add(serializer);
+    return serializer;
   }
 
+  @Override
+  public void releaseSerializer(final Serializer<?> serializer) {
+    if (!created.remove(serializer)) {
+      throw new IllegalArgumentException("Given serializer: " + serializer.getClass().getName() + " is not managed by this provider");
+    }
+    if(serializer instanceof CompactPersistentJavaSerializer) {
+      try {
+        ((CompactPersistentJavaSerializer)serializer).close();
+      } catch (IOException e) {
+        throw new RuntimeException("Unable to close the serializer: " + serializer.getClass().getName());
+      }
+    }
+  }
+  
   @Override
   public void start(ServiceProvider serviceProvider) {
     transientProvider.start(serviceProvider);
@@ -210,7 +236,10 @@ public class DefaultSerializationProvider implements SerializationProvider {
       // no-op
     }
 
-    
+    @Override
+    public void releaseSerializer(final Serializer<?> serializer) {
+      // no-op
+    }
   }
 
   @SuppressWarnings("unchecked")

@@ -88,11 +88,6 @@ public class SoftLockSerializer implements Serializer<SoftLock> {
     return object.equals(read(binary));
   }
 
-  @Override
-  public void close() {
-    //no-op
-  }
-
   private static class OIS extends ObjectInputStream {
 
     private final ClassLoader classLoader;

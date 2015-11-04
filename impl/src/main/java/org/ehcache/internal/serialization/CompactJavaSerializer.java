@@ -150,12 +150,6 @@ public class CompactJavaSerializer<T> implements Serializer<T> {
     }
   }
 
-  @Override
-  public void close() {
-    readLookup.clear();
-    writeLookup.clear();
-  }
-
   class OOS extends ObjectOutputStream {
 
     public OOS(OutputStream out) throws IOException {

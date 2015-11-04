@@ -53,9 +53,4 @@ public class SoftLockValueCombinedSerializer<T> implements Serializer<SoftLock<T
   public boolean equals(SoftLock<T> object, ByteBuffer binary) throws ClassNotFoundException, SerializerException {
     return object.equals(read(binary));
   }
-
-  @Override
-  public void close() throws IOException {
-    throw new AssertionError("SoftLock and value serializers should be closed independently");
-  }
 }
