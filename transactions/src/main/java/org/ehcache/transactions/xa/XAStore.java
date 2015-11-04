@@ -33,6 +33,8 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceService;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.copy.SerializingCopier;
+import org.ehcache.internal.serialization.CompactJavaSerializer;
+import org.ehcache.internal.serialization.CompactPersistentJavaSerializer;
 import org.ehcache.internal.store.DefaultStoreProvider;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
@@ -841,8 +843,10 @@ public class XAStore<K, V> implements Store<K, V> {
         underlyingStoreProvider.releaseStore(xaStore.underlyingStore);
         try {
           Serializer<?> serializer = helper.softLockSerializerRef.getAndSet(null);
-          if(serializer instanceof Closeable) {
-            ((Closeable)serializer).close();
+          if(serializer instanceof CompactJavaSerializer) {
+            ((CompactJavaSerializer)serializer).close();
+          } else if(serializer instanceof CompactPersistentJavaSerializer) {
+            ((CompactPersistentJavaSerializer)serializer).close();
           }
           xaStore.journal.close();
         } catch (IOException ioe) {

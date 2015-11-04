@@ -130,6 +130,16 @@ public class DefaultSerializationProviderTest {
     verify(serializer).close();
   }
 
+  @Test
+  public void testReleaseSerializerWithCompactJavaSerializer() throws Exception {
+    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
+    CompactJavaSerializer<?> serializer = mock(CompactJavaSerializer.class);
+    provider.created.add(serializer);
+
+    provider.releaseSerializer(serializer);
+    verify(serializer).close();
+  }
+
   @Test(expected = IllegalArgumentException.class)
   public void testReleaseSerializerByAnotherProvider() throws Exception {
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
@@ -137,15 +147,6 @@ public class DefaultSerializationProviderTest {
     provider.releaseSerializer(serializer);
   }
 
-  @Test(expected = RuntimeException.class)
-  public void testReleaseSerializerThrowsOnCompactPersistentJavaSerializerClose() throws Exception {
-    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    CompactPersistentJavaSerializer<?> serializer = mock(CompactPersistentJavaSerializer.class);
-    doThrow(IOException.class).when(serializer).close();
-    provider.created.add(serializer);
-
-    provider.releaseSerializer(serializer);
-  }
   public static class TestSerializer<T> implements Serializer<T> {
     public TestSerializer(ClassLoader classLoader) {
     }

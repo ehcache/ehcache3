@@ -48,8 +48,14 @@ public class CompactPersistentJavaSerializer<T> implements Serializer<T> {
     }
   }
 
-  public void close() throws IOException {
-    writeSerializationMappings(stateFile, serializer.getSerializationMappings());
+  public void close() {
+    try {
+      writeSerializationMappings(stateFile, serializer.getSerializationMappings());
+    } catch (IOException e) {
+      throw new RuntimeException("Unable to persist the state of this serializer", e);
+    } finally {
+      serializer.close();
+    }
   }
 
   private static Map<Integer, ObjectStreamClass> readSerializationMappings(File stateFile) throws IOException, ClassNotFoundException {
