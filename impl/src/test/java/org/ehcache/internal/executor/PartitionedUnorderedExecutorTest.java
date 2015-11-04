@@ -15,15 +15,12 @@
  */
 package org.ehcache.internal.executor;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -36,6 +33,7 @@ import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 public class PartitionedUnorderedExecutorTest {
@@ -60,6 +58,64 @@ public class PartitionedUnorderedExecutorTest {
     assertThat(executor.isShutdown(), is(true));
     assertThat(executor.awaitTermination(2, TimeUnit.MINUTES), is(true));
     assertThat(executor.isTerminated(), is(true));
+  }
+
+  @Test
+  public void testTerminatedExecutorRejectsJob() throws InterruptedException {
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    ExecutorService service = mock(ExecutorService.class);
+    PartitionedUnorderedExecutor executor = new PartitionedUnorderedExecutor(queue, service, 1);
+    executor.shutdown();
+    assertThat(executor.awaitTermination(2, TimeUnit.MINUTES), is(true));
+
+    try {
+      executor.execute(new Runnable() {
+
+        @Override
+        public void run() {
+          //no-op
+        }
+      });
+      fail("Expected RejectedExecutionException");
+    } catch (RejectedExecutionException e) {
+      //expected
+    }
+  }
+
+  @Test
+  public void testShutdownButNonTerminatedExecutorRejectsJob() throws InterruptedException {
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    ExecutorService service = Executors.newSingleThreadExecutor();
+    try {
+      PartitionedUnorderedExecutor executor = new PartitionedUnorderedExecutor(queue, service, 1);
+
+      final Semaphore semaphore = new Semaphore(0);
+      executor.execute(new Runnable() {
+
+        @Override
+        public void run() {
+          semaphore.acquireUninterruptibly();
+        }
+      });
+      executor.shutdown();
+      try {
+        executor.execute(new Runnable() {
+
+          @Override
+          public void run() {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+          }
+        });
+        fail("Expected RejectedExecutionException");
+      } catch (RejectedExecutionException e) {
+        //expected
+      }
+
+      semaphore.release();
+      assertThat(executor.awaitTermination(2, MINUTES), is(true));
+    } finally {
+      service.shutdown();
+    }
   }
 
   @Test

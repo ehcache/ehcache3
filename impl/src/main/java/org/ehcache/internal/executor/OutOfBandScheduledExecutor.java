@@ -145,7 +145,11 @@ class OutOfBandScheduledExecutor {
 
     @Override
     public synchronized void run() {
-      execution = worker.submit(delegate);
+      if (worker == null || worker.isShutdown()) {
+        delegate.run();
+      } else {
+        execution = worker.submit(delegate);
+      }
     }
 
     @Override
