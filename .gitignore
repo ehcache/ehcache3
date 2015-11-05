@@ -2,7 +2,7 @@
 
 build/
 */src/generated/
-/.gradle/
+.gradle/
 
 .project
 .classpath

@@ -54,6 +54,3 @@ test {
 }
 
 test.dependsOn ':dist:osgiShadowJar'
-
-uploadArchives.onlyIf { false }
-install.onlyIf { false }
