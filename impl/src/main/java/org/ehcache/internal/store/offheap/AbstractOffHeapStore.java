@@ -1158,7 +1158,13 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         }
       });
 
-      thisEntry.getValue().accessed(now, expiry.getExpiryForAccess(thisEntry.getKey(), thisEntry.getValue().value()));
+      Duration duration;
+      try {
+        duration = expiry.getExpiryForAccess(thisEntry.getKey(), thisEntry.getValue().value());
+      } catch (RuntimeException re) {
+        throw new CacheExpiryException(re);
+      }
+      thisEntry.getValue().accessed(now, duration);
 
       return new Cache.Entry<K, ValueHolder<V>>() {
         @Override

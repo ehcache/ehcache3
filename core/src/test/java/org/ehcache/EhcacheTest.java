@@ -20,7 +20,11 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CacheExpiryException;
+import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.exceptions.StateTransitionException;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
@@ -298,6 +302,25 @@ public class EhcacheTest {
     assertThat(ehcache.putIfAbsent("foo", "foo"), CoreMatchers.<Object>is(value));
     assertThat(ehcache.putIfAbsent("foo", "foobar"), CoreMatchers.<Object>is(value));
     assertThat(ehcache.putIfAbsent("foo", value), CoreMatchers.<Object>is(value));
+  }
+
+  @Test
+  public void testExpiryExceptionCausesResilientStrategyToThrow() throws Exception {
+    final Store store = mock(Store.class);
+
+    when(store.computeIfAbsent(eq("foo"), any(Function.class)))
+        .thenThrow(new CacheAccessException(new CacheExpiryException(new RuntimeException("Expected Exception"))));
+    final CacheConfiguration<Object, Object> config = newCacheConfigurationBuilder()
+        .buildConfig(Object.class, Object.class);
+    Ehcache<Object, Object> ehcache = new Ehcache<Object, Object>(
+        config, store, LoggerFactory.getLogger(Ehcache.class + "-" + "testExpiryException"));
+    ehcache.init();
+    try {
+      ehcache.putIfAbsent("foo", "bar");
+      fail("Exception Expected");
+    } catch (Exception e) {
+      assertThat(e.getMessage(), is("Expected Exception"));
+    }
   }
 
   @Test

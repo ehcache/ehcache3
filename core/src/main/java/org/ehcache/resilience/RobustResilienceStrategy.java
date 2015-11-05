@@ -217,8 +217,8 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
       inconsistent(from, e);
       return;
     }
-    recovered(from);
     filterExpiryException(from);
+    recovered(from);
   }
 
   
@@ -230,8 +230,8 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
       inconsistent(keys, from, e);
       return;
     }
-    recovered(keys, from);
     filterExpiryException(from);
+    recovered(keys, from);
   }
   
   private void cleanup(K key, CacheAccessException from) {
@@ -242,8 +242,8 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
       inconsistent(key, from, e);
       return;
     }
-    recovered(key, from);
     filterExpiryException(from);
+    recovered(key, from);
   }
 
   @Deprecated
@@ -252,7 +252,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
       throw ((RethrowingCacheAccessException) cae).getCause();
     }
   }
-  
+
   void filterExpiryException(CacheAccessException cae) throws RuntimeException {
     if (cae.getCause() instanceof CacheExpiryException) {
       throw (RuntimeException) cae.getCause().getCause();

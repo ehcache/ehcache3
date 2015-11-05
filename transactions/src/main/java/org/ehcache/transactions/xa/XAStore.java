@@ -24,6 +24,7 @@ import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CacheExpiryException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -733,7 +734,13 @@ public class XAStore<K, V> implements Store<K, V> {
               return Duration.FOREVER;
             } else {
               // phase 2 commit, or during a TX's lifetime, create -> some time
-              return configuredExpiry.getExpiryForCreation(key, (V) softLock.getOldValue());
+              Duration duration;
+              try {
+                duration = configuredExpiry.getExpiryForCreation(key, (V) softLock.getOldValue());
+              } catch (RuntimeException re) {
+                throw new CacheExpiryException(re);
+              }
+              return duration;
             }
           }
 
@@ -744,7 +751,13 @@ public class XAStore<K, V> implements Store<K, V> {
               return Duration.FOREVER;
             } else {
               // phase 2 commit, or during a TX's lifetime, access -> some time
-              return configuredExpiry.getExpiryForAccess(key, (V) softLock.getOldValue());
+              Duration duration;
+              try {
+                duration = configuredExpiry.getExpiryForAccess(key, (V) softLock.getOldValue());
+              } catch (RuntimeException re) {
+                throw new CacheExpiryException(re);
+              }
+              return duration;
             }
           }
 
@@ -757,11 +770,23 @@ public class XAStore<K, V> implements Store<K, V> {
               // phase 2 commit, or during a TX's lifetime
               if (oldSoftLock.getOldValue() == null) {
                 // there is no old value -> it's a CREATE, update -> create -> some time
-                return configuredExpiry.getExpiryForCreation(key, (V) oldSoftLock.getOldValue());
+                Duration duration;
+                try {
+                  duration = configuredExpiry.getExpiryForCreation(key, (V) oldSoftLock.getOldValue());
+                } catch (RuntimeException re) {
+                  throw new CacheExpiryException(re);
+                }
+                return duration;
               } else {
                 // there is an old value -> it's an UPDATE, update -> some time
                 V value = oldSoftLock.getNewValueHolder() == null ? null : (V) oldSoftLock.getNewValueHolder().value();
-                return configuredExpiry.getExpiryForUpdate(key, (V) oldSoftLock.getOldValue(), value);
+                Duration duration;
+                try {
+                  duration = configuredExpiry.getExpiryForUpdate(key, (V) oldSoftLock.getOldValue(), value);
+                } catch (RuntimeException re) {
+                  throw new CacheExpiryException(re);
+                }
+                return duration;
               }
             }
           }
