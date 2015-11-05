@@ -13,9 +13,7 @@
     </jsr107:defaults>
   </service>
 
-  <service>
-    <persistence directory="build/ehcache-107-stats"/>
-  </service>
+  <persistence directory="build/ehcache-107-stats"/>
   
   <cache-template name="diskCache">
     <resources>
