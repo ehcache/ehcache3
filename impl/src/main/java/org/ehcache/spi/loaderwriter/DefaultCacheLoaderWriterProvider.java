@@ -37,7 +37,7 @@ public class DefaultCacheLoaderWriterProvider extends ClassInstanceProvider<Stri
   }
 
   @Override
-  public void releaseCacheLoaderWriter(final CacheLoaderWriter<?, ?> cacheLoaderWriter) {
+  public void releaseCacheLoaderWriter(final CacheLoaderWriter<?, ?> cacheLoaderWriter) throws Exception {
     releaseInstance(cacheLoaderWriter);
   }
 }

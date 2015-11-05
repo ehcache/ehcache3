@@ -99,17 +99,12 @@ public class ClassInstanceProvider<K, T> {
     }
   }
 
-  protected void releaseInstance(T instance) {
-    if(!created.contains(instance)) {
+  protected void releaseInstance(T instance) throws IOException {
+    if(!created.remove(instance)) {
       throw new IllegalArgumentException("Given instance of " + instance.getClass().getName() + " is not managed by this provider");
     }
     if(instance instanceof Closeable) {
-      try {
-        ((Closeable)instance).close();
-        created.remove(instance);
-      } catch (IOException e) {
-        throw new RuntimeException("Failed to close the instance of " + instance.getClass().getName(), e);
-      }
+      ((Closeable)instance).close();
     }
   }
   

@@ -364,7 +364,7 @@ public class EhcacheManager implements PersistentCacheManager {
       if (loaderWriter != null) {
         lifeCycledList.add(new LifeCycledAdapter() {
           @Override
-          public void close() {
+          public void close() throws Exception {
             cacheLoaderWriterProvider.releaseCacheLoaderWriter(loaderWriter);
           }
         });
@@ -403,7 +403,7 @@ public class EhcacheManager implements PersistentCacheManager {
             }
 
             @Override
-            public void close() {
+            public void close() throws Exception {
               evntLsnrFactory.releaseEventListener(lsnr);
             }
           });

@@ -72,7 +72,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
   public <T> Serializer<T> createKeySerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
     Serializer<T> serializer;
     if (findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) configs) == null) {
-      serializer = transientProvider.createKeySerializer(clazz, classLoader, configs); 
+      serializer = transientProvider.createKeySerializer(clazz, classLoader, configs);
     } else {
       serializer = persistentProvider.createKeySerializer(clazz, classLoader, configs);
     }
@@ -93,17 +93,12 @@ public class DefaultSerializationProvider implements SerializationProvider {
   }
 
   @Override
-  public void releaseSerializer(final Serializer<?> serializer) {
-    if (!created.contains(serializer)) {
+  public void releaseSerializer(final Serializer<?> serializer) throws IOException {
+    if (!created.remove(serializer)) {
       throw new IllegalArgumentException("Given serializer: " + serializer.getClass().getName() + " is not managed by this provider");
     }
     if(serializer instanceof Closeable) {
-      try {
-        ((Closeable)serializer).close();
-        created.remove(serializer);
-      } catch (IOException e) {
-        throw new RuntimeException("Failed to close the serializer: " + serializer.getClass().getName(), e);
-      }
+      ((Closeable)serializer).close();
     }
   }
   

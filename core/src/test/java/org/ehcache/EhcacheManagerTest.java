@@ -318,7 +318,7 @@ public class EhcacheManagerTest {
   }
 
   @Test
-  public void testLifeCyclesCacheLoaders() {
+  public void testLifeCyclesCacheLoaders() throws Exception {
 
     ResourcePools resourcePools = ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10L, EntryUnit.ENTRIES).build();
 

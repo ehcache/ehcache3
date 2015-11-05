@@ -96,7 +96,7 @@ public class ClassInstanceProviderTest {
     verify(closeable).close();
   }
 
-  @Test(expected = RuntimeException.class)
+  @Test(expected = IOException.class)
   public void testReleaseCloseableInstanceThrows() throws Exception {
     ClassInstanceProvider<String, Closeable> classInstanceProvider = new ClassInstanceProvider<String, Closeable>(null, null);
     Closeable closeable = mock(Closeable.class);

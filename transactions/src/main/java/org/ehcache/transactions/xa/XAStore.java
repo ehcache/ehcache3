@@ -33,8 +33,6 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceService;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.copy.SerializingCopier;
-import org.ehcache.internal.serialization.CompactJavaSerializer;
-import org.ehcache.internal.serialization.CompactPersistentJavaSerializer;
 import org.ehcache.internal.store.DefaultStoreProvider;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
@@ -58,8 +56,6 @@ import javax.transaction.RollbackException;
 import javax.transaction.Synchronization;
 import javax.transaction.SystemException;
 import javax.transaction.Transaction;
-
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -672,10 +668,10 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   private static final class SoftLockValueCombinedSerializerLifecycleHelper {
-    final AtomicReference<Serializer<SoftLock>> softLockSerializerRef;
+    final AtomicReference<SoftLockSerializer> softLockSerializerRef;
     final ClassLoader classLoader;
 
-    <K, V> SoftLockValueCombinedSerializerLifecycleHelper(AtomicReference<Serializer<SoftLock>> softLockSerializerRef, ClassLoader classLoader) {
+    <K, V> SoftLockValueCombinedSerializerLifecycleHelper(AtomicReference<SoftLockSerializer> softLockSerializerRef, ClassLoader classLoader) {
       this.softLockSerializerRef = softLockSerializerRef;
       this.classLoader = classLoader;
     }
@@ -812,7 +808,7 @@ public class XAStore<K, V> implements Store<K, V> {
         AtomicReference<Serializer<SoftLock<V>>> softLockSerializerRef = new AtomicReference<Serializer<SoftLock<V>>>();
         SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig.getValueSerializer());
 
-        // create the underlying store   
+        // create the underlying store
         Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer,
             storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
         Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig,  underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
@@ -841,11 +837,8 @@ public class XAStore<K, V> implements Store<K, V> {
         xaStore.transactionManagerWrapper.unregisterXAResource(xaStore.uniqueXAResourceId, xaStore.recoveryXaResource);
         // release the underlying store first, as it may still need the serializer to flush down to lower tiers
         underlyingStoreProvider.releaseStore(xaStore.underlyingStore);
+        helper.softLockSerializerRef.set(null);
         try {
-          Serializer<SoftLock> serializer = helper.softLockSerializerRef.getAndSet(null);
-          if(serializer instanceof Closeable) {
-            ((Closeable)serializer).close();
-          }
           xaStore.journal.close();
         } catch (IOException ioe) {
           throw new RuntimeException(ioe);

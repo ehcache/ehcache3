@@ -53,6 +53,7 @@ public interface SerializationProvider extends Service {
    * Releases the given {@link Serializer} instance
    * 
    * @param serializer the serializer to be released
+   * @throws Exception when the release fails
    */
-  void releaseSerializer(Serializer<?> serializer);
+  void releaseSerializer(Serializer<?> serializer) throws Exception;
 }

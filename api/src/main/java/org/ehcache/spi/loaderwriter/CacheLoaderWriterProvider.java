@@ -48,7 +48,8 @@ public interface CacheLoaderWriterProvider extends Service {
    * Invoked by {@link org.ehcache.CacheManager} when a {@link org.ehcache.Cache} is being removed from it.
    * @param cacheLoaderWriter the {@link CacheLoaderWriter} that was initially associated with
    *                    the {@link org.ehcache.Cache} being removed
+   * @throws Exception when the release fails
    */
-  void releaseCacheLoaderWriter(CacheLoaderWriter<?, ?> cacheLoaderWriter);
+  void releaseCacheLoaderWriter(CacheLoaderWriter<?, ?> cacheLoaderWriter) throws Exception;
 
 }
