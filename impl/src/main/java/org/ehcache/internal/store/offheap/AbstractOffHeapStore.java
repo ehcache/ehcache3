@@ -31,6 +31,7 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.events.CacheEvents;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CacheExpiryException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -936,12 +937,23 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   };
 
   private void setAccessTimeAndExpiry(K key, OffHeapValueHolder<V> valueHolder, long now) {
-    valueHolder.accessed(now, expiry.getExpiryForAccess(key, valueHolder.value()));
+    Duration duration;
+    try {
+      duration = expiry.getExpiryForAccess(key, valueHolder.value());
+    } catch (RuntimeException re) {
+      throw new CacheExpiryException(re);
+    }
+    valueHolder.accessed(now, duration);
     valueHolder.writeBack();
   }
 
   private OffHeapValueHolder<V> newUpdatedValueHolder(K key, V value, OffHeapValueHolder<V> existing, long now) {
-    Duration duration = expiry.getExpiryForUpdate(key, existing.value(), value);
+    Duration duration;
+    try {
+      duration = expiry.getExpiryForUpdate(key, existing.value(), value);
+    } catch (RuntimeException re) {
+      throw new CacheExpiryException(re);
+    }
     if (Duration.ZERO.equals(duration)) {
       return null;
     }
@@ -956,7 +968,12 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   private OffHeapValueHolder<V> newCreateValueHolder(K key, V value, long now) {
-    Duration duration = expiry.getExpiryForCreation(key, value);
+    Duration duration;
+    try {
+      duration = expiry.getExpiryForCreation(key, value);
+    } catch (RuntimeException re) {
+      throw new CacheExpiryException(re);
+    }
     if (Duration.ZERO.equals(duration)) {
       return null;
     }

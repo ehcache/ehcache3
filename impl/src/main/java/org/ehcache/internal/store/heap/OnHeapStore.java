@@ -29,6 +29,7 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.CacheEvents;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CacheExpiryException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -1120,7 +1121,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
   
   private void setAccessTimeAndExpiry(K key, OnHeapValueHolder<V> valueHolder, long now) {
-    valueHolder.accessed(now, expiry.getExpiryForAccess(key, valueHolder.value()));
+    Duration duration;
+    try {
+      duration = expiry.getExpiryForAccess(key, valueHolder.value());
+    } catch (RuntimeException re) {
+      throw new CacheExpiryException(re);
+    }
+    valueHolder.accessed(now, duration);
   }
 
   private OnHeapValueHolder<V> newUpdateValueHolder(K key, OnHeapValueHolder<V> oldValue, V newValue, long now) {
@@ -1135,7 +1142,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       throw new NullPointerException();
     }
 
-    Duration duration = expiry.getExpiryForUpdate(key, oldValue, newValue);
+    Duration duration;
+    try {
+      duration = expiry.getExpiryForUpdate(key, oldValue, newValue);
+    } catch (RuntimeException re) {
+      throw new CacheExpiryException(re);
+    }
     if (Duration.ZERO.equals(duration)) {
       return null;
     }
@@ -1159,7 +1171,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       throw new NullPointerException();
     }
 
-    Duration duration = expiry.getExpiryForCreation(key, value);
+    Duration duration;
+    try {
+      duration = expiry.getExpiryForCreation(key, value);
+    } catch (RuntimeException re) {
+      throw new CacheExpiryException(re);
+    }
     if (Duration.ZERO.equals(duration)) {
       return null;
     }
@@ -1171,7 +1188,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   private OnHeapValueHolder<V> importValueFromLowerTier(K key, ValueHolder<V> valueHolder, long now) {
     V realValue = valueHolder.value();
-    Duration expiration = expiry.getExpiryForAccess(key, realValue);
+    Duration expiration;
+    try {
+      expiration = expiry.getExpiryForAccess(key, realValue);
+    } catch (RuntimeException re) {
+      throw new CacheExpiryException(re);
+    }
     if(valueCopier instanceof SerializingCopier) {
       return new SerializedOnHeapValueHolder<V>(valueHolder, realValue, ((SerializingCopier)valueCopier).getSerializer(), now, expiration);
     } else {

@@ -29,6 +29,7 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CacheExpiryException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -404,6 +405,106 @@ public abstract class AbstractOffHeapStoreTest {
     } finally {
       destroyStore(offHeapStore);
     }
+  }
+
+  @Test
+  public void testExpiryCreateException() throws Exception{
+    TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        throw new RuntimeException();
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        throw new AssertionError();
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        throw new AssertionError();
+      }
+    });
+
+    try {
+      offHeapStore.put("key", "value");
+      fail("Expected exception");
+    } catch (CacheAccessException cae) {
+      assertThat(cae.getCause() instanceof CacheExpiryException, is(true));
+    }
+
+    assertThat(offHeapStore.get("key"), nullValue());
+  }
+
+  @Test
+  public void testExpiryAccessException() throws Exception{
+    TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        throw new RuntimeException();
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        return null;
+      }
+    });
+
+    offHeapStore.put("key", "value");
+
+    try {
+      offHeapStore.get("key");
+      fail("Expected exception");
+    } catch (CacheAccessException cae) {
+      assertThat(cae.getCause() instanceof CacheExpiryException, is(true));
+    }
+
+    // containsKey() doesn't update access time -- shouldn't throw exception
+    assertThat(offHeapStore.containsKey("key"), equalTo(true));
+  }
+
+  @Test
+  public void testExpiryUpdateException() throws Exception{
+    final TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        if (timeSource.getTimeMillis() > 0) {
+          throw new RuntimeException();
+        }
+        return Duration.FOREVER;
+      }
+    });
+
+    offHeapStore.put("key", "value");
+    offHeapStore.get("key");
+    timeSource.advanceTime(1000);
+
+    try {
+      offHeapStore.put("key", "newValue");
+      fail("Expected exception");
+    } catch (CacheAccessException cae) {
+      assertThat(cae.getCause() instanceof CacheExpiryException, is(true));
+    }
+
+    assertThat(offHeapStore.get("key").value(), is("value"));
   }
 
   @Test

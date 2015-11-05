@@ -25,6 +25,7 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CacheExpiryException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -801,7 +802,7 @@ public abstract class BaseOnHeapStoreTest {
       store.put("key", "value");
       fail("Expected exception");
     } catch (CacheAccessException cae) {
-      assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
+      assertThat(cae.getCause() instanceof CacheExpiryException, is(true));
     }
 
     assertThat(store.get("key"), nullValue());
@@ -834,11 +835,48 @@ public abstract class BaseOnHeapStoreTest {
       store.get("key");
       fail("Expected exception");
     } catch (CacheAccessException cae) {
-      assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
+      assertThat(cae.getCause() instanceof CacheExpiryException, is(true));
     }
 
     // containsKey() doesn't update access time -- shouldn't throw exception
     assertThat(store.containsKey("key"), equalTo(true));
+  }
+
+  @Test
+  public void testExpiryUpdateException() throws Exception{
+    final TestTimeSource timeSource = new TestTimeSource();
+    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        if (timeSource.getTimeMillis() > 0) {
+          throw new RuntimeException();
+        }
+        return Duration.FOREVER;
+      }
+    });
+
+    store.put("key", "value");
+    store.get("key");
+    timeSource.advanceTime(1000);
+
+    try {
+      store.put("key", "newValue");
+      fail("Expected exception");
+    } catch (CacheAccessException cae) {
+      assertThat(cae.getCause() instanceof CacheExpiryException, is(true));
+    }
+
+    assertThat(store.get("key").value(), is("value"));
   }
 
   @Test

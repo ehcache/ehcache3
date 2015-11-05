@@ -22,6 +22,7 @@ import java.util.Map;
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.CacheExpiryException;
 import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.exceptions.RethrowingCacheAccessException;
@@ -217,6 +218,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
       return;
     }
     recovered(from);
+    filterExpiryException(from);
   }
 
   
@@ -229,6 +231,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
       return;
     }
     recovered(keys, from);
+    filterExpiryException(from);
   }
   
   private void cleanup(K key, CacheAccessException from) {
@@ -240,12 +243,19 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
       return;
     }
     recovered(key, from);
+    filterExpiryException(from);
   }
 
   @Deprecated
   void filterException(CacheAccessException cae) throws RuntimeException {
     if (cae instanceof RethrowingCacheAccessException) {
       throw ((RethrowingCacheAccessException) cae).getCause();
+    }
+  }
+  
+  void filterExpiryException(CacheAccessException cae) throws RuntimeException {
+    if (cae.getCause() instanceof CacheExpiryException) {
+      throw (RuntimeException) cae.getCause().getCause();
     }
   }
 

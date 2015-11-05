@@ -31,15 +31,11 @@ class ExpiryPolicyToEhcacheExpiry<K, V> extends Eh107Expiry<K, V> implements Clo
 
   @Override
   public org.ehcache.expiry.Duration getExpiryForCreation(K key, V value) {
-    try {
-      Duration duration = expiryPolicy.getExpiryForCreation();
-      if (duration.isEternal()) {
-        return org.ehcache.expiry.Duration.FOREVER;
-      }
-      return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
-    } catch (Throwable t) {
-      return org.ehcache.expiry.Duration.ZERO;
+    Duration duration = expiryPolicy.getExpiryForCreation();
+    if (duration.isEternal()) {
+      return org.ehcache.expiry.Duration.FOREVER;
     }
+    return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
   }
 
   @Override
@@ -48,34 +44,26 @@ class ExpiryPolicyToEhcacheExpiry<K, V> extends Eh107Expiry<K, V> implements Clo
       return null;
     }
 
-    try {
-      Duration duration = expiryPolicy.getExpiryForAccess();
-      if (duration == null) {
-        return null;
-      }
-      if (duration.isEternal()) {
-        return org.ehcache.expiry.Duration.FOREVER;
-      }
-      return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
-    } catch (Throwable t) {
-      return org.ehcache.expiry.Duration.ZERO;
+    Duration duration = expiryPolicy.getExpiryForAccess();
+    if (duration == null) {
+      return null;
     }
+    if (duration.isEternal()) {
+      return org.ehcache.expiry.Duration.FOREVER;
+    }
+    return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
   }
 
   @Override
   public org.ehcache.expiry.Duration getExpiryForUpdate(K key, V oldValue, V newValue) {
-    try {
-      Duration duration = expiryPolicy.getExpiryForUpdate();
-      if (duration == null) {
-        return null;
-      }
-      if (duration.isEternal()) {
-        return org.ehcache.expiry.Duration.FOREVER;
-      }
-      return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
-    } catch (Throwable t) {
-      return org.ehcache.expiry.Duration.ZERO;
+    Duration duration = expiryPolicy.getExpiryForUpdate();
+    if (duration == null) {
+      return null;
     }
+    if (duration.isEternal()) {
+      return org.ehcache.expiry.Duration.FOREVER;
+    }
+    return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
   }
   
   @Override
