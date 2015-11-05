@@ -29,6 +29,8 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -92,13 +94,16 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
   @Override
   public void releaseSerializer(final Serializer<?> serializer) {
-    if (!created.remove(serializer)) {
+    if (!created.contains(serializer)) {
       throw new IllegalArgumentException("Given serializer: " + serializer.getClass().getName() + " is not managed by this provider");
     }
-    if(serializer instanceof CompactJavaSerializer) {
-      ((CompactJavaSerializer)serializer).close();
-    } else if(serializer instanceof CompactPersistentJavaSerializer) {
-      ((CompactPersistentJavaSerializer)serializer).close();
+    if(serializer instanceof Closeable) {
+      try {
+        ((Closeable)serializer).close();
+        created.remove(serializer);
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to close the serializer: " + serializer.getClass().getName(), e);
+      }
     }
   }
   

@@ -20,10 +20,17 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
 
+import java.io.Closeable;
+import java.io.IOException;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Ludovic Orban
@@ -72,6 +79,33 @@ public class ClassInstanceProviderTest {
     assertThat(obj.theString, is(nullValue()));
   }
   
+  @Test(expected = IllegalArgumentException.class)
+  public void testReleaseInstanceByAnotherProvider() throws Exception {
+    ClassInstanceProvider<String, String> classInstanceProvider = new ClassInstanceProvider<String, String>(null, null);
+    
+    classInstanceProvider.releaseInstance("foo");
+  }
+
+  @Test
+  public void testReleaseCloseableInstance() throws Exception {
+    ClassInstanceProvider<String, Closeable> classInstanceProvider = new ClassInstanceProvider<String, Closeable>(null, null);
+    Closeable closeable = mock(Closeable.class);
+    classInstanceProvider.created.add(closeable);
+
+    classInstanceProvider.releaseInstance(closeable);
+    verify(closeable).close();
+  }
+
+  @Test(expected = RuntimeException.class)
+  public void testReleaseCloseableInstanceThrows() throws Exception {
+    ClassInstanceProvider<String, Closeable> classInstanceProvider = new ClassInstanceProvider<String, Closeable>(null, null);
+    Closeable closeable = mock(Closeable.class);
+    doThrow(IOException.class).when(closeable).close();
+    classInstanceProvider.created.add(closeable);
+
+    classInstanceProvider.releaseInstance(closeable);
+  }
+
   public static class TestService implements Service {
     public final String theString;
 

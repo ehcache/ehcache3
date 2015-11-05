@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.serialization;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -34,7 +35,7 @@ import org.ehcache.spi.service.FileBasedPersistenceContext;
  *
  * @author cdennis
  */
-public class CompactPersistentJavaSerializer<T> implements Serializer<T> {
+public class CompactPersistentJavaSerializer<T> implements Serializer<T>, Closeable {
 
   private final File stateFile;
   private final CompactJavaSerializer<T> serializer;
@@ -48,11 +49,10 @@ public class CompactPersistentJavaSerializer<T> implements Serializer<T> {
     }
   }
 
-  public void close() {
+  @Override
+  public final void close() throws IOException {
     try {
       writeSerializationMappings(stateFile, serializer.getSerializationMappings());
-    } catch (IOException e) {
-      throw new RuntimeException("Unable to persist the state of this serializer", e);
     } finally {
       serializer.close();
     }

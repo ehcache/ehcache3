@@ -20,10 +20,14 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static org.ehcache.internal.classes.commonslang.reflect.ConstructorUtils.invokeConstructor;
 
@@ -36,6 +40,11 @@ public class ClassInstanceProvider<K, T> {
    * The order in which entries are put in is kept.
    */
   protected final Map<K, ClassInstanceConfiguration<T>> preconfigured = Collections.synchronizedMap(new LinkedHashMap<K, ClassInstanceConfiguration<T>>());
+
+  /**
+   * Instances created by this provider
+   */
+  protected final Set<T> created = new HashSet<T>();
 
   private final Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig;
 
@@ -76,7 +85,9 @@ public class ClassInstanceProvider<K, T> {
       }
     }
     try {
-      return invokeConstructor(config.getClazz(), config.getArguments());
+      T instance = invokeConstructor(config.getClazz(), config.getArguments());
+      created.add(instance);
+      return instance;
     } catch (InstantiationException e) {
       throw new RuntimeException(e);
     } catch (IllegalAccessException e) {
@@ -88,6 +99,20 @@ public class ClassInstanceProvider<K, T> {
     }
   }
 
+  protected void releaseInstance(T instance) {
+    if(!created.contains(instance)) {
+      throw new IllegalArgumentException("Given instance of " + instance.getClass().getName() + " is not managed by this provider");
+    }
+    if(instance instanceof Closeable) {
+      try {
+        ((Closeable)instance).close();
+        created.remove(instance);
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to close the instance of " + instance.getClass().getName(), e);
+      }
+    }
+  }
+  
   public void start(ServiceProvider serviceProvider) {
     // default no-op
   }

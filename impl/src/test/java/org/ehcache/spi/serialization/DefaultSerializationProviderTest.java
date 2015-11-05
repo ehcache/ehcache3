@@ -121,17 +121,7 @@ public class DefaultSerializationProviderTest {
   }
 
   @Test
-  public void testReleaseSerializerWithCompactPersistentJavaSerializer() throws Exception {
-    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    CompactPersistentJavaSerializer<?> serializer = mock(CompactPersistentJavaSerializer.class);
-    provider.created.add(serializer);
-    
-    provider.releaseSerializer(serializer);
-    verify(serializer).close();
-  }
-
-  @Test
-  public void testReleaseSerializerWithCompactJavaSerializer() throws Exception {
+  public void testReleaseSerializerWithCloseableSerializer() throws Exception {
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
     CompactJavaSerializer<?> serializer = mock(CompactJavaSerializer.class);
     provider.created.add(serializer);

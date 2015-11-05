@@ -38,6 +38,6 @@ public class DefaultCacheLoaderWriterProvider extends ClassInstanceProvider<Stri
 
   @Override
   public void releaseCacheLoaderWriter(final CacheLoaderWriter<?, ?> cacheLoaderWriter) {
-    // noop
+    releaseInstance(cacheLoaderWriter);
   }
 }

@@ -812,7 +812,7 @@ public class XAStore<K, V> implements Store<K, V> {
         AtomicReference<Serializer<SoftLock<V>>> softLockSerializerRef = new AtomicReference<Serializer<SoftLock<V>>>();
         SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig.getValueSerializer());
 
-        // create the underlying store
+        // create the underlying store   
         Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer,
             storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
         Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig,  underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
@@ -842,11 +842,9 @@ public class XAStore<K, V> implements Store<K, V> {
         // release the underlying store first, as it may still need the serializer to flush down to lower tiers
         underlyingStoreProvider.releaseStore(xaStore.underlyingStore);
         try {
-          Serializer<?> serializer = helper.softLockSerializerRef.getAndSet(null);
-          if(serializer instanceof CompactJavaSerializer) {
-            ((CompactJavaSerializer)serializer).close();
-          } else if(serializer instanceof CompactPersistentJavaSerializer) {
-            ((CompactPersistentJavaSerializer)serializer).close();
+          Serializer<SoftLock> serializer = helper.softLockSerializerRef.getAndSet(null);
+          if(serializer instanceof Closeable) {
+            ((Closeable)serializer).close();
           }
           xaStore.journal.close();
         } catch (IOException ioe) {
