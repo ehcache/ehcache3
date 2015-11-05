@@ -1384,7 +1384,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       return new Predicate<Map.Entry<K, OnHeapValueHolder<V>>>() {
         @Override
         public boolean test(final Map.Entry<K, OnHeapValueHolder<V>> argument) {
-          return predicate.test(wrap(argument, timeSource));
+          try {
+            return predicate.test(wrap(argument, timeSource));
+          } catch (Exception e) {
+            LOG.error("Exception raised while running eviction veto " +
+                      "- Eviction will assume entry is NOT vetoed", e);
+            return false;
+          }
         }
       };
     }

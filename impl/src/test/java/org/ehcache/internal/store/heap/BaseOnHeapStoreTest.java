@@ -106,6 +106,24 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   @Test
+  public void testEvictWithBrokenVetoDoesEvict() throws Exception {
+    OnHeapStore<String, String> store = newStore(new EvictionVeto<String, String>() {
+      @Override
+      public boolean test(Entry<String, String> argument) {
+        throw new UnsupportedOperationException("Broken veto!");
+      }
+    });
+    StoreEventListener<String, String> listener = addListener(store);
+    for (int i = 0; i < 100; i++) {
+      store.put(Integer.toString(i), Integer.toString(i));
+    }
+    assertThat(store.evict(), is(true));
+    assertThat(storeSize(store), is(99));
+    verify(listener, times(1)).onEviction(Matchers.<String>any(), Matchers.<Store.ValueHolder<String>>any());
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.EvictionOutcome.SUCCESS));
+  }
+
+  @Test
   public void testGet() throws Exception {
     OnHeapStore<String, String> store = newStore();
     store.put("key", "value");

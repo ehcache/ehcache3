@@ -47,6 +47,8 @@ import org.ehcache.spi.cache.tiering.LowerCachingTier;
 import org.ehcache.statistics.AuthoritativeTierOperationOutcomes;
 import org.ehcache.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.statistics.StoreOperationOutcomes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.Segment;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 
@@ -55,6 +57,8 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
 import org.terracotta.statistics.observer.OperationObserver;
 
 public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K, V>, LowerCachingTier<K, V> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(AbstractOffHeapStore.class);
 
   private final Class<K> keyType;
   private final Class<V> valueType;
@@ -1068,7 +1072,13 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
     @Override
     public boolean test(Map.Entry<K, OffHeapValueHolder<V>> argument) {
-      return delegate.test(CacheStoreHelper.cacheEntry(argument.getKey(), argument.getValue(), timeSource));
+      try {
+        return delegate.test(CacheStoreHelper.cacheEntry(argument.getKey(), argument.getValue(), timeSource));
+      } catch (Exception e) {
+        LOG.error("Exception raised while running eviction veto " +
+                  "- Eviction will assume entry is NOT vetoed", e);
+        return false;
+      }
     }
   }
 
