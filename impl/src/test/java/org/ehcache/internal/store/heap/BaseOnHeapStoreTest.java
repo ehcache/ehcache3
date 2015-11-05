@@ -60,6 +60,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.argThat;
@@ -803,14 +804,8 @@ public abstract class BaseOnHeapStoreTest {
       }
     });
 
-    try {
-      store.put("key", "value");
-      fail("Expected exception");
-    } catch (CacheAccessException cae) {
-      assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
-    }
-
-    assertThat(store.get("key"), nullValue());
+    store.put("key", "value");
+    assertThat(store.containsKey("key"), equalTo(false));
   }
 
   @Test
@@ -835,16 +830,38 @@ public abstract class BaseOnHeapStoreTest {
     });
 
     store.put("key", "value");
+    assertNull(store.get("key"));
+  }
 
-    try {
-      store.get("key");
-      fail("Expected exception");
-    } catch (CacheAccessException cae) {
-      assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
-    }
+  @Test
+  public void testExpiryUpdateException() throws Exception{
+    final TestTimeSource timeSource = new TestTimeSource();
+    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
 
-    // containsKey() doesn't update access time -- shouldn't throw exception
-    assertThat(store.containsKey("key"), equalTo(true));
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        if (timeSource.getTimeMillis() > 0) {
+          throw new RuntimeException();
+        }
+        return Duration.FOREVER;
+      }
+    });
+
+    store.put("key", "value");
+    store.get("key");
+    timeSource.advanceTime(1000);
+
+    store.put("key", "newValue");
+    assertNull(store.get("key"));
   }
 
   @Test

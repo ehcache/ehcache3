@@ -73,6 +73,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 /**
@@ -557,6 +558,154 @@ public class XAStoreTest {
 
     testTimeSource.advanceTime(2000);
 
+    assertMapping(xaStore, 1L, null);
+  }
+
+  @Test
+  public void testExpiryCreateException() throws Exception {
+    String uniqueXAResourceId = "testExpiryCreateException";
+    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
+    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
+    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
+    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
+    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
+    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
+    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
+    Expiry<Object, Object> expiry = new Expiry<Object, Object>() {
+
+      @Override
+      public Duration getExpiryForCreation(Object key, Object value) {
+        throw new RuntimeException();
+      }
+
+      @Override
+      public Duration getExpiryForAccess(Object key, Object value) {
+        throw new AssertionError();
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(Object key, Object oldValue, Object newValue) {
+        throw new AssertionError();
+      }
+    };
+    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(), keySerializer, valueSerializer);
+    TestTimeSource testTimeSource = new TestTimeSource();
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier);
+    Store.Configuration<Long, SoftLock> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(), keySerializer, valueSerializer);
+    OffHeapStore<Long, SoftLock<String>> offHeapStore = (OffHeapStore) new OffHeapStore<Long, SoftLock>(offHeapConfig, testTimeSource, MemorySizeParser.parse("10M"));
+    OffHeapStoreLifecycleHelper.init(offHeapStore);
+    CacheStore<Long, SoftLock<String>> cacheStore = new CacheStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
+    Journal<Long> journal = new TransientJournal<Long>();
+
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, cacheStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+
+    testTransactionManager.begin();
+    xaStore.put(1L, "one");
+    testTransactionManager.commit();
+    assertMapping(xaStore, 1L, null);
+  }
+
+  @Test
+  public void testExpiryAccessException() throws Exception {
+    String uniqueXAResourceId = "testExpiryAccessException";
+    final TestTimeSource testTimeSource = new TestTimeSource();
+    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
+    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
+    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
+    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
+    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
+    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
+    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
+    Expiry<Object, Object> expiry = new Expiry<Object, Object>() {
+
+      @Override
+      public Duration getExpiryForCreation(Object key, Object value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(Object key, Object value) {
+        if (testTimeSource.getTimeMillis() > 0) {
+          throw new RuntimeException();
+        }
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(Object key, Object oldValue, Object newValue) {
+        return Duration.FOREVER;
+      }
+    };
+    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(), keySerializer, valueSerializer);
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier);
+    Store.Configuration<Long, SoftLock> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(), keySerializer, valueSerializer);
+    OffHeapStore<Long, SoftLock<String>> offHeapStore = (OffHeapStore) new OffHeapStore<Long, SoftLock>(offHeapConfig, testTimeSource, MemorySizeParser.parse("10M"));
+    OffHeapStoreLifecycleHelper.init(offHeapStore);
+    CacheStore<Long, SoftLock<String>> cacheStore = new CacheStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
+    Journal<Long> journal = new TransientJournal<Long>();
+
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, cacheStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+
+    testTransactionManager.begin();
+    xaStore.put(1L, "one");
+    testTransactionManager.commit();
+    
+    testTimeSource.advanceTime(1000);
+    testTransactionManager.begin();
+    assertNull(xaStore.get(1L));
+    testTransactionManager.commit();
+  }
+
+  @Test
+  public void testExpiryUpdateException() throws Exception{
+    String uniqueXAResourceId = "testExpiryUpdateException";
+    final TestTimeSource testTimeSource = new TestTimeSource();
+    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
+    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
+    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
+    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
+    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
+    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
+    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
+    Expiry<Object, Object> expiry = new Expiry<Object, Object>() {
+
+      @Override
+      public Duration getExpiryForCreation(Object key, Object value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(Object key, Object value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(Object key, Object oldValue, Object newValue) {
+        if (testTimeSource.getTimeMillis() > 0) {
+          throw new RuntimeException();
+        }
+        return Duration.FOREVER;
+      }
+    };
+    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(), keySerializer, valueSerializer);
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier);
+    Store.Configuration<Long, SoftLock> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(), keySerializer, valueSerializer);
+    OffHeapStore<Long, SoftLock<String>> offHeapStore = (OffHeapStore) new OffHeapStore<Long, SoftLock>(offHeapConfig, testTimeSource, MemorySizeParser.parse("10M"));
+    OffHeapStoreLifecycleHelper.init(offHeapStore);
+    CacheStore<Long, SoftLock<String>> cacheStore = new CacheStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
+    Journal<Long> journal = new TransientJournal<Long>();
+
+    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, cacheStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+
+    testTransactionManager.begin();
+    xaStore.put(1L, "one");
+    xaStore.get(1L);
+    testTransactionManager.commit();
+
+    testTimeSource.advanceTime(1000);
+    testTransactionManager.begin();
+    xaStore.put(1L, "two");
+    testTransactionManager.commit();
     assertMapping(xaStore, 1L, null);
   }
 

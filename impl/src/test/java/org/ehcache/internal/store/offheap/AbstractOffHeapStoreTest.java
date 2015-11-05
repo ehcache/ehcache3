@@ -47,6 +47,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -404,6 +405,83 @@ public abstract class AbstractOffHeapStoreTest {
     } finally {
       destroyStore(offHeapStore);
     }
+  }
+
+  @Test
+  public void testExpiryCreateException() throws Exception{
+    TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        throw new RuntimeException();
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        throw new AssertionError();
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        throw new AssertionError();
+      }
+    });
+    offHeapStore.put("key", "value");
+    assertNull(offHeapStore.get("key"));
+  }
+
+  @Test
+  public void testExpiryAccessException() throws Exception{
+    TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        throw new RuntimeException();
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        return null;
+      }
+    });
+
+    offHeapStore.put("key", "value");
+    assertNull(offHeapStore.get("key"));
+  }
+
+  @Test
+  public void testExpiryUpdateException() throws Exception{
+    final TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        if (timeSource.getTimeMillis() > 0) {
+          throw new RuntimeException();
+        }
+        return Duration.FOREVER;
+      }
+    });
+
+    offHeapStore.put("key", "value");
+    assertThat(offHeapStore.get("key").value(), is("value"));
+    timeSource.advanceTime(1000);
+    offHeapStore.put("key", "newValue");
+    assertNull(offHeapStore.get("key"));
   }
 
   @Test
