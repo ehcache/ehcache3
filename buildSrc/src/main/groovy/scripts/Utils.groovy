@@ -58,68 +58,8 @@ class Utils {
       }
       developers {
         developer {
-          name = 'Alex Snaps'
-          email = 'alex.snaps@gmail.com'
-          organization = 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
-          organizationUrl = 'http://ehcache.org'
-        }
-        developer {
-          name = 'Louis Jacomet'
-          email = 'ljacomet@gmail.com'
-          organization = 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
-          organizationUrl = 'http://ehcache.org'
-        }
-        developer {
-          name = 'Tim Eck'
-          email = 'timeck@gmail.com'
-          organization = 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
-          organizationUrl = 'http://ehcache.org'
-        }
-        developer {
-          name = 'Chris Dennis'
-          email = 'chris.w.dennis@gmail.com'
-          organization = 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
-          organizationUrl = 'http://ehcache.org'
-        }
-        developer {
-          name = 'Ludovic Orban'
-          email = 'lorban@bitronix.be'
-          organization = 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
-          organizationUrl = 'http://ehcache.org'
-        }
-        developer {
-          name = 'Clifford W. Johnson'
-          email = 'clifford.johnson@softwareag.com'
-          organization = 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
-          organizationUrl = 'http://ehcache.org'
-        }
-        developer {
-          name = 'Aurélien Broszniowski'
-          email = 'jsoftbiz@gmail.com'
-          organization = 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
-          organizationUrl = 'http://ehcache.org'
-        }
-        developer {
-          name = 'Vitaliy Funshteyn'
-          email = 'vfunshte@terracottatech.com'
-          organization = 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
-          organizationUrl = 'http://ehcache.org'
-        }
-        developer {
-          name = 'Anthony Dahanne'
-          email = 'anthony.dahanne@gmail.com'
-          organization = 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
-          organizationUrl = 'http://ehcache.org'
-        }
-        developer {
-          name = 'Gaurav Mangalick'
-          email = 'gaurav.mangalick@softwareag.com'
-          organization = 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
-          organizationUrl = 'http://ehcache.org'
-        }
-        developer {
-          name = 'Hung Huynh'
-          email = 'hhuynh@gmail.com'
+          name = 'Terracotta Engineers'
+          email = 'tc-oss@softwareag.com'
           organization = 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
           organizationUrl = 'http://ehcache.org'
         }
