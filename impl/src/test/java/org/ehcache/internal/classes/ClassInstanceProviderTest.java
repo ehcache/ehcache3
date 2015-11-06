@@ -22,6 +22,7 @@ import org.junit.Test;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -87,11 +88,21 @@ public class ClassInstanceProviderTest {
     classInstanceProvider.releaseInstance("foo");
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void testReleaseSameInstanceMultipleTimesThrows() throws Exception {
+    ClassInstanceProvider<String, String> classInstanceProvider = new ClassInstanceProvider<String, String>(null, null);
+    classInstanceProvider.providedVsCount.put("foo", new AtomicInteger(1));
+
+    classInstanceProvider.releaseInstance("foo");
+    assertThat(classInstanceProvider.providedVsCount.get("foo"), nullValue());
+    classInstanceProvider.releaseInstance("foo");
+  }
+
   @Test
   public void testReleaseCloseableInstance() throws Exception {
     ClassInstanceProvider<String, Closeable> classInstanceProvider = new ClassInstanceProvider<String, Closeable>(null, null);
     Closeable closeable = mock(Closeable.class);
-    classInstanceProvider.created.add(closeable);
+    classInstanceProvider.providedVsCount.put(closeable, new AtomicInteger(1));
 
     classInstanceProvider.releaseInstance(closeable);
     verify(closeable).close();
@@ -102,7 +113,7 @@ public class ClassInstanceProviderTest {
     ClassInstanceProvider<String, Closeable> classInstanceProvider = new ClassInstanceProvider<String, Closeable>(null, null);
     Closeable closeable = mock(Closeable.class);
     doThrow(IOException.class).when(closeable).close();
-    classInstanceProvider.created.add(closeable);
+    classInstanceProvider.providedVsCount.put(closeable, new AtomicInteger(1));
 
     classInstanceProvider.releaseInstance(closeable);
   }
@@ -117,6 +128,21 @@ public class ClassInstanceProviderTest {
     TestService newService = classInstanceProvider.newInstance("test stuff", config);
 
     assertThat(newService, sameInstance(service));
+  }
+
+  @Test
+  public void testSameInstanceRetrievedMultipleTimesUpdatesTheProvidedCount() throws Exception {
+    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, (Class)ClassInstanceConfiguration.class);
+
+    TestService service = new TestService();
+    TestServiceConfiguration config = new TestServiceConfiguration(service);
+
+    TestService newService = classInstanceProvider.newInstance("test stuff", config);
+    assertThat(newService, sameInstance(service));
+    assertThat(classInstanceProvider.providedVsCount.get(service).get(), is(1));
+    newService = classInstanceProvider.newInstance("test stuff", config);
+    assertThat(newService, sameInstance(service));
+    assertThat(classInstanceProvider.providedVsCount.get(service).get(), is(2));
   }
 
   public static class TestService implements Service {

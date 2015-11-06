@@ -24,10 +24,10 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.internal.classes.commonslang.reflect.ConstructorUtils.invokeConstructor;
 
@@ -42,9 +42,9 @@ public class ClassInstanceProvider<K, T> {
   protected final Map<K, ClassInstanceConfiguration<T>> preconfigured = Collections.synchronizedMap(new LinkedHashMap<K, ClassInstanceConfiguration<T>>());
 
   /**
-   * Instances created by this provider
+   * Instances created by this provider vs their counts.
    */
-  protected final Set<T> created = new HashSet<T>();
+  protected final Map<T, AtomicInteger> providedVsCount = new HashMap<T, AtomicInteger>();
 
   private final Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig;
 
@@ -84,29 +84,44 @@ public class ClassInstanceProvider<K, T> {
         return null;
       }
     }
-    if(config.getInstance() != null) {
-      return config.getInstance();
-    }
     
-    try {
-      T instance = invokeConstructor(config.getClazz(), config.getArguments());
-      created.add(instance);
-      return instance;
-    } catch (InstantiationException e) {
-      throw new RuntimeException(e);
-    } catch (IllegalAccessException e) {
-      throw new RuntimeException(e);
-    } catch (NoSuchMethodException e) {
-      throw new RuntimeException(e);
-    } catch (InvocationTargetException e) {
-      throw new RuntimeException(e);
+    T instance = null;
+    
+    if(config.getInstance() != null) {
+      instance = config.getInstance();
+    } else {
+      try {
+        instance = invokeConstructor(config.getClazz(), config.getArguments());
+      } catch (InstantiationException e) {
+        throw new RuntimeException(e);
+      } catch (IllegalAccessException e) {
+        throw new RuntimeException(e);
+      } catch (NoSuchMethodException e) {
+        throw new RuntimeException(e);
+      } catch (InvocationTargetException e) {
+        throw new RuntimeException(e);
+      }
     }
+
+    AtomicInteger currentCount = providedVsCount.get(instance);
+    if(currentCount == null) {
+      providedVsCount.put(instance, new AtomicInteger(1));
+    } else {
+      currentCount.incrementAndGet();
+    }
+    return instance;
   }
 
   protected void releaseInstance(T instance) throws IOException {
-    if(!created.remove(instance)) {
+    if(providedVsCount.containsKey(instance)) {
+      AtomicInteger currentCount = providedVsCount.get(instance);
+      if(currentCount.getAndDecrement() == 1) {
+        providedVsCount.remove(instance);
+      }
+    } else {
       throw new IllegalArgumentException("Given instance of " + instance.getClass().getName() + " is not managed by this provider");
     }
+    
     if(instance instanceof Closeable) {
       ((Closeable)instance).close();
     }

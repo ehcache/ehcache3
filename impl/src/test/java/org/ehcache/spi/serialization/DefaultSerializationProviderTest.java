@@ -15,29 +15,30 @@
  */
 package org.ehcache.spi.serialization;
 
-import java.io.IOException;
 import java.io.Serializable;
 import static java.lang.ClassLoader.getSystemClassLoader;
+
+import org.ehcache.config.SerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.internal.serialization.CompactJavaSerializer;
-import org.ehcache.internal.serialization.CompactPersistentJavaSerializer;
 import org.ehcache.spi.ServiceProvider;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import static org.ehcache.spi.TestServiceProvider.providerContaining;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
-import org.hamcrest.core.IsInstanceOf;
-import static org.hamcrest.core.IsNull.nullValue;
+
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * @author Ludovic Orban
@@ -124,7 +125,7 @@ public class DefaultSerializationProviderTest {
   public void testReleaseSerializerWithCloseableSerializer() throws Exception {
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
     CompactJavaSerializer<?> serializer = mock(CompactJavaSerializer.class);
-    provider.created.add(serializer);
+    provider.providedVsCount.put(serializer, new AtomicInteger(1));
 
     provider.releaseSerializer(serializer);
     verify(serializer).close();
@@ -135,6 +136,41 @@ public class DefaultSerializationProviderTest {
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
     Serializer<?> serializer = mock(Serializer.class);
     provider.releaseSerializer(serializer);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testReleaseSameInstanceMultipleTimesThrows() throws Exception {
+    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
+    Serializer<?> serializer = mock(Serializer.class);
+    provider.providedVsCount.put(serializer, new AtomicInteger(1));
+
+    provider.releaseSerializer(serializer);
+    assertThat(provider.providedVsCount.get("foo"), Matchers.nullValue());
+    provider.releaseSerializer(serializer);
+  }
+
+  @Test
+  public void testCreateKeySerializerWithActualInstanceInServiceConfig() throws Exception {
+    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
+    TestSerializer serializer = mock(TestSerializer.class);
+    DefaultSerializerConfiguration config = new DefaultSerializerConfiguration(serializer, SerializerConfiguration.Type.KEY);
+    Serializer<?> created = provider.createKeySerializer(TestSerializer.class, getSystemClassLoader(), config);
+    assertSame(serializer, created);
+  }
+
+  @Test
+  public void testSameInstanceRetrievedMultipleTimesUpdatesTheProvidedCount() throws Exception {
+    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
+    TestSerializer serializer = mock(TestSerializer.class);
+    DefaultSerializerConfiguration config = new DefaultSerializerConfiguration(serializer, SerializerConfiguration.Type.KEY);
+    
+    Serializer<?> created = provider.createKeySerializer(TestSerializer.class, getSystemClassLoader(), config);
+    assertSame(serializer, created);
+    assertThat(provider.providedVsCount.get(created).get(), is(1));
+    
+    created = provider.createKeySerializer(TestSerializer.class, getSystemClassLoader(), config);
+    assertSame(serializer, created);
+    assertThat(provider.providedVsCount.get(created).get(), is(2));
   }
 
   public static class TestSerializer<T> implements Serializer<T> {
