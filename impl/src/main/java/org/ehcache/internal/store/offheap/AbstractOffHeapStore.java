@@ -31,7 +31,6 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.events.CacheEvents;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.exceptions.CacheExpiryException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -146,7 +145,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           }
 
           if (updateAccess) {
-            setAccessTimeAndExpiry(mappedKey, mappedValue, now);
+            if (setAccessTimeAndExpiry(mappedKey, mappedValue, now) == null) {
+              onExpiration(mappedKey, mappedValue);
+              return null;
+            }
           }
           return mappedValue;
         }
@@ -230,7 +232,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
               return newCreateValueHolder(mappedKey, value, now);
             }
             returnValue.set(mappedValue);
-            setAccessTimeAndExpiry(mappedKey, mappedValue, now);
+            if (setAccessTimeAndExpiry(mappedKey, mappedValue, now)== null) {
+              onExpiration(mappedKey, mappedValue);
+              return null;
+            }
             return mappedValue;
           }
         }, false);
@@ -286,7 +291,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
             removed.set(true);
             return null;
           } else {
-            setAccessTimeAndExpiry(mappedKey, mappedValue, now);
+            if (setAccessTimeAndExpiry(mappedKey, mappedValue, now) == null) {
+              onExpiration(mappedKey, mappedValue);
+              return null;
+            }
             return mappedValue;
           }
         }
@@ -368,7 +376,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           replaced.set(true);
           return newUpdatedValueHolder(mappedKey, newValue, mappedValue, now);
         } else {
-          setAccessTimeAndExpiry(mappedKey, mappedValue, now);
+          if (setAccessTimeAndExpiry(mappedKey, mappedValue, now) == null) {
+            onExpiration(mappedKey, mappedValue);
+            return null;
+          }
           return mappedValue;
         }
       }
@@ -451,7 +462,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           return null;
         } else if (safeEquals(existingValue, computedValue) && !replaceEqual.apply()) {
           if (mappedValue != null) {
-            setAccessTimeAndExpiry(key, mappedValue, now);
+            if (setAccessTimeAndExpiry(key, mappedValue, now) == null) {
+              onExpiration(mappedKey, mappedValue);
+              return null;
+            }
           }
           return mappedValue;
         }
@@ -523,7 +537,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
             return newCreateValueHolder(mappedKey, computedValue, now);
           }
         } else {
-          setAccessTimeAndExpiry(mappedKey, mappedValue, now);
+          if (setAccessTimeAndExpiry(mappedKey, mappedValue, now) == null) {
+            onExpiration(mappedKey, mappedValue);
+            return null;
+          }
           return mappedValue;
         }
       }
@@ -594,7 +611,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         }
 
         if (safeEquals(mappedValue.value(), computedValue) && !replaceEqual.apply()) {
-          setAccessTimeAndExpiry(mappedKey, mappedValue, now);
+          if (setAccessTimeAndExpiry(mappedKey, mappedValue, now) == null) {
+            onExpiration(mappedKey, mappedValue);
+            return null;
+          }
           return mappedValue;
         }
         checkValue(computedValue);
@@ -936,15 +956,17 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
   };
 
-  private void setAccessTimeAndExpiry(K key, OffHeapValueHolder<V> valueHolder, long now) {
+  private OffHeapValueHolder<V> setAccessTimeAndExpiry(K key, OffHeapValueHolder<V> valueHolder, long now) {
     Duration duration;
     try {
       duration = expiry.getExpiryForAccess(key, valueHolder.value());
     } catch (RuntimeException re) {
-      throw new CacheExpiryException(re);
+      LOG.error("Expiry caused an exception ", re);
+      return null;
     }
     valueHolder.accessed(now, duration);
     valueHolder.writeBack();
+    return valueHolder;
   }
 
   private OffHeapValueHolder<V> newUpdatedValueHolder(K key, V value, OffHeapValueHolder<V> existing, long now) {
@@ -952,7 +974,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     try {
       duration = expiry.getExpiryForUpdate(key, existing.value(), value);
     } catch (RuntimeException re) {
-      throw new CacheExpiryException(re);
+      LOG.error("Expiry caused an exception ", re);
+      return null;
     }
     if (Duration.ZERO.equals(duration)) {
       return null;
@@ -972,7 +995,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     try {
       duration = expiry.getExpiryForCreation(key, value);
     } catch (RuntimeException re) {
-      throw new CacheExpiryException(re);
+      LOG.error("Expiry caused an exception ", re);
+      return null;
     }
     if (Duration.ZERO.equals(duration)) {
       return null;
@@ -1152,7 +1176,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         @Override
         public OffHeapValueHolder<V> apply(final K k, final OffHeapValueHolder<V> currentMapping) {
           if (currentMapping.getId() == thisEntry.getValue().getId()) {
-            setAccessTimeAndExpiry(k, currentMapping, now);
+            if (setAccessTimeAndExpiry(k, currentMapping, now) == null) {
+              onExpiration(k, currentMapping);
+              advance();
+            }
           }
           return currentMapping;
         }
@@ -1162,7 +1189,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       try {
         duration = expiry.getExpiryForAccess(thisEntry.getKey(), thisEntry.getValue().value());
       } catch (RuntimeException re) {
-        throw new CacheExpiryException(re);
+        LOG.error("Expiry caused an exception ", re);
+        duration = Duration.ZERO;
       }
       thisEntry.getValue().accessed(now, duration);
 

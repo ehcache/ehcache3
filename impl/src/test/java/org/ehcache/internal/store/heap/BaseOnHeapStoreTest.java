@@ -25,7 +25,6 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.exceptions.CacheExpiryException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -60,6 +59,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.argThat;
@@ -798,14 +798,8 @@ public abstract class BaseOnHeapStoreTest {
       }
     });
 
-    try {
-      store.put("key", "value");
-      fail("Expected exception");
-    } catch (CacheAccessException cae) {
-      assertThat(cae.getCause() instanceof CacheExpiryException, is(true));
-    }
-
-    assertThat(store.get("key"), nullValue());
+    store.put("key", "value");
+    assertThat(store.containsKey("key"), equalTo(false));
   }
 
   @Test
@@ -830,16 +824,7 @@ public abstract class BaseOnHeapStoreTest {
     });
 
     store.put("key", "value");
-
-    try {
-      store.get("key");
-      fail("Expected exception");
-    } catch (CacheAccessException cae) {
-      assertThat(cae.getCause() instanceof CacheExpiryException, is(true));
-    }
-
-    // containsKey() doesn't update access time -- shouldn't throw exception
-    assertThat(store.containsKey("key"), equalTo(true));
+    assertNull(store.get("key"));
   }
 
   @Test
@@ -869,14 +854,8 @@ public abstract class BaseOnHeapStoreTest {
     store.get("key");
     timeSource.advanceTime(1000);
 
-    try {
-      store.put("key", "newValue");
-      fail("Expected exception");
-    } catch (CacheAccessException cae) {
-      assertThat(cae.getCause() instanceof CacheExpiryException, is(true));
-    }
-
-    assertThat(store.get("key").value(), is("value"));
+    store.put("key", "newValue");
+    assertNull(store.get("key"));
   }
 
   @Test

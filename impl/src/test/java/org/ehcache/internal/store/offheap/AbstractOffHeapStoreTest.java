@@ -29,7 +29,6 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.exceptions.CacheExpiryException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -48,6 +47,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -426,15 +426,8 @@ public abstract class AbstractOffHeapStoreTest {
         throw new AssertionError();
       }
     });
-
-    try {
-      offHeapStore.put("key", "value");
-      fail("Expected exception");
-    } catch (CacheAccessException cae) {
-      assertThat(cae.getCause() instanceof CacheExpiryException, is(true));
-    }
-
-    assertThat(offHeapStore.get("key"), nullValue());
+    offHeapStore.put("key", "value");
+    assertNull(offHeapStore.get("key"));
   }
 
   @Test
@@ -458,16 +451,7 @@ public abstract class AbstractOffHeapStoreTest {
     });
 
     offHeapStore.put("key", "value");
-
-    try {
-      offHeapStore.get("key");
-      fail("Expected exception");
-    } catch (CacheAccessException cae) {
-      assertThat(cae.getCause() instanceof CacheExpiryException, is(true));
-    }
-
-    // containsKey() doesn't update access time -- shouldn't throw exception
-    assertThat(offHeapStore.containsKey("key"), equalTo(true));
+    assertNull(offHeapStore.get("key"));
   }
 
   @Test
@@ -494,17 +478,10 @@ public abstract class AbstractOffHeapStoreTest {
     });
 
     offHeapStore.put("key", "value");
-    offHeapStore.get("key");
-    timeSource.advanceTime(1000);
-
-    try {
-      offHeapStore.put("key", "newValue");
-      fail("Expected exception");
-    } catch (CacheAccessException cae) {
-      assertThat(cae.getCause() instanceof CacheExpiryException, is(true));
-    }
-
     assertThat(offHeapStore.get("key").value(), is("value"));
+    timeSource.advanceTime(1000);
+    offHeapStore.put("key", "newValue");
+    assertNull(offHeapStore.get("key"));
   }
 
   @Test

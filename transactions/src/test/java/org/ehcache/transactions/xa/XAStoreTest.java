@@ -21,8 +21,6 @@ import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.exceptions.CacheExpiryException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -75,6 +73,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 /**
@@ -602,12 +601,7 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     xaStore.put(1L, "one");
-    try {
-      testTransactionManager.commit();
-    } catch (SystemException se) {
-      assertThat(se.getCause().getCause().getCause() instanceof CacheExpiryException, is(true));
-    }
-
+    testTransactionManager.commit();
     assertMapping(xaStore, 1L, null);
   }
 
@@ -639,7 +633,7 @@ public class XAStoreTest {
 
       @Override
       public Duration getExpiryForUpdate(Object key, Object oldValue, Object newValue) {
-        return null;
+        return Duration.FOREVER;
       }
     };
     Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null, null, classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(), keySerializer, valueSerializer);
@@ -658,13 +652,8 @@ public class XAStoreTest {
     
     testTimeSource.advanceTime(1000);
     testTransactionManager.begin();
-    try {
-      xaStore.get(1L);
-    } catch (CacheAccessException cae) {
-      assertThat(cae.getCause() instanceof CacheExpiryException, is(true));
-    } finally {
-      testTransactionManager.commit();
-    }
+    assertNull(xaStore.get(1L));
+    testTransactionManager.commit();
   }
 
   @Test
@@ -716,15 +705,8 @@ public class XAStoreTest {
     testTimeSource.advanceTime(1000);
     testTransactionManager.begin();
     xaStore.put(1L, "two");
-    try {
-      testTransactionManager.commit();
-    } catch (SystemException se) {
-      assertThat(se.getCause().getCause().getCause() instanceof CacheExpiryException, is(true));
-    }
-    testTimeSource.advanceTime(0);
-    testTransactionManager.begin();
-    assertThat(xaStore.get(1L).value(), is("one"));
     testTransactionManager.commit();
+    assertMapping(xaStore, 1L, null);
   }
 
   @Test

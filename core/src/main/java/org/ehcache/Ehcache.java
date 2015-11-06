@@ -25,7 +25,6 @@ import org.ehcache.events.DisabledCacheEventNotificationService;
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.exceptions.CacheExpiryException;
 import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CachePassThroughException;
 import org.ehcache.exceptions.CacheWritingException;
@@ -289,13 +288,15 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       try {
         duration = runtimeConfiguration.getExpiry().getExpiryForCreation(key, newValue);
       } catch (RuntimeException re) {
-        throw new CacheExpiryException(re);
+        logger.error("Expiry caused an exception ", re);
+        return true;
       }
     } else {
       try {
         duration = runtimeConfiguration.getExpiry().getExpiryForUpdate(key, oldValue, newValue);
       } catch (RuntimeException re) {
-        throw new CacheExpiryException(re);
+        logger.error("Expiry caused an exception ", re);
+        return true;
       }
     }
     

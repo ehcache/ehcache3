@@ -22,7 +22,6 @@ import java.util.Map;
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.exceptions.CacheExpiryException;
 import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.exceptions.RethrowingCacheAccessException;
@@ -217,7 +216,6 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
       inconsistent(from, e);
       return;
     }
-    filterExpiryException(from);
     recovered(from);
   }
 
@@ -230,7 +228,6 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
       inconsistent(keys, from, e);
       return;
     }
-    filterExpiryException(from);
     recovered(keys, from);
   }
   
@@ -242,7 +239,6 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
       inconsistent(key, from, e);
       return;
     }
-    filterExpiryException(from);
     recovered(key, from);
   }
 
@@ -250,12 +246,6 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   void filterException(CacheAccessException cae) throws RuntimeException {
     if (cae instanceof RethrowingCacheAccessException) {
       throw ((RethrowingCacheAccessException) cae).getCause();
-    }
-  }
-
-  void filterExpiryException(CacheAccessException cae) throws RuntimeException {
-    if (cae.getCause() instanceof CacheExpiryException) {
-      throw (RuntimeException) cae.getCause().getCause();
     }
   }
 

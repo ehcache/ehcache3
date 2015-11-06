@@ -24,7 +24,6 @@ import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.exceptions.CacheExpiryException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -52,6 +51,8 @@ import org.ehcache.transactions.xa.journal.JournalProvider;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.transaction.RollbackException;
 import javax.transaction.Synchronization;
@@ -81,6 +82,7 @@ import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
  */
 public class XAStore<K, V> implements Store<K, V> {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(XAStore.class);
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final Store<K, SoftLock<V>> underlyingStore;
@@ -738,7 +740,8 @@ public class XAStore<K, V> implements Store<K, V> {
               try {
                 duration = configuredExpiry.getExpiryForCreation(key, (V) softLock.getOldValue());
               } catch (RuntimeException re) {
-                throw new CacheExpiryException(re);
+                LOGGER.error("Expiry caused an exception ", re);
+                return Duration.ZERO;
               }
               return duration;
             }
@@ -755,7 +758,8 @@ public class XAStore<K, V> implements Store<K, V> {
               try {
                 duration = configuredExpiry.getExpiryForAccess(key, (V) softLock.getOldValue());
               } catch (RuntimeException re) {
-                throw new CacheExpiryException(re);
+                LOGGER.error("Expiry caused an exception ", re);
+                return Duration.ZERO;
               }
               return duration;
             }
@@ -774,7 +778,8 @@ public class XAStore<K, V> implements Store<K, V> {
                 try {
                   duration = configuredExpiry.getExpiryForCreation(key, (V) oldSoftLock.getOldValue());
                 } catch (RuntimeException re) {
-                  throw new CacheExpiryException(re);
+                  LOGGER.error("Expiry caused an exception ", re);
+                  return Duration.ZERO;
                 }
                 return duration;
               } else {
@@ -784,7 +789,8 @@ public class XAStore<K, V> implements Store<K, V> {
                 try {
                   duration = configuredExpiry.getExpiryForUpdate(key, (V) oldSoftLock.getOldValue(), value);
                 } catch (RuntimeException re) {
-                  throw new CacheExpiryException(re);
+                  LOGGER.error("Expiry caused an exception ", re);
+                  return Duration.ZERO;
                 }
                 return duration;
               }
