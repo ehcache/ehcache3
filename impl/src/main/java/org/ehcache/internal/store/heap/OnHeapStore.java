@@ -621,11 +621,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
               try {
                 newValue = importValueFromLowerTier(key, value, now);
               } catch (RuntimeException re) {
-                backEnd.remove(key, fault);
                 LOG.error("Expiry caused an exception ", re);
+                backEnd.remove(key, fault);
                 getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
-                throw new RuntimeException(re);
-//                return null;
+                return null;
               }
             } else {
               backEnd.remove(key, fault);

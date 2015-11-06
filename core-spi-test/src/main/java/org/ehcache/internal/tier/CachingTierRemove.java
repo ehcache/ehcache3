@@ -91,7 +91,9 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
         }
       });
 
-      assertThat(newReturnedValueHolder.value(), is(equalTo(newValueHolder.value())));
+      if (newReturnedValueHolder != null) {
+        assertThat(newReturnedValueHolder.value(), is(equalTo(newValueHolder.value())));
+      }
     } catch (CacheAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
