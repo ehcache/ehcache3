@@ -17,6 +17,7 @@ package org.ehcache.internal.serialization;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -48,7 +49,7 @@ import org.ehcache.spi.serialization.Serializer;
  *
  * @author Chris Dennis
  */
-public class CompactJavaSerializer<T> implements Serializer<T> {
+public class CompactJavaSerializer<T> implements Serializer<T>, Closeable {
 
   private final AtomicInteger nextStreamIndex = new AtomicInteger(0);
   

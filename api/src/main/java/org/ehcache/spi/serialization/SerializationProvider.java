@@ -49,4 +49,11 @@ public interface SerializationProvider extends Service {
    */
   <T> Serializer<T> createValueSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException;
 
+  /**
+   * Releases the given {@link Serializer} instance
+   * 
+   * @param serializer the serializer to be released
+   * @throws Exception when the release fails
+   */
+  void releaseSerializer(Serializer<?> serializer) throws Exception;
 }

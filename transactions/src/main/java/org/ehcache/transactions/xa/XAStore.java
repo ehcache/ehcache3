@@ -668,10 +668,10 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   private static final class SoftLockValueCombinedSerializerLifecycleHelper {
-    final AtomicReference<Serializer<SoftLock>> softLockSerializerRef;
+    final AtomicReference<SoftLockSerializer> softLockSerializerRef;
     final ClassLoader classLoader;
 
-    <K, V> SoftLockValueCombinedSerializerLifecycleHelper(AtomicReference<Serializer<SoftLock>> softLockSerializerRef, ClassLoader classLoader) {
+    <K, V> SoftLockValueCombinedSerializerLifecycleHelper(AtomicReference<SoftLockSerializer> softLockSerializerRef, ClassLoader classLoader) {
       this.softLockSerializerRef = softLockSerializerRef;
       this.classLoader = classLoader;
     }
@@ -837,8 +837,8 @@ public class XAStore<K, V> implements Store<K, V> {
         xaStore.transactionManagerWrapper.unregisterXAResource(xaStore.uniqueXAResourceId, xaStore.recoveryXaResource);
         // release the underlying store first, as it may still need the serializer to flush down to lower tiers
         underlyingStoreProvider.releaseStore(xaStore.underlyingStore);
+        helper.softLockSerializerRef.set(null);
         try {
-          helper.softLockSerializerRef.getAndSet(null).close();
           xaStore.journal.close();
         } catch (IOException ioe) {
           throw new RuntimeException(ioe);

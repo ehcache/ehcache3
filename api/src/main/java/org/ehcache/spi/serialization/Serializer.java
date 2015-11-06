@@ -40,7 +40,7 @@ import org.ehcache.exceptions.SerializerException;
  *
  * @author cdennis
  */
-public interface Serializer<T> extends Closeable {
+public interface Serializer<T> {
 
   /**
    * Transforms the given instance into its serial form.

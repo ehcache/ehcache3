@@ -244,10 +244,5 @@ public class SerializerCountingTest {
       }
       return serializer.equals(object, binary);
     }
-
-    @Override
-    public void close() throws IOException {
-      // no-op
-    }
   }
 }

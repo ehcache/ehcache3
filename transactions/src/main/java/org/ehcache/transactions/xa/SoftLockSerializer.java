@@ -35,7 +35,7 @@ import java.util.Map;
  *
  * @author Ludovic Orban
  */
-public class SoftLockSerializer implements Serializer<SoftLock> {
+class SoftLockSerializer implements Serializer<SoftLock> {
 
   private final ClassLoader classLoader;
 
@@ -86,11 +86,6 @@ public class SoftLockSerializer implements Serializer<SoftLock> {
   @Override
   public boolean equals(SoftLock object, ByteBuffer binary) throws SerializerException, ClassNotFoundException {
     return object.equals(read(binary));
-  }
-
-  @Override
-  public void close() {
-    //no-op
   }
 
   private static class OIS extends ObjectInputStream {

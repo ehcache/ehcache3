@@ -39,7 +39,7 @@ public class DefaultCacheEventListenerProvider extends ClassInstanceProvider<Str
   }
 
   @Override
-  public void releaseEventListener(CacheEventListener<?, ?> cacheEventListener) {
-    //noop
+  public void releaseEventListener(CacheEventListener<?, ?> cacheEventListener) throws Exception {
+    releaseInstance(cacheEventListener);
   }
 }

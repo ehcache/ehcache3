@@ -603,11 +603,6 @@ public class GettingStarted {
     public boolean equals(String object, ByteBuffer binary) throws ClassNotFoundException {
       return object.equals(read(binary));
     }
-
-    @Override
-    public void close() {
-      //nothing
-    }
   }
 
   public static class LongSerializer implements Serializer<Long> {
@@ -635,11 +630,6 @@ public class GettingStarted {
     @Override
     public boolean equals(Long object, ByteBuffer binary) throws ClassNotFoundException {
       return object.equals(read(binary));
-    }
-
-    @Override
-    public void close() {
-      //nothing
     }
   }
 
@@ -670,11 +660,6 @@ public class GettingStarted {
     @Override
     public boolean equals(CharSequence object, ByteBuffer binary) throws ClassNotFoundException {
       return object.equals(read(binary));
-    }
-
-    @Override
-    public void close() {
-      //nothing
     }
   }
 

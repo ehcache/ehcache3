@@ -68,7 +68,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
-import static org.ehcache.util.LifeCycleUtils.closerFor;
 
 /**
  * @author Alex Snaps
@@ -289,12 +288,18 @@ public class EhcacheManager implements PersistentCacheManager {
     }
     Serializer<K> keySerializer = null;
     Serializer<V> valueSerializer = null;
-    SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
+    final SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
     Set<ResourceType> resources = config.getResourcePools().getResourceTypeSet();
     if (serialization != null) {
       try {
-        keySerializer = serialization.createKeySerializer(keyType, config.getClassLoader(), serviceConfigs);
-        lifeCycledList.add(closerFor(keySerializer));
+        final Serializer<K> keySer = serialization.createKeySerializer(keyType, config.getClassLoader(), serviceConfigs);
+        lifeCycledList.add(new LifeCycledAdapter() {
+          @Override
+          public void close() throws Exception {
+            serialization.releaseSerializer(keySer);
+          }
+        });
+        keySerializer = keySer;
       } catch (UnsupportedTypeException e) {
         if (resources.contains(DISK) || resources.contains(OFFHEAP)) {
           throw new RuntimeException(e);
@@ -303,8 +308,14 @@ public class EhcacheManager implements PersistentCacheManager {
         }
       }
       try {
-        valueSerializer = serialization.createValueSerializer(valueType, config.getClassLoader(), serviceConfigs);
-        lifeCycledList.add(closerFor(valueSerializer));
+        final Serializer<V> valueSer = serialization.createValueSerializer(valueType, config.getClassLoader(), serviceConfigs);
+        lifeCycledList.add(new LifeCycledAdapter() {
+          @Override
+          public void close() throws Exception {
+            serialization.releaseSerializer(valueSer);
+          }
+        });
+        valueSerializer = valueSer;
       } catch (UnsupportedTypeException e) {
         if (resources.contains(DISK) || resources.contains(OFFHEAP)) {
           throw new RuntimeException(e);
@@ -353,7 +364,7 @@ public class EhcacheManager implements PersistentCacheManager {
       if (loaderWriter != null) {
         lifeCycledList.add(new LifeCycledAdapter() {
           @Override
-          public void close() {
+          public void close() throws Exception {
             cacheLoaderWriterProvider.releaseCacheLoaderWriter(loaderWriter);
           }
         });
@@ -392,7 +403,7 @@ public class EhcacheManager implements PersistentCacheManager {
             }
 
             @Override
-            public void close() {
+            public void close() throws Exception {
               evntLsnrFactory.releaseEventListener(lsnr);
             }
           });

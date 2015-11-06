@@ -15,11 +15,13 @@
  */
 package org.ehcache.spi.serialization;
 
+import java.io.IOException;
 import java.io.Serializable;
 import static java.lang.ClassLoader.getSystemClassLoader;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.internal.serialization.CompactJavaSerializer;
+import org.ehcache.internal.serialization.CompactPersistentJavaSerializer;
 import org.ehcache.spi.ServiceProvider;
 import org.junit.Test;
 
@@ -31,7 +33,11 @@ import static org.hamcrest.Matchers.instanceOf;
 import org.hamcrest.core.IsInstanceOf;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Ludovic Orban
@@ -114,6 +120,23 @@ public class DefaultSerializationProviderTest {
     assertThat(serializationProvider.createKeySerializer(String.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
   }
 
+  @Test
+  public void testReleaseSerializerWithCloseableSerializer() throws Exception {
+    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
+    CompactJavaSerializer<?> serializer = mock(CompactJavaSerializer.class);
+    provider.created.add(serializer);
+
+    provider.releaseSerializer(serializer);
+    verify(serializer).close();
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testReleaseSerializerByAnotherProvider() throws Exception {
+    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
+    Serializer<?> serializer = mock(Serializer.class);
+    provider.releaseSerializer(serializer);
+  }
+
   public static class TestSerializer<T> implements Serializer<T> {
     public TestSerializer(ClassLoader classLoader) {
     }
@@ -128,11 +151,6 @@ public class DefaultSerializationProviderTest {
     @Override
     public boolean equals(T object, ByteBuffer binary) {
       return false;
-    }
-
-    @Override
-    public void close() {
-      //no-op
     }
   }
 
