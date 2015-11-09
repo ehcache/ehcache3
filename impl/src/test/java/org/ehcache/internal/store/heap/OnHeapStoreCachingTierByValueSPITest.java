@@ -20,6 +20,9 @@ import static java.lang.ClassLoader.getSystemClassLoader;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.internal.serialization.JavaSerializer;
@@ -57,6 +60,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       final Serializer<String> defaultSerializer = new JavaSerializer<String>(getClass().getClassLoader());
       final Copier<String> defaultCopier = new SerializingCopier<String>(defaultSerializer);
+      private final Expiry<String, String> expiry = Expirations.timeToLiveExpiration(Duration.FOREVER);
 
       @Override
       public CachingTier<String, String> newCachingTier() {
@@ -70,7 +74,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       private CachingTier<String, String> newCachingTier(Long capacity) {
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null, null,
-                ClassLoader.getSystemClassLoader(), null, buildResourcePools(capacity), new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
+                ClassLoader.getSystemClassLoader(), expiry, buildResourcePools(capacity), new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
         
         return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier);
       }

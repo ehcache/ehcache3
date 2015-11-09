@@ -740,7 +740,7 @@ public class XAStore<K, V> implements Store<K, V> {
               try {
                 duration = configuredExpiry.getExpiryForCreation(key, (V) softLock.getOldValue());
               } catch (RuntimeException re) {
-                LOGGER.error("Expiry caused an exception ", re);
+                LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
                 return Duration.ZERO;
               }
               return duration;
@@ -758,7 +758,7 @@ public class XAStore<K, V> implements Store<K, V> {
               try {
                 duration = configuredExpiry.getExpiryForAccess(key, (V) softLock.getOldValue());
               } catch (RuntimeException re) {
-                LOGGER.error("Expiry caused an exception ", re);
+                LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
                 return Duration.ZERO;
               }
               return duration;
@@ -778,7 +778,7 @@ public class XAStore<K, V> implements Store<K, V> {
                 try {
                   duration = configuredExpiry.getExpiryForCreation(key, (V) oldSoftLock.getOldValue());
                 } catch (RuntimeException re) {
-                  LOGGER.error("Expiry caused an exception ", re);
+                  LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
                   return Duration.ZERO;
                 }
                 return duration;
@@ -789,7 +789,7 @@ public class XAStore<K, V> implements Store<K, V> {
                 try {
                   duration = configuredExpiry.getExpiryForUpdate(key, (V) oldSoftLock.getOldValue(), value);
                 } catch (RuntimeException re) {
-                  LOGGER.error("Expiry caused an exception ", re);
+                  LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
                   return Duration.ZERO;
                 }
                 return duration;

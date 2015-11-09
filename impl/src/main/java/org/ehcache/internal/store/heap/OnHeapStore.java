@@ -621,7 +621,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
               try {
                 newValue = importValueFromLowerTier(key, value, now);
               } catch (RuntimeException re) {
-                LOG.error("Expiry caused an exception ", re);
+                LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
                 backEnd.remove(key, fault);
                 getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
                 return null;
@@ -1161,7 +1161,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     try {
       duration = expiry.getExpiryForAccess(key, valueHolder.value());
     } catch (RuntimeException re) {
-      LOG.error("Expiry caused an exception ", re);
+      LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
       return null;
     }
     valueHolder.accessed(now, duration);
@@ -1184,7 +1184,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     try {
       duration = expiry.getExpiryForUpdate(key, oldValue, newValue);
     } catch (RuntimeException re) {
-      LOG.error("Expiry caused an exception ", re);
+      LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
       return null;
     }
     if (Duration.ZERO.equals(duration)) {
@@ -1214,7 +1214,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     try {
       duration = expiry.getExpiryForCreation(key, value);
     } catch (RuntimeException re) {
-      LOG.error("Expiry caused an exception ", re);
+      LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
       return null;
     }
     if (Duration.ZERO.equals(duration)) {

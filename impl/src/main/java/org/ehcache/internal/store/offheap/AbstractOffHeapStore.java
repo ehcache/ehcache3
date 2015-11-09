@@ -961,7 +961,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     try {
       duration = expiry.getExpiryForAccess(key, valueHolder.value());
     } catch (RuntimeException re) {
-      LOG.error("Expiry caused an exception ", re);
+      LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
       return null;
     }
     valueHolder.accessed(now, duration);
@@ -974,7 +974,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     try {
       duration = expiry.getExpiryForUpdate(key, existing.value(), value);
     } catch (RuntimeException re) {
-      LOG.error("Expiry caused an exception ", re);
+      LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
       return null;
     }
     if (Duration.ZERO.equals(duration)) {
@@ -995,7 +995,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     try {
       duration = expiry.getExpiryForCreation(key, value);
     } catch (RuntimeException re) {
-      LOG.error("Expiry caused an exception ", re);
+      LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
       return null;
     }
     if (Duration.ZERO.equals(duration)) {
@@ -1189,7 +1189,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       try {
         duration = expiry.getExpiryForAccess(thisEntry.getKey(), thisEntry.getValue().value());
       } catch (RuntimeException re) {
-        LOG.error("Expiry caused an exception ", re);
+        LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
         duration = Duration.ZERO;
       }
       thisEntry.getValue().accessed(now, duration);

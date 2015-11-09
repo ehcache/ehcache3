@@ -288,14 +288,14 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       try {
         duration = runtimeConfiguration.getExpiry().getExpiryForCreation(key, newValue);
       } catch (RuntimeException re) {
-        logger.error("Expiry caused an exception ", re);
+        logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
         return true;
       }
     } else {
       try {
         duration = runtimeConfiguration.getExpiry().getExpiryForUpdate(key, oldValue, newValue);
       } catch (RuntimeException re) {
-        logger.error("Expiry caused an exception ", re);
+        logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
         return true;
       }
     }

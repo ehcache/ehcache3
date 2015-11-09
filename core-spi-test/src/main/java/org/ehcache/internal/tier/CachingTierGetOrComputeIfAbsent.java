@@ -83,9 +83,7 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
         }
       });
 
-      if (valueHolder != null) {
-        assertThat(valueHolder.value(), is(equalTo(value)));
-      }
+      assertThat(valueHolder.value(), is(equalTo(value)));
     } catch (CacheAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
@@ -117,9 +115,7 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
         }
       });
 
-      if (valueHolder != null) {
-        assertThat(valueHolder.value(), is(equalTo(value)));
-      }
+      assertThat(valueHolder.value(), is(equalTo(value)));
     } catch (CacheAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
