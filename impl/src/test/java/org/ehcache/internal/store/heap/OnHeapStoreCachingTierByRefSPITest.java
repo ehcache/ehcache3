@@ -19,9 +19,7 @@ package org.ehcache.internal.store.heap;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.store.heap.holders.CopiedOnHeapValueHolder;
@@ -56,8 +54,6 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
     cachingTierFactory = new CachingTierFactory<String, String>() {
 
       private final Copier DEFAULT_COPIER = new IdentityCopier();
-      
-      private final Expiry<String, String> expiry = Expirations.timeToLiveExpiration(Duration.FOREVER);
 
       @Override
       public CachingTier<String, String> newCachingTier() {
@@ -71,7 +67,7 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
 
       private CachingTier<String, String> newCachingTier(Long capacity) {
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null, null,
-                ClassLoader.getSystemClassLoader(), expiry, buildResourcePools(capacity), null, null);
+                ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), null, null);
         
         return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER);
       }
