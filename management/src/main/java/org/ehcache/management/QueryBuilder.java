@@ -15,9 +15,9 @@
  */
 package org.ehcache.management;
 
+import org.terracotta.management.context.Context;
+
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 
 /**
  * @author Mathieu Carbou

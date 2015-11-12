@@ -15,8 +15,8 @@
  */
 package org.ehcache.management.registry;
 
-import org.ehcache.management.Context;
 import org.ehcache.management.ResultSet;
+import org.terracotta.management.context.Context;
 
 import java.util.Iterator;
 import java.util.Map;

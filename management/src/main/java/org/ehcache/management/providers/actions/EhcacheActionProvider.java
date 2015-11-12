@@ -15,18 +15,18 @@
  */
 package org.ehcache.management.providers.actions;
 
-import org.ehcache.management.Context;
-import org.ehcache.management.Parameter;
 import org.ehcache.management.annotations.Exposed;
 import org.ehcache.management.annotations.Named;
 import org.ehcache.management.providers.CacheBindingManagementProviderSkeleton;
 import org.ehcache.management.registry.CacheBinding;
 import org.ehcache.management.utils.ClassLoadingHelper;
+import org.terracotta.management.call.Parameter;
 import org.terracotta.management.capabilities.ActionsCapability;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.capabilities.context.CapabilityContext;
 import org.terracotta.management.capabilities.descriptors.CallDescriptor;
 import org.terracotta.management.capabilities.descriptors.Descriptor;
+import org.terracotta.management.context.Context;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;

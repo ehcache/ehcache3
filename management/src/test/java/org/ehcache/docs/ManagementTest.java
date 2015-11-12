@@ -22,8 +22,6 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.management.Context;
-import org.ehcache.management.ContextualStatistics;
 import org.ehcache.management.ManagementRegistry;
 import org.ehcache.management.ResultSet;
 import org.ehcache.management.SharedManagementService;
@@ -36,7 +34,9 @@ import org.junit.Test;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.capabilities.context.CapabilityContext;
 import org.terracotta.management.capabilities.descriptors.Descriptor;
+import org.terracotta.management.context.Context;
 import org.terracotta.management.context.ContextContainer;
+import org.terracotta.management.stats.ContextualStatistics;
 import org.terracotta.management.stats.primitive.Counter;
 
 import java.util.Collection;

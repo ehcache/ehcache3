@@ -21,22 +21,21 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.management.Context;
-import org.ehcache.management.ContextualReturn;
-import org.ehcache.management.ContextualStatistics;
 import org.ehcache.management.ManagementRegistry;
 import org.ehcache.management.ResultSet;
 import org.ehcache.management.StatisticQuery;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.hamcrest.Matchers;
 import org.junit.Test;
+import org.terracotta.management.call.ContextualReturn;
 import org.terracotta.management.capabilities.Capability;
+import org.terracotta.management.context.Context;
+import org.terracotta.management.stats.ContextualStatistics;
 import org.terracotta.management.stats.Sample;
 import org.terracotta.management.stats.history.CounterHistory;
 import org.terracotta.management.stats.primitive.Counter;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
