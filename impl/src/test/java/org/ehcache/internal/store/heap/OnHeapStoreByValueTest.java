@@ -80,7 +80,7 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
   public void testKeyCopierCalledOnGetOrComputeIfAbsent() throws Exception {
     LongCopier keyCopier = new LongCopier();
     OnHeapStore<Long, Long> store = newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.none(),
-        keyCopier, new SerializingCopier<Long>(new CompactJavaSerializer<Long>(ClassLoader.getSystemClassLoader())));
+        keyCopier, new SerializingCopier<Long>(new CompactJavaSerializer<Long>(ClassLoader.getSystemClassLoader())), 100, Eviction.Prioritizer.LRU);
 
     ValueHolder<Long> computed = store.getOrComputeIfAbsent(1L, new Function<Long, ValueHolder<Long>>() {
       @Override
@@ -200,6 +200,13 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
   }
 
   @Override
+  protected <K, V> OnHeapStore<K, V> newStore(final int capacity, final EvictionPrioritizer<? super K, ? super V> prioritizer) {
+    Copier<K> keyCopier = new SerializingCopier<K>(new JavaSerializer<K>(getClass().getClassLoader()));
+    Copier<V> valueCopier = new SerializingCopier<V>(new JavaSerializer<V>(getClass().getClassLoader()));
+    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.<K, V>none(), keyCopier, valueCopier, capacity, prioritizer);
+  }
+
+  @Override
   protected <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry) {
     return newStore(timeSource, expiry, Eviction.none());
   }
@@ -209,12 +216,12 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
       Expiry<? super K, ? super V> expiry, EvictionVeto<? super K, ? super V> veto) {
     Copier<K> keyCopier = new SerializingCopier<K>(new JavaSerializer<K>(getClass().getClassLoader()));
     Copier<V> valueCopier = new SerializingCopier<V>(new JavaSerializer<V>(getClass().getClassLoader()));
-    return newStore(timeSource, expiry, veto, keyCopier, valueCopier);
+    return newStore(timeSource, expiry, veto, keyCopier, valueCopier, 100, Eviction.Prioritizer.LRU);
   }
 
   private  <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
       final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto,
-      final Copier<K> keyCopier, final Copier<V> valueCopier) {
+      final Copier<K> keyCopier, final Copier<V> valueCopier, final int capacity, final EvictionPrioritizer<? super K, ? super V> prioritizer) {
     return new OnHeapStore<K, V>(new Store.Configuration<K, V>() {
       
       @SuppressWarnings("unchecked")
@@ -236,7 +243,7 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
 
       @Override
       public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
-        return Eviction.Prioritizer.LRU;
+        return prioritizer;
       }
 
       @Override
@@ -251,7 +258,7 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
 
       @Override
       public ResourcePools getResourcePools() {
-        return newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES).build();
+        return newResourcePoolsBuilder().heap(capacity, EntryUnit.ENTRIES).build();
       }
 
       @Override

@@ -19,12 +19,14 @@ package org.ehcache.internal.store.offheap;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.ehcache.Cache;
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
@@ -43,10 +45,16 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import org.ehcache.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.statistics.StoreOperationOutcomes;
@@ -268,30 +276,58 @@ public abstract class AbstractOffHeapStoreTest {
 
       @Override
       public boolean test(Cache.Entry<String, byte[]> entry) {
-//        return entry.getKey().equals("key3");
         return true;
       }
     };
+
     AbstractOffHeapStore<String, byte[]> offHeapStore = createAndInitStore(timeSource, expiry, evictionVeto);
     try {
-      offHeapStore.enableStoreEventNotifications(new TestStoreEventListener<String, byte[]>());
+      StoreEventListener<String, byte[]> mock = mock(StoreEventListener.class);
+      offHeapStore.enableStoreEventNotifications(mock);
 
-      int valueLength = 200000;
-      byte[] value = new byte[valueLength];
-      value[0] = 1;
-      value[valueLength/2] = 1;
-      value[valueLength - 1] = 1;
+      byte[] value = getBytes(MemoryUnit.KB.toBytes(200));
       offHeapStore.put("key1", value);
       offHeapStore.put("key2", value);
       offHeapStore.put("key3", value);
       offHeapStore.put("key4", value);
       offHeapStore.put("key5", value);
       offHeapStore.put("key6", value);
-      //offHeapStore.put("key7", value);
+
+      verify(mock, atLeast(1)).onEviction(anyString(), any(Store.ValueHolder.class));
     } finally {
       destroyStore(offHeapStore);
     }
+  }
 
+  @Test
+  public void testBrokenEvictionVeto() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource();
+    Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS));
+    EvictionVeto<String, byte[]> evictionVeto = new EvictionVeto<String, byte[]>() {
+
+      @Override
+      public boolean test(Cache.Entry<String, byte[]> entry) {
+        throw new UnsupportedOperationException("Broken veto!");
+      }
+    };
+
+    AbstractOffHeapStore<String, byte[]> offHeapStore = createAndInitStore(timeSource, expiry, evictionVeto);
+    try {
+      StoreEventListener<String, byte[]> mock = mock(StoreEventListener.class);
+      offHeapStore.enableStoreEventNotifications(mock);
+
+      byte[] value = getBytes(MemoryUnit.KB.toBytes(200));
+      offHeapStore.put("key1", value);
+      offHeapStore.put("key2", value);
+      offHeapStore.put("key3", value);
+      offHeapStore.put("key4", value);
+      offHeapStore.put("key5", value);
+      offHeapStore.put("key6", value);
+
+      verify(mock, atLeast(1)).onEviction(anyString(), any(Store.ValueHolder.class));
+    } finally {
+      destroyStore(offHeapStore);
+    }
   }
 
   @Test
@@ -570,6 +606,14 @@ public abstract class AbstractOffHeapStoreTest {
                 org.terracotta.context.query.Matchers.attributes(org.terracotta.context.query.Matchers.hasAttribute("name", "expiration")))))
         .build());
     return (OperationStatistic<StoreOperationOutcomes.ExpirationOutcome>) treeNode.getContext().attributes().get("this");
+  }
+
+  private byte[] getBytes(long valueLength) {
+    assertThat(valueLength, lessThan((long) Integer.MAX_VALUE));
+    int valueLengthInt = (int) valueLength;
+    byte[] value = new byte[valueLengthInt];
+    new Random().nextBytes(value);
+    return value;
   }
 
   private static class TestStoreEventListener<K, V> implements StoreEventListener<K, V> {

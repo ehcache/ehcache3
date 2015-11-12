@@ -1237,17 +1237,24 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     if (values.isEmpty()) {
       return false;
     } else {
-      @SuppressWarnings("unchecked")
-      final Map.Entry<K, OnHeapValueHolder<V>> evict = Collections.max(values, (Comparator<? super Map.Entry<K, OnHeapValueHolder<V>>>)evictionPrioritizer);
+      Map.Entry<K, OnHeapValueHolder<V>> tmpEvict;
+      try {
+        tmpEvict = Collections.max(values, (Comparator<? super Entry<K, OnHeapValueHolder<V>>>)evictionPrioritizer);
+      } catch (Exception e) {
+        LOG.error("Exception raised when prioritizing eviction candidates " +
+                  "- eviction will continue simply picking first candidate", e);
+        tmpEvict = values.iterator().next();
+      }
+      final Map.Entry<K, OnHeapValueHolder<V>> evictionCandidate = tmpEvict;
 
 
       final AtomicBoolean removed = new AtomicBoolean(false);
-      map.computeIfPresent(evict.getKey(), new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      map.computeIfPresent(evictionCandidate.getKey(), new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
         @Override
         public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
-          if (mappedValue.equals(evict.getValue())) {
+          if (mappedValue.equals(evictionCandidate.getValue())) {
             removed.set(true);
-            eventListener.onEviction(evict.getKey(), evict.getValue());
+            eventListener.onEviction(evictionCandidate.getKey(), evictionCandidate.getValue());
             return null;
           }
           return mappedValue;
@@ -1384,7 +1391,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       return new Predicate<Map.Entry<K, OnHeapValueHolder<V>>>() {
         @Override
         public boolean test(final Map.Entry<K, OnHeapValueHolder<V>> argument) {
-          return predicate.test(wrap(argument, timeSource));
+          try {
+            return predicate.test(wrap(argument, timeSource));
+          } catch (Exception e) {
+            LOG.error("Exception raised while running eviction veto " +
+                      "- Eviction will assume entry is NOT vetoed", e);
+            return false;
+          }
         }
       };
     }

@@ -46,13 +46,24 @@ public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
   }
 
   @Override
+  protected <K, V> OnHeapStore<K, V> newStore(final int capacity, final EvictionPrioritizer<? super K, ? super V> prioritizer) {
+    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.<K, V>none(), capacity, prioritizer);
+  }
+
+  @Override
   protected <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry) {
     return newStore(timeSource, expiry, Eviction.none());
   }
 
   @Override
   protected <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
-      final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto) {
+                                              final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto) {
+    return newStore(timeSource, expiry, veto, 100, Eviction.Prioritizer.LRU);
+  }
+
+  private <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
+                                            final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto,
+                                            final int capacity, final EvictionPrioritizer<? super K, ? super V> prioritizer) {
     return new OnHeapStore<K, V>(new Store.Configuration<K, V>() {
       @SuppressWarnings("unchecked")
       @Override
@@ -73,7 +84,7 @@ public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
 
       @Override
       public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
-        return Eviction.Prioritizer.LRU;
+        return prioritizer;
       }
 
       @Override
@@ -88,7 +99,7 @@ public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
 
       @Override
       public ResourcePools getResourcePools() {
-        return newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES).build();
+        return newResourcePoolsBuilder().heap(capacity, EntryUnit.ENTRIES).build();
       }
 
       @Override
@@ -102,5 +113,4 @@ public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
       }
     }, timeSource, DEFAULT_COPIER, DEFAULT_COPIER);
   }
-
 }
