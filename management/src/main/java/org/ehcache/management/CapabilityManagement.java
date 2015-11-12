@@ -15,6 +15,8 @@
  */
 package org.ehcache.management;
 
+import org.terracotta.management.call.Parameter;
+
 import java.util.Collection;
 
 /**

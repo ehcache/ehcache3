@@ -15,11 +15,11 @@
  */
 package org.ehcache.management.providers;
 
-import org.ehcache.management.Context;
-import org.ehcache.management.Parameter;
+import org.terracotta.management.call.Parameter;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.capabilities.context.CapabilityContext;
 import org.terracotta.management.capabilities.descriptors.Descriptor;
+import org.terracotta.management.context.Context;
 import org.terracotta.management.stats.Statistic;
 
 import java.util.Collection;

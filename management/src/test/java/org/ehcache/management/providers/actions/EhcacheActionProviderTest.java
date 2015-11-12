@@ -17,14 +17,14 @@ package org.ehcache.management.providers.actions;
 
 import org.ehcache.Ehcache;
 import org.ehcache.config.CacheRuntimeConfiguration;
-import org.ehcache.management.Context;
-import org.ehcache.management.Parameter;
 import org.ehcache.management.registry.CacheBinding;
 import org.hamcrest.Matcher;
 import org.junit.Test;
+import org.terracotta.management.call.Parameter;
 import org.terracotta.management.capabilities.context.CapabilityContext;
 import org.terracotta.management.capabilities.descriptors.CallDescriptor;
 import org.terracotta.management.capabilities.descriptors.Descriptor;
+import org.terracotta.management.context.Context;
 
 import java.util.Arrays;
 import java.util.Collections;

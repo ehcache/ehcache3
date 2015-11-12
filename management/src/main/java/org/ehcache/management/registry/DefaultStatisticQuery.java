@@ -16,11 +16,11 @@
 package org.ehcache.management.registry;
 
 import org.ehcache.management.CapabilityManagementSupport;
-import org.ehcache.management.Context;
-import org.ehcache.management.ContextualStatistics;
 import org.ehcache.management.ResultSet;
 import org.ehcache.management.StatisticQuery;
 import org.ehcache.management.providers.ManagementProvider;
+import org.terracotta.management.context.Context;
+import org.terracotta.management.stats.ContextualStatistics;
 import org.terracotta.management.stats.Statistic;
 
 import java.util.ArrayList;

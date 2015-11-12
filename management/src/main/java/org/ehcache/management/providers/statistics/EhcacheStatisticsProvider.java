@@ -15,7 +15,6 @@
  */
 package org.ehcache.management.providers.statistics;
 
-import org.ehcache.management.Context;
 import org.ehcache.management.annotations.Named;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.CacheBindingManagementProviderSkeleton;
@@ -24,13 +23,12 @@ import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.capabilities.StatisticsCapability;
 import org.terracotta.management.capabilities.context.CapabilityContext;
 import org.terracotta.management.capabilities.descriptors.Descriptor;
+import org.terracotta.management.context.Context;
 import org.terracotta.management.stats.Statistic;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;

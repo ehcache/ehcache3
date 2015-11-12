@@ -15,6 +15,9 @@
  */
 package org.ehcache.management;
 
+import org.terracotta.management.call.ContextualReturn;
+import org.terracotta.management.call.Parameter;
+
 /**
  * @author Mathieu Carbou
  */

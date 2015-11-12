@@ -16,8 +16,8 @@
 package org.ehcache.management.registry;
 
 import org.ehcache.management.CapabilityManagementSupport;
-import org.ehcache.management.Context;
 import org.ehcache.management.StatisticQuery;
+import org.terracotta.management.context.Context;
 
 import java.util.ArrayList;
 import java.util.Collection;

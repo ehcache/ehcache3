@@ -17,11 +17,11 @@ package org.ehcache.management.registry;
 
 import org.ehcache.management.CallQuery;
 import org.ehcache.management.CapabilityManagementSupport;
-import org.ehcache.management.Context;
-import org.ehcache.management.ContextualReturn;
-import org.ehcache.management.Parameter;
 import org.ehcache.management.ResultSet;
 import org.ehcache.management.providers.ManagementProvider;
+import org.terracotta.management.call.ContextualReturn;
+import org.terracotta.management.call.Parameter;
+import org.terracotta.management.context.Context;
 
 import java.util.ArrayList;
 import java.util.Collection;

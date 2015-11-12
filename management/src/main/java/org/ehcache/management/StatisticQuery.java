@@ -15,6 +15,8 @@
  */
 package org.ehcache.management;
 
+import org.terracotta.management.stats.ContextualStatistics;
+
 import java.util.Collection;
 
 /**

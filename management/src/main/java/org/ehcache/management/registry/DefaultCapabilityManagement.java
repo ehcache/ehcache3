@@ -18,8 +18,8 @@ package org.ehcache.management.registry;
 import org.ehcache.management.CallQuery;
 import org.ehcache.management.CapabilityManagement;
 import org.ehcache.management.CapabilityManagementSupport;
-import org.ehcache.management.Parameter;
 import org.ehcache.management.StatisticQuery;
+import org.terracotta.management.call.Parameter;
 
 import java.util.Collection;
 import java.util.Collections;
