@@ -145,10 +145,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           }
 
           if (updateAccess) {
-            if (setAccessTimeAndExpiry(mappedKey, mappedValue, now) == null) {
-              onExpiration(mappedKey, mappedValue);
-              return null;
-            }
+            return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now);
           }
           return mappedValue;
         }
@@ -232,11 +229,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
               return newCreateValueHolder(mappedKey, value, now);
             }
             returnValue.set(mappedValue);
-            if (setAccessTimeAndExpiry(mappedKey, mappedValue, now)== null) {
-              onExpiration(mappedKey, mappedValue);
-              return null;
-            }
-            return mappedValue;
+            return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now);
           }
         }, false);
         ValueHolder<V> resultHolder = returnValue.get();
@@ -291,11 +284,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
             removed.set(true);
             return null;
           } else {
-            if (setAccessTimeAndExpiry(mappedKey, mappedValue, now) == null) {
-              onExpiration(mappedKey, mappedValue);
-              return null;
-            }
-            return mappedValue;
+            return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now);
           }
         }
       });
@@ -376,11 +365,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           replaced.set(true);
           return newUpdatedValueHolder(mappedKey, newValue, mappedValue, now);
         } else {
-          if (setAccessTimeAndExpiry(mappedKey, mappedValue, now) == null) {
-            onExpiration(mappedKey, mappedValue);
-            return null;
-          }
-          return mappedValue;
+          return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now);
         }
       }
     };
@@ -462,10 +447,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           return null;
         } else if (safeEquals(existingValue, computedValue) && !replaceEqual.apply()) {
           if (mappedValue != null) {
-            if (setAccessTimeAndExpiry(key, mappedValue, now) == null) {
-              onExpiration(mappedKey, mappedValue);
-              return null;
-            }
+            return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now);
           }
           return mappedValue;
         }
@@ -537,11 +519,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
             return newCreateValueHolder(mappedKey, computedValue, now);
           }
         } else {
-          if (setAccessTimeAndExpiry(mappedKey, mappedValue, now) == null) {
-            onExpiration(mappedKey, mappedValue);
-            return null;
-          }
-          return mappedValue;
+          return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now);
         }
       }
     };
@@ -611,11 +589,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         }
 
         if (safeEquals(mappedValue.value(), computedValue) && !replaceEqual.apply()) {
-          if (setAccessTimeAndExpiry(mappedKey, mappedValue, now) == null) {
-            onExpiration(mappedKey, mappedValue);
-            return null;
-          }
-          return mappedValue;
+          return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now);
         }
         checkValue(computedValue);
         write.set(true);
@@ -956,12 +930,13 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
   };
 
-  private OffHeapValueHolder<V> setAccessTimeAndExpiry(K key, OffHeapValueHolder<V> valueHolder, long now) {
+  private OffHeapValueHolder<V> setAccessTimeAndExpiryThenReturnMapping(K key, OffHeapValueHolder<V> valueHolder, long now) {
     Duration duration;
     try {
       duration = expiry.getExpiryForAccess(key, valueHolder.value());
     } catch (RuntimeException re) {
       LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
+      onExpiration(key, valueHolder);
       return null;
     }
     valueHolder.accessed(now, duration);
@@ -1176,10 +1151,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         @Override
         public OffHeapValueHolder<V> apply(final K k, final OffHeapValueHolder<V> currentMapping) {
           if (currentMapping.getId() == thisEntry.getValue().getId()) {
-            if (setAccessTimeAndExpiry(k, currentMapping, now) == null) {
-              onExpiration(k, currentMapping);
-              advance();
-            }
+            return setAccessTimeAndExpiryThenReturnMapping(k, currentMapping, now);
           }
           return currentMapping;
         }
