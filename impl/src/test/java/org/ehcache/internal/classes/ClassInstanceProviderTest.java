@@ -94,7 +94,6 @@ public class ClassInstanceProviderTest {
     classInstanceProvider.providedVsCount.put("foo", new AtomicInteger(1));
 
     classInstanceProvider.releaseInstance("foo");
-    assertThat(classInstanceProvider.providedVsCount.get("foo"), nullValue());
     classInstanceProvider.releaseInstance("foo");
   }
 

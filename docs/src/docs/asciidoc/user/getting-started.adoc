@@ -293,7 +293,7 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 <4> The `PersonCopier` configured at the cache manager level will be used for this cache.
 
 The samples above demonstrated the configuration of different services at the cache and the cache manager levels.
-In none of the samples did we really create instances of services such as copiers, serializers etc.
+In none of the samples did we really create instances of copiers, serializers etc.
 Instead we supplied the class types with the service configurations and the instantiation was done internally by Ehcache.
 Even though that is the recommended way of configuring services, it is still possible to configure a service with actual
 instances.
@@ -312,6 +312,12 @@ WARNING: The former way of configuring services using class types is still the r
 the service instances are not shared between caches. Sharing services can have disastrous effects in your application if
 the user is not careful enough. The latter way of configuring services using instances opens the door for sharing the
 same service instance across caches but that feature should be used with extra care.
+
+NOTE: By now you are familiar with configuring different services using actual instances or using class types of
+loader-writers, serializers etc. It is desirable to have some cleanup performed on these instances once you are done
+using the cache that uses these instances. You can achieve this by making your custom class types `Closeable` and
+keeping your resource release logic in the _close_ method. Ehcache will make sure that this _close_ will be invoked when
+the cache is removed from the cache manager or when the cache manager is closed. 
 
 === It wouldn't be Java without _some_ XML
 

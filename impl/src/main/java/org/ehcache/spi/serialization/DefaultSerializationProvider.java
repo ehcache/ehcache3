@@ -26,6 +26,7 @@ import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +37,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -56,7 +56,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
   private final TransientProvider transientProvider;
   private final PersistentProvider persistentProvider;
 
-  protected final Map<Serializer<?>, AtomicInteger> providedVsCount = new HashMap<Serializer<?>, AtomicInteger>();
+  protected final ConcurrentWeakIdentityHashMap<Serializer<?>, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<Serializer<?>, AtomicInteger>();
 
   public DefaultSerializationProvider(DefaultSerializationProviderConfiguration configuration) {
     if (configuration != null) {
@@ -93,23 +93,22 @@ public class DefaultSerializationProvider implements SerializationProvider {
   }
   
   private void updateProvidedInstanceCounts(Serializer<?> serializer) {
-    AtomicInteger currentCount = providedVsCount.get(serializer);
-    if(currentCount == null) {
-      providedVsCount.put(serializer, new AtomicInteger(1));
-    } else {
+    AtomicInteger currentCount = providedVsCount.putIfAbsent(serializer, new AtomicInteger(1));
+    if(currentCount != null) {
       currentCount.incrementAndGet();
     }
   }
 
   @Override
   public void releaseSerializer(final Serializer<?> serializer) throws IOException {
-    if(providedVsCount.containsKey(serializer)) {
-      AtomicInteger currentCount = providedVsCount.get(serializer);
-      if(currentCount.getAndDecrement() == 1) {
-        providedVsCount.remove(serializer);
+    AtomicInteger currentCount = providedVsCount.get(serializer);
+    if(currentCount != null) {
+      if(currentCount.decrementAndGet() < 0) {
+        currentCount.incrementAndGet();
+        throw new IllegalArgumentException("Given serializer:" + serializer.getClass().getName() + " is not managed by this provider");
       }
     } else {
-      throw new IllegalArgumentException("Given serializer: " + serializer.getClass().getName() + " is not managed by this provider");
+      throw new IllegalArgumentException("Given serializer:" + serializer.getClass().getName() + " is not managed by this provider");
     }
 
     if(serializer instanceof Closeable) {

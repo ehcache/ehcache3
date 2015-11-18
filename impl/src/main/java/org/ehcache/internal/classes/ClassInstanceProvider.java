@@ -19,12 +19,12 @@ package org.ehcache.internal.classes;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -42,9 +42,9 @@ public class ClassInstanceProvider<K, T> {
   protected final Map<K, ClassInstanceConfiguration<T>> preconfigured = Collections.synchronizedMap(new LinkedHashMap<K, ClassInstanceConfiguration<T>>());
 
   /**
-   * Instances created by this provider vs their counts.
+   * Instances provided by this provider vs their counts.
    */
-  protected final Map<T, AtomicInteger> providedVsCount = new HashMap<T, AtomicInteger>();
+  protected final ConcurrentWeakIdentityHashMap<T, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<T, AtomicInteger>();
 
   private final Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig;
 
@@ -103,20 +103,19 @@ public class ClassInstanceProvider<K, T> {
       }
     }
 
-    AtomicInteger currentCount = providedVsCount.get(instance);
-    if(currentCount == null) {
-      providedVsCount.put(instance, new AtomicInteger(1));
-    } else {
+    AtomicInteger currentCount = providedVsCount.putIfAbsent(instance, new AtomicInteger(1));
+    if(currentCount != null) {
       currentCount.incrementAndGet();
     }
     return instance;
   }
 
   protected void releaseInstance(T instance) throws IOException {
-    if(providedVsCount.containsKey(instance)) {
-      AtomicInteger currentCount = providedVsCount.get(instance);
-      if(currentCount.getAndDecrement() == 1) {
-        providedVsCount.remove(instance);
+    AtomicInteger currentCount = providedVsCount.get(instance);
+    if(currentCount != null) {
+      if(currentCount.decrementAndGet() < 0) {
+        currentCount.incrementAndGet();
+        throw new IllegalArgumentException("Given instance of " + instance.getClass().getName() + " is not managed by this provider");
       }
     } else {
       throw new IllegalArgumentException("Given instance of " + instance.getClass().getName() + " is not managed by this provider");
