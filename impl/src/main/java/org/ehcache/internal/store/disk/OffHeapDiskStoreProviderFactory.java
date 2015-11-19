@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.store.disk;
 
+import org.ehcache.config.store.disk.OffHeapDiskStoreProviderConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
@@ -26,7 +27,13 @@ public class OffHeapDiskStoreProviderFactory implements ServiceFactory<OffHeapDi
 
   @Override
   public OffHeapDiskStore.Provider create(ServiceCreationConfiguration<OffHeapDiskStore.Provider> configuration) {
-    return new OffHeapDiskStore.Provider();
+    if (configuration == null) {
+      return new OffHeapDiskStore.Provider();
+    } else if (configuration instanceof OffHeapDiskStoreProviderConfiguration) {
+      return new OffHeapDiskStore.Provider(((OffHeapDiskStoreProviderConfiguration) configuration).getThreadPoolAlias());
+    } else {
+      throw new IllegalArgumentException();
+    }
   }
 
   @Override

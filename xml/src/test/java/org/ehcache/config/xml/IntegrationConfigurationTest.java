@@ -16,6 +16,7 @@
 
 package org.ehcache.config.xml;
 
+import com.pany.ehcache.integration.ThreadRememberingLoaderWriter;
 import com.pany.ehcache.copier.Description;
 import com.pany.ehcache.copier.Employee;
 import com.pany.ehcache.copier.Person;
@@ -26,6 +27,7 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.event.EventType;
 import org.junit.Test;
 import org.xml.sax.SAXException;
@@ -35,10 +37,12 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.writebehind.WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
@@ -189,6 +193,48 @@ public class IntegrationConfigurationTest {
     cache.remove(10);
     assertThat(TestCacheEventListener.FIRED_EVENT.getType(), is(EventType.REMOVED));
     assertThat(TestSecondCacheEventListener.SECOND_LISTENER_FIRED_EVENT.getType(), is(EventType.REMOVED));
+  }
+
+  @Test
+  public void testThreadPools() throws Exception {
+    Configuration configuration = new XmlConfiguration(this.getClass().getResource("/configs/thread-pools.xml"));
+    final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
+    cacheManager.init();
+    try {
+      Cache<String, String> cache = cacheManager.createCache("testThreadPools", newCacheConfigurationBuilder()
+              .add(new DefaultCacheLoaderWriterConfiguration(ThreadRememberingLoaderWriter.class))
+              .add(newUnBatchedWriteBehindConfiguration().useThreadPool("small"))
+              .buildConfig(String.class, String.class));
+
+      cache.put("foo", "bar");
+
+      ThreadRememberingLoaderWriter.USED.acquireUninterruptibly();
+
+      assertThat(ThreadRememberingLoaderWriter.LAST_SEEN_THREAD.getName(), containsString("[small]"));
+    } finally {
+      cacheManager.close();
+    }
+  }
+
+  @Test
+  public void testThreadPoolsUsingDefaultPool() throws Exception {
+    Configuration configuration = new XmlConfiguration(this.getClass().getResource("/configs/thread-pools.xml"));
+    final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
+    cacheManager.init();
+    try {
+      Cache<String, String> cache = cacheManager.createCache("testThreadPools", newCacheConfigurationBuilder()
+              .add(new DefaultCacheLoaderWriterConfiguration(ThreadRememberingLoaderWriter.class))
+              .add(newUnBatchedWriteBehindConfiguration())
+              .buildConfig(String.class, String.class));
+
+      cache.put("foo", "bar");
+
+      ThreadRememberingLoaderWriter.USED.acquireUninterruptibly();
+
+      assertThat(ThreadRememberingLoaderWriter.LAST_SEEN_THREAD.getName(), containsString("[big]"));
+    } finally {
+      cacheManager.close();
+    }
   }
 
   private static void resetValues() {

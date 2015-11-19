@@ -41,7 +41,6 @@ import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.config.writebehind.DefaultWriteBehindConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -75,15 +74,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import org.ehcache.config.executor.PooledExecutionServiceConfiguration;
+import org.ehcache.config.executor.PooledExecutionServiceConfiguration.PoolConfiguration;
+import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfiguration;
 import org.ehcache.util.ClassLoading;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
@@ -424,6 +429,28 @@ public class XmlConfigurationTest {
   }
 
   @Test
+  public void testThreadPoolsConfiguration() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/thread-pools.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+
+    assertThat(xmlConfig.getServiceCreationConfigurations(), contains(instanceOf(PooledExecutionServiceConfiguration.class)));
+
+    PooledExecutionServiceConfiguration configuration = (PooledExecutionServiceConfiguration) xmlConfig.getServiceCreationConfigurations().iterator().next();
+
+    assertThat(configuration.getPoolConfigurations().keySet(), containsInAnyOrder("big", "small"));
+
+    PoolConfiguration small = configuration.getPoolConfigurations().get("small");
+    assertThat(small.minSize(), is(1));
+    assertThat(small.maxSize(), is(1));
+
+    PoolConfiguration big = configuration.getPoolConfigurations().get("big");
+    assertThat(big.minSize(), is(4));
+    assertThat(big.maxSize(), is(32));
+
+    assertThat(configuration.getDefaultPoolAlias(), is("big"));
+  }
+
+  @Test
   public void testCacheCopierConfiguration() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/cache-copiers.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
@@ -512,18 +539,17 @@ public class XmlConfigurationTest {
     assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
     
     for (ServiceConfiguration<?> configuration : serviceConfiguration) {
-      if(configuration instanceof DefaultWriteBehindConfiguration) {
-        assertThat(((WriteBehindConfiguration) configuration).getMaxWriteDelay(), is(Integer.MAX_VALUE));
-        assertThat(((WriteBehindConfiguration) configuration).getMinWriteDelay(), is(0));
-        assertThat(((WriteBehindConfiguration) configuration).isWriteCoalescing(), is(false));
-        assertThat(((WriteBehindConfiguration) configuration).getWriteBatchSize(), is(2));
-        assertThat(((WriteBehindConfiguration) configuration).getWriteBehindConcurrency(), is(1));
-        assertThat(((WriteBehindConfiguration) configuration).getWriteBehindMaxQueueSize(), is(10));
+      if(configuration instanceof WriteBehindConfiguration) {
+        BatchingConfiguration batchingConfig = ((WriteBehindConfiguration) configuration).getBatchingConfiguration();
+        assertThat(batchingConfig.getMaxDelay(), is(10L));
+        assertThat(batchingConfig.getMaxDelayUnit(), is(SECONDS));
+        assertThat(batchingConfig.isCoalescing(), is(false));
+        assertThat(batchingConfig.getBatchSize(), is(2));
+        assertThat(((WriteBehindConfiguration) configuration).getConcurrency(), is(1));
+        assertThat(((WriteBehindConfiguration) configuration).getMaxQueueSize(), is(10));
         break;
       }
-      
     }
-    
   }
 
   @Test

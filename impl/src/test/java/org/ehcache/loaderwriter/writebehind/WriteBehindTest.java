@@ -17,10 +17,12 @@ package org.ehcache.loaderwriter.writebehind;
 
 import java.util.concurrent.TimeUnit;
 
+import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 
+import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 
 /**
@@ -33,5 +35,10 @@ public class WriteBehindTest extends AbstractWriteBehindTestBase {
   protected CacheConfigurationBuilder<Object, Object> configurationBuilder() {
     return newCacheConfigurationBuilder()
             .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+  }
+
+  @Override
+  protected CacheManagerBuilder managerBuilder() {
+    return newCacheManagerBuilder();
   }
 }

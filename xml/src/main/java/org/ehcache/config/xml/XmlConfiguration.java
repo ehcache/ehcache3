@@ -66,6 +66,15 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import org.ehcache.config.event.CacheEventDispatcherFactoryConfiguration;
+import org.ehcache.config.executor.PooledExecutionServiceConfiguration;
+import org.ehcache.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
+import org.ehcache.config.store.disk.OffHeapDiskStoreConfiguration;
+import org.ehcache.config.store.disk.OffHeapDiskStoreProviderConfiguration;
+import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
+import org.ehcache.config.xml.ConfigurationParser.Batching;
+import org.ehcache.config.xml.model.ThreadPoolReferenceType;
+import org.ehcache.config.xml.model.ThreadPoolsType;
 
 /**
  * Exposes {@link org.ehcache.config.Configuration} and {@link org.ehcache.config.CacheConfigurationBuilder} expressed
@@ -186,7 +195,8 @@ public class XmlConfiguration implements Configuration {
         }
       }
       serviceConfigs.add(configuration);
-    } else if(configurationParser.getDefaultCopiers() != null) {
+    }
+    if (configurationParser.getDefaultCopiers() != null) {
       DefaultCopyProviderConfiguration configuration = new DefaultCopyProviderConfiguration();
 
       for (CopierType.Copier copier : configurationParser.getDefaultCopiers().getCopier()) {
@@ -197,8 +207,32 @@ public class XmlConfiguration implements Configuration {
         }
       }
       serviceConfigs.add(configuration);
-    } else if (configurationParser.getPersistence() != null) {
+    }
+    if (configurationParser.getPersistence() != null) {
       serviceConfigs.add(new CacheManagerPersistenceConfiguration(new File(configurationParser.getPersistence().getDirectory())));
+    }
+    if (configurationParser.getThreadPools() != null) {
+      PooledExecutionServiceConfiguration poolsConfiguration = new PooledExecutionServiceConfiguration();
+      for (ThreadPoolsType.ThreadPool pool : configurationParser.getThreadPools().getThreadPool()) {
+        if (pool.isDefault()) {
+          poolsConfiguration.addDefaultPool(pool.getAlias(), pool.getMinSize().intValue(), pool.getMaxSize().intValue());
+        } else {
+          poolsConfiguration.addPool(pool.getAlias(), pool.getMinSize().intValue(), pool.getMaxSize().intValue());
+        }
+      }
+      serviceConfigs.add(poolsConfiguration);
+    }
+    if (configurationParser.getEventDispatch() != null) {
+      ThreadPoolReferenceType eventDispatchThreading = configurationParser.getEventDispatch();
+      serviceConfigs.add(new CacheEventDispatcherFactoryConfiguration(eventDispatchThreading.getThreadPool()));
+    }
+    if (configurationParser.getWriteBehind() != null) {
+      ThreadPoolReferenceType writeBehindThreading = configurationParser.getWriteBehind();
+      serviceConfigs.add(new WriteBehindProviderConfiguration(writeBehindThreading.getThreadPool()));
+    }
+    if (configurationParser.getDiskStore() != null) {
+      ThreadPoolReferenceType diskStoreThreading = configurationParser.getDiskStore();
+      serviceConfigs.add(new OffHeapDiskStoreProviderConfiguration(diskStoreThreading.getThreadPool()));
     }
 
     for (ServiceCreationConfiguration<?> serviceConfiguration : Collections.unmodifiableList(serviceConfigs)) {
@@ -251,6 +285,10 @@ public class XmlConfiguration implements Configuration {
         resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool.getType(), resourcePool.getSize(), resourcePool.getUnit(), resourcePool.isPersistent());
       }
       builder = builder.withResourcePools(resourcePoolsBuilder);
+      final ConfigurationParser.DiskStoreSettings parsedDiskStoreSettings = cacheDefinition.diskStoreSettings();
+      if (parsedDiskStoreSettings != null) {
+        builder.add(new OffHeapDiskStoreConfiguration(parsedDiskStoreSettings.threadPool(), parsedDiskStoreSettings.writerConcurrency()));
+      }
       for (ServiceConfiguration<?> serviceConfig : cacheDefinition.serviceConfigs()) {
         builder = builder.add(serviceConfig);
       }
@@ -259,14 +297,21 @@ public class XmlConfiguration implements Configuration {
         builder = builder.add(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriterClass));
         if(cacheDefinition.writeBehind() != null) {
           WriteBehind writeBehind = cacheDefinition.writeBehind();
-          WriteBehindConfigurationBuilder writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
-              .concurrencyLevel(writeBehind.concurrency()).queueSize(writeBehind.maxQueueSize())
-              .delay(writeBehind.minWriteDelay(), writeBehind.maxWriteDelay())
-              .batchSize(writeBehind.batchSize());
-          if(writeBehind.isCoalesced()) {
-            writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.enableCoalescing();
+          WriteBehindConfigurationBuilder writeBehindConfigurationBuilder;
+          if (writeBehind.batching() == null) {
+            writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration();
+          } else {
+            Batching batching = writeBehind.batching();
+            writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder
+                    .newBatchedWriteBehindConfiguration(batching.maxDelay(), batching.maxDelayUnit(), batching.batchSize());
+            if (batching.isCoalesced()) {
+              writeBehindConfigurationBuilder = ((BatchedWriteBehindConfigurationBuilder) writeBehindConfigurationBuilder).enableCoalescing();
+            }
           }
-          builder = builder.add(writeBehindConfigurationBuilder);
+          builder = builder.add(writeBehindConfigurationBuilder
+                  .useThreadPool(writeBehind.threadPool())
+                  .concurrencyLevel(writeBehind.concurrency())
+                  .queueSize(writeBehind.maxQueueSize()));
         }
       }
       if(cacheDefinition.listeners()!= null) {
@@ -445,14 +490,19 @@ public class XmlConfiguration implements Configuration {
       builder = builder.add(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriterClass));
       if(cacheTemplate.writeBehind() != null) {
         WriteBehind writeBehind = cacheTemplate.writeBehind();
-        WriteBehindConfigurationBuilder writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newWriteBehindConfiguration()
-            .concurrencyLevel(writeBehind.concurrency()).queueSize(writeBehind.maxQueueSize())
-            .delay(writeBehind.minWriteDelay(), writeBehind.maxWriteDelay())
-            .batchSize(writeBehind.batchSize());
-        if(writeBehind.isCoalesced()) {
-          writeBehindConfigurationBuilder = writeBehindConfigurationBuilder.enableCoalescing();
+        WriteBehindConfigurationBuilder writeBehindConfigurationBuilder;
+        if (writeBehind.batching() == null) {
+          writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration();
+        } else {
+          Batching batching = writeBehind.batching();
+          writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration(batching.maxDelay(), batching.maxDelayUnit(), batching.batchSize());
+          if (batching.isCoalesced()) {
+            writeBehindConfigurationBuilder = ((BatchedWriteBehindConfigurationBuilder) writeBehindConfigurationBuilder).enableCoalescing();
+          }
         }
-        builder = builder.add(writeBehindConfigurationBuilder);
+        builder = builder.add(writeBehindConfigurationBuilder
+                .concurrencyLevel(writeBehind.concurrency())
+                .queueSize(writeBehind.maxQueueSize()));
       }
     }
     if(cacheTemplate.listeners()!= null) {

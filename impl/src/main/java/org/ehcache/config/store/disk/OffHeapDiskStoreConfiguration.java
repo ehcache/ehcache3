@@ -13,15 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.config.store.disk;
 
-package org.ehcache.internal.store.disk;
-
+import org.ehcache.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * @author Chris Dennis
+ *
+ * @author cdennis
  */
-public class OffHeapDiskStoreServiceConfiguration implements ServiceConfiguration<OffHeapDiskStore.Provider> {
+public class OffHeapDiskStoreConfiguration implements ServiceConfiguration<OffHeapDiskStore.Provider> {
+
+  private final String threadPoolAlias;
+  private final int writerConcurrency;
+
+  public OffHeapDiskStoreConfiguration(String threadPoolAlias, int writerConcurrency) {
+    this.threadPoolAlias = threadPoolAlias;
+    this.writerConcurrency = writerConcurrency;
+  }
+
+  public String getThreadPoolAlias() {
+    return threadPoolAlias;
+  }
+
+  public int getWriterConcurrency() {
+    return writerConcurrency;
+  }
 
   @Override
   public Class<OffHeapDiskStore.Provider> getServiceType() {

@@ -51,6 +51,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.ResourceType.Core.DISK;
 import org.ehcache.expiry.Expirations;
+import org.ehcache.internal.executor.OnDemandExecutionService;
 
 /**
  * OffHeapStoreSPITest
@@ -105,7 +106,10 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
           MemoryUnit unit = (MemoryUnit)diskPool.getUnit();
           
           Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, null, getClass().getClassLoader(), expiry, resourcePools, keySerializer, valueSerializer);
-          OffHeapDiskStore<String, String> store = new OffHeapDiskStore<String, String>(persistenceService.createPersistenceContextWithin(space, "store"), config, timeSource, unit.toBytes(diskPool.getSize()));
+          OffHeapDiskStore<String, String> store = new OffHeapDiskStore<String, String>(
+                  persistenceService.createPersistenceContextWithin(space, "store"),
+                  new OnDemandExecutionService(), null, 1,
+                  config, timeSource, unit.toBytes(diskPool.getSize()));
           OffHeapDiskStore.Provider.init(store);
           createdStores.put(store, spaceName);
           return store;

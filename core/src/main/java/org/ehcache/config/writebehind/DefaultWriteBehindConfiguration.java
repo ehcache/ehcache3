@@ -16,103 +16,50 @@
 package org.ehcache.config.writebehind;
 
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
-import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
+import org.ehcache.spi.loaderwriter.WriteBehindProvider;
 
 /**
  * @author Geert Bevin
  * @author Chris Dennis
  *
  */
-public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration {
+class DefaultWriteBehindConfiguration implements WriteBehindConfiguration {
 
-  private int minWriteDelay = 0;
-  private int maxWriteDelay = Integer.MAX_VALUE;
-  private boolean writeCoalescing = false;
-  private int writeBatchSize = 1;
-  private int writeBehindConcurrency = 1;
-  private int writeBehindMaxQueueSize = Integer.MAX_VALUE;
+  private final BatchingConfiguration batchingConfig;
+  private final int concurrency;
+  private final int queueSize;
+  private final String executorAlias;
   
-  public DefaultWriteBehindConfiguration() {
-  }
-  
-  @Override
-  public int getMinWriteDelay() {
-    return minWriteDelay;
+  DefaultWriteBehindConfiguration(String executorAlias, int concurrency, int queueSize, BatchingConfiguration batchingConfig) {
+    this.concurrency = concurrency;
+    this.queueSize = queueSize;
+    this.executorAlias = executorAlias;
+    this.batchingConfig = batchingConfig;
   }
   
   @Override
-  public int getMaxWriteDelay() {
-    return maxWriteDelay;
+  public int getConcurrency() {
+    return concurrency;
   }
   
   @Override
-  public boolean isWriteCoalescing() {
-    return writeCoalescing;
-  }
-  
-  @Override
-  public int getWriteBatchSize() {
-    return writeBatchSize;
-  }
-  
-  @Override
-  public int getWriteBehindConcurrency() {
-    return writeBehindConcurrency;
-  }
-  
-  @Override
-  public int getWriteBehindMaxQueueSize() {
-    return writeBehindMaxQueueSize;
-  }
-
-  public void setMinWriteDelay(int minWriteDelay) {
-    if (minWriteDelay < 0) {
-      throw new IllegalArgumentException("Minimum write delay seconds cannot be less than 0");
-    } else if (minWriteDelay > maxWriteDelay) {
-      throw new IllegalArgumentException("Minimum write delay (" + minWriteDelay +
-                                         ") must be smaller than or equal to maximum write delay (" + maxWriteDelay + ")");
-    }
-    this.minWriteDelay = minWriteDelay;
-  }
-
-  public void setMaxWriteDelay(int maxWriteDelay) {
-    if (maxWriteDelay < 0) {
-      throw new IllegalArgumentException("Maximum write delay cannot be less than 1");
-    } else if (maxWriteDelay < minWriteDelay) {
-      throw new IllegalArgumentException("Maximum write delay (" + maxWriteDelay +
-                                         ") must be larger than or equal to minimum write delay (" + minWriteDelay + ")");
-    }
-    this.maxWriteDelay = maxWriteDelay;
-  }
-
-  public void setWriteCoalescing(boolean writeCoalescing) {
-    this.writeCoalescing = writeCoalescing;
-  }
-
-  public void setWriteBatchSize(int writeBatchSize) {
-    if(writeBatchSize < 1) {
-      throw new IllegalArgumentException("Batchsize cannot be less than 1.");
-    }
-    this.writeBatchSize = writeBatchSize;
-  }
-
-  public void setWriteBehindConcurrency(int writeBehindConcurrency) {
-    if(writeBehindConcurrency < 1) {
-      throw new IllegalArgumentException("Concurrency Level cannot be less than 1.");
-    }
-    this.writeBehindConcurrency = writeBehindConcurrency;
-  }
-
-  public void setWriteBehindMaxQueueSize(int writeBehindMaxQueueSize) {
-    if(writeBehindMaxQueueSize < 1) {
-      throw new IllegalArgumentException("WriteBehind queue size cannot be less than 1.");
-    }
-    this.writeBehindMaxQueueSize = writeBehindMaxQueueSize;
+  public int getMaxQueueSize() {
+    return queueSize;
   }
 
   @Override
-  public Class<WriteBehindDecoratorLoaderWriterProvider> getServiceType() {
-    return WriteBehindDecoratorLoaderWriterProvider.class;
+  public String getThreadPoolAlias() {
+    return executorAlias;
+  }
+
+  @Override
+  public BatchingConfiguration getBatchingConfiguration() {
+    return batchingConfig;
+  }
+
+  @Override
+  public Class<WriteBehindProvider> getServiceType() {
+    return WriteBehindProvider.class;
   }
   
 }

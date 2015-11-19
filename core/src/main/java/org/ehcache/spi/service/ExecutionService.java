@@ -16,18 +16,24 @@
 
 package org.ehcache.spi.service;
 
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
 /**
+ * Configuration of ExecutionService defines named pools of threads.  Consumers
+ * reference a specific pool of threads from which their "executor" is derived.
+ * <p>
+ * Shutdown of these derived executors shuts down the derived executors but does
+ * nothing to the underlying thread pool.
+ * 
  * @author Ludovic Orban
  */
-public interface ThreadPoolsService extends Service {
+public interface ExecutionService extends Service {
 
-  ScheduledExecutorService getStatisticsExecutor();
+  ScheduledExecutorService getScheduledExecutor(String poolAlias);
 
-  ExecutorService getEventsOrderedDeliveryExecutor();
+  ExecutorService getOrderedExecutor(String poolAlias, BlockingQueue<Runnable> queue);
 
-  ExecutorService getEventsUnorderedDeliveryExecutor();
-
+  ExecutorService getUnorderedExecutor(String poolAlias, BlockingQueue<Runnable> queue);
 }

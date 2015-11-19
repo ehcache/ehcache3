@@ -15,7 +15,8 @@
  */
 package org.ehcache.internal.events;
 
-import org.ehcache.events.CacheEventNotificationListenerServiceProvider;
+import org.ehcache.config.event.CacheEventDispatcherFactoryConfiguration;
+import org.ehcache.events.CacheEventDispatcherFactory;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
@@ -23,16 +24,22 @@ import org.ehcache.spi.service.ServiceFactory;
  * @author palmanojkumar
  *
  */
-public class CacheEventNotificationListenerServiceProviderFactory implements ServiceFactory<CacheEventNotificationListenerServiceProvider> {
+public class CacheEventNotificationListenerServiceProviderFactory implements ServiceFactory<CacheEventDispatcherFactory> {
 
   @Override
-  public CacheEventNotificationListenerServiceProvider create(ServiceCreationConfiguration<CacheEventNotificationListenerServiceProvider> configuration) {
-    return new CacheEventNotificationListenerServiceProviderImpl();
+  public CacheEventDispatcherFactory create(ServiceCreationConfiguration<CacheEventDispatcherFactory> configuration) {
+    if (configuration == null) {
+      return new CacheEventDispatcherFactoryImpl();
+    } else if (configuration instanceof CacheEventDispatcherFactoryConfiguration) {
+      return new CacheEventDispatcherFactoryImpl((CacheEventDispatcherFactoryConfiguration) configuration);
+    } else {
+      throw new IllegalArgumentException("Expected a configuration of type CacheEventDispatcherFactoryConfiguration but got "
+              + configuration.getClass().getSimpleName());
+    }
   }
 
   @Override
-  public Class<CacheEventNotificationListenerServiceProvider> getServiceType() {
-    return CacheEventNotificationListenerServiceProvider.class;
+  public Class<CacheEventDispatcherFactory> getServiceType() {
+    return CacheEventDispatcherFactory.class;
   }
-
 }

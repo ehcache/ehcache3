@@ -16,7 +16,6 @@
 package org.ehcache.loaderwriter.writebehind;
 
 
-import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
@@ -24,7 +23,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
  * @author Chris Dennis
  *
  */
-public interface WriteBehind<K, V> {
+public interface WriteBehind<K, V> extends CacheLoaderWriter<K, V> {
   
   /**
    * Start the write behind queue
@@ -32,26 +31,6 @@ public interface WriteBehind<K, V> {
    */
   void start();
   
-  /**
-   * Loads the value to be associated with the given key in the {@link org.ehcache.Cache} using this
-   * {@link CacheLoaderWriter} instance.
-   *
-   * @param key the key that will map to the {@code value} returned
-   * @return the value to be mapped
-   */
-  V load(K key) throws Exception;
-
-  /**
-   * Writes a single entry to the underlying system of record, maybe a brand new value or an update to an existing value
-   *
-   */
-  void write(K key, V value) throws CacheWritingException;
-  
-  /**
-   * Deletes a single entry from the underlying system of record.
-   */
-  void delete(K key) throws CacheWritingException;
-
   /**
    * Stop the coordinator and all the internal data structures.
    * <p/>

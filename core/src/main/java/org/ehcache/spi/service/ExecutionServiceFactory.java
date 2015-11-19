@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.ehcache.spi.service;
 
 /**
- * @author Hung Huynh
  *
+ * @author cdennis
  */
-public interface ThreadPoolsServiceFactory extends ServiceFactory<ThreadPoolsService> {
+public interface ExecutionServiceFactory extends ServiceFactory<ExecutionService>  {
+
 }

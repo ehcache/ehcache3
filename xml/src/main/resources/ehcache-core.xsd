@@ -54,6 +54,34 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
+      <xs:element name="thread-pools" type="ehcache:thread-pools-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            This element configures the sets of constrained threads used to run asynchronous tasks for the caches of this manager.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="event-dispatch" type="ehcache:thread-pool-reference-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            The element configures the default thread pool used for cache event dispatch.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element> 
+      <xs:element name="write-behind" type="ehcache:thread-pool-reference-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            The element configures the default thread pool used for write behind caches.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element> 
+      <xs:element name="disk-store" type="ehcache:thread-pool-reference-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            The element configures the default thread pool used for writing to disk resources.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element> 
       <xs:choice minOccurs="0" maxOccurs="unbounded">
         <xs:element name="cache" type="ehcache:cache-type">
           <xs:annotation>
@@ -110,6 +138,23 @@
         </xs:complexType>
       </xs:element>
     </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="thread-pools-type">
+    <xs:sequence>
+      <xs:element name="thread-pool" maxOccurs="unbounded" minOccurs="1">
+        <xs:complexType>
+          <xs:attribute name="alias" use="required" type="xs:string"/>
+          <xs:attribute name="default" use="optional" type="xs:boolean" default="false"/>
+          <xs:attribute name="min-size" use="required" type="xs:nonNegativeInteger"/>
+          <xs:attribute name="max-size" use="required" type="xs:positiveInteger"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="thread-pool-reference-type">
+    <xs:attribute name="thread-pool" use="required" type="xs:string"/>
   </xs:complexType>
 
   <xs:complexType name="cache-type">
@@ -195,6 +240,13 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
+      <xs:element name="listeners" type="ehcache:listeners-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Configures the listeners for the Cache.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
       <xs:choice minOccurs="0" maxOccurs="1">
         <xs:element name="heap" type="ehcache:resource-type" minOccurs="1" maxOccurs="1">
           <xs:annotation>
@@ -211,38 +263,19 @@
           </xs:annotation>
         </xs:element>
       </xs:choice>
+      <xs:element name="disk-store-settings" type="ehcache:disk-store-settings-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Configures advanced properties of the disk tier
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
       <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
-  <xs:complexType name="cache-integration-type">
+  <xs:complexType name="listeners-type">
     <xs:sequence>
-      <xs:element name="loader-writer" minOccurs="0" maxOccurs="1">
-        <xs:complexType>
-          <xs:sequence>
-            <xs:element name="class" type="ehcache:fqcn-type" minOccurs="1" maxOccurs="1">
-              <xs:annotation>
-                <xs:documentation xml:lang="en">
-                  A fully qualified class name to a concrete type that implements
-                  org.ehcache.spi.loaderwriter.CacheLoaderWriter and has a public
-                  default no argument constructor.
-                </xs:documentation>
-              </xs:annotation>
-            </xs:element>
-            <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
-          </xs:sequence>
-        </xs:complexType>
-      </xs:element>
-      <xs:element name="write-behind" minOccurs="0" maxOccurs="1">
-        <xs:complexType>
-          <xs:attribute name="concurrency" type="xs:positiveInteger" default="1" use="optional"/>
-          <xs:attribute name="size" type="xs:positiveInteger" default="2147483647" use="optional"/>
-          <xs:attribute name="coalesce" type="xs:boolean" default="false" use="optional"/>
-          <xs:attribute name="min-write-delay" type="xs:nonNegativeInteger" default="0" use="optional"/>
-          <xs:attribute name="max-write-delay" type="xs:positiveInteger" default="2147483647" use="optional"/>
-          <xs:attribute name="batch-size" type="xs:positiveInteger" default="1" use="optional"/>
-        </xs:complexType>
-      </xs:element>
       <xs:element name="listener" minOccurs="0" maxOccurs="unbounded">
         <xs:complexType>
           <xs:sequence>
@@ -278,6 +311,49 @@
             </xs:element>
             <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
           </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="thread-pool" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="cache-integration-type">
+    <xs:sequence>
+      <xs:element name="loader-writer" minOccurs="0" maxOccurs="1">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="class" type="ehcache:fqcn-type" minOccurs="1" maxOccurs="1">
+              <xs:annotation>
+                <xs:documentation xml:lang="en">
+                  A fully qualified class name to a concrete type that implements
+                  org.ehcache.spi.loaderwriter.CacheLoaderWriter and has a public
+                  default no argument constructor.
+                </xs:documentation>
+              </xs:annotation>
+            </xs:element>
+            <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="write-behind" minOccurs="0" maxOccurs="1">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:choice>
+              <xs:element name="batching">
+                <xs:complexType>
+                  <xs:all minOccurs="1">
+                    <xs:element name="max-write-delay" type="ehcache:time-type"/>
+                  </xs:all>
+                  <xs:attribute name="batch-size" type="xs:positiveInteger" use="required"/>
+                  <xs:attribute name="coalesce" type="xs:boolean" default="false" use="optional"/>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="non-batching"/>
+            </xs:choice>
+          </xs:sequence>
+          <xs:attribute name="concurrency" type="xs:positiveInteger" default="1" use="optional"/>
+          <xs:attribute name="size" type="xs:positiveInteger" default="2147483647" use="optional"/>
+          <xs:attribute name="thread-pool" type="xs:string" use="optional"/>
         </xs:complexType>
       </xs:element>
     </xs:sequence>
@@ -373,6 +449,11 @@
       <xs:element name="disk" type="ehcache:persistable-resource-type" minOccurs="0" maxOccurs="1"/>
       <xs:any namespace="##other" minOccurs="0"/>
     </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="disk-store-settings-type">
+    <xs:attribute name="thread-pool" type="xs:string" use="optional"/>
+    <xs:attribute name="writer-threads" type="xs:positiveInteger" use="optional" default="1"/>
   </xs:complexType>
 
   <xs:simpleType name="time-unit">

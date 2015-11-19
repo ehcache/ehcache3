@@ -35,6 +35,7 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
 
   private final Map<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>> configurationMap = new HashMap<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>>();
   private String cacheManagerAlias;
+  private String statisticsExecutorAlias;
 
   public DefaultManagementRegistryConfiguration() {
     // defaults
@@ -47,6 +48,11 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
     return this;
   }
 
+  public DefaultManagementRegistryConfiguration setStatisticsExecutorAlias(String alias) {
+    this.statisticsExecutorAlias = alias;
+    return this;
+  }
+
   public DefaultManagementRegistryConfiguration addConfiguration(StatisticsProviderConfiguration<?> configuration) {
     Class<? extends ManagementProvider> serviceType = configuration.getStatisticsProviderType();
     configurationMap.put(serviceType, configuration);
@@ -56,6 +62,11 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   @Override
   public String getCacheManagerAlias() {
     return cacheManagerAlias;
+  }
+
+  @Override
+  public String getStatisticsExecutorAlias() {
+    return statisticsExecutorAlias;
   }
 
   @Override

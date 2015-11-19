@@ -19,7 +19,7 @@ package org.ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.events.CacheEventNotificationService;
+import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.After;
@@ -44,7 +44,7 @@ import static org.mockito.Mockito.mock;
  */
 public class CacheConfigurationChangeListenerTest {
   private Store<Object, Object> store;
-  private CacheEventNotificationService<Object, Object> eventNotifier;
+  private CacheEventDispatcher<Object, Object> eventNotifier;
   private EhcacheRuntimeConfiguration<Object, Object> runtimeConfiguration;
   private CacheConfiguration<Object, Object> config;
   private Ehcache<Object, Object> cache;
@@ -53,7 +53,7 @@ public class CacheConfigurationChangeListenerTest {
   @Before
   public void setUp() throws Exception {
     this.store = mock(Store.class);
-    this.eventNotifier = mock(CacheEventNotificationService.class);
+    this.eventNotifier = mock(CacheEventDispatcher.class);
     CacheLoaderWriter<Object, Object> loaderWriter = mock(CacheLoaderWriter.class);
     this.config = newCacheConfigurationBuilder()
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10L, MemoryUnit.MB).heap(2L, EntryUnit.ENTRIES))

@@ -21,10 +21,8 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
-import org.ehcache.events.CacheEventNotificationService;
-import org.ehcache.events.CacheEventNotificationServiceImpl;
-import org.ehcache.internal.SystemTimeSource;
-import org.ehcache.internal.TimeSource;
+import org.ehcache.events.CacheEventDispatcher;
+import org.ehcache.events.CacheEventDispatcherImpl;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.CoreMatchers;
 import org.mockito.Mock;
@@ -50,7 +48,7 @@ public class EhcacheEventsTestBase extends EhcacheBasicCrudBase {
   @Mock
   protected CacheEventListener<String, String> cacheEventListener;
 
-  protected CacheEventNotificationService<String, String> cacheEventNotificationService;
+  protected CacheEventDispatcher<String, String> cacheEventNotificationService;
 
   protected <K, V> void registerCacheEventListener(Cache<K, V> ehcache, CacheEventListener<? super K, ? super V> cacheEventListener) {
     ehcache.getRuntimeConfiguration().registerCacheEventListener(cacheEventListener, EventOrdering.ORDERED, EventFiring.SYNCHRONOUS, EnumSet.allOf(EventType.class));
@@ -72,8 +70,7 @@ public class EhcacheEventsTestBase extends EhcacheBasicCrudBase {
     CacheConfiguration<String, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder().withExpiry(expiry).buildConfig(String.class, String.class);
     ExecutorService orderedExecutor = Executors.newSingleThreadExecutor();
     ExecutorService unorderedExecutor = Executors.newCachedThreadPool();
-    TimeSource timeSource = SystemTimeSource.INSTANCE;
-    cacheEventNotificationService = new CacheEventNotificationServiceImpl<String, String>(orderedExecutor, unorderedExecutor, store, timeSource);
+    cacheEventNotificationService = new CacheEventDispatcherImpl<String, String>(orderedExecutor, unorderedExecutor, store);
     final Ehcache<String, String> ehcache = new Ehcache<String, String>(config, this.store,
         cacheLoaderWriter, cacheEventNotificationService,
         LoggerFactory.getLogger(Ehcache.class + "-" + name));

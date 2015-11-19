@@ -27,8 +27,8 @@ import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
-import org.ehcache.events.CacheEventNotificationListenerServiceProvider;
-import org.ehcache.events.CacheEventNotificationService;
+import org.ehcache.events.CacheEventDispatcherFactory;
+import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.events.CacheManagerListener;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.spi.LifeCycled;
@@ -38,7 +38,7 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
-import org.ehcache.spi.loaderwriter.WriteBehindDecoratorLoaderWriterProvider;
+import org.ehcache.spi.loaderwriter.WriteBehindProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
@@ -76,8 +76,8 @@ public class EhcacheManager implements PersistentCacheManager {
 
   @ServiceDependencies({ Store.Provider.class,
       CacheLoaderWriterProvider.class,
-      WriteBehindDecoratorLoaderWriterProvider.class,
-      CacheEventNotificationListenerServiceProvider.class,
+      WriteBehindProvider.class,
+      CacheEventDispatcherFactory.class,
       CacheEventListenerProvider.class })
   private static class ServiceDeps {
     private ServiceDeps() {
@@ -345,20 +345,19 @@ public class EhcacheManager implements PersistentCacheManager {
     if(cacheLoaderWriterProvider != null) {
       loaderWriter = cacheLoaderWriterProvider.createCacheLoaderWriter(alias, config);
       WriteBehindConfiguration writeBehindConfiguration = ServiceLocator.findSingletonAmongst(WriteBehindConfiguration.class, config.getServiceConfigurations().toArray());
-      if(writeBehindConfiguration != null) {
-        final WriteBehindDecoratorLoaderWriterProvider factory = serviceLocator.getService(WriteBehindDecoratorLoaderWriterProvider.class);
-        decorator = factory.createWriteBehindDecoratorLoaderWriter((CacheLoaderWriter<K, V>)loaderWriter, writeBehindConfiguration);
+      if(writeBehindConfiguration == null) {
+        decorator = loaderWriter;
+      } else {
+        final WriteBehindProvider factory = serviceLocator.getService(WriteBehindProvider.class);
+        decorator = factory.createWriteBehindLoaderWriter(loaderWriter, writeBehindConfiguration);
         if(decorator != null) {
           lifeCycledList.add(new LifeCycledAdapter() {
             @Override
             public void close() {
-              factory.releaseWriteBehindDecoratorCacheLoaderWriter(decorator);
+              factory.releaseWriteBehindLoaderWriter(decorator);
             }
           });
         }
-      }
-      else {
-        decorator = loaderWriter;
       }
       
       if (loaderWriter != null) {
@@ -374,12 +373,12 @@ public class EhcacheManager implements PersistentCacheManager {
       decorator = null;
     }
 
-    final CacheEventNotificationListenerServiceProvider cenlProvider = serviceLocator.getService(CacheEventNotificationListenerServiceProvider.class);
-    final CacheEventNotificationService<K, V> evtService = cenlProvider.createCacheEventNotificationService(store, serviceConfigs);
+    final CacheEventDispatcherFactory cenlProvider = serviceLocator.getService(CacheEventDispatcherFactory.class);
+    final CacheEventDispatcher<K, V> evtService = cenlProvider.createCacheEventDispatcher(store, serviceConfigs);
     lifeCycledList.add(new LifeCycledAdapter() {
       @Override
       public void close() {
-        cenlProvider.releaseCacheEventNotificationService(evtService);
+        cenlProvider.releaseCacheEventDispatcher(evtService);
       }
       
     });

@@ -28,7 +28,7 @@ import java.util.EnumSet;
 /**
  * @author Ludovic Orban
  */
-public class DisabledCacheEventNotificationService<K, V> implements CacheEventNotificationService<K, V> {
+public class DisabledCacheEventNotificationService<K, V> implements CacheEventDispatcher<K, V> {
 
   @Override
   public void onEvent(CacheEvent<K, V> kvCacheEvent) {

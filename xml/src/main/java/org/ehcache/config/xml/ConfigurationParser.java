@@ -26,10 +26,12 @@ import org.ehcache.config.xml.model.CacheTemplateType;
 import org.ehcache.config.xml.model.CacheType;
 import org.ehcache.config.xml.model.ConfigType;
 import org.ehcache.config.xml.model.CopierType;
+import org.ehcache.config.xml.model.DiskStoreSettingsType;
 import org.ehcache.config.xml.model.EventFiringType;
 import org.ehcache.config.xml.model.EventOrderingType;
 import org.ehcache.config.xml.model.EventType;
 import org.ehcache.config.xml.model.ExpiryType;
+import org.ehcache.config.xml.model.ListenersType;
 import org.ehcache.config.xml.model.PersistableResourceType;
 import org.ehcache.config.xml.model.PersistenceType;
 import org.ehcache.config.xml.model.ResourceType;
@@ -68,6 +70,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import org.ehcache.config.xml.model.ThreadPoolReferenceType;
+import org.ehcache.config.xml.model.ThreadPoolsType;
 
 /**
  * @author Alex Snaps
@@ -134,6 +138,22 @@ class ConfigurationParser {
 
   public PersistenceType getPersistence() {
     return config.getPersistence();
+  }
+
+  public ThreadPoolReferenceType getEventDispatch() {
+    return config.getEventDispatch();
+  }
+
+  public ThreadPoolReferenceType getWriteBehind() {
+    return config.getWriteBehind();
+  }
+
+  public ThreadPoolReferenceType getDiskStore() {
+    return config.getDiskStore();
+  }
+
+  public ThreadPoolsType getThreadPools() {
+    return config.getThreadPools();
   }
 
   public Iterable<CacheDefinition> getCacheElements() {
@@ -283,10 +303,10 @@ class ConfigurationParser {
           public Iterable<Listener> listeners() {
             Set<Listener> cacheListenerSet = new HashSet<Listener>();
             for (BaseCacheType source : sources) {
-              final CacheIntegrationType integration = source.getIntegration();
-              final List<CacheIntegrationType.Listener> listeners = integration != null ? integration.getListener() : null;
+              final ListenersType integration = source.getListeners();
+              final List<ListenersType.Listener> listeners = integration != null ? integration.getListener() : null;
               if (listeners != null) {
-                for (final CacheIntegrationType.Listener listener : listeners) {
+                for (final ListenersType.Listener listener : listeners) {
                   cacheListenerSet.add(new Listener() {
                     @Override
                     public String className() {
@@ -370,6 +390,20 @@ class ConfigurationParser {
               }
             }
             return null;
+          }
+
+          @Override
+          public DiskStoreSettings diskStoreSettings() {
+            DiskStoreSettingsType value = null;
+            for (BaseCacheType source : sources) {
+              value = source.getDiskStoreSettings();
+              if (value != null) break;
+            }
+            if (value != null) {
+              return new XmlDiskStoreSettings(value);
+            } else {
+              return null;
+            }
           }
         });
       }
@@ -478,10 +512,10 @@ class ConfigurationParser {
           @Override
           public Iterable<Listener> listeners() {
             Set<Listener> listenerSet = new HashSet<Listener>();
-            final CacheIntegrationType integration = cacheTemplate.getIntegration();
-            final List<CacheIntegrationType.Listener> listeners = integration != null ? integration.getListener(): null;
+            final ListenersType integration = cacheTemplate.getListeners();
+            final List<ListenersType.Listener> listeners = integration != null ? integration.getListener(): null;
             if(listeners != null) {
-              for(final CacheIntegrationType.Listener listener : listeners) {
+              for(final ListenersType.Listener listener : listeners) {
                 listenerSet.add(new Listener() {
                   @Override
                   public String className() {
@@ -558,6 +592,12 @@ class ConfigurationParser {
             final CacheIntegrationType integration = cacheTemplate.getIntegration();
             final CacheIntegrationType.WriteBehind writebehind = integration != null ? integration.getWriteBehind(): null;
             return writebehind != null ? new XmlWriteBehind(writebehind) : null;
+          }
+
+          @Override
+          public DiskStoreSettings diskStoreSettings() {
+            final DiskStoreSettingsType diskStoreSettings = cacheTemplate.getDiskStoreSettings();
+            return diskStoreSettings == null ? null : new XmlDiskStoreSettings(diskStoreSettings);
           }
         });
       }
@@ -638,7 +678,8 @@ class ConfigurationParser {
     Iterable<ResourcePool> resourcePools();
     
     WriteBehind writeBehind();
-
+    
+    DiskStoreSettings diskStoreSettings();
   }
 
   interface CacheDefinition extends CacheTemplate {
@@ -677,18 +718,31 @@ class ConfigurationParser {
   
   interface WriteBehind {
     
-    boolean isCoalesced();
-    
-    int batchSize();
-    
     int maxQueueSize();
     
     int concurrency();
 
-    int minWriteDelay();
+    String threadPool();
+
+    Batching batching();
+  }
+
+  interface Batching {
+
+    boolean isCoalesced();
+
+    int batchSize();
+
+    long maxDelay();
+
+    TimeUnit maxDelayUnit();
+  }
+
+  interface DiskStoreSettings {
     
-    int maxWriteDelay();
+    int writerConcurrency();
     
+    String threadPool();
   }
 
   private static class XmlExpiry implements Expiry {
@@ -739,22 +793,7 @@ class ConfigurationParser {
         time = type.getTtl();
       }
       if(time != null) {
-        switch (time.getUnit()) {
-          case NANOS:
-            return TimeUnit.NANOSECONDS;
-          case MICROS:
-          return TimeUnit.MICROSECONDS;
-          case MILLIS:
-            return TimeUnit.MILLISECONDS;
-          case SECONDS:
-            return TimeUnit.SECONDS;
-          case MINUTES:
-            return TimeUnit.MINUTES;
-          case HOURS:
-            return TimeUnit.HOURS;
-          case DAYS:
-            return TimeUnit.DAYS;
-        }
+        return convertToJavaTimeUnit(time.getUnit());
       }
       return null;
     }
@@ -769,16 +808,6 @@ class ConfigurationParser {
     }
     
     @Override
-    public boolean isCoalesced() {
-      return this.writebehind.isCoalesce();
-    }
-
-    @Override
-    public int batchSize() {
-      return this.writebehind.getBatchSize().intValue();
-    }
-
-    @Override
     public int maxQueueSize() {
       return this.writebehind.getSize().intValue();
     }
@@ -789,14 +818,90 @@ class ConfigurationParser {
     }
 
     @Override
-    public int minWriteDelay() {
-      return this.writebehind.getMinWriteDelay().intValue();
+    public String threadPool() {
+      return this.writebehind.getThreadPool();
     }
 
     @Override
-    public int maxWriteDelay() {
-      return this.writebehind.getMaxWriteDelay().intValue();
+    public Batching batching() {
+      CacheIntegrationType.WriteBehind.Batching batching = writebehind.getBatching();
+      if (batching == null) {
+        return null;
+      } else {
+        return new XmlBatching(batching);
+      }
     }
 
+  }
+
+  private static class XmlBatching implements Batching {
+
+    private final CacheIntegrationType.WriteBehind.Batching batching;
+
+    private XmlBatching(CacheIntegrationType.WriteBehind.Batching batching) {
+      this.batching = batching;
+    }
+
+    @Override
+    public boolean isCoalesced() {
+      return this.batching.isCoalesce();
+    }
+
+    @Override
+    public int batchSize() {
+      return this.batching.getBatchSize().intValue();
+    }
+
+    @Override
+    public long maxDelay() {
+      return this.batching.getMaxWriteDelay().getValue().longValue();
+    }
+
+    @Override
+    public TimeUnit maxDelayUnit() {
+      return convertToJavaTimeUnit(this.batching.getMaxWriteDelay().getUnit());
+    }
+
+  }
+
+  private static class XmlDiskStoreSettings implements DiskStoreSettings {
+
+    private final DiskStoreSettingsType diskStoreSettings;
+
+    private XmlDiskStoreSettings(DiskStoreSettingsType diskStoreSettings) {
+      this.diskStoreSettings = diskStoreSettings;
+    }
+
+    @Override
+    public int writerConcurrency() {
+      return this.diskStoreSettings.getWriterThreads().intValue();
+    }
+
+    @Override
+    public String threadPool() {
+      return this.diskStoreSettings.getThreadPool();
+    }
+
+  }
+
+  private static TimeUnit convertToJavaTimeUnit(org.ehcache.config.xml.model.TimeUnit unit) {
+    switch (unit) {
+      case NANOS:
+        return TimeUnit.NANOSECONDS;
+      case MICROS:
+      return TimeUnit.MICROSECONDS;
+      case MILLIS:
+        return TimeUnit.MILLISECONDS;
+      case SECONDS:
+        return TimeUnit.SECONDS;
+      case MINUTES:
+        return TimeUnit.MINUTES;
+      case HOURS:
+        return TimeUnit.HOURS;
+      case DAYS:
+        return TimeUnit.DAYS;
+      default:
+        throw new IllegalArgumentException("Unknown time unit: " + unit);
+    }
   }
 }

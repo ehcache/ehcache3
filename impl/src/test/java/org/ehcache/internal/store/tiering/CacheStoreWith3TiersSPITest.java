@@ -63,6 +63,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import org.ehcache.internal.executor.OnDemandExecutionService;
 import org.ehcache.spi.service.LocalPersistenceService;
 import static org.mockito.Mockito.mock;
 
@@ -136,7 +137,10 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
           ResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
           long diskSize = ((MemoryUnit) diskPool.getUnit()).toBytes(diskPool.getSize());
 
-          OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(persistenceContext, config, timeSource, diskSize);
+          OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(
+                  persistenceContext,
+                  new OnDemandExecutionService(), null, 1,
+                  config, timeSource, diskSize);
 
           CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(onHeapStore, offHeapStore);
 

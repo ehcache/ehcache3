@@ -33,7 +33,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.UserManagedCacheConfiguration;
-import org.ehcache.events.CacheEventNotificationService;
+import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -84,7 +84,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
   private EvictionVeto<? super K, ? super V> evictionVeto;
   private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private CacheLoaderWriter<? super K, V> cacheLoaderWriter;
-  private CacheEventNotificationService<K, V> cacheEventNotificationService;
+  private CacheEventDispatcher<K, V> cacheEventNotificationService;
   private ResourcePools resourcePools = newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
 
   public UserManagedCacheBuilder(final Class<K> keyType, final Class<V> valueType) {
@@ -267,7 +267,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     return this;
   }
 
-  public final UserManagedCacheBuilder<K, V, T> withCacheEvents(CacheEventNotificationService<K, V> cacheEventNotificationService) {
+  public final UserManagedCacheBuilder<K, V, T> withCacheEvents(CacheEventDispatcher<K, V> cacheEventNotificationService) {
     this.cacheEventNotificationService = cacheEventNotificationService;
     return this;
   }
