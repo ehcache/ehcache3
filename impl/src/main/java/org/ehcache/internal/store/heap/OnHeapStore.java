@@ -1392,7 +1392,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         @Override
         public boolean test(final Map.Entry<K, OnHeapValueHolder<V>> argument) {
           try {
-            return predicate.test(wrap(argument, timeSource));
+            return (argument.getValue() instanceof Fault) || predicate.test(wrap(argument, timeSource));
           } catch (Exception e) {
             LOG.error("Exception raised while running eviction veto " +
                       "- Eviction will assume entry is NOT vetoed", e);
@@ -1407,7 +1407,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     return new Comparator<Map.Entry<K, OnHeapValueHolder<V>>>() {
       @Override
       public int compare(Map.Entry<K, OnHeapValueHolder<V>> t, Map.Entry<K, OnHeapValueHolder<V>> u) {
-        return comparator.compare(wrap(t, timeSource), wrap(u, timeSource));
+        if (t.getValue() instanceof Fault) {
+          return -1;
+        } else if (u.getValue() instanceof Fault) {
+          return 1;
+        } else {
+          return comparator.compare(wrap(t, timeSource), wrap(u, timeSource));
+        }
       }
     };
   }
