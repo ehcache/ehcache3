@@ -80,9 +80,11 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.ehcache.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.config.executor.PooledExecutionServiceConfiguration.PoolConfiguration;
+import org.ehcache.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfiguration;
 import org.ehcache.util.ClassLoading;
 
+import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -605,6 +607,19 @@ public class XmlConfigurationTest {
     assertThat(nList.item(1).getFirstChild().getNodeValue(), containsString("\n"));
     
 
+  }
+
+  @Test
+  public void testDiskStoreSettings() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/resources-caches.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+
+    CacheConfiguration<?, ?> cacheConfig = xmlConfig.getCacheConfigurations().get("tiered");
+
+    OffHeapDiskStoreConfiguration diskConfig = findSingletonAmongst(OffHeapDiskStoreConfiguration.class, cacheConfig.getServiceConfigurations().toArray());
+
+    assertThat(diskConfig.getThreadPoolAlias(), is("some-pool"));
+    assertThat(diskConfig.getWriterConcurrency(), is(2));
   }
 
   @Test
