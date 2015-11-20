@@ -16,7 +16,6 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.After;
@@ -58,7 +57,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void removeEntryForKeyIfMappedToValue()
       throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1L);
     V value = factory.createValue(1L);
@@ -83,7 +82,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void doNothingForKeyNotMappedToValue()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1);
     V value = factory.createValue(1);
@@ -101,7 +100,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void doNothingForWrongValue()
       throws IllegalAccessException, InstantiationException, CacheAccessException {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1);
     V value = factory.createValue(1L);
@@ -122,7 +121,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void returnTrueIfValueWasRemoved()
       throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1);
     V value = factory.createValue(1);
@@ -141,7 +140,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void returnFalseIfValueWasNotRemoved()
       throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1);
     V value = factory.createValue(1);

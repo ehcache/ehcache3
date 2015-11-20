@@ -15,6 +15,7 @@
  */
 package org.ehcache.internal.store.heap;
 
+import org.ehcache.Cache;
 import org.ehcache.Cache.Entry;
 import org.ehcache.CacheConfigurationChangeEvent;
 import org.ehcache.CacheConfigurationChangeListener;
@@ -95,7 +96,12 @@ public abstract class BaseOnHeapStoreTest {
 
   @Test
   public void testEvictWithFullVetoDoesEvict() throws Exception {
-    OnHeapStore<String, String> store = newStore(Eviction.all());
+    OnHeapStore<String, String> store = newStore(new EvictionVeto<String, String>() {
+      @Override
+      public boolean test(Entry<String, String> argument) {
+        return true;
+      }
+    });
     StoreEventListener<String, String> listener = addListener(store);
     for (int i = 0; i < 100; i++) {
       store.put(Integer.toString(i), Integer.toString(i));

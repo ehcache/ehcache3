@@ -15,7 +15,6 @@
  */
 package org.ehcache.internal.store;
 
-import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
@@ -54,7 +53,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongReturnValueType() throws Exception {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
 
     if (factory.getValueType() == Object.class) {
       System.err.println("Warning, store uses Object as value type, cannot verify in this configuration");
@@ -88,7 +87,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongKeyType() throws Exception {
-    kvStore2 = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore2 = factory.newStore();
 
     if (factory.getKeyType() == Object.class) {
       System.err.println("Warning, store uses Object as key type, cannot verify in this configuration");
@@ -119,7 +118,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testComputePutsValueInStoreWhenKeyIsAbsent() throws Exception {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
 
     final K key = factory.createKey(1);
     final V value = factory.createValue(1);
@@ -140,7 +139,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testFunctionNotInvokedWhenPresent() throws Exception {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
 
     final K key = factory.createKey(1);
     final V value = factory.createValue(1);
@@ -163,7 +162,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testFunctionReturnsNull() throws Exception {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
 
     final K key = factory.createKey(1L);;
 
@@ -187,7 +186,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void testException() throws Exception {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
 
     final K key = factory.createKey(1L);;
 

@@ -16,7 +16,6 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.After;
@@ -61,7 +60,7 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void replaceCorrectKeyAndValue()
       throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1);
     V originalValue = factory.createValue(1);
@@ -82,7 +81,7 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void replaceCorrectKeyAndWrongValue()
       throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1L);
     V originalValue = factory.createValue(1L);
@@ -104,7 +103,7 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void successfulReplaceReturnsTrue()
       throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1);
     V originalValue = factory.createValue(1);
@@ -123,7 +122,7 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void unsuccessfulReplaceReturnsFalse()
       throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1);
     V originalValue = factory.createValue(1L);

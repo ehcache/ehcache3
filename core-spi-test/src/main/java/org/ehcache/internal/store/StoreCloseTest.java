@@ -16,7 +16,6 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.Before;
@@ -43,7 +42,7 @@ public class StoreCloseTest<K, V> extends SPIStoreTester<K, V> {
 
   @Before
   public void setUp() {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
   }
 
   @SPITest

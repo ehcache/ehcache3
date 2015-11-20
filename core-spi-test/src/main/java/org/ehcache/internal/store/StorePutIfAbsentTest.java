@@ -16,7 +16,6 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.config.Eviction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.After;
@@ -61,7 +60,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void mapsKeyToValueWhenMappingDoesntExist()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1);
     V value = factory.createValue(1);
@@ -76,7 +75,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void doesntMapKeyToValueWhenMappingExists()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1);
     V value = factory.createValue(1);
