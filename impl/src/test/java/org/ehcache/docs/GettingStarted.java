@@ -395,6 +395,32 @@ public class GettingStarted {
     // end::defaultCopiers[]
   }
 
+  @Test
+  public void cacheServiceConfigurationWithActualServiceInstance() throws Exception {
+    // tag::cacheServiceConfigurations[]
+    CacheConfiguration<Description, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .add(new DefaultCopierConfiguration<Description>(DescriptionCopier.class, // <1>
+            CopierConfiguration.Type.KEY))
+        .add(new DefaultCopierConfiguration<Person>(new PersonCopier(), // <2>
+            CopierConfiguration.Type.VALUE))
+        .buildConfig(Description.class, Person.class);
+    // end::cacheServiceConfigurations[]
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("cache", cacheConfiguration)
+        .build(true);
+
+    Cache<Description, Person> cache = cacheManager.getCache("cache", Description.class, Person.class);
+
+    Description desc = new Description(1234, "foo");
+    Person person = new Person("Bar", 24);
+    cache.put(desc, person);
+    assertThat(cache.get(desc), equalTo(person));
+
+    cacheManager.close();
+  }
+
   private static class Description {
     int id;
     String alias;

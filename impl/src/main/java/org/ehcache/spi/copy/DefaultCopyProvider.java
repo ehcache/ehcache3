@@ -58,9 +58,7 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
     DefaultCopierConfiguration<T> conf = find(type, configs);
     Copier<T> copier;
     final ClassInstanceConfiguration<Copier<?>> preConfigured = preconfigured.get(clazz);
-    if (conf != null && conf.getInstance() != null) {
-      copier = conf.getInstance();
-    } else if (conf != null && conf.getClazz().isAssignableFrom(SerializingCopier.class)) {
+    if (conf != null && conf.getClazz().isAssignableFrom(SerializingCopier.class)) {
       if (serializer == null) {
         throw new IllegalStateException("No Serializer configured for type '" + clazz.getName()
                                         + "' which doesn't implement java.io.Serializable");

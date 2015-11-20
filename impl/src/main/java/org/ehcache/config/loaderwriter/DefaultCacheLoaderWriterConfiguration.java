@@ -30,6 +30,10 @@ public class DefaultCacheLoaderWriterConfiguration extends ClassInstanceConfigur
     super(clazz, arguments);
   }
 
+  public DefaultCacheLoaderWriterConfiguration(CacheLoaderWriter<?, ?> loaderWriter) {
+    super(loaderWriter);
+  }
+
   @Override
   public Class<CacheLoaderWriterProvider> getServiceType() {
     return CacheLoaderWriterProvider.class;
