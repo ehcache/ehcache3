@@ -47,7 +47,6 @@ import org.ehcache.internal.store.heap.holders.OnHeapKey;
 import org.ehcache.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.internal.store.heap.holders.SerializedOnHeapValueHolder;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.AbstractValueHolder;
 import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
@@ -609,9 +608,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
                   @Override
                   public OnHeapValueHolder<V> apply(K mappedKey, final OnHeapValueHolder<V> mappedValue) {
                     if(mappedValue.equals(fault)) {
-                      final AbstractValueHolder<V> valueHolder = (AbstractValueHolder<V>)value;
-                      valueHolder.setExpirationTime(now, TimeUnit.MILLISECONDS);
-                      onExpiration(key, valueHolder);
+                      onExpiration(key, cloneValueHolder(key, value, now, Duration.ZERO));
                       return null;
                     }
                     return mappedValue;
@@ -1225,6 +1222,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private OnHeapValueHolder<V> importValueFromLowerTier(K key, ValueHolder<V> valueHolder, long now) {
     V realValue = valueHolder.value();
     Duration expiration = expiry.getExpiryForAccess(key, realValue);
+    return cloneValueHolder(key, valueHolder, now, expiration);
+  }
+
+  private OnHeapValueHolder<V> cloneValueHolder(K key, ValueHolder<V> valueHolder, long now, Duration expiration) {
+    V realValue = valueHolder.value();
     if(valueCopier instanceof SerializingCopier) {
       return new SerializedOnHeapValueHolder<V>(valueHolder, realValue, ((SerializingCopier)valueCopier).getSerializer(), now, expiration);
     } else {
