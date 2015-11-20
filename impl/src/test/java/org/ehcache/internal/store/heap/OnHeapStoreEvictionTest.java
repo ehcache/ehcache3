@@ -15,10 +15,12 @@
  */
 package org.ehcache.internal.store.heap;
 
+import org.ehcache.Cache;
 import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -28,20 +30,25 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 
 import java.io.Serializable;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import org.ehcache.spi.serialization.Serializer;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 public class OnHeapStoreEvictionTest {
 
   protected <K, V> OnHeapStoreForTests<K, V> newStore() {
-    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration());
+    return newStore(SystemTimeSource.INSTANCE, null, null);
   }
 
   /** eviction tests : asserting the evict method is called **/
@@ -76,8 +83,100 @@ public class OnHeapStoreEvictionTest {
     assertThat(store.enforceCapacityWasCalled(), is(true));
   }
 
+  @Test
+  public void testFaultsDoNotGetToEvictionVeto() throws CacheAccessException {
+    final Semaphore semaphore = new Semaphore(0);
+
+    EvictionVeto<String, String> veto = new EvictionVeto<String, String>() {
+      @Override
+      public boolean test(Cache.Entry<String, String> argument) {
+        try {
+          argument.getValue();
+        } catch (Exception e) {
+          throw new AssertionError(e);
+        }
+        return false;
+      }
+    };
+    final OnHeapStoreForTests<String, String> store = newStore(SystemTimeSource.INSTANCE, veto, null);
+
+    ExecutorService executor = Executors.newCachedThreadPool();
+    try {
+      executor.submit(new Callable<Store.ValueHolder<String>>() {
+        @Override
+        public Store.ValueHolder<String> call() throws Exception {
+          return store.getOrComputeIfAbsent("prime", new Function<String, ValueHolder<String>>() {
+            @Override
+            public ValueHolder<String> apply(final String key) {
+              semaphore.acquireUninterruptibly();
+              return new OnHeapValueHolder<String>(0, 0) {
+                @Override
+                public String value() {
+                  return key;
+                }
+              };
+            }
+          });
+        }
+      });
+
+      while (!semaphore.hasQueuedThreads());
+      store.put("boom", "boom");
+    } finally {
+      semaphore.release(1);
+      executor.shutdown();
+    }
+  }
+
+  @Test
+  public void testFaultsDoNotGetToEvictionPrioritizer() throws CacheAccessException {
+    final Semaphore semaphore = new Semaphore(0);
+
+    EvictionPrioritizer<String, String> prioritizer = new EvictionPrioritizer<String, String>() {
+      @Override
+      public int compare(Cache.Entry<String, String> a, Cache.Entry<String, String> b) {
+        try {
+          a.getValue();
+          b.getValue();
+        } catch (Exception e) {
+          throw new AssertionError(e);
+        }
+        return 0;
+      }
+    };
+    final OnHeapStoreForTests<String, String> store = newStore(SystemTimeSource.INSTANCE, null, prioritizer);
+
+    ExecutorService executor = Executors.newCachedThreadPool();
+    try {
+      executor.submit(new Callable<Store.ValueHolder<String>>() {
+        @Override
+        public Store.ValueHolder<String> call() throws Exception {
+          return store.getOrComputeIfAbsent("prime", new Function<String, ValueHolder<String>>() {
+            @Override
+            public ValueHolder<String> apply(final String key) {
+              semaphore.acquireUninterruptibly();
+              return new OnHeapValueHolder<String>(0, 0) {
+                @Override
+                public String value() {
+                  return key;
+                }
+              };
+            }
+          });
+        }
+      });
+
+      while (!semaphore.hasQueuedThreads());
+      store.put("boom", "boom");
+    } finally {
+      semaphore.release(1);
+      executor.shutdown();
+    }
+  }
+
   protected <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource,
-      final Expiry<? super K, ? super V> expiry) {
+      final EvictionVeto<? super K, ? super V> veto,
+      final EvictionPrioritizer<? super K, ? super V> prioritizer) {
     return new OnHeapStoreForTests<K, V>(new Store.Configuration<K, V>() {
       @SuppressWarnings("unchecked")
       @Override
@@ -93,12 +192,12 @@ public class OnHeapStoreEvictionTest {
 
       @Override
       public EvictionVeto<? super K, ? super V> getEvictionVeto() {
-        return null;
+        return veto;
       }
 
       @Override
       public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
-        return null;
+        return prioritizer;
       }
 
       @Override
@@ -108,7 +207,7 @@ public class OnHeapStoreEvictionTest {
 
       @Override
       public Expiry<? super K, ? super V> getExpiry() {
-        return expiry;
+        return Expirations.noExpiration();
       }
 
       @Override
