@@ -47,6 +47,7 @@ import org.ehcache.internal.store.heap.holders.OnHeapKey;
 import org.ehcache.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.internal.store.heap.holders.SerializedOnHeapValueHolder;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.cache.AbstractValueHolder;
 import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
@@ -586,7 +587,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       OnHeapValueHolder<V> cachedValue = backEnd.get(key);
       final long now = timeSource.getTimeMillis();
       if (cachedValue == null) {
-        Fault<V> fault = new Fault<V>(new NullaryFunction<ValueHolder<V>>() {
+        final Fault<V> fault = new Fault<V>(new NullaryFunction<ValueHolder<V>>() {
           @Override
           public ValueHolder<V> apply() {
             return source.apply(key);
@@ -597,14 +598,29 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           // todo: not hinting enforceCapacity() about the mapping we just added makes it likely that it will be the eviction target
           enforceCapacity(1);
           try {
-            ValueHolder<V> value = fault.get();
+            final ValueHolder<V> value = fault.get();
             final OnHeapValueHolder<V> newValue;
             if(value != null) {
               try {
                 newValue = importValueFromLowerTier(key, value, now);
               } catch (RuntimeException re) {
                 LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-                backEnd.remove(key, fault);
+                map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+                  @Override
+                  public OnHeapValueHolder<V> apply(K mappedKey, final OnHeapValueHolder<V> mappedValue) {
+                    if(mappedValue.equals(fault)) {
+                      if(value.isExpired(now, TimeUnit.MILLISECONDS)) {
+                        onExpiration(key, value);
+                      } else if (value instanceof AbstractValueHolder) {
+                        final AbstractValueHolder<V> valueHolder = (AbstractValueHolder<V>)value;
+                        valueHolder.setExpirationTime(now, TimeUnit.MILLISECONDS);
+                        onExpiration(key, valueHolder);
+                      }
+                      return null;
+                    }
+                    return mappedValue;
+                  }
+                });
                 getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
                 return null;
               }
@@ -641,9 +657,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
       if (!(cachedValue instanceof Fault)) {
         if (cachedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
-          if (backEnd.remove(key, cachedValue)) {
-            onExpiration(key, cachedValue);
-          }
+          expireMapping(key, cachedValue);
           getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.MISS);
           return null;
         }
