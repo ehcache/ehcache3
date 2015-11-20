@@ -29,22 +29,6 @@ import java.util.concurrent.TimeUnit;
 public final class Eviction {
 
   /**
-   * Returns an {@link EvictionVeto} where all mappings are vetoed from eviction.
-   *
-   * @param <K> the key type on which this veto applies
-   * @param <V> the value type on whivh this veto applies
-   * @return a veto for all mappings
-   */
-  public static <K, V> EvictionVeto<K, V> all() {
-    return new EvictionVeto<K, V>() {
-      @Override
-      public boolean test(final Cache.Entry<K, V> argument) {
-        return Predicates.<Cache.Entry<K, V>>all().test(argument);
-      }
-    };
-  }
-
-  /**
    * Returns an {@link EvictionVeto} where no mappings are vetoed from eviction.
    *
    * @param <K> the key type on which this veto applies
