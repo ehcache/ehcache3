@@ -51,6 +51,8 @@ import org.ehcache.transactions.xa.journal.JournalProvider;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.transaction.RollbackException;
 import javax.transaction.Synchronization;
@@ -80,6 +82,7 @@ import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
  */
 public class XAStore<K, V> implements Store<K, V> {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(XAStore.class);
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final Store<K, SoftLock<V>> underlyingStore;
@@ -733,7 +736,14 @@ public class XAStore<K, V> implements Store<K, V> {
               return Duration.FOREVER;
             } else {
               // phase 2 commit, or during a TX's lifetime, create -> some time
-              return configuredExpiry.getExpiryForCreation(key, (V) softLock.getOldValue());
+              Duration duration;
+              try {
+                duration = configuredExpiry.getExpiryForCreation(key, (V) softLock.getOldValue());
+              } catch (RuntimeException re) {
+                LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
+                return Duration.ZERO;
+              }
+              return duration;
             }
           }
 
@@ -744,7 +754,14 @@ public class XAStore<K, V> implements Store<K, V> {
               return Duration.FOREVER;
             } else {
               // phase 2 commit, or during a TX's lifetime, access -> some time
-              return configuredExpiry.getExpiryForAccess(key, (V) softLock.getOldValue());
+              Duration duration;
+              try {
+                duration = configuredExpiry.getExpiryForAccess(key, (V) softLock.getOldValue());
+              } catch (RuntimeException re) {
+                LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
+                return Duration.ZERO;
+              }
+              return duration;
             }
           }
 
@@ -757,11 +774,25 @@ public class XAStore<K, V> implements Store<K, V> {
               // phase 2 commit, or during a TX's lifetime
               if (oldSoftLock.getOldValue() == null) {
                 // there is no old value -> it's a CREATE, update -> create -> some time
-                return configuredExpiry.getExpiryForCreation(key, (V) oldSoftLock.getOldValue());
+                Duration duration;
+                try {
+                  duration = configuredExpiry.getExpiryForCreation(key, (V) oldSoftLock.getOldValue());
+                } catch (RuntimeException re) {
+                  LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
+                  return Duration.ZERO;
+                }
+                return duration;
               } else {
                 // there is an old value -> it's an UPDATE, update -> some time
                 V value = oldSoftLock.getNewValueHolder() == null ? null : (V) oldSoftLock.getNewValueHolder().value();
-                return configuredExpiry.getExpiryForUpdate(key, (V) oldSoftLock.getOldValue(), value);
+                Duration duration;
+                try {
+                  duration = configuredExpiry.getExpiryForUpdate(key, (V) oldSoftLock.getOldValue(), value);
+                } catch (RuntimeException re) {
+                  LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
+                  return Duration.ZERO;
+                }
+                return duration;
               }
             }
           }
