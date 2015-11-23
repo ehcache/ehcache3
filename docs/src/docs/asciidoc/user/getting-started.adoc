@@ -352,19 +352,6 @@ CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(xmlConfig); //
 <3> Using the static `org.ehcache.CacheManagerBuilder.newCacheManager(org.ehcache.config.Configuration)` lets you
     create your `CacheManager` instance using the `Configuration` from the `XmlConfiguration`
 
-== Current release
-
-We released the Milestone 4 on November 23rd, 2015.
-In addition to JSR-107 compatibility, 3 level tiering - including offheap and disk persistence options - write-behind, XA transactional caches
-and making custom serialization possible this milestone includes OSGi readiness and improved exception handling coming from user provided types.
-
-The https://github.com/ehcache/ehcache3/releases/tag/v3.0.0.m4[release notes] contain the links to the documentation to help you get started
-
-== Current development & next release
-
-We are now working on the next milestone, aka https://github.com/ehcache/ehcache3/milestones/Milestone%205[Milestone 5] :
-We expect the next milestone to wrap up unclustered features and have some performance oriented improvements.
-
-See the https://github.com/ehcache/ehcache3/milestones[Milestones on GitHub] for more details on the current status.
+== Current development
 
 For developer information, you might want to go check the https://github.com/ehcache/ehcache3/wiki[Ehcache 3.0 project wiki on GitHub].
