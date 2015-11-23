@@ -16,7 +16,7 @@ We released the Milestone 3 on September 18th, 2015. In addition to the JSR-107 
 it introduces up to 3 level tiering, offering offheap as well as a new disk persistence option; write-behind, XA transactional
 caches, makes custom serialization possible, ...
 
-The https://github.com/ehcache/ehcache3/releases/tag/v3.0.0.m3[release notes] contain the links to the documentation
+The https://github.com/ehcache/ehcache3/releases/tag/v3.0.0.m4[release notes] contain the links to the documentation
 to help you get started
 
 == Current development & next release
