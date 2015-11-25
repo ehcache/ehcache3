@@ -25,7 +25,7 @@ CacheManager cacheManager = provider.getCacheManager(); // <2>
     You can also force use of `org.ehcache.EhCachingProvider` by using the `Caching.getCachingProvider(String)` static method instead.
 <2> Retrieve the default `CacheManager` instance using the provider.
 
-NOTE: See [the section on using Ehcache 3 and JSR-107](http://www.ehcache.org/#using_jsr107_api) for details on required libraries.
+NOTE: See http://www.ehcache.org/#using_jsr107_api[the section on using Ehcache 3 and JSR-107] for details on required libraries.
 
 == JSR-107 and Ehcache configuration integration
 
