@@ -203,7 +203,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
             latest.remove(op.getKey(), op);
           }
         } finally {
-          LOGGER.info("Cancelling Batch " + this);
+          LOGGER.debug("Batch processing completed");
           expireTask.cancel(false);
         }
       }
