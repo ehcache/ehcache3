@@ -15,6 +15,7 @@
  */
 package org.ehcache.loaderwriter.writebehind;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.loaderwriter.writebehind.operations.BatchOperation;
 import org.ehcache.loaderwriter.writebehind.operations.DeleteOperation;
@@ -152,9 +153,11 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
     return executor.submit(batch);
   }
   
+  @SuppressFBWarnings("IS2_INCONSISTENT_SYNC")
   @Override
   public long getQueueSize() {
-    return executorQueue.size() * batchSize;
+    return executorQueue.size() * batchSize   // This multiplication with batchSize is still not accurate as the batches are not always full
+           + (openBatch == null ? 0 : openBatch.size());
   }
 
   abstract class Batch implements Runnable {

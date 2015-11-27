@@ -32,9 +32,11 @@ import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
+import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -588,6 +590,42 @@ public abstract class AbstractWriteBehindTestBase {
       } else {
         fail("Took too long to write, assuming batch is not going to be written");
       }
+    } finally {
+      cacheManager.close();
+    }
+  }
+
+  @Test
+  public void testWriteBehindQueueSize() throws Exception {
+    
+    class TestWriteBehindProvider extends WriteBehindProviderFactory.Provider {
+
+      private WriteBehind writeBehind = null;
+
+      @Override
+      public <K, V> WriteBehind<K, V> createWriteBehindLoaderWriter(final CacheLoaderWriter<K, V> cacheLoaderWriter, final WriteBehindConfiguration configuration) {
+        this.writeBehind = super.createWriteBehindLoaderWriter(cacheLoaderWriter, configuration);
+        return writeBehind;
+      }
+
+      public WriteBehind getWriteBehind() {
+        return writeBehind;
+      }
+    }
+
+    TestWriteBehindProvider writeBehindProvider = new TestWriteBehindProvider();
+    WriteBehindTestLoaderWriter<String, String> loaderWriter = new WriteBehindTestLoaderWriter<String, String>();
+
+    CacheManager cacheManager = managerBuilder().using(writeBehindProvider).build(true);
+    try {
+      Cache<String, String> testCache = cacheManager.createCache("testAgedBatchedIsWritten", configurationBuilder()
+          .add(new DefaultCacheLoaderWriterConfiguration(loaderWriter))
+          .add(newBatchedWriteBehindConfiguration(5, SECONDS, 2).build())
+          .buildConfig(String.class, String.class));
+
+      testCache.put("key1", "value");
+      assertThat(writeBehindProvider.getWriteBehind().getQueueSize(), is(1L));
+
     } finally {
       cacheManager.close();
     }
