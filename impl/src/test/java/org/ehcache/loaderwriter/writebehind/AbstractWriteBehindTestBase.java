@@ -623,8 +623,9 @@ public abstract class AbstractWriteBehindTestBase {
           .add(newBatchedWriteBehindConfiguration(5, SECONDS, 2).build())
           .buildConfig(String.class, String.class));
 
-      testCache.put("key1", "value");
+      testCache.put("key1", "value1");
       assertThat(writeBehindProvider.getWriteBehind().getQueueSize(), is(1L));
+      testCache.put("key2", "value2");
 
     } finally {
       cacheManager.close();
