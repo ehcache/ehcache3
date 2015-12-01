@@ -48,11 +48,11 @@ public class WriteBehindProviderFactory implements ServiceFactory<WriteBehindPro
     private final String threadPoolAlias;
     private volatile ExecutionService executionService;
 
-    private Provider() {
+    protected Provider() {
       this(null);
     }
 
-    private Provider(String threadPoolAlias) {
+    protected Provider(String threadPoolAlias) {
       this.threadPoolAlias = threadPoolAlias;
     }
 

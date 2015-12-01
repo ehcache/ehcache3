@@ -42,7 +42,7 @@ public interface WriteBehind<K, V> extends CacheLoaderWriter<K, V> {
   
   /**
    * Gets the best estimate for items in the queue still awaiting processing.
-   * Not including elements currently processed
+   * 
    * @return the amount of elements still awaiting processing.
    */
   long getQueueSize();

@@ -71,7 +71,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
   private final int batchSize;
   private final boolean coalescing;
 
-  private Batch openBatch;
+  private volatile Batch openBatch;
   
   public BatchingLocalHeapWriteBehindQueue(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     super(cacheLoaderWriter);
@@ -151,10 +151,18 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
   private Future<?> submit(Batch batch) {
     return executor.submit(batch);
   }
-  
+
+  /**
+   * Gets the best estimate for items in the queue still awaiting processing.
+   * Since the value returned is a rough estimate, it can sometimes be more than
+   * the number of items actually in the queue but not less.
+   * 
+   * @return the amount of elements still awaiting processing.
+   */
   @Override
   public long getQueueSize() {
-    return executorQueue.size() * batchSize;
+    Batch snapshot = openBatch;
+    return executorQueue.size() * batchSize + (snapshot == null ? 0 : snapshot.size());
   }
 
   abstract class Batch implements Runnable {
@@ -200,7 +208,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
             latest.remove(op.getKey(), op);
           }
         } finally {
-          LOGGER.info("Cancelling Batch " + this);
+          LOGGER.debug("Cancelling batch expiry task");
           expireTask.cancel(false);
         }
       }
