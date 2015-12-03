@@ -33,16 +33,6 @@ public class CacheConfigurationBuilderTest {
   public void testNothing() {
     final CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
    
-    builder.usingEvictionPrioritizer(Eviction.Prioritizer.LFU)
-        .buildConfig(Long.class, CharSequence.class);
-
-    final EvictionPrioritizer<Long, CharSequence> prioritizer = new EvictionPrioritizer<Long, CharSequence>() {
-      @Override
-      public int compare(final Cache.Entry<Long, CharSequence> o1, final Cache.Entry<Long, CharSequence> o2) {
-        return Integer.signum(o2.getValue().length() - o1.getValue().length());
-      }
-    };
-
     final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
 
     builder
@@ -52,25 +42,17 @@ public class CacheConfigurationBuilderTest {
             return argument.getValue().startsWith("A");
           }
         })
-        .usingEvictionPrioritizer(prioritizer)
         .withExpiry(expiry)
         .buildConfig(Long.class, String.class);
     builder
-        .buildConfig(Long.class, String.class, null, prioritizer);
+        .buildConfig(Long.class, String.class, null);
     builder
-        .buildConfig(Long.class, String.class, null, Eviction.Prioritizer.FIFO);
+        .buildConfig(Long.class, String.class, null);
   }
 
   @Test
   public void testOffheapGetsAddedToCacheConfiguration() {
     CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-
-    final EvictionPrioritizer<Long, CharSequence> prioritizer = new EvictionPrioritizer<Long, CharSequence>() {
-      @Override
-      public int compare(final Cache.Entry<Long, CharSequence> o1, final Cache.Entry<Long, CharSequence> o2) {
-        return Integer.signum(o2.getValue().length() - o1.getValue().length());
-      }
-    };
 
     final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
 
@@ -83,7 +65,6 @@ public class CacheConfigurationBuilderTest {
             return argument.getValue().startsWith("A");
           }
         })
-        .usingEvictionPrioritizer(prioritizer)
         .withExpiry(expiry)
         .buildConfig(Long.class, String.class);
     assertThat(config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getType(), Matchers.<ResourceType>is(ResourceType.Core.OFFHEAP));

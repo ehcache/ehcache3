@@ -37,7 +37,7 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
       ClassLoader classLoader = getClass().getClassLoader();
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
-      StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, null, classLoader, expiry, null, keySerializer, valueSerializer);
+      StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, classLoader, expiry, null, keySerializer, valueSerializer);
       OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(storeConfiguration, timeSource, MemoryUnit.MB.toBytes(1));
       OffHeapStore.Provider.init(offHeapStore);
       return offHeapStore;
@@ -54,7 +54,7 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
       ClassLoader classLoader = getClass().getClassLoader();
       Serializer<String> keySerializer = serializationProvider.createValueSerializer(String.class, classLoader);
       Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
-      StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class, evictionVeto, null, getClass().getClassLoader(), expiry, null, keySerializer, valueSerializer);
+      StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class, evictionVeto, getClass().getClassLoader(), expiry, null, keySerializer, valueSerializer);
       OffHeapStore<String, byte[]> offHeapStore = new OffHeapStore<String, byte[]>(storeConfiguration, timeSource, MemoryUnit.MB.toBytes(1));
       OffHeapStore.Provider.init(offHeapStore);
       return offHeapStore;

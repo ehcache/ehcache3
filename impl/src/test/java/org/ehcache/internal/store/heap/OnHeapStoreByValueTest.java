@@ -20,7 +20,6 @@ import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsBuilder;
@@ -80,7 +79,7 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
   public void testKeyCopierCalledOnGetOrComputeIfAbsent() throws Exception {
     LongCopier keyCopier = new LongCopier();
     OnHeapStore<Long, Long> store = newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.none(),
-        keyCopier, new SerializingCopier<Long>(new CompactJavaSerializer<Long>(ClassLoader.getSystemClassLoader())), 100, Eviction.Prioritizer.LRU);
+        keyCopier, new SerializingCopier<Long>(new CompactJavaSerializer<Long>(ClassLoader.getSystemClassLoader())), 100);
 
     ValueHolder<Long> computed = store.getOrComputeIfAbsent(1L, new Function<Long, ValueHolder<Long>>() {
       @Override
@@ -200,13 +199,6 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
   }
 
   @Override
-  protected <K, V> OnHeapStore<K, V> newStore(final int capacity, final EvictionPrioritizer<? super K, ? super V> prioritizer) {
-    Copier<K> keyCopier = new SerializingCopier<K>(new JavaSerializer<K>(getClass().getClassLoader()));
-    Copier<V> valueCopier = new SerializingCopier<V>(new JavaSerializer<V>(getClass().getClassLoader()));
-    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.<K, V>none(), keyCopier, valueCopier, capacity, prioritizer);
-  }
-
-  @Override
   protected <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry) {
     return newStore(timeSource, expiry, Eviction.none());
   }
@@ -216,12 +208,12 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
       Expiry<? super K, ? super V> expiry, EvictionVeto<? super K, ? super V> veto) {
     Copier<K> keyCopier = new SerializingCopier<K>(new JavaSerializer<K>(getClass().getClassLoader()));
     Copier<V> valueCopier = new SerializingCopier<V>(new JavaSerializer<V>(getClass().getClassLoader()));
-    return newStore(timeSource, expiry, veto, keyCopier, valueCopier, 100, Eviction.Prioritizer.LRU);
+    return newStore(timeSource, expiry, veto, keyCopier, valueCopier, 100);
   }
 
   private  <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
       final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto,
-      final Copier<K> keyCopier, final Copier<V> valueCopier, final int capacity, final EvictionPrioritizer<? super K, ? super V> prioritizer) {
+      final Copier<K> keyCopier, final Copier<V> valueCopier, final int capacity) {
     return new OnHeapStore<K, V>(new Store.Configuration<K, V>() {
       
       @SuppressWarnings("unchecked")
@@ -239,11 +231,6 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
       @Override
       public EvictionVeto<? super K, ? super V> getEvictionVeto() {
         return veto;
-      }
-
-      @Override
-      public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
-        return prioritizer;
       }
 
       @Override

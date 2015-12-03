@@ -80,7 +80,7 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
       
       private Store<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         ResourcePools resourcePools = buildResourcePools(capacity);
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, null, getClass().getClassLoader(), expiry, resourcePools, null, null);
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, getClass().getClassLoader(), expiry, resourcePools, null, null);
         return new OnHeapStore<String, String>(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER);
       }
 

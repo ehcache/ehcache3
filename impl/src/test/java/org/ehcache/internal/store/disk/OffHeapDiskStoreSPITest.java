@@ -105,7 +105,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
           ResourcePool diskPool = resourcePools.getPoolForResource(DISK);
           MemoryUnit unit = (MemoryUnit)diskPool.getUnit();
           
-          Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, null, getClass().getClassLoader(), expiry, resourcePools, keySerializer, valueSerializer);
+          Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, getClass().getClassLoader(), expiry, resourcePools, keySerializer, valueSerializer);
           OffHeapDiskStore<String, String> store = new OffHeapDiskStore<String, String>(
                   persistenceService.createPersistenceContextWithin(space, "store"),
                   new OnDemandExecutionService(), null, 1,

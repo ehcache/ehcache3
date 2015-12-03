@@ -17,7 +17,6 @@
 package org.ehcache.internal.store.tiering;
 
 import java.io.IOException;
-import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
@@ -118,7 +117,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
       private Store<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         Serializer<String> keySerializer = new JavaSerializer<String>(getClass().getClassLoader());
         Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, null, getClass().getClassLoader(), expiry, buildResourcePools(capacity), keySerializer, valueSerializer);
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, getClass().getClassLoader(), expiry, buildResourcePools(capacity), keySerializer, valueSerializer);
 
         final Copier defaultCopier = new IdentityCopier();
         OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier);

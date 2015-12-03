@@ -66,7 +66,7 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
       }
 
       private CachingTier<String, String> newCachingTier(Long capacity) {
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null, null,
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null,
                 ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), null, null);
         
         return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER);

@@ -72,7 +72,7 @@ public class CompoundCachingTierSPITest extends CachingTierSPITest<String, Strin
       }
 
       private CachingTier<String, String> newCachingTier(Long capacity) {
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null, null,
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null,
                 ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
         
         OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, SystemTimeSource.INSTANCE, 10 * 1024 * 1024);

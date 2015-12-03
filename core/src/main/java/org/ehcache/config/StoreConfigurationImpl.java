@@ -29,7 +29,6 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final EvictionVeto<? super K, ? super V> evictionVeto;
-  private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private final ClassLoader classLoader;
   private final Expiry<? super K, ? super V> expiry;
   private final ResourcePools resourcePools;
@@ -38,18 +37,17 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   
   public StoreConfigurationImpl(CacheConfiguration<K, V> cacheConfig, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
     this(cacheConfig.getKeyType(), cacheConfig.getValueType(),
-            cacheConfig.getEvictionVeto(), cacheConfig.getEvictionPrioritizer(), cacheConfig.getClassLoader(),
+            cacheConfig.getEvictionVeto(), cacheConfig.getClassLoader(),
         cacheConfig.getExpiry(), cacheConfig.getResourcePools(), keySerializer, valueSerializer);
   }
 
   public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType,
-          EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
+          EvictionVeto<? super K, ? super V> evictionVeto,
           ClassLoader classLoader, Expiry<? super K, ? super V> expiry, ResourcePools resourcePools,
           Serializer<K> keySerializer, Serializer<V> valueSerializer) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.evictionVeto = evictionVeto;
-    this.evictionPrioritizer = evictionPrioritizer;
     this.classLoader = classLoader;
     this.expiry = expiry;
     this.resourcePools = resourcePools;
@@ -70,11 +68,6 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   @Override
   public EvictionVeto<? super K, ? super V> getEvictionVeto() {
     return evictionVeto;
-  }
-
-  @Override
-  public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
-    return evictionPrioritizer;
   }
 
   @Override

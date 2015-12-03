@@ -18,7 +18,6 @@ package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
-import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.event.CacheEventListener;
@@ -48,7 +47,6 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final EvictionVeto<? super K, ? super V> evictionVeto;
-  private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private final ClassLoader classLoader;
   private final Expiry<? super K, ? super V> expiry;
   private volatile ResourcePools resourcePools;
@@ -64,7 +62,6 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
     this.evictionVeto = config.getEvictionVeto();
-    this.evictionPrioritizer = config.getEvictionPrioritizer();
     this.classLoader = config.getClassLoader();
     this.expiry = config.getExpiry();
     this.resourcePools = config.getResourcePools();
@@ -102,11 +99,6 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
   @Override
   public EvictionVeto<? super K, ? super V> getEvictionVeto() {
     return this.evictionVeto;
-  }
-
-  @Override
-  public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
-    return this.evictionPrioritizer;
   }
 
   @Override

@@ -21,8 +21,6 @@
 
     <ehcache:eviction-veto>com.pany.ehcache.MyEvictionVeto</ehcache:eviction-veto>
 
-    <ehcache:eviction-prioritizer>LFU</ehcache:eviction-prioritizer>
-
     <ehcache:integration>
       <ehcache:loader-writer>
         <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>
@@ -53,7 +51,6 @@
     <ehcache:expiry>
       <ehcache:none/>
     </ehcache:expiry>
-    <ehcache:eviction-prioritizer>LRU</ehcache:eviction-prioritizer>
 
     <ehcache:heap size="200" unit="entries"/>
   </ehcache:cache-template>

@@ -22,7 +22,7 @@ import org.ehcache.function.Predicates;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Utility class for getting predefined {@link EvictionVeto} and {@link EvictionPrioritizer} instances.
+ * Utility class for getting predefined {@link EvictionVeto} instance.
  *
  * @author Alex Snaps
  */
@@ -44,49 +44,4 @@ public final class Eviction {
     };
   }
 
-  /**
-   * Enumeration holding default {@link EvictionPrioritizer} instances.
-   */
-  public enum Prioritizer implements EvictionPrioritizer<Object, Object> {
-
-    /**
-     * Least Recently Used {@link EvictionPrioritizer}.
-     * <p>
-     * Ranks eviction candidates by their last access time.  The entry which was
-     * last accessed the longest time ago is considered the most eligible for
-     * eviction.
-     */
-    LRU {
-      @Override
-      public int compare(Cache.Entry<Object, Object> a, Cache.Entry<Object, Object> b) {
-        return Long.signum(b.getLastAccessTime(TimeUnit.NANOSECONDS) - a.getLastAccessTime(TimeUnit.NANOSECONDS));
-      }
-    },
-
-    /**
-     * Least Frequently Used {@link EvictionPrioritizer}.
-     * <p>
-     * Ranks eviction candidates by their frequency of use.  The entry which has
-     * the lowest hit rate is considered the most eligible for eviction.
-     */
-    LFU {
-      @Override
-      public int compare(Cache.Entry<Object, Object> a, Cache.Entry<Object, Object> b) {
-        return Float.compare(b.getHitRate(TimeUnit.NANOSECONDS), a.getHitRate(TimeUnit.NANOSECONDS));
-      }
-    },
-
-    /**
-     * First In, First Out {@link EvictionPrioritizer}.
-     * <p>
-     * Ranks eviction candidates by their time of creation.  The entry which was
-     * created the earliest is considered the most eligible for eviction.
-     */
-    FIFO {
-      @Override
-      public int compare(Cache.Entry<Object, Object> a, Cache.Entry<Object, Object> b) {
-        return Long.signum(b.getCreationTime(TimeUnit.NANOSECONDS) - a.getCreationTime(TimeUnit.NANOSECONDS));
-      }
-    };
-  }
 }

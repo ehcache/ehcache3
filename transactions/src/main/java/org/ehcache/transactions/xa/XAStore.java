@@ -17,7 +17,6 @@ package org.ehcache.transactions.xa;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheConfigurationChangeListener;
-import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.copy.CopierConfiguration;
@@ -702,27 +701,13 @@ public class XAStore<K, V> implements Store<K, V> {
         List<ServiceConfiguration<?>> underlyingServiceConfigs = new ArrayList<ServiceConfiguration<?>>();
         underlyingServiceConfigs.addAll(Arrays.asList(serviceConfigs));
 
-        // TODO: do we want to support pluggable veto and prioritizer?
+        // TODO: do we want to support pluggable veto?
 
         // eviction veto
         EvictionVeto<? super K, ? super SoftLock> evictionVeto = new EvictionVeto<K, SoftLock>() {
           @Override
           public boolean test(Cache.Entry<K, SoftLock> argument) {
             return argument.getValue().getTransactionId() != null;
-          }
-        };
-
-        // eviction prioritizer
-        EvictionPrioritizer<? super K, ? super SoftLock> evictionPrioritizer = new EvictionPrioritizer<K, SoftLock>() {
-          @Override
-          public int compare(Cache.Entry<K, SoftLock> o1, Cache.Entry<K, SoftLock> o2) {
-            if (o1.getValue().getTransactionId() != null && o2.getValue().getTransactionId() != null) {
-              return 0;
-            }
-            if (o1.getValue().getTransactionId() == null && o2.getValue().getTransactionId() == null) {
-              return 0;
-            }
-            return o1.getValue().getTransactionId() != null ? 1 : -1;
           }
         };
 
@@ -840,7 +825,7 @@ public class XAStore<K, V> implements Store<K, V> {
         SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig.getValueSerializer());
 
         // create the underlying store
-        Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto, evictionPrioritizer,
+        Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto,
             storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
         Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig,  underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
 

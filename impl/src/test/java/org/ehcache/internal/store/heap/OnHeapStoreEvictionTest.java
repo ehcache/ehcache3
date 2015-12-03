@@ -16,7 +16,6 @@
 package org.ehcache.internal.store.heap;
 
 import org.ehcache.Cache;
-import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
@@ -48,7 +47,7 @@ import static org.hamcrest.Matchers.is;
 public class OnHeapStoreEvictionTest {
 
   protected <K, V> OnHeapStoreForTests<K, V> newStore() {
-    return newStore(SystemTimeSource.INSTANCE, null, null);
+    return newStore(SystemTimeSource.INSTANCE, null);
   }
 
   /** eviction tests : asserting the evict method is called **/
@@ -98,53 +97,7 @@ public class OnHeapStoreEvictionTest {
         return false;
       }
     };
-    final OnHeapStoreForTests<String, String> store = newStore(SystemTimeSource.INSTANCE, veto, null);
-
-    ExecutorService executor = Executors.newCachedThreadPool();
-    try {
-      executor.submit(new Callable<Store.ValueHolder<String>>() {
-        @Override
-        public Store.ValueHolder<String> call() throws Exception {
-          return store.getOrComputeIfAbsent("prime", new Function<String, ValueHolder<String>>() {
-            @Override
-            public ValueHolder<String> apply(final String key) {
-              semaphore.acquireUninterruptibly();
-              return new OnHeapValueHolder<String>(0, 0) {
-                @Override
-                public String value() {
-                  return key;
-                }
-              };
-            }
-          });
-        }
-      });
-
-      while (!semaphore.hasQueuedThreads());
-      store.put("boom", "boom");
-    } finally {
-      semaphore.release(1);
-      executor.shutdown();
-    }
-  }
-
-  @Test
-  public void testFaultsDoNotGetToEvictionPrioritizer() throws CacheAccessException {
-    final Semaphore semaphore = new Semaphore(0);
-
-    EvictionPrioritizer<String, String> prioritizer = new EvictionPrioritizer<String, String>() {
-      @Override
-      public int compare(Cache.Entry<String, String> a, Cache.Entry<String, String> b) {
-        try {
-          a.getValue();
-          b.getValue();
-        } catch (Exception e) {
-          throw new AssertionError(e);
-        }
-        return 0;
-      }
-    };
-    final OnHeapStoreForTests<String, String> store = newStore(SystemTimeSource.INSTANCE, null, prioritizer);
+    final OnHeapStoreForTests<String, String> store = newStore(SystemTimeSource.INSTANCE, veto);
 
     ExecutorService executor = Executors.newCachedThreadPool();
     try {
@@ -175,8 +128,7 @@ public class OnHeapStoreEvictionTest {
   }
 
   protected <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource,
-      final EvictionVeto<? super K, ? super V> veto,
-      final EvictionPrioritizer<? super K, ? super V> prioritizer) {
+      final EvictionVeto<? super K, ? super V> veto) {
     return new OnHeapStoreForTests<K, V>(new Store.Configuration<K, V>() {
       @SuppressWarnings("unchecked")
       @Override
@@ -193,11 +145,6 @@ public class OnHeapStoreEvictionTest {
       @Override
       public EvictionVeto<? super K, ? super V> getEvictionVeto() {
         return veto;
-      }
-
-      @Override
-      public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
-        return prioritizer;
       }
 
       @Override

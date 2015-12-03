@@ -20,8 +20,6 @@ import org.ehcache.Cache;
 import org.ehcache.CacheConfigurationChangeEvent;
 import org.ehcache.CacheConfigurationChangeListener;
 import org.ehcache.CacheConfigurationProperty;
-import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
@@ -153,7 +151,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   };
 
-  public OnHeapStore(final Configuration<K, V> config, TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier) {
+  public OnHeapStore(final Configuration<K, V> config, final TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier) {
     if (keyCopier == null) {
       throw new NullPointerException("keyCopier must not be null");
     }
@@ -168,13 +166,20 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       throw new IllegalArgumentException("OnHeap store only handles resource unit 'entries'");
     }
     this.capacity = heapPool.getSize();
-    EvictionPrioritizer<? super K, ? super V> prioritizer = config.getEvictionPrioritizer();
-    if(prioritizer == null) {
-      prioritizer = Eviction.Prioritizer.LRU;
-    }
     this.timeSource = timeSource;
     this.evictionVeto = wrap(config.getEvictionVeto(), timeSource);
-    this.evictionPrioritizer = wrap(prioritizer, timeSource);
+    this.evictionPrioritizer = new Comparator<Entry<Object, OnHeapValueHolder<Object>>>() {
+      @Override
+      public int compare(Entry<Object, OnHeapValueHolder<Object>> t, Entry<Object, OnHeapValueHolder<Object>> u) {
+        if (t.getValue() instanceof Fault) {
+          return -1;
+        } else if (u.getValue() instanceof Fault) {
+          return 1;
+        } else {
+          return Long.signum(t.getValue().lastAccessTime(TimeUnit.NANOSECONDS) - u.getValue().lastAccessTime(TimeUnit.NANOSECONDS));
+        }
+      }
+    };
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
     this.expiry = config.getExpiry();
@@ -1456,21 +1461,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         }
       };
     }
-  }
-
-  private static <K, V> Comparator<Map.Entry<K, OnHeapValueHolder<V>>> wrap(final Comparator<Cache.Entry<K, V>> comparator, final TimeSource timeSource) {
-    return new Comparator<Map.Entry<K, OnHeapValueHolder<V>>>() {
-      @Override
-      public int compare(Map.Entry<K, OnHeapValueHolder<V>> t, Map.Entry<K, OnHeapValueHolder<V>> u) {
-        if (t.getValue() instanceof Fault) {
-          return -1;
-        } else if (u.getValue() instanceof Fault) {
-          return 1;
-        } else {
-          return comparator.compare(wrap(t, timeSource), wrap(u, timeSource));
-        }
-      }
-    };
   }
 
   private static <K, V> Cache.Entry<K, V> wrap(final Map.Entry<K, OnHeapValueHolder<V>> value, final TimeSource timeSource) {
