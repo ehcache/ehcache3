@@ -51,7 +51,6 @@ import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.cache.tiering.HigherCachingTier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
-import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.statistics.CachingTierOperationOutcomes;
@@ -103,7 +102,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private final Copier<V> valueCopier;
 
   private volatile long capacity;
-  private final Predicate<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionVeto;
+  private final Predicate<Cache.Entry<K, V>> evictionVeto;
   private final Comparator<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionPrioritizer;
   private final Expiry<? super K, ? super V> expiry;
   private final TimeSource timeSource;
@@ -167,7 +166,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
     this.capacity = heapPool.getSize();
     this.timeSource = timeSource;
-    this.evictionVeto = wrap(config.getEvictionVeto(), timeSource);
+    if (config.getEvictionVeto() == null) {
+      this.evictionVeto = Predicates.none();
+    } else {
+      this.evictionVeto = (Predicate) config.getEvictionVeto();
+    }
     this.evictionPrioritizer = new Comparator<Entry<Object, OnHeapValueHolder<Object>>>() {
       @Override
       public int compare(Entry<Object, OnHeapValueHolder<Object>> t, Entry<Object, OnHeapValueHolder<Object>> u) {
@@ -784,7 +787,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     private boolean complete;
 
     public Fault(final NullaryFunction<ValueHolder<V>> source) {
-      super(FAULT_ID, 0);
+      super(FAULT_ID, 0, true);
       this.source = source;
     }
 
@@ -1200,7 +1203,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
     }
 
-    return makeValue(newValue, now, expirationTime, this.valueCopier);
+    return makeValue(key, newValue, now, expirationTime, this.valueCopier);
   }
   
   private OnHeapValueHolder<V> newCreateValueHolder(K key, V value, long now) {
@@ -1221,7 +1224,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     long expirationTime = duration.isForever() ? ValueHolder.NO_EXPIRE : safeExpireTime(now, duration);
 
-    return makeValue(value, now, expirationTime, this.valueCopier);
+    return makeValue(key, value, now, expirationTime, this.valueCopier);
   }
 
   private OnHeapValueHolder<V> importValueFromLowerTier(K key, ValueHolder<V> valueHolder, long now) {
@@ -1232,27 +1235,31 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   private OnHeapValueHolder<V> cloneValueHolder(K key, ValueHolder<V> valueHolder, long now, Duration expiration) {
     V realValue = valueHolder.value();
+    boolean veto = checkVeto(CacheStoreHelper.cacheEntry(key, valueHolder, timeSource));
     if(valueCopier instanceof SerializingCopier) {
-      return new SerializedOnHeapValueHolder<V>(valueHolder, realValue, ((SerializingCopier)valueCopier).getSerializer(), now, expiration);
+      return new SerializedOnHeapValueHolder<V>(valueHolder, realValue, veto, ((SerializingCopier)valueCopier).getSerializer(), now, expiration);
     } else {
-      return new CopiedOnHeapValueHolder<V>(valueHolder, realValue, valueCopier, now, expiration);
+      return new CopiedOnHeapValueHolder<V>(valueHolder, realValue, veto, valueCopier, now, expiration);
     }
   }
 
-  private OnHeapValueHolder<V> makeValue(V value, long creationTime, long expirationTime, Copier<V> valueCopier) {
-    if(valueCopier instanceof SerializingCopier) {
-      return makeSerializedValue(value, creationTime, expirationTime, ((SerializingCopier)valueCopier).getSerializer());
+  private OnHeapValueHolder<V> makeValue(K key, V value, long creationTime, long expirationTime, Copier<V> valueCopier) {
+    boolean veto = checkVeto(CacheStoreHelper.cacheEntry(key, value, creationTime, OnHeapValueHolder.TIME_UNIT));
+    if (valueCopier instanceof SerializingCopier) {
+      return new SerializedOnHeapValueHolder<V>(value, creationTime, expirationTime, veto, ((SerializingCopier) valueCopier).getSerializer());
     } else {
-      return makeCopiedValue(value, creationTime, expirationTime, valueCopier);
+      return new CopiedOnHeapValueHolder<V>(value, creationTime, expirationTime, veto, valueCopier);
     }
   }
 
-  private OnHeapValueHolder<V> makeSerializedValue(V value, long creationTime, long expirationTime, Serializer<V> valueSerializer) {
-    return new SerializedOnHeapValueHolder<V>(value, creationTime, expirationTime, valueSerializer);
-  }
-
-  private OnHeapValueHolder<V> makeCopiedValue(V value, long creationTime, long expirationTime, Copier<V> valueCopier) {
-    return new CopiedOnHeapValueHolder<V>(value, creationTime, expirationTime, valueCopier);
+  private boolean checkVeto(Cache.Entry<K, V> entry) {
+    try {
+      return this.evictionVeto.test(entry);
+    } catch (Exception e) {
+      LOG.error("Exception raised while running eviction veto " +
+          "- Eviction will assume entry is NOT vetoed", e);
+      return false;
+    }
   }
 
   private static long safeExpireTime(long now, Duration duration) {
@@ -1287,11 +1294,16 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     final Random random = new Random();
 
     @SuppressWarnings("unchecked")
-    Set<Map.Entry<K, OnHeapValueHolder<V>>> values = map.getRandomValues(random, SAMPLE_SIZE, (Predicate<Map.Entry<K, OnHeapValueHolder<V>>>)evictionVeto);
+    Set<Map.Entry<K, OnHeapValueHolder<V>>> values = map.getRandomValues(random, SAMPLE_SIZE, new Predicate<OnHeapValueHolder<V>>() {
+      @Override
+      public boolean test(OnHeapValueHolder<V> valueHolder) {
+        return valueHolder.veto();
+      }
+    });
    
     if (values.isEmpty()) {
       // 2nd attempt without any veto
-      values = map.getRandomValues(random, SAMPLE_SIZE, Predicates.<Map.Entry<K, OnHeapValueHolder<V>>>none());
+      values = map.getRandomValues(random, SAMPLE_SIZE, Predicates.<OnHeapValueHolder<V>>none());
     }
 
     if (values.isEmpty()) {
@@ -1444,25 +1456,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   }
 
-  private static <K, V> Predicate<Map.Entry<K, OnHeapValueHolder<V>>> wrap(final Predicate<Cache.Entry<K, V>> predicate, final TimeSource timeSource) {
-    if (predicate == null) {
-      return Predicates.none();
-    } else {
-      return new Predicate<Map.Entry<K, OnHeapValueHolder<V>>>() {
-        @Override
-        public boolean test(final Map.Entry<K, OnHeapValueHolder<V>> argument) {
-          try {
-            return (argument.getValue() instanceof Fault) || predicate.test(wrap(argument, timeSource));
-          } catch (Exception e) {
-            LOG.error("Exception raised while running eviction veto " +
-                      "- Eviction will assume entry is NOT vetoed", e);
-            return false;
-          }
-        }
-      };
-    }
-  }
-
   private static <K, V> Cache.Entry<K, V> wrap(final Map.Entry<K, OnHeapValueHolder<V>> value, final TimeSource timeSource) {
     return CacheStoreHelper.cacheEntry(value.getKey(), value.getValue(), timeSource);
   }
@@ -1483,21 +1476,19 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       return keyCopyMap.remove(lookupOnlyKey(key), value);
     }
 
-    Set<Map.Entry<K, OnHeapValueHolder<V>>> getRandomValues(Random random, int size,
-         final Predicate<Map.Entry<K, OnHeapValueHolder<V>>> veto) {
+    public Set<Entry<K, OnHeapValueHolder<V>>> getRandomValues(Random random, int size, final Predicate<OnHeapValueHolder<V>> evictionVeto) {
+      List<Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>>> values = keyCopyMap.getRandomValues(random, size, new Predicate<Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>>>() {
+        @Override
+        public boolean test(Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry) {
+          return evictionVeto.test(entry.getValue());
+        }
+      });
 
-       Set<Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>>> values = keyCopyMap.getRandomValues(random, size, new Predicate<Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>>>() {
-         @Override
-         public boolean test(Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry) {
-           return veto.test(new SimpleEntry<K, OnHeapValueHolder<V>>(entry.getKey().getActualKeyObject(), entry.getValue()));
-         }
-       });
-
-       Set<Map.Entry<K, OnHeapValueHolder<V>>> rv = new LinkedHashSet<Map.Entry<K,OnHeapValueHolder<V>>>(values.size());
-       for (Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry : values) {
-         rv.add(new SimpleEntry<K, OnHeapValueHolder<V>>(entry.getKey().getActualKeyObject(), entry.getValue()));
-       }
-       return rv;
+      Set<Map.Entry<K, OnHeapValueHolder<V>>> rv = new LinkedHashSet<Map.Entry<K, OnHeapValueHolder<V>>>(values.size());
+      for (Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry : values) {
+        rv.add(new SimpleEntry<K, OnHeapValueHolder<V>>(entry.getKey().getActualKeyObject(), entry.getValue()));
+      }
+      return rv;
     }
 
     int size() {

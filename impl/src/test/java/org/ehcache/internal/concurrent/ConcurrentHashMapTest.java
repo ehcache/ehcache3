@@ -16,13 +16,13 @@
 
 package org.ehcache.internal.concurrent;
 
-import java.util.Collection;
-import java.util.Map.Entry;
-import java.util.Random;
-
 import org.ehcache.function.Predicate;
 import org.ehcache.function.Predicates;
 import org.junit.Test;
+
+import java.util.Collection;
+import java.util.Map.Entry;
+import java.util.Random;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;

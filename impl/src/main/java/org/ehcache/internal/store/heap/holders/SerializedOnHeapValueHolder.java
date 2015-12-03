@@ -26,8 +26,8 @@ public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   private final ByteBuffer buffer;
   private final Serializer<V> serializer;
 
-  protected SerializedOnHeapValueHolder(long id, V value, long creationTime, long expirationTime, Serializer<V> serializer) {
-    super(id, creationTime, expirationTime);
+  protected SerializedOnHeapValueHolder(long id, V value, long creationTime, long expirationTime, boolean veto, Serializer<V> serializer) {
+    super(id, creationTime, expirationTime, veto);
     if (value == null) {
       throw new NullPointerException("null value");
     }
@@ -38,16 +38,16 @@ public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
     this.buffer = serializer.serialize(value).asReadOnlyBuffer();
   }
 
-  public SerializedOnHeapValueHolder(V value, long creationTime, Serializer<V> serializer) {
-    this(value, creationTime, NO_EXPIRE, serializer);
+  public SerializedOnHeapValueHolder(V value, long creationTime, boolean veto, Serializer<V> serializer) {
+    this(value, creationTime, NO_EXPIRE, veto, serializer);
   }
 
-  public SerializedOnHeapValueHolder(V value, long creationTime, long expirationTime, Serializer<V> serializer) {
-    this(-1, value, creationTime, expirationTime, serializer);
+  public SerializedOnHeapValueHolder(V value, long creationTime, long expirationTime, boolean veto, Serializer<V> serializer) {
+    this(-1, value, creationTime, expirationTime, veto, serializer);
   }
 
-  public SerializedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, Serializer<V> serializer, long now, Duration expiration) {
-    this(valueHolder.getId(), value, valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), serializer);
+  public SerializedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, boolean veto, Serializer<V> serializer, long now, Duration expiration) {
+    this(valueHolder.getId(), value, valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), veto, serializer);
     this.setHits(valueHolder.hits());
     this.accessed(now, expiration);
   }

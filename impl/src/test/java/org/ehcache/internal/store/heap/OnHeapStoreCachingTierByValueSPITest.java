@@ -78,7 +78,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new SerializedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), defaultSerializer);
+        return new SerializedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, defaultSerializer);
       }
 
       @Override

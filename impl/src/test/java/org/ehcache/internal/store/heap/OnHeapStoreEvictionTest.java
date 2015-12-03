@@ -108,7 +108,7 @@ public class OnHeapStoreEvictionTest {
             @Override
             public ValueHolder<String> apply(final String key) {
               semaphore.acquireUninterruptibly();
-              return new OnHeapValueHolder<String>(0, 0) {
+              return new OnHeapValueHolder<String>(0, 0, false) {
                 @Override
                 public String value() {
                   return key;

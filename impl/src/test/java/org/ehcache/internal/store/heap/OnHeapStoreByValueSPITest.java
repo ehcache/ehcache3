@@ -91,7 +91,7 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new SerializedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), defaultSerializer);
+        return new SerializedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, defaultSerializer);
       }
 
       private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {

@@ -74,7 +74,7 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
       
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new CopiedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), DEFAULT_COPIER);
+        return new CopiedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, DEFAULT_COPIER);
       }
 
       @Override

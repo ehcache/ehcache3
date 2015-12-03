@@ -1066,7 +1066,7 @@ public abstract class BaseOnHeapStoreTest {
           ValueHolder<String> result = store.getOrComputeIfAbsent("42", new Function<String, ValueHolder<String>>() {
             @Override
             public ValueHolder<String> apply(String key) {
-              return new CopiedOnHeapValueHolder<String>("theAnswer!", System.currentTimeMillis(), -1, new IdentityCopier<String>());
+              return new CopiedOnHeapValueHolder<String>("theAnswer!", System.currentTimeMillis(), -1, false, new IdentityCopier<String>());
             }
           });
           assertThat(result.value(), is("theAnswer!"));
@@ -1117,7 +1117,7 @@ public abstract class BaseOnHeapStoreTest {
               } catch (InterruptedException e) {
                 failedInThread.set(new AssertionError("Interrupted exception: " + e.getMessage()));
               }
-              return new CopiedOnHeapValueHolder<String>("TheAnswer!", System.currentTimeMillis(), new IdentityCopier<String>());
+              return new CopiedOnHeapValueHolder<String>("TheAnswer!", System.currentTimeMillis(), false, new IdentityCopier<String>());
             }
           });
         } catch (CacheAccessException caex) {
@@ -1164,7 +1164,7 @@ public abstract class BaseOnHeapStoreTest {
               } catch (InterruptedException e) {
                 failedInThread.set(new AssertionError("Interrupted exception: " + e.getMessage()));
               }
-              return new CopiedOnHeapValueHolder<String>("TheAnswer!", System.currentTimeMillis(), new IdentityCopier<String>());
+              return new CopiedOnHeapValueHolder<String>("TheAnswer!", System.currentTimeMillis(), false, new IdentityCopier<String>());
             }
           });
         } catch (CacheAccessException caex) {
