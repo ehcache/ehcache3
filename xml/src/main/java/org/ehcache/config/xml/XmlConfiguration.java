@@ -374,18 +374,6 @@ public class XmlConfiguration implements Configuration {
     return klazz.asSubclass(type).newInstance();
   }
 
-  @SuppressWarnings("unchecked")
-  private static <T> T getInstanceOfName(String name, ClassLoader classLoader, Class<T> type, @SuppressWarnings("rawtypes") Class<? extends Enum> shortcutValues) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-    if (name == null) {
-      return null;
-    }
-    try {
-      return (T) Enum.valueOf(shortcutValues, name);
-    } catch (IllegalArgumentException iae) {
-      return getInstanceOfName(name, classLoader, type);
-    }
-  }
-
   private static Class<?> getClassForName(String name, ClassLoader classLoader) throws ClassNotFoundException {
     return Class.forName(name, true, classLoader);
   }
