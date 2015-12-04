@@ -83,7 +83,7 @@ public interface ManagementProvider<T> {
    * @param context the context.
    * @param statisticNames the statistic names to collect.
    * @param since The unix time in ms from where to return the statistics for statistics based on samples.
-   * @return the statistic map, the key being the statistic namesø.
+   * @return the statistic map, the key being the statistic names.
    */
   Map<String, Statistic<?, ?>> collectStatistics(Context context, Collection<String> statisticNames, long since);
 
