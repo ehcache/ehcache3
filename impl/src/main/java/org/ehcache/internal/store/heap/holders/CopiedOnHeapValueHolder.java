@@ -27,8 +27,8 @@ public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   private final V copiedValue;
   private final Copier<V> valueCopier;
 
-  protected CopiedOnHeapValueHolder(long id, V value, long creationTime, long expirationTime, Copier<V> valueCopier) {
-    super(id, creationTime, expirationTime);
+  protected CopiedOnHeapValueHolder(long id, V value, long creationTime, long expirationTime, boolean veto, Copier<V> valueCopier) {
+    super(id, creationTime, expirationTime, veto);
     if (value == null) {
       throw new NullPointerException("null value");
     }
@@ -49,8 +49,8 @@ public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
    * @param now timestamp in millis
    * @param expiration computed expiration duration
    */
-  public CopiedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, Copier<V> valueCopier, long now, Duration expiration) {
-    super(valueHolder.getId(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT));
+  public CopiedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, boolean veto, Copier<V> valueCopier, long now, Duration expiration) {
+    super(valueHolder.getId(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), veto);
     if (value == null) {
       throw new NullPointerException("null value");
     }
@@ -63,12 +63,12 @@ public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
     this.accessed(now, expiration);
   }
 
-  public CopiedOnHeapValueHolder(V value, long creationTime, Copier<V> valueCopier) {
-    this(value, creationTime, NO_EXPIRE, valueCopier);
+  public CopiedOnHeapValueHolder(V value, long creationTime, boolean veto, Copier<V> valueCopier) {
+    this(value, creationTime, NO_EXPIRE, veto, valueCopier);
   }
 
-  public CopiedOnHeapValueHolder(V value, long creationTime, long expirationTime, Copier<V> valueCopier) {
-    this(-1, value, creationTime, expirationTime, valueCopier);
+  public CopiedOnHeapValueHolder(V value, long creationTime, long expirationTime, boolean veto, Copier<V> valueCopier) {
+    this(-1, value, creationTime, expirationTime, veto, valueCopier);
   }
 
   @Override

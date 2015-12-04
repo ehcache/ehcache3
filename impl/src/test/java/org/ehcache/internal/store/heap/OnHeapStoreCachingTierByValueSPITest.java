@@ -70,7 +70,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
       }
 
       private CachingTier<String, String> newCachingTier(Long capacity) {
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null, null,
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null,
                 ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
         
         return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier);
@@ -78,7 +78,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new SerializedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), defaultSerializer);
+        return new SerializedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, defaultSerializer);
       }
 
       @Override

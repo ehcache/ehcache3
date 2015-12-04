@@ -80,7 +80,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
         ResourcePool offheapPool = resourcePools.getPoolForResource(OFFHEAP);
         MemoryUnit unit = (MemoryUnit)offheapPool.getUnit();
 
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, null, getClass().getClassLoader(), expiry, resourcePools, keySerializer, valueSerializer);
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, getClass().getClassLoader(), expiry, resourcePools, keySerializer, valueSerializer);
         OffHeapStore<String, String> store = new OffHeapStore<String, String>(config, timeSource, unit.toBytes(offheapPool.getSize()));
         OffHeapStore.Provider.init(store);
         return store;

@@ -59,4 +59,35 @@ public final class CacheStoreHelper {
       }
     };
   }
+
+  public static <K, V> Cache.Entry<K, V> cacheEntry(final K key, final V value, final long creationTime, final TimeUnit creationTimeUnit) {
+    return new Cache.Entry<K, V>() {
+
+      @Override
+      public K getKey() {
+        return key;
+      }
+
+      @Override
+      public V getValue() {
+        return value;
+      }
+
+      @Override
+      public long getCreationTime(TimeUnit unit) {
+        return unit.convert(creationTime, creationTimeUnit);
+      }
+
+      @Override
+      public long getLastAccessTime(TimeUnit unit) {
+        return unit.convert(creationTime, creationTimeUnit);
+      }
+
+      @Override
+      public float getHitRate(TimeUnit unit) {
+        return Float.NaN;
+      }
+    };
+  }
+
 }

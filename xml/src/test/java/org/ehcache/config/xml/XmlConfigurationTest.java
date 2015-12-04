@@ -30,7 +30,6 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.copy.CopierConfiguration;
@@ -135,18 +134,6 @@ public class XmlConfigurationTest {
     assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Number.class, Object.class), notNullValue());
   }
 
-  @SuppressWarnings("rawtypes")
-  @Test
-  public void testPrioritizerCache() throws Exception {
-    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/prioritizer-cache.xml"));
-
-    assertThat(xmlConfig.getCacheConfigurations().keySet(), hasItem("foo"));
-    assertThat(xmlConfig.getCacheConfigurations().get("foo").getEvictionPrioritizer(), sameInstance((EvictionPrioritizer)Eviction.Prioritizer.LFU));
-
-    CacheConfigurationBuilder<Object, Object> example = xmlConfig.newCacheConfigurationBuilderFromTemplate("example");
-    assertThat(example.buildConfig(Object.class, Object.class).getEvictionPrioritizer(), sameInstance((EvictionPrioritizer) Eviction.Prioritizer.LFU));
-  }
-
   @Test
   public void testNonExistentVetoClassInCacheThrowsException() throws Exception {
     try {
@@ -215,18 +202,6 @@ public class XmlConfigurationTest {
     }
 
     assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("bar"), nullValue());
-  }
-
-  @SuppressWarnings("rawtypes")
-  @Test
-  public void testEvictionPrioritizer() throws ClassNotFoundException, SAXException, InstantiationException, IOException, IllegalAccessException {
-    final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/cache-eviction.xml"));
-    final EvictionPrioritizer lru = xmlConfiguration.getCacheConfigurations().get("lru").getEvictionPrioritizer();
-    final EvictionPrioritizer value = Eviction.Prioritizer.FIFO;
-    assertThat(lru, is(value));
-    final EvictionPrioritizer mine = xmlConfiguration.getCacheConfigurations().get("eviction").getEvictionPrioritizer();
-    assertThat(mine, CoreMatchers.instanceOf(com.pany.ehcache.MyEviction.class));
-
   }
 
   @SuppressWarnings("rawtypes")

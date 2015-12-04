@@ -15,13 +15,10 @@
  */
 package org.ehcache.internal.store.heap;
 
-import org.ehcache.Cache;
 import org.ehcache.Cache.Entry;
 import org.ehcache.CacheConfigurationChangeEvent;
 import org.ehcache.CacheConfigurationChangeListener;
 import org.ehcache.CacheConfigurationProperty;
-import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.StoreEventListener;
@@ -129,49 +126,6 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(storeSize(store), is(99));
     verify(listener, times(1)).onEviction(Matchers.<String>any(), Matchers.<Store.ValueHolder<String>>any());
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.EvictionOutcome.SUCCESS));
-  }
-
-  @Test
-  public void testEvictionPrioritizationIsObserved() throws Exception {
-
-    EvictionPrioritizer<String, String> prioritizer = new EvictionPrioritizer<String, String>() {
-
-      @Override
-      public int compare(Entry<String, String> o1, Entry<String, String> o2) {
-        return Integer.decode(o1.getValue()).compareTo(Integer.decode(o2.getValue()));
-      }
-    };
-    OnHeapStore<String, String> store = newStore(OnHeapStore.SAMPLE_SIZE + 1, prioritizer);
-
-    StoreEventListener<String, String> listener = addListener(store);
-
-    for (int i = 0; i < OnHeapStore.SAMPLE_SIZE; i++) {
-      store.put(Integer.toString(i), Integer.toString(i));
-    }
-
-    assertThat(store.evict(), is(true));
-    verify(listener, times(1)).onEviction(eq(Integer.toString(OnHeapStore.SAMPLE_SIZE - 1)), any(ValueHolder.class));
-  }
-
-  @Test
-  public void testBrokenEvictionPrioritizationStillEvicts() throws Exception {
-    EvictionPrioritizer<String, String> prioritizer = new EvictionPrioritizer<String, String>() {
-
-      @Override
-      public int compare(Entry<String, String> o1, Entry<String, String> o2) {
-        throw new UnsupportedOperationException("Broken prioritizer!");
-      }
-    };
-    OnHeapStore<String, String> store = newStore(OnHeapStore.SAMPLE_SIZE + 1, prioritizer);
-
-    StoreEventListener<String, String> listener = addListener(store);
-
-    for (int i = 0; i < OnHeapStore.SAMPLE_SIZE; i++) {
-      store.put(Integer.toString(i), Integer.toString(i));
-    }
-
-    assertThat(store.evict(), is(true));
-    verify(listener, times(1)).onEviction(any(String.class), any(ValueHolder.class));
   }
 
   @Test
@@ -1112,7 +1066,7 @@ public abstract class BaseOnHeapStoreTest {
           ValueHolder<String> result = store.getOrComputeIfAbsent("42", new Function<String, ValueHolder<String>>() {
             @Override
             public ValueHolder<String> apply(String key) {
-              return new CopiedOnHeapValueHolder<String>("theAnswer!", System.currentTimeMillis(), -1, new IdentityCopier<String>());
+              return new CopiedOnHeapValueHolder<String>("theAnswer!", System.currentTimeMillis(), -1, false, new IdentityCopier<String>());
             }
           });
           assertThat(result.value(), is("theAnswer!"));
@@ -1163,7 +1117,7 @@ public abstract class BaseOnHeapStoreTest {
               } catch (InterruptedException e) {
                 failedInThread.set(new AssertionError("Interrupted exception: " + e.getMessage()));
               }
-              return new CopiedOnHeapValueHolder<String>("TheAnswer!", System.currentTimeMillis(), new IdentityCopier<String>());
+              return new CopiedOnHeapValueHolder<String>("TheAnswer!", System.currentTimeMillis(), false, new IdentityCopier<String>());
             }
           });
         } catch (CacheAccessException caex) {
@@ -1210,7 +1164,7 @@ public abstract class BaseOnHeapStoreTest {
               } catch (InterruptedException e) {
                 failedInThread.set(new AssertionError("Interrupted exception: " + e.getMessage()));
               }
-              return new CopiedOnHeapValueHolder<String>("TheAnswer!", System.currentTimeMillis(), new IdentityCopier<String>());
+              return new CopiedOnHeapValueHolder<String>("TheAnswer!", System.currentTimeMillis(), false, new IdentityCopier<String>());
             }
           });
         } catch (CacheAccessException caex) {
@@ -1421,8 +1375,6 @@ public abstract class BaseOnHeapStoreTest {
   protected abstract <K, V> OnHeapStore<K, V> newStore();
 
   protected abstract <K, V> OnHeapStore<K, V> newStore(EvictionVeto<? super K, ? super V> veto);
-
-  protected abstract <K, V> OnHeapStore<K, V> newStore(int capacity, EvictionPrioritizer<? super K, ? super V> prioritizer);
 
   protected abstract <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
       final Expiry<? super K, ? super V> expiry);

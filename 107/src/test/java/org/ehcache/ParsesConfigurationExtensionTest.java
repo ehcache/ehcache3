@@ -16,10 +16,11 @@
 
 package org.ehcache;
 
+import com.pany.domain.Customer;
+import com.pany.domain.Product;
+import com.pany.ehcache.integration.ProductCacheLoaderWriter;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.CacheRuntimeConfiguration;
-import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.Jsr107Configuration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.xml.XmlConfiguration;
@@ -31,10 +32,6 @@ import org.ehcache.spi.service.Service;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
-import com.pany.domain.Customer;
-import com.pany.domain.Product;
-import com.pany.ehcache.integration.ProductCacheLoaderWriter;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -42,7 +39,6 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -90,7 +86,6 @@ public class ParsesConfigurationExtensionTest {
         assertThat(expiry.getExpiryForAccess(42L, null), equalTo(new Duration(2, TimeUnit.MINUTES)));
 
         assertThat(runtimeConfiguration.getEvictionVeto(), instanceOf(com.pany.ehcache.MyEvictionVeto.class));
-        assertThat(runtimeConfiguration.getEvictionPrioritizer(), is((EvictionPrioritizer) Eviction.Prioritizer.LFU));
       }
 
       // test copies
@@ -130,7 +125,6 @@ public class ParsesConfigurationExtensionTest {
     {
       final Cache<Long, Customer> customerCache = cacheManager.getCache("customerCache", Long.class, Customer.class);
       final CacheRuntimeConfiguration<Long, Customer> runtimeConfiguration = customerCache.getRuntimeConfiguration();
-      assertThat(runtimeConfiguration.getEvictionPrioritizer(), is((EvictionPrioritizer) Eviction.Prioritizer.LRU));
       assertThat(runtimeConfiguration.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(200L));
     }
   }

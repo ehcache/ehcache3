@@ -63,16 +63,6 @@ public interface CacheConfiguration<K, V> {
   EvictionVeto<? super K, ? super V> getEvictionVeto();
 
   /**
-   * The {@link EvictionPrioritizer} comparator.
-   * <p>
-   * This comparator function determines the order in which entries are considered
-   * for eviction.
-   * 
-   * @return the eviction prioritizer
-   */
-  EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer();
-
-  /**
    * The {@link ClassLoader} for this cache. This {@code ClassLoader} will be used to instantiate cache level services
    * as well as deserializing cache entries when required.
    *

@@ -34,7 +34,6 @@ public class CacheConfigurationBuilder<K, V> {
   private final Collection<ServiceConfiguration<?>> serviceConfigurations = new HashSet<ServiceConfiguration<?>>();
   private Expiry<? super K, ? super V> expiry;
   private ClassLoader classLoader = null;
-  private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private EvictionVeto<? super K, ? super V> evictionVeto;
   private ResourcePools resourcePools = newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
 
@@ -48,11 +47,9 @@ public class CacheConfigurationBuilder<K, V> {
   private CacheConfigurationBuilder(CacheConfigurationBuilder<? super K, ? super V> other) {
     this.expiry = other.expiry;
     this.classLoader = other.classLoader;
-    this.evictionPrioritizer = other.evictionPrioritizer;
     this.evictionVeto = other.evictionVeto;
     this.resourcePools = other.resourcePools;
     this.serviceConfigurations.addAll(other.serviceConfigurations);
-
   }
 
   public CacheConfigurationBuilder<K, V> add(ServiceConfiguration<?> configuration) {
@@ -63,12 +60,6 @@ public class CacheConfigurationBuilder<K, V> {
 
   public CacheConfigurationBuilder<K, V> add(Builder<? extends ServiceConfiguration<?>> configurationBuilder) {
     return add(configurationBuilder.build());
-  }
-
-  public <NK extends K, NV extends V> CacheConfigurationBuilder<NK, NV> usingEvictionPrioritizer(final EvictionPrioritizer<? super NK, ? super NV> evictionPrioritizer) {
-    CacheConfigurationBuilder<NK, NV> otherBuilder = new CacheConfigurationBuilder<NK, NV>(this);
-    otherBuilder.evictionPrioritizer = evictionPrioritizer;
-    return otherBuilder;
   }
 
   public <NK extends K, NV extends V> CacheConfigurationBuilder<NK, NV> evictionVeto(final EvictionVeto<? super NK, ? super NV> veto) {
@@ -100,14 +91,13 @@ public class CacheConfigurationBuilder<K, V> {
 
   public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType) {
     return new BaseCacheConfiguration<CK, CV>(keyType, valueType, evictionVeto,
-        evictionPrioritizer, classLoader, expiry, resourcePools,
+        classLoader, expiry, resourcePools,
         serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
   public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType,
-                                                     EvictionVeto<? super CK, ? super CV> evictionVeto,
-                                                     EvictionPrioritizer<? super CK, ? super CV> evictionPrioritizer) {
-    return new BaseCacheConfiguration<CK, CV>(keyType, valueType, evictionVeto, evictionPrioritizer,
+                                                     EvictionVeto<? super CK, ? super CV> evictionVeto) {
+    return new BaseCacheConfiguration<CK, CV>(keyType, valueType, evictionVeto,
         classLoader, expiry, resourcePools,
         serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }

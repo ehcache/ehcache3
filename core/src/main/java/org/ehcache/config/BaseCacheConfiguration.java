@@ -32,20 +32,18 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final EvictionVeto<? super K, ? super V> evictionVeto;
-  private final EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private final Collection<ServiceConfiguration<?>> serviceConfigurations;
   private final ClassLoader classLoader;
   private final Expiry<? super K, ? super V> expiry;
   private final ResourcePools resourcePools;
 
   public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType,
-          EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
+          EvictionVeto<? super K, ? super V> evictionVeto,
           ClassLoader classLoader, Expiry<? super K, ? super V> expiry,
           ResourcePools resourcePools, ServiceConfiguration<?>... serviceConfigurations) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.evictionVeto = evictionVeto;
-    this.evictionPrioritizer = evictionPrioritizer;
     this.classLoader = classLoader;
     if (expiry != null) {
       this.expiry = expiry;
@@ -74,11 +72,6 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   @Override
   public EvictionVeto<? super K, ? super V> getEvictionVeto() {
     return evictionVeto;
-  }
-
-  @Override
-  public EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer() {
-    return evictionPrioritizer;
   }
 
   public ClassLoader getClassLoader() {

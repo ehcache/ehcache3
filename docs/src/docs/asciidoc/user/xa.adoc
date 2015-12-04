@@ -22,7 +22,6 @@ supporting the whole two-phase commit protocol, including crash recovery.
    key or the value, default ones are automatically used instead. You cannot disable the `Copier` mechanism for a
    transactional cache.
  * Configured cache eviction veto policies are ignored.
- * Configured cache eviction prioritization policies are ignored.
  * Accessing a cache access outside of a JTA transaction context is forbidden.
  * There is no protection against the ABA problem.
  * Everything else works orthogonally.

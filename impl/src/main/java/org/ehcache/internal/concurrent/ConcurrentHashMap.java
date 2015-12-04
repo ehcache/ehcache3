@@ -27,6 +27,7 @@ import java.io.Serializable;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,6 +36,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
@@ -46,8 +48,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
-import org.ehcache.function.Predicate;
 
+import org.ehcache.function.Predicate;
 import org.ehcache.internal.concurrent.JSR166Helper.*;
 
 
@@ -6300,12 +6302,12 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         }
     }
 
-    public Set<Entry<K, V>> getRandomValues(Random rndm, int size, Predicate<Entry<K, V>> veto) {
-        Set<Entry<K, V>> sampled = new HashSet<Entry<K, V>>(size);
+    public List<Entry<K, V>> getRandomValues(Random rndm, int size, Predicate<Entry<K, V>> veto) {
+        List<Entry<K, V>> sampled = new ArrayList<Entry<K, V>>(size);
 
         Node<K,V>[] tab = table;
         if (tab == null || size == 0) {
-          return Collections.emptySet();
+          return Collections.emptyList();
         }
         int n = tab.length;
         int start = rndm.nextInt(n);
@@ -6356,7 +6358,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         return sampled;
     }
     
-    private static <T> boolean add(Set<? super T> to, Predicate<? super T> veto, T value) {
+    private static <T> boolean add(List<? super T> to, Predicate<? super T> veto, T value) {
       return !veto.test(value) && to.add(value);
     }
 }

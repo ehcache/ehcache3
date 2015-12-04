@@ -85,13 +85,13 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
       
       private Store<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         ResourcePools resourcePools = buildResourcePools(capacity);
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, null, getClass().getClassLoader(), expiry, resourcePools, new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, getClass().getClassLoader(), expiry, resourcePools, new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
         return new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier);
       }
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new SerializedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), defaultSerializer);
+        return new SerializedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, defaultSerializer);
       }
 
       private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {

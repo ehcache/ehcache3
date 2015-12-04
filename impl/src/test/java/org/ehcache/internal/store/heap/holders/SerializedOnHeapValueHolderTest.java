@@ -85,7 +85,7 @@ public class SerializedOnHeapValueHolderTest {
     final Exchanger<ByteBuffer> exchanger = new Exchanger<ByteBuffer>();
     final ReadExchangeSerializer serializer = new ReadExchangeSerializer(exchanger);
     final SerializedOnHeapValueHolder<String> valueHolder = new SerializedOnHeapValueHolder<String>("test it!", System
-        .currentTimeMillis(), serializer);
+        .currentTimeMillis(), false, serializer);
 
     new Thread(new Runnable() {
       @Override
@@ -131,7 +131,7 @@ public class SerializedOnHeapValueHolderTest {
   }
 
   private static <V extends Serializable> ValueHolder<V> newValueHolder(V value) {
-    return new SerializedOnHeapValueHolder<V>(value, TestTimeSource.INSTANCE.getTimeMillis(), new JavaSerializer<V>(SerializedOnHeapValueHolderTest.class.getClassLoader()));
+    return new SerializedOnHeapValueHolder<V>(value, TestTimeSource.INSTANCE.getTimeMillis(), false, new JavaSerializer<V>(SerializedOnHeapValueHolderTest.class.getClassLoader()));
   }
 
   private static class TestTimeSource implements TimeSource {

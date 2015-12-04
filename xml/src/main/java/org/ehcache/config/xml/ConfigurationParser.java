@@ -262,16 +262,6 @@ class ConfigurationParser {
           }
 
           @Override
-          public String evictionPrioritizer() {
-            String value = null;
-            for (BaseCacheType source : sources) {
-              value = source.getEvictionPrioritizer();
-              if (value != null) break;
-            }
-            return value;
-          }
-
-          @Override
           public Expiry expiry() {
             ExpiryType value = null;
             for (BaseCacheType source : sources) {
@@ -495,11 +485,6 @@ class ConfigurationParser {
           }
 
           @Override
-          public String evictionPrioritizer() {
-            return cacheTemplate.getEvictionPrioritizer();
-          }
-
-          @Override
           public Expiry expiry() {
             ExpiryType cacheTemplateExpiry = cacheTemplate.getExpiry();
             if (cacheTemplateExpiry != null) {
@@ -664,8 +649,6 @@ class ConfigurationParser {
     String valueCopier();
 
     String evictionVeto();
-
-    String evictionPrioritizer();
 
     Expiry expiry();
 

@@ -18,30 +18,37 @@ package org.ehcache.config.xml;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.config.copy.DefaultCopierConfiguration;
-import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
-import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePoolsBuilder;
+import org.ehcache.config.copy.DefaultCopierConfiguration;
+import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
+import org.ehcache.config.event.CacheEventDispatcherFactoryConfiguration;
+import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
+import org.ehcache.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
-import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.config.serializer.DefaultSerializerConfiguration;
+import org.ehcache.config.store.disk.OffHeapDiskStoreConfiguration;
+import org.ehcache.config.store.disk.OffHeapDiskStoreProviderConfiguration;
 import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
+import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
+import org.ehcache.config.xml.ConfigurationParser.Batching;
 import org.ehcache.config.xml.ConfigurationParser.WriteBehind;
 import org.ehcache.config.xml.model.CopierType;
+import org.ehcache.config.xml.model.EventType;
 import org.ehcache.config.xml.model.SerializerType;
 import org.ehcache.config.xml.model.ServiceType;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
-import org.ehcache.config.xml.model.EventType;
+import org.ehcache.config.xml.model.ThreadPoolReferenceType;
+import org.ehcache.config.xml.model.ThreadPoolsType;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
@@ -66,15 +73,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import org.ehcache.config.event.CacheEventDispatcherFactoryConfiguration;
-import org.ehcache.config.executor.PooledExecutionServiceConfiguration;
-import org.ehcache.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
-import org.ehcache.config.store.disk.OffHeapDiskStoreConfiguration;
-import org.ehcache.config.store.disk.OffHeapDiskStoreProviderConfiguration;
-import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
-import org.ehcache.config.xml.ConfigurationParser.Batching;
-import org.ehcache.config.xml.model.ThreadPoolReferenceType;
-import org.ehcache.config.xml.model.ThreadPoolsType;
 
 /**
  * Exposes {@link org.ehcache.config.Configuration} and {@link org.ehcache.config.CacheConfigurationBuilder} expressed
@@ -275,7 +273,6 @@ public class XmlConfiguration implements Configuration {
         builder = builder.add(new DefaultCopierConfiguration(valueCopier, DefaultCopierConfiguration.Type.VALUE));
       }
       EvictionVeto evictionVeto = getInstanceOfName(cacheDefinition.evictionVeto(), cacheClassLoader, EvictionVeto.class);
-      EvictionPrioritizer evictionPrioritizer = getInstanceOfName(cacheDefinition.evictionPrioritizer(), cacheClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class);
       final ConfigurationParser.Expiry parsedExpiry = cacheDefinition.expiry();
       if (parsedExpiry != null) {
         builder = builder.withExpiry(getExpiry(cacheClassLoader, parsedExpiry));
@@ -347,7 +344,7 @@ public class XmlConfiguration implements Configuration {
           builder = builder.add(listenerBuilder);
         }
       }
-      final CacheConfiguration<?, ?> config = builder.buildConfig(keyType, valueType, evictionVeto, evictionPrioritizer);
+      final CacheConfiguration<?, ?> config = builder.buildConfig(keyType, valueType, evictionVeto);
       cacheConfigurations.put(alias, config);
     }
 
@@ -461,7 +458,6 @@ public class XmlConfiguration implements Configuration {
 
     CacheConfigurationBuilder<K, V> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
     builder = builder
-        .usingEvictionPrioritizer(getInstanceOfName(cacheTemplate.evictionPrioritizer(), defaultClassLoader, EvictionPrioritizer.class, Eviction.Prioritizer.class))
         .evictionVeto(getInstanceOfName(cacheTemplate.evictionVeto(), defaultClassLoader, EvictionVeto.class));
     final ConfigurationParser.Expiry parsedExpiry = cacheTemplate.expiry();
     if (parsedExpiry != null) {

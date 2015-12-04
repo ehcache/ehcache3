@@ -16,23 +16,15 @@
 
 package org.ehcache;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.EvictionPrioritizer;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.StoreConfigurationImpl;
-import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.UserManagedCacheConfiguration;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.expiry.Expirations;
@@ -47,16 +39,22 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.util.ClassLoading;
-import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
-import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author Alex Snaps
@@ -82,7 +80,6 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
   private Expiry<? super K, ? super V> expiry = Expirations.noExpiration();
   private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
   private EvictionVeto<? super K, ? super V> evictionVeto;
-  private EvictionPrioritizer<? super K, ? super V> evictionPrioritizer;
   private CacheLoaderWriter<? super K, V> cacheLoaderWriter;
   private CacheEventDispatcher<K, V> cacheEventNotificationService;
   private ResourcePools resourcePools = newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
@@ -167,12 +164,12 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
       }
     }
     final Store.Provider storeProvider = serviceLocator.getService(Store.Provider.class);
-    Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType, evictionVeto, evictionPrioritizer, classLoader,
+    Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType, evictionVeto, classLoader,
             expiry, resourcePools, keySerializer, valueSerializer);
     final Store<K, V> store = storeProvider.createStore(storeConfig, serviceConfigs);
 
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionVeto,
-        evictionPrioritizer, classLoader, expiry, resourcePools);
+        classLoader, expiry, resourcePools);
 
     lifeCycledList.add(new LifeCycled() {
       @Override
@@ -240,11 +237,6 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     return this;
   }
   
-  public final UserManagedCacheBuilder<K, V, T> prioritizeEviction(EvictionPrioritizer<? super K, ? super V> criteria) {
-    this.evictionPrioritizer = criteria;
-    return this;
-  }
-
   public final UserManagedCacheBuilder<K, V, T> loadingAndWritingWith(CacheLoaderWriter<? super K, V> cacheLoaderWriter) {
     this.cacheLoaderWriter = cacheLoaderWriter;
     return this;
