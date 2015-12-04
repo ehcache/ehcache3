@@ -21,7 +21,6 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.Predicate;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceService;
 import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory;
@@ -50,8 +49,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.function.Predicates;
 
 import static org.ehcache.internal.store.offheap.OffHeapStoreUtils.getBufferSource;
 
@@ -60,7 +59,7 @@ import static org.ehcache.internal.store.offheap.OffHeapStoreUtils.getBufferSour
  */
 public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
-  private final Predicate<Map.Entry<K, OffHeapValueHolder<V>>> evictionVeto;
+  private final EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto;
   private final Serializer<K> keySerializer;
   private final Serializer<V> valueSerializer;
   private final long sizeInBytes;
@@ -71,9 +70,9 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     super("local-offheap", config, timeSource);
     EvictionVeto<? super K, ? super V> veto = config.getEvictionVeto();
     if (veto != null) {
-      evictionVeto = wrap(veto, timeSource);
+      evictionVeto = wrap(veto);
     } else {
-      evictionVeto = Predicates.none();
+      evictionVeto = Eviction.none();
     }
     this.keySerializer = config.getKeySerializer();
     this.valueSerializer = config.getValueSerializer();
@@ -85,7 +84,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     return Collections.emptyList();
   }
 
-  private EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, Predicate<Map.Entry<K, OffHeapValueHolder<V>>> evictionVeto) {
+  private EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto) {
     HeuristicConfiguration config = new HeuristicConfiguration(size);
     PageSource source = new UpfrontAllocatingPageSource(getBufferSource(), config.getMaximumSize(), config.getMaximumChunkSize(), config.getMinimumChunkSize());
     Portability<K> keyPortability = new SerializerPortability<K>(keySerializer);

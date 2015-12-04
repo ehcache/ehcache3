@@ -16,11 +16,6 @@
 
 package org.ehcache.config;
 
-import org.ehcache.Cache;
-import org.ehcache.function.Predicates;
-
-import java.util.concurrent.TimeUnit;
-
 /**
  * Utility class for getting predefined {@link EvictionVeto} instance.
  *
@@ -38,8 +33,8 @@ public final class Eviction {
   public static <K, V> EvictionVeto<K, V> none() {
     return new EvictionVeto<K, V>() {
       @Override
-      public boolean test(final Cache.Entry<K, V> argument) {
-        return Predicates.<Cache.Entry<K, V>>none().test(argument);
+      public boolean vetoes(K key, V value) {
+        return false;
       }
     };
   }

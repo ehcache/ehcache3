@@ -17,8 +17,6 @@
 package org.ehcache.internal.store.offheap.factories;
 
 import org.ehcache.function.BiFunction;
-import org.ehcache.function.Predicate;
-import org.ehcache.function.Predicates;
 import org.ehcache.internal.store.offheap.HeuristicConfiguration;
 import org.ehcache.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
@@ -32,9 +30,8 @@ import org.terracotta.offheapstore.storage.PointerSize;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
 
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.ehcache.config.Eviction;
+import org.ehcache.config.EvictionVeto;
 
 import static org.ehcache.internal.store.offheap.OffHeapStoreUtils.getBufferSource;
 import static org.ehcache.spi.TestServiceProvider.providerContaining;
@@ -49,18 +46,18 @@ import static org.mockito.Mockito.verify;
 public class EhcacheSegmentTest {
 
   private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment() {
-    return createTestSegment(Predicates.<Map.Entry<String, String>>none(), mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
+    return createTestSegment(Eviction.none(), mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }
   
-  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(Predicate<Map.Entry<String, String>> evictionPredicate) {
+  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EvictionVeto<? super String, ? super String> evictionPredicate) {
     return createTestSegment(evictionPredicate, mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }
   
   private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
-    return createTestSegment(Predicates.<Map.Entry<String, String>>none(), evictionListener);
+    return createTestSegment(Eviction.none(), evictionListener);
   }
   
-  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(Predicate<Map.Entry<String, String>> evictionPredicate, EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
+  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EvictionVeto<? super String, ? super String> evictionPredicate, EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
@@ -292,10 +289,10 @@ public class EhcacheSegmentTest {
 
   @Test
   public void testPutVetoedComputesMetadata() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment(new Predicate<Map.Entry<String, String>>() {
+    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment(new EvictionVeto<String, String>() {
       @Override
-      public boolean test(Map.Entry<String, String> argument) {
-        return "vetoed".equals(argument.getKey());
+      public boolean vetoes(String key, String value) {
+        return "vetoed".equals(key);
       }
     });
     try {
@@ -308,10 +305,10 @@ public class EhcacheSegmentTest {
 
   @Test
   public void testPutPinnedVetoedComputesMetadata() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment(new Predicate<Map.Entry<String, String>>() {
+    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment(new EvictionVeto<String, String>() {
       @Override
-      public boolean test(Map.Entry<String, String> argument) {
-        return "vetoed".equals(argument.getKey());
+      public boolean vetoes(String key, String value) {
+        return "vetoed".equals(key);
       }
     });
     try {

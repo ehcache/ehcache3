@@ -276,7 +276,7 @@ public abstract class AbstractOffHeapStoreTest {
     EvictionVeto<String, byte[]> evictionVeto = new EvictionVeto<String, byte[]>() {
 
       @Override
-      public boolean test(Cache.Entry<String, byte[]> entry) {
+      public boolean vetoes(String key, byte[] value) {
         return true;
       }
     };
@@ -307,7 +307,7 @@ public abstract class AbstractOffHeapStoreTest {
     EvictionVeto<String, byte[]> evictionVeto = new EvictionVeto<String, byte[]>() {
 
       @Override
-      public boolean test(Cache.Entry<String, byte[]> entry) {
+      public boolean vetoes(String key, byte[] value) {
         throw new UnsupportedOperationException("Broken veto!");
       }
     };

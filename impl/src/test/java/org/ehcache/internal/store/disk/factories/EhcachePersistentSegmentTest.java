@@ -19,8 +19,6 @@ package org.ehcache.internal.store.disk.factories;
 import java.io.IOException;
 import org.ehcache.internal.store.offheap.factories.*;
 import org.ehcache.function.BiFunction;
-import org.ehcache.function.Predicate;
-import org.ehcache.function.Predicates;
 import org.ehcache.internal.store.offheap.HeuristicConfiguration;
 import org.ehcache.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
@@ -35,6 +33,8 @@ import org.junit.rules.TemporaryFolder;
 import org.terracotta.offheapstore.util.Factory;
 
 import java.util.Map;
+import org.ehcache.config.Eviction;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.internal.store.disk.factories.EhcachePersistentSegmentFactory.EhcachePersistentSegment;
 
 import static org.ehcache.internal.store.disk.OffHeapDiskStore.persistent;
@@ -56,18 +56,18 @@ public class EhcachePersistentSegmentTest {
   public final TemporaryFolder folder = new TemporaryFolder();
   
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment() throws IOException {
-    return createTestSegment(Predicates.<Map.Entry<String, String>>none(), mock(EvictionListener.class));
+    return createTestSegment(Eviction.<String, String>none(), mock(EvictionListener.class));
   }
   
-  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(Predicate<Map.Entry<String, String>> evictionPredicate) throws IOException {
+  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionVeto<String, String> evictionPredicate) throws IOException {
     return createTestSegment(evictionPredicate, mock(EvictionListener.class));
   }
   
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionListener<String, String> evictionListener) throws IOException {
-    return createTestSegment(Predicates.<Map.Entry<String, String>>none(), evictionListener);
+    return createTestSegment(Eviction.<String, String>none(), evictionListener);
   }
   
-  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(Predicate<Map.Entry<String, String>> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
+  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionVeto<String, String> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
@@ -299,10 +299,10 @@ public class EhcachePersistentSegmentTest {
 
   @Test
   public void testPutVetoedComputesMetadata() throws IOException {
-    EhcachePersistentSegment<String, String> segment = createTestSegment(new Predicate<Map.Entry<String, String>>() {
+    EhcachePersistentSegment<String, String> segment = createTestSegment(new EvictionVeto<String, String>() {
       @Override
-      public boolean test(Map.Entry<String, String> argument) {
-        return "vetoed".equals(argument.getKey());
+      public boolean vetoes(String key, String value) {
+        return "vetoed".equals(key);
       }
     });
     try {
@@ -315,10 +315,10 @@ public class EhcachePersistentSegmentTest {
 
   @Test
   public void testPutPinnedVetoedComputesMetadata() throws IOException {
-    EhcachePersistentSegment<String, String> segment = createTestSegment(new Predicate<Map.Entry<String, String>>() {
+    EhcachePersistentSegment<String, String> segment = createTestSegment(new EvictionVeto<String, String>() {
       @Override
-      public boolean test(Map.Entry<String, String> argument) {
-        return "vetoed".equals(argument.getKey());
+      public boolean vetoes(String key, String value) {
+        return "vetoed".equals(key);
       }
     });
     try {

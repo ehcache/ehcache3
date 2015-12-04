@@ -46,11 +46,11 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
+import org.ehcache.config.EvictionVeto;
 
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 
-import org.ehcache.function.Predicate;
 import org.ehcache.internal.concurrent.JSR166Helper.*;
 
 
@@ -6304,7 +6304,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         }
     }
 
-    public List<Entry<K, V>> getRandomValues(Random rndm, int size, Predicate<Entry<K, V>> veto) {
+    public List<Entry<K, V>> getRandomValues(Random rndm, int size, EvictionVeto<K, V> veto) {
         List<Entry<K, V>> sampled = new ArrayList<Entry<K, V>>(size);
 
         Node<K,V>[] tab = table;
@@ -6318,20 +6318,18 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
           Node<K,V> next = t1.advance();
           if (next == null) {
             break;
-          } else {
-            if (add(sampled, veto, new MapEntry<K, V>(next.key, next.val, this))) {
-              if (sampled.size() == size) {
-                int terminalIndex = t1.index;
-                while (t1.index == terminalIndex) {
-                  next = t1.advance();
-                  if (next == null) {
-                    return sampled;
-                  } else {
-                    add(sampled, veto, new MapEntry<K, V>(next.key, next.val, this));
-                  }
+          } else if (!veto.vetoes(next.key, next.val) && sampled.add(new MapEntry<K, V>(next.key, next.val, this))) {
+            if (sampled.size() == size) {
+              int terminalIndex = t1.index;
+              while (t1.index == terminalIndex) {
+                next = t1.advance();
+                if (next == null) {
+                  return sampled;
+                } else if (!veto.vetoes(next.key, next.val)) {
+                  sampled.add(new MapEntry<K, V>(next.key, next.val, this));
                 }
-                return sampled;
               }
+              return sampled;
             }
           }
         }
@@ -6340,27 +6338,21 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
           Node<K,V> next = t2.advance();
           if (next == null) {
             break;
-          } else {
-            if (add(sampled, veto, new MapEntry<K, V>(next.key, next.val, this))) {
-              if (sampled.size() == size) {
-                int terminalIndex = t2.index;
-                while (t2.index == terminalIndex) {
-                  next = t2.advance();
-                  if (next == null) {
-                    return sampled;
-                  } else {
-                    add(sampled, veto, new MapEntry<K, V>(next.key, next.val, this));
-                  }
+          } else if (!veto.vetoes(next.key, next.val) && sampled.add(new MapEntry<K, V>(next.key, next.val, this))) {
+            if (sampled.size() == size) {
+              int terminalIndex = t2.index;
+              while (t2.index == terminalIndex) {
+                next = t2.advance();
+                if (next == null) {
+                  return sampled;
+                } else if (!veto.vetoes(next.key, next.val)) {
+                  sampled.add(new MapEntry<K, V>(next.key, next.val, this));
                 }
-                return sampled;
               }
+              return sampled;
             }
           }
         }
         return sampled;
-    }
-    
-    private static <T> boolean add(List<? super T> to, Predicate<? super T> veto, T value) {
-      return !veto.test(value) && to.add(value);
     }
 }

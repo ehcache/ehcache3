@@ -18,7 +18,6 @@ package org.ehcache.internal.store.disk.factories;
 
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
-import org.ehcache.function.Predicate;
 import org.terracotta.offheapstore.Metadata;
 import org.terracotta.offheapstore.disk.paging.MappedPageSource;
 import org.terracotta.offheapstore.disk.persistent.PersistentReadWriteLockedOffHeapClockCache;
@@ -28,6 +27,7 @@ import org.terracotta.offheapstore.util.Factory;
 
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment;
 import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.EvictionListener;
 import static org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.VETOED;
@@ -42,12 +42,12 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<PinnableSe
   private final MappedPageSource tableSource;
   private final int tableSize;
 
-  private final Predicate<Map.Entry<K, V>> evictionVeto;
+  private final EvictionVeto<? super K, ? super V> evictionVeto;
   private final EhcacheSegment.EvictionListener<K, V> evictionListener;
 
   private final boolean bootstrap;
   
-  public EhcachePersistentSegmentFactory(MappedPageSource source, Factory<? extends PersistentStorageEngine<? super K, ? super V>> storageEngineFactory, int initialTableSize, Predicate<Map.Entry<K, V>> evictionVeto, EhcacheSegment.EvictionListener<K, V> evictionListener, boolean bootstrap) {
+  public EhcachePersistentSegmentFactory(MappedPageSource source, Factory<? extends PersistentStorageEngine<? super K, ? super V>> storageEngineFactory, int initialTableSize, EvictionVeto<? super K, ? super V> evictionVeto, EhcacheSegment.EvictionListener<K, V> evictionListener, boolean bootstrap) {
     this.storageEngineFactory = storageEngineFactory;
     this.tableSource = source;
     this.tableSize = initialTableSize;
@@ -68,10 +68,10 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<PinnableSe
 
   public static class EhcachePersistentSegment<K, V> extends PersistentReadWriteLockedOffHeapClockCache<K, V> {
 
-    private final Predicate<Entry<K, V>> evictionVeto;
+    private final EvictionVeto<? super K, ? super V> evictionVeto;
     private final EvictionListener<K, V> evictionListener;
 
-    EhcachePersistentSegment(MappedPageSource source, PersistentStorageEngine<? super K, ? super V> storageEngine, int tableSize, boolean bootstrap, Predicate<Entry<K, V>> evictionVeto, EvictionListener<K, V> evictionListener) {
+    EhcachePersistentSegment(MappedPageSource source, PersistentStorageEngine<? super K, ? super V> storageEngine, int tableSize, boolean bootstrap, EvictionVeto<? super K, ? super V> evictionVeto, EvictionListener<K, V> evictionListener) {
       super(source, storageEngine, tableSize, bootstrap);
       this.evictionVeto = evictionVeto;
       this.evictionListener = evictionListener;
@@ -185,7 +185,7 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<PinnableSe
     }
 
     private int getVetoedStatus(final K key, final V value) {
-      return evictionVeto.test(new SimpleImmutableEntry<K, V>(key, value)) ? VETOED : 0;
+      return evictionVeto.vetoes(key, value) ? VETOED : 0;
     }
 
     @Override

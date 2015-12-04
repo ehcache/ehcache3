@@ -18,7 +18,6 @@ package org.ehcache.internal.store.offheap.factories;
 
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
-import org.ehcache.function.Predicate;
 
 import org.terracotta.offheapstore.Metadata;
 import org.terracotta.offheapstore.ReadWriteLockedOffHeapClockCache;
@@ -29,6 +28,7 @@ import org.terracotta.offheapstore.util.Factory;
 
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
+import org.ehcache.config.EvictionVeto;
 
 /**
  * EhcacheSegmentFactory
@@ -38,10 +38,10 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
   private final Factory<? extends StorageEngine<? super K, ? super V>> storageEngineFactory;
   private final PageSource tableSource;
   private final int tableSize;
-  private final Predicate<Map.Entry<K, V>> evictionVeto;
+  private final EvictionVeto<? super K, ? super V> evictionVeto;
   private final EhcacheSegment.EvictionListener<K, V> evictionListener;
 
-  public EhcacheSegmentFactory(PageSource source, Factory<? extends StorageEngine<? super K, ? super V>> storageEngineFactory, int initialTableSize, Predicate<Map.Entry<K, V>> evictionVeto, EhcacheSegment.EvictionListener<K, V> evictionListener) {
+  public EhcacheSegmentFactory(PageSource source, Factory<? extends StorageEngine<? super K, ? super V>> storageEngineFactory, int initialTableSize, EvictionVeto<? super K, ? super V> evictionVeto, EhcacheSegment.EvictionListener<K, V> evictionListener) {
     this.storageEngineFactory = storageEngineFactory;
     this.tableSource = source;
     this.tableSize = initialTableSize;
@@ -63,10 +63,10 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
 
     public static final int VETOED = 1 << (Integer.SIZE - 3);
 
-    private final Predicate<Entry<K, V>> evictionVeto;
+    private final EvictionVeto<? super K, ? super V> evictionVeto;
     private final EvictionListener<K, V> evictionListener;
 
-    EhcacheSegment(PageSource source, StorageEngine<? super K, ? super V> storageEngine, int tableSize, Predicate<Entry<K, V>> evictionVeto, EvictionListener<K, V> evictionListener) {
+    EhcacheSegment(PageSource source, StorageEngine<? super K, ? super V> storageEngine, int tableSize, EvictionVeto<? super K, ? super V> evictionVeto, EvictionListener<K, V> evictionListener) {
       super(source, true, storageEngine, tableSize);
       this.evictionVeto = evictionVeto;
       this.evictionListener = evictionListener;
@@ -181,7 +181,7 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
     }
 
     private int getVetoedStatus(final K key, final V value) {
-      return evictionVeto.test(new SimpleImmutableEntry<K, V>(key, value)) ? VETOED : 0;
+      return evictionVeto.vetoes(key, value) ? VETOED : 0;
     }
 
     @Override

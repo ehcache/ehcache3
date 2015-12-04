@@ -16,7 +16,6 @@
 
 package com.pany.ehcache;
 
-import org.ehcache.Cache;
 import org.ehcache.config.EvictionVeto;
 
 import com.pany.domain.Product;
@@ -26,7 +25,7 @@ import com.pany.domain.Product;
  */
 public class MyEvictionVeto implements EvictionVeto<Long, Product> {
   @Override
-  public boolean test(final Cache.Entry<Long, Product> argument) {
-    return argument.getValue().getMutable() != null;
+  public boolean vetoes(Long key, Product value) {
+    return value.getMutable() != null;
   }
 }

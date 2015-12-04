@@ -16,13 +16,13 @@
 
 package org.ehcache.internal.concurrent;
 
-import org.ehcache.function.Predicate;
-import org.ehcache.function.Predicates;
 import org.junit.Test;
 
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Random;
+import org.ehcache.config.Eviction;
+import org.ehcache.config.EvictionVeto;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -38,36 +38,21 @@ public class ConcurrentHashMapTest {
     @Test
     public void testRandomSampleOnEmptyMap() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
-        assertThat(map.getRandomValues(new Random(), 1, new Predicate<Entry<String, String>>() {
-            @Override
-            public boolean test(final Entry<String, String> argument) {
-                return Predicates.none().test(argument);
-            }
-        }), empty());
+        assertThat(map.getRandomValues(new Random(), 1, Eviction.<String, String>none()), empty());
     }
     
     @Test
     public void testEmptyRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
         map.put("foo", "bar");
-        assertThat(map.getRandomValues(new Random(), 0, new Predicate<Entry<String, String>>() {
-            @Override
-            public boolean test(final Entry<String, String> argument) {
-                return Predicates.none().test(argument);
-            }
-        }), empty());
+        assertThat(map.getRandomValues(new Random(), 0, Eviction.<String, String>none()), empty());
     }
     
     @Test
     public void testOversizedRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
         map.put("foo", "bar");
-        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 2, new Predicate<Entry<String, String>>() {
-            @Override
-            public boolean test(final Entry<String, String> argument) {
-                return Predicates.none().test(argument);
-            }
-        });
+        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 2, Eviction.<String, String>none());
         assertThat(sample, hasSize(1));
         Entry<String, String> e = sample.iterator().next();
         assertThat(e.getKey(), is("foo"));
@@ -80,12 +65,7 @@ public class ConcurrentHashMapTest {
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 2, new Predicate<Entry<String, String>>() {
-            @Override
-            public boolean test(final Entry<String, String> argument) {
-                return Predicates.none().test(argument);
-            }
-        });
+        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 2, Eviction.<String, String>none());
         assertThat(sample, hasSize(greaterThanOrEqualTo(2)));
     }
     
@@ -95,10 +75,10 @@ public class ConcurrentHashMapTest {
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 2, new Predicate<Entry<String, String>>() {
+        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 2, new EvictionVeto<String, String>() {
             @Override
-            public boolean test(final Entry<String, String> argument) {
-                return Predicates.all().test(argument);
+            public boolean vetoes(String key, String value) {
+                return true;
             }
         });
         assertThat(sample, empty());
@@ -110,11 +90,11 @@ public class ConcurrentHashMapTest {
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 20, new Predicate<Entry<String, String>>() {
+        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 20, new EvictionVeto<String, String>() {
 
           @Override
-          public boolean test(Entry<String, String> argument) {
-            return argument.getKey().length() > 1;
+          public boolean vetoes(String key, String value) {
+            return key.length() > 1;
           }
         });
         assertThat(sample, hasSize(10));

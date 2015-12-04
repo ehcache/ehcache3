@@ -16,9 +16,6 @@
 
 package org.ehcache.config;
 
-import org.ehcache.Cache;
-import org.ehcache.function.Predicate;
-
 /**
  * A specialized {@link Predicate} used to veto eviction of cache entries.
  *
@@ -27,6 +24,14 @@ import org.ehcache.function.Predicate;
  *
  * @author Alex Snaps
  */
-public interface EvictionVeto<K, V> extends Predicate<Cache.Entry<K, V>> {
+public interface EvictionVeto<K, V> {
 
+  /**
+   * Returns {@code true} if the given key value pair should be vetoed from eviction.
+   * 
+   * @param key the entry key 
+   * @param value the entry value
+   * @return {@code true} if eviction should be avoided
+   */
+  boolean vetoes(K key, V value);
 }
