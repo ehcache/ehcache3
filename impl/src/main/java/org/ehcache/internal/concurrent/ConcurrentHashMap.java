@@ -24,6 +24,7 @@ package org.ehcache.internal.concurrent;
 
 import java.io.ObjectStreamField;
 import java.io.Serializable;
+import static java.lang.Integer.rotateLeft;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.AbstractMap;
@@ -671,6 +672,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * never be used in index calculations because of table bounds.
      */
     static final int spread(int h) {
+        h = rotateLeft(h, 1);
         return (h ^ (h >>> 16)) & HASH_BITS;
     }
 
