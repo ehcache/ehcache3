@@ -103,7 +103,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   private volatile long capacity;
   private final EvictionVeto<? super K, ? super V> evictionVeto;
-  private final Comparator<? extends Map.Entry<? super K, ? extends OnHeapValueHolder<? super V>>> evictionPrioritizer;
+  private final Comparator<ValueHolder<?>> evictionPrioritizer;
   private final Expiry<? super K, ? super V> expiry;
   private final TimeSource timeSource;
   private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener();
@@ -171,15 +171,15 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     } else {
       this.evictionVeto = config.getEvictionVeto();
     }
-    this.evictionPrioritizer = new Comparator<Entry<Object, OnHeapValueHolder<Object>>>() {
+    this.evictionPrioritizer = new Comparator<ValueHolder<?>>() {
       @Override
-      public int compare(Entry<Object, OnHeapValueHolder<Object>> t, Entry<Object, OnHeapValueHolder<Object>> u) {
-        if (t.getValue() instanceof Fault) {
+      public int compare(ValueHolder<?> t, ValueHolder<?> u) {
+        if (t instanceof Fault) {
           return -1;
-        } else if (u.getValue() instanceof Fault) {
+        } else if (u instanceof Fault) {
           return 1;
         } else {
-          return Long.signum(t.getValue().lastAccessTime(TimeUnit.NANOSECONDS) - u.getValue().lastAccessTime(TimeUnit.NANOSECONDS));
+          return Long.signum(t.lastAccessTime(TimeUnit.NANOSECONDS) - u.lastAccessTime(TimeUnit.NANOSECONDS));
         }
       }
     };
@@ -1294,32 +1294,22 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     final Random random = new Random();
 
     @SuppressWarnings("unchecked")
-    Set<Map.Entry<K, OnHeapValueHolder<V>>> values = map.getRandomValues(random, SAMPLE_SIZE, new EvictionVeto<K, OnHeapValueHolder<V>>() {
+    Map.Entry<K, OnHeapValueHolder<V>> candidate = map.getEvictionCandidate(random, SAMPLE_SIZE, evictionPrioritizer, new EvictionVeto<K, OnHeapValueHolder<V>>() {
       @Override
       public boolean vetoes(K key, OnHeapValueHolder<V> value) {
         return value.veto();
       }
     });
    
-    if (values.isEmpty()) {
+    if (candidate == null) {
       // 2nd attempt without any veto
-      values = map.getRandomValues(random, SAMPLE_SIZE, Eviction.<K, OnHeapValueHolder<V>>none());
+      candidate = map.getEvictionCandidate(random, SAMPLE_SIZE, evictionPrioritizer, Eviction.none());
     }
 
-    if (values.isEmpty()) {
+    if (candidate == null) {
       return false;
     } else {
-      Map.Entry<K, OnHeapValueHolder<V>> tmpEvict;
-      try {
-        tmpEvict = Collections.max(values, (Comparator<? super Entry<K, OnHeapValueHolder<V>>>)evictionPrioritizer);
-      } catch (Exception e) {
-        LOG.error("Exception raised when prioritizing eviction candidates " +
-                  "- eviction will continue simply picking first candidate", e);
-        tmpEvict = values.iterator().next();
-      }
-      final Map.Entry<K, OnHeapValueHolder<V>> evictionCandidate = tmpEvict;
-
-
+      final Map.Entry<K, OnHeapValueHolder<V>> evictionCandidate = candidate;
       final AtomicBoolean removed = new AtomicBoolean(false);
       map.computeIfPresent(evictionCandidate.getKey(), new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
         @Override
@@ -1476,19 +1466,19 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       return keyCopyMap.remove(lookupOnlyKey(key), value);
     }
 
-    public Set<Entry<K, OnHeapValueHolder<V>>> getRandomValues(Random random, int size, final EvictionVeto<K, OnHeapValueHolder<V>> evictionVeto) {
-      List<Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>>> values = keyCopyMap.getRandomValues(random, size, new EvictionVeto<OnHeapKey<K>, OnHeapValueHolder<V>>() {
+    public Entry<K, OnHeapValueHolder<V>> getEvictionCandidate(Random random, int size, final Comparator<? super ValueHolder<V>> prioritizer, final EvictionVeto<? super K, ? super OnHeapValueHolder<V>> evictionVeto) {
+      Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>> candidate = keyCopyMap.getEvictionCandidate(random, size, prioritizer, new EvictionVeto<OnHeapKey<K>, OnHeapValueHolder<V>>() {
         @Override
         public boolean vetoes(OnHeapKey<K> key, OnHeapValueHolder<V> value) {
           return evictionVeto.vetoes(key.getActualKeyObject(), value);
         }
       });
 
-      Set<Map.Entry<K, OnHeapValueHolder<V>>> rv = new LinkedHashSet<Map.Entry<K, OnHeapValueHolder<V>>>(values.size());
-      for (Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry : values) {
-        rv.add(new SimpleEntry<K, OnHeapValueHolder<V>>(entry.getKey().getActualKeyObject(), entry.getValue()));
+      if (candidate == null) {
+        return null;
+      } else {
+        return new SimpleEntry<K, OnHeapValueHolder<V>>(candidate.getKey().getActualKeyObject(), candidate.getValue());
       }
-      return rv;
     }
 
     int size() {

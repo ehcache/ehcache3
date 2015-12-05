@@ -28,16 +28,13 @@ import static java.lang.Integer.rotateLeft;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
@@ -6304,55 +6301,68 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         }
     }
 
-    public List<Entry<K, V>> getRandomValues(Random rndm, int size, EvictionVeto<K, V> veto) {
-        List<Entry<K, V>> sampled = new ArrayList<Entry<K, V>>(size);
-
+    public Entry<K, V> getEvictionCandidate(Random rndm, int size, Comparator<? super V> prioritizer, EvictionVeto<? super K, ? super V> veto) {
         Node<K,V>[] tab = table;
         if (tab == null || size == 0) {
-          return Collections.emptyList();
+          return null;
         }
+
+        int sampled = 0;
+        K candidateKey = null;
+        V candidateVal = null;
+
         int n = tab.length;
         int start = rndm.nextInt(n);
         Traverser<K, V> t1 = new Traverser<K, V>(tab, n, start, n);
-        while (true) {
-          Node<K,V> next = t1.advance();
-          if (next == null) {
-            break;
-          } else if (!veto.vetoes(next.key, next.val) && sampled.add(new MapEntry<K, V>(next.key, next.val, this))) {
-            if (sampled.size() == size) {
-              int terminalIndex = t1.index;
-              while (t1.index == terminalIndex) {
-                next = t1.advance();
-                if (next == null) {
-                  return sampled;
-                } else if (!veto.vetoes(next.key, next.val)) {
-                  sampled.add(new MapEntry<K, V>(next.key, next.val, this));
+        for (Node<K, V> p; (p = t1.advance()) != null;) {
+            K key = p.key;
+            V val = p.val;
+            if (!veto.vetoes(key, val)) {
+                if (candidateKey == null || prioritizer.compare(val, candidateVal) > 0) {
+                    candidateKey = key;
+                    candidateVal = val;
                 }
-              }
-              return sampled;
+                if (++sampled == size) {
+                    int terminalIndex = t1.index;
+                    while ((p = t1.advance()) != null && t1.index == terminalIndex) {
+                        K surplusKey = p.key;
+                        V surplusVal = p.val;
+                        if (!veto.vetoes(surplusKey, surplusVal) && prioritizer.compare(surplusVal, candidateVal) > 0) {
+                            candidateKey = surplusKey;
+                            candidateVal = surplusVal;
+                        }
+                    }
+                    return new MapEntry<K, V>(candidateKey, candidateVal, this);
+                }
             }
-          }
         }
         Traverser<K, V> t2 = new Traverser<K, V>(tab, n, 0, start);
-        while (true) {
-          Node<K,V> next = t2.advance();
-          if (next == null) {
-            break;
-          } else if (!veto.vetoes(next.key, next.val) && sampled.add(new MapEntry<K, V>(next.key, next.val, this))) {
-            if (sampled.size() == size) {
-              int terminalIndex = t2.index;
-              while (t2.index == terminalIndex) {
-                next = t2.advance();
-                if (next == null) {
-                  return sampled;
-                } else if (!veto.vetoes(next.key, next.val)) {
-                  sampled.add(new MapEntry<K, V>(next.key, next.val, this));
+        for (Node<K, V> p; (p = t2.advance()) != null;) {
+            K key = p.key;
+            V val = p.val;
+            if (!veto.vetoes(key, val)) {
+                if (candidateKey == null || prioritizer.compare(val, candidateVal) > 0) {
+                    candidateKey = key;
+                    candidateVal = val;
                 }
-              }
-              return sampled;
+                if (++sampled == size) {
+                    int terminalIndex = t2.index;
+                    while ((p = t2.advance()) != null && t2.index == terminalIndex) {
+                        K surplusKey = p.key;
+                        V surplusVal = p.val;
+                        if (!veto.vetoes(surplusKey, surplusVal) && prioritizer.compare(surplusVal, candidateVal) > 0) {
+                            candidateKey = surplusKey;
+                            candidateVal = surplusVal;
+                        }
+                    }
+                    return new MapEntry<K, V>(candidateKey, candidateVal, this);
+                }
             }
-          }
         }
-        return sampled;
+        if (candidateKey == null) {
+            return null;
+        } else {
+            return new MapEntry<K, V>(candidateKey, candidateVal, this);
+        }
     }
 }
