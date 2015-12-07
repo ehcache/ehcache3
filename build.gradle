@@ -169,3 +169,12 @@ configure(projectsToDeploy.collect {project(it)}) {
     utils.pomFiller(pom, project.subPomName, project.subPomDesc)
   }
 }
+
+allprojects {
+  tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+  }
+  tasks.withType(Javadoc) {
+    options.encoding = 'UTF-8'
+  }
+}
