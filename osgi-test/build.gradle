@@ -30,9 +30,7 @@ dependencies {
   testRuntime "org.slf4j:slf4j-simple:$parent.slf4jVersion",
           "org.ops4j.pax.exam:pax-exam-container-native:$paxExamVersion",
           "org.ops4j.pax.exam:pax-exam-link-mvn:$paxExamVersion",
-          "org.ops4j.pax.url:pax-url-aether:$urlVersion",
-          "org.terracotta:management-model:$parent.managementVersion",
-          "org.terracotta:offheap-store:$parent.offheapVersion"
+          "org.ops4j.pax.url:pax-url-aether:$urlVersion"
 
 
 }
@@ -47,9 +45,7 @@ sourceSets {
 
 test {
   systemProperty 'ehcache.osgi.jar', project(':dist').osgiShadowJar.archivePath.getPath()
-  systemProperty 'ehcache.osgi.offheap.version', parent.offheapVersion
   systemProperty 'ehcache.osgi.jcache.version', parent.jcacheVersion
-  systemProperty 'ehcache.osgi.management.version', parent.managementVersion
   systemProperty 'ehcache.osgi.slf4j.version', parent.slf4jVersion
 }
 

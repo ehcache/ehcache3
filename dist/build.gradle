@@ -36,8 +36,8 @@ configurations {
 
 dependencies {
   projectsToInclude.each {compile it}
-  shadow "org.slf4j:slf4j-api:$parent.slf4jVersion", "org.terracotta:offheap-store:$parent.offheapVersion"
-  shadowProvided 'javax.transaction:jta:1.1', 'org.codehaus.btm:btm:2.1.4', "org.terracotta:management-model:$parent.managementVersion"
+  shadow "org.slf4j:slf4j-api:$parent.slf4jVersion"
+  shadowProvided 'javax.transaction:jta:1.1', 'org.codehaus.btm:btm:2.1.4'
 }
 
 // Skip a number of defaults for this aggregation project
@@ -58,6 +58,8 @@ shadowJar {
   projectNamesToInclude.each {projName -> dependencies {include(project(projName))}}
   dependencies {
     include(dependency('org.terracotta:statistics:1.1.0'))
+    include(dependency("org.terracotta:offheap-store:$parent.offheapVersion"))
+    include(dependency("org.terracotta:management-model:$parent.managementVersion"))
   }
 
   mergeServiceFiles()
@@ -83,12 +85,11 @@ task osgiShadowJar(type: Jar, dependsOn: 'unzipShadowJarClasses') {
     instruction 'Bundle-Vendor', 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
     instruction 'Bundle-RequiredExecutionEnvironment', 'JavaSE-1.6'
 
-    instruction 'Export-Package', '!org.ehcache.jsr107.tck', '*'
+    instruction 'Export-Package', '!org.ehcache.jsr107.tck', '!org.terracotta.offheapstore.*', '*'
 
     // Optional packages
     instruction 'Import-Package', 'bitronix.tm.*;resolution:=optional', 'javax.cache.*;resolution:=optional',
-            'javax.transaction.*;resolution:=optional', 'org.terracotta.offheapstore.*;resolution:=optional',
-            'org.terracotta.management.*;resolution:=optional'
+            'javax.transaction.*;resolution:=optional'
     // Ignored packages
     instruction 'Import-Package', '!sun.misc', '!sun.security.action', '!com.sun.jmx.mbeanserver', '*'
     classesDir = new File("$buildDir/tmp/osgiShadowJar-classes")
