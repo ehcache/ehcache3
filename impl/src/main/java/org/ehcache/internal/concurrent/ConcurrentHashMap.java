@@ -6307,62 +6307,65 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
           return null;
         }
 
-        int sampled = 0;
-        K candidateKey = null;
-        V candidateVal = null;
+        K maxKey = null;
+        V maxValue = null;
 
         int n = tab.length;
         int start = rndm.nextInt(n);
-        Traverser<K, V> t1 = new Traverser<K, V>(tab, n, start, n);
-        for (Node<K, V> p; (p = t1.advance()) != null;) {
+
+        Traverser<K, V> t = new Traverser<K, V>(tab, n, start, n);
+        for (Node<K, V> p; (p = t.advance()) != null;) {
             K key = p.key;
             V val = p.val;
             if (!veto.vetoes(key, val)) {
-                if (candidateKey == null || prioritizer.compare(val, candidateVal) > 0) {
-                    candidateKey = key;
-                    candidateVal = val;
+                if (maxKey == null || prioritizer.compare(val, maxValue) > 0) {
+                    maxKey = key;
+                    maxValue = val;
                 }
-                if (++sampled == size) {
-                    int terminalIndex = t1.index;
-                    while ((p = t1.advance()) != null && t1.index == terminalIndex) {
-                        K surplusKey = p.key;
-                        V surplusVal = p.val;
-                        if (!veto.vetoes(surplusKey, surplusVal) && prioritizer.compare(surplusVal, candidateVal) > 0) {
-                            candidateKey = surplusKey;
-                            candidateVal = surplusVal;
+                if (--size == 0) {
+                    for (int terminalIndex = t.index; (p = t.advance()) != null && t.index == terminalIndex; ) {
+                        key = p.key;
+                        val = p.val;
+                        if (!veto.vetoes(key, val) && prioritizer.compare(val, maxValue) > 0) {
+                            maxKey = key;
+                            maxValue = val;
                         }
                     }
-                    return new MapEntry<K, V>(candidateKey, candidateVal, this);
+                    return new MapEntry<K, V>(maxKey, maxValue, this);
                 }
             }
         }
-        Traverser<K, V> t2 = new Traverser<K, V>(tab, n, 0, start);
-        for (Node<K, V> p; (p = t2.advance()) != null;) {
+
+        return getEvictionCandidateWrap(tab, start, size, maxKey, maxValue, prioritizer, veto);
+    }
+
+    private Entry<K, V> getEvictionCandidateWrap(Node<K,V>[] tab, int start, int size, K maxKey, V maxVal, Comparator<? super V> prioritizer, EvictionVeto<? super K, ? super V> veto) {
+        Traverser<K, V> t = new Traverser<K, V>(tab, tab.length, 0, start);
+        for (Node<K, V> p; (p = t.advance()) != null;) {
             K key = p.key;
             V val = p.val;
             if (!veto.vetoes(key, val)) {
-                if (candidateKey == null || prioritizer.compare(val, candidateVal) > 0) {
-                    candidateKey = key;
-                    candidateVal = val;
+                if (maxKey == null || prioritizer.compare(val, maxVal) > 0) {
+                    maxKey = key;
+                    maxVal = val;
                 }
-                if (++sampled == size) {
-                    int terminalIndex = t2.index;
-                    while ((p = t2.advance()) != null && t2.index == terminalIndex) {
-                        K surplusKey = p.key;
-                        V surplusVal = p.val;
-                        if (!veto.vetoes(surplusKey, surplusVal) && prioritizer.compare(surplusVal, candidateVal) > 0) {
-                            candidateKey = surplusKey;
-                            candidateVal = surplusVal;
+                if (--size == 0) {
+                    for (int terminalIndex = t.index; (p = t.advance()) != null && t.index == terminalIndex; ) {
+                        key = p.key;
+                        val = p.val;
+                        if (!veto.vetoes(key, val) && prioritizer.compare(val, maxVal) > 0) {
+                            maxKey = key;
+                            maxVal = val;
                         }
                     }
-                    return new MapEntry<K, V>(candidateKey, candidateVal, this);
+                    return new MapEntry<K, V>(maxKey, maxVal, this);
                 }
             }
         }
-        if (candidateKey == null) {
+        if (maxKey == null) {
             return null;
         } else {
-            return new MapEntry<K, V>(candidateKey, candidateVal, this);
+            return new MapEntry<K, V>(maxKey, maxVal, this);
         }
     }
 }

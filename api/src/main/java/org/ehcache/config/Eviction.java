@@ -23,6 +23,13 @@ package org.ehcache.config;
  */
 public final class Eviction {
 
+  private static final EvictionVeto<?, ?> VETO_NONE = new EvictionVeto<Object, Object>() {
+    @Override
+    public boolean vetoes(Object key, Object value) {
+      return false;
+    }
+  };
+
   /**
    * Returns an {@link EvictionVeto} where no mappings are vetoed from eviction.
    *
@@ -31,12 +38,7 @@ public final class Eviction {
    * @return a veto for no mappings
    */
   public static <K, V> EvictionVeto<K, V> none() {
-    return new EvictionVeto<K, V>() {
-      @Override
-      public boolean vetoes(K key, V value) {
-        return false;
-      }
-    };
+    return (EvictionVeto<K, V>) VETO_NONE;
   }
 
 }
