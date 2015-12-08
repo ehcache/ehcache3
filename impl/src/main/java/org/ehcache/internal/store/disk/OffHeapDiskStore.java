@@ -23,8 +23,6 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.CachePersistenceException;
-import org.ehcache.function.Predicate;
-import org.ehcache.function.Predicates;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceService;
 import org.ehcache.internal.store.disk.factories.EhcachePersistentSegmentFactory;
@@ -63,10 +61,10 @@ import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import org.ehcache.config.Eviction;
 import org.ehcache.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.internal.store.offheap.AbstractOffHeapStore;
 import org.ehcache.internal.store.offheap.EhcacheOffHeapBackingMap;
@@ -84,7 +82,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
   protected final AtomicReference<Status> status = new AtomicReference<Status>(Status.UNINITIALIZED);
 
-  private final Predicate<Map.Entry<K, OffHeapValueHolder<V>>> evictionVeto;
+  private final EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto;
   private final Serializer<K> keySerializer;
   private final Serializer<V> valueSerializer;
   private final long sizeInBytes;
@@ -106,9 +104,9 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
     EvictionVeto<? super K, ? super V> veto = config.getEvictionVeto();
     if (veto != null) {
-      evictionVeto = wrap(veto, timeSource);
+      evictionVeto = wrap(veto);
     } else {
-      evictionVeto = Predicates.none();
+      evictionVeto = Eviction.none();
     }
     this.keySerializer = config.getKeySerializer();
     this.valueSerializer = config.getValueSerializer();
@@ -124,7 +122,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     return Collections.emptyList();
   }
 
-  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> getBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, Predicate<Map.Entry<K, OffHeapValueHolder<V>>> evictionVeto) {
+  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> getBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto) {
     File dataFile = getDataFile();
     File indexFile = getIndexFile();
     
@@ -139,7 +137,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
   }
   
-  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> recoverBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, Predicate<Map.Entry<K, OffHeapValueHolder<V>>> evictionVeto) throws IOException {
+  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> recoverBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto) throws IOException {
     File dataFile = getDataFile();
     File indexFile = getIndexFile();
     
@@ -196,7 +194,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
   }
   
-  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, Predicate<Map.Entry<K, OffHeapValueHolder<V>>> evictionVeto) {
+  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto) {
     MappedPageSource source;
     try {
       source = new MappedPageSource(getDataFile(), size);

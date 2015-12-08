@@ -706,8 +706,8 @@ public class XAStore<K, V> implements Store<K, V> {
         // eviction veto
         EvictionVeto<? super K, ? super SoftLock> evictionVeto = new EvictionVeto<K, SoftLock>() {
           @Override
-          public boolean test(Cache.Entry<K, SoftLock> argument) {
-            return argument.getValue().getTransactionId() != null;
+          public boolean vetoes(K key, SoftLock lock) {
+            return lock.getTransactionId() != null;
           }
         };
 

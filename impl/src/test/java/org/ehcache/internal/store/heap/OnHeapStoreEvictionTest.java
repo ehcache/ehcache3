@@ -39,6 +39,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import org.ehcache.config.Eviction;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -86,18 +87,7 @@ public class OnHeapStoreEvictionTest {
   public void testFaultsDoNotGetToEvictionVeto() throws CacheAccessException {
     final Semaphore semaphore = new Semaphore(0);
 
-    EvictionVeto<String, String> veto = new EvictionVeto<String, String>() {
-      @Override
-      public boolean test(Cache.Entry<String, String> argument) {
-        try {
-          argument.getValue();
-        } catch (Exception e) {
-          throw new AssertionError(e);
-        }
-        return false;
-      }
-    };
-    final OnHeapStoreForTests<String, String> store = newStore(SystemTimeSource.INSTANCE, veto);
+    final OnHeapStoreForTests<String, String> store = newStore(SystemTimeSource.INSTANCE, Eviction.none());
 
     ExecutorService executor = Executors.newCachedThreadPool();
     try {

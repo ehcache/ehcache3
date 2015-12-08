@@ -38,8 +38,8 @@ public class CacheConfigurationBuilderTest {
     builder
         .evictionVeto(new EvictionVeto<Long, String>() {
           @Override
-          public boolean test(final Cache.Entry<Long, String> argument) {
-            return argument.getValue().startsWith("A");
+          public boolean vetoes(Long key, String value) {
+            return value.startsWith("A");
           }
         })
         .withExpiry(expiry)
@@ -61,8 +61,8 @@ public class CacheConfigurationBuilderTest {
     CacheConfiguration config = builder
         .evictionVeto(new EvictionVeto<Long, String>() {
           @Override
-          public boolean test(final Cache.Entry<Long, String> argument) {
-            return argument.getValue().startsWith("A");
+          public boolean vetoes(Long key, String value) {
+            return value.startsWith("A");
           }
         })
         .withExpiry(expiry)

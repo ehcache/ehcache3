@@ -28,16 +28,13 @@ import static java.lang.Integer.rotateLeft;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
@@ -46,11 +43,11 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
+import org.ehcache.config.EvictionVeto;
 
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 
-import org.ehcache.function.Predicate;
 import org.ehcache.internal.concurrent.JSR166Helper.*;
 
 
@@ -6304,63 +6301,71 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         }
     }
 
-    public List<Entry<K, V>> getRandomValues(Random rndm, int size, Predicate<Entry<K, V>> veto) {
-        List<Entry<K, V>> sampled = new ArrayList<Entry<K, V>>(size);
-
+    public Entry<K, V> getEvictionCandidate(Random rndm, int size, Comparator<? super V> prioritizer, EvictionVeto<? super K, ? super V> veto) {
         Node<K,V>[] tab = table;
         if (tab == null || size == 0) {
-          return Collections.emptyList();
+          return null;
         }
+
+        K maxKey = null;
+        V maxValue = null;
+
         int n = tab.length;
         int start = rndm.nextInt(n);
-        Traverser<K, V> t1 = new Traverser<K, V>(tab, n, start, n);
-        while (true) {
-          Node<K,V> next = t1.advance();
-          if (next == null) {
-            break;
-          } else {
-            if (add(sampled, veto, new MapEntry<K, V>(next.key, next.val, this))) {
-              if (sampled.size() == size) {
-                int terminalIndex = t1.index;
-                while (t1.index == terminalIndex) {
-                  next = t1.advance();
-                  if (next == null) {
-                    return sampled;
-                  } else {
-                    add(sampled, veto, new MapEntry<K, V>(next.key, next.val, this));
-                  }
+
+        Traverser<K, V> t = new Traverser<K, V>(tab, n, start, n);
+        for (Node<K, V> p; (p = t.advance()) != null;) {
+            K key = p.key;
+            V val = p.val;
+            if (!veto.vetoes(key, val)) {
+                if (maxKey == null || prioritizer.compare(val, maxValue) > 0) {
+                    maxKey = key;
+                    maxValue = val;
                 }
-                return sampled;
-              }
-            }
-          }
-        }
-        Traverser<K, V> t2 = new Traverser<K, V>(tab, n, 0, start);
-        while (true) {
-          Node<K,V> next = t2.advance();
-          if (next == null) {
-            break;
-          } else {
-            if (add(sampled, veto, new MapEntry<K, V>(next.key, next.val, this))) {
-              if (sampled.size() == size) {
-                int terminalIndex = t2.index;
-                while (t2.index == terminalIndex) {
-                  next = t2.advance();
-                  if (next == null) {
-                    return sampled;
-                  } else {
-                    add(sampled, veto, new MapEntry<K, V>(next.key, next.val, this));
-                  }
+                if (--size == 0) {
+                    for (int terminalIndex = t.index; (p = t.advance()) != null && t.index == terminalIndex; ) {
+                        key = p.key;
+                        val = p.val;
+                        if (!veto.vetoes(key, val) && prioritizer.compare(val, maxValue) > 0) {
+                            maxKey = key;
+                            maxValue = val;
+                        }
+                    }
+                    return new MapEntry<K, V>(maxKey, maxValue, this);
                 }
-                return sampled;
-              }
             }
-          }
         }
-        return sampled;
+
+        return getEvictionCandidateWrap(tab, start, size, maxKey, maxValue, prioritizer, veto);
     }
-    
-    private static <T> boolean add(List<? super T> to, Predicate<? super T> veto, T value) {
-      return !veto.test(value) && to.add(value);
+
+    private Entry<K, V> getEvictionCandidateWrap(Node<K,V>[] tab, int start, int size, K maxKey, V maxVal, Comparator<? super V> prioritizer, EvictionVeto<? super K, ? super V> veto) {
+        Traverser<K, V> t = new Traverser<K, V>(tab, tab.length, 0, start);
+        for (Node<K, V> p; (p = t.advance()) != null;) {
+            K key = p.key;
+            V val = p.val;
+            if (!veto.vetoes(key, val)) {
+                if (maxKey == null || prioritizer.compare(val, maxVal) > 0) {
+                    maxKey = key;
+                    maxVal = val;
+                }
+                if (--size == 0) {
+                    for (int terminalIndex = t.index; (p = t.advance()) != null && t.index == terminalIndex; ) {
+                        key = p.key;
+                        val = p.val;
+                        if (!veto.vetoes(key, val) && prioritizer.compare(val, maxVal) > 0) {
+                            maxKey = key;
+                            maxVal = val;
+                        }
+                    }
+                    return new MapEntry<K, V>(maxKey, maxVal, this);
+                }
+            }
+        }
+        if (maxKey == null) {
+            return null;
+        } else {
+            return new MapEntry<K, V>(maxKey, maxVal, this);
+        }
     }
 }

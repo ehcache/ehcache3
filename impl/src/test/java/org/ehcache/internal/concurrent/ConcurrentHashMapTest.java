@@ -16,18 +16,24 @@
 
 package org.ehcache.internal.concurrent;
 
-import org.ehcache.function.Predicate;
-import org.ehcache.function.Predicates;
 import org.junit.Test;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Map.Entry;
 import java.util.Random;
+import org.ehcache.config.Eviction;
+import org.ehcache.config.EvictionVeto;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
+import org.hamcrest.core.IsNull;
+import static org.hamcrest.core.IsNull.notNullValue;
+import static org.hamcrest.core.IsNull.nullValue;
+import org.hamcrest.number.OrderingComparison;
+import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -38,40 +44,23 @@ public class ConcurrentHashMapTest {
     @Test
     public void testRandomSampleOnEmptyMap() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
-        assertThat(map.getRandomValues(new Random(), 1, new Predicate<Entry<String, String>>() {
-            @Override
-            public boolean test(final Entry<String, String> argument) {
-                return Predicates.none().test(argument);
-            }
-        }), empty());
+        assertThat(map.getEvictionCandidate(new Random(), 1, null, Eviction.<String, String>none()), nullValue());
     }
     
     @Test
     public void testEmptyRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
         map.put("foo", "bar");
-        assertThat(map.getRandomValues(new Random(), 0, new Predicate<Entry<String, String>>() {
-            @Override
-            public boolean test(final Entry<String, String> argument) {
-                return Predicates.none().test(argument);
-            }
-        }), empty());
+        assertThat(map.getEvictionCandidate(new Random(), 0, null, Eviction.<String, String>none()), nullValue());
     }
     
     @Test
     public void testOversizedRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
         map.put("foo", "bar");
-        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 2, new Predicate<Entry<String, String>>() {
-            @Override
-            public boolean test(final Entry<String, String> argument) {
-                return Predicates.none().test(argument);
-            }
-        });
-        assertThat(sample, hasSize(1));
-        Entry<String, String> e = sample.iterator().next();
-        assertThat(e.getKey(), is("foo"));
-        assertThat(e.getValue(), is("bar"));
+        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, Eviction.<String, String>none());
+        assertThat(candidate.getKey(), is("foo"));
+        assertThat(candidate.getValue(), is("bar"));
     }
     
     @Test
@@ -80,13 +69,13 @@ public class ConcurrentHashMapTest {
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 2, new Predicate<Entry<String, String>>() {
-            @Override
-            public boolean test(final Entry<String, String> argument) {
-                return Predicates.none().test(argument);
-            }
-        });
-        assertThat(sample, hasSize(greaterThanOrEqualTo(2)));
+        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, new Comparator<String>() {
+          @Override
+          public int compare(String t, String t1) {
+            return 0;
+          }
+        }, Eviction.<String, String>none());
+        assertThat(candidate, notNullValue());
     }
     
     @Test
@@ -95,13 +84,13 @@ public class ConcurrentHashMapTest {
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 2, new Predicate<Entry<String, String>>() {
+        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, new EvictionVeto<String, String>() {
             @Override
-            public boolean test(final Entry<String, String> argument) {
-                return Predicates.all().test(argument);
+            public boolean vetoes(String key, String value) {
+                return true;
             }
         });
-        assertThat(sample, empty());
+        assertThat(candidate, nullValue());
     }
     
     @Test
@@ -110,14 +99,19 @@ public class ConcurrentHashMapTest {
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Collection<Entry<String, String>> sample = map.getRandomValues(new Random(), 20, new Predicate<Entry<String, String>>() {
+        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 20, new Comparator<String>() {
+          @Override
+          public int compare(String t, String t1) {
+            return 0;
+          }
+        }, new EvictionVeto<String, String>() {
 
           @Override
-          public boolean test(Entry<String, String> argument) {
-            return argument.getKey().length() > 1;
+          public boolean vetoes(String key, String value) {
+            return key.length() > 1;
           }
         });
-        assertThat(sample, hasSize(10));
+        assertThat(candidate.getKey().length(), is(1));
     }
     
     @Test

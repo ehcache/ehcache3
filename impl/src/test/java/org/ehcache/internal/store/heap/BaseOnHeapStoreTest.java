@@ -96,7 +96,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testEvictWithFullVetoDoesEvict() throws Exception {
     OnHeapStore<String, String> store = newStore(new EvictionVeto<String, String>() {
       @Override
-      public boolean test(Entry<String, String> argument) {
+      public boolean vetoes(String key, String value) {
         return true;
       }
     });
@@ -114,7 +114,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testEvictWithBrokenVetoDoesEvict() throws Exception {
     OnHeapStore<String, String> store = newStore(new EvictionVeto<String, String>() {
       @Override
-      public boolean test(Entry<String, String> argument) {
+      public boolean vetoes(String key, String value) {
         throw new UnsupportedOperationException("Broken veto!");
       }
     });

@@ -36,10 +36,8 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
-import org.ehcache.function.Predicate;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory;
-import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.cache.tiering.CachingTier;
@@ -1071,25 +1069,23 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   protected abstract EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> backingMap();
 
-  protected static <K, V> Predicate<Map.Entry<K, OffHeapValueHolder<V>>> wrap(EvictionVeto<? super K, ? super V> delegate, TimeSource timeSource) {
-    return new OffHeapEvictionVetoWrapper<K, V>(delegate, timeSource);
+  protected static <K, V> EvictionVeto<K, OffHeapValueHolder<V>> wrap(EvictionVeto<? super K, ? super V> delegate) {
+    return new OffHeapEvictionVetoWrapper<K, V>(delegate);
   }
 
-  private static class OffHeapEvictionVetoWrapper<K, V> implements Predicate<Map.Entry<K, OffHeapValueHolder<V>>> {
+  private static class OffHeapEvictionVetoWrapper<K, V> implements EvictionVeto<K, OffHeapValueHolder<V>> {
 
-    private final EvictionVeto<K, V> delegate;
-    private final TimeSource timeSource;
+    private final EvictionVeto<? super K, ? super V> delegate;
 
-    private OffHeapEvictionVetoWrapper(EvictionVeto<? super K, ? super V> delegate, TimeSource timeSource) {
+    private OffHeapEvictionVetoWrapper(EvictionVeto<? super K, ? super V> delegate) {
       // TODO fix this cast
       this.delegate = (EvictionVeto<K, V>)delegate;
-      this.timeSource = timeSource;
     }
 
     @Override
-    public boolean test(Map.Entry<K, OffHeapValueHolder<V>> argument) {
+    public boolean vetoes(K key, OffHeapValueHolder<V> value) {
       try {
-        return delegate.test(CacheStoreHelper.cacheEntry(argument.getKey(), argument.getValue(), timeSource));
+        return delegate.vetoes(key, value.value());
       } catch (Exception e) {
         LOG.error("Exception raised while running eviction veto " +
                   "- Eviction will assume entry is NOT vetoed", e);

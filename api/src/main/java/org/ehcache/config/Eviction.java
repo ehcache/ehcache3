@@ -16,17 +16,19 @@
 
 package org.ehcache.config;
 
-import org.ehcache.Cache;
-import org.ehcache.function.Predicates;
-
-import java.util.concurrent.TimeUnit;
-
 /**
  * Utility class for getting predefined {@link EvictionVeto} instance.
  *
  * @author Alex Snaps
  */
 public final class Eviction {
+
+  private static final EvictionVeto<?, ?> VETO_NONE = new EvictionVeto<Object, Object>() {
+    @Override
+    public boolean vetoes(Object key, Object value) {
+      return false;
+    }
+  };
 
   /**
    * Returns an {@link EvictionVeto} where no mappings are vetoed from eviction.
@@ -36,12 +38,7 @@ public final class Eviction {
    * @return a veto for no mappings
    */
   public static <K, V> EvictionVeto<K, V> none() {
-    return new EvictionVeto<K, V>() {
-      @Override
-      public boolean test(final Cache.Entry<K, V> argument) {
-        return Predicates.<Cache.Entry<K, V>>none().test(argument);
-      }
-    };
+    return (EvictionVeto<K, V>) VETO_NONE;
   }
 
 }
