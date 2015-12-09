@@ -332,6 +332,39 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
       eventNotificationService.onEvent(cacheEvent);
     }
 
+    @Override
+    public void onCreation(K key, Store.ValueHolder<V> valueHolder) {
+      CacheEvent<K, V> cacheEvent = CacheEvents.creation(key, valueHolder.value(), this.source);
+      eventNotificationService.onEvent(cacheEvent);
+    }
+
+    @Override
+    public void onUpdate(K key, Store.ValueHolder<V> previousValue, Store.ValueHolder<V> newValue) {
+      CacheEvent<K, V> cacheEvent = CacheEvents.update(key, previousValue.value(), newValue.value(), this.source);
+      eventNotificationService.onEvent(cacheEvent);
+    }
+
+    @Override
+    public void onRemoval(K key, Store.ValueHolder<V> removed) {
+      CacheEvent<K, V> cacheEvent = CacheEvents.removal(key, removed.value(), this.source);
+      eventNotificationService.onEvent(cacheEvent);
+    }
+
+    @Override
+    public boolean hasListeners() {
+      return eventNotificationService.hasListeners();
+    }
+
+    @Override
+    public void fireAllEvents() {
+      eventNotificationService.fireAllEvents();
+    }
+
+    @Override
+    public void purgeOrFireRemainingEvents() {
+      eventNotificationService.processAndFireRemainingEvents();
+    }
+
     public void setEventNotificationService(CacheEventDispatcher<K, V> eventNotificationService) {
       this.eventNotificationService = eventNotificationService;
     }

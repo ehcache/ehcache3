@@ -168,6 +168,36 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     public void onExpiration(final K key, final Store.ValueHolder<V> valueHolder) {
       fail("Unexpected expiration");
     }
+
+    @Override
+    public void onCreation(K key, Store.ValueHolder<V> valueHolder) {
+      // Do nothing
+    }
+
+    @Override
+    public void onUpdate(K key, Store.ValueHolder<V> previousValue, Store.ValueHolder<V> newValue) {
+      // Do nothing
+    }
+
+    @Override
+    public void onRemoval(K key, Store.ValueHolder<V> removed) {
+      // Do nothing
+    }
+
+    @Override
+    public boolean hasListeners() {
+      return true;
+    }
+
+    @Override
+    public void fireAllEvents() {
+      // Do nothing
+    }
+
+    @Override
+    public void purgeOrFireRemainingEvents() {
+      // Do nothing
+    }
   }
 }
 

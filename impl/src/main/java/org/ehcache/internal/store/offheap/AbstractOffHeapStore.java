@@ -765,6 +765,34 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       public void onExpiration(final K key, final ValueHolder<V> valueHolder) {
         AbstractOffHeapStore.this.invalidationListener.onInvalidation(key, valueHolder);
       }
+
+      @Override
+      public void onCreation(K key, ValueHolder<V> valueHolder) {
+        throw new AssertionError("Invalid when used as a caching tier");
+      }
+
+      @Override
+      public void onUpdate(K key, ValueHolder<V> previousValue, ValueHolder<V> newValue) {
+        throw new AssertionError("Invalid when used as a caching tier");
+      }
+
+      @Override
+      public void onRemoval(K key, ValueHolder<V> removed) {
+        throw new AssertionError("Invalid when used as a caching tier");
+      }
+
+      @Override
+      public boolean hasListeners() {
+        return true;
+      }
+
+      @Override
+      public void fireAllEvents() {
+      }
+
+      @Override
+      public void purgeOrFireRemainingEvents() {
+      }
     };
   }
 
