@@ -173,7 +173,7 @@ public class OnHeapStoreEvictionTest {
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
       super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER,  new NoopSizeOfEngine());
     }
-    
+
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource, final SizeOfEngine engine) {
       super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine);
     }
@@ -181,9 +181,9 @@ public class OnHeapStoreEvictionTest {
     private boolean enforceCapacityWasCalled = false;
 
     @Override
-    protected void enforceCapacity(long delta) {
+    protected void enforceCapacity(long delta, boolean hasListeners) {
       enforceCapacityWasCalled = true;
-      super.enforceCapacity(delta);
+      super.enforceCapacity(delta, hasListeners);
     }
 
     boolean enforceCapacityWasCalled() {

@@ -311,6 +311,49 @@ public class XAStore<K, V> implements Store<K, V> {
           listener.onEviction(key, new XAValueHolder<V>(valueHolder, softLock.getNewValueHolder().value()));
         }
       }
+
+      @Override
+      public void onCreation(K key, ValueHolder<SoftLock<V>> valueHolder) {
+        SoftLock<V> softLock = valueHolder.value();
+        if (softLock.getTransactionId() == null || softLock.getOldValue() != null) {
+          listener.onCreation(key, new XAValueHolder<V>(valueHolder, softLock.getOldValue()));
+        } else {
+          listener.onCreation(key, new XAValueHolder<V>(valueHolder, softLock.getNewValueHolder().value()));
+        }
+      }
+
+      @Override
+      public void onUpdate(K key, ValueHolder<SoftLock<V>> previousValue, ValueHolder<SoftLock<V>> newValue) {
+        SoftLock<V> softLock = newValue.value();
+        if (softLock.getTransactionId() == null || softLock.getOldValue() != null) {
+          listener.onUpdate(key, new XAValueHolder<V>(previousValue, previousValue.value().getOldValue()),
+              new XAValueHolder<V>(newValue, softLock.getOldValue()));
+        } else {
+          listener.onUpdate(key, new XAValueHolder<V>(previousValue, previousValue.value().getOldValue()),
+              new XAValueHolder<V>(newValue, softLock.getNewValueHolder().value()));
+        }
+      }
+
+      @Override
+      public void onRemoval(K key, ValueHolder<SoftLock<V>> removed) {
+        // TODO What does this mean when the listener is actually fired on a different thread?
+        listener.onRemoval(key, new XAValueHolder<V>(removed, removed.value().getOldValue()));
+      }
+
+      @Override
+      public boolean hasListeners() {
+        return listener.hasListeners();
+      }
+
+      @Override
+      public void fireAllEvents() {
+        listener.fireAllEvents();
+      }
+
+      @Override
+      public void purgeOrFireRemainingEvents() {
+        listener.purgeOrFireRemainingEvents();
+      }
     });
   }
 

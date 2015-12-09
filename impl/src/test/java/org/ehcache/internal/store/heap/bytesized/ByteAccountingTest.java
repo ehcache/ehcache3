@@ -51,6 +51,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Abhilash
@@ -388,6 +389,7 @@ public class ByteAccountingTest {
   public void testEviction() throws CacheAccessException {
     OnHeapStoreForTests<String, String> store = newStore(1);
     StoreEventListener<String, String> listener = mock(StoreEventListener.class);
+    when(listener.hasListeners()).thenReturn(true);
     store.enableStoreEventNotifications(listener);
 
     store.put(KEY, VALUE);
