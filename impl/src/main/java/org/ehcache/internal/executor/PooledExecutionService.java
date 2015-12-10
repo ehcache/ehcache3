@@ -18,6 +18,7 @@ package org.ehcache.internal.executor;
 import org.ehcache.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.config.executor.PooledExecutionServiceConfiguration.PoolConfiguration;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.internal.util.ThreadFactoryUtil;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.ExecutionService;
 import org.slf4j.Logger;
@@ -31,10 +32,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -142,7 +141,7 @@ public class PooledExecutionService implements ExecutionService {
   }
 
   private static ThreadPoolExecutor createPool(String alias, PoolConfiguration config) {
-    return new ThreadPoolExecutor(config.minSize(), config.maxSize(), 10, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), threadFactory(alias));
+    return new ThreadPoolExecutor(config.minSize(), config.maxSize(), 10, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), ThreadFactoryUtil.threadFactory(alias));
   }
 
   private static void destroyPool(String alias, ThreadPoolExecutor executor) {
@@ -168,18 +167,6 @@ public class PooledExecutionService implements ExecutionService {
         Thread.currentThread().interrupt();
       }
     }
-  }
-  
-  private static ThreadFactory threadFactory(final String alias) {
-    return new ThreadFactory() {
-
-      private final AtomicInteger threadCount = new AtomicInteger();
-      
-      @Override
-      public Thread newThread(Runnable r) {
-        return new Thread(r, "[" + alias + "]-" + threadCount.getAndIncrement());
-      }
-    };
   }
 
 }
