@@ -17,6 +17,7 @@ package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
@@ -73,6 +74,8 @@ public abstract class EhcacheBasicCrudBase {
 
   @Mock
   protected Store<String, String> store;
+  @Mock
+  protected CacheEventDispatcher<String, String> cacheEventDispatcher;
 
   /**
    * Holds a {@link org.mockito.Mockito#spy(Object)}-wrapped reference to the

@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.nullValue;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CachePassThroughException;
@@ -60,8 +61,9 @@ public class EhcacheLoaderWriterTest {
     CacheLoaderWriter<Number, String> loaderWriter = mock(CacheLoaderWriter.class);
     final CacheConfiguration<Number, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder()
         .buildConfig(Number.class, String.class);
+    CacheEventDispatcher<Number, String> notifier = mock(CacheEventDispatcher.class);
     cache = new Ehcache<Number, String>(
-        config, store, loaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheLoaderWriterTest"));
+        config, store, loaderWriter, notifier, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheLoaderWriterTest"));
     cache.init();
   }
   
