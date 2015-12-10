@@ -27,6 +27,8 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ExecutionService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.ehcache.internal.executor.ExecutorUtil.shutdown;
 
@@ -36,6 +38,8 @@ import static org.ehcache.internal.executor.ExecutorUtil.shutdown;
  */
 @ServiceDependencies(ExecutionService.class)
 public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFactory {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(CacheEventDispatcherFactoryImpl.class);
 
   private final String threadPoolAlias;
   
@@ -73,10 +77,15 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
 
   @Override
   public <K, V> CacheEventDispatcher<K, V> createCacheEventDispatcher(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs) {
-    if (getOrderedExecutor() == null || getUnorderedExecutor() == null) {
-      return new DisabledCacheEventNotificationService<K, V>();
-    } else {
+    try {
       return new CacheEventDispatcherImpl<K, V>(getOrderedExecutor(), getUnorderedExecutor(), store);
+    } catch (IllegalArgumentException iae) {
+      if (threadPoolAlias == null) {
+        LOGGER.warn("No default executor could be found for Cache Event Dispatcher, events will be disabled.");
+        return new DisabledCacheEventNotificationService<K, V>();
+      } else {
+        throw new IllegalStateException("No executor named '" + threadPoolAlias + "' could be found for Cache Event Dispatcher");
+      }
     }
   }
 
