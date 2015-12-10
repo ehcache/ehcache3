@@ -15,7 +15,14 @@
  */
 package org.ehcache.internal.executor;
 
-import java.util.HashMap;
+import org.ehcache.config.executor.PooledExecutionServiceConfiguration;
+import org.ehcache.config.executor.PooledExecutionServiceConfiguration.PoolConfiguration;
+import org.ehcache.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ExecutionService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -28,12 +35,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.ehcache.config.executor.PooledExecutionServiceConfiguration;
-import org.ehcache.config.executor.PooledExecutionServiceConfiguration.PoolConfiguration;
-import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.service.ExecutionService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -47,7 +48,7 @@ public class PooledExecutionService implements ExecutionService {
   
   private final String defaultPoolAlias;
   private final Map<String, PoolConfiguration> poolConfigurations;
-  private final Map<String, ThreadPoolExecutor> pools = new HashMap<String, ThreadPoolExecutor>();
+  private final Map<String, ThreadPoolExecutor> pools = new ConcurrentHashMap<String, ThreadPoolExecutor>(8, .75f, 1);
 
   private volatile boolean running = false;
   private volatile OutOfBandScheduledExecutor scheduledExecutor;
@@ -60,9 +61,12 @@ public class PooledExecutionService implements ExecutionService {
   @Override
   public ScheduledExecutorService getScheduledExecutor(String poolAlias) {
     if (running) {
-      ThreadPoolExecutor executor = pools.get(poolAlias);
+      if (poolAlias == null && defaultPoolAlias == null) {
+        throw new IllegalArgumentException("No default pool configured");
+      }
+      ThreadPoolExecutor executor = pools.get(poolAlias == null ? defaultPoolAlias : poolAlias);
       if (executor == null) {
-        throw new IllegalStateException("Pool '" + poolAlias + "' is not in the set of available pools " + pools.keySet());
+        throw new IllegalArgumentException("Pool '" + poolAlias + "' is not in the set of available pools " + pools.keySet());
       } else {
         return new PartitionedScheduledExecutor(scheduledExecutor, getUnorderedExecutor(poolAlias, new LinkedBlockingQueue<Runnable>()));
       }
@@ -74,9 +78,12 @@ public class PooledExecutionService implements ExecutionService {
   @Override
   public ExecutorService getOrderedExecutor(String poolAlias, BlockingQueue<Runnable> queue) {
     if (running) {
-      ThreadPoolExecutor executor = pools.get(poolAlias);
+      if (poolAlias == null && defaultPoolAlias == null) {
+        throw new IllegalArgumentException("No default pool configured");
+      }
+      ThreadPoolExecutor executor = pools.get(poolAlias == null ? defaultPoolAlias : poolAlias);
       if (executor == null) {
-        throw new IllegalStateException("Pool '" + poolAlias + "' is not in the set of available pools " + pools.keySet());
+        throw new IllegalArgumentException("Pool '" + poolAlias + "' is not in the set of available pools " + pools.keySet());
       } else {
         return new PartitionedOrderedExecutor(queue, executor);
       }
@@ -88,9 +95,12 @@ public class PooledExecutionService implements ExecutionService {
   @Override
   public ExecutorService getUnorderedExecutor(String poolAlias, BlockingQueue<Runnable> queue) {
     if (running) {
-      ThreadPoolExecutor executor = pools.get(poolAlias);
+      if (poolAlias == null && defaultPoolAlias == null) {
+        throw new IllegalArgumentException("No default pool configured");
+      }
+      ThreadPoolExecutor executor = pools.get(poolAlias == null ? defaultPoolAlias : poolAlias);
       if (executor == null) {
-        throw new IllegalStateException("Pool '" + poolAlias + "' is not in the set of available pools " + pools.keySet());
+        throw new IllegalArgumentException("Pool '" + poolAlias + "' is not in the set of available pools " + pools.keySet());
       } else {
         return new PartitionedUnorderedExecutor(queue, executor, executor.getMaximumPoolSize());
       }
@@ -108,8 +118,6 @@ public class PooledExecutionService implements ExecutionService {
       ThreadPoolExecutor defaultPool = pools.get(defaultPoolAlias);
       if (defaultPool == null) {
         throw new IllegalStateException("Pool for default pool alias is null");
-      } else {
-        pools.put(null, defaultPool);
       }
     }
     scheduledExecutor = new OutOfBandScheduledExecutor();
