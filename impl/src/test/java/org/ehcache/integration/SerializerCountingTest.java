@@ -83,14 +83,14 @@ public class SerializerCountingTest {
                 .buildConfig(Long.class, String.class));
 
     cache.put(42L, "TheAnswer!");
-    assertCounters(1, 1, 0, 1, 0, 0);
+    assertCounters(2, 2, 0, 1, 0, 0);
     printSerializationCounters("Put OnHeap (create)");
     cache.get(42L);
-    assertCounters(1, 1, 0, 0, 2, 0);
+    assertCounters(2, 2, 0, 0, 2, 0);
     printSerializationCounters("Get OnHeap");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(1, 1, 0, 1, 1, 0);
+    assertCounters(2, 2, 0, 1, 1, 0);
     printSerializationCounters("Put OnHeap (update)");
   }
 
@@ -126,7 +126,7 @@ public class SerializerCountingTest {
     );
 
     cache.put(42L, "TheAnswer");
-    assertCounters(1, 0, 0, 1, 0, 0);
+    assertCounters(2, 1, 0, 1, 0, 0);
     printSerializationCounters("Put OffheapOnHeapCopy");
     cache.get(42L);
     assertCounters(1, 1, 2, 1, 2, 0);
@@ -136,7 +136,7 @@ public class SerializerCountingTest {
     printSerializationCounters("Get OffheapOnHeapCopy faulted");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(1, 0, 3, 1, 2, 0);
+    assertCounters(3, 2, 3, 1, 2, 0);
     printSerializationCounters("Put OffheapOnHeapCopy (update faulted)");
   }
 
@@ -151,7 +151,7 @@ public class SerializerCountingTest {
 
 
     cache.put(42L, "TheAnswer");
-    assertCounters(2, 1, 0, 1, 0, 0);
+    assertCounters(3, 2, 0, 1, 0, 0);
     printSerializationCounters("Put DiskOffHeapOnHeapCopy");
     cache.get(42L);
     assertCounters(1, 1, 2, 1, 2, 0);
@@ -161,7 +161,7 @@ public class SerializerCountingTest {
     printSerializationCounters("Get DiskOffHeapOnHeapCopy faulted");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(2, 1, 3, 1, 2, 0);
+    assertCounters(3, 2, 3, 1, 2, 0);
     printSerializationCounters("Put DiskOffHeapOnHeapCopy (update faulted)");
   }
 
