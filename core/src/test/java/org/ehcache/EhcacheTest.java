@@ -17,6 +17,7 @@
 package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
@@ -67,7 +68,9 @@ public class EhcacheTest {
     Store store = mock(Store.class);
     final CacheConfiguration<Object, Object> config = newCacheConfigurationBuilder()
         .buildConfig(Object.class, Object.class);
-    Ehcache ehcache = new Ehcache(config, store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest"));
+    CacheEventDispatcher<Object, Object> cacheEventDispatcher = mock(CacheEventDispatcher.class);
+
+    Ehcache ehcache = new Ehcache(config, store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest"));
     assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
     ehcache.init();
     assertThat(ehcache.getStatus(), is(Status.AVAILABLE));
@@ -82,7 +85,8 @@ public class EhcacheTest {
     when(store.iterator()).thenReturn(mockIterator);
     final CacheConfiguration<Object, Object> config = newCacheConfigurationBuilder()
         .buildConfig(Object.class, Object.class);
-    Ehcache ehcache = new Ehcache(config, store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest1"));
+    CacheEventDispatcher<Object, Object> cacheEventDispatcher = mock(CacheEventDispatcher.class);
+    Ehcache ehcache = new Ehcache(config, store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest1"));
 
     try {
       ehcache.get("foo");
@@ -202,7 +206,8 @@ public class EhcacheTest {
   public void testDelegatesLifecycleCallsToStore() throws Exception {
     final CacheConfiguration<Object, Object> config = newCacheConfigurationBuilder()
         .buildConfig(Object.class, Object.class);
-    Ehcache ehcache = new Ehcache(config, mock(Store.class), LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest2"));
+    CacheEventDispatcher<Object, Object> cacheEventDispatcher = mock(CacheEventDispatcher.class);
+    Ehcache ehcache = new Ehcache(config, mock(Store.class), cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest2"));
     final LifeCycled mock = mock(LifeCycled.class);
     ehcache.addHook(mock);
     ehcache.init();
@@ -216,7 +221,8 @@ public class EhcacheTest {
     final LifeCycled mock = mock(LifeCycled.class);
     final CacheConfiguration<Object, Object> config = newCacheConfigurationBuilder()
         .buildConfig(Object.class, Object.class);
-    Ehcache ehcache = new Ehcache(config, mock(Store.class), LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest3"));
+    CacheEventDispatcher<Object, Object> cacheEventDispatcher = mock(CacheEventDispatcher.class);
+    Ehcache ehcache = new Ehcache(config, mock(Store.class), cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest3"));
     doThrow(new Exception()).when(mock).init();
     ehcache.addHook(mock);
     try {
@@ -291,8 +297,9 @@ public class EhcacheTest {
     });
     final CacheConfiguration<Object, Object> config = newCacheConfigurationBuilder()
         .buildConfig(Object.class, Object.class);
+    CacheEventDispatcher<Object, Object> cacheEventDispatcher = mock(CacheEventDispatcher.class);
     Ehcache<Object, Object> ehcache = new Ehcache<Object, Object>(
-        config, store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest4"));
+        config, store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest4"));
     ehcache.init();
     assertThat(ehcache.putIfAbsent("foo", value), nullValue());
     assertThat(ehcache.putIfAbsent("foo", "foo"), CoreMatchers.<Object>is(value));
@@ -305,7 +312,8 @@ public class EhcacheTest {
     Store store = mock(Store.class);
     final CacheConfiguration<Object, Object> config = newCacheConfigurationBuilder()
         .buildConfig(Object.class, Object.class);
-    Ehcache ehcache = new Ehcache(config, store, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest5"));
+    CacheEventDispatcher<Object, Object> cacheEventDispatcher = mock(CacheEventDispatcher.class);
+    Ehcache ehcache = new Ehcache(config, store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest5"));
 
     final LifeCycled hook = mock(LifeCycled.class);
     ehcache.addHook(hook);
@@ -334,8 +342,9 @@ public class EhcacheTest {
   public void testIgnoresKeysReturnedFromCacheLoaderLoadAll() {
     LoadAllVerifyStore store = new LoadAllVerifyStore();
     KeyFumblingCacheLoaderWriter loader = new KeyFumblingCacheLoaderWriter();
+    CacheEventDispatcher<String, String> cacheEventDispatcher = mock(CacheEventDispatcher.class);
     Ehcache<String, String> ehcache = new Ehcache<String, String>(newCacheConfigurationBuilder()
-        .buildConfig(String.class, String.class), store, loader, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest6"));
+        .buildConfig(String.class, String.class), store, loader, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest6"));
     ehcache.init();
 
     HashSet<String> keys = new HashSet<String>();

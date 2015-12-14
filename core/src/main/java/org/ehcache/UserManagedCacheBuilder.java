@@ -26,6 +26,7 @@ import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.UserManagedCacheConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.CacheEventDispatcher;
+import org.ehcache.events.DisabledCacheEventNotificationService;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -81,7 +82,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
   private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
   private EvictionVeto<? super K, ? super V> evictionVeto;
   private CacheLoaderWriter<? super K, V> cacheLoaderWriter;
-  private CacheEventDispatcher<K, V> cacheEventNotificationService;
+  private CacheEventDispatcher<K, V> cacheEventNotificationService = new DisabledCacheEventNotificationService<K, V>();
   private ResourcePools resourcePools = newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
 
   public UserManagedCacheBuilder(final Class<K> keyType, final Class<V> valueType) {

@@ -21,6 +21,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.BulkOps;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.hamcrest.Matchers;
@@ -43,10 +44,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.ehcache.EhcacheBasicBulkUtil.*;
-
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-
+import static org.ehcache.EhcacheBasicBulkUtil.KEY_SET_A;
+import static org.ehcache.EhcacheBasicBulkUtil.KEY_SET_B;
+import static org.ehcache.EhcacheBasicBulkUtil.KEY_SET_C;
+import static org.ehcache.EhcacheBasicBulkUtil.KEY_SET_D;
+import static org.ehcache.EhcacheBasicBulkUtil.copyOnly;
+import static org.ehcache.EhcacheBasicBulkUtil.copyWithout;
+import static org.ehcache.EhcacheBasicBulkUtil.fanIn;
+import static org.ehcache.EhcacheBasicBulkUtil.getEntryMap;
+import static org.ehcache.EhcacheBasicBulkUtil.union;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
@@ -59,10 +65,10 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.never;
 
 /**
  * Provides testing of basic REMOVE_ALL operations on an {@code Ehcache}.
@@ -2026,7 +2032,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicRemoveAllTest"));
+    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicRemoveAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

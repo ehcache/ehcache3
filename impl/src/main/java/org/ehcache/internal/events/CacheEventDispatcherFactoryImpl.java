@@ -15,18 +15,18 @@
  */
 package org.ehcache.internal.events;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
 import org.ehcache.config.event.CacheEventDispatcherFactoryConfiguration;
-import org.ehcache.events.CacheEventDispatcherFactory;
 import org.ehcache.events.CacheEventDispatcher;
+import org.ehcache.events.CacheEventDispatcherFactory;
 import org.ehcache.events.CacheEventDispatcherImpl;
-import org.ehcache.events.DisabledCacheEventNotificationService;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ExecutionService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.ehcache.internal.executor.ExecutorUtil.shutdown;
 
@@ -73,10 +73,14 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
 
   @Override
   public <K, V> CacheEventDispatcher<K, V> createCacheEventDispatcher(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs) {
-    if (getOrderedExecutor() == null || getUnorderedExecutor() == null) {
-      return new DisabledCacheEventNotificationService<K, V>();
-    } else {
+    try {
       return new CacheEventDispatcherImpl<K, V>(getOrderedExecutor(), getUnorderedExecutor(), store);
+    } catch (IllegalArgumentException iae) {
+      if (threadPoolAlias == null) {
+        throw new IllegalStateException("No default executor could be found for Cache Event Dispatcher");
+      } else {
+        throw new IllegalStateException("No executor named '" + threadPoolAlias + "' could be found for Cache Event Dispatcher");
+      }
     }
   }
 
