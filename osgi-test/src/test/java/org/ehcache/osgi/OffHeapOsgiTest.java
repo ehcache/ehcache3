@@ -53,7 +53,6 @@ public class OffHeapOsgiTest {
         mavenBundle("org.slf4j", "slf4j-api", System.getProperty("ehcache.osgi.slf4j.version")),
         mavenBundle("org.slf4j", "slf4j-simple", System.getProperty("ehcache.osgi.slf4j.version")).noStart(),
         bundle("file:" + System.getProperty("ehcache.osgi.jar")),
-        mavenBundle("org.terracotta", "offheap-store", System.getProperty("ehcache.osgi.offheap.version")),
         junitBundles()
     );
   }
