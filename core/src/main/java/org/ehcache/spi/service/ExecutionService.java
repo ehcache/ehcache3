@@ -31,9 +31,29 @@ import java.util.concurrent.ScheduledExecutorService;
  */
 public interface ExecutionService extends Service {
 
-  ScheduledExecutorService getScheduledExecutor(String poolAlias);
+  /**
+   * Get a pre-configured {@link ScheduledExecutorService} instance.
+   * @param poolAlias the requested pool alias.
+   * @return the {@link ScheduledExecutorService} instance.
+   * @throws IllegalArgumentException if the requested pool alias does not exist.
+   */
+  ScheduledExecutorService getScheduledExecutor(String poolAlias) throws IllegalArgumentException;
 
-  ExecutorService getOrderedExecutor(String poolAlias, BlockingQueue<Runnable> queue);
+  /**
+   * Get a pre-configured {@link ExecutorService} instance that guarantees execution in submission order.
+   * @param poolAlias the requested pool alias.
+   * @param queue the queue in which pending tasks are to be queued.
+   * @return the {@link ExecutorService} instance.
+   * @throws IllegalArgumentException if the requested pool alias does not exist.
+   */
+  ExecutorService getOrderedExecutor(String poolAlias, BlockingQueue<Runnable> queue) throws IllegalArgumentException;
 
-  ExecutorService getUnorderedExecutor(String poolAlias, BlockingQueue<Runnable> queue);
+  /**
+   * Get a pre-configured {@link ExecutorService} instance.
+   * @param poolAlias the requested pool alias.
+   * @param queue the queue in which pending tasks are to be queued.
+   * @return the {@link ExecutorService} instance.
+   * @throws IllegalArgumentException if the requested pool alias does not exist.
+   */
+  ExecutorService getUnorderedExecutor(String poolAlias, BlockingQueue<Runnable> queue) throws IllegalArgumentException;
 }

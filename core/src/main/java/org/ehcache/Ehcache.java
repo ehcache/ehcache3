@@ -21,7 +21,6 @@ import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.events.CacheEvents;
-import org.ehcache.events.DisabledCacheEventNotificationService;
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
@@ -113,12 +112,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     }
   };
 
-  public Ehcache(CacheConfiguration<K, V> configuration, final Store<K, V> store, Logger logger) {
-    this(configuration, store, null,logger);
-  }
-
-  public Ehcache(CacheConfiguration<K, V> configuration, Store<K, V> store, final CacheLoaderWriter<? super K, V> cacheLoaderWriter, Logger logger) {
-    this(configuration, store, cacheLoaderWriter, null,logger);
+  public Ehcache(CacheConfiguration<K, V> configuration, final Store<K, V> store, CacheEventDispatcher<K, V> eventNotifier, Logger logger) {
+    this(configuration, store, null, eventNotifier, logger);
   }
 
   public Ehcache(CacheConfiguration<K, V> configuration, Store<K, V> store,
@@ -147,11 +142,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>(recoveryCache(store));
     }
 
-    if (eventNotifier != null) {
-      this.eventNotificationService = eventNotifier;
-    } else {
-      this.eventNotificationService = new DisabledCacheEventNotificationService<K, V>();
-    }
+    this.eventNotificationService = eventNotifier;
     this.runtimeConfiguration = runtimeConfiguration;
     this.jsr107Cache = new Jsr107CacheImpl();
 

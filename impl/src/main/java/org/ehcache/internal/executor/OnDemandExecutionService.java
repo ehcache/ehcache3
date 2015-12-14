@@ -24,6 +24,8 @@ import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import org.ehcache.internal.util.ThreadFactoryUtil;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.ExecutionService;
 
@@ -57,19 +59,19 @@ public class OnDemandExecutionService implements ExecutionService {
   
   @Override
   public ScheduledExecutorService getScheduledExecutor(String poolAlias) {
-    return unconfigurableScheduledExecutorService(Executors.newSingleThreadScheduledExecutor());
+    return unconfigurableScheduledExecutorService(Executors.newSingleThreadScheduledExecutor(ThreadFactoryUtil.threadFactory(poolAlias)));
   }
 
   @Override
   public ExecutorService getOrderedExecutor(String poolAlias, BlockingQueue<Runnable> queue) {
-    ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 1, 30, TimeUnit.SECONDS, queue, WAIT_FOR_SPACE);
+    ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 1, 30, TimeUnit.SECONDS, queue, ThreadFactoryUtil.threadFactory(poolAlias),  WAIT_FOR_SPACE);
     executor.allowCoreThreadTimeOut(true);
     return unconfigurableExecutorService(executor);
   }
 
   @Override
   public ExecutorService getUnorderedExecutor(String poolAlias, BlockingQueue<Runnable> queue) {
-    ThreadPoolExecutor executor = new ThreadPoolExecutor(1, Runtime.getRuntime().availableProcessors(), 30, TimeUnit.SECONDS, queue, WAIT_FOR_SPACE);
+    ThreadPoolExecutor executor = new ThreadPoolExecutor(1, Runtime.getRuntime().availableProcessors(), 30, TimeUnit.SECONDS, queue, ThreadFactoryUtil.threadFactory(poolAlias), WAIT_FOR_SPACE);
     executor.allowCoreThreadTimeOut(true);
     return unconfigurableExecutorService(executor);
   }

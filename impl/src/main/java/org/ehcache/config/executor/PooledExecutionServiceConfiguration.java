@@ -33,6 +33,9 @@ public class PooledExecutionServiceConfiguration implements ServiceCreationConfi
   private String defaultAlias;
   
   public void addDefaultPool(String alias, int minSize, int maxSize) {
+    if (alias == null) {
+      throw new NullPointerException("Pool alias cannot be null");
+    }
     if (defaultAlias == null) {
       addPool(alias, minSize, maxSize);
       defaultAlias = alias;
@@ -42,8 +45,11 @@ public class PooledExecutionServiceConfiguration implements ServiceCreationConfi
   }
 
   public void addPool(String alias, int minSize, int maxSize) {
+    if (alias == null) {
+      throw new NullPointerException("Pool alias cannot be null");
+    }
     if (poolConfigurations.containsKey(alias)) {
-      throw new IllegalArgumentException("A pool with the alias " + alias + " is already configured");
+      throw new IllegalArgumentException("A pool with the alias '" + alias + "' is already configured");
     } else {
       poolConfigurations.put(alias, new PoolConfiguration(minSize, maxSize));
     }

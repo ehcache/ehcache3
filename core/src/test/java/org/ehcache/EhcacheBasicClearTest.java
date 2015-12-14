@@ -16,6 +16,7 @@
 
 package org.ehcache;
 
+import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.exceptions.CacheAccessException;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -129,7 +130,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
   private Ehcache<String, String> getEhcache()
       throws Exception {
     final Ehcache<String, String> ehcache =
-        new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, this.cacheLoaderWriter, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicClearTest"));
+        new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, this.cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicClearTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
