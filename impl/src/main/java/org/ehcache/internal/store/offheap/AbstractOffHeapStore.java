@@ -129,6 +129,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   private Store.ValueHolder<V> internalGet(K key, final boolean updateAccess) throws CacheAccessException {
     getObserver.begin();
+
+    final boolean hasListeners = eventListener.hasListeners();
     try {
       OffHeapValueHolder<V> result = backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
         @Override
@@ -137,17 +139,20 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
           if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
             if (mappedValue != null) {
-              onExpiration(mappedKey, mappedValue);
+              onExpiration(mappedKey, mappedValue, hasListeners);
             }
             return null;
           }
 
           if (updateAccess) {
-            return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now);
+            return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, hasListeners);
           }
           return mappedValue;
         }
       }, false);
+      if (hasListeners) {
+        eventListener.fireAllEvents();
+      }
       if (result == null) {
         getObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
       } else {
@@ -157,6 +162,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     } catch (RuntimeException re) {
       handleRuntimeException(re);
       return null;
+    } finally {
+      if (hasListeners) {
+        eventListener.purgeOrFireRemainingEvents();
+      }
     }
   }
 
@@ -173,35 +182,58 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     checkValue(value);
 
     final AtomicBoolean entryReplaced = new AtomicBoolean(false);
-    while (true) {
-      final long now = timeSource.getTimeMillis();
-      try {
-        backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
-          @Override
-          public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
-            entryReplaced.set(mappedValue != null);
-            if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
-              mappedValue = null;
-            }
+    final boolean hasListeners = eventListener.hasListeners();
+    try {
+      while (true) {
+        final long now = timeSource.getTimeMillis();
+        try {
+          backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+            @Override
+            public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
+              entryReplaced.set(mappedValue != null);
+              if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+                mappedValue = null;
+              }
 
-            if (mappedValue == null) {
-              return newCreateValueHolder(key, value, now);
-            } else {
-              return newUpdatedValueHolder(key, value, mappedValue, now);
+              if (mappedValue == null) {
+                OffHeapValueHolder<V> newValue = newCreateValueHolder(key, value, now);
+                if (hasListeners && newValue != null) {
+                  eventListener.onCreation(key, newValue);
+                }
+                return newValue;
+              } else {
+                OffHeapValueHolder<V> updatedValueHolder = newUpdatedValueHolder(key, value, mappedValue, now);
+                if (hasListeners) {
+                  if (updatedValueHolder != null) {
+                    eventListener.onUpdate(key, mappedValue, updatedValueHolder);
+                  } else {
+                    eventListener.onRemoval(key, mappedValue);
+                  }
+                }
+                return updatedValueHolder;
+              }
             }
-          }
-        }, false);
-        break;
-      } catch (OversizeMappingException ex) {
-        handleOversizeMappingException(key, ex);
-      } catch (RuntimeException re) {
-        handleRuntimeException(re);
+          }, false);
+          break;
+        } catch (OversizeMappingException ex) {
+          handleOversizeMappingException(key, ex);
+        } catch (RuntimeException re) {
+          handleRuntimeException(re);
+        }
       }
-    }
-    if (entryReplaced.get()) {
-      putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
-    } else {
-      putObserver.end(StoreOperationOutcomes.PutOutcome.PUT);
+      if (hasListeners) {
+        eventListener.fireAllEvents();
+      }
+      if (entryReplaced.get()) {
+        putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
+      } else {
+        putObserver.end(StoreOperationOutcomes.PutOutcome.PUT);
+      }
+    } finally {
+      if (hasListeners) {
+        eventListener.purgeOrFireRemainingEvents();
+      }
+
     }
   }
 
@@ -212,36 +244,52 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     checkValue(value);
 
     final AtomicReference<Store.ValueHolder<V>> returnValue = new AtomicReference<Store.ValueHolder<V>>();
+    final boolean hasListeners = eventListener.hasListeners();
 
-    while (true) {
-      try {
-        backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
-          @Override
-          public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
-            long now = timeSource.getTimeMillis();
+    try {
+      while (true) {
+        try {
+          backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+            @Override
+            public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
+              long now = timeSource.getTimeMillis();
 
-            if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
-              if (mappedValue != null) {
-                onExpiration(mappedKey, mappedValue);
+              if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+                if (mappedValue != null) {
+                  onExpiration(mappedKey, mappedValue, hasListeners);
+                }
+                OffHeapValueHolder<V> newValue = newCreateValueHolder(mappedKey, value, now);
+                if (hasListeners && newValue != null) {
+                  eventListener.onCreation(key, newValue);
+                }
+                return newValue;
               }
-              return newCreateValueHolder(mappedKey, value, now);
+              returnValue.set(mappedValue);
+              return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, hasListeners);
             }
-            returnValue.set(mappedValue);
-            return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now);
+          }, false);
+
+          if (hasListeners) {
+            eventListener.fireAllEvents();
           }
-        }, false);
-        ValueHolder<V> resultHolder = returnValue.get();
-        if (resultHolder == null) {
-          putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.PUT);
-          return null;
-        } else {
-          putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.HIT);
-          return resultHolder;
+
+          ValueHolder<V> resultHolder = returnValue.get();
+          if (resultHolder == null) {
+            putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.PUT);
+            return null;
+          } else {
+            putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.HIT);
+            return resultHolder;
+          }
+        } catch (OversizeMappingException ex) {
+          handleOversizeMappingException(key, ex);
+        } catch (RuntimeException re) {
+          handleRuntimeException(re);
         }
-      } catch (OversizeMappingException ex) {
-        handleOversizeMappingException(key, ex);
-      } catch (RuntimeException re) {
-        handleRuntimeException(re);
+      }
+    } finally {
+      if (hasListeners) {
+        eventListener.purgeOrFireRemainingEvents();
       }
     }
   }
@@ -250,14 +298,37 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   public void remove(K key) throws CacheAccessException {
     removeObserver.begin();
     checkKey(key);
+
+    final boolean hasListeners = eventListener.hasListeners();
+    final AtomicBoolean removed = new AtomicBoolean(false);
     try {
-      if (backingMap().remove(key) != null) {
+
+      backingMap().computeIfPresent(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+        @Override
+        public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
+          removed.set(true);
+          if (hasListeners) {
+            eventListener.onRemoval(mappedKey, mappedValue);
+          }
+          return null;
+        }
+      });
+
+      if (hasListeners) {
+        eventListener.fireAllEvents();
+      }
+
+      if (removed.get()) {
         removeObserver.end(StoreOperationOutcomes.RemoveOutcome.REMOVED);
       } else {
         removeObserver.end(StoreOperationOutcomes.RemoveOutcome.MISS);
       }
     } catch (RuntimeException re) {
       handleRuntimeException(re);
+    } finally {
+      if (hasListeners) {
+        eventListener.purgeOrFireRemainingEvents();
+      }
     }
   }
 
@@ -268,6 +339,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     checkValue(value);
 
     final AtomicBoolean removed = new AtomicBoolean(false);
+    final boolean hasListeners = eventListener.hasListeners();
 
     try {
       backingMap().computeIfPresent(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
@@ -276,27 +348,41 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           long now = timeSource.getTimeMillis();
 
           if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
-            onExpiration(mappedKey, mappedValue);
+            onExpiration(mappedKey, mappedValue, hasListeners);
             return null;
           } else if (mappedValue.value().equals(value)) {
             removed.set(true);
+            if (hasListeners) {
+              eventListener.onRemoval(mappedKey, mappedValue);
+            }
             return null;
           } else {
-            return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now);
+            return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, hasListeners);
           }
         }
       });
+
+      if (hasListeners) {
+        eventListener.fireAllEvents();
+      }
+
+      if (removed.get()) {
+        conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED);
+        return true;
+      } else {
+        conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS);
+        return false;
+      }
     } catch (RuntimeException re) {
       handleRuntimeException(re);
+      // To please the compiler, the above will throw
+      return false;
+    } finally {
+      if (hasListeners) {
+        eventListener.purgeOrFireRemainingEvents();
+      }
     }
 
-    if (removed.get()) {
-      conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED);
-      return true;
-    } else {
-      conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS);
-      return false;
-    }
   }
 
   @Override
@@ -306,6 +392,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     checkValue(value);
 
     final AtomicReference<Store.ValueHolder<V>> returnValue = new AtomicReference<Store.ValueHolder<V>>(null);
+    final boolean hasListeners = eventListener.hasListeners();
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> mappingFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
       @Override
       public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
@@ -313,32 +400,49 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
         if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           if (mappedValue != null) {
-            onExpiration(mappedKey, mappedValue);
+            onExpiration(mappedKey, mappedValue, hasListeners);
           }
           return null;
         } else {
           returnValue.set(mappedValue);
-          return newUpdatedValueHolder(mappedKey, value, mappedValue, now);
+          OffHeapValueHolder<V> updatedValue = newUpdatedValueHolder(mappedKey, value, mappedValue, now);
+          if (hasListeners) {
+            if (updatedValue != null) {
+              eventListener.onUpdate(mappedKey, mappedValue, updatedValue);
+            } else {
+              eventListener.onRemoval(mappedKey, mappedValue);
+            }
+          }
+          return updatedValue;
         }
       }
     };
-    while (true) {
-      try {
-        backingMap().compute(key, mappingFunction, false);
-        break;
-      } catch (OversizeMappingException ex) {
-        handleOversizeMappingException(key, ex);
-      } catch (RuntimeException re) {
-        handleRuntimeException(re);
+    try {
+      while (true) {
+        try {
+          backingMap().compute(key, mappingFunction, false);
+          break;
+        } catch (OversizeMappingException ex) {
+          handleOversizeMappingException(key, ex);
+        } catch (RuntimeException re) {
+          handleRuntimeException(re);
+        }
+      }
+      if (hasListeners) {
+        eventListener.fireAllEvents();
+      }
+      ValueHolder<V> resultHolder = returnValue.get();
+      if (resultHolder != null) {
+        replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.REPLACED);
+      } else {
+        replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
+      }
+      return resultHolder;
+    } finally {
+      if (hasListeners) {
+        eventListener.purgeOrFireRemainingEvents();
       }
     }
-    ValueHolder<V> resultHolder = returnValue.get();
-    if (resultHolder != null) {
-      replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.REPLACED);
-    } else {
-      replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
-    }
-    return resultHolder;
   }
 
   @Override
@@ -349,6 +453,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     checkValue(newValue);
 
     final AtomicBoolean replaced = new AtomicBoolean(false);
+    final boolean hasListeners = eventListener.hasListeners();
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> mappingFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
       @Override
       public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
@@ -356,34 +461,51 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
         if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           if (mappedValue != null) {
-            onExpiration(mappedKey, mappedValue);
+            onExpiration(mappedKey, mappedValue, hasListeners);
           }
           return null;
         } else if (oldValue.equals(mappedValue.value())) {
           replaced.set(true);
-          return newUpdatedValueHolder(mappedKey, newValue, mappedValue, now);
+          OffHeapValueHolder<V> updatedValue = newUpdatedValueHolder(mappedKey, newValue, mappedValue, now);
+          if (hasListeners) {
+            if (updatedValue != null) {
+              eventListener.onUpdate(mappedKey, mappedValue, updatedValue);
+            } else {
+              eventListener.onRemoval(mappedKey, mappedValue);
+            }
+          }
+          return updatedValue;
         } else {
-          return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now);
+          return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, hasListeners);
         }
       }
     };
 
-    while (true) {
-      try {
-        backingMap().compute(key, mappingFunction, false);
-        break;
-      } catch (OversizeMappingException ex) {
-        handleOversizeMappingException(key, ex);
-      } catch (RuntimeException re) {
-        handleRuntimeException(re);
+    try {
+      while (true) {
+        try {
+          backingMap().compute(key, mappingFunction, false);
+          break;
+        } catch (OversizeMappingException ex) {
+          handleOversizeMappingException(key, ex);
+        } catch (RuntimeException re) {
+          handleRuntimeException(re);
+        }
       }
-    }
-    if (replaced.get()) {
-      conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED);
-      return true;
-    } else {
-      conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.MISS);
-      return false;
+      if (hasListeners) {
+        eventListener.fireAllEvents();
+      }
+      if (replaced.get()) {
+        conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED);
+        return true;
+      } else {
+        conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.MISS);
+        return false;
+      }
+    } finally {
+      if (hasListeners) {
+        eventListener.purgeOrFireRemainingEvents();
+      }
     }
   }
 
@@ -424,6 +546,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     checkKey(key);
 
     final AtomicBoolean write = new AtomicBoolean(false);
+    final boolean hasListeners = eventListener.hasListeners();
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
       @Override
       public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
@@ -431,7 +554,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         V existingValue = null;
         if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           if (mappedValue != null) {
-            onExpiration(mappedKey, mappedValue);
+            onExpiration(mappedKey, mappedValue, hasListeners);
           }
           mappedValue = null;
         } else {
@@ -441,11 +564,14 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         if (computedValue == null) {
           if (mappedValue != null) {
             write.set(true);
+            if (hasListeners) {
+              eventListener.onRemoval(mappedKey, mappedValue);
+            }
           }
           return null;
         } else if (safeEquals(existingValue, computedValue) && !replaceEqual.apply()) {
           if (mappedValue != null) {
-            return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now);
+            return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, hasListeners);
           }
           return mappedValue;
         }
@@ -453,37 +579,58 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         checkValue(computedValue);
         write.set(true);
         if (mappedValue != null) {
-          return newUpdatedValueHolder(key, computedValue, mappedValue, now);
+          OffHeapValueHolder<V> updatedValue = newUpdatedValueHolder(key, computedValue, mappedValue, now);
+          if (hasListeners) {
+            if (updatedValue != null) {
+              eventListener.onUpdate(mappedKey, mappedValue, updatedValue);
+            } else {
+              eventListener.onRemoval(mappedKey, mappedValue);
+            }
+          }
+          return updatedValue;
         } else {
-          return newCreateValueHolder(key, computedValue, now);
+          OffHeapValueHolder<V> createdValue = newCreateValueHolder(key, computedValue, now);
+          if (hasListeners && createdValue != null) {
+            eventListener.onCreation(mappedKey, createdValue);
+          }
+          return createdValue;
         }
       }
     };
 
     OffHeapValueHolder<V> result;
-    while (true) {
-      try {
-        // TODO review as computeFunction can have side effects
-        result = backingMap().compute(key, computeFunction, false);
-        break;
-      } catch (OversizeMappingException e) {
-        handleOversizeMappingException(key, e);
-      } catch (RuntimeException re) {
-        handleRuntimeException(re);
+    try {
+      while (true) {
+        try {
+          // TODO review as computeFunction can have side effects
+          result = backingMap().compute(key, computeFunction, false);
+          break;
+        } catch (OversizeMappingException e) {
+          handleOversizeMappingException(key, e);
+        } catch (RuntimeException re) {
+          handleRuntimeException(re);
+        }
       }
-    }
-    if (result == null) {
-      if (write.get()) {
-        computeObserver.end(StoreOperationOutcomes.ComputeOutcome.REMOVED);
+      if (hasListeners) {
+        eventListener.fireAllEvents();
+      }
+      if (result == null) {
+        if (write.get()) {
+          computeObserver.end(StoreOperationOutcomes.ComputeOutcome.REMOVED);
+        } else {
+          computeObserver.end(StoreOperationOutcomes.ComputeOutcome.MISS);
+        }
+      } else if (write.get()) {
+        computeObserver.end(StoreOperationOutcomes.ComputeOutcome.PUT);
       } else {
-        computeObserver.end(StoreOperationOutcomes.ComputeOutcome.MISS);
+        computeObserver.end(StoreOperationOutcomes.ComputeOutcome.HIT);
       }
-    } else if (write.get()) {
-      computeObserver.end(StoreOperationOutcomes.ComputeOutcome.PUT);
-    } else {
-      computeObserver.end(StoreOperationOutcomes.ComputeOutcome.HIT);
+      return result;
+    } finally {
+      if (hasListeners) {
+        eventListener.purgeOrFireRemainingEvents();
+      }
     }
-    return result;
   }
 
   @Override
@@ -500,13 +647,14 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     checkKey(key);
 
     final AtomicBoolean write = new AtomicBoolean(false);
+    final boolean hasListeners = eventListener.hasListeners();
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
       @Override
       public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
         long now = timeSource.getTimeMillis();
         if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           if (mappedValue != null) {
-            onExpiration(mappedKey, mappedValue);
+            onExpiration(mappedKey, mappedValue, hasListeners);
           }
           write.set(true);
           V computedValue = mappingFunction.apply(mappedKey);
@@ -514,47 +662,60 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
             return null;
           } else {
             checkValue(computedValue);
-            return newCreateValueHolder(mappedKey, computedValue, now);
+            OffHeapValueHolder<V> createdValue = newCreateValueHolder(mappedKey, computedValue, now);
+            if (hasListeners && createdValue != null) {
+              eventListener.onCreation(mappedKey, createdValue);
+            }
+            return createdValue;
           }
         } else {
-          return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now);
+          return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, hasListeners);
         }
       }
     };
 
     OffHeapValueHolder<V> computeResult;
-    while (true) {
-      try {
-        computeResult = backingMap().compute(key, computeFunction, fault);
-        break;
-      } catch (OversizeMappingException e) {
-        handleOversizeMappingException(key, e);
-      } catch (RuntimeException re) {
-        handleRuntimeException(re);
+    try {
+      while (true) {
+        try {
+          computeResult = backingMap().compute(key, computeFunction, fault);
+          break;
+        } catch (OversizeMappingException e) {
+          handleOversizeMappingException(key, e);
+        } catch (RuntimeException re) {
+          handleRuntimeException(re);
+        }
       }
-    }
-    if (write.get()) {
-      if (computeResult != null) {
-        if (fault) {
-          computeIfAbsentAndFaultObserver.end(AuthoritativeTierOperationOutcomes.ComputeIfAbsentAndFaultOutcome.PUT);
+      if (hasListeners) {
+        eventListener.fireAllEvents();
+      }
+      if (write.get()) {
+        if (computeResult != null) {
+          if (fault) {
+            computeIfAbsentAndFaultObserver.end(AuthoritativeTierOperationOutcomes.ComputeIfAbsentAndFaultOutcome.PUT);
+          } else {
+            computeIfAbsentObserver.end(StoreOperationOutcomes.ComputeIfAbsentOutcome.PUT);
+          }
         } else {
-          computeIfAbsentObserver.end(StoreOperationOutcomes.ComputeIfAbsentOutcome.PUT);
+          if (fault) {
+            computeIfAbsentAndFaultObserver.end(AuthoritativeTierOperationOutcomes.ComputeIfAbsentAndFaultOutcome.NOOP);
+          } else {
+            computeIfAbsentObserver.end(StoreOperationOutcomes.ComputeIfAbsentOutcome.NOOP);
+          }
         }
       } else {
         if (fault) {
-          computeIfAbsentAndFaultObserver.end(AuthoritativeTierOperationOutcomes.ComputeIfAbsentAndFaultOutcome.NOOP);
+          computeIfAbsentAndFaultObserver.end(AuthoritativeTierOperationOutcomes.ComputeIfAbsentAndFaultOutcome.HIT);
         } else {
-          computeIfAbsentObserver.end(StoreOperationOutcomes.ComputeIfAbsentOutcome.NOOP);
+          computeIfAbsentObserver.end(StoreOperationOutcomes.ComputeIfAbsentOutcome.HIT);
         }
       }
-    } else {
-      if (fault) {
-        computeIfAbsentAndFaultObserver.end(AuthoritativeTierOperationOutcomes.ComputeIfAbsentAndFaultOutcome.HIT);
-      } else {
-        computeIfAbsentObserver.end(StoreOperationOutcomes.ComputeIfAbsentOutcome.HIT);
+      return computeResult;
+    } finally {
+      if (hasListeners) {
+        eventListener.purgeOrFireRemainingEvents();
       }
     }
-    return computeResult;
   }
 
   @Override
@@ -568,6 +729,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     checkKey(key);
 
     final AtomicBoolean write = new AtomicBoolean(false);
+    final boolean hasListeners = eventListener.hasListeners();
+
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
       @Override
       public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
@@ -575,7 +738,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
         if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           if (mappedValue != null) {
-            onExpiration(mappedKey, mappedValue);
+            onExpiration(mappedKey, mappedValue, hasListeners);
           }
           return null;
         }
@@ -583,41 +746,61 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         V computedValue = remappingFunction.apply(mappedKey, mappedValue.value());
         if (computedValue == null) {
           write.set(true);
+          if (hasListeners) {
+            eventListener.onRemoval(mappedKey, mappedValue);
+          }
           return null;
         }
 
         if (safeEquals(mappedValue.value(), computedValue) && !replaceEqual.apply()) {
-          return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now);
+          return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, hasListeners);
         }
         checkValue(computedValue);
         write.set(true);
-        return newUpdatedValueHolder(mappedKey, computedValue, mappedValue, now);
+        OffHeapValueHolder<V> updatedValue = newUpdatedValueHolder(mappedKey, computedValue, mappedValue, now);
+        if (hasListeners) {
+          if (updatedValue != null) {
+            eventListener.onUpdate(mappedKey, mappedValue, updatedValue);
+          } else {
+            eventListener.onRemoval(mappedKey, mappedValue);
+          }
+        }
+        return updatedValue;
       }
     };
 
     OffHeapValueHolder<V> computeResult;
-    while (true) {
-      try {
-        computeResult = backingMap().compute(key, computeFunction, false);
-        break;
-      } catch (OversizeMappingException e) {
-        handleOversizeMappingException(key, e);
-      } catch (RuntimeException re) {
-        handleRuntimeException(re);
+    try {
+      while (true) {
+        try {
+          computeResult = backingMap().compute(key, computeFunction, false);
+          break;
+        } catch (OversizeMappingException e) {
+          handleOversizeMappingException(key, e);
+        } catch (RuntimeException re) {
+          handleRuntimeException(re);
+        }
       }
-    }
-    if (computeResult == null) {
-      if (write.get()) {
-        computeIfPresentObserver.end(StoreOperationOutcomes.ComputeIfPresentOutcome.REMOVED);
+      if (hasListeners) {
+        eventListener.fireAllEvents();
+      }
+      if (computeResult == null) {
+        if (write.get()) {
+          computeIfPresentObserver.end(StoreOperationOutcomes.ComputeIfPresentOutcome.REMOVED);
+        } else {
+          computeIfPresentObserver.end(StoreOperationOutcomes.ComputeIfPresentOutcome.MISS);
+        }
+      } else if (write.get()) {
+        computeIfPresentObserver.end(StoreOperationOutcomes.ComputeIfPresentOutcome.PUT);
       } else {
-        computeIfPresentObserver.end(StoreOperationOutcomes.ComputeIfPresentOutcome.MISS);
+        computeIfPresentObserver.end(StoreOperationOutcomes.ComputeIfPresentOutcome.HIT);
       }
-    } else if (write.get()) {
-      computeIfPresentObserver.end(StoreOperationOutcomes.ComputeIfPresentOutcome.PUT);
-    } else {
-      computeIfPresentObserver.end(StoreOperationOutcomes.ComputeIfPresentOutcome.HIT);
+      return computeResult;
+    } finally {
+      if (hasListeners) {
+        eventListener.purgeOrFireRemainingEvents();
+      }
     }
-    return computeResult;
   }
 
   @Override
@@ -695,15 +878,25 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     getAndFaultObserver.begin();
     checkKey(key);
     ValueHolder<V> mappedValue = null;
+    final boolean hasListeners = eventListener.hasListeners();
     try {
       mappedValue = backingMap().getAndPin(key);
 
-      if(mappedValue != null && mappedValue.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
-        if(backingMap().remove(key, mappedValue)) {
-          onExpiration(key, mappedValue);
+      mappedValue = backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+        @Override
+        public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
+          if(mappedValue != null && mappedValue.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
+            onExpiration(mappedKey, mappedValue, hasListeners);
+            mappedValue = null;
+          }
+          return mappedValue;
         }
-        mappedValue = null;
+      }, true);
+
+      if (hasListeners) {
+        eventListener.fireAllEvents();
       }
+
       if (mappedValue == null) {
         getAndFaultObserver.end(AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.MISS);
       } else {
@@ -711,6 +904,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       }
     } catch (RuntimeException re) {
       handleRuntimeException(re);
+    } finally {
+      if (hasListeners) {
+        eventListener.purgeOrFireRemainingEvents();
+      }
     }
     return mappedValue;
   }
@@ -724,31 +921,42 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   public boolean flush(K key, final ValueHolder<V> valueFlushed) {
     flushObserver.begin();
     checkKey(key);
-    boolean result = backingMap().computeIfPinned(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
-      @Override
-      public OffHeapValueHolder<V> apply(K k, OffHeapValueHolder<V> valuePresent) {
-        if (valuePresent.getId() == valueFlushed.getId()) {
-          if (valueFlushed.isExpired(timeSource.getTimeMillis(), OffHeapValueHolder.TIME_UNIT)) {
-            onExpiration(k, valuePresent);
-            return null;
+    final boolean hasListeners = eventListener.hasListeners();
+
+    try {
+      boolean result = backingMap().computeIfPinned(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+        @Override
+        public OffHeapValueHolder<V> apply(K k, OffHeapValueHolder<V> valuePresent) {
+          if (valuePresent.getId() == valueFlushed.getId()) {
+            if (valueFlushed.isExpired(timeSource.getTimeMillis(), OffHeapValueHolder.TIME_UNIT)) {
+              onExpiration(k, valuePresent, hasListeners);
+              return null;
+            }
+            valuePresent.updateMetadata(valueFlushed);
+            valuePresent.writeBack();
           }
-          valuePresent.updateMetadata(valueFlushed);
-          valuePresent.writeBack();
+          return valuePresent;
         }
-        return valuePresent;
+      }, new Function<OffHeapValueHolder<V>, Boolean>() {
+        @Override
+        public Boolean apply(OffHeapValueHolder<V> valuePresent) {
+          return valuePresent.getId() == valueFlushed.getId();
+        }
+      });
+      if (hasListeners) {
+        eventListener.fireAllEvents();
       }
-    }, new Function<OffHeapValueHolder<V>, Boolean>() {
-      @Override
-      public Boolean apply(OffHeapValueHolder<V> valuePresent) {
-        return valuePresent.getId() == valueFlushed.getId();
+      if (result) {
+        flushObserver.end(AuthoritativeTierOperationOutcomes.FlushOutcome.HIT);
+        return true;
+      } else {
+        flushObserver.end(AuthoritativeTierOperationOutcomes.FlushOutcome.MISS);
+        return false;
       }
-    });
-    if (result) {
-      flushObserver.end(AuthoritativeTierOperationOutcomes.FlushOutcome.HIT);
-      return true;
-    } else {
-      flushObserver.end(AuthoritativeTierOperationOutcomes.FlushOutcome.MISS);
-      return false;
+    } finally {
+      if (hasListeners) {
+        eventListener.purgeOrFireRemainingEvents();
+      }
     }
   }
 
@@ -869,7 +1077,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         long now = timeSource.getTimeMillis();
         if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           if (mappedValue != null) {
-            onExpiration(mappedKey, mappedValue);
+            onExpiration(mappedKey, mappedValue, true);
           }
           mappedValue = null;
         }
@@ -909,7 +1117,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         ValueHolder<V> valueHolder = source.apply(k);
         if (valueHolder != null) {
           if (valueHolder.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
-            onExpiration(key, valueHolder);
+            onExpiration(key, valueHolder, true);
             return null;
           } else {
             return newTransferValueHolder(valueHolder);
@@ -956,13 +1164,13 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
   };
 
-  private OffHeapValueHolder<V> setAccessTimeAndExpiryThenReturnMapping(K key, OffHeapValueHolder<V> valueHolder, long now) {
+  private OffHeapValueHolder<V> setAccessTimeAndExpiryThenReturnMapping(K key, OffHeapValueHolder<V> valueHolder, long now, boolean hasListeners) {
     Duration duration;
     try {
       duration = expiry.getExpiryForAccess(key, valueHolder.value());
     } catch (RuntimeException re) {
       LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-      onExpiration(key, valueHolder);
+      onExpiration(key, valueHolder, hasListeners);
       return null;
     }
     valueHolder.accessed(now, duration);
@@ -1089,10 +1297,12 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
   }
 
-  private void onExpiration(K mappedKey, ValueHolder<V> mappedValue) {
+  private void onExpiration(K mappedKey, ValueHolder<V> mappedValue, boolean hasListeners) {
     expirationObserver.begin();
     expirationObserver.end(StoreOperationOutcomes.ExpirationOutcome.SUCCESS);
-    eventListener.onExpiration(mappedKey, mappedValue);
+    if (hasListeners) {
+      eventListener.onExpiration(mappedKey, mappedValue);
+    }
   }
 
   protected abstract EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> backingMap();
@@ -1106,8 +1316,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     private final EvictionVeto<? super K, ? super V> delegate;
 
     private OffHeapEvictionVetoWrapper(EvictionVeto<? super K, ? super V> delegate) {
-      // TODO fix this cast
-      this.delegate = (EvictionVeto<K, V>)delegate;
+      this.delegate = delegate;
     }
 
     @Override
@@ -1171,15 +1380,25 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       advance();
 
       final long now = timeSource.getTimeMillis();
-      backingMap().computeIfPresent(thisEntry.getKey(), new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
-        @Override
-        public OffHeapValueHolder<V> apply(final K k, final OffHeapValueHolder<V> currentMapping) {
-          if (currentMapping.getId() == thisEntry.getValue().getId()) {
-            return setAccessTimeAndExpiryThenReturnMapping(k, currentMapping, now);
+      final boolean hasListeners = eventListener.hasListeners();
+      try {
+        backingMap().computeIfPresent(thisEntry.getKey(), new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+          @Override
+          public OffHeapValueHolder<V> apply(final K k, final OffHeapValueHolder<V> currentMapping) {
+            if (currentMapping.getId() == thisEntry.getValue().getId()) {
+              return setAccessTimeAndExpiryThenReturnMapping(k, currentMapping, now, hasListeners);
+            }
+            return currentMapping;
           }
-          return currentMapping;
+        });
+        if (hasListeners) {
+          eventListener.fireAllEvents();
         }
-      });
+      } finally {
+        if (hasListeners) {
+          eventListener.purgeOrFireRemainingEvents();
+        }
+      }
 
       Duration duration;
       try {
@@ -1223,7 +1442,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   static class BackingMapEvictionListener<K, V> implements EhcacheSegmentFactory.EhcacheSegment.EvictionListener<K, OffHeapValueHolder<V>> {
 
     private final OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver;
-    private StoreEventListener<K, V> storeEventListener;
+    private volatile StoreEventListener<K, V> storeEventListener;
 
     private BackingMapEvictionListener(OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver) {
       this.evictionObserver = evictionObserver;

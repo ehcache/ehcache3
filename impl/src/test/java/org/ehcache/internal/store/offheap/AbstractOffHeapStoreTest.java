@@ -164,7 +164,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testInvalidateKey() throws Exception {
+  public void testInvalidateKeyAbsent() throws Exception {
     final TestTimeSource timeSource = new TestTimeSource();
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
 
@@ -180,11 +180,30 @@ public abstract class AbstractOffHeapStoreTest {
       offHeapStore.invalidate("1");
       assertThat(invalidated.get(), is(nullValue()));
       validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.InvalidateOutcome.MISS));
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
 
+  @Test
+  public void testInvalidateKeyPresent() throws Exception {
+    final TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
+
+    try {
       offHeapStore.put("1", "one");
+
+      final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
+      offHeapStore.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
+        @Override
+        public void onInvalidation(String key, Store.ValueHolder<String> valueHolder) {
+          invalidated.set(valueHolder);
+        }
+      });
+
       offHeapStore.invalidate("1");
       assertThat(invalidated.get().value(), equalTo("one"));
-      validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.InvalidateOutcome.MISS, LowerCachingTierOperationsOutcome.InvalidateOutcome.REMOVED));
+      validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.InvalidateOutcome.REMOVED));
 
       assertThat(offHeapStore.get("1"), is(nullValue()));
     } finally {
@@ -193,7 +212,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testInvalidateKeyWithFunction() throws Exception {
+  public void testInvalidateWithFunctionKeyAbsent() throws Exception {
     final TestTimeSource timeSource = new TestTimeSource();
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
 
@@ -218,13 +237,38 @@ public abstract class AbstractOffHeapStoreTest {
       assertThat(invalidated.get(), is(nullValue()));
       assertThat(functionInvoked.get(), is(true));
       validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.InvalidateOutcome.MISS));
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
 
-      functionInvoked.set(false);
+  @Test
+  public void testInvalidateWithFunctionKeyPresent() throws Exception {
+    final TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
+
+    try {
       offHeapStore.put("1", "one");
+      final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
+      offHeapStore.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
+        @Override
+        public void onInvalidation(String key, Store.ValueHolder<String> valueHolder) {
+          invalidated.set(valueHolder);
+        }
+      });
+
+      final AtomicBoolean functionInvoked = new AtomicBoolean(false);
+      NullaryFunction<String> nullaryFunction = new NullaryFunction<String>() {
+        @Override
+        public String apply() {
+          functionInvoked.set(true);
+          return "";
+        }
+      };
       offHeapStore.invalidate("1", nullaryFunction);
       assertThat(invalidated.get().value(), equalTo("one"));
       assertThat(functionInvoked.get(), is(true));
-      validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.InvalidateOutcome.MISS, LowerCachingTierOperationsOutcome.InvalidateOutcome.REMOVED));
+      validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.InvalidateOutcome.REMOVED));
 
       assertThat(offHeapStore.get("1"), is(nullValue()));
     } finally {
