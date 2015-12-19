@@ -120,7 +120,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
 
       private ResourcePools getDiskResourcePool(Comparable<Long> capacityConstraint) {
         if (capacityConstraint == null) {
-          capacityConstraint = 32L;
+          capacityConstraint = 10L;
         }
         return ResourcePoolsBuilder.newResourcePoolsBuilder().disk((Long) capacityConstraint, MemoryUnit.MB).build();
       }
