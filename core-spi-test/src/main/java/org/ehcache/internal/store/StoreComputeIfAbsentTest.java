@@ -41,11 +41,11 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @After
   public void tearDown() {
     if (kvStore != null) {
-//      kvStore.close();
+      factory.close(kvStore);
       kvStore = null;
     }
     if (kvStore2 != null) {
-//      kvStore2.close();
+      factory.close(kvStore2);
       kvStore2 = null;
     }
   }

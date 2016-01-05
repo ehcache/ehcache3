@@ -18,6 +18,7 @@ package org.ehcache.internal.store;
 
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.SPITest;
 import org.hamcrest.Matchers;
@@ -43,6 +44,13 @@ public class StoreCloseTest<K, V> extends SPIStoreTester<K, V> {
   @Before
   public void setUp() {
     kvStore = factory.newStore();
+  }
+
+  @After
+  public void tearDown() {
+    if (kvStore != null) {
+      kvStore = null;
+    }
   }
 
   @SPITest
