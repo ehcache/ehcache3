@@ -101,7 +101,6 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   @Override
   public void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener,
                                   EventOrdering ordering, EventFiring firing, EnumSet<EventType> forEventTypes) {
-    boolean doRegister = forEventTypes.contains(EventType.EVICTED) || forEventTypes.contains(EventType.EXPIRED);
     EventListenerWrapper wrapper = new EventListenerWrapper(listener, firing, ordering, forEventTypes);
     if(wrapper.config.orderingMode() == EventOrdering.ORDERED) {
       orderedListenerCount.incrementAndGet();
@@ -116,9 +115,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
     } else {
       syncListenersSet.add(wrapper);
     }
-    if (doRegister) {
-      store.enableStoreEventNotifications(storeListener);
-    }
+    store.enableStoreEventNotifications(storeListener);
     synchronized (this) {
       if (eventThreadLocal instanceof NoOpEventThreadLocalImpl) {
         eventThreadLocal = new EventThreadLocalImpl();
