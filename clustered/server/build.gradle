@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "clustered", "clustered:common", "clustered:client", "clustered:server",
-        "integration-test", "dist", "osgi-test", "demos/00-NoCache", "demos/01-CacheAside", "docs"
+dependencies {
+  compile project(':clustered:common')
+  compile "org.terracotta:entity-server-api:$parent.entityApiVersion"
+}
