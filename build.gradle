@@ -133,9 +133,7 @@ subprojects {
   }
 }
 
-def projectsToDeploy = [':api', ':107', ':core', ':impl', ':management', ':transactions', ':xml']
-
-configure(projectsToDeploy.collect {project(it)}) {
+configure(allprojects.findAll({ p -> p.ext.properties.deploy })) {
   apply plugin: 'signing'
   apply plugin: 'maven'
 

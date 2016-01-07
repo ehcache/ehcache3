@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "clustered", "clustered:common", "clustered:client", "clustered:server",
-        "integration-test", "dist", "osgi-test", "demos", "demos:00-NoCache", "demos:01-CacheAside", "docs"
+ext {
+    coordinatorVersion = '1.0-SNAPSHOT'
+    entityApiVersion = '1.0-SNAPSHOT'
+}
