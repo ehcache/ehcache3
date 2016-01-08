@@ -18,3 +18,9 @@ ext {
     coordinatorVersion = '1.0-SNAPSHOT'
     entityApiVersion = '1.0-SNAPSHOT'
 }
+
+subprojects {
+  repositories {
+    maven { url "http://snapshots.terracotta.org/" }
+  }
+}
