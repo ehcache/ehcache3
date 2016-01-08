@@ -44,7 +44,42 @@ class ResourcePoolsImpl implements ResourcePools {
   public Set<ResourceType> getResourceTypeSet() {
     return pools.keySet();
   }
-  
+
+  @Override
+  public ResourcePools validateAndMerge(ResourcePools toBeUpdated) {
+    if(!getResourceTypeSet().containsAll(toBeUpdated.getResourceTypeSet())) {
+      throw new IllegalArgumentException("Pools to be updated cannot contain previously undefined resources pools");
+    }
+    if(toBeUpdated.getResourceTypeSet().contains(ResourceType.Core.OFFHEAP)) {
+      throw new UnsupportedOperationException("Updating OFFHEAP resource is not supported");
+    }
+    if(toBeUpdated.getResourceTypeSet().contains(ResourceType.Core.DISK)) {
+      throw new UnsupportedOperationException("Updating DISK resource is not supported");
+    }
+    for(ResourceType currentResourceType : toBeUpdated.getResourceTypeSet()) {
+      if (toBeUpdated.getPoolForResource(currentResourceType).getSize() <= 0) {
+        throw new IllegalArgumentException("Unacceptable zero or negative size for resource pools provided");
+      }
+      if (toBeUpdated.getPoolForResource(currentResourceType).isPersistent() !=
+          getPoolForResource(currentResourceType).isPersistent()) {
+        throw new IllegalArgumentException("Persistence configuration cannot be updated");
+      }
+      if(!toBeUpdated.getPoolForResource(currentResourceType).getUnit().getClass()
+          .equals(getPoolForResource(currentResourceType).getUnit().getClass())) {
+        throw new UnsupportedOperationException("Modifying ResourceUnit type is not supported");
+      }
+    }
+
+    Map<ResourceType, ResourcePool> poolsMap = new HashMap<ResourceType, ResourcePool>();
+    poolsMap.putAll(pools);
+    for(ResourceType currentResourceType : toBeUpdated.getResourceTypeSet()) {
+      ResourcePool poolForResource = toBeUpdated.getPoolForResource(currentResourceType);
+      poolsMap.put(currentResourceType, new ResourcePoolImpl(currentResourceType, poolForResource.getSize(), poolForResource.getUnit(), poolForResource.isPersistent()));
+    }
+
+    return new ResourcePoolsImpl(poolsMap);
+  }
+
   public static void validateResourcePools(Collection<? extends ResourcePool> pools) {
     EnumMap<ResourceType.Core, ResourcePool> coreResources = new EnumMap<ResourceType.Core, ResourcePool>(ResourceType.Core.class);
     for (ResourcePool pool : pools) {

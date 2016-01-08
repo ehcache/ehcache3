@@ -54,11 +54,8 @@ public class EhcacheRuntimeConfigurationTest {
     cache.getRuntimeConfiguration().updateResourcePools(pools);
     assertThat(cache.getRuntimeConfiguration().getResourcePools()
         .getPoolForResource(ResourceType.Core.HEAP).getSize(), is(20L));
-    poolsBuilder = poolsBuilder.disk(20L, MemoryUnit.MB);
     pools = poolsBuilder.build();
     cache.getRuntimeConfiguration().updateResourcePools(pools);
-    assertThat(cache.getRuntimeConfiguration().getResourcePools()
-        .getPoolForResource(ResourceType.Core.DISK).getSize(), is(20L));
     assertThat(cache.getRuntimeConfiguration().getResourcePools()
         .getPoolForResource(ResourceType.Core.HEAP).getSize(), is(20L));
     cacheManager.close();

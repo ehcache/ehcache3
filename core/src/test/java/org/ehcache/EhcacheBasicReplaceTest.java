@@ -15,9 +15,13 @@
  */
 package org.ehcache;
 
+import org.ehcache.config.BaseCacheConfiguration;
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.ResourcePoolsHelper;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.CacheOperationOutcomes;
@@ -28,9 +32,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.EnumSet;
-import org.ehcache.config.CacheConfiguration;
-import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
-import org.ehcache.expiry.Expirations;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -544,7 +545,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
   }
 
   private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<? super String, ? super String> expiry) {
-    CacheConfiguration<String, String> config = newCacheConfigurationBuilder().withExpiry(expiry).buildConfig(String.class, String.class);
+    CacheConfiguration<String, String> config = new BaseCacheConfiguration<String, String>(String.class, String.class, null, null, expiry, ResourcePoolsHelper.createHeapOnlyPools());
     final Ehcache<String, String> ehcache
         = new Ehcache<String, String>(config, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicReplaceTest"));
     ehcache.init();

@@ -16,13 +16,15 @@
 
 package org.ehcache.config;
 
+import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.expiry.Expiry;
+import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
 import java.util.HashSet;
-
-import org.ehcache.expiry.Expiry;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 

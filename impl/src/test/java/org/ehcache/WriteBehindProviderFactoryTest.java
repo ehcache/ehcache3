@@ -31,9 +31,8 @@ import org.junit.rules.ExpectedException;
 
 import java.util.Collection;
 import java.util.Map;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
-import static org.hamcrest.core.Is.is;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
 

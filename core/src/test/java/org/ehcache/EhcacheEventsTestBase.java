@@ -17,6 +17,9 @@
 package org.ehcache;
 
 import java.util.EnumSet;
+
+import org.ehcache.config.BaseCacheConfiguration;
+import org.ehcache.config.ResourcePoolsHelper;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
@@ -33,7 +36,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 
@@ -67,7 +69,7 @@ public class EhcacheEventsTestBase extends EhcacheBasicCrudBase {
   }
   
   protected Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<? super String, ? super String> expiry, String name) {
-    CacheConfiguration<String, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder().withExpiry(expiry).buildConfig(String.class, String.class);
+    CacheConfiguration<String, String> config = new BaseCacheConfiguration<String, String>(String.class, String.class, null, null, expiry, ResourcePoolsHelper.createHeapOnlyPools());
     ExecutorService orderedExecutor = Executors.newSingleThreadExecutor();
     ExecutorService unorderedExecutor = Executors.newCachedThreadPool();
     cacheEventNotificationService = new CacheEventDispatcherImpl<String, String>(orderedExecutor, unorderedExecutor, store);

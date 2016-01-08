@@ -16,6 +16,8 @@
 
 package org.ehcache;
 
+import org.ehcache.config.BaseCacheConfiguration;
+import org.ehcache.config.ResourcePoolsHelper;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
@@ -52,7 +54,6 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import static org.ehcache.EhcacheBasicBulkUtil.*;
-import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
@@ -2125,7 +2126,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<String, String> expiry) {
-    return getEhcache(cacheLoaderWriter, newCacheConfigurationBuilder().withExpiry(expiry).buildConfig(String.class, String.class));
+    CacheConfiguration<String, String> config = new BaseCacheConfiguration<String, String>(String.class, String.class, null, null, expiry, ResourcePoolsHelper.createHeapOnlyPools());
+    return getEhcache(cacheLoaderWriter, config);
   }
   
   private Ehcache<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter, CacheConfiguration<String, String> config) {
