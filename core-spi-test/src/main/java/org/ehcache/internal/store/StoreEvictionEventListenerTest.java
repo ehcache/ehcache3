@@ -23,23 +23,20 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.After;
+import org.ehcache.spi.test.Ignore;
 import org.ehcache.spi.test.SPITest;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import org.mockito.InOrder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Test the eviction half of the {@link org.ehcache.spi.cache.Store#enableStoreEventNotifications(org.ehcache.events.StoreEventListener)} contract of the
  * {@link org.ehcache.spi.cache.Store Store} interface.
- * <p/>
- *
- * @author Gaurav Mangalick
  */
 
 public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
@@ -67,38 +64,31 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testPutOnEviction() throws Exception {
     kvStore = factory.newStoreWithCapacity(1L);
-    TestStoreEventListener listener = new TestStoreEventListener();
-    kvStore.enableStoreEventNotifications(listener);
+    StoreEventListener<K, V> listener = addListener(kvStore);
     kvStore.put(k, v);
     kvStore.put(k2, v2);
-    Map<K, V> map = convertToMap(kvStore.iterator());
-    assertThat(map.size(), is(lessThan(2)));
-    assertThat(listener.evicted, anyOf(hasItem(k), hasItem(k2)));
+    verifyListenerInteractions(listener);
   }
 
   @SPITest
   public void testPutIfAbsentOnEviction() throws Exception {
     kvStore = factory.newStoreWithCapacity(1L);
-    TestStoreEventListener listener = new TestStoreEventListener();
-    kvStore.enableStoreEventNotifications(listener);
+    StoreEventListener<K, V> listener = addListener(kvStore);
     kvStore.put(k, v);
-    Store.ValueHolder<V> lastValue = kvStore.putIfAbsent(k2, v2);
-    assertThat(lastValue, is(nullValue()));
-    Map<K, V> map = convertToMap(kvStore.iterator());
-    assertThat(map.size(), is(lessThan(2)));
-    assertThat(listener.evicted, anyOf(hasItem(k), hasItem(k2)));
+    kvStore.putIfAbsent(k2, v2);
+    verifyListenerInteractions(listener);
   }
 
   @SPITest
+  @Ignore(reason = "See comment")
   public void testReplaceTwoArgsOnEviction() throws Exception {
+    // The following makes no sense, what we may want to test here is that replace with a bigger value evicts
+    // But that would also mean supporting the fact that this may not impact the store (think count based)
     kvStore = factory.newStoreWithCapacity(1L);
-    TestStoreEventListener listener = new TestStoreEventListener();
-    kvStore.enableStoreEventNotifications(listener);
+    StoreEventListener<K, V> listener = addListener(kvStore);
     kvStore.put(k, v);
     kvStore.put(k2, v2);
-    Map<K, V> map = convertToMap(kvStore.iterator());
-    assertThat(map.size(), is(lessThan(2)));
-    assertThat(listener.evicted, anyOf(hasItem(k), hasItem(k2)));
+    verifyListenerInteractions(listener);
     kvStore.replace(getOnlyKey(kvStore.iterator()), v3);
     assertThat(kvStore.get(getOnlyKey(kvStore.iterator())).value(), is(v3));
   }
@@ -106,8 +96,7 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testComputeOnEviction() throws Exception {
     kvStore = factory.newStoreWithCapacity(1L);
-    TestStoreEventListener listener = new TestStoreEventListener();
-    kvStore.enableStoreEventNotifications(listener);
+    StoreEventListener<K, V> listener = addListener(kvStore);
     kvStore.put(k, v);
     kvStore.compute(k2, new BiFunction<K, V, V>() {
       @Override
@@ -115,16 +104,13 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
         return v2;
       }
     });
-    Map<K, V> map = convertToMap(kvStore.iterator());
-    assertThat(map.size(), is(lessThan(2)));
-    assertThat(listener.evicted, anyOf(hasItem(k), hasItem(k2)));
+    verifyListenerInteractions(listener);
   }
 
   @SPITest
   public void testComputeIfAbsentOnEviction() throws Exception {
     kvStore = factory.newStoreWithCapacity(1L);
-    TestStoreEventListener listener = new TestStoreEventListener();
-    kvStore.enableStoreEventNotifications(listener);
+    StoreEventListener<K, V> listener = addListener(kvStore);
     kvStore.put(k, v);
     kvStore.computeIfAbsent(k2, new Function<K, V>() {
       @Override
@@ -132,72 +118,33 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
         return v2;
       }
     });
-    Map<K, V> map = convertToMap(kvStore.iterator());
-    assertThat(map.size(), is(lessThan(2)));
-    assertThat(listener.evicted, anyOf(hasItem(k), hasItem(k2)));
+    verifyListenerInteractions(listener);
   }
 
   private K getOnlyKey(Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iter)
       throws CacheAccessException {
-    while (iter.hasNext()) {
+    if (iter.hasNext()) {
       Cache.Entry<K, Store.ValueHolder<V>> entry = iter.next();
       return entry.getKey();
     }
     return null;
   }
 
-  private Map<K, V> convertToMap(Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iter)
-      throws CacheAccessException {
-    Map<K, V> map = new HashMap<K, V>();
-    while (iter.hasNext()) {
-      Cache.Entry<K, Store.ValueHolder<V>> entry = iter.next();
-      map.put(entry.getKey(), entry.getValue().value());
-    }
-    return map;
+  private void verifyListenerInteractions(StoreEventListener<K, V> listener) {InOrder inOrder = inOrder(listener);
+    inOrder.verify(listener).hasListeners();
+    inOrder.verify(listener).onCreation(any(factory.getKeyType()), any(Store.ValueHolder.class));
+    inOrder.verify(listener).onEviction(any(factory.getKeyType()), any(Store.ValueHolder.class));
+    inOrder.verify(listener).fireAllEvents();
+    inOrder.verify(listener).purgeOrFireRemainingEvents();
+    inOrder.verifyNoMoreInteractions();
   }
 
-  private class TestStoreEventListener implements StoreEventListener<K, V> {
-    private final Set<K> evicted = new HashSet<K>();
+  private StoreEventListener<K, V> addListener(Store<K, V> kvStore) {
+    StoreEventListener<K, V> listener = mock(StoreEventListener.class);
+    when(listener.hasListeners()).thenReturn(true);
 
-    @Override
-    public void onEviction(final K key, final Store.ValueHolder<V> valueHolder) {
-      evicted.add(key);
-    }
-
-    @Override
-    public void onExpiration(final K key, final Store.ValueHolder<V> valueHolder) {
-      fail("Unexpected expiration");
-    }
-
-    @Override
-    public void onCreation(K key, Store.ValueHolder<V> valueHolder) {
-      // Do nothing
-    }
-
-    @Override
-    public void onUpdate(K key, Store.ValueHolder<V> previousValue, Store.ValueHolder<V> newValue) {
-      // Do nothing
-    }
-
-    @Override
-    public void onRemoval(K key, Store.ValueHolder<V> removed) {
-      // Do nothing
-    }
-
-    @Override
-    public boolean hasListeners() {
-      return true;
-    }
-
-    @Override
-    public void fireAllEvents() {
-      // Do nothing
-    }
-
-    @Override
-    public void purgeOrFireRemainingEvents() {
-      // Do nothing
-    }
+    kvStore.enableStoreEventNotifications(listener);
+    return listener;
   }
 }
 
