@@ -787,7 +787,7 @@ public class XAStore<K, V> implements Store<K, V> {
         LocalPersistenceService.PersistenceSpaceIdentifier persistenceSpaceId = findSingletonAmongst(LocalPersistenceService.PersistenceSpaceIdentifier.class, serviceConfigs);
 
         // find the copiers
-        Collection<DefaultCopierConfiguration> copierConfigs = findAmongst(DefaultCopierConfiguration.class, underlyingServiceConfigs.toArray());
+        Collection<DefaultCopierConfiguration> copierConfigs = findAmongst(DefaultCopierConfiguration.class, underlyingServiceConfigs);
         DefaultCopierConfiguration keyCopierConfig = null;
         DefaultCopierConfiguration valueCopierConfig = null;
         for (DefaultCopierConfiguration copierConfig : copierConfigs) {

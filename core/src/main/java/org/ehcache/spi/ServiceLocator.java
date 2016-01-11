@@ -175,6 +175,10 @@ public final class ServiceLocator implements ServiceProvider {
     }
   }
 
+  public static <T> Collection<T> findAmongst(Class<T> clazz, Collection<?> instances) {
+    return findAmongst(clazz, instances.toArray());
+  }
+
   public static <T> Collection<T> findAmongst(Class<T> clazz, Object ... instances) {
     Collection<T> matches = new ArrayList<T>();
     for (Object instance : instances) {
@@ -183,6 +187,10 @@ public final class ServiceLocator implements ServiceProvider {
       }
     }
     return Collections.unmodifiableCollection(matches);
+  }
+
+  public static <T> T findSingletonAmongst(Class<T> clazz, Collection<?> instances) {
+    return findSingletonAmongst(clazz, instances.toArray());
   }
 
   public static <T> T findSingletonAmongst(Class<T> clazz, Object ... instances) {

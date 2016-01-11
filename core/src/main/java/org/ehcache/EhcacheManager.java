@@ -389,7 +389,7 @@ public class EhcacheManager implements PersistentCacheManager {
     final CacheEventListenerProvider evntLsnrFactory = serviceLocator.getService(CacheEventListenerProvider.class);
     if (evntLsnrFactory != null) {
       Collection<CacheEventListenerConfiguration> evtLsnrConfigs =
-      ServiceLocator.findAmongst(CacheEventListenerConfiguration.class, config.getServiceConfigurations().toArray());
+      ServiceLocator.findAmongst(CacheEventListenerConfiguration.class, config.getServiceConfigurations());
       for (CacheEventListenerConfiguration lsnrConfig: evtLsnrConfigs) {
         final CacheEventListener<K, V> lsnr = evntLsnrFactory.createEventListener(alias, lsnrConfig);
         if (lsnr != null) {
