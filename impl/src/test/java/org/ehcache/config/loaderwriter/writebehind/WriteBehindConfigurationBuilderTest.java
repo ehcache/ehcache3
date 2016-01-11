@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package org.ehcache.config.writebehind;
+package org.ehcache.config.loaderwriter.writebehind;
 
 import java.util.concurrent.TimeUnit;
-import static org.ehcache.config.writebehind.WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration;
-import static org.ehcache.config.writebehind.WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration;
+import static org.ehcache.config.loaderwriter.writebehind.WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration;
+import static org.ehcache.config.loaderwriter.writebehind.WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
