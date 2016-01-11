@@ -48,23 +48,23 @@ public final class CacheEvents {
   public static <K, V> StoreEventListener<K, V> nullStoreEventListener() {
     return new StoreEventListener<K, V>() {
       @Override
-      public void onEviction(final K key, final Store.ValueHolder<V> valueHolder) {
+      public void onEviction(final K key, final V value) {
       }
 
       @Override
-      public void onExpiration(final K key, final Store.ValueHolder<V> valueHolder) {
+      public void onExpiration(final K key, final V value) {
       }
 
       @Override
-      public void onCreation(K key, Store.ValueHolder<V> valueHolder) {
+      public void onCreation(K key, V value) {
       }
 
       @Override
-      public void onUpdate(K key, Store.ValueHolder<V> previousValue, Store.ValueHolder<V> newValue) {
+      public void onUpdate(K key, V previousValue, V newValue) {
       }
 
       @Override
-      public void onRemoval(K key, Store.ValueHolder<V> removed) {
+      public void onRemoval(K key, V removed) {
       }
 
       @Override

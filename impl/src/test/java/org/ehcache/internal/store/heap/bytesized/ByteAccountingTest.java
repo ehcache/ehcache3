@@ -401,7 +401,7 @@ public class ByteAccountingTest {
     long requiredSize = getSize(key1, value1);
 
     store.put(key1, value1);
-    verify(listener, times(1)).onEviction(Matchers.<String>any(), Matchers.<Store.ValueHolder<String>>any());
+    verify(listener, times(1)).onEviction(Matchers.<String>any(), Matchers.<String>any());
     if (store.get(key1) != null) {
       assertThat(store.getCurrentUsageInBytes(), is(requiredSize));
     } else {

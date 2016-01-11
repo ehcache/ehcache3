@@ -132,8 +132,8 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
 
   private void verifyListenerInteractions(StoreEventListener<K, V> listener) {InOrder inOrder = inOrder(listener);
     inOrder.verify(listener).hasListeners();
-    inOrder.verify(listener).onCreation(any(factory.getKeyType()), any(Store.ValueHolder.class));
-    inOrder.verify(listener).onEviction(any(factory.getKeyType()), any(Store.ValueHolder.class));
+    inOrder.verify(listener).onCreation(any(factory.getKeyType()), any(factory.getValueType()));
+    inOrder.verify(listener).onEviction(any(factory.getKeyType()), any(factory.getValueType()));
     inOrder.verify(listener).fireAllEvents();
     inOrder.verify(listener).purgeOrFireRemainingEvents();
     inOrder.verifyNoMoreInteractions();

@@ -16,50 +16,48 @@
 
 package org.ehcache.events;
 
-import org.ehcache.spi.cache.Store;
-
 public interface StoreEventListener<K, V> {
 
   /**
    * Called when an entry gets evicted during a {@code org.ehcache.spi.cache.Store} operation..
    *
-   * @param key the <code>key</code> of the mapping being evicted
-   * @param valueHolder the {@link Store.ValueHolder} being evicted
+   * @param key the {@code key} of the mapping being evicted
+   * @param value the {@code value} of the mapping being evicted
    */
-  void onEviction(K key, Store.ValueHolder<V> valueHolder);
+  void onEviction(K key, V value);
 
   /**
    * Called when an entry gets expired during a {@code org.ehcache.spi.cache.Store} operation..
    *
-   * @param key the <code>key</code> of the mapping that is expired
-   * @param valueHolder the {@link Store.ValueHolder} that is expired
+   * @param key the {@code key} of the mapping that is expired
+   * @param value the {@code value} that is expired
    */
-  void onExpiration(K key, Store.ValueHolder<V> valueHolder);
+  void onExpiration(K key, V value);
 
   /**
    * Called when an entry gets created during a {@code org.ehcache.spi.cache.Store} operation.
    *
-   * @param key the <code>key</code> of the mapping being created
-   * @param valueHolder the {@link org.ehcache.spi.cache.Store.ValueHolder} being created
+   * @param key the {@code key} of the mapping being created
+   * @param value the {@code value} of the mapping being created
    */
-  void onCreation(K key, Store.ValueHolder<V> valueHolder);
+  void onCreation(K key, V value);
 
   /**
    * Called when an entry gets updated during a {@code Store} operation.
    *
-   * @param key the <code>key</code> of the mapping being updated
-   * @param previousValue the previous {@link org.ehcache.spi.cache.Store.ValueHolder}
-   * @param newValue the new {@link org.ehcache.spi.cache.Store.ValueHolder}
+   * @param key the {@code key} of the mapping being updated
+   * @param previousValue the previous {@code value}
+   * @param newValue the new {@code value}
    */
-  void onUpdate(K key, Store.ValueHolder<V> previousValue, Store.ValueHolder<V> newValue);
+  void onUpdate(K key, V previousValue, V newValue);
 
   /**
    * Called when an entry gets removed during a {@code Store} operation.
    *
-   * @param key the <code>key</code> of the mapping being removed
-   * @param removed the {@link org.ehcache.spi.cache.Store.ValueHolder} being removed
+   * @param key the {@code key} of the mapping being removed
+   * @param removed the {@code value} being removed
    */
-  void onRemoval(K key, Store.ValueHolder<V> removed);
+  void onRemoval(K key, V removed);
 
   /**
    * Indicates if there are listeners currently registered.

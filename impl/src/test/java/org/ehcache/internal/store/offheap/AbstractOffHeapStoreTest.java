@@ -338,7 +338,7 @@ public abstract class AbstractOffHeapStoreTest {
       offHeapStore.put("key5", value);
       offHeapStore.put("key6", value);
 
-      verify(mock, atLeast(1)).onEviction(anyString(), any(Store.ValueHolder.class));
+      verify(mock, atLeast(1)).onEviction(anyString(), any(byte[].class));
     } finally {
       destroyStore(offHeapStore);
     }
@@ -369,7 +369,7 @@ public abstract class AbstractOffHeapStoreTest {
       offHeapStore.put("key5", value);
       offHeapStore.put("key6", value);
 
-      verify(mock, atLeast(1)).onEviction(anyString(), any(Store.ValueHolder.class));
+      verify(mock, atLeast(1)).onEviction(anyString(), any(byte[].class));
     } finally {
       destroyStore(offHeapStore);
     }
@@ -425,27 +425,27 @@ public abstract class AbstractOffHeapStoreTest {
       offHeapStore.enableStoreEventNotifications(new StoreEventListener<String, String>() {
 
         @Override
-        public void onEviction(final String key, final Store.ValueHolder<String> valueHolder) {
+        public void onEviction(final String key, final String value) {
           throw new AssertionError("This should not have happened.");
         }
 
         @Override
-        public void onExpiration(final String key, final Store.ValueHolder<String> valueHolder) {
+        public void onExpiration(final String key, final String value) {
           expiredKeys.add(key);
         }
 
         @Override
-        public void onCreation(String key, Store.ValueHolder<String> valueHolder) {
+        public void onCreation(String key, String value) {
           // Do nothing
         }
 
         @Override
-        public void onUpdate(String key, Store.ValueHolder<String> previousValue, Store.ValueHolder<String> newValue) {
+        public void onUpdate(String key, String previousValue, String newValue) {
           // Do nothing
         }
 
         @Override
-        public void onRemoval(String key, Store.ValueHolder<String> removed) {
+        public void onRemoval(String key, String removed) {
           // Do nothing
         }
 
@@ -656,27 +656,27 @@ public abstract class AbstractOffHeapStoreTest {
       offHeapStore.enableStoreEventNotifications(new StoreEventListener<String, String>() {
 
         @Override
-        public void onEviction(final String key, final Store.ValueHolder<String> valueHolder) {
+        public void onEviction(final String key, final String value) {
           throw new AssertionError("This should not have happened.");
         }
 
         @Override
-        public void onExpiration(final String key, final Store.ValueHolder<String> valueHolder) {
+        public void onExpiration(final String key, final String value) {
           expiredKeys.add(key);
         }
 
         @Override
-        public void onCreation(String key, Store.ValueHolder<String> valueHolder) {
+        public void onCreation(String key, String value) {
           // Do nothing
         }
 
         @Override
-        public void onUpdate(String key, Store.ValueHolder<String> previousValue, Store.ValueHolder<String> newValue) {
+        public void onUpdate(String key, String previousValue, String newValue) {
           // Do nothing
         }
 
         @Override
-        public void onRemoval(String key, Store.ValueHolder<String> removed) {
+        public void onRemoval(String key, String removed) {
           // Do nothing
         }
 

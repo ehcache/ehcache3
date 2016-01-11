@@ -318,32 +318,32 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
     private Cache<K, V> source;
 
     @Override
-    public void onEviction(final K key, final Store.ValueHolder<V> valueHolder) {
-      CacheEvent<K, V> cacheEvent = CacheEvents.eviction(key, valueHolder.value(), this.source);
+    public void onEviction(final K key, final V value) {
+      CacheEvent<K, V> cacheEvent = CacheEvents.eviction(key, value, this.source);
       eventNotificationService.onEvent(cacheEvent);
     }
 
     @Override
-    public void onExpiration(final K key, final Store.ValueHolder<V> valueHolder) {
-      CacheEvent<K, V> cacheEvent = CacheEvents.expiry(key, valueHolder.value(), this.source);
+    public void onExpiration(final K key, final V value) {
+      CacheEvent<K, V> cacheEvent = CacheEvents.expiry(key, value, this.source);
       eventNotificationService.onEvent(cacheEvent);
     }
 
     @Override
-    public void onCreation(K key, Store.ValueHolder<V> valueHolder) {
-      CacheEvent<K, V> cacheEvent = CacheEvents.creation(key, valueHolder.value(), this.source);
+    public void onCreation(K key, V value) {
+      CacheEvent<K, V> cacheEvent = CacheEvents.creation(key, value, this.source);
       eventNotificationService.onEvent(cacheEvent);
     }
 
     @Override
-    public void onUpdate(K key, Store.ValueHolder<V> previousValue, Store.ValueHolder<V> newValue) {
-      CacheEvent<K, V> cacheEvent = CacheEvents.update(key, previousValue.value(), newValue.value(), this.source);
+    public void onUpdate(K key, V previousValue, V newValue) {
+      CacheEvent<K, V> cacheEvent = CacheEvents.update(key, previousValue, newValue, this.source);
       eventNotificationService.onEvent(cacheEvent);
     }
 
     @Override
-    public void onRemoval(K key, Store.ValueHolder<V> removed) {
-      CacheEvent<K, V> cacheEvent = CacheEvents.removal(key, removed.value(), this.source);
+    public void onRemoval(K key, V removed) {
+      CacheEvent<K, V> cacheEvent = CacheEvents.removal(key, removed, this.source);
       eventNotificationService.onEvent(cacheEvent);
     }
 

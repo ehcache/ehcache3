@@ -293,51 +293,36 @@ public class XAStore<K, V> implements Store<K, V> {
   public void enableStoreEventNotifications(final StoreEventListener<K, V> listener) {
     underlyingStore.enableStoreEventNotifications(new StoreEventListener<K, SoftLock<V>>() {
       @Override
-      public void onEviction(K key, ValueHolder<SoftLock<V>> valueHolder) {
-        SoftLock<V> softLock = valueHolder.value();
-        if (softLock.getTransactionId() == null || softLock.getOldValue() != null) {
-          listener.onEviction(key, new XAValueHolder<V>(valueHolder, softLock.getOldValue()));
-        } else {
-          listener.onEviction(key, new XAValueHolder<V>(valueHolder, softLock.getNewValueHolder().value()));
+      public void onEviction(K key, SoftLock<V> softLock) {
+        if (softLock.getOldValue() != null) {
+          listener.onEviction(key, softLock.getOldValue());
         }
       }
 
       @Override
-      public void onExpiration(K key, ValueHolder<SoftLock<V>> valueHolder) {
-        SoftLock<V> softLock = valueHolder.value();
-        if (softLock.getTransactionId() == null || softLock.getOldValue() != null) {
-          listener.onEviction(key, new XAValueHolder<V>(valueHolder, softLock.getOldValue()));
-        } else {
-          listener.onEviction(key, new XAValueHolder<V>(valueHolder, softLock.getNewValueHolder().value()));
+      public void onExpiration(K key, SoftLock<V> softLock) {
+        if (softLock.getOldValue() != null) {
+          listener.onExpiration(key, softLock.getOldValue());
         }
       }
 
       @Override
-      public void onCreation(K key, ValueHolder<SoftLock<V>> valueHolder) {
-        SoftLock<V> softLock = valueHolder.value();
-        if (softLock.getTransactionId() == null || softLock.getOldValue() != null) {
-          listener.onCreation(key, new XAValueHolder<V>(valueHolder, softLock.getOldValue()));
-        } else {
-          listener.onCreation(key, new XAValueHolder<V>(valueHolder, softLock.getNewValueHolder().value()));
+      public void onCreation(K key, SoftLock<V> softLock) {
+        if (softLock.getOldValue() != null) {
+          listener.onCreation(key, softLock.getOldValue());
         }
       }
 
       @Override
-      public void onUpdate(K key, ValueHolder<SoftLock<V>> previousValue, ValueHolder<SoftLock<V>> newValue) {
-        SoftLock<V> softLock = newValue.value();
-        if (softLock.getTransactionId() == null || softLock.getOldValue() != null) {
-          listener.onUpdate(key, new XAValueHolder<V>(previousValue, previousValue.value().getOldValue()),
-              new XAValueHolder<V>(newValue, softLock.getOldValue()));
-        } else {
-          listener.onUpdate(key, new XAValueHolder<V>(previousValue, previousValue.value().getOldValue()),
-              new XAValueHolder<V>(newValue, softLock.getNewValueHolder().value()));
+      public void onUpdate(K key, SoftLock<V> previousValue, SoftLock<V> newValue) {
+        if (newValue.getOldValue() != null) {
+          listener.onUpdate(key, previousValue.getOldValue(), newValue.getOldValue());
         }
       }
 
       @Override
-      public void onRemoval(K key, ValueHolder<SoftLock<V>> removed) {
-        // TODO What does this mean when the listener is actually fired on a different thread?
-        listener.onRemoval(key, new XAValueHolder<V>(removed, removed.value().getOldValue()));
+      public void onRemoval(K key, SoftLock<V> removed) {
+        listener.onRemoval(key, removed.getOldValue());
       }
 
       @Override

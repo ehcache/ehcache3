@@ -58,6 +58,13 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   private static final Logger LOG = LoggerFactory.getLogger(AbstractOffHeapStore.class);
 
+  private static final CachingTier.InvalidationListener NULL_INVALIDATION_LISTENER = new CachingTier.InvalidationListener() {
+    @Override
+    public void onInvalidation(Object key, ValueHolder valueHolder) {
+      // Do nothing
+    }
+  };
+
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final TimeSource timeSource;
@@ -88,7 +95,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   private volatile Callable<Void> valve;
   private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener();
   protected BackingMapEvictionListener<K, V> mapEvictionListener;
-  private volatile CachingTier.InvalidationListener<K, V> invalidationListener;
+  private volatile CachingTier.InvalidationListener<K, V> invalidationListener = NULL_INVALIDATION_LISTENER;
 
   public AbstractOffHeapStore(String statisticsTag, Configuration<K, V> config, TimeSource timeSource) {
     keyType = config.getKeyType();
@@ -196,21 +203,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
               }
 
               if (mappedValue == null) {
-                OffHeapValueHolder<V> newValue = newCreateValueHolder(key, value, now);
-                if (hasListeners && newValue != null) {
-                  eventListener.onCreation(key, newValue);
-                }
-                return newValue;
+                return newCreateValueHolder(key, value, now, hasListeners);
               } else {
-                OffHeapValueHolder<V> updatedValueHolder = newUpdatedValueHolder(key, value, mappedValue, now);
-                if (hasListeners) {
-                  if (updatedValueHolder != null) {
-                    eventListener.onUpdate(key, mappedValue, updatedValueHolder);
-                  } else {
-                    eventListener.onRemoval(key, mappedValue);
-                  }
-                }
-                return updatedValueHolder;
+                return newUpdatedValueHolder(key, value, mappedValue, now, hasListeners);
               }
             }
           }, false);
@@ -258,11 +253,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
                 if (mappedValue != null) {
                   onExpiration(mappedKey, mappedValue, hasListeners);
                 }
-                OffHeapValueHolder<V> newValue = newCreateValueHolder(mappedKey, value, now);
-                if (hasListeners && newValue != null) {
-                  eventListener.onCreation(key, newValue);
-                }
-                return newValue;
+                return newCreateValueHolder(mappedKey, value, now, hasListeners);
               }
               returnValue.set(mappedValue);
               return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, hasListeners);
@@ -308,7 +299,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
           removed.set(true);
           if (hasListeners) {
-            eventListener.onRemoval(mappedKey, mappedValue);
+            eventListener.onRemoval(mappedKey, mappedValue.value());
           }
           return null;
         }
@@ -353,7 +344,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           } else if (mappedValue.value().equals(value)) {
             removed.set(true);
             if (hasListeners) {
-              eventListener.onRemoval(mappedKey, mappedValue);
+              eventListener.onRemoval(mappedKey, mappedValue.value());
             }
             return null;
           } else {
@@ -405,15 +396,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           return null;
         } else {
           returnValue.set(mappedValue);
-          OffHeapValueHolder<V> updatedValue = newUpdatedValueHolder(mappedKey, value, mappedValue, now);
-          if (hasListeners) {
-            if (updatedValue != null) {
-              eventListener.onUpdate(mappedKey, mappedValue, updatedValue);
-            } else {
-              eventListener.onRemoval(mappedKey, mappedValue);
-            }
-          }
-          return updatedValue;
+          return newUpdatedValueHolder(mappedKey, value, mappedValue, now, hasListeners);
         }
       }
     };
@@ -466,15 +449,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           return null;
         } else if (oldValue.equals(mappedValue.value())) {
           replaced.set(true);
-          OffHeapValueHolder<V> updatedValue = newUpdatedValueHolder(mappedKey, newValue, mappedValue, now);
-          if (hasListeners) {
-            if (updatedValue != null) {
-              eventListener.onUpdate(mappedKey, mappedValue, updatedValue);
-            } else {
-              eventListener.onRemoval(mappedKey, mappedValue);
-            }
-          }
-          return updatedValue;
+          return newUpdatedValueHolder(mappedKey, newValue, mappedValue, now, hasListeners);
         } else {
           return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, hasListeners);
         }
@@ -522,6 +497,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   public void enableStoreEventNotifications(StoreEventListener<K, V> listener) {
     eventListener = listener;
     mapEvictionListener.setStoreEventListener(eventListener);
+    invalidationListener = NULL_INVALIDATION_LISTENER;
+    mapEvictionListener.setInvalidationListener(invalidationListener);
   }
 
   @Override
@@ -565,7 +542,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           if (mappedValue != null) {
             write.set(true);
             if (hasListeners) {
-              eventListener.onRemoval(mappedKey, mappedValue);
+              eventListener.onRemoval(mappedKey, mappedValue.value());
             }
           }
           return null;
@@ -579,21 +556,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         checkValue(computedValue);
         write.set(true);
         if (mappedValue != null) {
-          OffHeapValueHolder<V> updatedValue = newUpdatedValueHolder(key, computedValue, mappedValue, now);
-          if (hasListeners) {
-            if (updatedValue != null) {
-              eventListener.onUpdate(mappedKey, mappedValue, updatedValue);
-            } else {
-              eventListener.onRemoval(mappedKey, mappedValue);
-            }
-          }
-          return updatedValue;
+          return newUpdatedValueHolder(key, computedValue, mappedValue, now, hasListeners);
         } else {
-          OffHeapValueHolder<V> createdValue = newCreateValueHolder(key, computedValue, now);
-          if (hasListeners && createdValue != null) {
-            eventListener.onCreation(mappedKey, createdValue);
-          }
-          return createdValue;
+          return newCreateValueHolder(key, computedValue, now, hasListeners);
         }
       }
     };
@@ -662,11 +627,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
             return null;
           } else {
             checkValue(computedValue);
-            OffHeapValueHolder<V> createdValue = newCreateValueHolder(mappedKey, computedValue, now);
-            if (hasListeners && createdValue != null) {
-              eventListener.onCreation(mappedKey, createdValue);
-            }
-            return createdValue;
+            return newCreateValueHolder(mappedKey, computedValue, now, hasListeners);
           }
         } else {
           return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, hasListeners);
@@ -747,7 +708,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         if (computedValue == null) {
           write.set(true);
           if (hasListeners) {
-            eventListener.onRemoval(mappedKey, mappedValue);
+            eventListener.onRemoval(mappedKey, mappedValue.value());
           }
           return null;
         }
@@ -757,15 +718,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         }
         checkValue(computedValue);
         write.set(true);
-        OffHeapValueHolder<V> updatedValue = newUpdatedValueHolder(mappedKey, computedValue, mappedValue, now);
-        if (hasListeners) {
-          if (updatedValue != null) {
-            eventListener.onUpdate(mappedKey, mappedValue, updatedValue);
-          } else {
-            eventListener.onRemoval(mappedKey, mappedValue);
-          }
-        }
-        return updatedValue;
+        return newUpdatedValueHolder(mappedKey, computedValue, mappedValue, now, hasListeners);
       }
     };
 
@@ -963,45 +916,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   @Override
   public void setInvalidationListener(CachingTier.InvalidationListener<K, V> invalidationListener) {
     this.invalidationListener = invalidationListener;
-    this.eventListener = new StoreEventListener<K, V>() {
-      @Override
-      public void onEviction(final K key, final ValueHolder<V> valueHolder) {
-        AbstractOffHeapStore.this.invalidationListener.onInvalidation(key, valueHolder);
-      }
-
-      @Override
-      public void onExpiration(final K key, final ValueHolder<V> valueHolder) {
-        AbstractOffHeapStore.this.invalidationListener.onInvalidation(key, valueHolder);
-      }
-
-      @Override
-      public void onCreation(K key, ValueHolder<V> valueHolder) {
-        throw new AssertionError("Invalid when used as a caching tier");
-      }
-
-      @Override
-      public void onUpdate(K key, ValueHolder<V> previousValue, ValueHolder<V> newValue) {
-        throw new AssertionError("Invalid when used as a caching tier");
-      }
-
-      @Override
-      public void onRemoval(K key, ValueHolder<V> removed) {
-        throw new AssertionError("Invalid when used as a caching tier");
-      }
-
-      @Override
-      public boolean hasListeners() {
-        return true;
-      }
-
-      @Override
-      public void fireAllEvents() {
-      }
-
-      @Override
-      public void purgeOrFireRemainingEvents() {
-      }
-    };
+    mapEvictionListener.setInvalidationListener(invalidationListener);
+    disableStoreEventNotifications();
   }
 
   @Override
@@ -1178,15 +1094,24 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     return valueHolder;
   }
 
-  private OffHeapValueHolder<V> newUpdatedValueHolder(K key, V value, OffHeapValueHolder<V> existing, long now) {
+  private OffHeapValueHolder<V> newUpdatedValueHolder(K key, V value, OffHeapValueHolder<V> existing, long now, boolean hasListeners) {
+    if (hasListeners) {
+      eventListener.onUpdate(key, existing.value(), value);
+    }
     Duration duration;
     try {
       duration = expiry.getExpiryForUpdate(key, existing.value(), value);
     } catch (RuntimeException re) {
       LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
+      if (hasListeners) {
+        eventListener.onExpiration(key, value);
+      }
       return null;
     }
     if (Duration.ZERO.equals(duration)) {
+      if (hasListeners) {
+        eventListener.onExpiration(key, value);
+      }
       return null;
     }
 
@@ -1199,7 +1124,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
   }
 
-  private OffHeapValueHolder<V> newCreateValueHolder(K key, V value, long now) {
+  private OffHeapValueHolder<V> newCreateValueHolder(K key, V value, long now, boolean hasListeners) {
     Duration duration;
     try {
       duration = expiry.getExpiryForCreation(key, value);
@@ -1209,6 +1134,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
     if (Duration.ZERO.equals(duration)) {
       return null;
+    }
+
+    if (hasListeners) {
+      eventListener.onCreation(key, value);
     }
 
     if (duration.isForever()) {
@@ -1301,8 +1230,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     expirationObserver.begin();
     expirationObserver.end(StoreOperationOutcomes.ExpirationOutcome.SUCCESS);
     if (hasListeners) {
-      eventListener.onExpiration(mappedKey, mappedValue);
+      eventListener.onExpiration(mappedKey, mappedValue.value());
     }
+    invalidationListener.onInvalidation(mappedKey, mappedValue);
   }
 
   protected abstract EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> backingMap();
@@ -1443,22 +1373,34 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
     private final OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver;
     private volatile StoreEventListener<K, V> storeEventListener;
+    private volatile CachingTier.InvalidationListener<K, V> invalidationListener;
 
     private BackingMapEvictionListener(OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver) {
       this.evictionObserver = evictionObserver;
       this.storeEventListener = CacheEvents.nullStoreEventListener();
+      this.invalidationListener = NULL_INVALIDATION_LISTENER;
     }
 
     private void setStoreEventListener(StoreEventListener<K, V> storeEventListener) {
-      if (storeEventListener == null) throw new NullPointerException("store event listener cannot be null");
+      if (storeEventListener == null) {
+        throw new NullPointerException("store event listener cannot be null");
+      }
       this.storeEventListener = storeEventListener;
+    }
+
+    public void setInvalidationListener(CachingTier.InvalidationListener<K, V> invalidationListener) {
+      if (invalidationListener == null) {
+        throw new NullPointerException("invalidation listener cannot be null");
+      }
+      this.invalidationListener = invalidationListener;
     }
 
     @Override
     public void onEviction(K key, OffHeapValueHolder<V> value) {
       evictionObserver.begin();
       evictionObserver.end(StoreOperationOutcomes.EvictionOutcome.SUCCESS);
-      storeEventListener.onEviction(key, value);
+      storeEventListener.onEviction(key, value.value());
+      invalidationListener.onInvalidation(key, value);
     }
   }
 }
