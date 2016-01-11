@@ -65,7 +65,6 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -1130,21 +1129,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         return value;
       }
 
-      @Override
-      public long getCreationTime(TimeUnit unit) {
-        throw new UnsupportedOperationException(); // XXX
-      }
-
-      @Override
-      public long getLastAccessTime(TimeUnit unit) {
-        throw new UnsupportedOperationException(); // XXX
-      }
-
-      @Override
-      public float getHitRate(TimeUnit unit) {
-        throw new UnsupportedOperationException(); // XXX
-      }
-
     };
   }
 
@@ -1462,20 +1446,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       return storeEntry.getValue().value();
     }
 
-    @Override
-    public long getCreationTime(TimeUnit unit) {
-      return storeEntry.getCreationTime(unit);
-    }
-
-    @Override
-    public long getLastAccessTime(TimeUnit unit) {
-      return storeEntry.getLastAccessTime(unit);
-    }
-
-    @Override
-    public float getHitRate(TimeUnit unit) {
-      return storeEntry.getHitRate(unit);
-    }
   }
   
 }

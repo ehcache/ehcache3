@@ -1350,21 +1350,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           return thisEntry.getValue();
         }
 
-        @Override
-        public long getCreationTime(TimeUnit unit) {
-          return thisEntry.getValue().creationTime(unit);
-        }
-
-        @Override
-        public long getLastAccessTime(TimeUnit unit) {
-          return thisEntry.getValue().lastAccessTime(unit);
-        }
-
-        @Override
-        public float getHitRate(TimeUnit unit) {
-          final long now = timeSource.getTimeMillis();
-          return thisEntry.getValue().hitRate(now, unit);
-        }
       };
     }
   }

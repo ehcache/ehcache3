@@ -45,7 +45,6 @@ import org.ehcache.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.internal.store.heap.holders.SerializedOnHeapValueHolder;
 import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.CacheStoreHelper;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.cache.tiering.HigherCachingTier;
@@ -709,21 +708,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
             return thisEntry.getValue();
           }
 
-          @Override
-          public long getCreationTime(TimeUnit unit) {
-            return thisEntry.getValue().creationTime(unit);
-          }
-
-          @Override
-          public long getLastAccessTime(TimeUnit unit) {
-            return thisEntry.getValue().lastAccessTime(unit);
-          }
-
-          @Override
-          public float getHitRate(TimeUnit unit) {
-            final long now = timeSource.getTimeMillis();
-            return thisEntry.getValue().hitRate(now, unit);
-          }
         };
       }
     };
@@ -1730,10 +1714,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     public void initHigherCachingTier(HigherCachingTier<?, ?> resource) {
       initStore((Store<?, ?>) resource);
     }
-  }
-
-  private static <K, V> Cache.Entry<K, V> wrap(final Map.Entry<K, OnHeapValueHolder<V>> value, final TimeSource timeSource) {
-    return CacheStoreHelper.cacheEntry(value.getKey(), value.getValue(), timeSource);
   }
 
   // The idea of this wrapper is to let all the other code deal in terms of <K> and hide

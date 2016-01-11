@@ -67,7 +67,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.spi.ServiceLocator.findAmongst;
@@ -385,20 +384,6 @@ public class XAStore<K, V> implements Store<K, V> {
             return entry.getValue();
           }
 
-          @Override
-          public long getCreationTime(TimeUnit unit) {
-            return entry.getValue().creationTime(unit);
-          }
-
-          @Override
-          public long getLastAccessTime(TimeUnit unit) {
-            return entry.getValue().lastAccessTime(unit);
-          }
-
-          @Override
-          public float getHitRate(TimeUnit unit) {
-            return entry.getValue().hitRate(timeSource.getTimeMillis(), unit);
-          }
         };
         return;
       }
@@ -434,20 +419,6 @@ public class XAStore<K, V> implements Store<K, V> {
               return xaValueHolder;
             }
 
-            @Override
-            public long getCreationTime(TimeUnit unit) {
-              return next.getCreationTime(unit);
-            }
-
-            @Override
-            public long getLastAccessTime(TimeUnit unit) {
-              return next.getLastAccessTime(unit);
-            }
-
-            @Override
-            public float getHitRate(TimeUnit unit) {
-              return next.getHitRate(unit);
-            }
           };
           break;
         }

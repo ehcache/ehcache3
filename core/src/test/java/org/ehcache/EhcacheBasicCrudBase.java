@@ -420,20 +420,6 @@ public abstract class EhcacheBasicCrudBase {
               return cacheEntry.getValue();
             }
 
-            @Override
-            public long getCreationTime(final TimeUnit unit) {
-              return cacheEntry.getValue().creationTime(unit);
-            }
-
-            @Override
-            public long getLastAccessTime(final TimeUnit unit) {
-              return cacheEntry.getValue().lastAccessTime(unit);
-            }
-
-            @Override
-            public float getHitRate(final TimeUnit unit) {
-              return cacheEntry.getValue().hitRate(System.currentTimeMillis(), unit);
-            }
           };
         }
       };
