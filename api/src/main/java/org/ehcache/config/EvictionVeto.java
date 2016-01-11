@@ -17,7 +17,7 @@
 package org.ehcache.config;
 
 /**
- * A specialized {@link Predicate} used to veto eviction of cache entries.
+ * A specialized predicate used to veto eviction of cache entries.
  *
  * @param <K> the type of the keys used to access data within the cache
  * @param <V> the type of the values held within the cache
