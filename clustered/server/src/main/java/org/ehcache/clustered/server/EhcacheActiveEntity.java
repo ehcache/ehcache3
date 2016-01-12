@@ -15,8 +15,9 @@
  */
 package org.ehcache.clustered.server;
 
-import java.util.Arrays;
 import java.util.UUID;
+
+import org.ehcache.clustered.ClusteredEhcacheIdentity;
 
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
@@ -30,17 +31,10 @@ import static org.ehcache.clustered.server.ConcurrencyStrategies.noConcurrency;
 
 public class EhcacheActiveEntity implements ActiveServerEntity<EntityMessage, EntityResponse> {
 
-  private final byte[] config;
   private final UUID identity;
   
   EhcacheActiveEntity(byte[] config) {
-    if (config.length != 16) {
-      throw new IllegalArgumentException("Expected a 16 byte (UUID) config stream");
-    }
-    this.config = Arrays.copyOf(config, 16);
-    long msl = getLong(this.config, 0);
-    long lsl = getLong(this.config, 8);
-    this.identity = new UUID(msl, lsl);
+    this.identity = ClusteredEhcacheIdentity.deserialize(config);
   }
 
   @Override
@@ -60,7 +54,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EntityMessage, En
 
   @Override
   public byte[] getConfig() {
-    return Arrays.copyOf(config, 16);
+    return ClusteredEhcacheIdentity.serialize(identity);
   }
 
   @Override
@@ -96,18 +90,5 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EntityMessage, En
   @Override
   public void destroy() {
     //nothing to do
-  }
-
-  private static long getLong(byte[] array, int offset) {
-    if (array.length < offset + 8) {
-      throw new ArrayIndexOutOfBoundsException();
-    } else {
-      long result = 0;
-      for (int i = 0; i < 8; i++) {
-        result <<= 8;
-        result |= array[offset + i] & 0xff;
-      }
-      return result;
-    }
   }
 }

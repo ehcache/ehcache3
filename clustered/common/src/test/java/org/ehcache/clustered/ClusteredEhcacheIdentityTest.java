@@ -13,35 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.server;
+package org.ehcache.clustered;
 
 import java.util.Random;
+import java.util.UUID;
+import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import org.junit.Test;
 
-import static org.junit.Assert.assertThat;
-import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.fail;
-
-/**
- *
- * @author cdennis
- */
-public class EhcacheActiveEntityTest {
+public class ClusteredEhcacheIdentityTest {
   
   @Test
-  public void testUUIDConfigSerialization() {
+  public void testUUIDSerialization() {
     byte[] config = new byte[16];
     new Random().nextBytes(config);
     
-    EhcacheActiveEntity entity = new EhcacheActiveEntity(config);
+    UUID uuid = ClusteredEhcacheIdentity.deserialize(config);
     
-    assertThat(entity.getConfig(), equalTo(config));
+    assertThat(ClusteredEhcacheIdentity.serialize(uuid), equalTo(config));
   }
 
   @Test
-  public void testConfigTooShort() {
+  public void testDeserializeTooShort() {
     try {
-      new EhcacheActiveEntity(new byte[15]);
+      ClusteredEhcacheIdentity.deserialize(new byte[15]);
       fail("Expected IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       //expected
@@ -49,9 +45,9 @@ public class EhcacheActiveEntityTest {
   }
 
   @Test
-  public void testConfigTooLong() {
+  public void testDeserializeTooLong() {
     try {
-      new EhcacheActiveEntity(new byte[17]);
+      ClusteredEhcacheIdentity.deserialize(new byte[17]);
       fail("Expected IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       //expected
@@ -59,9 +55,19 @@ public class EhcacheActiveEntityTest {
   }
   
   @Test
-  public void testConfigNull() {
+  public void testDeserializeNull() {
     try {
-      new EhcacheActiveEntity(null);
+      ClusteredEhcacheIdentity.deserialize(null);
+      fail("Expected NullPointerException");
+    } catch (NullPointerException e) {
+      //expected
+    }
+  }
+
+  @Test
+  public void testSerializeNull() {
+    try {
+      ClusteredEhcacheIdentity.serialize(null);
       fail("Expected NullPointerException");
     } catch (NullPointerException e) {
       //expected
