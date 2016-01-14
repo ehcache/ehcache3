@@ -51,6 +51,8 @@ import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.sizeof.SizeOfEngine;
+import org.ehcache.spi.sizeof.SizeOfEngineProvider;
 import org.ehcache.statistics.CachingTierOperationOutcomes;
 import org.ehcache.statistics.HigherCachingTierOperationOutcomes;
 import org.ehcache.statistics.StoreOperationOutcomes;
@@ -1495,7 +1497,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     return (o1 == o2) || (o1 != null && o1.equals(o2));
   }
 
-  @ServiceDependencies({TimeSourceService.class, CopyProvider.class})
+  @ServiceDependencies({TimeSourceService.class, CopyProvider.class, SizeOfEngineProvider.class})
   public static class Provider implements Store.Provider, CachingTier.Provider, HigherCachingTier.Provider {
     
     private volatile ServiceProvider serviceProvider;
@@ -1507,6 +1509,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
       Copier<K> keyCopier  = copyProvider.createKeyCopier(storeConfig.getKeyType(), storeConfig.getKeySerializer(), serviceConfigs);
       Copier<V> valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer(), serviceConfigs);
+      SizeOfEngineProvider sizeOfEngineProvider = serviceProvider.getService(SizeOfEngineProvider.class);
+      
+      SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(serviceConfigs);
       OnHeapStore<K, V> onHeapStore = new OnHeapStore<K, V>(storeConfig, timeSource, keyCopier, valueCopier);
       createdStores.add(onHeapStore);
       return onHeapStore;

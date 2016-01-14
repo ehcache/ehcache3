@@ -1,5 +1,4 @@
-/**
- * 
+/*
  * Copyright Terracotta, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +16,7 @@
 package org.ehcache.sizeof;
 
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.sizeof.SizeOfEngineProvider;
 
 /**
  * @author Abhilash

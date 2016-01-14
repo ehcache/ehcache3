@@ -13,30 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.internal.sizeof;
+package org.ehcache.spi.sizeof;
 
-import org.ehcache.sizeof.SizeOf;
-import org.ehcache.spi.sizeof.SizeOfEngine;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author Abhilash
  *
  */
-public class DefaultSizeOfEngine implements SizeOfEngine {
-  
-  private final long maxDepth;
-  private final long maxSize;
-  private final SizeOf sizeOf;
-  
-  public DefaultSizeOfEngine(long maxDepth, long maxSize) {
-    this.maxDepth = maxDepth;
-    this.maxSize = maxSize;
-    this.sizeOf = SizeOf.newInstance(null);
-  }
+public interface SizeOfEngineProvider extends Service {
 
-  @Override
-  public long sizeof(Object... objects) {    
-    return sizeOf.deepSizeOf(objects);
-  }
-
+  /**
+   * Creates a {@link SizeOfEngine} which will size objects 
+   * with maximum depth and maximum size 
+   *
+   * @param serviceConfigs Array of {@link ServiceConfiguration}s
+   * @return {@link SizeOfEngine} with provided maxDepth an maxSize
+   */
+  
+  SizeOfEngine createSizeOfEngine(ServiceConfiguration<?>... serviceConfigs);
 }

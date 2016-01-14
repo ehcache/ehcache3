@@ -1,5 +1,4 @@
 /*
- * 
  * Copyright Terracotta, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,23 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.sizeof;
-
-import org.ehcache.spi.service.Service;
 
 /**
- * @author Abhilash
- *
+ * Package for API related to sizeof in Ehcache
  */
-public interface SizeOfEngineProvider extends Service {
-
-  /**
-   * Creates a {@link SizeOfEngine} which will size objects 
-   * with maximum depth and maximum size 
-   * 
-   * @param maxDepth No. of objects traversed as part of Object graph
-   * @param maxSize  The max size till the object graph will be traversed 
-   * @return {@link SizeOfEngine} with provided maxDeptha an maxSize
-   */
-  SizeOfEngine createSizeOfEngine(long maxDepth, long maxSize);
-}
+package org.ehcache.spi.sizeof;

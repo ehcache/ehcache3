@@ -1,5 +1,4 @@
 /*
- * 
  * Copyright Terracotta, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,9 +16,9 @@
 
 package org.ehcache.internal.sizeof;
 
-import org.ehcache.sizeof.SizeOfEngineProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.spi.sizeof.SizeOfEngineProvider;
 
 /**
  * @author Abhilash
@@ -29,7 +28,14 @@ public class DefaultSizeOfEngineProviderFactory implements ServiceFactory<SizeOf
 
   @Override
   public SizeOfEngineProvider create(ServiceCreationConfiguration<SizeOfEngineProvider> configuration) {
-    return new DefaultSizeOfEngineProvider();
+    long maxDepth = 0;
+    long maxSize = 0;
+    if(configuration != null) {
+      DefaultSizeOfEngineProviderConfiguration sizeOfEngineConfiguration = (DefaultSizeOfEngineProviderConfiguration)configuration;
+      maxDepth = sizeOfEngineConfiguration.getMaxDepth();
+      maxSize = sizeOfEngineConfiguration.getMaxSize();
+    }
+    return new DefaultSizeOfEngineProvider(maxDepth, maxSize);
   }
 
   @Override

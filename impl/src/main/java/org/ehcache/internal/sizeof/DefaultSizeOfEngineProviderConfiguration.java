@@ -13,21 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.ehcache.internal.sizeof;
 
-import org.ehcache.sizeof.SizeOfEngineConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.sizeof.SizeOfEngineProvider;
 
 /**
  * @author Abhilash
  *
  */
-public class DefaultSizeOfEngineConfiguration implements SizeOfEngineConfiguration {
+public class DefaultSizeOfEngineProviderConfiguration implements ServiceCreationConfiguration<SizeOfEngineProvider> {
 
   private final long maxDepth;
   private final long maxSize;
   
-  public DefaultSizeOfEngineConfiguration(long maxDepth, long maxSize) {
+  public DefaultSizeOfEngineProviderConfiguration(long maxDepth, long maxSize) {
     if(maxDepth < 0 || maxSize < 0) {
       throw new IllegalArgumentException("SizeOfEngine cannot take negative arguments.");
     }
@@ -40,14 +41,14 @@ public class DefaultSizeOfEngineConfiguration implements SizeOfEngineConfigurati
     return SizeOfEngineProvider.class;
   }
 
-  @Override
-  public Long getMaxDepth() {
-    return this.maxDepth;
+  public long getMaxDepth() {
+    return maxDepth;
   }
 
-  @Override
-  public Long getMaxSize() {
-    return this.maxSize;
+  public long getMaxSize() {
+    return maxSize;
   }
+  
+  
 
 }

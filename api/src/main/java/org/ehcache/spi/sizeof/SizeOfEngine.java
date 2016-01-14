@@ -1,5 +1,4 @@
-/**
- * 
+/*
  * Copyright Terracotta, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.sizeof;
+package org.ehcache.spi.sizeof;
 
 /**
  * SizeOf engines are used to calculate the size of objects.
@@ -27,7 +26,7 @@ public interface SizeOfEngine {
   /**
    * Size of the object on Heap
    * 
-   * @param objects
+   * @param objects objects to be sized
    * @return size of the objects on heap 
    */
   long sizeof(Object... objects);
