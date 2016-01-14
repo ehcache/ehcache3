@@ -14,33 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.internal.sizeof.listeners;
+package org.ehcache.internal.sizeof;
 
-import org.ehcache.internal.sizeof.listeners.exceptions.VisitorListenerException;
-import org.ehcache.sizeof.VisitorListener;
+import org.ehcache.sizeof.SizeOf;
+import org.ehcache.sizeof.SizeOfEngine;
 
 /**
  * @author Abhilash
  *
  */
-
-public class MaxDepthVisitorListener implements VisitorListener {
+public class DefaultSizeOfEngine implements SizeOfEngine {
   
   private final long maxDepth;
-  private long currentDepth;
+  private final long maxSize;
+  private final SizeOf sizeOf;
   
-  public MaxDepthVisitorListener(long maxDepth) {
-    if(maxDepth == 0){
-      maxDepth = Long.MAX_VALUE;
-    }
+  public DefaultSizeOfEngine(long maxDepth, long maxSize) {
     this.maxDepth = maxDepth;
+    this.maxSize = maxSize;
+    this.sizeOf = SizeOf.newInstance(null);
   }
 
   @Override
-  public void visited(Object object, long size) {
-    if((currentDepth += 1) >= maxDepth) {
-      throw new VisitorListenerException("Max Depth reached for the object : "+ object);
-    }
+  public long sizeof(Object... objects) {    
+    return sizeOf.deepSizeOf(objects);
   }
 
 }

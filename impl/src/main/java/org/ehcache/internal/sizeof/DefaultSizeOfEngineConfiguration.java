@@ -1,4 +1,5 @@
 /*
+ * 
  * Copyright Terracotta, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,38 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.internal.sizeof;
 
-package org.ehcache.internal.sizeof.listeners;
-
-import org.ehcache.internal.sizeof.listeners.exceptions.VisitorListenerException;
-import org.ehcache.sizeof.VisitorListener;
+import org.ehcache.sizeof.SizeOfEngineConfiguration;
+import org.ehcache.sizeof.SizeOfEngineProvider;
 
 /**
  * @author Abhilash
  *
  */
-public class MaxSizeVisitorListener implements VisitorListener {
-  
+public class DefaultSizeOfEngineConfiguration implements SizeOfEngineConfiguration {
+
+  private final long maxDepth;
   private final long maxSize;
   
-  private long currentSize = 0;
-  
-  public MaxSizeVisitorListener(long maxSize) {
-    if(maxSize < 0) {
-      throw new IllegalArgumentException("Max size of objects cannot be negative");
-    }
-    if(maxSize == 0) {
-      maxSize = Long.MAX_VALUE;
-    }
+  public DefaultSizeOfEngineConfiguration(long maxDepth, long maxSize) {
+    this.maxDepth = maxDepth;
     this.maxSize = maxSize;
+  }
+  
+  @Override
+  public Class<SizeOfEngineProvider> getServiceType() {
+    return SizeOfEngineProvider.class;
   }
 
   @Override
-  public void visited(Object object, long size) {
-    if((currentSize += size) >= maxSize ) {
-      throw new VisitorListenerException("Max size exceeded for the object : "+ object );
-    }
-    
+  public Long getMaxDepth() {
+    return this.maxDepth;
+  }
+
+  @Override
+  public Long getMaxSize() {
+    return this.maxSize;
   }
 
 }
