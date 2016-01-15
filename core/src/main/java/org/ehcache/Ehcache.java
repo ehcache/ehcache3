@@ -122,7 +122,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   Ehcache(CacheConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
           CacheLoaderWriter<? super K, V> cacheLoaderWriter,
           CacheEventDispatcher<K, V> eventNotifier, boolean useLoaderInAtomics, Logger logger) {
-    this(new EhcacheRuntimeConfiguration<K, V>(runtimeConfiguration, eventNotifier), store, cacheLoaderWriter, eventNotifier, useLoaderInAtomics, logger, new StatusTransitioner(logger));
+    this(new EhcacheRuntimeConfiguration<K, V>(runtimeConfiguration), store, cacheLoaderWriter, eventNotifier, useLoaderInAtomics, logger, new StatusTransitioner(logger));
   }
 
   Ehcache(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,

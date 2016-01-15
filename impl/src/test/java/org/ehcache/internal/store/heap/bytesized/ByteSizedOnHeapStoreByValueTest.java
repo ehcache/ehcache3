@@ -95,7 +95,12 @@ public class ByteSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
       public Serializer<V> getValueSerializer() {
         return new JavaSerializer<V>(getClass().getClassLoader());
       }
-    }, timeSource, keyCopier, valueCopier, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE));
+
+      @Override
+      public int getOrderedEventParallelism() {
+        return 0;
+      }
+    }, timeSource, keyCopier, valueCopier, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), eventDispatcher);
   }
 
 }

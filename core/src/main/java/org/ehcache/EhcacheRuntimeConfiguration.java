@@ -24,7 +24,6 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
-import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.events.EventListenerWrapper;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -47,13 +46,11 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
   private final ClassLoader classLoader;
   private final Expiry<? super K, ? super V> expiry;
   private volatile ResourcePools resourcePools;
-  private final CacheEventDispatcher<K, V> eventNotificationService;
 
   private final List<CacheConfigurationChangeListener> cacheConfigurationListenerList
       = new CopyOnWriteArrayList<CacheConfigurationChangeListener>();
 
-  public EhcacheRuntimeConfiguration(CacheConfiguration<K, V> config,
-                                     CacheEventDispatcher<K, V> eventNotifier) {
+  EhcacheRuntimeConfiguration(CacheConfiguration<K, V> config) {
     this.config = config;
     this.serviceConfigurations = copy(config.getServiceConfigurations());
     this.keyType = config.getKeyType();
@@ -62,7 +59,6 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
     this.classLoader = config.getClassLoader();
     this.expiry = config.getExpiry();
     this.resourcePools = config.getResourcePools();
-    this.eventNotificationService = eventNotifier;
   }
 
   @Override

@@ -17,28 +17,29 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
-import org.ehcache.events.StoreEventListener;
+import org.ehcache.event.EventType;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.events.StoreEvent;
+import org.ehcache.spi.cache.events.StoreEventListener;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Ignore;
 import org.ehcache.spi.test.SPITest;
-import org.mockito.InOrder;
+import org.hamcrest.Matcher;
 
+import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.inOrder;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 /**
- * Test the eviction half of the {@link org.ehcache.spi.cache.Store#enableStoreEventNotifications(org.ehcache.events.StoreEventListener)} contract of the
+ * Tests eviction events according to the contract of the
  * {@link org.ehcache.spi.cache.Store Store} interface.
  */
-
 public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
 
   public StoreEvictionEventListenerTest(StoreFactory<K, V> factory) {
@@ -64,8 +65,8 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testPutOnEviction() throws Exception {
     kvStore = factory.newStoreWithCapacity(1L);
-    StoreEventListener<K, V> listener = addListener(kvStore);
     kvStore.put(k, v);
+    StoreEventListener<K, V> listener = addListener(kvStore);
     kvStore.put(k2, v2);
     verifyListenerInteractions(listener);
   }
@@ -73,8 +74,8 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testPutIfAbsentOnEviction() throws Exception {
     kvStore = factory.newStoreWithCapacity(1L);
-    StoreEventListener<K, V> listener = addListener(kvStore);
     kvStore.put(k, v);
+    StoreEventListener<K, V> listener = addListener(kvStore);
     kvStore.putIfAbsent(k2, v2);
     verifyListenerInteractions(listener);
   }
@@ -96,8 +97,8 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testComputeOnEviction() throws Exception {
     kvStore = factory.newStoreWithCapacity(1L);
-    StoreEventListener<K, V> listener = addListener(kvStore);
     kvStore.put(k, v);
+    StoreEventListener<K, V> listener = addListener(kvStore);
     kvStore.compute(k2, new BiFunction<K, V, V>() {
       @Override
       public V apply(K mappedKey, V mappedValue) {
@@ -110,8 +111,8 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testComputeIfAbsentOnEviction() throws Exception {
     kvStore = factory.newStoreWithCapacity(1L);
-    StoreEventListener<K, V> listener = addListener(kvStore);
     kvStore.put(k, v);
+    StoreEventListener<K, V> listener = addListener(kvStore);
     kvStore.computeIfAbsent(k2, new Function<K, V>() {
       @Override
       public V apply(K mappedKey) {
@@ -130,20 +131,15 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     return null;
   }
 
-  private void verifyListenerInteractions(StoreEventListener<K, V> listener) {InOrder inOrder = inOrder(listener);
-    inOrder.verify(listener).hasListeners();
-    inOrder.verify(listener).onCreation(any(factory.getKeyType()), any(factory.getValueType()));
-    inOrder.verify(listener).onEviction(any(factory.getKeyType()), any(factory.getValueType()));
-    inOrder.verify(listener).fireAllEvents();
-    inOrder.verify(listener).purgeOrFireRemainingEvents();
-    inOrder.verifyNoMoreInteractions();
+  private void verifyListenerInteractions(StoreEventListener<K, V> listener) {
+    Matcher<StoreEvent<K, V>> matcher = eventType(EventType.EVICTED);
+    verify(listener).onEvent(argThat(matcher));
   }
 
   private StoreEventListener<K, V> addListener(Store<K, V> kvStore) {
     StoreEventListener<K, V> listener = mock(StoreEventListener.class);
-    when(listener.hasListeners()).thenReturn(true);
 
-    kvStore.enableStoreEventNotifications(listener);
+    kvStore.getStoreEventSource().addEventListener(listener);
     return listener;
   }
 }

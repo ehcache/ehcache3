@@ -26,6 +26,7 @@ import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.sizeof.NoopSizeOfEngine;
+import org.ehcache.internal.events.TestStoreEventDispatcher;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
 import org.ehcache.internal.store.heap.holders.CopiedOnHeapValueHolder;
@@ -81,8 +82,9 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
       
       private Store<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         ResourcePools resourcePools = buildResourcePools(capacity);
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, getClass().getClassLoader(), expiry, resourcePools, null, null);
-        return new OnHeapStore<String, String>(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine());
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
+            evictionVeto, getClass().getClassLoader(), expiry, resourcePools, 0, null, null);
+        return new OnHeapStore<String, String>(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine(), new TestStoreEventDispatcher<String, String>());
       }
 
       @Override

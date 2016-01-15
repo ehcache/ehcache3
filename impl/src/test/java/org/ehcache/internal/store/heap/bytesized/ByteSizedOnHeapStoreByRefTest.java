@@ -94,7 +94,12 @@ public class ByteSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
       public Serializer<V> getValueSerializer() {
         throw new AssertionError("By-ref heap store using serializers!");
       }
-    }, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE));
+
+      @Override
+      public int getOrderedEventParallelism() {
+        return 0;
+      }
+    }, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), eventDispatcher);
   }
 
 }

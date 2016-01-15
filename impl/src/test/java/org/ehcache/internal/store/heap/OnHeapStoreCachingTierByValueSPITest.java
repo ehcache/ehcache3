@@ -16,14 +16,13 @@
 
 package org.ehcache.internal.store.heap;
 
-import static java.lang.ClassLoader.getSystemClassLoader;
-
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.copy.SerializingCopier;
+import org.ehcache.internal.events.NullStoreEventDispatcher;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.internal.store.heap.holders.SerializedOnHeapValueHolder;
@@ -38,6 +37,7 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 
+import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 /**
@@ -73,9 +73,10 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       private CachingTier<String, String> newCachingTier(Long capacity) {
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null,
-                ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
+                ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), 0,
+                new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
         
-        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier, new NoopSizeOfEngine());
+        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
       }
 
       @Override

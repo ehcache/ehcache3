@@ -25,7 +25,6 @@ import org.ehcache.spi.cache.Store;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InOrder;
 import org.mockito.Mockito;
 import org.mockito.internal.verification.NoMoreInteractions;
 import org.mockito.invocation.InvocationOnMock;
@@ -35,16 +34,15 @@ import java.util.EnumSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Matchers.any;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class CacheEventDispatcherImplTest {
@@ -59,6 +57,7 @@ public class CacheEventDispatcherImplTest {
     orderedExecutor = Executors.newSingleThreadExecutor();
     unorderedExecutor = Executors.newCachedThreadPool();
     store = mock(Store.class);
+    when(store.getStoreEventSource()).thenReturn(mock(StoreEventDispatcher.class));
     eventService = new CacheEventDispatcherImpl<Number, String>(store, new OrderedEventDispatcher<Number, String>(orderedExecutor),
                                                                     new UnorderedEventDispatcher<Number, String>(unorderedExecutor));
     listener = mock(CacheEventListener.class);
@@ -71,48 +70,18 @@ public class CacheEventDispatcherImplTest {
   }
 
   @Test
-  public void testOrderedEventDelivery() {
-    EnumSet<EventType> events = EnumSet.of(EventType.CREATED, EventType.UPDATED, EventType.REMOVED);
-    eventService.registerCacheEventListener(listener, EventOrdering.ORDERED, EventFiring.SYNCHRONOUS, events);
-    CacheEvent<Number, String> create = eventOfType(EventType.CREATED);
-    CacheEvent<Number, String> update = eventOfType(EventType.UPDATED);
-    CacheEvent<Number, String> remove = eventOfType(EventType.REMOVED);
-    
-    eventService.onEvent(remove);
-    eventService.onEvent(create);
-    eventService.onEvent(update);
-
-    eventService.fireAllEvents();
-    InOrder order = inOrder(listener);
-    order.verify(listener).onEvent(remove);
-    order.verify(listener).onEvent(create);
-    order.verify(listener).onEvent(update);
-  }
-
-  @Test
-  public void testUnorderedEventDelivery() {
-    EnumSet<EventType> events = EnumSet.of(EventType.CREATED, EventType.UPDATED, EventType.REMOVED);
-    eventService.registerCacheEventListener(listener, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, events);
-    CacheEvent<Number, String> expectedEvents[] = 
-        new CacheEvent[] { eventOfType(EventType.CREATED), eventOfType(EventType.UPDATED), eventOfType(EventType.REMOVED) };
-    for (CacheEvent<Number, String> event: expectedEvents) {
-      eventService.onEvent(event);
-    }
-    eventService.fireAllEvents();
-    verify(listener).onEvent(expectedEvents[2]);
-    verify(listener).onEvent(expectedEvents[1]);
-    verify(listener).onEvent(expectedEvents[0]);
-    verify(listener, new NoMoreInteractions()).onEvent(any(CacheEvent.class));
-  }
-  
-  @Test
   public void testAsyncEventFiring() throws Exception {
     final CountDownLatch signal = new CountDownLatch(1);
+    final CountDownLatch signal2 = new CountDownLatch(1);
     doAnswer(new Answer() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
-        signal.await();
-        return null;
+        if (!signal.await(2, TimeUnit.SECONDS)) {
+          return null;
+        } else {
+          signal2.countDown();
+          return null;
+        }
       }
       
     }).when(listener).onEvent(any(CacheEvent.class));
@@ -121,9 +90,10 @@ public class CacheEventDispatcherImplTest {
     
     eventService.onEvent(create);
 
-    // This is a bit redundant b/c if we got here, we are already detached from listener
-    assertThat(signal.getCount(), is(1l));
     signal.countDown();
+    if (!signal2.await(2, TimeUnit.SECONDS)) {
+      fail("event handler never triggered latch - are we synchronous?");
+    }
   }
   
   @Test
@@ -135,7 +105,6 @@ public class CacheEventDispatcherImplTest {
     
     CacheEvent<Number, String> evict = eventOfType(EventType.EVICTED);
     eventService.onEvent(evict);
-    eventService.fireAllEvents();
     verify(listener).onEvent(evict);
   }
   
@@ -155,12 +124,10 @@ public class CacheEventDispatcherImplTest {
     eventService.registerCacheEventListener(listener, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EVICTED));
     CacheEvent<Number, String> evict = eventOfType(EventType.EVICTED);
     eventService.onEvent(evict);
-    eventService.fireAllEvents();
     verify(listener).onEvent(evict);
 
     eventService.deregisterCacheEventListener(listener);
     eventService.onEvent(evict);
-    eventService.fireAllEvents();
     verify(listener, new NoMoreInteractions()).onEvent(any(CacheEvent.class));
   }
 
@@ -178,7 +145,6 @@ public class CacheEventDispatcherImplTest {
     CacheEvent<Number, String> remove = eventOfType(EventType.REMOVED);
     eventService.onEvent(remove);
 
-    eventService.fireAllEvents();
     verify(listener).onEvent(create);
     verify(otherLsnr).onEvent(remove);
 
@@ -187,18 +153,8 @@ public class CacheEventDispatcherImplTest {
     eventService.onEvent(create);
     eventService.onEvent(remove);
 
-    eventService.fireAllEvents();
     verify(listener, new NoMoreInteractions()).onEvent(any(CacheEvent.class));
     verify(otherLsnr, new NoMoreInteractions()).onEvent(any(CacheEvent.class));
-  }
-
-  @Test
-  public void testRegisterEventListenerForStoreNotifications() {
-    eventService.registerCacheEventListener(listener,
-        EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EXPIRED));
-    verify(store).enableStoreEventNotifications(any(StoreEventListener.class));
-    eventService.deregisterCacheEventListener(listener);
-    verify(store).disableStoreEventNotifications();
   }
 
   private static <K, V> CacheEvent<K, V> eventOfType(EventType type) {

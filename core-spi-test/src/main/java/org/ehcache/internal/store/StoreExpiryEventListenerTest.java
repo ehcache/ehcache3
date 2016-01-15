@@ -16,35 +16,32 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.events.StoreEventListener;
+import org.ehcache.event.EventType;
+import org.ehcache.spi.cache.events.StoreEvent;
+import org.ehcache.spi.cache.events.StoreEventListener;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.SPITest;
-import org.mockito.InOrder;
+import org.hamcrest.Matcher;
 
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.inOrder;
+import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 /**
- * Test the expiry half of the {@link org.ehcache.spi.cache.Store#enableStoreEventNotifications(org.ehcache.events.StoreEventListener)} contract of the
+ * Tests expiry events according to the contract of the
  * {@link org.ehcache.spi.cache.Store Store} interface.
- * <p/>
- *
- * @author Gaurav Mangalick
  */
-
 public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
 
   private TestTimeSource timeSource;
@@ -63,11 +60,6 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   public void setUp() {
     timeSource = new TestTimeSource();
     kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
-  }
-
-  @After
-  public void tearDown() {
-    kvStore.disableStoreEventNotifications();
   }
 
   @SPITest
@@ -168,19 +160,15 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     verifyListenerInteractions(listener);
   }
 
-  private void verifyListenerInteractions(StoreEventListener<K, V> listener) {InOrder inOrder = inOrder(listener);
-    inOrder.verify(listener).hasListeners();
-    inOrder.verify(listener).onExpiration(any(factory.getKeyType()), any(factory.getValueType()));
-    inOrder.verify(listener).fireAllEvents();
-    inOrder.verify(listener).purgeOrFireRemainingEvents();
-    inOrder.verifyNoMoreInteractions();
+  private void verifyListenerInteractions(StoreEventListener<K, V> listener) {
+    Matcher<StoreEvent<K, V>> matcher = eventType(EventType.EXPIRED);
+    verify(listener).onEvent(argThat(matcher));
   }
 
   private StoreEventListener<K, V> addListener(Store<K, V> kvStore) {
     StoreEventListener<K, V> listener = mock(StoreEventListener.class);
-    when(listener.hasListeners()).thenReturn(true);
 
-    kvStore.enableStoreEventNotifications(listener);
+    kvStore.getStoreEventSource().addEventListener(listener);
     return listener;
   }
 }

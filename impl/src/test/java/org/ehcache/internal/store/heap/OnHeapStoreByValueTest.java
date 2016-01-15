@@ -191,9 +191,9 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
     Copier<V> valueCopier = new SerializingCopier<V>(new JavaSerializer<V>(getClass().getClassLoader()));
     return newStore(timeSource, expiry, veto, keyCopier, valueCopier, 100);
   }
-  
+
   protected abstract <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource,
-      Expiry<? super K, ? super V> expiry, EvictionVeto<? super K, ? super V> veto, 
+      Expiry<? super K, ? super V> expiry, EvictionVeto<? super K, ? super V> veto,
       Copier<K> keyCopier, Copier<V> valueCopier, int capacity);
 
   private void performAssertions(Cache<Long, String> cache, boolean same) {

@@ -16,48 +16,28 @@
 package org.ehcache.events;
 
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.CacheEventListenerConfiguration;
-import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 
 import java.util.EnumSet;
 
-public class EventListenerWrapper {
-  final CacheEventListener<?, ?> listener;
-  final CacheEventListenerConfiguration config;
+public final class EventListenerWrapper {
+  final CacheEventListener listener;
+  final EventFiring firing;
+  final EventOrdering ordering;
+  final EnumSet<EventType> forEvents;
 
-  public EventListenerWrapper(CacheEventListener<?, ?> listener, final EventFiring firing, final EventOrdering ordering,
-                       final EnumSet<EventType> forEvents) {
-    this.listener = listener;
-    this.config = new CacheEventListenerConfiguration() {
-
-      @Override
-      public Class<CacheEventListenerProvider> getServiceType() {
-        return CacheEventListenerProvider.class;
-      }
-
-      @Override
-      public EventOrdering orderingMode() {
-        return ordering;
-      }
-
-      @Override
-      public EventFiring firingMode() {
-        return firing;
-      }
-
-      @Override
-      public EnumSet<EventType> fireOn() {
-        return forEvents;
-      }
-    };
+  EventListenerWrapper(CacheEventListener listener) {
+    this(listener, null, null, null);
   }
 
-  @SuppressWarnings("unchecked")
-  <K, V> CacheEventListener<K, V> getListener() {
-    return (CacheEventListener<K, V>) listener;
+  public EventListenerWrapper(CacheEventListener listener, final EventFiring firing, final EventOrdering ordering,
+                       final EnumSet<EventType> forEvents) {
+    this.listener = listener;
+    this.firing = firing;
+    this.ordering = ordering;
+    this.forEvents = forEvents;
   }
 
   @Override

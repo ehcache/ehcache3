@@ -22,6 +22,7 @@ import org.ehcache.function.Function;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.copy.IdentityCopier;
+import org.ehcache.internal.events.NullStoreEventDispatcher;
 import org.ehcache.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
@@ -63,7 +64,8 @@ public class OnHeapStoreBulkMethodsTest {
 
   protected <Number, CharSequence> OnHeapStore<Number, CharSequence> newStore() {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
-    return new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine());
+    return new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER,
+        new NoopSizeOfEngine(), NullStoreEventDispatcher.<Number, CharSequence>nullStoreEventDispatcher());
   }
 
   @SuppressWarnings("unchecked")
@@ -77,7 +79,8 @@ public class OnHeapStoreBulkMethodsTest {
     when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build());
     Store.Configuration<Number, Number> configuration = config;
 
-    OnHeapStore<Number, Number> store = new OnHeapStore<Number, Number>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine());
+    OnHeapStore<Number, Number> store = new OnHeapStore<Number, Number>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER,
+        new NoopSizeOfEngine(), NullStoreEventDispatcher.<Number, Number>nullStoreEventDispatcher());
     store.put(1, 2);
     store.put(2, 3);
     store.put(3, 4);
@@ -161,7 +164,7 @@ public class OnHeapStoreBulkMethodsTest {
   public void testBulkComputeStoreRemovesValueWhenFunctionReturnsNullMappings() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
 
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine());
+    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine(), NullStoreEventDispatcher.<Number, CharSequence>nullStoreEventDispatcher());
     store.put(1, "one");
     store.put(2, "two");
     store.put(3, "three");

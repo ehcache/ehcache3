@@ -23,7 +23,6 @@ import org.ehcache.Ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
-import org.ehcache.config.event.CacheEventNotificationServiceConfigurationBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.CacheEvent;
@@ -31,7 +30,6 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
-import org.ehcache.events.CacheEventDispatcherConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.internal.TimeSourceConfiguration;
@@ -64,11 +62,12 @@ public class EventNotificationTest {
 
   @Test
   public void testNotificationForCacheOperations() throws InterruptedException {
-    CacheEventDispatcherConfiguration notificationConfiguration = CacheEventNotificationServiceConfigurationBuilder
-        .withEventProcessingQueueCount(10).build();
+    // TODO replace with prop ... location TBD
+//    CacheEventDispatcherConfiguration notificationConfiguration = CacheEventNotificationServiceConfigurationBuilder
+//        .withEventProcessingQueueCount(10).build();
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .heap(5L, EntryUnit.ENTRIES).build()).add(notificationConfiguration).build();
+            .heap(5L, EntryUnit.ENTRIES).build()).build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
         .build(true);

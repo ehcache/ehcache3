@@ -15,6 +15,8 @@
  */
 package org.ehcache.events;
 
+import org.ehcache.event.CacheEvent;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -26,8 +28,8 @@ public class UnorderedEventDispatcher<K, V> implements EventDispatcher<K, V> {
   }
 
   @Override
-  public Future<?> dispatch(CacheEventWrapper<K, V> cacheEventWrapper, Iterable<EventListenerWrapper> listenerWrappers) {
-    return executorService.submit(new EventDispatchTask<K, V>(cacheEventWrapper, listenerWrappers));
+  public Future<?> dispatch(CacheEvent<K, V> cacheEvent, Iterable<EventListenerWrapper> listenerWrappers) {
+    return executorService.submit(new EventDispatchTask<K, V>(cacheEvent, listenerWrappers));
   }
 
   public ExecutorService getExecutorService() {

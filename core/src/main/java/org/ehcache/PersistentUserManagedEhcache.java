@@ -50,7 +50,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
   public PersistentUserManagedEhcache(CacheConfiguration<K, V> configuration, Store<K, V> store, Store.Configuration<K, V> storeConfig, LocalPersistenceService localPersistenceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventDispatcher<K, V> eventNotifier, String id) {
     this.logger = LoggerFactory.getLogger(PersistentUserManagedEhcache.class.getName() + "-" + id);
     this.statusTransitioner = new StatusTransitioner(logger);
-    this.ehcache = new Ehcache<K, V>(new EhcacheRuntimeConfiguration<K, V>(configuration, eventNotifier), store, cacheLoaderWriter, eventNotifier, true, logger, statusTransitioner);
+    this.ehcache = new Ehcache<K, V>(new EhcacheRuntimeConfiguration<K, V>(configuration), store, cacheLoaderWriter, eventNotifier, true, logger, statusTransitioner);
     this.localPersistenceService = localPersistenceService;
     this.id = id;
   }

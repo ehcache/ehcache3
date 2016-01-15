@@ -17,10 +17,8 @@
 package org.ehcache.events;
 
 import org.ehcache.Cache;
-import org.ehcache.Cache.Entry;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.EventType;
-import org.ehcache.spi.cache.Store;
 
 public final class CacheEvents {
   private CacheEvents() { }
@@ -45,43 +43,6 @@ public final class CacheEvents {
     return new UpdateEvent<K, V>(key, oldValue, newValue, source);
   }
 
-  public static <K, V> StoreEventListener<K, V> nullStoreEventListener() {
-    return new StoreEventListener<K, V>() {
-      @Override
-      public void onEviction(final K key, final V value) {
-      }
-
-      @Override
-      public void onExpiration(final K key, final V value) {
-      }
-
-      @Override
-      public void onCreation(K key, V value) {
-      }
-
-      @Override
-      public void onUpdate(K key, V previousValue, V newValue) {
-      }
-
-      @Override
-      public void onRemoval(K key, V removed) {
-      }
-
-      @Override
-      public boolean hasListeners() {
-        return false;
-      }
-
-      @Override
-      public void fireAllEvents() {
-      }
-
-      @Override
-      public void purgeOrFireRemainingEvents() {
-      }
-    };
-  }
-  
   private static abstract class BaseCacheEvent<K, V> implements CacheEvent<K, V> {
     final K key;
     final Cache<K, V> src;

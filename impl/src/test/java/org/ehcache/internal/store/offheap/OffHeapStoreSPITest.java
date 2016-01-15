@@ -22,9 +22,11 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.events.TestStoreEventDispatcher;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.tier.AuthoritativeTierFactory;
@@ -39,7 +41,6 @@ import org.junit.Before;
 import java.util.Arrays;
 
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
-import org.ehcache.expiry.Expirations;
 
 /**
  * OffHeapStoreSPITest
@@ -80,8 +81,9 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
         ResourcePool offheapPool = resourcePools.getPoolForResource(OFFHEAP);
         MemoryUnit unit = (MemoryUnit)offheapPool.getUnit();
 
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, getClass().getClassLoader(), expiry, resourcePools, keySerializer, valueSerializer);
-        OffHeapStore<String, String> store = new OffHeapStore<String, String>(config, timeSource, unit.toBytes(offheapPool.getSize()));
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
+            evictionVeto, getClass().getClassLoader(), expiry, resourcePools, 0, keySerializer, valueSerializer);
+        OffHeapStore<String, String> store = new OffHeapStore<String, String>(config, timeSource, new TestStoreEventDispatcher<String, String>(), unit.toBytes(offheapPool.getSize()));
         OffHeapStore.Provider.init(store);
         return store;
       }

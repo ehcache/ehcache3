@@ -16,29 +16,31 @@
 package org.ehcache.events;
 
 import org.ehcache.event.CacheEvent;
+import org.ehcache.event.CacheEventListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class EventDispatchTask<K, V> implements Runnable {
+class EventDispatchTask<K, V> implements Runnable {
   private static final Logger LOGGER = LoggerFactory.getLogger(EventDispatchTask.class);
-  private final CacheEventWrapper<K, V> cacheEventWrapper;
-  private final Iterable<EventListenerWrapper> listeners;
+  private final CacheEvent<K, V> cacheEvent;
+  private final Iterable<EventListenerWrapper> listenerWrappers;
 
-  EventDispatchTask(CacheEventWrapper<K, V> cacheEventWrapper, Iterable<EventListenerWrapper> listener) {
-    this.cacheEventWrapper = cacheEventWrapper;
-    this.listeners = listener;
+  EventDispatchTask(CacheEvent<K, V> cacheEvent, Iterable<EventListenerWrapper> listener) {
+    this.cacheEvent = cacheEvent;
+    this.listenerWrappers = listener;
   }
 
   @Override
   public void run() {
-    for(EventListenerWrapper listener : listeners) {
-      if (!listener.config.fireOn().contains(cacheEventWrapper.cacheEvent.getType())) {
+    for(EventListenerWrapper listenerWrapper : listenerWrappers) {
+      if (!listenerWrapper.forEvents.contains(cacheEvent.getType())) {
         continue;
       }
       try {
-        listener.getListener().onEvent((CacheEvent<Object, Object>)cacheEventWrapper.cacheEvent);
+        CacheEventListener listener = listenerWrapper.listener;
+        listener.onEvent(cacheEvent);
       } catch (Exception e) {
-        LOGGER.warn(listener.getListener() + " Failed to fire Event due to ", e);
+        LOGGER.warn(listenerWrapper.listener + " Failed to fire Event due to ", e);
       }
     }
   }

@@ -324,7 +324,8 @@ public class EhcacheManager implements PersistentCacheManager {
         }
       }
     }
-    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<K, V>(config, keySerializer, valueSerializer);
+    // TODO replace hard coded int with some config once #705 is done
+    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<K, V>(config, 4, keySerializer, valueSerializer);
     final Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigs);
 
     lifeCycledList.add(new LifeCycled() {
@@ -341,7 +342,7 @@ public class EhcacheManager implements PersistentCacheManager {
 
     final CacheLoaderWriterProvider cacheLoaderWriterProvider = serviceLocator.getService(CacheLoaderWriterProvider.class);
     final CacheLoaderWriter<? super K, V> loaderWriter;
-    final CacheLoaderWriter<? super K, V> decorator ;
+    final CacheLoaderWriter<? super K, V> decorator;
     if(cacheLoaderWriterProvider != null) {
       loaderWriter = cacheLoaderWriterProvider.createCacheLoaderWriter(alias, config);
       WriteBehindConfiguration writeBehindConfiguration = ServiceLocator.findSingletonAmongst(WriteBehindConfiguration.class, config.getServiceConfigurations().toArray());
@@ -380,9 +381,8 @@ public class EhcacheManager implements PersistentCacheManager {
       public void close() {
         cenlProvider.releaseCacheEventDispatcher(evtService);
       }
-      
     });
-    
+
     final Ehcache<K, V> ehCache = new Ehcache<K, V>(config, store, decorator, evtService,
         useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
 
@@ -408,7 +408,7 @@ public class EhcacheManager implements PersistentCacheManager {
           });
         }
       }
-      evtService.setStoreListenerSource(ehCache);
+      evtService.setListenerSource(ehCache);
     }
 
     for (LifeCycled lifeCycled : lifeCycledList) {

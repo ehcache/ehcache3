@@ -15,8 +15,10 @@
  */
 package org.ehcache.events;
 
+import org.ehcache.event.CacheEvent;
+
 import java.util.concurrent.Future;
 
 public interface EventDispatcher<K, V> {
-  Future<?> dispatch(CacheEventWrapper<K, V> cacheEventWrapper, Iterable<EventListenerWrapper> listenerWrappers);
+  Future<?> dispatch(CacheEvent<K, V> cacheEventWrapper, Iterable<EventListenerWrapper> listenerWrappers);
 }

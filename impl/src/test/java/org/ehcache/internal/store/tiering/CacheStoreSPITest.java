@@ -16,8 +16,6 @@
 
 package org.ehcache.internal.store.tiering;
 
-import java.io.IOException;
-
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
@@ -25,6 +23,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -32,11 +31,16 @@ import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.copy.IdentityCopier;
+import org.ehcache.internal.events.NullStoreEventDispatcher;
+import org.ehcache.internal.events.TestStoreEventDispatcher;
+import org.ehcache.internal.executor.OnDemandExecutionService;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
+import org.ehcache.internal.store.disk.OffHeapDiskStore;
+import org.ehcache.internal.store.disk.OffHeapDiskStoreSPITest;
 import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.heap.OnHeapStoreByValueSPITest;
 import org.ehcache.spi.ServiceLocator;
@@ -47,26 +51,20 @@ import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.FileBasedPersistenceContext;
+import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.config.ResourceType.Core.DISK;
-
-import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.internal.executor.OnDemandExecutionService;
-import org.ehcache.internal.store.disk.OffHeapDiskStore;
-import org.ehcache.internal.store.disk.OffHeapDiskStoreSPITest;
-import org.ehcache.spi.service.LocalPersistenceService;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-
 import static org.mockito.Mockito.mock;
 
 /**
@@ -121,10 +119,11 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
       private Store<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         Serializer<String> keySerializer = new JavaSerializer<String>(getClass().getClassLoader());
         Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, getClass().getClassLoader(), expiry, buildResourcePools(capacity), keySerializer, valueSerializer);
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
+            evictionVeto, getClass().getClassLoader(), expiry, buildResourcePools(capacity), 0, keySerializer, valueSerializer);
 
         final Copier defaultCopier = new IdentityCopier();
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine());
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
         try {
           String spaceName = "alias-" + aliasCounter.getAndIncrement();
           LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);
@@ -137,7 +136,9 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
           OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(
                   persistenceContext,
                   new OnDemandExecutionService(), null, 1,
-                  config, timeSource, sizeInBytes);
+                  config, timeSource,
+                  new TestStoreEventDispatcher<String, String>(),
+                  sizeInBytes);
           CacheStore<String, String> cacheStore = new CacheStore<String, String>(onHeapStore, diskStore);
           provider.registerStore(cacheStore, new CachingTier.Provider() {
             @Override

@@ -14,30 +14,25 @@
  * limitations under the License.
  */
 
-package org.ehcache.events;
+package org.ehcache.spi.cache.events;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.ehcache.events.StoreEventDispatcher;
 
-public class ComplexEventThreadLocalList<T> {
+/**
+ * Interface used by a Store to notify of events happening to mappings it contains.
+ * <P/>
+ * Implementations of this class are expected to work in combination with an implementation of
+ * {@link StoreEventDispatcher}.
+ *
+ * @param <K> the key type of the mappings
+ * @param <V> the value type of the mappings
+ */
+public interface StoreEventListener<K, V> {
 
-  private boolean ordered;
-
-  private ArrayList<T> eventList;
-
-  ComplexEventThreadLocalList() {
-    eventList = new ArrayList<T>();
-  }
-
-  public boolean isOrdered() {
-    return ordered;
-  }
-
-  public void setOrdered(final boolean ordered) {
-    this.ordered = ordered;
-  }
-
-  public List<T> getEventList() {
-    return eventList;
-  }
+  /**
+   * Invoked on any {@link StoreEvent}.
+   *
+   * @param event the actual {@link StoreEvent}
+   */
+  void onEvent(StoreEvent<K, V> event);
 }

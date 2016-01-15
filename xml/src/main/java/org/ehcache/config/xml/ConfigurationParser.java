@@ -395,20 +395,6 @@ class ConfigurationParser {
               return null;
             }
           }
-
-          @Override
-          public Integer eventProcessingQueues() {
-            Integer eventProcessingQueueCount = null;
-            for (BaseCacheType source : sources) {
-              final ListenersType listeners = source.getListeners();
-              final ListenersType.EventProcessingQueues eventProcessingQueues = listeners != null ? listeners.getEventProcessingQueues() : null;
-              if (eventProcessingQueues != null) {
-                eventProcessingQueueCount = eventProcessingQueues.getCount();
-                break;
-              }
-            }
-            return eventProcessingQueueCount != null ? eventProcessingQueueCount : null;
-          }
         });
       }
     }
@@ -598,13 +584,6 @@ class ConfigurationParser {
             final DiskStoreSettingsType diskStoreSettings = cacheTemplate.getDiskStoreSettings();
             return diskStoreSettings == null ? null : new XmlDiskStoreSettings(diskStoreSettings);
           }
-
-          @Override
-          public Integer eventProcessingQueues() {
-            final ListenersType listeners = cacheTemplate.getListeners();
-            final ListenersType.EventProcessingQueues eventProcessingQueues = listeners != null ? listeners.getEventProcessingQueues(): null;
-            return eventProcessingQueues != null ? eventProcessingQueues() : null;
-          }
         });
       }
     }
@@ -684,8 +663,6 @@ class ConfigurationParser {
     WriteBehind writeBehind();
 
     DiskStoreSettings diskStoreSettings();
-
-    Integer eventProcessingQueues();
   }
 
   interface CacheDefinition extends CacheTemplate {

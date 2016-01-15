@@ -26,7 +26,6 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
-import org.ehcache.config.event.CacheEventNotificationServiceConfigurationBuilder;
 import org.ehcache.config.loaderwriter.writebehind.WriteBehindConfigurationBuilder;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
@@ -38,7 +37,6 @@ import org.ehcache.docs.plugs.OddKeysEvictionVeto;
 import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.docs.plugs.StringSerializer;
 import org.ehcache.event.EventType;
-import org.ehcache.events.CacheEventDispatcherConfiguration;
 import org.ehcache.internal.copy.ReadWriteCopier;
 import org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration;
 import org.ehcache.spi.serialization.Serializer;
@@ -161,7 +159,7 @@ public class GettingStarted {
     cacheManager.close();
     // end::defaultSerializers[]
   }
-  
+
   @Test
   public void byteSizedTieredCache() {
     // tag::byteSizedTieredCache[]
@@ -170,13 +168,13 @@ public class GettingStarted {
             .heap(10, MemoryUnit.KB) // <1>
             .offheap(10, MemoryUnit.MB)
             .build())
-        .add(new DefaultSizeOfEngineConfiguration(1000, 1000)) // <2>    
+        .add(new DefaultSizeOfEngineConfiguration(1000, 1000)) // <2>
         .build();
-    
+
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("cache", cacheConfiguration)
         .build(true);
-    
+
     Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
 
     cache.put(1L, "one");
@@ -316,11 +314,12 @@ public class GettingStarted {
     CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
         .newEventListenerConfiguration(ListenerObject.class, EventType.EVICTED).ordered().synchronous();
     // tag::configuringEventProcessingQueues[]
-    CacheEventDispatcherConfiguration notificationConfiguration = CacheEventNotificationServiceConfigurationBuilder
-        .withEventProcessingQueueCount(10).build();  // <1>
+    // TODO Replace with new prop ... location TBD
+//    CacheEventDispatcherConfiguration notificationConfiguration = CacheEventNotificationServiceConfigurationBuilder
+//        .withEventProcessingQueueCount(10).build();  // <1>
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(5L, EntryUnit.ENTRIES).build())
-        .add(notificationConfiguration).build();  // <2>
+        .build();  // <2>
     // end::configuringEventProcessingQueues[]
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
         .build(true);

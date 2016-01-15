@@ -24,6 +24,7 @@ import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.events.StoreEventDispatcher;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -31,6 +32,8 @@ import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.copy.IdentityCopier;
+import org.ehcache.internal.events.NullStoreEventDispatcher;
+import org.ehcache.internal.events.TestStoreEventDispatcher;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.sizeof.NoopSizeOfEngine;
@@ -75,7 +78,6 @@ import static org.mockito.Mockito.mock;
  *
  * @author Ludovic Orban
  */
-
 public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
 
   private StoreFactory<String, String> storeFactory;
@@ -121,15 +123,17 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
       private Store<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         Serializer<String> keySerializer = new JavaSerializer<String>(getClass().getClassLoader());
         Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, getClass().getClassLoader(), expiry, buildResourcePools(capacity), keySerializer, valueSerializer);
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
+            evictionVeto, getClass().getClassLoader(), expiry, buildResourcePools(capacity), 0, keySerializer, valueSerializer);
         final Copier defaultCopier = new IdentityCopier();
 
-        final OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine());
+        StoreEventDispatcher<String, String> noOpEventDispatcher = NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher();
+        final OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), noOpEventDispatcher);
 
         ResourcePool offheapPool = config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
         long offheapSize = ((MemoryUnit) offheapPool.getUnit()).toBytes(offheapPool.getSize());
 
-        final OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, timeSource, offheapSize);
+        final OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, timeSource, noOpEventDispatcher, offheapSize);
 
         try {
           String spaceName = "alias-" + aliasCounter.getAndIncrement();
@@ -142,7 +146,9 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
           OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(
                   persistenceContext,
                   new OnDemandExecutionService(), null, 1,
-                  config, timeSource, diskSize);
+                  config, timeSource,
+                  new TestStoreEventDispatcher<String, String>(),
+                  diskSize);
 
           CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(onHeapStore, offHeapStore);
 

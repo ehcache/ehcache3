@@ -34,17 +34,20 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   private final ResourcePools resourcePools;
   private final Serializer<K> keySerializer;
   private final Serializer<V> valueSerializer;
-  
-  public StoreConfigurationImpl(CacheConfiguration<K, V> cacheConfig, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
-    this(cacheConfig.getKeyType(), cacheConfig.getValueType(),
-            cacheConfig.getEvictionVeto(), cacheConfig.getClassLoader(),
-        cacheConfig.getExpiry(), cacheConfig.getResourcePools(), keySerializer, valueSerializer);
+  private final int orderedEventParallelism;
+
+  public StoreConfigurationImpl(CacheConfiguration<K, V> cacheConfig, int orderedEventParallelism,
+                                Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+    this(cacheConfig.getKeyType(), cacheConfig.getValueType(), cacheConfig.getEvictionVeto(),
+        cacheConfig.getClassLoader(), cacheConfig.getExpiry(), cacheConfig.getResourcePools(),
+        orderedEventParallelism, keySerializer, valueSerializer);
   }
 
   public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType,
-          EvictionVeto<? super K, ? super V> evictionVeto,
-          ClassLoader classLoader, Expiry<? super K, ? super V> expiry, ResourcePools resourcePools,
-          Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+                                EvictionVeto<? super K, ? super V> evictionVeto,
+                                ClassLoader classLoader, Expiry<? super K, ? super V> expiry,
+                                ResourcePools resourcePools, int orderedEventParallelism,
+                                Serializer<K> keySerializer, Serializer<V> valueSerializer) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.evictionVeto = evictionVeto;
@@ -53,6 +56,7 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
     this.resourcePools = resourcePools;
     this.keySerializer = keySerializer;
     this.valueSerializer = valueSerializer;
+    this.orderedEventParallelism = orderedEventParallelism;
   }
 
   @Override
@@ -93,5 +97,10 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   @Override
   public Serializer<V> getValueSerializer() {
     return valueSerializer;
+  }
+
+  @Override
+  public int getOrderedEventParallelism() {
+    return orderedEventParallelism;
   }
 }

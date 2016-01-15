@@ -26,6 +26,7 @@ import org.ehcache.function.NullaryFunction;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.sizeof.NoopSizeOfEngine;
+import org.ehcache.internal.events.NullStoreEventDispatcher;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
 import org.junit.Before;
@@ -39,7 +40,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Collections.singleton;
-import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.is;
@@ -47,7 +47,6 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -113,7 +112,7 @@ public class OnHeapStoreKeyCopierTest {
       }
     };
 
-    store = new OnHeapStore<Key, String>(configuration, SystemTimeSource.INSTANCE, keyCopier, new IdentityCopier<String>(), new NoopSizeOfEngine());
+    store = new OnHeapStore<Key, String>(configuration, SystemTimeSource.INSTANCE, keyCopier, new IdentityCopier<String>(), new NoopSizeOfEngine(), NullStoreEventDispatcher.<Key, String>nullStoreEventDispatcher());
   }
 
   @Test

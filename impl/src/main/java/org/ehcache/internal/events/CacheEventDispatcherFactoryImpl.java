@@ -18,7 +18,6 @@ package org.ehcache.internal.events;
 import org.ehcache.events.CacheEventDispatcherFactory;
 import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.events.CacheEventDispatcherImpl;
-import org.ehcache.events.CacheEventDispatcherConfiguration;
 import org.ehcache.events.DisabledCacheEventNotificationService;
 import org.ehcache.events.EventDispatchProvider;
 import org.ehcache.events.OrderedEventDispatcher;
@@ -27,8 +26,6 @@ import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
-
-import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
 @ServiceDependencies(EventDispatchProvider.class)
 public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFactory {
@@ -43,7 +40,7 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
 
   @Override
   public void start(ServiceProvider serviceProvider) {
-    //Exeuctors here should be cache-manager scoped but optionally overridable on a per cache basis
+    //Executors here should be cache-manager scoped but optionally overridable on a per cache basis
     eventDispatchProvider = serviceProvider.getService(EventDispatchProvider.class);
   }
 
@@ -53,16 +50,10 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
 
   @Override
   public <K, V> CacheEventDispatcher<K, V> createCacheEventDispatcher(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs) {
-    CacheEventDispatcherConfiguration cacheEventDispatcherConfiguration = findSingletonAmongst(CacheEventDispatcherConfiguration.class, (Object[])serviceConfigs);
     if (getOrderedDispatcher() == null || getUnorderedDispatcher() == null) {
       return new DisabledCacheEventNotificationService<K, V>();
     } else {
-      if (cacheEventDispatcherConfiguration != null) {
-        return new CacheEventDispatcherImpl<K, V>(store, getOrderedDispatcher(), getUnorderedDispatcher(), cacheEventDispatcherConfiguration
-            .getNumberOfEventProcessingQueues());
-      } else {
-        return new CacheEventDispatcherImpl<K, V>(store, getOrderedDispatcher(), getUnorderedDispatcher());
-      }
+      return new CacheEventDispatcherImpl<K, V>(store, getOrderedDispatcher(), getUnorderedDispatcher());
     }
   }
 

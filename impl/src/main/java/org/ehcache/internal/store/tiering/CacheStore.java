@@ -17,13 +17,13 @@ package org.ehcache.internal.store.tiering;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheConfigurationChangeListener;
-import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.events.StoreEventSource;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -226,13 +226,8 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public void enableStoreEventNotifications(StoreEventListener<K, V> listener) {
-    authoritativeTier.enableStoreEventNotifications(listener);
-  }
-
-  @Override
-  public void disableStoreEventNotifications() {
-    authoritativeTier.disableStoreEventNotifications();
+  public StoreEventSource<K, V> getStoreEventSource() {
+    return authoritativeTier.getStoreEventSource();
   }
 
   @Override

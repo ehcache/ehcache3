@@ -16,21 +16,24 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.events.StoreEventListener;
+import org.ehcache.event.EventType;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.events.StoreEvent;
+import org.ehcache.spi.cache.events.StoreEventListener;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
-import org.mockito.InOrder;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.inOrder;
+import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 /**
  * StoreCreationEventListenerTest
@@ -115,19 +118,29 @@ public class StoreCreationEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  private void verifyListenerInteractions(StoreEventListener<K, V> listener) {InOrder inOrder = inOrder(listener);
-    inOrder.verify(listener).hasListeners();
-    inOrder.verify(listener).onCreation(any(factory.getKeyType()), any(factory.getValueType()));
-    inOrder.verify(listener).fireAllEvents();
-    inOrder.verify(listener).purgeOrFireRemainingEvents();
-    inOrder.verifyNoMoreInteractions();
+  private void verifyListenerInteractions(StoreEventListener<K, V> listener) {
+    Matcher<StoreEvent<K, V>> matcher = eventType(EventType.CREATED);
+    verify(listener).onEvent(argThat(matcher));
   }
 
   private StoreEventListener<K, V> addListener(Store<K, V> kvStore) {
     StoreEventListener<K, V> listener = mock(StoreEventListener.class);
-    when(listener.hasListeners()).thenReturn(true);
 
-    kvStore.enableStoreEventNotifications(listener);
+    kvStore.getStoreEventSource().addEventListener(listener);
     return listener;
+  }
+
+  public static <K, V> Matcher<StoreEvent<K, V>> eventType(final EventType type) {
+    return new TypeSafeMatcher<StoreEvent<K, V>>() {
+      @Override
+      protected boolean matchesSafely(StoreEvent<K, V> item) {
+        return item.getType().equals(type);
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("store event of type '").appendValue(type).appendText("'");
+      }
+    };
   }
 }

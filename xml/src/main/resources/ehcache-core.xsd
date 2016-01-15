@@ -305,20 +305,6 @@
           </xs:sequence>
         </xs:complexType>
       </xs:element>
-      <xs:element name="eventProcessingQueues" minOccurs="0" maxOccurs="1">
-        <xs:complexType>
-          <xs:simpleContent>
-            <xs:extension base="xs:string">
-              <xs:annotation>
-                <xs:documentation xml:lang="en">
-                  Indicates the number of processing queues used for event ordering
-                </xs:documentation>
-              </xs:annotation>
-              <xs:attribute type="xs:int" name="count" use="required"/>
-            </xs:extension>
-          </xs:simpleContent>
-        </xs:complexType>
-      </xs:element>
     </xs:sequence>
     <xs:attribute name="thread-pool" type="xs:string" use="optional"/>
   </xs:complexType>

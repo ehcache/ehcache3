@@ -16,33 +16,17 @@
 
 package org.ehcache.events;
 
-import java.util.Collections;
-import java.util.List;
+/**
+ * StoreEventSink
+ */
+public interface StoreEventSink<K, V> {
+  void removed(K key, V value);
 
-public class NoOpEventThreadLocalImpl implements EventThreadLocal {
+  void updated(K key, V oldValue, V newValue);
 
-  @Override
-  public List<CacheEventWrapper> get() {
-    return Collections.emptyList();
-  }
+  void expired(K key, V value);
 
-  @Override
-  public void addToEventList(CacheEventWrapper eventWrapper) {
-    //no-op
-  }
+  void created(K key, V value);
 
-  @Override
-  public void verifyOrderedDispatch(boolean ordered) {
-    //no-op
-  }
-
-  @Override
-  public boolean isOrdered() {
-    return false;
-  }
-
-  @Override
-  public void cleanUp() {
-    //no-op
-  }
+  void evicted(K key, V value);
 }
