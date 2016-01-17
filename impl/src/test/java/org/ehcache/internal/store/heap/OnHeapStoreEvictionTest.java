@@ -27,6 +27,7 @@ import org.ehcache.function.Function;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
+import org.ehcache.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
@@ -39,6 +40,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+
 import org.ehcache.config.Eviction;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -169,7 +171,7 @@ public class OnHeapStoreEvictionTest {
     private static final Copier DEFAULT_COPIER = new IdentityCopier();
 
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
-      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER);
+      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new DefaultSizeOfEngine(0, 0));
     }
 
     private boolean enforceCapacityWasCalled = false;

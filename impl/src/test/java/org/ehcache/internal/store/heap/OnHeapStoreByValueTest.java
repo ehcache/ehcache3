@@ -36,6 +36,7 @@ import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.internal.serialization.CompactJavaSerializer;
 import org.ehcache.internal.serialization.JavaSerializer;
+import org.ehcache.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.spi.cache.AbstractValueHolder;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
@@ -257,7 +258,7 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
       public Serializer<V> getValueSerializer() {
         return new JavaSerializer<V>(getClass().getClassLoader());
       }
-    }, timeSource, keyCopier, valueCopier);
+    }, timeSource, keyCopier, valueCopier, new DefaultSizeOfEngine(0, 0));
   }
 
   private void performAssertions(Cache<Long, String> cache, boolean same) {
