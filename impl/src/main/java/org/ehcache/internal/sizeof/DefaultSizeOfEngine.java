@@ -15,7 +15,11 @@
  */
 package org.ehcache.internal.sizeof;
 
+import org.ehcache.internal.sizeof.listeners.EhcacheVisitorListener;
+import org.ehcache.sizeof.EhcacheFilterSource;
 import org.ehcache.sizeof.SizeOf;
+import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.sizeof.SizeOfEngine;
 
 /**
@@ -27,16 +31,19 @@ public class DefaultSizeOfEngine implements SizeOfEngine {
   private final long maxDepth;
   private final long maxSize;
   private final SizeOf sizeOf;
+  private final EhcacheFilterSource filterSource = new EhcacheFilterSource(true);
   
   public DefaultSizeOfEngine(long maxDepth, long maxSize) {
     this.maxDepth = maxDepth;
     this.maxSize = maxSize;
-    this.sizeOf = SizeOf.newInstance(null);
+    this.filterSource.ignoreInstancesOf(Copier.class, false);
+    this.filterSource.ignoreInstancesOf(Serializer.class, false);
+    this.sizeOf = SizeOf.newInstance(filterSource.getFilters());
   }
 
   @Override
   public long sizeof(Object... objects) {    
-    return sizeOf.deepSizeOf(objects);
+    return sizeOf.deepSizeOf(new EhcacheVisitorListener(maxDepth, maxSize), objects);
   }
 
 }

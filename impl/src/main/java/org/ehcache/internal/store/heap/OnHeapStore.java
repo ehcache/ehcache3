@@ -57,7 +57,6 @@ import org.ehcache.statistics.CachingTierOperationOutcomes;
 import org.ehcache.statistics.HigherCachingTierOperationOutcomes;
 import org.ehcache.statistics.StoreOperationOutcomes;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
-import org.mockito.internal.verification.AtMost;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.context.annotations.ContextAttribute;
