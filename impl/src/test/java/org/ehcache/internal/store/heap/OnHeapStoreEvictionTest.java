@@ -15,7 +15,6 @@
  */
 package org.ehcache.internal.store.heap;
 
-import org.ehcache.Cache;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
@@ -175,9 +174,9 @@ public class OnHeapStoreEvictionTest {
     private boolean enforceCapacityWasCalled = false;
 
     @Override
-    ValueHolder<V> enforceCapacityIfValueNotNull(final OnHeapValueHolder<V> computeResult) {
+    ValueHolder<V> enforceCapacityIfValueNotNull(final OnHeapValueHolder<V> computeResult, boolean hasListeners) {
       enforceCapacityWasCalled = true;
-      return super.enforceCapacityIfValueNotNull(computeResult);
+      return super.enforceCapacityIfValueNotNull(computeResult, hasListeners);
     }
 
     boolean enforceCapacityWasCalled() {

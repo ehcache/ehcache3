@@ -13,27 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.ehcache.config.event;
 
+import org.ehcache.events.CacheEventDispatcherConfiguration;
 import org.ehcache.events.CacheEventDispatcherFactory;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
 
-/**
- *
- * @author cdennis
- */
-public class CacheEventDispatcherFactoryConfiguration implements ServiceCreationConfiguration<CacheEventDispatcherFactory> {
+public class DefaultCacheEventDispatcherConfiguration implements CacheEventDispatcherConfiguration {
+  private final int numberOfEventProcessingQueues;
 
-  private final String threadPoolAlias;
-
-  public CacheEventDispatcherFactoryConfiguration(String threadPoolAlias) {
-    this.threadPoolAlias = threadPoolAlias;
+  public DefaultCacheEventDispatcherConfiguration(int numberOfEventProcessingQueues) {
+    this.numberOfEventProcessingQueues = numberOfEventProcessingQueues;
   }
-  
-  public String getThreadPoolAlias() {
-    return threadPoolAlias;
+
+  public int getNumberOfEventProcessingQueues() {
+    return this.numberOfEventProcessingQueues;
   }
-  
+
   @Override
   public Class<CacheEventDispatcherFactory> getServiceType() {
     return CacheEventDispatcherFactory.class;

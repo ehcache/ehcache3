@@ -29,13 +29,13 @@ import com.pany.ehcache.serializer.TestSerializer4;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.Eviction;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
+import org.ehcache.config.event.DefaultCacheEventDispatcherConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
@@ -44,6 +44,7 @@ import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.copy.SerializingCopier;
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.serialization.Serializer;
@@ -58,11 +59,9 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -96,6 +95,7 @@ import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsSame.sameInstance;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -616,6 +616,19 @@ public class XmlConfigurationTest {
     thrown.expect(NullPointerException.class);
     thrown.expectMessage("The cacheClassLoaders map can not be null");
     XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), mock(ClassLoader.class), null);
+  }
+  
+  @Test
+  public void testCacheEventNotificationServiceConfigurationTest() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/ehcache-cacheEventNotification.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    assertThat(xmlConfig.getCacheConfigurations().size(), is(2));
+
+    DefaultCacheEventDispatcherConfiguration factoryConfiguration = ServiceLocator.findSingletonAmongst(
+        DefaultCacheEventDispatcherConfiguration.class, xmlConfig.getCacheConfigurations().get("foo")
+            .getServiceConfigurations().toArray());
+    assertNotNull(factoryConfiguration);
+    assertThat(factoryConfiguration.getNumberOfEventProcessingQueues(), is(5));
   }
 
   private void checkListenerConfigurationExists(Collection<?> configuration) {

@@ -88,7 +88,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
   private final ResilienceStrategy<K, V> resilienceStrategy;
   private final EhcacheRuntimeConfiguration<K, V> runtimeConfiguration;
-  private final CacheEventDispatcher<K, V> eventNotificationService;
   private final Jsr107CacheImpl jsr107Cache;
   private final boolean useLoaderInAtomics;
   protected final Logger logger;
@@ -142,8 +141,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>(recoveryCache(store));
     }
 
-    this.eventNotificationService = eventNotifier;
     this.runtimeConfiguration = runtimeConfiguration;
+    runtimeConfiguration.addCacheConfigurationListener(eventNotifier.getConfigurationChangeListeners());
     this.jsr107Cache = new Jsr107CacheImpl();
 
     this.useLoaderInAtomics = useLoaderInAtomics;
@@ -236,9 +235,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         if (newValueAlreadyExpired(key, previousValue, value)) {
           return null;
         }
-        
-        eventNotificationService.onEvent(previousValue == null ? 
-            CacheEvents.creation(key, value, Ehcache.this) : CacheEvents.update(key, previousValue, value, Ehcache.this));
         return value;
       }
     });
@@ -330,7 +326,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         } catch (Exception e) {
           throw new CachePassThroughException(newCacheWritingException(e));
         }
-        eventNotificationService.onEvent(CacheEvents.removal(key, previousValue, Ehcache.this));
         return null;
       }
     });
@@ -546,9 +541,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
             actualPutCount.incrementAndGet();
             mutations.put(key, newValue);
           
-            eventNotificationService.onEvent(existingValue == null ? 
-              CacheEvents.creation(key, newValue, Ehcache.this) : CacheEvents.update( 
-                  key, existingValue, newValue, Ehcache.this));
           } else {
             mutations.put(key, existingValue);
           }
@@ -690,7 +682,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
               }
               results.put(key, null);
               entriesToRemove.remove(key);
-              eventNotificationService.onEvent(CacheEvents.removal(key, existingValue, Ehcache.this));
             } else {
               if (unknowns.contains(key)) {
                 results.put(key, null);
@@ -767,37 +758,31 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     final Function<K, V> mappingFunction = memoize(new Function<K, V>() {
       @Override
       public V apply(final K k) {
-        try {
-          if (useLoaderInAtomics && cacheLoaderWriter != null) {
-            try {
-              V loaded = cacheLoaderWriter.load(k);
-              if (loaded != null) {
-                return loaded; // populate the cache
-              }
-            } catch (Exception e) {
-              throw new CachePassThroughException(newCacheLoadingException(e));
+        if (useLoaderInAtomics && cacheLoaderWriter != null) {
+          try {
+            V loaded = cacheLoaderWriter.load(k);
+            if (loaded != null) {
+              return loaded; // populate the cache
             }
-          }
-
-          if (cacheLoaderWriter != null) {
-            try {
-              cacheLoaderWriter.write(k, value);
-            } catch (Exception e) {
-              throw new CachePassThroughException(newCacheWritingException(e));
-            }
-          }
-
-          if (newValueAlreadyExpired(key, null, value)) {
-            return null;
-          }
-          
-          installed.set(true);
-          return value;
-        } finally {
-          if (installed.get()) {
-            eventNotificationService.onEvent(CacheEvents.creation(k, value, Ehcache.this));
+          } catch (Exception e) {
+            throw new CachePassThroughException(newCacheLoadingException(e));
           }
         }
+
+        if (cacheLoaderWriter != null) {
+          try {
+            cacheLoaderWriter.write(k, value);
+          } catch (Exception e) {
+            throw new CachePassThroughException(newCacheWritingException(e));
+          }
+        }
+
+        if (newValueAlreadyExpired(key, null, value)) {
+          return null;
+        }
+
+        installed.set(true);
+        return value;
       }
     });
 
@@ -876,7 +861,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
               throw new CachePassThroughException(newCacheWritingException(e));
             }
           }
-          eventNotificationService.onEvent(CacheEvents.removal(k, value, Ehcache.this));
           removed.set(true);
           return null;
         }
@@ -957,8 +941,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         if (newValueAlreadyExpired(key, inCache, value)) {
           return null;
         }
-        
-        eventNotificationService.onEvent(CacheEvents.update(k, inCache, value, Ehcache.this));
         return value;
       }
     });
@@ -1034,8 +1016,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
           if (newValueAlreadyExpired(key, oldValue, newValue)) {
             return null;
           }
-
-          eventNotificationService.onEvent(CacheEvents.update(key, oldValue, newValue, Ehcache.this));
           return newValue;
         }
         return inCache;
@@ -1276,19 +1256,11 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
             }
             
             if (withStatsAndEvents.apply()) {
-              final CacheEvent<K, V> event;
               if (newValue == null) {
                 removeObserver.end(RemoveOutcome.SUCCESS);
-                event = CacheEvents.removal(mappedKey, mappedValue, Ehcache.this);
               } else {
                 putObserver.end(PutOutcome.ADDED);
-                if (mappedValue == null) {
-                  event = CacheEvents.creation(mappedKey, newValue, Ehcache.this);
-                } else {
-                  event = CacheEvents.update(mappedKey, mappedValue, newValue, Ehcache.this);
-                }
               }
-              eventNotificationService.onEvent(event);
             }
             
             return newValue;
@@ -1322,8 +1294,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
                 throw new CachePassThroughException(newCacheWritingException(e));
               }
             }
-
-            eventNotificationService.onEvent(CacheEvents.removal(mappedKey, mappedValue, Ehcache.this));
             return null;
           }
         });
@@ -1366,12 +1336,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
             
             if (newValueAlreadyExpired(mappedKey, mappedValue, value)) {
               return null;
-            }
-            
-            if (mappedValue != null) {
-              eventNotificationService.onEvent(CacheEvents.update(mappedKey, mappedValue, value, Ehcache.this)); 
-            } else {
-              eventNotificationService.onEvent(CacheEvents.creation(mappedKey, value, Ehcache.this));
             }
             
             return value;
@@ -1427,7 +1391,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       if (cacheAccessError) {
         return false;
       }
-
       return iterator.hasNext();
     }
 

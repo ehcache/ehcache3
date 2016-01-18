@@ -54,6 +54,31 @@ public final class CacheEvents {
       @Override
       public void onExpiration(final K key, final Store.ValueHolder<V> valueHolder) {
       }
+
+      @Override
+      public void onCreation(K key, Store.ValueHolder<V> valueHolder) {
+      }
+
+      @Override
+      public void onUpdate(K key, Store.ValueHolder<V> previousValue, Store.ValueHolder<V> newValue) {
+      }
+
+      @Override
+      public void onRemoval(K key, Store.ValueHolder<V> removed) {
+      }
+
+      @Override
+      public boolean hasListeners() {
+        return false;
+      }
+
+      @Override
+      public void fireAllEvents() {
+      }
+
+      @Override
+      public void purgeOrFireRemainingEvents() {
+      }
     };
   }
   
