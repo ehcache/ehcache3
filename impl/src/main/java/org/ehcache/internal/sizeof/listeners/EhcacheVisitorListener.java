@@ -31,12 +31,6 @@ public class EhcacheVisitorListener implements VisitorListener {
   private long currentSize;
   
   public EhcacheVisitorListener(long maxDepth, long maxSize) {
-    if(maxDepth == 0) {
-      maxDepth = Long.MAX_VALUE;
-    }
-    if(maxSize == 0) {
-      maxSize = Long.MAX_VALUE;
-    }
     this.maxDepth = maxDepth;
     this.maxSize = maxSize;
   }

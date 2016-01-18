@@ -28,8 +28,8 @@ public class DefaultSizeOfEngineConfiguration implements SizeOfEngineConfigurati
   private final long maxSize;
   
   public DefaultSizeOfEngineConfiguration(long maxDepth, long maxSize) {
-    if(maxDepth < 0 || maxSize < 0) {
-      throw new IllegalArgumentException("SizeOfEngine cannot take negative arguments.");
+    if(maxDepth <= 0 || maxSize <= 0) {
+      throw new IllegalArgumentException("MaxDepth/MaxSize can only accept positive values.");
     }
     this.maxDepth = maxDepth;
     this.maxSize = maxSize;

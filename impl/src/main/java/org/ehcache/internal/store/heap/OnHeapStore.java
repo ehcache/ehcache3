@@ -78,7 +78,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -98,9 +97,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private static final int ATTEMPT_RATIO = 4;
   private static final int EVICTION_RATIO = 2;
   
-  private static final OnHeapKey KEY_SIZE_OFFSET = new CopiedOnHeapKey(null, null);
-  private static final Fault FAULT_SIZE_OFFSET = new Fault(null);
-
   private static final EvictionVeto<Object, OnHeapValueHolder<?>> EVICTION_VETO = new EvictionVeto<Object, OnHeapValueHolder<?>>() {
     @Override
     public boolean vetoes(Object key, OnHeapValueHolder<?> value) {
@@ -130,8 +126,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private final Copier<V> valueCopier;
   
   private final SizeOfEngine sizeOfEngine;
-  private final long onHeapValueHolderOffset;
-  private final long onHeapKeyOffset;
   private final long faultOffset;
   
   private final boolean byteSized;
@@ -153,7 +147,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         if(updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize() !=
            configuredPools.getPoolForResource(ResourceType.Core.HEAP).getSize()) {
           LOG.info("Setting size: " + updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize());
-          capacity = updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize();
+          ResourcePool pool = updatedPools.getPoolForResource(ResourceType.Core.HEAP);
+          if (pool.getUnit() instanceof MemoryUnit) {
+            capacity = ((MemoryUnit)pool.getUnit()).toBytes(pool.getSize());
+          } else {
+            capacity = pool.getSize();
+          }
         }
       }
     }
@@ -184,6 +183,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       return Boolean.TRUE;
     }
   };
+  
+  public OnHeapStore(final Configuration<K, V> config, final TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier) {
+    this(config, timeSource, keyCopier, valueCopier, null);
+  }
 
   public OnHeapStore(final Configuration<K, V> config, final TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier, SizeOfEngine sizeOfEngine) {
     if (keyCopier == null) {
@@ -196,13 +199,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     if (heapPool == null) {
       throw new IllegalArgumentException("OnHeap store must be configured with a resource of type 'heap'");
     }
-    this.capacity = heapPool.getSize();
-    this.byteSized = heapPool.getUnit() instanceof MemoryUnit ? true : false;
     this.sizeOfEngine = sizeOfEngine;
-    this.onHeapKeyOffset = sizeOfEngine.sizeof(KEY_SIZE_OFFSET);
-    //TODO: check on type of copier then set the offset
-    this.onHeapValueHolderOffset = sizeOfEngine.sizeof(new SerializedOnHeapValueHolder<V>(null, 0l, false, null));
-    this.faultOffset = sizeOfEngine.sizeof(FAULT_SIZE_OFFSET);
+    this.byteSized = this.sizeOfEngine != null ? true : false;
+    this.faultOffset = byteSized ? sizeOfEngine.sizeof(new Fault(null)) : 0l;
+    this.capacity = byteSized ? ((MemoryUnit) heapPool.getUnit()).toBytes(heapPool.getSize()) : heapPool.getSize();
     this.timeSource = timeSource;
     if (config.getEvictionVeto() == null) {
       this.evictionVeto = Eviction.none();
@@ -291,12 +291,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     final AtomicBoolean entryActuallyAdded = new AtomicBoolean();
     final long now = timeSource.getTimeMillis();
     
-    long estimatedSizeOfValueHolder = 1;
-    long sizeOfKey = getSizeOfKeyWithOffset(key);
+    long estimatedSize = 1;
+    long sizeOfKey = 0;
     if(byteSized) {
-      estimatedSizeOfValueHolder = getSizeOfValueWithOffset(value) + sizeOfKey;
+      sizeOfKey = getSizeOfKeyWithOffset(key);
+      estimatedSize = getSizeOfValueWithOffset(value) + sizeOfKey  + sizeOfEngine.getCHMOffset();
     }
-    final long delta = estimatedSizeOfValueHolder;
+    final long delta = estimatedSize;
     final AtomicLong replacedValueSize = new AtomicLong(0l);
 
     try {
@@ -312,7 +313,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           if (mappedValue == null) {
             return newCreateValueHolder(key, value, now);
           } else {
-            replacedValueSize.set(sizeOfEngine.sizeof(mappedValue.value()));// get it only for mapped value
+            if (byteSized) {
+              replacedValueSize.set(sizeOfEngine.sizeof(mappedValue.value()));// get it only for mapped value
+            }
             return newUpdateValueHolder(key, mappedValue, value, now);
           }
         }
@@ -324,12 +327,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       } else {
         putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
         if(byteSized) {
-          long replacedDelta = delta - (sizeOfKey + replacedValueSize.get());
-          if(delta < 0) {
-            decrementCurrentUsageInBytesIfRequired(Math.abs(replacedDelta));
-          } else {
-            enforceCapacity(replacedDelta);
-          }
+          long replacedDelta = delta - (sizeOfKey + replacedValueSize.get() + sizeOfEngine.getCHMOffset());
+          replaceByteCapacity(replacedDelta);
         }
       }
 
@@ -348,7 +347,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       OnHeapValueHolder<V> removedvalue = null;
       if ((removedvalue = map.remove(key)) != null) {
         removeObserver.end(StoreOperationOutcomes.RemoveOutcome.REMOVED);
-        decrementCurrentUsageInBytesIfRequired(getSizeOfValueWithOffset(removedvalue.value()) + getSizeOfKeyWithOffset(key));
+        if (byteSized) {
+          decrementCurrentUsageInBytesIfRequired(getSizeOfValueHolder(removedvalue) + getSizeOfKeyWithOffset(key) + sizeOfEngine.getCHMOffset());
+        }
       } else {
         removeObserver.end(StoreOperationOutcomes.RemoveOutcome.MISS);
       }
@@ -395,11 +396,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
       if (entryActuallyAdded.get()) {
         putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.PUT);
-        long estimatedSizeOfValueHolder = 1;
+        long estimatedSize = 1;
         if (byteSized) {
-          estimatedSizeOfValueHolder = sizeOfEngine.sizeof(value) + onHeapValueHolderOffset + getSizeOfKeyWithOffset(key);
+          estimatedSize = getSizeOfValueWithOffset(value) + getSizeOfKeyWithOffset(key) + sizeOfEngine.getCHMOffset();
         }
-        enforceCapacity(estimatedSizeOfValueHolder);
+        enforceCapacity(estimatedSize);
       } else {
         putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.HIT);
       }
@@ -423,7 +424,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     final AtomicBoolean removed = new AtomicBoolean(false);
     
     try {
-      OnHeapValueHolder<V> removedvalue = map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
         @Override
         public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
           final long now = timeSource.getTimeMillis();
@@ -441,7 +442,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       });
       if (removed.get()) {
         conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED);
-        decrementCurrentUsageInBytesIfRequired(getSizeOfKeyWithOffset(key) + getSizeOfValueWithOffset(value));
+        if (byteSized) {
+          decrementCurrentUsageInBytesIfRequired(getSizeOfValueWithOffset(value) + getSizeOfKeyWithOffset(key) + sizeOfEngine.getCHMOffset());
+        }
         return true;
       } else {
         conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS);
@@ -480,12 +483,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       if (valueHolder != null) {
         replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.REPLACED);
         if (byteSized) {
-          long delta = sizeOfEngine.sizeof(value) - sizeOfEngine.sizeof(valueHolder.value());
-          if (delta < 0) {
-            decrementCurrentUsageInBytesIfRequired(Math.abs(delta));
-          } else {
-            enforceCapacity(delta);
-          }
+          long replacedDelta = sizeOfEngine.sizeof(value) - sizeOfEngine.sizeof(valueHolder.value());
+          replaceByteCapacity(replacedDelta);
         }
       } else {
         replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
@@ -528,12 +527,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       if (returnValue.get()) {
         conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED);
         if (byteSized) {
-          long delta = sizeOfEngine.sizeof(oldValue) - sizeOfEngine.sizeof(newValue);
-          if (delta < 0) {
-            decrementCurrentUsageInBytesIfRequired(Math.abs(delta));
-          } else {
-            enforceCapacity(delta);
-          }
+          long replacedDelta = sizeOfEngine.sizeof(oldValue) - sizeOfEngine.sizeof(newValue);
+          replaceByteCapacity(replacedDelta);
         }
         return true;
       } else {
@@ -671,8 +666,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         cachedValue = backEnd.putIfAbsent(key, fault);
         if (cachedValue == null) {
           // todo: not hinting enforceCapacity() about the mapping we just added makes it likely that it will be the eviction target
-          if(byteSized) {
-            delta = this.faultOffset + getSizeOfKeyWithOffset(key);
+          if (byteSized) {
+            delta = this.faultOffset + getSizeOfKeyWithOffset(key) + sizeOfEngine.getCHMOffset();
           }
           enforceCapacity(delta);
           try {
@@ -712,8 +707,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
               return getValue(newValue);
             } else {
               ValueHolder<V> p = getValue(backEnd.remove(key));
-              //decrement key size and value p size;
-              decrementCurrentUsageInBytesIfRequired(delta);
+              if (byteSized) {
+//                decrementCurrentUsageInBytesIfRequired(delta - this.faultOffset + sizeOfEngine.sizeof(p.value()));
+                decrementCurrentUsageInBytesIfRequired(delta - this.faultOffset);
+              }
               if (p != null) {
                 notifyInvalidation(key, p);
                 if (p.isExpired(now, TimeUnit.MILLISECONDS)) {
@@ -750,6 +747,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.HIT);
       return getValue(cachedValue);
     } catch (RuntimeException re) {
+      LOG.error(re.getMessage(), re);
       handleRuntimeException(re);
       return null;
     }
@@ -767,18 +765,22 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         public OnHeapValueHolder<V> apply(final K k, final OnHeapValueHolder<V> present) {
           if (!(present instanceof Fault)) {
             notifyInvalidation(key, present);
-          }
-          invalidatedValue.set(present);
+            invalidatedValue.set(present);
+          }         
           return null;
         }
       });
-      if (invalidatedValue.get() != null) {
+      OnHeapValueHolder<V> invalidated = null;
+      if ((invalidated = invalidatedValue.get()) != null) {
         invalidateObserver.end(CachingTierOperationOutcomes.InvalidateOutcome.REMOVED);
-        decrementCurrentUsageInBytesIfRequired(getSizeOfValueWithOffset(invalidatedValue.get().value()) + getSizeOfKeyWithOffset(key));
+        if (byteSized) {
+          decrementCurrentUsageInBytesIfRequired(getSizeOfValueHolder(invalidated) + getSizeOfKeyWithOffset(key) + sizeOfEngine.getCHMOffset());
+        }
       } else {
         invalidateObserver.end(CachingTierOperationOutcomes.InvalidateOutcome.MISS);
       }
     } catch (RuntimeException re) {
+      LOG.error(re.getMessage(), re);
       handleRuntimeException(re);
     }
   }
@@ -799,14 +801,18 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           OnHeapValueHolder<V> holderToPass = onHeapValueHolder;
           if (onHeapValueHolder instanceof Fault) {
             holderToPass = null;
+            invalidatedValue.set(null);
           }
           function.apply(holderToPass);
           return null;
         }
       });
-      if (invalidatedValue.get() != null) {
+      OnHeapValueHolder<V> invalidated = null;
+      if ((invalidated = invalidatedValue.get()) != null) {
         silentInvalidateObserver.end(HigherCachingTierOperationOutcomes.SilentInvalidateOutcome.REMOVED);
-        decrementCurrentUsageInBytesIfRequired(getSizeOfValueWithOffset(invalidatedValue.get().value()) + getSizeOfKeyWithOffset(key));
+        if (byteSized) {
+          decrementCurrentUsageInBytesIfRequired(getSizeOfValueHolder(invalidated) + getSizeOfKeyWithOffset(key) + sizeOfEngine.getCHMOffset());
+        }
       } else {
         silentInvalidateObserver.end(HigherCachingTierOperationOutcomes.SilentInvalidateOutcome.MISS);
       }
@@ -855,11 +861,18 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
   
   private long getSizeOfKeyWithOffset(K key) {
-    return sizeOfEngine.sizeof(key) + this.onHeapKeyOffset;
+    return sizeOfEngine.sizeofKey(key);
   }
   
   private long getSizeOfValueWithOffset(V value) {
-    return sizeOfEngine.sizeof(value) + this.onHeapValueHolderOffset;
+    return sizeOfEngine.sizeofValue(value);
+  }
+  
+  private long getSizeOfValueHolder(OnHeapValueHolder<V> holder) {
+    if (holder instanceof Fault) {
+      return this.faultOffset;
+    }
+    return getSizeOfValueWithOffset(holder.value());
   }
 
   /**
@@ -987,6 +1000,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     try {
       final AtomicBoolean write = new AtomicBoolean(false);
       final AtomicReference<OnHeapValueHolder<V>> replacedOrRemovedValue = new AtomicReference<OnHeapValueHolder<V>>(null);
+      
       OnHeapValueHolder<V> computeResult = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
         @Override
         public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
@@ -1022,7 +1036,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       if (computeResult == null) {
         if (write.get()) {
           computeObserver.end(StoreOperationOutcomes.ComputeOutcome.REMOVED);
-          decrementCurrentUsageInBytesIfRequired(getSizeOfValueWithOffset(replacedOrRemovedValue.get().value()) + getSizeOfKeyWithOffset(key));
+          if (byteSized) {
+            decrementCurrentUsageInBytesIfRequired(getSizeOfValueWithOffset(replacedOrRemovedValue.get().value()) + getSizeOfKeyWithOffset(key) + sizeOfEngine.getCHMOffset());
+          }
         } else {
           computeObserver.end(StoreOperationOutcomes.ComputeOutcome.MISS);
         }
@@ -1031,16 +1047,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         long delta = 1;
         if (byteSized) {
           if (replacedOrRemovedValue.get() == null) {
-            delta = getSizeOfValueWithOffset(computeResult.value()) + getSizeOfKeyWithOffset(key);
+            delta = getSizeOfValueWithOffset(computeResult.value()) + getSizeOfKeyWithOffset(key) + sizeOfEngine.getCHMOffset();
           } else {
             delta = sizeOfEngine.sizeof(computeResult.value()) - sizeOfEngine.sizeof(replacedOrRemovedValue.get().value());
           }
         }
-        if (delta < 0) {
-          decrementCurrentUsageInBytesIfRequired(Math.abs(delta));
-        } else {
-          enforceCapacity(delta);
-        }
+        replaceByteCapacity(delta);
       } else {
         computeObserver.end(StoreOperationOutcomes.ComputeOutcome.HIT);
       }
@@ -1084,7 +1096,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           computeIfAbsentObserver.end(StoreOperationOutcomes.ComputeIfAbsentOutcome.PUT);
           long delta = 1;
           if (byteSized) {
-            delta = getSizeOfValueWithOffset(computeResult.value()) + getSizeOfKeyWithOffset(key);
+            delta = getSizeOfValueWithOffset(computeResult.value()) + getSizeOfKeyWithOffset(key) + sizeOfEngine.getCHMOffset();
           }
           enforceCapacity(delta);
         } else {
@@ -1100,14 +1112,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   }
 
-  //Need to fix for the test
-  ValueHolder<V> enforceCapacityIfValueNotNull(final OnHeapValueHolder<V> computeResult) {
-    if (computeResult != null) {
-      enforceCapacity(1);
-    }
-    return computeResult;
-  }
-  
   @Override
   public ValueHolder<V> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException {
     return computeIfPresent(key, remappingFunction, REPLACE_EQUALS_TRUE);
@@ -1153,21 +1157,19 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       if (computeResult == null) {
         if (write.get()) {
           computeIfPresentObserver.end(StoreOperationOutcomes.ComputeIfPresentOutcome.REMOVED);
-          decrementCurrentUsageInBytesIfRequired(getSizeOfValueWithOffset(replacedOrRemovedValue.get().value()) + getSizeOfKeyWithOffset(key));
+          if (byteSized) {
+            decrementCurrentUsageInBytesIfRequired(getSizeOfValueWithOffset(replacedOrRemovedValue.get().value()) + getSizeOfKeyWithOffset(key) + sizeOfEngine.getCHMOffset());
+          }
         } else {
           computeIfPresentObserver.end(StoreOperationOutcomes.ComputeIfPresentOutcome.MISS);
         }
       } else if (write.get()) {
         computeIfPresentObserver.end(StoreOperationOutcomes.ComputeIfPresentOutcome.PUT);
-        long delta = 1;
         if (byteSized) {
-          delta = sizeOfEngine.sizeof(computeResult.value()) - sizeOfEngine.sizeof(replacedOrRemovedValue.get().value());
+          long delta = sizeOfEngine.sizeof(computeResult.value()) - sizeOfEngine.sizeof(replacedOrRemovedValue.get().value());
+          replaceByteCapacity(delta);
         }
-        if (delta < 0) {
-          decrementCurrentUsageInBytesIfRequired(Math.abs(delta));
-        } else {
-          enforceCapacity(delta);
-        }
+        
       } else {
         computeIfPresentObserver.end(StoreOperationOutcomes.ComputeIfPresentOutcome.HIT);
       }
@@ -1292,7 +1294,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
     });
     if(presentValue == null) {
-      decrementCurrentUsageInBytesIfRequired(getSizeOfValueWithOffset(value.value()) + getSizeOfKeyWithOffset(key));
+      if (byteSized) {
+        decrementCurrentUsageInBytesIfRequired(getSizeOfValueWithOffset(value.value()) + getSizeOfKeyWithOffset(key) + sizeOfEngine.getCHMOffset());
+      }
     }
   }
 
@@ -1403,8 +1407,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     return result;
   }
   
-  private void enforceByteCapacity(long delta) {
-    while (capacity < currentUsageinBytes.get() + delta) {
+  private void enforceByteCapacity() {
+    while (capacity < currentUsageinBytes.get()) {
       evict();
     }
   }
@@ -1439,10 +1443,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   }
   
-  private void enforceCapacity(long delta) {
+  void enforceCapacity(long delta) {
     if(byteSized) {
       incrementCurrentUsageInBytesIfRequired(delta);
-      enforceByteCapacity(delta);
+      enforceByteCapacity();
       return;
     }
     for (int attempts = 0, evicted = 0; attempts < ATTEMPT_RATIO * delta
@@ -1450,6 +1454,14 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       if (evict()) {
         evicted++;
       }
+    }
+  }
+  
+  private void replaceByteCapacity(long delta) {
+    if (delta < 0) {
+      decrementCurrentUsageInBytesIfRequired(Math.abs(delta));
+    } else {
+      enforceCapacity(delta);
     }
   }
 
@@ -1487,8 +1499,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       });
       if (removed.get()) {
         evictionObserver.end(StoreOperationOutcomes.EvictionOutcome.SUCCESS);
-        //size the eviction candidate and decrement
-        decrementCurrentUsageInBytesIfRequired(getSizeOfValueWithOffset(evictionCandidate.getValue().value()) + getSizeOfKeyWithOffset(evictionCandidate.getKey()));
+        if(byteSized) {
+          decrementCurrentUsageInBytesIfRequired(getSizeOfValueHolder(evictionCandidate.getValue()) + getSizeOfKeyWithOffset(evictionCandidate.getKey()) + sizeOfEngine.getCHMOffset());
+        }
         return true;
       } else {
         evictionObserver.end(StoreOperationOutcomes.EvictionOutcome.FAILURE);
@@ -1537,10 +1550,15 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
       Copier<K> keyCopier  = copyProvider.createKeyCopier(storeConfig.getKeyType(), storeConfig.getKeySerializer(), serviceConfigs);
       Copier<V> valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer(), serviceConfigs);
-      SizeOfEngineProvider sizeOfEngineProvider = serviceProvider.getService(SizeOfEngineProvider.class);
       
-      SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(serviceConfigs);
-      OnHeapStore<K, V> onHeapStore = new OnHeapStore<K, V>(storeConfig, timeSource, keyCopier, valueCopier, sizeOfEngine);
+      OnHeapStore<K, V> onHeapStore = null;
+      if (storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getUnit() instanceof MemoryUnit) {
+        SizeOfEngineProvider sizeOfEngineProvider = serviceProvider.getService(SizeOfEngineProvider.class);
+        SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(valueCopier instanceof SerializingCopier, serviceConfigs);
+        onHeapStore = new OnHeapStore<K, V>(storeConfig, timeSource, keyCopier, valueCopier, sizeOfEngine);
+      } else {
+        onHeapStore = new OnHeapStore<K, V>(storeConfig, timeSource, keyCopier, valueCopier);
+      }
       createdStores.add(onHeapStore);
       return onHeapStore;
     }
@@ -1554,7 +1572,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       close(onHeapStore);
     }
 
-    static void close(final OnHeapStore onHeapStore) {
+    public static void close(final OnHeapStore onHeapStore) {
       onHeapStore.map.clear();
       onHeapStore.disableStoreEventNotifications();
     }
@@ -1729,4 +1747,5 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       this.authoritativeTier = onHeapStore;
     }
   }
+  
 }

@@ -25,7 +25,6 @@ import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
-import org.ehcache.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
 import org.junit.Before;
@@ -111,7 +110,7 @@ public class OnHeapStoreValueCopierTest {
       }
     };
 
-    store = new OnHeapStore<Long, Value>(configuration, SystemTimeSource.INSTANCE, new IdentityCopier<Long>(), valueCopier, new DefaultSizeOfEngine(0, 0));
+    store = new OnHeapStore<Long, Value>(configuration, SystemTimeSource.INSTANCE, new IdentityCopier<Long>(), valueCopier);
   }
 
   @Test

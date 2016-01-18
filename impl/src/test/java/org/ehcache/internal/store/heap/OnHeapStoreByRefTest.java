@@ -24,14 +24,11 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
-import org.ehcache.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
-
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.sizeof.SizeOfEngine;
 
 public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
 
@@ -103,6 +100,6 @@ public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
       public Serializer<V> getValueSerializer() {
         throw new AssertionError("By-ref heap store using serializers!");
       }
-    }, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new DefaultSizeOfEngine(0, 0));
+    }, timeSource, DEFAULT_COPIER, DEFAULT_COPIER);
   }
 }

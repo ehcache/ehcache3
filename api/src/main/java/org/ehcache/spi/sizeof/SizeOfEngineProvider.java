@@ -30,7 +30,7 @@ public interface SizeOfEngineProvider extends Service {
    *
    * @param isValueSerialized is the value serialized or copied
    * @param serviceConfigs Array of {@link ServiceConfiguration}s
-   * @return {@link SizeOfEngine} with provided maxDepth an maxSize
+   * @return {@link SizeOfEngine} instance
    */
   
   SizeOfEngine createSizeOfEngine(boolean isValueSerialized, ServiceConfiguration<?>... serviceConfigs);

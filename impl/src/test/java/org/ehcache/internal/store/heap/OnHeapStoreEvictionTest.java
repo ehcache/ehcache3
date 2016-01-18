@@ -27,7 +27,6 @@ import org.ehcache.function.Function;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
-import org.ehcache.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
@@ -171,15 +170,15 @@ public class OnHeapStoreEvictionTest {
     private static final Copier DEFAULT_COPIER = new IdentityCopier();
 
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
-      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new DefaultSizeOfEngine(0, 0));
+      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER);
     }
 
     private boolean enforceCapacityWasCalled = false;
 
     @Override
-    ValueHolder<V> enforceCapacityIfValueNotNull(final OnHeapValueHolder<V> computeResult) {
+    void enforceCapacity(long delta) {
       enforceCapacityWasCalled = true;
-      return super.enforceCapacityIfValueNotNull(computeResult);
+      super.enforceCapacity(delta);
     }
 
     boolean enforceCapacityWasCalled() {

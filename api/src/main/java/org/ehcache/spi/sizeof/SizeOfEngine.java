@@ -24,7 +24,7 @@ package org.ehcache.spi.sizeof;
 public interface SizeOfEngine {
   
   /**
-   * Size of the object on Heap
+   * Size of the objects on Heap
    * 
    * @param objects objects to be sized
    * @return size of the objects on heap 
@@ -32,27 +32,27 @@ public interface SizeOfEngine {
   long sizeof(Object... objects);
   
   /**
-   * Sizes the key alongwith the offset of 
+   * Sizes the key along with the offset of 
    * the key holder
    * 
    * @param key key to be sized
-   * @return size of the key alongwith the offset
+   * @return size of the key along with the offset
    */
   long sizeofKey(Object key);
   
   /**
-   * Sizes the key alongwith the offset of 
+   * Sizes the value along with the offset of 
    * the value holder 
    * 
    * @param value value to be sized
-   * @return size of the key alongwith the offset
+   * @return size of the value along with the offset
    */
   long sizeofValue(Object value);
   
   /**
-   * bytes required on adding each key-value pair
+   * Bytes required on adding each key-value pair
    * 
-   * @return size overhead of adding a key-valu pair
+   * @return size overhead of adding a key-value pair
    */
   long getCHMOffset();
   
