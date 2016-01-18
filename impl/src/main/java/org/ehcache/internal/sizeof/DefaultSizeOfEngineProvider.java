@@ -47,12 +47,12 @@ public class DefaultSizeOfEngineProvider implements SizeOfEngineProvider {
   }
 
   @Override
-  public SizeOfEngine createSizeOfEngine(ServiceConfiguration<?>... serviceConfigs) {
+  public SizeOfEngine createSizeOfEngine(boolean isValueSerialized, ServiceConfiguration<?>... serviceConfigs) {
     SizeOfEngineConfiguration config = ServiceLocator.findSingletonAmongst(SizeOfEngineConfiguration.class, serviceConfigs);
     if(config != null) {
-      return new DefaultSizeOfEngine(config.getMaxDepth(), config.getMaxSize());
+      return new DefaultSizeOfEngine(config.getMaxDepth(), config.getMaxSize(), isValueSerialized);
     }
-    return new DefaultSizeOfEngine(maxDepth, maxSize);
+    return new DefaultSizeOfEngine(maxDepth, maxSize, isValueSerialized);
   }
 
 }

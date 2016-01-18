@@ -30,5 +30,31 @@ public interface SizeOfEngine {
    * @return size of the objects on heap 
    */
   long sizeof(Object... objects);
+  
+  /**
+   * Sizes the key alongwith the offset of 
+   * the key holder
+   * 
+   * @param key key to be sized
+   * @return size of the key alongwith the offset
+   */
+  long sizeofKey(Object key);
+  
+  /**
+   * Sizes the key alongwith the offset of 
+   * the value holder 
+   * 
+   * @param value value to be sized
+   * @return size of the key alongwith the offset
+   */
+  long sizeofValue(Object value);
+  
+  /**
+   * bytes required on adding each key-value pair
+   * 
+   * @return size overhead of adding a key-valu pair
+   */
+  long getCHMOffset();
+  
 
 }
