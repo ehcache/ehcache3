@@ -60,6 +60,7 @@ shadowJar {
     include(dependency('org.terracotta:statistics:1.1.0'))
     include(dependency("org.terracotta:offheap-store:$parent.offheapVersion"))
     include(dependency("org.terracotta:management-model:$parent.managementVersion"))
+    include(dependency("org.ehcache:sizeof:$parent.sizeofVersion"))
   }
 
   mergeServiceFiles()
