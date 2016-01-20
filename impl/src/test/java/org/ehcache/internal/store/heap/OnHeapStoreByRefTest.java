@@ -15,91 +15,21 @@
  */
 package org.ehcache.internal.store.heap;
 
-import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.config.ResourcePools;
-import org.ehcache.config.units.EntryUnit;
-import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.copy.IdentityCopier;
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.copy.Copier;
 
-import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import org.ehcache.spi.serialization.Serializer;
-
-public class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
-
-  private static final Copier DEFAULT_COPIER = new IdentityCopier();
-
-  @Override
-  protected <K, V> OnHeapStore<K, V> newStore() {
-    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.none());
-  }
-
-  @Override
-  protected <K, V> OnHeapStore<K, V> newStore(EvictionVeto<? super K, ? super V> veto) {
-    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), veto);
-  }
-
-  @Override
-  protected <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry) {
-    return newStore(timeSource, expiry, Eviction.none());
-  }
+public abstract class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
 
   @Override
   protected <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
-                                              final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto) {
+      final Expiry<? super K, ? super V> expiry,
+      final EvictionVeto<? super K, ? super V> veto) {
     return newStore(timeSource, expiry, veto, 100);
   }
+  
+  protected abstract <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource,
+      Expiry<? super K, ? super V> expiry,
+      EvictionVeto<? super K, ? super V> veto, int capacity);
 
-  private <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
-                                            final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto,
-                                            final int capacity) {
-    return new OnHeapStore<K, V>(new Store.Configuration<K, V>() {
-      @SuppressWarnings("unchecked")
-      @Override
-      public Class<K> getKeyType() {
-        return (Class<K>) String.class;
-      }
-
-      @SuppressWarnings("unchecked")
-      @Override
-      public Class<V> getValueType() {
-        return (Class<V>) String.class;
-      }
-
-      @Override
-      public EvictionVeto<? super K, ? super V> getEvictionVeto() {
-        return veto;
-      }
-
-      @Override
-      public ClassLoader getClassLoader() {
-        return getClass().getClassLoader();
-      }
-
-      @Override
-      public Expiry<? super K, ? super V> getExpiry() {
-        return expiry;
-      }
-
-      @Override
-      public ResourcePools getResourcePools() {
-        return newResourcePoolsBuilder().heap(capacity, EntryUnit.ENTRIES).build();
-      }
-
-      @Override
-      public Serializer<K> getKeySerializer() {
-        throw new AssertionError("By-ref heap store using serializers!");
-      }
-
-      @Override
-      public Serializer<V> getValueSerializer() {
-        throw new AssertionError("By-ref heap store using serializers!");
-      }
-    }, timeSource, DEFAULT_COPIER, DEFAULT_COPIER);
-  }
 }

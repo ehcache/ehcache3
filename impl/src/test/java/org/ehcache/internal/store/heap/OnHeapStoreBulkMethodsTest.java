@@ -47,10 +47,10 @@ import static org.mockito.Mockito.when;
  */
 public class OnHeapStoreBulkMethodsTest {
 
-  private static final Copier DEFAULT_COPIER = new IdentityCopier();
+  public static final Copier DEFAULT_COPIER = new IdentityCopier();
 
   @SuppressWarnings("unchecked")
-  private static <K, V> Store.Configuration<K, V> mockStoreConfig() {
+  protected <K, V> Store.Configuration<K, V> mockStoreConfig() {
     @SuppressWarnings("rawtypes")
     Store.Configuration config = mock(Store.Configuration.class);
     when(config.getExpiry()).thenReturn(Expirations.noExpiration());
@@ -58,6 +58,11 @@ public class OnHeapStoreBulkMethodsTest {
     when(config.getValueType()).thenReturn(CharSequence.class);
     when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build());
     return config;
+  }
+  
+  protected <Number, CharSequence> OnHeapStore<Number, CharSequence> newStore() {
+    Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
+    return new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER);
   }
 
   @SuppressWarnings("unchecked")
@@ -125,9 +130,7 @@ public class OnHeapStoreBulkMethodsTest {
 
   @Test
   public void testBulkComputeHappyPath() throws Exception {
-    Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
-
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER);
+    OnHeapStore<Number, CharSequence> store = newStore();
     store.put(1, "one");
 
     Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2)), new Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
@@ -183,9 +186,8 @@ public class OnHeapStoreBulkMethodsTest {
 
   @Test
   public void testBulkComputeRemoveNullValueEntriesFromFunctionReturn() throws Exception {
-    Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
 
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER);
+    OnHeapStore<Number, CharSequence> store = newStore();
     store.put(1, "one");
     store.put(2, "two");
     store.put(3, "three");
@@ -220,9 +222,8 @@ public class OnHeapStoreBulkMethodsTest {
 
   @Test
   public void testBulkComputeIfAbsentFunctionDoesNotGetPresentKeys() throws Exception {
-    Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
 
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER);
+    OnHeapStore<Number, CharSequence> store = newStore();
     store.put(1, "one");
     store.put(2, "two");
     store.put(3, "three");
@@ -267,9 +268,8 @@ public class OnHeapStoreBulkMethodsTest {
 
   @Test
   public void testBulkComputeIfAbsentDoesNotOverridePresentKeys() throws Exception {
-    Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
 
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER);
+    OnHeapStore<Number, CharSequence> store = newStore();
     store.put(1, "one");
     store.put(2, "two");
     store.put(3, "three");
@@ -309,9 +309,8 @@ public class OnHeapStoreBulkMethodsTest {
 
   @Test
   public void testBulkComputeIfAbsentDoNothingOnNullValues() throws Exception {
-    Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
 
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER);
+    OnHeapStore<Number, CharSequence> store = newStore();
     store.put(1, "one");
     store.put(2, "two");
     store.put(3, "three");

@@ -16,11 +16,8 @@
 package org.ehcache.internal.store.heap;
 
 import org.ehcache.Cache.Entry;
-import org.ehcache.CacheConfigurationChangeEvent;
-import org.ehcache.CacheConfigurationChangeListener;
-import org.ehcache.CacheConfigurationProperty;
+import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.config.units.EntryUnit;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
@@ -29,6 +26,7 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
+import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.store.heap.holders.CopiedOnHeapValueHolder;
@@ -52,7 +50,6 @@ import java.util.concurrent.Exchanger;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -1351,13 +1348,6 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(entry.getValue().value(), equalTo(value));
   }
 
-  private void updateStoreCapacity(OnHeapStore<?, ?> store, int newCapacity) {
-    CacheConfigurationChangeListener listener = store.getConfigurationChangeListeners().get(0);
-    listener.cacheConfigurationChange(new CacheConfigurationChangeEvent(CacheConfigurationProperty.UPDATESIZE,
-        newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES).build(),
-        newResourcePoolsBuilder().heap(newCapacity, EntryUnit.ENTRIES).build()));
-  }
-
   private static class TestTimeSource implements TimeSource {
 
     private long time = 0;
@@ -1372,12 +1362,19 @@ public abstract class BaseOnHeapStoreTest {
     }
   }
 
-  protected abstract <K, V> OnHeapStore<K, V> newStore();
+  protected <K, V> OnHeapStore<K, V> newStore() {
+    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.none());
+  }
 
-  protected abstract <K, V> OnHeapStore<K, V> newStore(EvictionVeto<? super K, ? super V> veto);
+  protected <K, V> OnHeapStore<K, V> newStore(EvictionVeto<? super K, ? super V> veto) {
+    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), veto);
+  }
 
-  protected abstract <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
-      final Expiry<? super K, ? super V> expiry);
+  protected <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry) {
+    return newStore(timeSource, expiry, Eviction.none());
+  }
+  
+  protected abstract void updateStoreCapacity(OnHeapStore<?, ?> store, int newCapacity); 
 
   protected abstract <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
       final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto);

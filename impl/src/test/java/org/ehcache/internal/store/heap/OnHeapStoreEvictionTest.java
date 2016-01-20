@@ -15,7 +15,6 @@
  */
 package org.ehcache.internal.store.heap;
 
-import org.ehcache.Cache;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
@@ -32,6 +31,7 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.sizeof.SizeOfEngine;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -165,12 +165,16 @@ public class OnHeapStoreEvictionTest {
     }, timeSource);
   }
 
-  static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
+  public static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
 
     private static final Copier DEFAULT_COPIER = new IdentityCopier();
 
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
       super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER);
+    }
+    
+    public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource, final SizeOfEngine engine) {
+      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine);
     }
 
     private boolean enforceCapacityWasCalled = false;

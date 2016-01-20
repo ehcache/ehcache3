@@ -104,6 +104,17 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 <3> You define a resource pool for the off-heap.
 <4> You define a resource pool for the disk.
 
+==== Byte Sized Tiering
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=byteSizedTieredCache]
+----
+
+<1> You can also size a tiered cache based on bytes only.You can limit the amount of java heap used by cache for storing key-value pairs. 
+<2> A SizeOfEngine can also be provided which actually ascertains the size of objects on java heap. It uses sizeof library to do so. The configuration for the same takes two arguments. First one specifies the maximum
+number of objects that will be visited while walking the object graph, the other argument defines the maximum limit of the size of the object. All mutations, which cross the limits will be ignored.
+
 ==== Update ResourcePools
 
 [source,java,indent=0]

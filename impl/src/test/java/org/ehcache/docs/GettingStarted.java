@@ -38,6 +38,10 @@ import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.docs.plugs.StringSerializer;
 import org.ehcache.event.EventType;
 import org.ehcache.internal.copy.ReadWriteCopier;
+import org.ehcache.spi.copy.Copier;
+import org.ehcache.internal.copy.SerializingCopier;
+import org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 
@@ -157,6 +161,30 @@ public class GettingStarted {
 
     cacheManager.close();
     // end::defaultSerializers[]
+  }
+  
+  @Test
+  public void byteSizedTieredCache() {
+    // tag::byteSizedTieredCache[]
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            .heap(10, MemoryUnit.KB) // <1>
+            .offheap(10, MemoryUnit.MB)
+            .build())
+        .add(new DefaultSizeOfEngineConfiguration(1000, 1000)) // <2>    
+        .buildConfig(Long.class, String.class);
+    
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("cache", cacheConfiguration)
+        .build(true);
+    
+    Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
+
+    cache.put(1L, "one");
+    assertThat(cache.get(1L), equalTo("one"));
+
+    cacheManager.close();
+    // end::byteSizedTieredCache[]
   }
 
   @Test
