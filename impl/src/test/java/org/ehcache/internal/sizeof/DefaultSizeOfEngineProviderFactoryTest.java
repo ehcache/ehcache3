@@ -13,28 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.sizeof;
+package org.ehcache.internal.sizeof;
 
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.sizeof.SizeOfEngine;
 import org.ehcache.spi.sizeof.SizeOfEngineProvider;
+import org.junit.Test;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.Mockito.mock;
 
 /**
  * @author Abhilash
  *
  */
-public interface SizeOfEngineConfiguration extends ServiceConfiguration<SizeOfEngineProvider> {
+public class DefaultSizeOfEngineProviderFactoryTest {
 
-  /**
-   * No. of objects traversed as part of Object graph
-   * 
-   * @return maximum number of objects traversed by this sizeofengine
-   */
-  long getMaxDepth();
-  
-  /**
-   * The max size till the object graph will be traversed
-   * 
-   * @return size limit after which traversal of object graph will return
-   */
-  long getMaxSize();
+  @Test
+  public void testNullConfiguration() {
+    DefaultSizeOfEngineProviderFactory factory = new DefaultSizeOfEngineProviderFactory();
+    SizeOfEngineProvider sizeOfEngineProvider = factory.create(null);
+    SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(false, mock(ServiceConfiguration.class));
+    assertThat(sizeOfEngineProvider, notNullValue());
+    assertThat(sizeOfEngine, notNullValue());
+  }
 }

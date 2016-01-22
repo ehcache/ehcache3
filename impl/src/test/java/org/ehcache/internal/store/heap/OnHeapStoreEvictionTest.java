@@ -180,7 +180,7 @@ public class OnHeapStoreEvictionTest {
     private boolean enforceCapacityWasCalled = false;
 
     @Override
-    void enforceCapacity(long delta) {
+    protected void enforceCapacity(long delta) {
       enforceCapacityWasCalled = true;
       super.enforceCapacity(delta);
     }

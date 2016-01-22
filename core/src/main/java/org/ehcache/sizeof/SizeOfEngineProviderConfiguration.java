@@ -15,19 +15,21 @@
  */
 package org.ehcache.sizeof;
 
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.sizeof.SizeOfEngineProvider;
 
 /**
  * @author Abhilash
  *
  */
-public interface SizeOfEngineConfiguration extends ServiceConfiguration<SizeOfEngineProvider> {
 
+public interface SizeOfEngineProviderConfiguration extends ServiceCreationConfiguration<SizeOfEngineProvider> {
+  
   /**
    * No. of objects traversed as part of Object graph
    * 
-   * @return maximum number of objects traversed by this sizeofengine
+   * @return maximum number of objects traversed by the sizeofengine
+   *         provided by sizeofengineprovider
    */
   long getMaxDepth();
   
@@ -37,4 +39,5 @@ public interface SizeOfEngineConfiguration extends ServiceConfiguration<SizeOfEn
    * @return size limit after which traversal of object graph will return
    */
   long getMaxSize();
+
 }

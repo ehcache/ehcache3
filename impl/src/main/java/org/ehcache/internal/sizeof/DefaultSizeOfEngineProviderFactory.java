@@ -28,7 +28,7 @@ public class DefaultSizeOfEngineProviderFactory implements ServiceFactory<SizeOf
 
   @Override
   public SizeOfEngineProvider create(ServiceCreationConfiguration<SizeOfEngineProvider> configuration) {
-    long maxDepth = Long.MAX_VALUE;
+    long maxDepth = 1000;
     long maxSize = Long.MAX_VALUE;
     if(configuration != null) {
       DefaultSizeOfEngineProviderConfiguration sizeOfEngineConfiguration = (DefaultSizeOfEngineProviderConfiguration)configuration;

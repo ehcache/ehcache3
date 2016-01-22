@@ -41,12 +41,12 @@ public class DefaultSizeOfEngineConfiguration implements SizeOfEngineConfigurati
   }
 
   @Override
-  public Long getMaxDepth() {
+  public long getMaxDepth() {
     return this.maxDepth;
   }
 
   @Override
-  public Long getMaxSize() {
+  public long getMaxSize() {
     return this.maxSize;
   }
 
