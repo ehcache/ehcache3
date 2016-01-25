@@ -67,7 +67,7 @@ public class IntegrationConfigurationTest {
     baz.put("1", "one");
     assertThat(baz.get("1"), equalTo("one"));
 
-    Cache<String, Object> bam = cacheManager.createCache("bam", newCacheConfigurationBuilder().buildConfig(String.class, Object.class));
+    Cache<String, Object> bam = cacheManager.createCache("bam", newCacheConfigurationBuilder(String.class, Object.class).build());
     bam.put("1", "one");
     assertThat(bam.get("1"), equalTo((Object)"one"));
 
@@ -201,10 +201,10 @@ public class IntegrationConfigurationTest {
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
     cacheManager.init();
     try {
-      Cache<String, String> cache = cacheManager.createCache("testThreadPools", newCacheConfigurationBuilder()
+      Cache<String, String> cache = cacheManager.createCache("testThreadPools", newCacheConfigurationBuilder(String.class, String.class)
               .add(new DefaultCacheLoaderWriterConfiguration(ThreadRememberingLoaderWriter.class))
               .add(newUnBatchedWriteBehindConfiguration().useThreadPool("small"))
-              .buildConfig(String.class, String.class));
+              .build());
 
       cache.put("foo", "bar");
 
@@ -222,10 +222,10 @@ public class IntegrationConfigurationTest {
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
     cacheManager.init();
     try {
-      Cache<String, String> cache = cacheManager.createCache("testThreadPools", newCacheConfigurationBuilder()
+      Cache<String, String> cache = cacheManager.createCache("testThreadPools", newCacheConfigurationBuilder(String.class, String.class)
               .add(new DefaultCacheLoaderWriterConfiguration(ThreadRememberingLoaderWriter.class))
               .add(newUnBatchedWriteBehindConfiguration())
-              .buildConfig(String.class, String.class));
+              .build());
 
       cache.put("foo", "bar");
 

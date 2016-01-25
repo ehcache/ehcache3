@@ -38,9 +38,9 @@ public class EhcacheRuntimeConfigurationTest {
 
   @Test
   public void testUpdateResources() {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .heap(10L, EntryUnit.ENTRIES).disk(10, MemoryUnit.MB).build()).buildConfig(Long.class, String.class);
+            .heap(10L, EntryUnit.ENTRIES).disk(10, MemoryUnit.MB).build()).build();
 
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(new CacheManagerPersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/myData")))
@@ -63,9 +63,9 @@ public class EhcacheRuntimeConfigurationTest {
 
   @Test
   public void testUpdateFailureDoesNotUpdate() {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .heap(10L, EntryUnit.ENTRIES).build()).buildConfig(Long.class, String.class);
+            .heap(10L, EntryUnit.ENTRIES).build()).build();
 
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("cache", cacheConfiguration).build(true);

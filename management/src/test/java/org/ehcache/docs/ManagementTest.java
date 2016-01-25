@@ -51,9 +51,9 @@ public class ManagementTest {
   @Test
   public void usingManagementRegistry() throws Exception {
     // tag::usingManagementRegistry[]
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
-        .buildConfig(Long.class, String.class);
+        .build();
 
     DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager"); // <1>
     ManagementRegistry managementRegistry = new DefaultManagementRegistry(registryConfiguration); // <2>
@@ -89,9 +89,9 @@ public class ManagementTest {
   @Test
   public void capabilitiesAndContexts() throws Exception {
     // tag::capabilitiesAndContexts[]
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
-        .buildConfig(Long.class, String.class);
+        .build();
 
     ManagementRegistry managementRegistry = new DefaultManagementRegistry();
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -134,9 +134,9 @@ public class ManagementTest {
   @Test
   public void actionCall() throws Exception {
     // tag::actionCall[]
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
-        .buildConfig(Long.class, String.class);
+        .build();
 
     ManagementRegistry managementRegistry = new DefaultManagementRegistry();
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -164,9 +164,9 @@ public class ManagementTest {
   @Test
   public void managingMultipleCacheManagers() throws Exception {
     // tag::managingMultipleCacheManagers[]
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
-        .buildConfig(Long.class, String.class);
+        .build();
 
     SharedManagementService sharedManagementService = new DefaultSharedManagementService(); // <1>
     CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()

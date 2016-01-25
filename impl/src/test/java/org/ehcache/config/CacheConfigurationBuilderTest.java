@@ -52,9 +52,9 @@ public class CacheConfigurationBuilderTest {
       }
     };
 
-    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
         .withEvictionVeto(veto)
-        .buildConfig(Object.class, Object.class);
+        .build();
 
     assertThat(veto, (Matcher) sameInstance(cacheConfiguration.getEvictionVeto()));
   }
@@ -93,9 +93,9 @@ public class CacheConfigurationBuilderTest {
       }
     };
 
-    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
         .withLoaderWriter(loaderWriter)
-        .buildConfig(Object.class, Object.class);
+        .build();
 
     CacheLoaderWriterConfiguration cacheLoaderWriterConfiguration = ServiceLocator.findSingletonAmongst(CacheLoaderWriterConfiguration.class, cacheConfiguration.getServiceConfigurations());
     Object instance = ((ClassInstanceConfiguration) cacheLoaderWriterConfiguration).getInstance();
@@ -121,9 +121,9 @@ public class CacheConfigurationBuilderTest {
       }
     };
 
-    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
         .withKeySerializer(keySerializer)
-        .buildConfig(Object.class, Object.class);
+        .build();
 
 
     SerializerConfiguration serializerConfiguration = ServiceLocator.findSingletonAmongst(SerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
@@ -151,9 +151,9 @@ public class CacheConfigurationBuilderTest {
       }
     };
 
-    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
         .withValueSerializer(valueSerializer)
-        .buildConfig(Object.class, Object.class);
+        .build();
 
 
     SerializerConfiguration serializerConfiguration = ServiceLocator.findSingletonAmongst(SerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
@@ -176,9 +176,9 @@ public class CacheConfigurationBuilderTest {
       }
     };
 
-    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
         .withKeyCopier(keyCopier)
-        .buildConfig(Object.class, Object.class);
+        .build();
 
 
     CopierConfiguration copierConfiguration = ServiceLocator.findSingletonAmongst(CopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
@@ -201,9 +201,9 @@ public class CacheConfigurationBuilderTest {
       }
     };
 
-    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
         .withValueCopier(valueCopier)
-        .buildConfig(Object.class, Object.class);
+        .build();
 
 
     CopierConfiguration copierConfiguration = ServiceLocator.findSingletonAmongst(CopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
@@ -214,7 +214,7 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testNothing() {
-    final CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    final CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, CharSequence.class);
    
     final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
 
@@ -226,16 +226,12 @@ public class CacheConfigurationBuilderTest {
           }
         })
         .withExpiry(expiry)
-        .buildConfig(Long.class, String.class);
-    builder
-        .buildConfig(Long.class, String.class, null);
-    builder
-        .buildConfig(Long.class, String.class, null);
+        .build();
   }
 
   @Test
   public void testOffheapGetsAddedToCacheConfiguration() {
-    CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, CharSequence.class);
 
     final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
 
@@ -249,7 +245,7 @@ public class CacheConfigurationBuilderTest {
           }
         })
         .withExpiry(expiry)
-        .buildConfig(Long.class, String.class);
+        .build();
     assertThat(config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getType(), Matchers.<ResourceType>is(ResourceType.Core.OFFHEAP));
     assertThat(config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getUnit(), Matchers.<ResourceUnit>is(MemoryUnit.MB));
   }

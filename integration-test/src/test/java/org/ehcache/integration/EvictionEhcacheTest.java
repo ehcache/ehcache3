@@ -55,9 +55,9 @@ public class EvictionEhcacheTest {
   @Test
   public void testSimplePutWithEviction() throws Exception {
     Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class)
             .withResourcePools(newResourcePoolsBuilder().heap(2, EntryUnit.ENTRIES))
-            .buildConfig(Number.class, CharSequence.class));
+            .build());
 
     testCache.put(1, "one");
     testCache.put(2, "two");
@@ -77,9 +77,9 @@ public class EvictionEhcacheTest {
   @Test
   public void testSimplePutIfAbsentWithEviction() throws Exception {
     Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class)
             .withResourcePools(newResourcePoolsBuilder().heap(2, EntryUnit.ENTRIES))
-            .buildConfig(Number.class, CharSequence.class));
+            .build());
 
     testCache.putIfAbsent(1, "one");
     testCache.putIfAbsent(2, "two");
@@ -99,9 +99,9 @@ public class EvictionEhcacheTest {
   @Test
   public void testSimplePutAllWithEviction() throws Exception {
     Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class)
             .withResourcePools(newResourcePoolsBuilder().heap(2, EntryUnit.ENTRIES))
-            .buildConfig(Number.class, CharSequence.class));
+            .build());
 
     Map<Integer, String> values = new HashMap<Integer, String>();
     values.put(1, "one");

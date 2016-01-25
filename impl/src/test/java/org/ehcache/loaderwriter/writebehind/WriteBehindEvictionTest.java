@@ -34,8 +34,8 @@ import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfiguration
 public class WriteBehindEvictionTest extends AbstractWriteBehindTestBase {
 
   @Override
-  protected CacheConfigurationBuilder<Object, Object> configurationBuilder() {
-    return newCacheConfigurationBuilder()
+  protected CacheConfigurationBuilder<String, String> configurationBuilder() {
+    return newCacheConfigurationBuilder(String.class, String.class)
             .withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
             .withExpiry(Expirations.timeToLiveExpiration(new Duration(100, TimeUnit.MILLISECONDS)));
   }

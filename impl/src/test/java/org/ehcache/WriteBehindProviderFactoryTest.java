@@ -18,8 +18,8 @@ package org.ehcache;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.loaderwriter.writebehind.WriteBehindConfigurationBuilder;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.loaderwriter.writebehind.WriteBehindProviderFactory;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
@@ -55,12 +55,12 @@ public class WriteBehindProviderFactoryTest {
     Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) (Class) (SampleLoaderWriter.class);
     CacheManager cacheManager = cacheManagerBuilder.build(true);
     final Cache<Long, String> cache = cacheManager.createCache("cache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
             .add(writeBehindConfiguration)
             .add(new DefaultCacheLoaderWriterConfiguration(klazz))
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(100, EntryUnit.ENTRIES).build())
-            .buildConfig(Long.class, String.class));
+            .build());
     Collection<ServiceConfiguration<?>> serviceConfiguration = cache.getRuntimeConfiguration()
         .getServiceConfigurations();
     assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));

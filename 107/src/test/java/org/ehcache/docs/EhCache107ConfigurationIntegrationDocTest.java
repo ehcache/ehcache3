@@ -111,8 +111,8 @@ public class EhCache107ConfigurationIntegrationDocTest {
   @Test
   public void testUsingEhcacheConfiguration() throws Exception {
     // tag::ehcacheBasedConfigurationExample[]
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .buildConfig(Long.class, String.class); // <1>
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+        .build(); // <1>
 
     Cache<Long, String> cache = cacheManager.createCache("myCache",
         Eh107Configuration.fromEhcacheCacheConfiguration(cacheConfiguration)); // <2>

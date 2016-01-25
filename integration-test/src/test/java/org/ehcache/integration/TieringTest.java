@@ -36,9 +36,9 @@ public class TieringTest {
   @Test
   public void testDiskTierWithoutPersistenceServiceFailsWithClearException() {
     try {
-      newCacheManagerBuilder().withCache("failing", newCacheConfigurationBuilder().withResourcePools(newResourcePoolsBuilder()
+      newCacheManagerBuilder().withCache("failing", newCacheConfigurationBuilder(Long.class, String.class).withResourcePools(newResourcePoolsBuilder()
           .heap(5, EntryUnit.ENTRIES)
-          .disk(5, MemoryUnit.MB)).buildConfig(Long.class, String.class)).build(true);
+          .disk(5, MemoryUnit.MB)).build()).build(true);
       fail("Should not initialize");
     } catch (StateTransitionException e) {
       assertThat(e.getCause().getCause().getMessage(), containsString("No LocalPersistenceService could be found"));

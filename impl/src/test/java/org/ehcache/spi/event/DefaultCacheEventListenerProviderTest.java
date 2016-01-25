@@ -55,9 +55,9 @@ public class DefaultCacheEventListenerProviderTest {
         .newEventListenerConfiguration(ListenerObject.class, eventTypeSet).unordered().asynchronous();
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("foo",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder()
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
                 .add(listenerBuilder)
-                .buildConfig(Object.class, Object.class)).build(true);
+                .build()).build(true);
     final Collection<?> bar = manager.getCache("foo", Object.class, Object.class).getRuntimeConfiguration().getServiceConfigurations();
     assertThat(bar.iterator().next().getClass().toString(), is(ListenerObject.object.toString()));
   }
@@ -69,11 +69,11 @@ public class DefaultCacheEventListenerProviderTest {
         .newEventListenerConfiguration(ListenerObject.class, EventType.CREATED).unordered().asynchronous().build();
     CacheManager cacheManager = cacheManagerBuilder.build(true);
     final Cache<Long, String> cache = cacheManager.createCache("cache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
             .add(cacheEventListenerConfiguration)
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(100, EntryUnit.ENTRIES).build())
-            .buildConfig(Long.class, String.class));
+            .build());
     Collection<ServiceConfiguration<?>> serviceConfiguration = cache.getRuntimeConfiguration()
         .getServiceConfigurations();
     assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(DefaultCacheEventListenerConfiguration.class)));

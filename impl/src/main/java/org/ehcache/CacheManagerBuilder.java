@@ -16,7 +16,9 @@
 
 package org.ehcache;
 
+import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.CacheManagerConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.ConfigurationBuilder;
@@ -41,7 +43,7 @@ import static org.ehcache.config.ConfigurationBuilder.newConfigurationBuilder;
 /**
  * @author Alex Snaps
  */
-public class CacheManagerBuilder<T extends CacheManager> {
+public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
 
   private final ConfigurationBuilder configBuilder;
   private final Set<Service> services;
@@ -52,6 +54,11 @@ public class CacheManagerBuilder<T extends CacheManager> {
       cacheManager.init();
     }
     return cacheManager;
+  }
+
+  @Override
+  public T build() {
+    return build(false);
   }
 
   private CacheManagerBuilder() {
@@ -85,6 +92,10 @@ public class CacheManagerBuilder<T extends CacheManager> {
   
   public <K, V> CacheManagerBuilder<T> withCache(String alias, CacheConfiguration<K, V> configuration) {
     return new CacheManagerBuilder<T>(this, configBuilder.addCache(alias, configuration));
+  }
+
+  public <K, V> CacheManagerBuilder<T> withCache(String alias, CacheConfigurationBuilder<K, V> configurationBuilder) {
+    return withCache(alias, configurationBuilder.build());
   }
 
   public <N extends T> CacheManagerBuilder<N> with(CacheManagerConfiguration<N> cfg) {

@@ -60,8 +60,8 @@ public class OffHeapOsgiTest {
   @Test
   public void testOffHeapInOsgi() {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("myCache", newCacheConfigurationBuilder().withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
-            .buildConfig(Long.class, String.class))
+        .withCache("myCache", newCacheConfigurationBuilder(Long.class, String.class).withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
+            .build())
         .build(true);
 
     Cache<Long, String> cache = cacheManager.getCache("myCache", Long.class, String.class);
@@ -75,8 +75,8 @@ public class OffHeapOsgiTest {
   public void testOffHeapClientClass() {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withClassLoader(getClass().getClassLoader())
-        .withCache("myCache", newCacheConfigurationBuilder().withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(2, MemoryUnit.MB))
-            .buildConfig(Long.class, Order.class))
+        .withCache("myCache", newCacheConfigurationBuilder(Long.class, Order.class).withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(2, MemoryUnit.MB))
+            .build())
         .build(true);
 
     Cache<Long, Order> cache = cacheManager.getCache("myCache", Long.class, Order.class);

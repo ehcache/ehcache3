@@ -238,14 +238,14 @@ public class XmlConfiguration implements Configuration {
     }
 
     for (ConfigurationParser.CacheDefinition cacheDefinition : configurationParser.getCacheElements()) {
-      CacheConfigurationBuilder<Object, Object> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
       String alias = cacheDefinition.id();
 
       ClassLoader cacheClassLoader = cacheClassLoaders.get(alias);
+      boolean classLoaderConfigured = false;
       if (cacheClassLoader != null) {
-        builder = builder.withClassLoader(cacheClassLoader);
+        classLoaderConfigured = true;
       }
-      
+
       if (cacheClassLoader == null) {
         if (classLoader != null) {
           cacheClassLoader = classLoader;
@@ -256,6 +256,11 @@ public class XmlConfiguration implements Configuration {
       
       Class keyType = getClassForName(cacheDefinition.keyType(), cacheClassLoader);
       Class valueType = getClassForName(cacheDefinition.valueType(), cacheClassLoader);
+      CacheConfigurationBuilder<Object, Object> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(keyType, valueType);
+      if (classLoaderConfigured) {
+        builder = builder.withClassLoader(cacheClassLoader);
+      }
+
       if (cacheDefinition.keySerializer() != null) {
         Class keySerializer = getClassForName(cacheDefinition.keySerializer(), cacheClassLoader);
         builder = builder.add(new DefaultSerializerConfiguration(keySerializer, DefaultSerializerConfiguration.Type.KEY));
@@ -273,6 +278,7 @@ public class XmlConfiguration implements Configuration {
         builder = builder.add(new DefaultCopierConfiguration(valueCopier, DefaultCopierConfiguration.Type.VALUE));
       }
       EvictionVeto evictionVeto = getInstanceOfName(cacheDefinition.evictionVeto(), cacheClassLoader, EvictionVeto.class);
+      builder = builder.withEvictionVeto(evictionVeto);
       final ConfigurationParser.Expiry parsedExpiry = cacheDefinition.expiry();
       if (parsedExpiry != null) {
         builder = builder.withExpiry(getExpiry(cacheClassLoader, parsedExpiry));
@@ -344,7 +350,7 @@ public class XmlConfiguration implements Configuration {
           builder = builder.add(listenerBuilder);
         }
       }
-      final CacheConfiguration<?, ?> config = builder.buildConfig(keyType, valueType, evictionVeto);
+      final CacheConfiguration<?, ?> config = builder.build();
       cacheConfigurations.put(alias, config);
     }
 
@@ -444,7 +450,7 @@ public class XmlConfiguration implements Configuration {
       throw new IllegalArgumentException("CacheTemplate '" + name + "' declares value type of " + cacheTemplate.valueType());
     }
 
-    CacheConfigurationBuilder<K, V> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfigurationBuilder<K, V> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(keyType, valueType);
     builder = builder
         .withEvictionVeto(getInstanceOfName(cacheTemplate.evictionVeto(), defaultClassLoader, EvictionVeto.class));
     final ConfigurationParser.Expiry parsedExpiry = cacheTemplate.expiry();

@@ -62,8 +62,8 @@ public class SimpleOsgiTest {
   @Test
   public void testEhcache3AsBundle() {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("myCache", newCacheConfigurationBuilder().withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
-            .buildConfig(Long.class, String.class))
+        .withCache("myCache", newCacheConfigurationBuilder(Long.class, String.class).withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
+            .build())
         .build(true);
 
     Cache<Long, String> myCache = cacheManager.getCache("myCache", Long.class, String.class);
@@ -75,10 +75,10 @@ public class SimpleOsgiTest {
   @Test
   public void testEhcache3WithSerializationAndClientClass() {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("myCache", newCacheConfigurationBuilder().withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
+        .withCache("myCache", newCacheConfigurationBuilder(Long.class, Person.class).withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
             .add(new DefaultCopierConfiguration<Person>((Class) SerializingCopier.class, CopierConfiguration.Type.VALUE))
             .withClassLoader(getClass().getClassLoader())
-            .buildConfig(Long.class, Person.class))
+            .build())
         .build(true);
 
     Cache<Long, Person> myCache = cacheManager.getCache("myCache", Long.class, Person.class);
@@ -90,10 +90,10 @@ public class SimpleOsgiTest {
   @Test
   public void testCustomCopier() {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("myCache", newCacheConfigurationBuilder().withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
+        .withCache("myCache", newCacheConfigurationBuilder(Long.class, String.class).withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
             .add(new DefaultCopierConfiguration<String>(StringCopier.class, CopierConfiguration.Type.VALUE))
             .withClassLoader(getClass().getClassLoader())
-            .buildConfig(Long.class, String.class))
+            .build())
         .build(true);
 
     Cache<Long, String> cache = cacheManager.getCache("myCache", Long.class, String.class);

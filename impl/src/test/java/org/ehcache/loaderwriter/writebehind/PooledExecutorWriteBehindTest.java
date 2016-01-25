@@ -32,8 +32,8 @@ import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfiguration
 public class PooledExecutorWriteBehindTest extends AbstractWriteBehindTestBase {
 
   @Override
-  protected CacheConfigurationBuilder<Object, Object> configurationBuilder() {
-    return newCacheConfigurationBuilder()
+  protected CacheConfigurationBuilder<String, String> configurationBuilder() {
+    return newCacheConfigurationBuilder(String.class, String.class)
             .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
   }
 
