@@ -37,6 +37,11 @@ public class DefaultCopierConfiguration<T> extends ClassInstanceConfiguration<Co
     this.type = type;
   }
 
+  DefaultCopierConfiguration(Class<? extends Copier<T>> copierClass) {
+    super(copierClass);
+    this.type = null;
+  }
+
   @Override
   public Class<CopyProvider> getServiceType() {
     return CopyProvider.class;
