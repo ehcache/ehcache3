@@ -126,7 +126,7 @@ NOTE: Presently, `updateResourcePools()` only supports updating tiers that use `
 include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheEventListener]
 ----
 
-<1> Create a `CacheEventListenerConfiguration` using the builder indicating the listener class and the events to receive
+<1> Create a `CacheEventListenerConfiguration` using the builder indicating the listener and the events to receive
 <2> Optionally indicate the delivery mode - defaults are _asynchronous_ and _un-ordered_
 <3> Pass the configuration of the listener into the cache configuration
 <4> You will be notified on creation
@@ -153,6 +153,26 @@ Eviction and expiration events can be triggered by both internal processes and b
 |{K, V}   | remove(K)                                | {}      | removed {K, V, null}
 |=================================================================================================
 
+==== Cache with Eviction veto
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheEvictionVeto]
+----
+
+<1> If you want to hint the eviction algorithm to veto the eviction of some mappings, you have to
+    configure an instance of `EvictionVeto`.
+<2> Configure a constrained heap, as the eviction veto is only called when mappings get evicted from the cache.
+
+In this particular example, the `OddKeysEvictionVeto` class will veto eviction of any key that is an odd number.
+By the time the cache manager gets closed, only mappings with odd keys should be left in the cache as there isn't
+enough room for mapping with even keys.
+
+NOTE: Please keep in mind that configuring an eviction veto can slow down eviction: the more often you veto, the
+harder the cache has to work to evict an element when room is required. After a certain time, if a cache determines
+that the configured eviction veto rejected too many eviction candidates, the cache can decide to completely bypass
+the eviction veto and evict anything it sees fit.
+
 ==== Write-Through Cache
 
 [source,java,indent=0]
@@ -161,8 +181,7 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 ----
 
 <1> If you wish to use a cache in read-through/write-through caching pattern, you'll have to implement
-    `CacheLoaderWriter` and register `CacheLoaderWriterFactory` service by adding concrete type to the
-    Cache using `DefaultCacheLoaderWriterConfiguration`.
+    `CacheLoaderWriter` and register it.
 
 ==== Write-Behind Cache
 
@@ -172,9 +191,9 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 ----
 
 <1> A Cache can be used in write-behind pattern as well. You will have to implement `CacheLoaderWriter`
-    and register using `DefaultCacheLoaderWriterConfiguration`.
-<2> Additionally, register a `WriteBehindDecoratorLoaderWriterProvider` service to Cache by adding
-    `WriteBehindConfiguration`.
+    and register it.
+<2> Additionally, register a `WriteBehindConfiguration` service to Cache by using a
+    `WriteBehindConfigurationBuilder`.
 <3> Enable write-behind queue to batch the updates to underlying resource.
 <4> Configure maximum size of the writebehind queue.
 <5> Define the concurrency level of writebehind queue, at a time these many writer threads will update
@@ -220,13 +239,12 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 <2> Configure the value's serializer.
 
 Serializer instances are created per cache for keys and values separately.
-That is, even if you configure the same serializer type for multiple caches, different instances are created for each cache.
-The same applies to the serializers configured at the cache manager level as well.
-Similarly, even within a cache, if you configure the same serializer type for both key and value, different instances are created. 
+By default, serializers are automatically used by tiers that require them (off-heap and disk) but the on-heap tier, while it can
+use them or not, will not by default.
 
 ===== Implementation of a `Serializer`
 
-When implementing a `org.ehcache.spi.serialization.Serializer`, you obviously need to respect the interface contract.
+When implementing a `org.ehcache.spi.serialization.Serializer` and adding it to the default list, you obviously need to respect the interface contract.
 
 In addition, if you are using the `DefaultSerializationProvider` service provided by Ehcache; which would be the case
 for most of the users, unless they are using their own implementation of `SerializationProvider` service; there are a
@@ -272,8 +290,7 @@ cache as follows to use serializing copier:
 include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheSerializingCopiers]
 ----
 
-<1> Provide the `SerializingCopier` just like any other custom copier in the copier configuration and that is all you
-    have to do. It is that simple.
+<1> Configure the value to use the `SerializingCopier`.
 
 If you look at the cache configuration in the above example, there are no copiers configured for the keys, and that is
 fine in Ehcache. If a copier is not configured, we fall back to store-by-reference. So with the above configuration, you
@@ -293,10 +310,10 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 <4> The `PersonCopier` configured at the cache manager level will be used for this cache.
 
 The samples above demonstrated the configuration of different services at the cache and the cache manager levels.
-In none of the samples did we really create instances of copiers, serializers etc.
-Instead we supplied the class types with the service configurations and the instantiation was done internally by Ehcache.
-Even though that is the recommended way of configuring services, it is still possible to configure a service with actual
-instances.
+At the cache manager level, we did not create instances of copiers, serializers etc while we did at the cache level.
+
+We cannot supply instances at the cache manager level, but we could supply the class types with the service
+configurations at the cache level and leave the instantiation be done internally by Ehcache.
 
 The following sample demonstrates the same for copier service. Other services can also be configured in a similar way:
 
@@ -305,13 +322,14 @@ The following sample demonstrates the same for copier service. Other services ca
 include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheServiceConfigurations]
 ----
 
-<1> Configuring the `DescriptionCopier` copier using class type(the old way). 
-<2> Configuring the copier using an actual instance: The `PersonCopier` instance here.
+<1> Configuring the `DescriptionCopier` copier using class type.
+<2> Configuring the copier using an actual `PersonCopier` instance.
 
-WARNING: The former way of configuring services using class types is still the recommended way as that ensures that
-the service instances are not shared between caches. Sharing services can have disastrous effects in your application if
-the user is not careful enough. The latter way of configuring services using instances opens the door for sharing the
-same service instance across caches but that feature should be used with extra care.
+WARNING: It is the responsibility of the user to ensure that the service instances are not shared between caches.
+Sharing services can have disastrous effects in your application if the user is not careful enough.
+Configuring services using instances opens the door for sharing the same service instance across caches but that feature
+should be used with extra care.
+Configuring services using classes is the recommended way as Ehcache will create and inject the required instances itself.
 
 NOTE: By now you are familiar with configuring different services using actual instances or using class types of
 loader-writers, serializers etc. It is desirable to have some cleanup performed on these instances once you are done

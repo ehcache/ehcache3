@@ -69,3 +69,73 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[
 <3> As usual, indicate here if the data should outlive the cache
 <4> Closing the cache will not delete the data it saved on disk when marked as persistent.
 <5> To delete the data, the cache need to be put in maintenance mode and destroy has to be explicitly invoked.
+
+=== Cache copier example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCopyingCache]
+----
+<1> Configure a key copier.
+<2> Configure a value copier.
+
+=== Cache serializing copier example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedSerializingCopyingCache]
+----
+<1> Configure a `SerializingCopier` as the key copier.
+<2> Configure a `SerializingCopier` is the value copier.
+
+=== Cache copier and serializer example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCopyingAndSerializingCache]
+----
+<1> Configure a key copier.
+<2> Configure a value copier.
+<3> Configure a key serializer.
+<4> Configure a value serializer.
+<5> Configure a heap tier.
+<6> Configure a off-heap tier.
+
+By default, the heap tier stores by reference, unless a copier is configured. The other tiers must use a serializer
+to copy the keys and values.
+
+=== Cache serializing copier and serializer example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedSerializingCache]
+----
+<1> Configure a key serializer.
+<2> Configure a value serializer.
+<3> Configure a `SerializingCopier` is the value copier.
+<4> Configure a heap tier.
+<5> Configure a off-heap tier.
+
+In this case, the heap tier is storing keys by reference since no key copier has been configured, and it is storing
+values by value since a serializing copier has been configured. Such copier is going to use the configured
+serializer to perform the necessary copies.
+The off-heap tier will use both the key serializer as well as the value one to make its copies.
+
+=== Write-Through Cache example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedLoaderWriterCache]
+----
+<1> If you wish to use a cache in read-through/write-through caching pattern, you'll have to implement
+    `CacheLoaderWriter` and register it.
+
+=== Cache with Eviction veto example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedEvictionVetoCache]
+----
+<1> If you want to hint the eviction algorithm to veto the eviction of some mappings, you have to
+    configure an instance of `EvictionVeto`.
+

@@ -24,6 +24,12 @@ import org.ehcache.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.config.persistence.UserManagedPersistenceContext;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.docs.plugs.LongCopier;
+import org.ehcache.docs.plugs.LongSerializer;
+import org.ehcache.docs.plugs.OddKeysEvictionVeto;
+import org.ehcache.docs.plugs.SampleLoaderWriter;
+import org.ehcache.docs.plugs.StringCopier;
+import org.ehcache.docs.plugs.StringSerializer;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.junit.Test;
@@ -57,7 +63,6 @@ public class UserManagedCaches {
   public void userManagedDiskCache() throws Exception {
     // tag::persistentUserManagedCache[]
     LocalPersistenceService persistenceService = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(new File(getStoragePath(), "myUserData"))); // <1>
-//    persistenceService.start(, null);
 
     PersistentUserManagedCache<Long, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
         .with(new UserManagedPersistenceContext<Long, String>("cache-name", persistenceService)) // <2>
@@ -73,6 +78,112 @@ public class UserManagedCaches {
     cache.close(); // <4>
     cache.toMaintenance().destroy(); // <5>
     // end::persistentUserManagedCache[]
+  }
+
+  @Test
+  public void userManagedCopyingCache() throws Exception {
+    // tag::userManagedCopyingCache[]
+    UserManagedCache<Long, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
+        .withKeyCopier(new LongCopier()) // <1>
+        .withValueCopier(new StringCopier()) // <2>
+        .build(true);
+
+    // Work with the cache
+    cache.put(42L, "The Answer!");
+    assertThat(cache.get(42L), is("The Answer!"));
+
+    cache.close();
+    // end::userManagedCopyingCache[]
+  }
+
+  @Test
+  public void userManagedSerializingCopyingCache() throws Exception {
+    // tag::userManagedSerializingCopyingCache[]
+    UserManagedCache<Long, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
+        .withKeySerializingCopier() // <1>
+        .withValueSerializingCopier() // <2>
+        .build(true);
+
+    // Work with the cache
+    cache.put(42L, "The Answer!");
+    assertThat(cache.get(42L), is("The Answer!"));
+
+    cache.close();
+    // end::userManagedSerializingCopyingCache[]
+  }
+
+  @Test
+  public void userManagedSerializingCache() throws Exception {
+    // tag::userManagedSerializingCache[]
+    UserManagedCache<Long, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
+        .withKeySerializer(new LongSerializer()) // <1>
+        .withValueSerializer(new StringSerializer()) // <2>
+        .withValueSerializingCopier() // <3>
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            .heap(10L, EntryUnit.ENTRIES) // <4>
+            .offheap(10L, MemoryUnit.MB)) // <5>
+        .build(true);
+
+    // Work with the cache
+    cache.put(42L, "The Answer!");
+    assertThat(cache.get(42L), is("The Answer!"));
+
+    cache.close();
+    // end::userManagedSerializingCache[]
+  }
+
+  @Test
+  public void userManagedCopyingAndSerializingCache() throws Exception {
+    // tag::userManagedCopyingAndSerializingCache[]
+    UserManagedCache<Long, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
+        .withKeyCopier(new LongCopier()) // <1>
+        .withValueCopier(new StringCopier()) // <2>
+        .withKeySerializer(new LongSerializer()) // <3>
+        .withValueSerializer(new StringSerializer()) // <4>
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            .heap(10L, EntryUnit.ENTRIES) // <5>
+            .offheap(10L, MemoryUnit.MB)) // <6>
+        .build(true);
+
+    // Work with the cache
+    cache.put(42L, "The Answer!");
+    assertThat(cache.get(42L), is("The Answer!"));
+
+    cache.close();
+    // end::userManagedCopyingAndSerializingCache[]
+  }
+
+  @Test
+  public void userManagedLoaderWriterCache() throws Exception {
+    // tag::userManagedLoaderWriterCache[]
+    UserManagedCache<Long, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
+        .withLoaderWriter(new SampleLoaderWriter<Long, String>()) // <1>
+        .build(true);
+
+    // Work with the cache
+    cache.put(42L, "The Answer!");
+    assertThat(cache.get(42L), is("The Answer!"));
+
+    cache.close();
+    // end::userManagedLoaderWriterCache[]
+  }
+
+  @Test
+  public void userManagedEvictionVetoCache() throws Exception {
+    // tag::userManagedEvictionVetoCache[]
+    UserManagedCache<Long, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
+        .withEvictionVeto(new OddKeysEvictionVeto<Long, String>()) // <1>
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            .heap(2L, EntryUnit.ENTRIES)) // <2>
+        .build(true);
+
+    // Work with the cache
+    cache.put(42L, "The Answer!");
+    cache.put(41L, "The wrong Answer!");
+    cache.put(39L, "The other wrong Answer!");
+
+    cache.close(); // <3>
+    // end::userManagedEvictionVetoCache[]
   }
 
   private String getStoragePath() throws URISyntaxException {

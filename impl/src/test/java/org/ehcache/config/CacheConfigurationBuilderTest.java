@@ -53,7 +53,7 @@ public class CacheConfigurationBuilderTest {
     };
 
     CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .withEvictionVeto(veto)
+        .evictionVeto(veto)
         .buildConfig(Object.class, Object.class);
 
     assertThat(veto, (Matcher) sameInstance(cacheConfiguration.getEvictionVeto()));

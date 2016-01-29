@@ -22,6 +22,7 @@ import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
@@ -143,21 +144,33 @@ public class CacheConfigurationBuilder<K, V> {
     return expiry == null;
   }
 
-  public CacheConfigurationBuilder<K, V> withEvictionVeto(EvictionVeto<K, V> evictionVeto) {
-    if (evictionVeto == null) {
-      throw new NullPointerException("Null eviction veto");
-    }
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    otherBuilder.evictionVeto = evictionVeto;
-    return otherBuilder;
-  }
-
   public CacheConfigurationBuilder<K, V> withLoaderWriter(CacheLoaderWriter<K, V> loaderWriter) {
     if (loaderWriter == null) {
       throw new NullPointerException("Null loaderWriter");
     }
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
     otherBuilder.serviceConfigurations.add(new DefaultCacheLoaderWriterConfiguration(loaderWriter));
+    return otherBuilder;
+  }
+
+  public CacheConfigurationBuilder<K, V> withLoaderWriter(Class<CacheLoaderWriter<K, V>> loaderWriterClass, Object... arguments) {
+    if (loaderWriterClass == null) {
+      throw new NullPointerException("Null loaderWriterClass");
+    }
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    otherBuilder.serviceConfigurations.add(new DefaultCacheLoaderWriterConfiguration(loaderWriterClass, arguments));
+    return otherBuilder;
+  }
+
+  public CacheConfigurationBuilder<K, V> withKeySerializingCopier() {
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.KEY));
+    return otherBuilder;
+  }
+
+  public CacheConfigurationBuilder<K, V> withValueSerializingCopier() {
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>((Class) SerializingCopier.class, CopierConfiguration.Type.VALUE));
     return otherBuilder;
   }
 
@@ -170,12 +183,30 @@ public class CacheConfigurationBuilder<K, V> {
     return otherBuilder;
   }
 
+  public CacheConfigurationBuilder<K, V> withKeyCopier(Class<Copier<K>> keyCopierClass) {
+    if (keyCopierClass == null) {
+      throw new NullPointerException("Null key copier class");
+    }
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>(keyCopierClass, CopierConfiguration.Type.KEY));
+    return otherBuilder;
+  }
+
   public CacheConfigurationBuilder<K, V> withValueCopier(Copier<V> valueCopier) {
     if (valueCopier == null) {
       throw new NullPointerException("Null value copier");
     }
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
     otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>(valueCopier, CopierConfiguration.Type.VALUE));
+    return otherBuilder;
+  }
+
+  public CacheConfigurationBuilder<K, V> withValueCopier(Class<Copier<V>> valueCopierClass) {
+    if (valueCopierClass == null) {
+      throw new NullPointerException("Null value copier");
+    }
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>(valueCopierClass, CopierConfiguration.Type.VALUE));
     return otherBuilder;
   }
 
@@ -188,12 +219,30 @@ public class CacheConfigurationBuilder<K, V> {
     return otherBuilder;
   }
 
+  public CacheConfigurationBuilder<K, V> withKeySerializer(Class<Serializer<K>> keySerializerClass) {
+    if (keySerializerClass == null) {
+      throw new NullPointerException("Null key serializer class");
+    }
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<K>(keySerializerClass, SerializerConfiguration.Type.KEY));
+    return otherBuilder;
+  }
+
   public CacheConfigurationBuilder<K, V> withValueSerializer(Serializer<V> valueSerializer) {
     if (valueSerializer == null) {
       throw new NullPointerException("Null value serializer");
     }
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
     otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<V>(valueSerializer, SerializerConfiguration.Type.VALUE));
+    return otherBuilder;
+  }
+
+  public CacheConfigurationBuilder<K, V> withValueSerializer(Class<Serializer<V>> valueSerializerClass) {
+    if (valueSerializerClass == null) {
+      throw new NullPointerException("Null value serializer class");
+    }
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<V>(valueSerializerClass, SerializerConfiguration.Type.VALUE));
     return otherBuilder;
   }
 
