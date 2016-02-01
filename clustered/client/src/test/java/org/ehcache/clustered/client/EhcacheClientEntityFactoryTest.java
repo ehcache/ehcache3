@@ -28,6 +28,7 @@ import org.terracotta.consensus.CoordinationService.ElectionTask;
 
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import org.junit.Ignore;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
@@ -173,6 +174,7 @@ public class EhcacheClientEntityFactoryTest {
   }
 
   @Test
+  @Ignore("Pending fix for Terracotta-OSS/terracotta-apis#27")
   public void testDestroy() throws Exception {
     EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
     Connection connection = mock(Connection.class);
@@ -184,6 +186,7 @@ public class EhcacheClientEntityFactoryTest {
   }
 
   @Test
+  @Ignore("Pending fix for Terracotta-OSS/terracotta-apis#27")
   public void testDestroyAfterLosingElection() throws Exception {
     EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
     Connection connection = mock(Connection.class);
@@ -195,6 +198,7 @@ public class EhcacheClientEntityFactoryTest {
   }
 
   @Test
+  @Ignore("Pending fix for Terracotta-OSS/terracotta-apis#27")
   public void testDestroyWhenNotExisting() throws Exception {
     EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
     doThrow(EntityNotFoundException.class).when(entityRef).destroy();
@@ -211,6 +215,7 @@ public class EhcacheClientEntityFactoryTest {
   }
 
   @Test
+  @Ignore("Pending fix for Terracotta-OSS/terracotta-apis#27")
   public void testDestroyWhenNotExistingAfterLosingElection() throws Exception {
     EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
     doThrow(EntityNotFoundException.class).when(entityRef).destroy();

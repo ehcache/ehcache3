@@ -106,27 +106,7 @@ public class EhcacheClientEntityFactory {
   }
 
   public void destroy(final String identifier) throws EntityNotFoundException {
-    try {
-      while (true) {
-        Boolean success = asLeaderOf(identifier, new ElectionTask<Boolean>() {
-          @Override
-          public Boolean call(boolean clean) throws EntityNotFoundException {
-            EntityRef<EhcacheClientEntity, UUID> ref = getEntityRef(identifier);
-            try {
-              ref.destroy();
-              return Boolean.TRUE;
-            } catch (EntityNotProvidedException e) {
-              throw new AssertionError(e);
-            }
-          }
-        });
-        if (Boolean.TRUE.equals(success)) {
-          return;
-        }
-      }
-    } catch (ExecutionException ex) {
-      throw unwrapException(ex, EntityNotFoundException.class);
-    }
+    throw new UnsupportedOperationException("Destroy implementation waiting on fix for Terracotta-OSS/terracotta-apis#27");
   }
 
   private <T> T asLeaderOf(String identifier, final ElectionTask<T> task) throws ExecutionException {
