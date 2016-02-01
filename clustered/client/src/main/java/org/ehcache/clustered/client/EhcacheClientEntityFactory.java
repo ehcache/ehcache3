@@ -17,6 +17,7 @@ package org.ehcache.clustered.client;
 
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import org.ehcache.clustered.ServerSideConfiguration;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.consensus.CoordinationService;
@@ -25,6 +26,8 @@ import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.EntityVersionMismatchException;
+
+import static org.ehcache.clustered.Util.unwrapException;
 
 public class EhcacheClientEntityFactory {
   
@@ -40,7 +43,7 @@ public class EhcacheClientEntityFactory {
     this.coordinator = coordinator;
   }
   
-  public EhcacheClientEntity create(final String identifier, final Object config) throws EntityAlreadyExistsException {
+  public EhcacheClientEntity create(final String identifier, final ServerSideConfiguration config) throws EntityAlreadyExistsException {
     try {
       while (true) {
         EhcacheClientEntity created = asLeaderOf(identifier, new ElectionTask<EhcacheClientEntity>() {
@@ -72,7 +75,7 @@ public class EhcacheClientEntityFactory {
     }
   }
   
-  public EhcacheClientEntity createOrRetrieve(String identifier, Object config) {
+  public EhcacheClientEntity createOrRetrieve(String identifier, ServerSideConfiguration config) {
     while (true) {
       try {
         return retrieve(identifier, config);
@@ -87,7 +90,7 @@ public class EhcacheClientEntityFactory {
     }
   }
 
-  public EhcacheClientEntity retrieve(String identifier, Object config) throws EntityNotFoundException {
+  public EhcacheClientEntity retrieve(String identifier, ServerSideConfiguration config) throws EntityNotFoundException, IllegalArgumentException {
     try {
       EhcacheClientEntity entity = getEntityRef(identifier).fetchEntity();
       boolean validated = false;
@@ -125,28 +128,12 @@ public class EhcacheClientEntityFactory {
     }
   }
 
-  private void validate(EhcacheClientEntity entity, Object config) {
-    //no-op
+  private void validate(EhcacheClientEntity entity, ServerSideConfiguration config) {
+    entity.validate(config);
   }
 
-  private EhcacheClientEntity configure(EhcacheClientEntity entity, Object config) {
+  private EhcacheClientEntity configure(EhcacheClientEntity entity, ServerSideConfiguration config) {
+    entity.configure(config);
     return entity;
-  }
-
-  private <T extends Exception> T unwrapException(Throwable t, Class<T> aClass) {
-    Throwable cause = t.getCause();
-    if (cause != null) {
-      t = cause;
-    }
-    
-    if (aClass.isInstance(t)) {
-      return aClass.cast(t);
-    } else if (t instanceof RuntimeException) {
-      throw (RuntimeException) t;
-    } else if (t instanceof Error) {
-      throw (Error) t;
-    } else {
-      throw new RuntimeException(t);
-    }
   }
 }

@@ -18,27 +18,34 @@ package org.ehcache.clustered.server;
 import java.util.UUID;
 
 import org.ehcache.clustered.ClusteredEhcacheIdentity;
+import org.ehcache.clustered.ServerSideConfiguration;
+import org.ehcache.clustered.messages.EhcacheCodec;
+import org.ehcache.clustered.messages.EhcacheEntityMessage;
+import org.ehcache.clustered.messages.EhcacheEntityMessage.ConfigureCacheManager;
+import org.ehcache.clustered.messages.EhcacheEntityMessage.ValidateCacheManager;
+import org.ehcache.clustered.messages.EhcacheEntityResponse;
 
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConcurrencyStrategy;
-import org.terracotta.entity.EntityMessage;
-import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 
 import static org.ehcache.clustered.server.ConcurrencyStrategies.noConcurrency;
 
-public class EhcacheActiveEntity implements ActiveServerEntity<EntityMessage, EntityResponse> {
+public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private final UUID identity;
+  
+  private ServerSideConfiguration configuration;
+  
   
   EhcacheActiveEntity(byte[] config) {
     this.identity = ClusteredEhcacheIdentity.deserialize(config);
   }
 
   @Override
-  public ConcurrencyStrategy<EntityMessage> getConcurrencyStrategy() {
+  public ConcurrencyStrategy<EhcacheEntityMessage> getConcurrencyStrategy() {
     return noConcurrency();
   }
 
@@ -58,8 +65,12 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EntityMessage, En
   }
 
   @Override
-  public EntityResponse invoke(ClientDescriptor clientDescriptor, EntityMessage message) {
-    throw new UnsupportedOperationException("No messages supported yet");
+  public EhcacheEntityResponse invoke(ClientDescriptor clientDescriptor, EhcacheEntityMessage message) {
+    switch (message.getType()) {
+      case CONFIGURE: return configure((ConfigureCacheManager) message);
+      case VALIDATE: return validate((ValidateCacheManager) message);
+      default: throw new IllegalArgumentException("Unknown message " + message);
+    }
   }
 
   @Override
@@ -73,8 +84,8 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EntityMessage, En
   }
 
   @Override
-  public MessageCodec<EntityMessage, EntityResponse> getMessageCodec() {
-    return null;
+  public MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> getMessageCodec() {
+    return EhcacheCodec.serverMessageCodec();
   }
 
   @Override
@@ -90,5 +101,21 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EntityMessage, En
   @Override
   public void destroy() {
     //nothing to do
+  }
+
+  private EhcacheEntityResponse configure(ConfigureCacheManager message) throws IllegalStateException {
+    if (configuration == null) {
+      this.configuration = message.getConfiguration();
+      return null;
+    } else {
+      throw new IllegalStateException("Clustered Cache Manager already configured");
+    }
+  }
+
+  private EhcacheEntityResponse validate(ValidateCacheManager message)  throws IllegalArgumentException {
+    if (Integer.bitCount(configuration.getMagic()) != Integer.bitCount(message.getConfiguration().getMagic())) {
+      throw new IllegalArgumentException("Magic parameters not aligned");
+    }
+    return null;
   }
 }

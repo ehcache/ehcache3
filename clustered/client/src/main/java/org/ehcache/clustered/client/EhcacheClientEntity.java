@@ -17,8 +17,16 @@ package org.ehcache.clustered.client;
 
 import java.util.UUID;
 import org.ehcache.clustered.ClusteredEhcacheIdentity;
+import org.ehcache.clustered.ServerSideConfiguration;
+import org.ehcache.clustered.messages.EhcacheCodec;
+import org.ehcache.clustered.messages.EhcacheEntityMessage;
+import org.ehcache.clustered.messages.EhcacheEntityResponse;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.entity.EntityClientEndpoint;
+import org.terracotta.entity.InvokeFuture;
+import org.terracotta.exception.EntityException;
+
+import static org.ehcache.clustered.Util.unwrapException;
 
 /**
  *
@@ -39,5 +47,39 @@ public class EhcacheClientEntity implements Entity {
   @Override
   public void close() {
     endpoint.close();
+  }
+
+  public void validate(ServerSideConfiguration config) throws IllegalArgumentException {
+    try {
+      invoke(EhcacheEntityMessage.validate(config));
+    } catch (EntityException e) {
+      throw unwrapException(e, IllegalArgumentException.class);
+    }
+  }
+
+  public void configure(ServerSideConfiguration config) throws IllegalStateException {
+    try {
+      invoke(EhcacheEntityMessage.configure(config));
+    } catch (EntityException e) {
+      throw unwrapException(e, IllegalStateException.class);
+    }
+  }
+  
+  private EhcacheEntityResponse invoke(EhcacheEntityMessage message) throws EntityException {
+    InvokeFuture<byte[]> result = endpoint.beginInvoke().payload(EhcacheCodec.serializeMessage(message)).invoke();
+    boolean interrupted = false;
+    try {
+      while (true) {
+        try {
+          return EhcacheCodec.deserializeResponse(result.get());
+        } catch (InterruptedException e) {
+          interrupted = true;
+        }
+      }
+    } finally {
+      if (interrupted) {
+        Thread.currentThread().interrupt();
+      }
+    }
   }
 }

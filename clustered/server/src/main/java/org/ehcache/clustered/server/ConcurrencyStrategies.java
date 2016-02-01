@@ -23,7 +23,7 @@ import org.terracotta.entity.EntityMessage;
 
 public final class ConcurrencyStrategies {
   
-  private static final ConcurrencyStrategy<EntityMessage> NO_CONCURRENCY = new ConcurrencyStrategy<EntityMessage>() {
+  private static final ConcurrencyStrategy NO_CONCURRENCY = new ConcurrencyStrategy<EntityMessage>() {
     @Override
     public int concurrencyKey(EntityMessage message) {
       return 0;
@@ -40,6 +40,6 @@ public final class ConcurrencyStrategies {
   }
   
   public static final <T extends EntityMessage> ConcurrencyStrategy<T> noConcurrency() {
-    return (ConcurrencyStrategy<T>) NO_CONCURRENCY;
+    return NO_CONCURRENCY;
   }
 }
