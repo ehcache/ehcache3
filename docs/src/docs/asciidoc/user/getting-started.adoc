@@ -226,7 +226,6 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
     during initialization. If none is found, an error will be thrown. The serializer is chosen according to two rules:
     either there is one configured for the exact declared type, or the first type-compatible one from the list is chosen.
     By default, there is a serializer already configured for type `java.io.Serializable`.
-<2> Don't forget to set the serializers' config on the `CacheManagerBuilder`.
 
 Or you can configure specific serializers on the cache itself:
 
@@ -304,10 +303,9 @@ copiers again and again for multiple caches managed by the same cache manager. T
 include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=defaultCopiers]
 ----
 
-<1> Create a `DefaultCopyProviderConfiguration` and add all the required default copiers.
-<2> Use the same configuration in the `CacheManagerBuilder`.
-<3> The `DescriptionCopier` and `PersonCopier` configured at the cache manager level will be used for this cache.
-<4> The `PersonCopier` configured at the cache manager level will be used for this cache.
+<1> Add all the required default copiers.
+<2> The `DescriptionCopier` and `PersonCopier` configured at the cache manager level will be used for this cache.
+<3> The `PersonCopier` configured at the cache manager level will be used for this cache.
 
 The samples above demonstrated the configuration of different services at the cache and the cache manager levels.
 At the cache manager level, we did not create instances of copiers, serializers etc while we did at the cache level.

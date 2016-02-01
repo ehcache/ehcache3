@@ -26,11 +26,9 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.ResourceType;
-import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.loaderwriter.writebehind.WriteBehindConfigurationBuilder;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
-import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.docs.plugs.CharSequenceSerializer;
@@ -41,7 +39,6 @@ import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.docs.plugs.StringSerializer;
 import org.ehcache.event.EventType;
 import org.ehcache.internal.copy.ReadWriteCopier;
-import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
@@ -150,12 +147,9 @@ public class GettingStarted {
             .newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB).build())
         .buildConfig(Long.class, String.class);
 
-    DefaultSerializationProviderConfiguration defaultSerializationProviderFactoryConfiguration =
-        new DefaultSerializationProviderConfiguration()
-            .addSerializerFor(String.class, StringSerializer.class);  // <1>
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("cache", cacheConfiguration)
-        .using(defaultSerializationProviderFactoryConfiguration) // <2>
+        .withSerializer(String.class, StringSerializer.class) // <1>
         .build(true);
 
     Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
@@ -351,12 +345,9 @@ public class GettingStarted {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .buildConfig(Long.class, Person.class);
 
-    DefaultCopyProviderConfiguration defaultCopierConfig = new DefaultCopyProviderConfiguration()
-        .addCopierFor(Description.class, DescriptionCopier.class)   //<1>
-        .addCopierFor(Person.class, (Class) SerializingCopier.class);
-
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .using(defaultCopierConfig)   //<2>
+        .withCopier(Description.class, DescriptionCopier.class) // <1>
+        .withCopier(Person.class, PersonCopier.class)
         .withCache("cache", cacheConfiguration)   //<3>
         .withCache("anotherCache", anotherCacheConfiguration)   //<4>
         .build(true);
@@ -368,6 +359,7 @@ public class GettingStarted {
     Person person = new Person("Bar", 24);
     cache.put(desc, person);
     assertThat(cache.get(desc), equalTo(person));
+    assertThat(cache.get(desc), is(not(sameInstance(person))));
 
     anotherCache.put(1L, person);
     assertThat(anotherCache.get(1L), equalTo(person));
