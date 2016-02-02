@@ -37,6 +37,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -55,8 +56,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CacheEventDispatcherImpl.class);
-  private final EventDispatcher<K, V> unOrderedEventDispatcher;
-  private final EventDispatcher<K, V> orderedEventDispatcher;
+  private final ExecutorService unOrderedExectuor;
+  private final ExecutorService orderedExecutor;
   private final AtomicInteger listenersCount = new AtomicInteger(0);
   private final AtomicInteger orderedListenerCount = new AtomicInteger(0);
   private final Set<EventListenerWrapper> syncListenersSet = new CopyOnWriteArraySet<EventListenerWrapper>();
@@ -66,11 +67,10 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
 
   private Cache<K, V> listenerSource;
 
-  public CacheEventDispatcherImpl(Store<K, V> store, OrderedEventDispatcher<K, V> orderedEventDispatcher,
-                                           UnorderedEventDispatcher<K, V> unorderedEventDispatcher) {
+  public CacheEventDispatcherImpl(Store<K, V> store, ExecutorService unOrderedExectuor, ExecutorService orderedExecutor) {
     storeEventSource = store.getStoreEventSource();
-    this.unOrderedEventDispatcher = unorderedEventDispatcher;
-    this.orderedEventDispatcher = orderedEventDispatcher;
+    this.unOrderedExectuor = unOrderedExectuor;
+    this.orderedExecutor = orderedExecutor;
   }
 
   /**
@@ -151,13 +151,14 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   }
 
   @Override
-  public void releaseAllListeners() {
+  public void shutdown() {
     for (EventListenerWrapper listenerWrapper : aSyncListenersSet) {
       removeWrapperFromSet(listenerWrapper, aSyncListenersSet);
     }
     for (EventListenerWrapper listenerWrapper : syncListenersSet) {
       removeWrapperFromSet(listenerWrapper, syncListenersSet);
     }
+    orderedExecutor.shutdown();
   }
 
   @Override
@@ -166,18 +167,18 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   }
 
   public void onEvent(CacheEvent<K, V> event) {
-    EventDispatcher<K, V> eventDispatcher;
+    ExecutorService executor;
     if (storeEventSource.isEventOrdering()) {
-      eventDispatcher = orderedEventDispatcher;
+      executor= orderedExecutor;
     } else {
-      eventDispatcher = unOrderedEventDispatcher;
+      executor = unOrderedExectuor;
     }
     Future<?> future = null;
     if (!syncListenersSet.isEmpty()) {
-      future = eventDispatcher.dispatch(event, syncListenersSet);
+      future = executor.submit(new EventDispatchTask<K, V>(event, syncListenersSet));
     }
     if (!aSyncListenersSet.isEmpty()) {
-      eventDispatcher.dispatch(event, aSyncListenersSet);
+      executor.submit(new EventDispatchTask<K, V>(event, aSyncListenersSet));
     }
     if (future != null) {
       try {

@@ -40,7 +40,7 @@ public interface CacheEventDispatcher<K, V> extends ConfigurationChangeSupport {
 
   void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener);
 
-  void releaseAllListeners();
+  void shutdown();
 
   void setListenerSource(Cache<K, V> source);
 }

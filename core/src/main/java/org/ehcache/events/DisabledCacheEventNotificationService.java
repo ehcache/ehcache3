@@ -41,7 +41,7 @@ public class DisabledCacheEventNotificationService<K, V> implements CacheEventDi
   }
 
   @Override
-  public void releaseAllListeners() {
+  public void shutdown() {
   }
 
   @Override

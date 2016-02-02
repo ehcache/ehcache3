@@ -58,8 +58,7 @@ public class CacheEventDispatcherImplTest {
     unorderedExecutor = Executors.newCachedThreadPool();
     store = mock(Store.class);
     when(store.getStoreEventSource()).thenReturn(mock(StoreEventDispatcher.class));
-    eventService = new CacheEventDispatcherImpl<Number, String>(store, new OrderedEventDispatcher<Number, String>(orderedExecutor),
-                                                                    new UnorderedEventDispatcher<Number, String>(unorderedExecutor));
+    eventService = new CacheEventDispatcherImpl<Number, String>(store, orderedExecutor, unorderedExecutor);
     listener = mock(CacheEventListener.class);
   }
 
@@ -148,7 +147,7 @@ public class CacheEventDispatcherImplTest {
     verify(listener).onEvent(create);
     verify(otherLsnr).onEvent(remove);
 
-    eventService.releaseAllListeners();
+    eventService.shutdown();
 
     eventService.onEvent(create);
     eventService.onEvent(remove);

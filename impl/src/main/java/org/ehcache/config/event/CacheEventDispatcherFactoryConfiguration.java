@@ -15,14 +15,14 @@
  */
 package org.ehcache.config.event;
 
-import org.ehcache.events.EventDispatchProvider;
+import org.ehcache.events.CacheEventDispatcherFactory;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
-public class EventDispatcherFactoryConfiguration implements ServiceCreationConfiguration<EventDispatchProvider> {
+public class CacheEventDispatcherFactoryConfiguration implements ServiceCreationConfiguration<CacheEventDispatcherFactory> {
 
   private final String threadPoolAlias;
 
-  public EventDispatcherFactoryConfiguration(String threadPoolAlias) {
+  public CacheEventDispatcherFactoryConfiguration(String threadPoolAlias) {
     this.threadPoolAlias = threadPoolAlias;
   }
   
@@ -31,7 +31,7 @@ public class EventDispatcherFactoryConfiguration implements ServiceCreationConfi
   }
   
   @Override
-  public Class<EventDispatchProvider> getServiceType() {
-    return EventDispatchProvider.class;
+  public Class<CacheEventDispatcherFactory> getServiceType() {
+    return CacheEventDispatcherFactory.class;
   }
 }

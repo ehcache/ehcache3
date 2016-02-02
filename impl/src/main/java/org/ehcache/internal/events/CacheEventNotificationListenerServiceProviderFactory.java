@@ -15,6 +15,7 @@
  */
 package org.ehcache.internal.events;
 
+import org.ehcache.config.event.CacheEventDispatcherFactoryConfiguration;
 import org.ehcache.events.CacheEventDispatcherFactory;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
@@ -23,7 +24,14 @@ public class CacheEventNotificationListenerServiceProviderFactory implements Ser
 
   @Override
   public CacheEventDispatcherFactory create(ServiceCreationConfiguration<CacheEventDispatcherFactory> configuration) {
-    return new CacheEventDispatcherFactoryImpl();
+    if (configuration == null) {
+      return new CacheEventDispatcherFactoryImpl();
+    } else if (configuration instanceof CacheEventDispatcherFactoryConfiguration) {
+      return new CacheEventDispatcherFactoryImpl((CacheEventDispatcherFactoryConfiguration) configuration);
+    } else {
+      throw new IllegalArgumentException("Expected a configuration of type CacheEventDispatcherFactoryConfiguration but got "
+              + configuration.getClass().getSimpleName());
+    }
   }
 
   @Override
