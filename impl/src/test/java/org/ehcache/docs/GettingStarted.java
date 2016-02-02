@@ -68,9 +68,8 @@ public class GettingStarted {
     CacheManager cacheManager
         = CacheManagerBuilder.newCacheManagerBuilder() // <1>
         .withCache("preConfigured",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                .build()) // <2>
-        .build(false); // <3>
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)) // <2>
+        .build(); // <3>
     cacheManager.init(); // <4>
 
     Cache<Long, String> preConfigured =
@@ -97,7 +96,7 @@ public class GettingStarted {
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
                 .disk(10L, MemoryUnit.MB, true)) // <2>
-            .build())
+            )
         .build(true);
 
     persistentCacheManager.close();
@@ -112,7 +111,8 @@ public class GettingStarted {
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
                 .offheap(10, MemoryUnit.MB)) // <1>
-            .build()).build(true);
+            )
+        .build(true);
 
     cacheManager.close();
     // end::offheapCacheManager[]
@@ -126,11 +126,11 @@ public class GettingStarted {
         .withCache("threeTieredCache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
                 .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                        .heap(10, EntryUnit.ENTRIES) // <2>
-                        .offheap(1, MemoryUnit.MB) // <3>
-                        .disk(20, MemoryUnit.MB) // <4>
+                    .heap(10, EntryUnit.ENTRIES) // <2>
+                    .offheap(1, MemoryUnit.MB) // <3>
+                    .disk(20, MemoryUnit.MB) // <4>
                 )
-                .build()).build(true);
+        ).build(true);
 
     persistentCacheManager.close();
     // end::threeTiersCacheManager[]
@@ -141,7 +141,7 @@ public class GettingStarted {
     // tag::defaultSerializers[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder
-            .newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB).build())
+            .newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB))
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -186,12 +186,12 @@ public class GettingStarted {
     CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
         .newEventListenerConfiguration(new ListenerObject(), EventType.CREATED, EventType.UPDATED) // <1>
         .unordered().asynchronous(); // <2>
-    
+
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("foo",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class)
                 .add(cacheEventListenerConfiguration) // <3>
-                .build()).build(true);
+        ).build(true);
 
     final Cache<String, String> cache = manager.getCache("foo", String.class, String.class);
     cache.put("Hello", "World"); // <4>
@@ -254,7 +254,7 @@ public class GettingStarted {
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .add(cacheEventListenerConfiguration)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .heap(10L, EntryUnit.ENTRIES).build()).build();
+            .heap(10L, EntryUnit.ENTRIES)).build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
         .build(true);
@@ -311,7 +311,7 @@ public class GettingStarted {
   public void cacheSerializingCopiers() throws Exception {
     // tag::cacheSerializingCopiers[]
     CacheConfiguration<Long, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, Person.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
         .withValueSerializingCopier() // <1>
         .build();
     // end::cacheSerializingCopiers[]
@@ -335,11 +335,11 @@ public class GettingStarted {
   public void defaultCopiers() throws Exception {
     // tag::defaultCopiers[]
     CacheConfiguration<Description, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Description.class, Person.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
         .build();
 
     CacheConfiguration<Long, Person> anotherCacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, Person.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -369,7 +369,7 @@ public class GettingStarted {
   public void cacheServiceConfiguration() throws Exception {
     // tag::cacheServiceConfigurations[]
     CacheConfiguration<Description, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Description.class, Person.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
         .withKeyCopier(DescriptionCopier.class) // <1>
         .withValueCopier(new PersonCopier()) // <2>
         .build();
