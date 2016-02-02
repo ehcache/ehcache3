@@ -35,11 +35,9 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Per-cache component that manages cache event listener registrations, and provides event delivery based on desired
@@ -58,10 +56,10 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   private static final Logger LOGGER = LoggerFactory.getLogger(CacheEventDispatcherImpl.class);
   private final ExecutorService unOrderedExectuor;
   private final ExecutorService orderedExecutor;
-  private final AtomicInteger listenersCount = new AtomicInteger(0);
-  private final AtomicInteger orderedListenerCount = new AtomicInteger(0);
-  private final Set<EventListenerWrapper> syncListenersSet = new CopyOnWriteArraySet<EventListenerWrapper>();
-  private final Set<EventListenerWrapper> aSyncListenersSet = new CopyOnWriteArraySet<EventListenerWrapper>();
+  private int listenersCount = 0;
+  private int orderedListenerCount = 0;
+  private final List<EventListenerWrapper> syncListenersList = new CopyOnWriteArrayList<EventListenerWrapper>();
+  private final List<EventListenerWrapper> aSyncListenersList = new CopyOnWriteArrayList<EventListenerWrapper>();
   private final StoreEventSource<K, V> storeEventSource;
   private final StoreEventListener<K, V> eventListener = new StoreListener();
 
@@ -91,25 +89,33 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
     registerCacheEventListener(wrapper);
   }
 
-  private void registerCacheEventListener(EventListenerWrapper wrapper) {
-    if(aSyncListenersSet.contains(wrapper) || syncListenersSet.contains(wrapper)) {
-      throw new IllegalStateException("Cache Event Listener already registered: " + wrapper.listener);
+  /**
+   * Synchronized to make sure listener addition is atomic in order to prevent having the same listener registered
+   * under multiple configurations
+   *
+   * @param wrapper the listener wrapper to register
+   */
+  private synchronized void registerCacheEventListener(EventListenerWrapper wrapper) {
+    if(aSyncListenersList.contains(wrapper) || syncListenersList.contains(wrapper)) {
+      throw new IllegalStateException("Cache Event Listener already registered: " + wrapper.getListener());
     }
 
-    if(wrapper.ordering == EventOrdering.ORDERED && orderedListenerCount.getAndIncrement() == 0) {
+    if (wrapper.isOrdered() && orderedListenerCount++ == 0) {
       storeEventSource.setEventOrdering(true);
     }
 
-    switch (wrapper.firing) {
+    switch (wrapper.getFiringMode()) {
       case ASYNCHRONOUS:
-        aSyncListenersSet.add(wrapper);
+        aSyncListenersList.add(wrapper);
         break;
       case SYNCHRONOUS:
-        syncListenersSet.add(wrapper);
+        syncListenersList.add(wrapper);
         break;
+      default:
+        throw new AssertionError("Unhandled EventFiring value: " + wrapper.getFiringMode());
     }
 
-    if (listenersCount.getAndIncrement() == 0) {
+    if (listenersCount++ == 0) {
       storeEventSource.addEventListener(eventListener);
     }
   }
@@ -125,39 +131,40 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   public void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener) {
     EventListenerWrapper wrapper = new EventListenerWrapper(listener);
 
-    if (!removeWrapperFromSet(wrapper, aSyncListenersSet)) {
-      if (!removeWrapperFromSet(wrapper, syncListenersSet)) {
+    if (!removeWrapperFromList(wrapper, aSyncListenersList)) {
+      if (!removeWrapperFromList(wrapper, syncListenersList)) {
         throw new IllegalStateException("Unknown cache event listener: " + listener);
       }
     }
   }
 
-  private boolean removeWrapperFromSet(EventListenerWrapper wrapper, Set<EventListenerWrapper> listenersSet) {
-    for (EventListenerWrapper listenerWrapper : listenersSet) {
-      if(listenerWrapper.equals(wrapper)) {
-        listenersSet.remove(listenerWrapper);
-        if(listenerWrapper.ordering == EventOrdering.ORDERED) {
-          if (orderedListenerCount.decrementAndGet() == 0) {
-            storeEventSource.setEventOrdering(false);
-          }
-        }
-        if (listenersCount.decrementAndGet() == 0) {
-          storeEventSource.removeEventListener(eventListener);
-        }
-        return true;
+  /**
+   * Synchronized to make sure listener removal is atomic
+   *
+   * @param wrapper the listener wrapper to unregister
+   * @param listenersList the listener list to remove from
+   */
+  private synchronized boolean removeWrapperFromList(EventListenerWrapper wrapper, List<EventListenerWrapper> listenersList) {
+    int index = listenersList.indexOf(wrapper);
+    if (index != -1) {
+      EventListenerWrapper containedWrapper = listenersList.remove(index);
+      if(containedWrapper.isOrdered() && --orderedListenerCount == 0) {
+        storeEventSource.setEventOrdering(false);
       }
+      if (--listenersCount == 0) {
+        storeEventSource.removeEventListener(eventListener);
+      }
+      return true;
     }
     return false;
   }
 
   @Override
-  public void shutdown() {
-    for (EventListenerWrapper listenerWrapper : aSyncListenersSet) {
-      removeWrapperFromSet(listenerWrapper, aSyncListenersSet);
-    }
-    for (EventListenerWrapper listenerWrapper : syncListenersSet) {
-      removeWrapperFromSet(listenerWrapper, syncListenersSet);
-    }
+  public synchronized void shutdown() {
+    storeEventSource.removeEventListener(eventListener);
+    storeEventSource.setEventOrdering(false);
+    syncListenersList.clear();
+    aSyncListenersList.clear();
     orderedExecutor.shutdown();
   }
 
@@ -173,18 +180,15 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
     } else {
       executor = unOrderedExectuor;
     }
-    Future<?> future = null;
-    if (!syncListenersSet.isEmpty()) {
-      future = executor.submit(new EventDispatchTask<K, V>(event, syncListenersSet));
+    if (!aSyncListenersList.isEmpty()) {
+      executor.submit(new EventDispatchTask<K, V>(event, aSyncListenersList));
     }
-    if (!aSyncListenersSet.isEmpty()) {
-      executor.submit(new EventDispatchTask<K, V>(event, aSyncListenersSet));
-    }
-    if (future != null) {
+    if (!syncListenersList.isEmpty()) {
+      Future<?> future = executor.submit(new EventDispatchTask<K, V>(event, syncListenersList));
       try {
         future.get();
       } catch (Exception e) {
-        LOGGER.error("Cache Event Listener failed for event type {} due to ", event.getType(), e);
+        LOGGER.error("Exception received as result from synchronous listeners", e);
       }
     }
   }
@@ -226,6 +230,8 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
         case EVICTED:
           CacheEventDispatcherImpl.this.onEvent(CacheEvents.eviction(event.getKey(), event.getOldValue(), listenerSource));
           break;
+        default:
+          throw new AssertionError("Unexpected StoreEvent value: " + event.getType());
       }
     }
   }

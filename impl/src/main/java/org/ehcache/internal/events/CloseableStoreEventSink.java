@@ -14,28 +14,15 @@
  * limitations under the License.
  */
 
-package org.ehcache.event;
+package org.ehcache.internal.events;
+
+import org.ehcache.events.StoreEventSink;
 
 /**
- * @author Alex Snaps
+ * CloseableStoreEventSink
  */
-public enum EventOrdering {
+interface CloseableStoreEventSink<K, V> extends StoreEventSink<K, V> {
+  void close();
 
-  /**
-   * No ordering requirement necessary
-   */
-  UNORDERED(false),
-
-  /**
-   * Events for a given key will always fire in the same order they actually occurred
-   */
-  ORDERED(true);
-
-  private final boolean ordered;
-
-  EventOrdering(boolean ordered) {this.ordered = ordered;}
-
-  public boolean isOrdered() {
-    return ordered;
-  }
+  void closeOnFailure();
 }

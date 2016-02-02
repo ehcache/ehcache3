@@ -16,7 +16,6 @@
 package org.ehcache.events;
 
 import org.ehcache.event.CacheEvent;
-import org.ehcache.event.CacheEventListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +25,12 @@ class EventDispatchTask<K, V> implements Runnable {
   private final Iterable<EventListenerWrapper> listenerWrappers;
 
   EventDispatchTask(CacheEvent<K, V> cacheEvent, Iterable<EventListenerWrapper> listener) {
+    if (cacheEvent == null) {
+      throw new NullPointerException("cache event cannot be null");
+    }
+    if (listener == null) {
+      throw new NullPointerException("listener cannot be null");
+    }
     this.cacheEvent = cacheEvent;
     this.listenerWrappers = listener;
   }
@@ -33,14 +38,12 @@ class EventDispatchTask<K, V> implements Runnable {
   @Override
   public void run() {
     for(EventListenerWrapper listenerWrapper : listenerWrappers) {
-      if (!listenerWrapper.forEvents.contains(cacheEvent.getType())) {
-        continue;
-      }
-      try {
-        CacheEventListener listener = listenerWrapper.listener;
-        listener.onEvent(cacheEvent);
-      } catch (Exception e) {
-        LOGGER.warn(listenerWrapper.listener + " Failed to fire Event due to ", e);
+      if (listenerWrapper.isForEventType(cacheEvent.getType())) {
+        try {
+          listenerWrapper.onEvent(cacheEvent);
+        } catch (Exception e) {
+          LOGGER.warn(listenerWrapper.getListener() + " Failed to fire Event due to ", e);
+        }
       }
     }
   }

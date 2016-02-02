@@ -15,6 +15,7 @@
  */
 package org.ehcache.events;
 
+import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
@@ -22,18 +23,36 @@ import org.ehcache.event.EventType;
 
 import java.util.EnumSet;
 
-public final class EventListenerWrapper {
-  final CacheEventListener listener;
-  final EventFiring firing;
-  final EventOrdering ordering;
-  final EnumSet<EventType> forEvents;
+public final class EventListenerWrapper implements CacheEventListener {
+  private final CacheEventListener listener;
+  private final EventFiring firing;
+  private final EventOrdering ordering;
+  private final EnumSet<EventType> forEvents;
 
   EventListenerWrapper(CacheEventListener listener) {
-    this(listener, null, null, null);
+    this.listener = listener;
+    this.firing = null;
+    this.ordering = null;
+    this.forEvents = null;
   }
 
   public EventListenerWrapper(CacheEventListener listener, final EventFiring firing, final EventOrdering ordering,
                        final EnumSet<EventType> forEvents) {
+    if (listener == null) {
+      throw new NullPointerException("listener cannot be null");
+    }
+    if (firing == null) {
+      throw new NullPointerException("firing cannot be null");
+    }
+    if (ordering == null) {
+      throw new NullPointerException("ordering cannot be null");
+    }
+    if (forEvents == null) {
+      throw new NullPointerException("forEvents cannot be null");
+    }
+    if (forEvents.isEmpty()) {
+      throw new IllegalArgumentException("forEvents cannot be empty");
+    }
     this.listener = listener;
     this.firing = firing;
     this.ordering = ordering;
@@ -52,5 +71,26 @@ public final class EventListenerWrapper {
     }
     EventListenerWrapper l2 = (EventListenerWrapper)other;
     return listener.equals(l2.listener);
+  }
+
+  @Override
+  public void onEvent(CacheEvent event) {
+    listener.onEvent(event);
+  }
+
+  CacheEventListener getListener() {
+    return listener;
+  }
+
+  boolean isForEventType(EventType type) {
+    return forEvents.contains(type);
+  }
+
+  boolean isOrdered() {
+    return ordering.isOrdered();
+  }
+
+  EventFiring getFiringMode() {
+    return firing;
   }
 }

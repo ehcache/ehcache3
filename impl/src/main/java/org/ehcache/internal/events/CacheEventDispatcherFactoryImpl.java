@@ -67,7 +67,7 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
       // TODO when do we actually get there? And if no longer, should we?
       return new DisabledCacheEventNotificationService<K, V>();
     } else {
-      return new CacheEventDispatcherImpl<K, V>(store, executionService.getOrderedExecutor(threadPoolAlias, new LinkedBlockingQueue<Runnable>()), getUnorderedExecutor());
+      return new CacheEventDispatcherImpl<K, V>(store, getUnorderedExecutor(), executionService.getOrderedExecutor(threadPoolAlias, new LinkedBlockingQueue<Runnable>()));
     }
   }
 
