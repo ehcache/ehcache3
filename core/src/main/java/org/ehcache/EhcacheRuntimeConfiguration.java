@@ -69,7 +69,7 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
     }
 
     ResourcePools updatedResourcePools = config.getResourcePools().validateAndMerge(pools);
-    fireCacheConfigurationChange(CacheConfigurationProperty.UPDATESIZE, config.getResourcePools(), updatedResourcePools);
+    fireCacheConfigurationChange(CacheConfigurationProperty.UPDATE_SIZE, config.getResourcePools(), updatedResourcePools);
     this.resourcePools = updatedResourcePools;
   }
 
@@ -120,14 +120,14 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
 
   @Override
   public synchronized void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener) {
-    fireCacheConfigurationChange(CacheConfigurationProperty.REMOVELISTENER, listener, listener);
+    fireCacheConfigurationChange(CacheConfigurationProperty.REMOVE_LISTENER, listener, listener);
   }
 
   @Override
   public synchronized void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering,
                                                       EventFiring firing, Set<EventType> forEventTypes) {
     EventListenerWrapper listenerWrapper = new EventListenerWrapper(listener, firing, ordering, EnumSet.copyOf(forEventTypes));
-    fireCacheConfigurationChange(CacheConfigurationProperty.ADDLISTENER, listenerWrapper, listenerWrapper);
+    fireCacheConfigurationChange(CacheConfigurationProperty.ADD_LISTENER, listenerWrapper, listenerWrapper);
   }
 
   private <T> Collection<T> copy(Collection<T> collection) {

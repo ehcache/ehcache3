@@ -163,7 +163,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private CacheConfigurationChangeListener cacheConfigurationChangeListener = new CacheConfigurationChangeListener() {
     @Override
     public void cacheConfigurationChange(CacheConfigurationChangeEvent event) {
-      if(event.getProperty().equals(CacheConfigurationProperty.UPDATESIZE)) {
+      if(event.getProperty().equals(CacheConfigurationProperty.UPDATE_SIZE)) {
         ResourcePools updatedPools = (ResourcePools)event.getNewValue();
         ResourcePools configuredPools = (ResourcePools)event.getOldValue();
         if(updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize() !=

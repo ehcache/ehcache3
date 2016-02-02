@@ -194,9 +194,9 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
     configurationChangeListenerList.add(new CacheConfigurationChangeListener() {
       @Override
       public void cacheConfigurationChange(final CacheConfigurationChangeEvent event) {
-        if (event.getProperty().equals(CacheConfigurationProperty.ADDLISTENER)) {
+        if (event.getProperty().equals(CacheConfigurationProperty.ADD_LISTENER)) {
           registerCacheEventListener((EventListenerWrapper)event.getNewValue());
-        } else if (event.getProperty().equals(CacheConfigurationProperty.REMOVELISTENER)) {
+        } else if (event.getProperty().equals(CacheConfigurationProperty.REMOVE_LISTENER)) {
           CacheEventListener<? super K, ? super V> oldListener = (CacheEventListener)event.getOldValue();
           deregisterCacheEventListener(oldListener);
         }

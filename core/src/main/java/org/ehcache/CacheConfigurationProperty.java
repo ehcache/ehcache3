@@ -20,15 +20,15 @@ public enum CacheConfigurationProperty {
   /**
    * used to update size of ResourcePool in RuntimeConfig
    */
-  UPDATESIZE,
+  UPDATE_SIZE,
 
   /**
    * used to register new {@link org.ehcache.event.CacheEventListener}
    */
-  ADDLISTENER,
+  ADD_LISTENER,
 
   /**
    * used to remove {@link org.ehcache.event.CacheEventListener}
    */
-  REMOVELISTENER
+  REMOVE_LISTENER
 }
