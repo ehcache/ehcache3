@@ -396,7 +396,7 @@ public class GettingStarted {
   public void cacheEvictionVeto() throws Exception {
     // tag::cacheEvictionVeto[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .evictionVeto((EvictionVeto) new OddKeysEvictionVeto<Long, String>()) // <1>
+        .withEvictionVeto((EvictionVeto) new OddKeysEvictionVeto<Long, String>()) // <1>
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
             .heap(2L, EntryUnit.ENTRIES)) // <2>
         .buildConfig(Long.class, String.class);

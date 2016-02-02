@@ -69,7 +69,7 @@ public class CacheConfigurationBuilder<K, V> {
     return add(configurationBuilder.build());
   }
 
-  public <NK extends K, NV extends V> CacheConfigurationBuilder<NK, NV> evictionVeto(final EvictionVeto<? super NK, ? super NV> veto) {
+  public <NK extends K, NV extends V> CacheConfigurationBuilder<NK, NV> withEvictionVeto(final EvictionVeto<? super NK, ? super NV> veto) {
     CacheConfigurationBuilder<NK, NV> otherBuilder = new CacheConfigurationBuilder<NK, NV>(this);
     otherBuilder.evictionVeto = veto;
     return otherBuilder;

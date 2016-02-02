@@ -290,12 +290,6 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
     return otherBuilder;
   }
 
-  public final UserManagedCacheBuilder<K, V, T> vetoEviction(EvictionVeto<? super K, ? super V> predicate) {
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
-    otherBuilder.evictionVeto = predicate;
-    return otherBuilder;
-  }
-  
   public final UserManagedCacheBuilder<K, V, T> withClassLoader(ClassLoader classLoader) {
     if (classLoader == null) {
       throw new NullPointerException("Null classloader");

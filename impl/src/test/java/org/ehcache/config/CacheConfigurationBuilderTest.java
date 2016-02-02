@@ -53,7 +53,7 @@ public class CacheConfigurationBuilderTest {
     };
 
     CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .evictionVeto(veto)
+        .withEvictionVeto(veto)
         .buildConfig(Object.class, Object.class);
 
     assertThat(veto, (Matcher) sameInstance(cacheConfiguration.getEvictionVeto()));
@@ -219,7 +219,7 @@ public class CacheConfigurationBuilderTest {
     final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
 
     builder
-        .evictionVeto(new EvictionVeto<Long, String>() {
+        .withEvictionVeto(new EvictionVeto<Long, String>() {
           @Override
           public boolean vetoes(Long key, String value) {
             return value.startsWith("A");
@@ -242,7 +242,7 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES)
         .offheap(10, MemoryUnit.MB));
     CacheConfiguration config = builder
-        .evictionVeto(new EvictionVeto<Long, String>() {
+        .withEvictionVeto(new EvictionVeto<Long, String>() {
           @Override
           public boolean vetoes(Long key, String value) {
             return value.startsWith("A");

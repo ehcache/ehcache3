@@ -446,7 +446,7 @@ public class XmlConfiguration implements Configuration {
 
     CacheConfigurationBuilder<K, V> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
     builder = builder
-        .evictionVeto(getInstanceOfName(cacheTemplate.evictionVeto(), defaultClassLoader, EvictionVeto.class));
+        .withEvictionVeto(getInstanceOfName(cacheTemplate.evictionVeto(), defaultClassLoader, EvictionVeto.class));
     final ConfigurationParser.Expiry parsedExpiry = cacheTemplate.expiry();
     if (parsedExpiry != null) {
       builder = builder.withExpiry(getExpiry(defaultClassLoader, parsedExpiry));
