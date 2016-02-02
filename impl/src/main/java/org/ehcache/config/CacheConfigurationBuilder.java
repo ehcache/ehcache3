@@ -167,16 +167,16 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     return otherBuilder;
   }
 
-  public CacheConfigurationBuilder<K, V> withKeyCopier(Copier<K> keyCopier) {
+  public CacheConfigurationBuilder<K, V> withKeyCopier(Copier<? super K> keyCopier) {
     if (keyCopier == null) {
       throw new NullPointerException("Null key copier");
     }
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>(keyCopier, CopierConfiguration.Type.KEY));
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>((Copier) keyCopier, CopierConfiguration.Type.KEY));
     return otherBuilder;
   }
 
-  public CacheConfigurationBuilder<K, V> withKeyCopier(Class<Copier<K>> keyCopierClass) {
+  public CacheConfigurationBuilder<K, V> withKeyCopier(Class<? extends Copier<K>> keyCopierClass) {
     if (keyCopierClass == null) {
       throw new NullPointerException("Null key copier class");
     }
@@ -185,16 +185,16 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     return otherBuilder;
   }
 
-  public CacheConfigurationBuilder<K, V> withValueCopier(Copier<V> valueCopier) {
+  public CacheConfigurationBuilder<K, V> withValueCopier(Copier<? super V> valueCopier) {
     if (valueCopier == null) {
       throw new NullPointerException("Null value copier");
     }
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>(valueCopier, CopierConfiguration.Type.VALUE));
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>((Copier) valueCopier, CopierConfiguration.Type.VALUE));
     return otherBuilder;
   }
 
-  public CacheConfigurationBuilder<K, V> withValueCopier(Class<Copier<V>> valueCopierClass) {
+  public CacheConfigurationBuilder<K, V> withValueCopier(Class<? extends Copier<V>> valueCopierClass) {
     if (valueCopierClass == null) {
       throw new NullPointerException("Null value copier");
     }
@@ -203,16 +203,16 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     return otherBuilder;
   }
 
-  public CacheConfigurationBuilder<K, V> withKeySerializer(Serializer<K> keySerializer) {
+  public CacheConfigurationBuilder<K, V> withKeySerializer(Serializer<? super K> keySerializer) {
     if (keySerializer == null) {
       throw new NullPointerException("Null key serializer");
     }
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<K>(keySerializer, SerializerConfiguration.Type.KEY));
+    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<K>((Serializer) keySerializer, SerializerConfiguration.Type.KEY));
     return otherBuilder;
   }
 
-  public CacheConfigurationBuilder<K, V> withKeySerializer(Class<Serializer<K>> keySerializerClass) {
+  public CacheConfigurationBuilder<K, V> withKeySerializer(Class<? extends Serializer<K>> keySerializerClass) {
     if (keySerializerClass == null) {
       throw new NullPointerException("Null key serializer class");
     }
@@ -221,16 +221,16 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     return otherBuilder;
   }
 
-  public CacheConfigurationBuilder<K, V> withValueSerializer(Serializer<V> valueSerializer) {
+  public CacheConfigurationBuilder<K, V> withValueSerializer(Serializer<? super V> valueSerializer) {
     if (valueSerializer == null) {
       throw new NullPointerException("Null value serializer");
     }
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<V>(valueSerializer, SerializerConfiguration.Type.VALUE));
+    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<V>((Serializer) valueSerializer, SerializerConfiguration.Type.VALUE));
     return otherBuilder;
   }
 
-  public CacheConfigurationBuilder<K, V> withValueSerializer(Class<Serializer<V>> valueSerializerClass) {
+  public CacheConfigurationBuilder<K, V> withValueSerializer(Class<? extends Serializer<V>> valueSerializerClass) {
     if (valueSerializerClass == null) {
       throw new NullPointerException("Null value serializer class");
     }

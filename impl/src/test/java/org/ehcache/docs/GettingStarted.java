@@ -22,7 +22,6 @@ import org.ehcache.CacheManagerBuilder;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
-import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.ResourceType;
@@ -39,8 +38,6 @@ import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.docs.plugs.StringSerializer;
 import org.ehcache.event.EventType;
 import org.ehcache.internal.copy.ReadWriteCopier;
-import org.ehcache.spi.copy.Copier;
-import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 
 import java.io.File;
@@ -166,8 +163,8 @@ public class GettingStarted {
     // tag::cacheSerializers[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
-        .withKeySerializer((Serializer) new LongSerializer()) // <1>
-        .withValueSerializer((Serializer) new CharSequenceSerializer()) // <2>
+        .withKeySerializer(new LongSerializer()) // <1>
+        .withValueSerializer(new CharSequenceSerializer()) // <2>
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -212,7 +209,7 @@ public class GettingStarted {
 
     final Cache<Long, String> writeThroughCache = cacheManager.createCache("writeThroughCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-            .withLoaderWriter((SampleLoaderWriter) new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero"))) // <1>
+            .withLoaderWriter(new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero"))) // <1>
             .build());
     
     assertThat(writeThroughCache.get(41L), is("zero"));
@@ -230,7 +227,7 @@ public class GettingStarted {
 
     final Cache<Long, String> writeBehindCache = cacheManager.createCache("writeBehindCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-            .withLoaderWriter((SampleLoaderWriter) new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero"))) // <1>
+            .withLoaderWriter(new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero"))) // <1>
             .add(WriteBehindConfigurationBuilder // <2>
                 .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)// <3>
                 .queueSize(3)// <4>
@@ -291,8 +288,8 @@ public class GettingStarted {
     // tag::cacheCopiers[]
     CacheConfiguration<Description, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Description.class, Person.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
-        .withKeyCopier((Copier) new DescriptionCopier()) // <1>
-        .withValueCopier((Copier) new PersonCopier()) // <2>
+        .withKeyCopier(new DescriptionCopier()) // <1>
+        .withValueCopier(new PersonCopier()) // <2>
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -373,8 +370,8 @@ public class GettingStarted {
     // tag::cacheServiceConfigurations[]
     CacheConfiguration<Description, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Description.class, Person.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
-        .withKeyCopier((Class) DescriptionCopier.class) // <1>
-        .withValueCopier((Copier) new PersonCopier()) // <2>
+        .withKeyCopier(DescriptionCopier.class) // <1>
+        .withValueCopier(new PersonCopier()) // <2>
         .build();
     // end::cacheServiceConfigurations[]
 
@@ -396,7 +393,7 @@ public class GettingStarted {
   public void cacheEvictionVeto() throws Exception {
     // tag::cacheEvictionVeto[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withEvictionVeto((EvictionVeto) new OddKeysEvictionVeto<Long, String>()) // <1>
+        .withEvictionVeto(new OddKeysEvictionVeto<Long, String>()) // <1>
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
             .heap(2L, EntryUnit.ENTRIES)) // <2>
         .build();
