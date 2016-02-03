@@ -310,16 +310,15 @@ public class GettingStarted {
   }
 
   @Test
-  public void configuringEventProcessingQueues() {
+  public void configuringEventProcessing() {
     CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
         .newEventListenerConfiguration(ListenerObject.class, EventType.EVICTED).ordered().synchronous();
     // tag::configuringEventProcessingQueues[]
-    // TODO Replace with new prop ... location TBD
-//    CacheEventDispatcherConfiguration notificationConfiguration = CacheEventNotificationServiceConfigurationBuilder
-//        .withEventProcessingQueueCount(10).build();  // <1>
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(5L, EntryUnit.ENTRIES).build())
-        .build();  // <2>
+        .withOrderedEventParallelism(10) // <1>
+        .withListenersThreadPoolAlias("listeners-pool")
+        .build();
     // end::configuringEventProcessingQueues[]
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
         .build(true);

@@ -171,9 +171,7 @@ Eviction and expiration events can be triggered by both internal processes and b
 include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=configuringEventProcessingQueues]
 ----
 
-<1> Create a `CacheEventNotificationServiceConfiguration` using a builder indication the number of
-    event processing queues.
-<2> Pass this configuration to the cache configuration
+<1> Simply specify over how many buckets should ordered events be spread
 
 ==== Cache with Eviction veto
 

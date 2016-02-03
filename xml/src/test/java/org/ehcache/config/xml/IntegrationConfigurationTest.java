@@ -26,9 +26,12 @@ import com.pany.ehcache.integration.TestSecondCacheEventListener;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.event.DefaultCacheEventDispatcherConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.event.EventType;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -172,6 +175,19 @@ public class IntegrationConfigurationTest {
     assertThat(TestCacheEventListener.FIRED_EVENT, nullValue());
     templateCache.put(10, "dog");
     assertThat(TestCacheEventListener.FIRED_EVENT.getType(), is(EventType.UPDATED));
+  }
+
+  @Test
+  public void testCacheEventListenerThreadPoolName() throws Exception {
+    Configuration configuration = new XmlConfiguration(this.getClass().getResource("/configs/ehcache-cacheEventListener.xml"));
+    CacheConfiguration<?, ?> template1 = configuration.getCacheConfigurations().get("template1");
+    DefaultCacheEventDispatcherConfiguration eventDispatcherConfig = null;
+    for (ServiceConfiguration<?> serviceConfiguration : template1.getServiceConfigurations()) {
+      if (serviceConfiguration instanceof DefaultCacheEventDispatcherConfiguration) {
+        eventDispatcherConfig = (DefaultCacheEventDispatcherConfiguration) serviceConfiguration;
+      }
+    }
+    assertThat(eventDispatcherConfig.getThreadPoolAlias(), is("listeners-pool"));
   }
 
   @Test

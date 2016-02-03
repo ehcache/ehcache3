@@ -290,39 +290,19 @@ class ConfigurationParser {
           }
 
           @Override
-          public Iterable<Listener> listeners() {
-            Set<Listener> cacheListenerSet = new HashSet<Listener>();
+          public ListenersConfig listenersConfig() {
+            ListenersType base = null;
+            ArrayList<ListenersType> additionals = new ArrayList<ListenersType>();
             for (BaseCacheType source : sources) {
-              final ListenersType integration = source.getListeners();
-              final List<ListenersType.Listener> listeners = integration != null ? integration.getListener() : null;
-              if (listeners != null) {
-                for (final ListenersType.Listener listener : listeners) {
-                  cacheListenerSet.add(new Listener() {
-                    @Override
-                    public String className() {
-                      return listener.getClazz();
-                    }
-
-                    @Override
-                    public EventFiringType eventFiring() {
-                      return listener.getEventFiringMode();
-                    }
-
-                    @Override
-                    public EventOrderingType eventOrdering() {
-                      return listener.getEventOrderingMode();
-                    }
-
-                    @Override
-                    public List<EventType> fireOn() {
-                      return listener.getEventsToFireOn();
-                    }
-                  });
+              if (source.getListeners() != null) {
+                if (base == null) {
+                  base = source.getListeners();
+                } else {
+                  additionals.add(source.getListeners());
                 }
-                break;
               }
             }
-            return !cacheListenerSet.isEmpty() ? cacheListenerSet : null;
+            return base != null ? new XmlListenersConfig(base, additionals.toArray(new ListenersType[0])) : null;
           }
 
 
@@ -495,36 +475,9 @@ class ConfigurationParser {
           }
 
           @Override
-          public Iterable<Listener> listeners() {
-            Set<Listener> listenerSet = new HashSet<Listener>();
+          public ListenersConfig listenersConfig() {
             final ListenersType integration = cacheTemplate.getListeners();
-            final List<ListenersType.Listener> listeners = integration != null ? integration.getListener(): null;
-            if(listeners != null) {
-              for(final ListenersType.Listener listener : listeners) {
-                listenerSet.add(new Listener() {
-                  @Override
-                  public String className() {
-                    return listener.getClazz();
-                  }
-
-                  @Override
-                  public EventFiringType eventFiring() {
-                    return listener.getEventFiringMode();
-                  }
-
-                  @Override
-                  public EventOrderingType eventOrdering() {
-                    return listener.getEventOrderingMode();
-                  }
-
-                  @Override
-                  public List<EventType> fireOn() {
-                    return listener.getEventsToFireOn();
-                  }
-                });
-              }
-            }
-            return !listenerSet.isEmpty() ? listenerSet : null;
+            return integration != null ? new XmlListenersConfig(integration) : null;
           }
 
           @Override
@@ -654,7 +607,7 @@ class ConfigurationParser {
 
     String loaderWriter();
 
-    Iterable<Listener> listeners();
+    ListenersConfig listenersConfig();
 
     Iterable<ServiceConfiguration<?>> serviceConfigs();
 
@@ -669,6 +622,15 @@ class ConfigurationParser {
 
     String id();
 
+  }
+
+  interface ListenersConfig {
+
+    int parallelismLevel();
+
+    String threadPool();
+
+    Iterable<Listener> listeners();
   }
 
   interface Listener {
@@ -726,6 +688,74 @@ class ConfigurationParser {
     int writerConcurrency();
     
     String threadPool();
+  }
+
+  private static class XmlListenersConfig implements ListenersConfig {
+
+    final int parallelismLevel;
+    final String threadPool;
+    final Iterable<Listener> listeners;
+
+    private XmlListenersConfig(final ListenersType type, final ListenersType... others) {
+      this.parallelismLevel = type.getParallelismLevel().intValue();
+      String threadPool = type.getThreadPool();
+      Set<Listener> listenerSet = new HashSet<Listener>();
+      final List<ListenersType.Listener> xmlListeners = type != null ? type.getListener(): null;
+      extractListeners(listenerSet, xmlListeners);
+
+      for (ListenersType other : others) {
+        if (threadPool == null && other.getThreadPool() != null) {
+          threadPool = other.getThreadPool();
+        }
+        extractListeners(listenerSet, other.getListener());
+      }
+
+      this.threadPool = threadPool;
+      this.listeners = !listenerSet.isEmpty() ? listenerSet : null;
+    }
+
+    private void extractListeners(Set<Listener> listenerSet, List<ListenersType.Listener> xmlListeners) {
+      if(xmlListeners != null) {
+        for(final ListenersType.Listener listener : xmlListeners) {
+          listenerSet.add(new Listener() {
+            @Override
+            public String className() {
+              return listener.getClazz();
+            }
+
+            @Override
+            public EventFiringType eventFiring() {
+              return listener.getEventFiringMode();
+            }
+
+            @Override
+            public EventOrderingType eventOrdering() {
+              return listener.getEventOrderingMode();
+            }
+
+            @Override
+            public List<EventType> fireOn() {
+              return listener.getEventsToFireOn();
+            }
+          });
+        }
+      }
+    }
+
+    @Override
+    public int parallelismLevel() {
+      return parallelismLevel;
+    }
+
+    @Override
+    public String threadPool() {
+      return threadPool;
+    }
+
+    @Override
+    public Iterable<Listener> listeners() {
+      return listeners;
+    }
   }
 
   private static class XmlExpiry implements Expiry {

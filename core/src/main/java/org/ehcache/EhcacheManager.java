@@ -24,6 +24,7 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.RuntimeConfiguration;
 import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.config.StoreEventSourceConfiguration;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
@@ -324,8 +325,16 @@ public class EhcacheManager implements PersistentCacheManager {
         }
       }
     }
-    // TODO replace hard coded int with some config once #705 is done
-    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<K, V>(config, 4, keySerializer, valueSerializer);
+    int eventParallelism;
+    StoreEventSourceConfiguration eventSourceConfiguration = ServiceLocator.findSingletonAmongst(StoreEventSourceConfiguration.class, config
+        .getServiceConfigurations()
+        .toArray());
+    if (eventSourceConfiguration != null) {
+      eventParallelism = eventSourceConfiguration.getOrderedEventParallelism();
+    } else {
+      eventParallelism = StoreEventSourceConfiguration.DEFAULT_EVENT_PARALLELISM;
+    }
+    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<K, V>(config, eventParallelism, keySerializer, valueSerializer);
     final Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigs);
 
     lifeCycledList.add(new LifeCycled() {

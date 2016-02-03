@@ -18,6 +18,8 @@ package org.ehcache.config;
 
 import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
+import org.ehcache.config.event.DefaultCacheEventDispatcherConfiguration;
+import org.ehcache.config.event.DefaultEventSourceConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.units.EntryUnit;
@@ -236,6 +238,28 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     }
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
     otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<V>(valueSerializerClass, SerializerConfiguration.Type.VALUE));
+    return otherBuilder;
+  }
+
+  public CacheConfigurationBuilder<K, V> withOrderedEventParallelism(int eventParallelism) {
+    DefaultEventSourceConfiguration configuration = new DefaultEventSourceConfiguration(eventParallelism);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    DefaultEventSourceConfiguration existingServiceConfiguration = getExistingServiceConfiguration(DefaultEventSourceConfiguration.class);
+    if (existingServiceConfiguration != null) {
+      otherBuilder.serviceConfigurations.remove(existingServiceConfiguration);
+    }
+    otherBuilder.serviceConfigurations.add(configuration);
+    return otherBuilder;
+  }
+
+  public CacheConfigurationBuilder<K, V> withListenersThreadPoolAlias(String threadPoolAlias) {
+    DefaultCacheEventDispatcherConfiguration configuration = new DefaultCacheEventDispatcherConfiguration(threadPoolAlias);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    DefaultCacheEventDispatcherConfiguration existingServiceConfiguration = getExistingServiceConfiguration(DefaultCacheEventDispatcherConfiguration.class);
+    if (existingServiceConfiguration != null) {
+      otherBuilder.serviceConfigurations.remove(existingServiceConfiguration);
+    }
+    otherBuilder.serviceConfigurations.add(configuration);
     return otherBuilder;
   }
 

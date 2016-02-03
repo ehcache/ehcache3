@@ -62,9 +62,6 @@ public class EventNotificationTest {
 
   @Test
   public void testNotificationForCacheOperations() throws InterruptedException {
-    // TODO replace with prop ... location TBD
-//    CacheEventDispatcherConfiguration notificationConfiguration = CacheEventNotificationServiceConfigurationBuilder
-//        .withEventProcessingQueueCount(10).build();
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
             .heap(5L, EntryUnit.ENTRIES).build()).build();

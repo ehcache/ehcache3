@@ -16,10 +16,12 @@
 package org.ehcache.internal.events;
 
 import org.ehcache.config.event.CacheEventDispatcherFactoryConfiguration;
+import org.ehcache.config.event.DefaultCacheEventDispatcherConfiguration;
 import org.ehcache.events.CacheEventDispatcherFactory;
 import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.events.CacheEventDispatcherImpl;
 import org.ehcache.events.DisabledCacheEventNotificationService;
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ExecutionService;
@@ -63,11 +65,16 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
 
   @Override
   public <K, V> CacheEventDispatcher<K, V> createCacheEventDispatcher(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs) {
+    String tPAlias = threadPoolAlias;
+    DefaultCacheEventDispatcherConfiguration config = ServiceLocator.findSingletonAmongst(DefaultCacheEventDispatcherConfiguration.class, serviceConfigs);
+    if (config != null) {
+      tPAlias = config.getThreadPoolAlias();
+    }
     if (getUnorderedExecutor() == null) {
       // TODO when do we actually get there? And if no longer, should we?
       return new DisabledCacheEventNotificationService<K, V>();
     } else {
-      return new CacheEventDispatcherImpl<K, V>(store, getUnorderedExecutor(), executionService.getOrderedExecutor(threadPoolAlias, new LinkedBlockingQueue<Runnable>()));
+      return new CacheEventDispatcherImpl<K, V>(store, getUnorderedExecutor(), executionService.getOrderedExecutor(tPAlias, new LinkedBlockingQueue<Runnable>()));
     }
   }
 
