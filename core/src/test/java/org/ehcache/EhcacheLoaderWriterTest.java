@@ -28,8 +28,9 @@ import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
+import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.ResourcePoolsHelper;
 import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoadingException;
@@ -59,8 +60,7 @@ public class EhcacheLoaderWriterTest {
   public void setUp() throws Exception {
     store = mock(Store.class);
     CacheLoaderWriter<Number, String> loaderWriter = mock(CacheLoaderWriter.class);
-    final CacheConfiguration<Number, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .buildConfig(Number.class, String.class);
+    final CacheConfiguration<Number, String> config = new BaseCacheConfiguration<Number, String>(Number.class, String.class, null, null, null, ResourcePoolsHelper.createHeapOnlyPools());
     CacheEventDispatcher<Number, String> notifier = mock(CacheEventDispatcher.class);
     cache = new Ehcache<Number, String>(
         config, store, loaderWriter, notifier, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheLoaderWriterTest"));

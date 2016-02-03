@@ -16,7 +16,9 @@
 
 package org.ehcache;
 
+import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.ResourcePoolsHelper;
 import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.BulkCacheWritingException;
@@ -45,7 +47,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
@@ -66,8 +67,8 @@ public class EhcacheTest {
   @Test
   public void testTransistionsState() {
     Store store = mock(Store.class);
-    final CacheConfiguration<Object, Object> config = newCacheConfigurationBuilder()
-        .buildConfig(Object.class, Object.class);
+    final CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null,
+        null, null, ResourcePoolsHelper.createHeapOnlyPools());
     CacheEventDispatcher<Object, Object> cacheEventDispatcher = mock(CacheEventDispatcher.class);
 
     Ehcache ehcache = new Ehcache(config, store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest"));
@@ -83,8 +84,8 @@ public class EhcacheTest {
     Store store = mock(Store.class);
     Store.Iterator mockIterator = mock(Store.Iterator.class);
     when(store.iterator()).thenReturn(mockIterator);
-    final CacheConfiguration<Object, Object> config = newCacheConfigurationBuilder()
-        .buildConfig(Object.class, Object.class);
+    final CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null,
+        null, null, ResourcePoolsHelper.createHeapOnlyPools());
     CacheEventDispatcher<Object, Object> cacheEventDispatcher = mock(CacheEventDispatcher.class);
     Ehcache ehcache = new Ehcache(config, store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest1"));
 
@@ -204,8 +205,8 @@ public class EhcacheTest {
 
   @Test
   public void testDelegatesLifecycleCallsToStore() throws Exception {
-    final CacheConfiguration<Object, Object> config = newCacheConfigurationBuilder()
-        .buildConfig(Object.class, Object.class);
+    final CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null,
+        null, null, ResourcePoolsHelper.createHeapOnlyPools());
     CacheEventDispatcher<Object, Object> cacheEventDispatcher = mock(CacheEventDispatcher.class);
     Ehcache ehcache = new Ehcache(config, mock(Store.class), cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest2"));
     final LifeCycled mock = mock(LifeCycled.class);
@@ -219,8 +220,8 @@ public class EhcacheTest {
   @Test
   public void testFailingTransitionGoesToLowestStatus() throws Exception {
     final LifeCycled mock = mock(LifeCycled.class);
-    final CacheConfiguration<Object, Object> config = newCacheConfigurationBuilder()
-        .buildConfig(Object.class, Object.class);
+    final CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null,
+        null, null, ResourcePoolsHelper.createHeapOnlyPools());
     CacheEventDispatcher<Object, Object> cacheEventDispatcher = mock(CacheEventDispatcher.class);
     Ehcache ehcache = new Ehcache(config, mock(Store.class), cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest3"));
     doThrow(new Exception()).when(mock).init();
@@ -295,8 +296,8 @@ public class EhcacheTest {
         };
       }
     });
-    final CacheConfiguration<Object, Object> config = newCacheConfigurationBuilder()
-        .buildConfig(Object.class, Object.class);
+    final CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null,
+        null, null, ResourcePoolsHelper.createHeapOnlyPools());
     CacheEventDispatcher<Object, Object> cacheEventDispatcher = mock(CacheEventDispatcher.class);
     Ehcache<Object, Object> ehcache = new Ehcache<Object, Object>(
         config, store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest4"));
@@ -310,8 +311,8 @@ public class EhcacheTest {
   @Test
   public void testInvokesHooks() {
     Store store = mock(Store.class);
-    final CacheConfiguration<Object, Object> config = newCacheConfigurationBuilder()
-        .buildConfig(Object.class, Object.class);
+    final CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null,
+        null, null, ResourcePoolsHelper.createHeapOnlyPools());
     CacheEventDispatcher<Object, Object> cacheEventDispatcher = mock(CacheEventDispatcher.class);
     Ehcache ehcache = new Ehcache(config, store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest5"));
 
@@ -343,8 +344,9 @@ public class EhcacheTest {
     LoadAllVerifyStore store = new LoadAllVerifyStore();
     KeyFumblingCacheLoaderWriter loader = new KeyFumblingCacheLoaderWriter();
     CacheEventDispatcher<String, String> cacheEventDispatcher = mock(CacheEventDispatcher.class);
-    Ehcache<String, String> ehcache = new Ehcache<String, String>(newCacheConfigurationBuilder()
-        .buildConfig(String.class, String.class), store, loader, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest6"));
+    CacheConfiguration<String, String> config = new BaseCacheConfiguration<String, String>(String.class, String.class, null,
+        null, null, ResourcePoolsHelper.createHeapOnlyPools());
+    Ehcache<String, String> ehcache = new Ehcache<String, String>(config, store, loader, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest6"));
     ehcache.init();
 
     HashSet<String> keys = new HashSet<String>();

@@ -15,8 +15,9 @@
  */
 package org.ehcache;
 
+import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.ResourcePoolsHelper;
 import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.BulkCacheLoadingException;
@@ -53,12 +54,12 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.spy;
 
@@ -70,7 +71,8 @@ import static org.mockito.Mockito.spy;
 public abstract class EhcacheBasicCrudBase {
 
   protected static final CacheConfiguration<String, String> CACHE_CONFIGURATION =
-      CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(String.class, String.class);
+      new BaseCacheConfiguration<String, String>(String.class, String.class, null,
+          null, null, ResourcePoolsHelper.createHeapOnlyPools());
 
   @Mock
   protected Store<String, String> store;

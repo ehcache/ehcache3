@@ -15,8 +15,15 @@
  */
 package org.ehcache.config;
 
-import static java.util.Arrays.asList;
+import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.units.MemoryUnit;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import java.util.Collection;
+import java.util.Collections;
+
+import static java.util.Arrays.asList;
 import static org.ehcache.config.ResourcePoolsImpl.validateResourcePools;
 import static org.ehcache.config.ResourceType.Core.HEAP;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
@@ -26,7 +33,6 @@ import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import org.junit.Test;
 
 /**
  *
@@ -135,4 +141,66 @@ public class ResourcePoolsImplTest {
       assertThat(e.getMessage(), is("Tiering Inversion: 'Pool {10241 kB heap}' is not smaller than 'Pool {10 MB offheap}'"));
     }
   }
+
+  @Test
+  public void testAddingNewTierWhileUpdating() {
+    ResourcePools existing = new ResourcePoolsImpl(Collections.singletonMap((ResourceType) ResourceType.Core.HEAP, (ResourcePool) new ResourcePoolImpl(ResourceType.Core.HEAP, 10L, EntryUnit.ENTRIES, false)));
+    ResourcePools toBeUpdated = new ResourcePoolsImpl(Collections.singletonMap((ResourceType) ResourceType.Core.DISK, (ResourcePool) new ResourcePoolImpl(ResourceType.Core.DISK, 10L, MemoryUnit.MB, false)));
+    try {
+      existing.validateAndMerge(toBeUpdated);
+      fail();
+    } catch (IllegalArgumentException iae) {
+      assertThat(iae.getMessage(), Matchers.is("Pools to be updated cannot contain previously undefined resources pools"));
+    }
+  }
+
+  @Test
+  public void testUpdatingOffHeap() {
+    ResourcePools existing = ResourcePoolsHelper.createOffheapOnlyPools(10);
+    ResourcePools toBeUpdated = ResourcePoolsHelper.createOffheapOnlyPools(50);
+    try {
+      existing.validateAndMerge(toBeUpdated);
+      fail();
+    } catch (UnsupportedOperationException uoe) {
+      assertThat(uoe.getMessage(), Matchers.is("Updating OFFHEAP resource is not supported"));
+    }
+  }
+
+  @Test
+  public void testUpdatingDisk() {
+    ResourcePools existing = ResourcePoolsHelper.createDiskOnlyPools(10, MB);
+    ResourcePools toBeUpdated = ResourcePoolsHelper.createDiskOnlyPools(50, MB);
+    try {
+      existing.validateAndMerge(toBeUpdated);
+      fail();
+    } catch (UnsupportedOperationException uoe) {
+      assertThat(uoe.getMessage(), Matchers.is("Updating DISK resource is not supported"));
+    }
+  }
+
+  @Test
+  public void testUpdateResourceUnitSuccess() {
+    ResourcePools existing = ResourcePoolsHelper.createHeapDiskPools(200, MB, 4096);
+    ResourcePools toBeUpdated = ResourcePoolsHelper.createHeapOnlyPools(2, MemoryUnit.GB);
+
+    existing = existing.validateAndMerge(toBeUpdated);
+    assertThat(existing.getPoolForResource(ResourceType.Core.HEAP).getSize(), Matchers.is(2L));
+    assertThat(existing.getPoolForResource(ResourceType.Core.HEAP).getUnit(), Matchers.<ResourceUnit>is(MemoryUnit.GB));
+  }
+
+  @Test
+  public void testUpdateResourceUnitFailure() {
+    ResourcePools existing = ResourcePoolsHelper.createHeapDiskPools(20, MB, 200);
+    ResourcePools toBeUpdated = ResourcePoolsHelper.createHeapOnlyPools(500, EntryUnit.ENTRIES);
+
+    try {
+      existing = existing.validateAndMerge(toBeUpdated);
+      fail();
+    } catch (UnsupportedOperationException uoe) {
+      assertThat(uoe.getMessage(), Matchers.is("Modifying ResourceUnit type is not supported"));
+    }
+    assertThat(existing.getPoolForResource(ResourceType.Core.HEAP).getSize(), Matchers.is(20L));
+    assertThat(existing.getPoolForResource(ResourceType.Core.HEAP).getUnit(), Matchers.<ResourceUnit>is(MemoryUnit.MB));
+  }
+
 }

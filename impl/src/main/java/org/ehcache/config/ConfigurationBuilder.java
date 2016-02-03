@@ -87,6 +87,15 @@ public class ConfigurationBuilder {
     return new ConfigurationBuilder(this, newServiceConfigurations);
   }
 
+  public <T> T findServiceByClass(Class<T> type) {
+    for (ServiceCreationConfiguration<?> serviceConfiguration : serviceConfigurations) {
+      if (serviceConfiguration.getClass().equals(type)) {
+        return (T) serviceConfiguration;
+      }
+    }
+    return null;
+  }
+
   public ConfigurationBuilder removeService(ServiceCreationConfiguration<?> serviceConfiguration) {
     List<ServiceCreationConfiguration<?>> newServiceConfigurations = new ArrayList<ServiceCreationConfiguration<?>>(serviceConfigurations);
     newServiceConfigurations.remove(serviceConfiguration);

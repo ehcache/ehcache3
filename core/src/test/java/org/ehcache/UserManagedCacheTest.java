@@ -24,6 +24,10 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
+import org.ehcache.config.BaseCacheConfiguration;
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.ResourcePoolsHelper;
+import org.ehcache.events.DisabledCacheEventNotificationService;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.ServiceLocator;
@@ -32,6 +36,7 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.Configuration;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class UserManagedCacheTest {
@@ -39,10 +44,8 @@ public class UserManagedCacheTest {
   @Test
   public void testUserManagedCacheDelegatesLifecycleCallsToStore() throws Exception {
     final Store store = mock(Store.class);
-    Store.Provider storeProvider = spy(new TestStoreProvider(store));
-    ServiceLocator locator = new ServiceLocator(storeProvider);
-    
-    Ehcache ehcache = (Ehcache) UserManagedCacheBuilder.newUserManagedCacheBuilder(Object.class, Object.class).identifier("UserManagedCacheTest").build(locator);
+    CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapOnlyPools());
+    Ehcache ehcache = new Ehcache(config, store, new DisabledCacheEventNotificationService(), LoggerFactory.getLogger("testUserManagedCacheDelegatesLifecycleCallsToStore"));
     final LifeCycled mock = mock(LifeCycled.class);
     ehcache.addHook(mock);
     ehcache.init();
@@ -56,7 +59,8 @@ public class UserManagedCacheTest {
     final Store store = mock(Store.class);
     Store.Provider storeProvider = spy(new TestStoreProvider(store));
     ServiceLocator locator = new ServiceLocator(storeProvider);
-    Ehcache ehcache = (Ehcache) UserManagedCacheBuilder.newUserManagedCacheBuilder(Object.class, Object.class).identifier("UserManagedCacheTest").build(locator);
+    CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapOnlyPools());
+    Ehcache ehcache = new Ehcache(config, store, new DisabledCacheEventNotificationService(), LoggerFactory.getLogger("testUserManagedEhcacheFailingTransitionGoesToLowestStatus"));
     final LifeCycled mock = mock(LifeCycled.class);
     ehcache.addHook(mock);
     doThrow(new Exception()).when(mock).init();

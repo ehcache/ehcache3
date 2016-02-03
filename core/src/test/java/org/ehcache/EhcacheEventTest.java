@@ -16,21 +16,9 @@
 
 package org.ehcache;
 
-import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
-import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.argThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-
+import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.ResourcePoolsHelper;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.EventType;
 import org.ehcache.events.CacheEventDispatcher;
@@ -62,7 +50,20 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.argThat;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class EhcacheEventTest {
@@ -77,8 +78,7 @@ public class EhcacheEventTest {
     eventNotifier = mock(CacheEventDispatcher.class);
     CacheLoaderWriter<Number, String> loaderWriter = mock(CacheLoaderWriter.class);
 
-    final CacheConfiguration<Number, String> cacheConfiguration = newCacheConfigurationBuilder()
-        .buildConfig(Number.class, String.class);
+    final CacheConfiguration<Number, String> cacheConfiguration = new BaseCacheConfiguration<Number, String>(Number.class, String.class, null, null, null, ResourcePoolsHelper.createHeapOnlyPools());
     cache = new Ehcache<Number, String>(
         cacheConfiguration, store, loaderWriter, eventNotifier, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheEventTest"));
     cache.init();
@@ -92,9 +92,7 @@ public class EhcacheEventTest {
 
   @Test
   public void testImmediatelyExpiringEntry() throws Exception {
-    final CacheConfiguration<Number, String> configuration = newCacheConfigurationBuilder()
-        .withExpiry(Expirations.timeToLiveExpiration(Duration.ZERO))
-        .buildConfig(Number.class, String.class);
+    final CacheConfiguration<Number, String> configuration = new BaseCacheConfiguration<Number, String>(Number.class, String.class, null, null, Expirations.timeToLiveExpiration(Duration.ZERO), ResourcePoolsHelper.createHeapOnlyPools());
     Ehcache<Number, String> cache = new Ehcache<Number, String>(
         configuration, store, null, eventNotifier, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheEventTest-testImmediatelyExpiringEntry"));
     cache.init();

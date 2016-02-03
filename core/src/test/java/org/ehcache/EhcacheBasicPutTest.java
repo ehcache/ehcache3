@@ -15,6 +15,8 @@
  */
 package org.ehcache;
 
+import org.ehcache.config.BaseCacheConfiguration;
+import org.ehcache.config.ResourcePoolsHelper;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -28,7 +30,6 @@ import java.util.Collections;
 import java.util.EnumSet;
 import org.ehcache.config.CacheConfiguration;
 
-import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 
@@ -577,7 +578,9 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
   }
 
   private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<String, String> expiry) {
-    return getEhcache(cacheLoaderWriter, newCacheConfigurationBuilder().withExpiry(expiry).buildConfig(String.class, String.class));
+    BaseCacheConfiguration<String, String> config = new BaseCacheConfiguration<String, String>(String.class, String.class, null,
+        null, expiry, ResourcePoolsHelper.createHeapOnlyPools());
+    return getEhcache(cacheLoaderWriter, config);
   }
   
   private Ehcache<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter, CacheConfiguration<String, String> config) {

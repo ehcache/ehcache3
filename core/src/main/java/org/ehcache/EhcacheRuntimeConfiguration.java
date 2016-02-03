@@ -27,7 +27,6 @@ import org.ehcache.event.EventType;
 import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.util.ResourcePoolMerger;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -75,8 +74,7 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
       throw new NullPointerException("Pools to be updated cannot be null");
     }
 
-    ResourcePoolMerger poolMerger = new ResourcePoolMerger();
-    ResourcePools updatedResourcePools = poolMerger.validateAndMerge(config.getResourcePools(), pools);
+    ResourcePools updatedResourcePools = config.getResourcePools().validateAndMerge(pools);
     fireCacheConfigurationChange(CacheConfigurationProperty.UPDATESIZE, config.getResourcePools(), updatedResourcePools);
     this.resourcePools = updatedResourcePools;
   }

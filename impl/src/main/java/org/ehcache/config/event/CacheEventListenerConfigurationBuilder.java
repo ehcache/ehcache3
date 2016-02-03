@@ -35,10 +35,18 @@ public class CacheEventListenerConfigurationBuilder implements Builder<CacheEven
   private Object[] listenerArguments = new Object[0];
   private final EnumSet<EventType> eventsToFireOn;
   private final Class<? extends CacheEventListener<?, ?>> listenerClass;
+  private final CacheEventListener<?, ?> listenerInstance;
 
   private CacheEventListenerConfigurationBuilder(EnumSet<EventType> eventsToFireOn, Class<? extends CacheEventListener<?, ?>> listenerClass) {
     this.eventsToFireOn = eventsToFireOn;
     this.listenerClass = listenerClass;
+    this.listenerInstance = null;
+  }
+
+  private CacheEventListenerConfigurationBuilder(EnumSet<EventType> eventsToFireOn, CacheEventListener<?, ?> listenerInstance) {
+    this.eventsToFireOn = eventsToFireOn;
+    this.listenerClass = null;
+    this.listenerInstance = listenerInstance;
   }
 
   private CacheEventListenerConfigurationBuilder(CacheEventListenerConfigurationBuilder other) {
@@ -46,12 +54,18 @@ public class CacheEventListenerConfigurationBuilder implements Builder<CacheEven
     eventOrdering = other.eventOrdering;
     eventsToFireOn = EnumSet.copyOf(other.eventsToFireOn);
     listenerClass = other.listenerClass;
+    this.listenerInstance = other.listenerInstance;
     listenerArguments = other.listenerArguments;
   }
 
   public static CacheEventListenerConfigurationBuilder newEventListenerConfiguration(
       Class<? extends CacheEventListener<?, ?>> listenerClass, EventType eventType, EventType... eventTypes){
     return new CacheEventListenerConfigurationBuilder(EnumSet.of(eventType, eventTypes), listenerClass);
+  }
+
+  public static CacheEventListenerConfigurationBuilder newEventListenerConfiguration(
+      CacheEventListener<?, ?> listener, EventType eventType, EventType... eventTypes){
+    return new CacheEventListenerConfigurationBuilder(EnumSet.of(eventType, eventTypes), listener);
   }
 
   public static CacheEventListenerConfigurationBuilder newEventListenerConfiguration(
@@ -63,7 +77,19 @@ public class CacheEventListenerConfigurationBuilder implements Builder<CacheEven
     return new CacheEventListenerConfigurationBuilder(EnumSet.copyOf(eventSetToFireOn), listenerClass);
   }
 
+  public static CacheEventListenerConfigurationBuilder newEventListenerConfiguration(
+      CacheEventListener<?, ?> listener,
+      Set<EventType> eventSetToFireOn) throws IllegalArgumentException {
+    if (eventSetToFireOn.isEmpty()) {
+      throw new IllegalArgumentException("EventType Set cannot be empty");
+    }
+    return new CacheEventListenerConfigurationBuilder(EnumSet.copyOf(eventSetToFireOn), listener);
+  }
+
   public CacheEventListenerConfigurationBuilder constructedWith(Object... arguments) {
+    if (this.listenerClass == null) {
+      throw new IllegalArgumentException("Arguments only are meaningful with class-based builder, this one seems to be an instance-based one");
+    }
     CacheEventListenerConfigurationBuilder otherBuilder = new CacheEventListenerConfigurationBuilder(this);
     otherBuilder.listenerArguments = arguments;
     return otherBuilder;
@@ -98,8 +124,12 @@ public class CacheEventListenerConfigurationBuilder implements Builder<CacheEven
   }
 
   public DefaultCacheEventListenerConfiguration build() {
-    DefaultCacheEventListenerConfiguration defaultCacheEventListenerConfiguration
-        = new DefaultCacheEventListenerConfiguration(this.listenerClass, this.listenerArguments);
+    DefaultCacheEventListenerConfiguration defaultCacheEventListenerConfiguration;
+    if (this.listenerClass != null) {
+      defaultCacheEventListenerConfiguration = new DefaultCacheEventListenerConfiguration(this.listenerClass, this.listenerArguments);
+    } else {
+      defaultCacheEventListenerConfiguration = new DefaultCacheEventListenerConfiguration(this.listenerInstance);
+    }
     defaultCacheEventListenerConfiguration.setEventsToFireOn(this.eventsToFireOn);
     if (eventOrdering != null) {
       defaultCacheEventListenerConfiguration.setEventOrderingMode(this.eventOrdering);

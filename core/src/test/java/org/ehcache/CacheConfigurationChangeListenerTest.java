@@ -16,9 +16,9 @@
 
 package org.ehcache;
 
+import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.ResourcePoolsBuilder;
-import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.ResourcePoolsHelper;
 import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -33,8 +33,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
-import org.ehcache.config.units.MemoryUnit;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -55,9 +53,7 @@ public class CacheConfigurationChangeListenerTest {
     this.store = mock(Store.class);
     this.eventNotifier = mock(CacheEventDispatcher.class);
     CacheLoaderWriter<Object, Object> loaderWriter = mock(CacheLoaderWriter.class);
-    this.config = newCacheConfigurationBuilder()
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10L, MemoryUnit.MB).heap(2L, EntryUnit.ENTRIES))
-        .buildConfig(Object.class, Object.class);
+    this.config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapDiskPools(2, 10));
     this.cache = new Ehcache<Object, Object>(config, store, loaderWriter, eventNotifier,
         LoggerFactory.getLogger(Ehcache.class + "-" + "CacheConfigurationListenerTest"));
     cache.init();
@@ -76,8 +72,7 @@ public class CacheConfigurationChangeListenerTest {
         = new ArrayList<CacheConfigurationChangeListener>();
     cacheConfigurationChangeListeners.add(configurationListener);
     this.runtimeConfiguration.addCacheConfigurationListener(cacheConfigurationChangeListeners);
-    this.cache.getRuntimeConfiguration().updateResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-        .heap(10L, EntryUnit.ENTRIES).build());
+    this.cache.getRuntimeConfiguration().updateResourcePools(ResourcePoolsHelper.createHeapOnlyPools(10));
     assertThat(configurationListener.eventSet.size(), is(1) );
   }
 
@@ -88,12 +83,10 @@ public class CacheConfigurationChangeListenerTest {
         = new ArrayList<CacheConfigurationChangeListener>();
     cacheConfigurationChangeListeners.add(configurationListener);
     this.runtimeConfiguration.addCacheConfigurationListener(cacheConfigurationChangeListeners);
-    this.cache.getRuntimeConfiguration().updateResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-        .heap(20L, EntryUnit.ENTRIES).build());
+    this.cache.getRuntimeConfiguration().updateResourcePools(ResourcePoolsHelper.createHeapOnlyPools(20));
     assertThat(configurationListener.eventSet.size(), is(1));
     this.runtimeConfiguration.removeCacheConfigurationListener(configurationListener);
-    this.cache.getRuntimeConfiguration().updateResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-        .heap(5L, EntryUnit.ENTRIES).build());
+    this.cache.getRuntimeConfiguration().updateResourcePools(ResourcePoolsHelper.createHeapOnlyPools(5));
     assertThat(configurationListener.eventSet.size(), is(1) );
   }
 

@@ -19,7 +19,7 @@ import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
+import org.ehcache.config.loaderwriter.writebehind.WriteBehindConfigurationBuilder;
 import org.ehcache.loaderwriter.writebehind.WriteBehindProviderFactory;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
@@ -31,9 +31,8 @@ import org.junit.rules.ExpectedException;
 
 import java.util.Collection;
 import java.util.Map;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
-import static org.hamcrest.core.Is.is;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
 

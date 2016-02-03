@@ -43,8 +43,8 @@ import org.mockito.stubbing.Answer;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.ehcache.config.writebehind.WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration;
-import static org.ehcache.config.writebehind.WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration;
+import static org.ehcache.config.loaderwriter.writebehind.WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration;
+import static org.ehcache.config.loaderwriter.writebehind.WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;

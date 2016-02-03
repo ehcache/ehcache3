@@ -20,8 +20,12 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheManagerConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.ConfigurationBuilder;
+import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
@@ -92,7 +96,31 @@ public class CacheManagerBuilder<T extends CacheManager> {
     newServices.add(service);
     return new CacheManagerBuilder<T>(this, newServices);
   }
-  
+
+  public <C> CacheManagerBuilder<T> withCopier(Class<C> clazz, Class<? extends Copier<C>> copier) {
+    DefaultCopyProviderConfiguration service = configBuilder.findServiceByClass(DefaultCopyProviderConfiguration.class);
+    if (service == null) {
+      service = new DefaultCopyProviderConfiguration();
+      service.addCopierFor(clazz, copier);
+      return new CacheManagerBuilder<T>(this, configBuilder.addService(service));
+    } else {
+      service.addCopierFor(clazz, copier);
+      return this;
+    }
+  }
+
+  public <C> CacheManagerBuilder<T> withSerializer(Class<C> clazz, Class<? extends Serializer<C>> serializer) {
+    DefaultSerializationProviderConfiguration service = configBuilder.findServiceByClass(DefaultSerializationProviderConfiguration.class);
+    if (service == null) {
+      service = new DefaultSerializationProviderConfiguration();
+      service.addSerializerFor(clazz, serializer);
+      return new CacheManagerBuilder<T>(this, configBuilder.addService(service));
+    } else {
+      service.addSerializerFor(clazz, serializer);
+      return this;
+    }
+  }
+
   public CacheManagerBuilder<T> using(ServiceCreationConfiguration<?> service) {
     return new CacheManagerBuilder<T>(this, configBuilder.addService(service));
   }

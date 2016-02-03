@@ -33,8 +33,8 @@ import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.config.store.disk.OffHeapDiskStoreProviderConfiguration;
-import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
-import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
+import org.ehcache.config.loaderwriter.writebehind.WriteBehindConfigurationBuilder;
+import org.ehcache.config.loaderwriter.writebehind.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
 import org.ehcache.config.xml.ConfigurationParser.Batching;
 import org.ehcache.config.xml.ConfigurationParser.WriteBehind;
 import org.ehcache.config.xml.model.CopierType;
@@ -446,7 +446,7 @@ public class XmlConfiguration implements Configuration {
 
     CacheConfigurationBuilder<K, V> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
     builder = builder
-        .evictionVeto(getInstanceOfName(cacheTemplate.evictionVeto(), defaultClassLoader, EvictionVeto.class));
+        .withEvictionVeto(getInstanceOfName(cacheTemplate.evictionVeto(), defaultClassLoader, EvictionVeto.class));
     final ConfigurationParser.Expiry parsedExpiry = cacheTemplate.expiry();
     if (parsedExpiry != null) {
       builder = builder.withExpiry(getExpiry(defaultClassLoader, parsedExpiry));

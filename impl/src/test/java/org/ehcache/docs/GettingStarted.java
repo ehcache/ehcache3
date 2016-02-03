@@ -19,46 +19,34 @@ package org.ehcache.docs;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
-import org.ehcache.Ehcache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.ResourceType;
-import org.ehcache.config.SerializerConfiguration;
-import org.ehcache.config.copy.CopierConfiguration;
-import org.ehcache.config.copy.DefaultCopierConfiguration;
-import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
-import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.config.loaderwriter.writebehind.WriteBehindConfigurationBuilder;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
-import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.config.writebehind.WriteBehindConfigurationBuilder;
-import org.ehcache.event.CacheEvent;
-import org.ehcache.event.CacheEventListener;
+import org.ehcache.docs.plugs.CharSequenceSerializer;
+import org.ehcache.docs.plugs.ListenerObject;
+import org.ehcache.docs.plugs.LongSerializer;
+import org.ehcache.docs.plugs.OddKeysEvictionVeto;
+import org.ehcache.docs.plugs.SampleLoaderWriter;
+import org.ehcache.docs.plugs.StringSerializer;
 import org.ehcache.event.EventType;
-import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.internal.copy.ReadWriteCopier;
-import org.ehcache.internal.copy.SerializingCopier;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.Serializable;
 import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static java.util.Collections.singletonMap;
 import static org.hamcrest.Matchers.equalTo;
@@ -159,12 +147,9 @@ public class GettingStarted {
             .newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB).build())
         .buildConfig(Long.class, String.class);
 
-    DefaultSerializationProviderConfiguration defaultSerializationProviderFactoryConfiguration =
-        new DefaultSerializationProviderConfiguration()
-            .addSerializerFor(String.class, StringSerializer.class);  // <1>
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("cache", cacheConfiguration)
-        .using(defaultSerializationProviderFactoryConfiguration) // <2>
+        .withSerializer(String.class, StringSerializer.class) // <1>
         .build(true);
 
     Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
@@ -180,11 +165,9 @@ public class GettingStarted {
   public void cacheSerializers() throws Exception {
     // tag::cacheSerializers[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
-        .add(new DefaultSerializerConfiguration<Long>(LongSerializer.class,
-            SerializerConfiguration.Type.KEY))  // <1>
-        .add(new DefaultSerializerConfiguration<CharSequence>(CharSequenceSerializer.class,
-            SerializerConfiguration.Type.VALUE))  // <2>
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
+        .withKeySerializer((Serializer) new LongSerializer()) // <1>
+        .withValueSerializer((Serializer) new CharSequenceSerializer()) // <2>
         .buildConfig(Long.class, String.class);
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -204,7 +187,7 @@ public class GettingStarted {
   public void testCacheEventListener() {
     // tag::cacheEventListener[]
     CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
-        .newEventListenerConfiguration(ListenerObject.class, EventType.CREATED, EventType.UPDATED) // <1>
+        .newEventListenerConfiguration(new ListenerObject(), EventType.CREATED, EventType.UPDATED) // <1>
         .unordered().asynchronous(); // <2>
     
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -224,15 +207,12 @@ public class GettingStarted {
 
   @Test
   public void writeThroughCache() throws ClassNotFoundException {
-    
-    // tag::writeThroughCache[]    
+    // tag::writeThroughCache[]
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
-    
-    Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>)  (Class) (SampleLoaderWriter.class);
     
     final Cache<Long, String> writeThroughCache = cacheManager.createCache("writeThroughCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder()
-            .add(new DefaultCacheLoaderWriterConfiguration(klazz, singletonMap(41L, "zero"))) // <1>
+            .withLoaderWriter((SampleLoaderWriter) new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero"))) // <1>
             .buildConfig(Long.class, String.class));
     
     assertThat(writeThroughCache.get(41L), is("zero"));
@@ -245,15 +225,12 @@ public class GettingStarted {
   
   @Test
   public void writeBehindCache() throws ClassNotFoundException {
-    
-    // tag::writeBehindCache[]    
+    // tag::writeBehindCache[]
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
-    
-    Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) (Class) (SampleLoaderWriter.class);
     
     final Cache<Long, String> writeBehindCache = cacheManager.createCache("writeBehindCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder()
-            .add(new DefaultCacheLoaderWriterConfiguration(klazz, singletonMap(41L, "zero"))) // <1>
+            .withLoaderWriter((SampleLoaderWriter) new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero"))) // <1>
             .add(WriteBehindConfigurationBuilder // <2>
                 .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)// <3>
                 .queueSize(3)// <4>
@@ -273,8 +250,9 @@ public class GettingStarted {
 
   @Test
   public void updateResourcesAtRuntime() throws InterruptedException {
+    ListenerObject listener = new ListenerObject();
     CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
-        .newEventListenerConfiguration(ListenerObject.class, EventType.EVICTED).unordered().synchronous();
+        .newEventListenerConfiguration(listener, EventType.EVICTED).unordered().synchronous();
 
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
         .add(cacheEventListenerConfiguration)
@@ -288,10 +266,10 @@ public class GettingStarted {
     for(long i = 0; i < 20; i++ ){
       cache.put(i, "Hello World");
     }
-    assertThat(ListenerObject.evicted, is(10));
+    assertThat(listener.evicted(), is(10));
 
     cache.clear();
-    ListenerObject.resetEvictionCount();
+    listener.resetEvictionCount();
 
     // tag::updateResourcesAtRuntime[]
     ResourcePools pools = ResourcePoolsBuilder.newResourcePoolsBuilder().heap(20L, EntryUnit.ENTRIES).build(); // <1>
@@ -303,7 +281,7 @@ public class GettingStarted {
     for(long i = 0; i < 20; i++ ){
       cache.put(i, "Hello World");
     }
-    assertThat(ListenerObject.evicted, is(0));
+    assertThat(listener.evicted(), is(0));
 
     cacheManager.close();
   }
@@ -312,11 +290,9 @@ public class GettingStarted {
   public void cacheCopiers() throws Exception {
     // tag::cacheCopiers[]
     CacheConfiguration<Description, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
-        .add(new DefaultCopierConfiguration<Description>(DescriptionCopier.class,
-            CopierConfiguration.Type.KEY))  // <1>
-        .add(new DefaultCopierConfiguration<Person>(PersonCopier.class,
-            CopierConfiguration.Type.VALUE))  // <2>
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
+        .withKeyCopier((Copier) new DescriptionCopier()) // <1>
+        .withValueCopier((Copier) new PersonCopier()) // <2>
         .buildConfig(Description.class, Person.class);
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -339,8 +315,7 @@ public class GettingStarted {
     // tag::cacheSerializingCopiers[]
     CacheConfiguration<Long, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
-        .add(new DefaultCopierConfiguration<Person>((Class)SerializingCopier.class,   //<1>
-            CopierConfiguration.Type.VALUE))
+        .withValueSerializingCopier() // <1>
         .buildConfig(Long.class, Person.class);
     // end::cacheSerializingCopiers[]
 
@@ -352,9 +327,9 @@ public class GettingStarted {
 
     Description desc = new Description(1234, "foo");
     Person person = new Person("Bar", 24);
-    cache.put(1l, person);
-    assertThat(cache.get(1l), equalTo(person));
-    assertThat(cache.get(1l), not(sameInstance(person)));
+    cache.put(1L, person);
+    assertThat(cache.get(1L), equalTo(person));
+    assertThat(cache.get(1L), not(sameInstance(person)));
 
     cacheManager.close();
   }
@@ -370,12 +345,9 @@ public class GettingStarted {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .buildConfig(Long.class, Person.class);
 
-    DefaultCopyProviderConfiguration defaultCopierConfig = new DefaultCopyProviderConfiguration()
-        .addCopierFor(Description.class, DescriptionCopier.class)   //<1>
-        .addCopierFor(Person.class, (Class) SerializingCopier.class);
-
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .using(defaultCopierConfig)   //<2>
+        .withCopier(Description.class, DescriptionCopier.class) // <1>
+        .withCopier(Person.class, PersonCopier.class)
         .withCache("cache", cacheConfiguration)   //<3>
         .withCache("anotherCache", anotherCacheConfiguration)   //<4>
         .build(true);
@@ -387,23 +359,22 @@ public class GettingStarted {
     Person person = new Person("Bar", 24);
     cache.put(desc, person);
     assertThat(cache.get(desc), equalTo(person));
+    assertThat(cache.get(desc), is(not(sameInstance(person))));
 
-    anotherCache.put(1l, person);
-    assertThat(anotherCache.get(1l), equalTo(person));
+    anotherCache.put(1L, person);
+    assertThat(anotherCache.get(1L), equalTo(person));
 
     cacheManager.close();
     // end::defaultCopiers[]
   }
 
   @Test
-  public void cacheServiceConfigurationWithActualServiceInstance() throws Exception {
+  public void cacheServiceConfiguration() throws Exception {
     // tag::cacheServiceConfigurations[]
     CacheConfiguration<Description, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
-        .add(new DefaultCopierConfiguration<Description>(DescriptionCopier.class, // <1>
-            CopierConfiguration.Type.KEY))
-        .add(new DefaultCopierConfiguration<Person>(new PersonCopier(), // <2>
-            CopierConfiguration.Type.VALUE))
+        .withKeyCopier((Class) DescriptionCopier.class) // <1>
+        .withValueCopier((Copier) new PersonCopier()) // <2>
         .buildConfig(Description.class, Person.class);
     // end::cacheServiceConfigurations[]
 
@@ -420,6 +391,31 @@ public class GettingStarted {
 
     cacheManager.close();
   }
+
+  @Test
+  public void cacheEvictionVeto() throws Exception {
+    // tag::cacheEvictionVeto[]
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withEvictionVeto((EvictionVeto) new OddKeysEvictionVeto<Long, String>()) // <1>
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            .heap(2L, EntryUnit.ENTRIES)) // <2>
+        .buildConfig(Long.class, String.class);
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("cache", cacheConfiguration)
+        .build(true);
+
+    Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
+
+    // Work with the cache
+    cache.put(42L, "The Answer!");
+    cache.put(41L, "The wrong Answer!");
+    cache.put(39L, "The other wrong Answer!");
+
+    cacheManager.close();
+    // end::cacheEvictionVeto[]
+  }
+
 
   private static class Description {
     int id;
@@ -508,185 +504,6 @@ public class GettingStarted {
 
   private String getStoragePath() throws URISyntaxException {
     return getClass().getClassLoader().getResource(".").toURI().getPath();
-  }
-
-  public static class ListenerObject implements CacheEventListener<Object, Object> {
-    private static int evicted;
-    @Override
-    public void onEvent(CacheEvent<Object, Object> event) {
-      Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted");
-      logger.info(event.getType().toString());
-      if(event.getType() == EventType.EVICTED){
-        evicted++;
-      }
-    }
-
-    public static void resetEvictionCount() {
-      evicted = 0;
-    }
-  }
-  
-  public static class SampleLoaderWriter<K, V> implements CacheLoaderWriter<K, V> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(SampleLoaderWriter.class);
-    
-    private final Map<K, V> data = new HashMap<K, V>();
-    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-    
-    public SampleLoaderWriter(Map<K, V> initialData) {
-      data.putAll(initialData);
-    }
-
-    @Override
-    public V load(K key) throws Exception {
-      lock.readLock().lock();
-      try {
-        return data.get(key);
-      } finally {
-        lock.readLock().unlock();
-      }
-    }
-
-    @Override
-    public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-
-    @Override
-    public void write(K key, V value) throws Exception {
-      lock.writeLock().lock();
-      try {
-        data.put(key, value);
-        LOGGER.info("Key - '{}', Value - '{}' successfully written", key, value);
-      } finally {
-        lock.writeLock().unlock();
-      }
-    }
-
-    @Override
-    public void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception {
-      lock.writeLock().lock();
-      try {
-        for (Map.Entry<? extends K, ? extends V> entry : entries) {
-          data.put(entry.getKey(), entry.getValue());
-          LOGGER.info("Key - '{}', Value - '{}' successfully written in batch", entry.getKey(), entry.getValue());
-        }
-      } finally {
-        lock.writeLock().unlock();
-      }
-    }
-
-    @Override
-    public void delete(K key) throws Exception {
-      lock.writeLock().lock();
-      try {
-        data.remove(key);
-        LOGGER.info("Key - '{}' successfully deleted", key);
-      } finally {
-        lock.writeLock().unlock();
-      }
-    }
-
-    @Override
-    public void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException, Exception {
-      lock.writeLock().lock();
-      try {
-        for (K key : keys) {
-          data.remove(key);
-          LOGGER.info("Key - '{}' successfully deleted in batch", key);
-        }
-      } finally {
-        lock.writeLock().unlock();
-      }
-    }
-  }
-
-  public static class StringSerializer implements Serializer<String> {
-    private static final Logger LOG = LoggerFactory.getLogger(StringSerializer.class);
-    private static final Charset CHARSET = Charset.forName("US-ASCII");
-
-    public StringSerializer(ClassLoader classLoader) {
-    }
-
-    @Override
-    public ByteBuffer serialize(String object) {
-      LOG.info("serializing {}", object);
-      ByteBuffer byteBuffer = ByteBuffer.allocate(object.length());
-      byteBuffer.put(object.getBytes(CHARSET)).flip();
-      return byteBuffer;
-    }
-
-    @Override
-    public String read(ByteBuffer binary) throws ClassNotFoundException {
-      byte[] bytes = new byte[binary.remaining()];
-      binary.get(bytes);
-      String s = new String(bytes, CHARSET);
-      LOG.info("deserialized {}", s);
-      return s;
-    }
-
-    @Override
-    public boolean equals(String object, ByteBuffer binary) throws ClassNotFoundException {
-      return object.equals(read(binary));
-    }
-  }
-
-  public static class LongSerializer implements Serializer<Long> {
-    private static final Logger LOG = LoggerFactory.getLogger(LongSerializer.class);
-    private static final Charset CHARSET = Charset.forName("US-ASCII");
-
-    public LongSerializer(ClassLoader classLoader) {
-    }
-
-    @Override
-    public ByteBuffer serialize(Long object) {
-      LOG.info("serializing {}", object);
-      ByteBuffer byteBuffer = ByteBuffer.allocate(8);
-      byteBuffer.putLong(object).flip();
-      return byteBuffer;
-    }
-
-    @Override
-    public Long read(ByteBuffer binary) throws ClassNotFoundException {
-      long l = binary.getLong();
-      LOG.info("deserialized {}", l);
-      return l;
-    }
-
-    @Override
-    public boolean equals(Long object, ByteBuffer binary) throws ClassNotFoundException {
-      return object.equals(read(binary));
-    }
-  }
-
-  public static class CharSequenceSerializer implements Serializer<CharSequence> {
-    private static final Logger LOG = LoggerFactory.getLogger(StringSerializer.class);
-    private static final Charset CHARSET = Charset.forName("US-ASCII");
-
-    public CharSequenceSerializer(ClassLoader classLoader) {
-    }
-
-    @Override
-    public ByteBuffer serialize(CharSequence object) {
-      LOG.info("serializing {}", object);
-      ByteBuffer byteBuffer = ByteBuffer.allocate(object.length());
-      byteBuffer.put(object.toString().getBytes(CHARSET)).flip();
-      return byteBuffer;
-    }
-
-    @Override
-    public CharSequence read(ByteBuffer binary) throws ClassNotFoundException {
-      byte[] bytes = new byte[binary.remaining()];
-      binary.get(bytes);
-      String s = new String(bytes, CHARSET);
-      LOG.info("deserialized {}", s);
-      return s;
-    }
-
-    @Override
-    public boolean equals(CharSequence object, ByteBuffer binary) throws ClassNotFoundException {
-      return object.equals(read(binary));
-    }
   }
 
 }

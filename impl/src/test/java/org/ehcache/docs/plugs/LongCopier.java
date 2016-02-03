@@ -13,25 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.docs.plugs;
 
-package org.ehcache.config;
+import org.ehcache.spi.copy.Copier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * A specialized predicate used to veto eviction of cache entries.
- *
- * @param <K> the type of the keys used to access data within the cache
- * @param <V> the type of the values held within the cache
- *
- * @author Alex Snaps
+ * @author Ludovic Orban
  */
-public interface EvictionVeto<K, V> {
+public class LongCopier implements Copier<Long> {
+  private static final Logger LOG = LoggerFactory.getLogger(LongCopier.class);
 
-  /**
-   * Returns {@code true} if the given key value pair should be vetoed from eviction.
-   * 
-   * @param key the entry key 
-   * @param value the entry value
-   * @return {@code true} if eviction should be avoided
-   */
-  boolean vetoes(K key, V value);
+  @Override
+  public Long copyForRead(Long obj) {
+    LOG.info("Copying for read {}", obj);
+    return obj;
+  }
+
+  @Override
+  public Long copyForWrite(Long obj) {
+    LOG.info("Copying for write {}", obj);
+    return obj;
+  }
 }
