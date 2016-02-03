@@ -26,6 +26,7 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
+import org.ehcache.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
@@ -89,7 +90,7 @@ public class CountSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
       public Serializer<V> getValueSerializer() {
         throw new AssertionError("By-ref heap store using serializers!");
       }
-    }, timeSource, DEFAULT_COPIER, DEFAULT_COPIER);
+    }, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine());
   }
 
 }

@@ -26,6 +26,7 @@ import org.ehcache.function.Function;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
+import org.ehcache.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
@@ -170,7 +171,7 @@ public class OnHeapStoreEvictionTest {
     private static final Copier DEFAULT_COPIER = new IdentityCopier();
 
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
-      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER);
+      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER,  new NoopSizeOfEngine());
     }
     
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource, final SizeOfEngine engine) {

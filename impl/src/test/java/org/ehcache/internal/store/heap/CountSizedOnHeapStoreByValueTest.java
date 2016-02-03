@@ -28,6 +28,7 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.serialization.JavaSerializer;
+import org.ehcache.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
@@ -90,7 +91,7 @@ public class CountSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
       public Serializer<V> getValueSerializer() {
         return new JavaSerializer<V>(getClass().getClassLoader());
       }
-    }, timeSource, keyCopier, valueCopier);
+    }, timeSource, keyCopier, valueCopier, new NoopSizeOfEngine());
 
   }
 

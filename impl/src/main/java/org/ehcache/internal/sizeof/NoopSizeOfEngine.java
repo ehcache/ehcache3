@@ -13,31 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.spi.sizeof;
+
+package org.ehcache.internal.sizeof;
+
+import org.ehcache.spi.sizeof.SizeOfEngine;
 
 /**
- * SizeOf engines are used to calculate the size of objects.
- * 
  * @author Abhilash
  *
  */
-public interface SizeOfEngine {
-  
-  /**
-   * Size of the objects on Heap
-   * 
-   * @param objects objects to be sized
-   * @return size of the objects on heap 
-   */
-  long sizeof(Object... objects);
-  
-  /**
-   * Sizes the key along with the offset of 
-   * the key holder
-   * 
-   * @param key key to be sized
-   * @return size of the key along with the offset
-   */
-  long sizeofKey(Object key);
-  
+public class NoopSizeOfEngine implements SizeOfEngine {
+
+  @Override
+  public long sizeof(Object... objects) {
+    return 0l;
+  }
+
+  @Override
+  public long sizeofKey(Object key) {
+    return 0l;
+  }
+
 }

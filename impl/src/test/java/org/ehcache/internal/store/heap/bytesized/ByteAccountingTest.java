@@ -33,9 +33,14 @@ import org.ehcache.function.Function;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.copy.IdentityCopier;
+import org.ehcache.internal.serialization.CompactJavaSerializer;
 import org.ehcache.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.internal.store.heap.OnHeapStore;
+import org.ehcache.internal.store.heap.holders.CopiedOnHeapValueHolder;
+import org.ehcache.internal.store.heap.holders.OnHeapValueHolder;
+import org.ehcache.internal.store.heap.holders.SerializedOnHeapValueHolder;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
@@ -404,7 +409,9 @@ public class ByteAccountingTest {
   }
   
   static long getSize(String key, String value) {
-    return SIZE_OF_ENGINE.getCHMOffset() + SIZE_OF_ENGINE.sizeofKey(key) + SIZE_OF_ENGINE.sizeofValue(value);
+    CopiedOnHeapValueHolder<String> valueHolder = new CopiedOnHeapValueHolder<String>(value, 0l, 0l, true, DEFAULT_COPIER);
+    return SIZE_OF_ENGINE.sizeof(ConcurrentHashMap.FAKE_TREE_BIN) + SIZE_OF_ENGINE.sizeofKey(key)
+        + SIZE_OF_ENGINE.sizeof(valueHolder);
   } 
   
   public static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {

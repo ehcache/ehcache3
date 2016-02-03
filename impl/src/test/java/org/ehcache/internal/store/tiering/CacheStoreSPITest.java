@@ -17,6 +17,7 @@
 package org.ehcache.internal.store.tiering;
 
 import java.io.IOException;
+
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
@@ -33,6 +34,7 @@ import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
 import org.ehcache.internal.serialization.JavaSerializer;
+import org.ehcache.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
 import org.ehcache.internal.store.heap.OnHeapStore;
@@ -56,6 +58,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.ResourceType.Core.DISK;
+
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.internal.executor.OnDemandExecutionService;
 import org.ehcache.internal.store.disk.OffHeapDiskStore;
@@ -63,6 +66,7 @@ import org.ehcache.internal.store.disk.OffHeapDiskStoreSPITest;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
+
 import static org.mockito.Mockito.mock;
 
 /**
@@ -120,7 +124,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, getClass().getClassLoader(), expiry, buildResourcePools(capacity), keySerializer, valueSerializer);
 
         final Copier defaultCopier = new IdentityCopier();
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier);
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine());
         try {
           String spaceName = "alias-" + aliasCounter.getAndIncrement();
           LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);

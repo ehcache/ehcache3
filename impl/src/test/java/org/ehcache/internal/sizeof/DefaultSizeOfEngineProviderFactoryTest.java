@@ -34,7 +34,7 @@ public class DefaultSizeOfEngineProviderFactoryTest {
   public void testNullConfiguration() {
     DefaultSizeOfEngineProviderFactory factory = new DefaultSizeOfEngineProviderFactory();
     SizeOfEngineProvider sizeOfEngineProvider = factory.create(null);
-    SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(false, mock(ServiceConfiguration.class));
+    SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(true, false, mock(ServiceConfiguration.class));
     assertThat(sizeOfEngineProvider, notNullValue());
     assertThat(sizeOfEngine, notNullValue());
   }

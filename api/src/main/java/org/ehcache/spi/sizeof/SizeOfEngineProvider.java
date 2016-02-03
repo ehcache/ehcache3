@@ -28,10 +28,11 @@ public interface SizeOfEngineProvider extends Service {
    * Creates a {@link SizeOfEngine} which will size objects 
    * with maximum depth and maximum size 
    *
+   * @param isByteSized Whether store is byte sized 
    * @param isValueSerialized is the value serialized or copied
    * @param serviceConfigs Array of {@link ServiceConfiguration}s
    * @return {@link SizeOfEngine} instance
    */
   
-  SizeOfEngine createSizeOfEngine(boolean isValueSerialized, ServiceConfiguration<?>... serviceConfigs);
+  SizeOfEngine createSizeOfEngine(boolean isByteSized, boolean isValueSerialized, ServiceConfiguration<?>... serviceConfigs);
 }

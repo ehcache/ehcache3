@@ -28,6 +28,7 @@ public abstract class OnHeapValueHolder<V> extends AbstractValueHolder<V> {
   public static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
 
   private final boolean veto;
+  private long size;
 
   protected OnHeapValueHolder(long id, long creationTime, boolean veto) {
     super(id, creationTime);
@@ -42,7 +43,15 @@ public abstract class OnHeapValueHolder<V> extends AbstractValueHolder<V> {
   public boolean veto() {
     return veto;
   }
+  
+  public long size() {
+    return this.size;
+  }
 
+  public void setSize(long size) {
+    this.size = size;
+  }
+  
   @Override
   final protected TimeUnit nativeTimeUnit() {
     return TIME_UNIT;

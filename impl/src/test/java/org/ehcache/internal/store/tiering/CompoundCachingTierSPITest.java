@@ -24,6 +24,7 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.serialization.JavaSerializer;
+import org.ehcache.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.offheap.OffHeapStore;
 import org.ehcache.internal.store.offheap.OffHeapStoreLifecycleHelper;
@@ -78,7 +79,7 @@ public class CompoundCachingTierSPITest extends CachingTierSPITest<String, Strin
         OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, SystemTimeSource.INSTANCE, 10 * 1024 * 1024);
         OffHeapStoreLifecycleHelper.init(offHeapStore);
         IdentityCopier<String> copier = new IdentityCopier<String>();
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, copier, copier);
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, copier, copier, new NoopSizeOfEngine());
         CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(onHeapStore, offHeapStore);
         map.put(compoundCachingTier, offHeapStore);
         return compoundCachingTier;
