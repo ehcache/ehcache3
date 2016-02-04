@@ -23,10 +23,6 @@ plugins {
 }
 
 def shadowBaseName = 'ehcache'
-
-
-def projectNamesToInclude = [':api', ':core', ':impl', ':management', ':107', ':xml', ':transactions']
-def projectsToInclude = projectNamesToInclude.collect {project(it)}
 def buildDir = project.getBuildDir().getPath()
 def OSGI_OVERRIDE_KEYS = ['Import-Package', 'Export-Package', 'Private-Package', 'Tool', 'Bnd-LastModified', 'Created-By', 'Require-Capability']
 
@@ -35,7 +31,14 @@ configurations {
 }
 
 dependencies {
-  projectsToInclude.each {compile it}
+  compile project(':api')
+  compile project(':core')
+  compile project(':impl')
+  compile project(':management')
+  compile project(':107')
+  compile project(':xml')
+  compile project(':transactions')
+  
   shadow "org.slf4j:slf4j-api:$parent.slf4jVersion"
   shadowProvided 'javax.transaction:jta:1.1', 'org.codehaus.btm:btm:2.1.4'
 }
@@ -55,7 +58,11 @@ configurations.archives.artifacts.with { archives ->
 shadowJar {
   baseName = "$shadowBaseName-shadow"
   classifier = ''
-  projectNamesToInclude.each {projName -> dependencies {include(project(projName))}}
+  project.configurations.compile.dependencies.withType(ProjectDependency).each { p ->
+    dependencies {
+      include(dependency(p))
+    }
+  }
   dependencies {
     include(dependency('org.terracotta:statistics:1.1.0'))
     include(dependency("org.terracotta:offheap-store:$parent.offheapVersion"))
@@ -123,15 +130,18 @@ task shadowSourceJar(type: Jar, dependsOn: shadowJar) {
   baseName = shadowBaseName
   classifier = 'sources'
 
-  projectsToInclude.each {from it.sourceSets.main.allSource}
+  from configurations.compile.dependencies.withType(ProjectDependency).dependencyProject.flatten {
+    it.sourceSets.main.allSource
+  }
 }
 
 task aggregateJavadoc(type: Javadoc) {
   title "$shadowBaseName $version API"
-  dependsOn projectsToInclude.javadoc
-  source projectsToInclude.javadoc.source
+  def componentProjects = configurations.compile.dependencies.withType(ProjectDependency).dependencyProject
+  dependsOn componentProjects.javadoc
+  source componentProjects.javadoc.source
+  classpath = files(componentProjects.javadoc.classpath)
   destinationDir file("$buildDir/docs/javadoc")
-  classpath = files(projectsToInclude.javadoc.classpath)
 }
 
 task shadowJavadocJar(type: Jar) {
