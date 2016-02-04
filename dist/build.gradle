@@ -93,11 +93,14 @@ task osgiShadowJar(type: Jar, dependsOn: 'unzipShadowJarClasses') {
     instruction 'Bundle-Vendor', 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
     instruction 'Bundle-RequiredExecutionEnvironment', 'JavaSE-1.6'
 
-    instruction 'Export-Package', '!org.ehcache.jsr107.tck', '!org.terracotta.offheapstore.*', '*'
+    configurations.compile.dependencies.withType(ProjectDependency).dependencyProject.findAll({p -> p.ext.properties.osgi}).each{ prop ->
+      new groovy.json.JsonSlurper().parseText(prop.ext.properties.osgi).each {
+        instruction(it.key, *it.value)
+      }
+    }
+    
+    instruction 'Export-Package', '*'
 
-    // Optional packages
-    instruction 'Import-Package', 'bitronix.tm.*;resolution:=optional', 'javax.cache.*;resolution:=optional',
-            'javax.transaction.*;resolution:=optional'
     // Ignored packages
     instruction 'Import-Package', '!sun.misc', '!sun.security.action', '!com.sun.jmx.mbeanserver', '*'
     classesDir = new File("$buildDir/tmp/osgiShadowJar-classes")
