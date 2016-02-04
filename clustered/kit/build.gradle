@@ -1,0 +1,23 @@
+apply plugin: 'distribution'
+
+configurations {
+  kit
+  serverLibs
+}
+
+dependencies {
+  kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@tar.gz"
+  serverLibs project(':clustered:server')
+}
+
+distributions {
+  main {
+    baseName = "ehcache-clustered-kit"
+    contents {
+      from configurations.kit.files.collect { tarTree(it) }
+      into ("terracotta-$terracottaCoreVersion/plugins/lib") {
+        from configurations.serverLibs
+      }
+    }
+  }
+}
