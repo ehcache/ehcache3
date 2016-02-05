@@ -120,7 +120,7 @@ task osgiShadowJar(type: Jar, dependsOn: 'unzipShadowJarClasses') {
 
 }
 
-task shadowSourceJar(type: Jar, dependsOn: shadowJar) {
+task shadowSourceJar(type: Jar) {
   baseName = shadowBaseName
   classifier = 'sources'
 
@@ -138,8 +138,7 @@ task aggregateJavadoc(type: Javadoc) {
   destinationDir file("$buildDir/docs/javadoc")
 }
 
-task shadowJavadocJar(type: Jar) {
-  dependsOn shadowJar, aggregateJavadoc
+task shadowJavadocJar(type: Jar, dependsOn: 'aggregateJavadoc') {
   baseName = shadowBaseName
   classifier = 'javadoc'
 
