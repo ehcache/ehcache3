@@ -58,18 +58,9 @@ configurations.archives.artifacts.with { archives ->
 shadowJar {
   baseName = "$shadowBaseName-shadow"
   classifier = ''
-  project.configurations.compile.dependencies.withType(ProjectDependency).each { p ->
-    dependencies {
-      include(dependency(p))
-    }
-  }
   dependencies {
-    include(dependency('org.terracotta:statistics:1.1.0'))
-    include(dependency("org.terracotta:offheap-store:$parent.offheapVersion"))
-    include(dependency("org.terracotta:management-model:$parent.managementVersion"))
-    include(dependency("org.ehcache:sizeof:$parent.sizeofVersion"))
+    exclude({ rdep -> !['org.ehcache', 'org.terracotta'].any({ prefix -> rdep.moduleGroup.startsWith(prefix) })})
   }
-
   mergeServiceFiles()
 }
 
