@@ -44,9 +44,9 @@ sourceSets {
 }
 
 test {
-  systemProperty 'ehcache.osgi.jar', project(':dist').osgiShadowJar.archivePath.getPath()
+  systemProperty 'ehcache.osgi.jar', project(':dist').jar.archivePath.getPath()
   systemProperty 'ehcache.osgi.jcache.version', parent.jcacheVersion
   systemProperty 'ehcache.osgi.slf4j.version', parent.slf4jVersion
 }
 
-test.dependsOn ':dist:osgiShadowJar'
+test.dependsOn ':dist:jar'

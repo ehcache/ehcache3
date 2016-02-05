@@ -25,3 +25,7 @@ buildscript {
 }
 
 apply plugin: 'org.asciidoctor.convert'
+
+asciidoctor {
+  separateOutputDirs = false;
+}

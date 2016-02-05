@@ -22,8 +22,9 @@ plugins {
   id 'com.github.johnrengelman.shadow' version '1.2.2'
 }
 
-def shadowBaseName = 'ehcache'
-def buildDir = project.getBuildDir().getPath()
+group = 'org.ehcache'
+archivesBaseName = 'ehcache'
+
 def OSGI_OVERRIDE_KEYS = ['Import-Package', 'Export-Package', 'Private-Package', 'Tool', 'Bnd-LastModified', 'Created-By', 'Require-Capability']
 
 configurations {
@@ -43,20 +44,8 @@ dependencies {
   shadowProvided 'javax.transaction:jta:1.1', 'org.codehaus.btm:btm:2.1.4'
 }
 
-// Skip a number of defaults for this aggregation project
-jar.enabled false
-sourceJar.enabled false
-javadoc.enabled false
-javadocJar.enabled false
-
-configurations.archives.artifacts.with { archives ->
-  archives.removeAll {
-    it.name == 'ehcache-dist'
-  }
-}
-
 shadowJar {
-  baseName = "$shadowBaseName-shadow"
+  baseName = "$archivesBaseName-shadow"
   classifier = ''
   dependencies {
     exclude({ rdep -> !['org.ehcache', 'org.terracotta'].any({ prefix -> rdep.moduleGroup.startsWith(prefix) })})
@@ -68,16 +57,17 @@ task unzipShadowJarClasses(type: Copy, dependsOn: 'shadowJar') {
   from(project.zipTree(project.shadowJar.archivePath.getPath())) {
     include("**/*.class")
   }
-  into("$buildDir/tmp/osgiShadowJar-classes")
+  into(new File(buildDir, "/tmp/osgiShadowJar-classes"))
 }
 
-task osgiShadowJar(type: Jar, dependsOn: 'unzipShadowJarClasses') {
-  baseName = shadowBaseName
+jar {
+  dependsOn unzipShadowJarClasses
+  
   def osgiConvention = project.convention.getPlugin(OsgiPluginConvention.class)
   def osgiManifest = osgiConvention.osgiManifest {
     // Metadata
     instructionReplace 'Bundle-Name', 'Ehcache 3'
-    instructionReplace 'Bundle-SymbolicName', "org.ehcache.$shadowBaseName"
+    instructionReplace 'Bundle-SymbolicName', "org.ehcache.$archivesBaseName"
     instruction 'Bundle-Description', 'Ehcache is an open-source caching library, compliant with the JSR-107 standard.'
     instruction 'Bundle-DocURL', 'http://ehcache.org'
     instruction 'Bundle-License', 'LICENSE'
@@ -94,15 +84,15 @@ task osgiShadowJar(type: Jar, dependsOn: 'unzipShadowJarClasses') {
 
     // Ignored packages
     instruction 'Import-Package', '!sun.misc', '!sun.security.action', '!com.sun.jmx.mbeanserver', '*'
-    classesDir = new File("$buildDir/tmp/osgiShadowJar-classes")
-    classpath = files(project.configurations.shadow, project.configurations.shadowProvided)
+    classesDir = unzipShadowJarClasses.destinationDir
+    classpath = files(configurations.shadow, project.configurations.shadowProvided)
   }
 
   manifest = new com.github.jengelman.gradle.plugins.shadow.tasks.DefaultInheritManifest(getServices().get(org.gradle.api.internal.file.FileResolver.class))
 
-  manifest.inheritFrom project.shadowJar.manifest
+  manifest.inheritFrom shadowJar.manifest
 
-  utils.fillManifest(manifest, shadowBaseName)
+  utils.fillManifest(manifest, archivesBaseName)
 
   manifest.inheritFrom(osgiManifest) {
     eachEntry {
@@ -120,42 +110,26 @@ task osgiShadowJar(type: Jar, dependsOn: 'unzipShadowJarClasses') {
 
 }
 
-task shadowSourceJar(type: Jar) {
-  baseName = shadowBaseName
-  classifier = 'sources'
-
-  from configurations.compile.dependencies.withType(ProjectDependency).dependencyProject.flatten {
+sourceJar {
+  from configurations.compile.allDependencies.withType(ProjectDependency).dependencyProject.flatten {
     it.sourceSets.main.allSource
   }
 }
 
-task aggregateJavadoc(type: Javadoc) {
-  title "$shadowBaseName $version API"
+javadoc {
   def componentProjects = configurations.compile.dependencies.withType(ProjectDependency).dependencyProject
   dependsOn componentProjects.javadoc
+  title "$archivesBaseName $version API"
   source componentProjects.javadoc.source
   classpath = files(componentProjects.javadoc.classpath)
-  destinationDir file("$buildDir/docs/javadoc")
-}
-
-task shadowJavadocJar(type: Jar, dependsOn: 'aggregateJavadoc') {
-  baseName = shadowBaseName
-  classifier = 'javadoc'
-
-  from aggregateJavadoc.destinationDir
 }
 
 task asciidocZip(type: Zip, dependsOn: ':docs:asciidoctor') {
-  baseName = shadowBaseName
   classifier = 'docs'
-
-  from '../docs/build/asciidoc/html5'
+  from tasks.getByPath(':docs:asciidoctor').outputDir
 }
 
 artifacts {
-  archives osgiShadowJar
-  archives shadowSourceJar
-  archives shadowJavadocJar
   archives asciidocZip
 }
 
@@ -165,20 +139,13 @@ signing {
 }
 
 def artifactFiltering = {
-  addFilter('shadow') {artifact, file ->
-    artifact.name == shadowBaseName
-  }
-
-  def shadowPom = pom('shadow')
-  shadowPom.groupId = 'org.ehcache'
-  shadowPom.artifactId = shadowBaseName
-  shadowPom.scopeMappings.mappings.remove(project.configurations.compile)
-  shadowPom.scopeMappings.mappings.remove(project.configurations.runtime)
-  shadowPom.scopeMappings.mappings.remove(project.configurations.testCompile)
-  shadowPom.scopeMappings.mappings.remove(project.configurations.testRuntime)
-  shadowPom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadow, Conf2ScopeMappingContainer.COMPILE)
-  shadowPom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadowProvided, Conf2ScopeMappingContainer.PROVIDED)
-  utils.pomFiller(shadowPom, 'Ehcache', 'Ehcache single jar, containing all modules')
+  pom.scopeMappings.mappings.remove(project.configurations.compile)
+  pom.scopeMappings.mappings.remove(project.configurations.runtime)
+  pom.scopeMappings.mappings.remove(project.configurations.testCompile)
+  pom.scopeMappings.mappings.remove(project.configurations.testRuntime)
+  pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadow, Conf2ScopeMappingContainer.COMPILE)
+  pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadowProvided, Conf2ScopeMappingContainer.PROVIDED)
+  utils.pomFiller(pom, 'Ehcache', 'Ehcache single jar, containing all modules')
 }
 
 install {
@@ -202,4 +169,3 @@ uploadArchives {
     } << artifactFiltering)
   }
 }
-
