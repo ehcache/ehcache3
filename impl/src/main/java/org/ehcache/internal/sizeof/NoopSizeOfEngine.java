@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.sizeof;
 
+import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.sizeof.SizeOfEngine;
 
 /**
@@ -25,13 +26,8 @@ import org.ehcache.spi.sizeof.SizeOfEngine;
 public class NoopSizeOfEngine implements SizeOfEngine {
 
   @Override
-  public long sizeof(Object... objects) {
-    return 0l;
-  }
-
-  @Override
-  public long sizeofKey(Object key) {
-    return 0l;
+  public <K, V> long sizeof(K key, Store.ValueHolder<V> holder) {
+    return 1L;
   }
 
 }

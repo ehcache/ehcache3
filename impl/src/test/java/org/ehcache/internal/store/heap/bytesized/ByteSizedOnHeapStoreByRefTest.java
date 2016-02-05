@@ -35,7 +35,7 @@ import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 
 public class ByteSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
-  
+
   private static final int MAGIC_NUM = 500;
   private static final Copier DEFAULT_COPIER = new IdentityCopier();
 

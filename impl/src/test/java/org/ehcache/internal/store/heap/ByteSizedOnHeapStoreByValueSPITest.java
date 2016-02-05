@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.internal.store.heap.bytesized;
+package org.ehcache.internal.store.heap;
 
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
@@ -42,14 +42,7 @@ import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 import org.ehcache.expiry.Expirations;
 
-/**
- * Test the {@link org.ehcache.internal.store.heap.OnHeapStore} compliance to the
- * {@link org.ehcache.spi.cache.Store} contract.
- *
- * @author Aurelien Broszniowski
- */
-
-public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
+public class ByteSizedOnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
 
   private StoreFactory<String, String> storeFactory;
   private static final int MAGIC_NUM = 500;
@@ -61,7 +54,7 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
 
   @Before
   public void setUp() {
-    
+
     storeFactory = new StoreFactory<String, String>() {
 
       final Serializer<String> defaultSerializer = new JavaSerializer<String>(getClass().getClassLoader());
@@ -86,11 +79,11 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
       public Store<String, String> newStoreWithEvictionVeto(EvictionVeto<String, String> evictionVeto) {
         return newStore(null, evictionVeto, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
       }
-      
+
       private Store<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         ResourcePools resourcePools = buildResourcePools(capacity);
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, getClass().getClassLoader(), expiry, resourcePools, new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
-        return new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE, true));
+        return new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE));
       }
 
       @Override

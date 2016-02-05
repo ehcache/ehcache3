@@ -26,7 +26,7 @@ public class DefaultSizeOfEngineConfiguration implements SizeOfEngineConfigurati
 
   private final long maxDepth;
   private final long maxSize;
-  
+
   public DefaultSizeOfEngineConfiguration(long maxDepth, long maxSize) {
     if(maxDepth <= 0 || maxSize <= 0) {
       throw new IllegalArgumentException("MaxDepth/MaxSize can only accept positive values.");
@@ -34,7 +34,7 @@ public class DefaultSizeOfEngineConfiguration implements SizeOfEngineConfigurati
     this.maxDepth = maxDepth;
     this.maxSize = maxSize;
   }
-  
+
   @Override
   public Class<SizeOfEngineProvider> getServiceType() {
     return SizeOfEngineProvider.class;

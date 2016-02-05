@@ -36,7 +36,7 @@ import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 
 public class ByteSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
-  
+
   private static final int MAGIC_NUM = 500;
 
   @Override
@@ -95,7 +95,7 @@ public class ByteSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
       public Serializer<V> getValueSerializer() {
         return new JavaSerializer<V>(getClass().getClassLoader());
       }
-    }, timeSource, keyCopier, valueCopier, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE, true));
+    }, timeSource, keyCopier, valueCopier, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE));
   }
 
 }

@@ -41,11 +41,6 @@ import org.junit.Before;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
-/**
- * This factory instantiates a CachingTier
- *
- * @author Aurelien Broszniowski
- */
 public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<String, String> {
 
   private CachingTierFactory<String, String> cachingTierFactory;
@@ -75,7 +70,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
       private CachingTier<String, String> newCachingTier(Long capacity) {
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null,
                 ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
-        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE, true));
+        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE));
       }
 
       @Override

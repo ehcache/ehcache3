@@ -33,7 +33,6 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 
-
 public class CountSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
 
   @Override
@@ -49,7 +48,7 @@ public class CountSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
       final Expiry<? super K, ? super V> expiry,
       final EvictionVeto<? super K, ? super V> veto, final Copier<K> keyCopier, final Copier<V> valueCopier, final int capacity) {
     return new OnHeapStore<K, V>(new Store.Configuration<K, V>() {
-      
+
       @SuppressWarnings("unchecked")
       @Override
       public Class<K> getKeyType() {

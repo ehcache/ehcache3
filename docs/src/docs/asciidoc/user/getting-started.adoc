@@ -111,9 +111,8 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=byteSizedTieredCache]
 ----
 
-<1> You can also size a tiered cache based on bytes only.You can limit the amount of java heap used by cache for storing key-value pairs. 
-<2> A SizeOfEngine can also be provided which actually ascertains the size of objects on java heap. It uses sizeof library to do so. The configuration for the same takes two arguments. First one specifies the maximum
-number of objects that will be visited while walking the object graph, the other argument defines the maximum limit of the size of the object. All mutations, which cross the limits will be ignored.
+<1> You can also size the heap tier in bytes. This will limit the amount of heap used by that tier for storing key-value pairs. Note that there is a cost associated to sizing objects. 
+<2> The sizing mechanism can be configured along two axis: The first one specifies the maximum number of objects to visit while walking the object graph, the second defines the maximum size of a single object. If the sizing goes above any of these two limits, the mutative operation on the cache will be ignored.
 
 ==== Update ResourcePools
 

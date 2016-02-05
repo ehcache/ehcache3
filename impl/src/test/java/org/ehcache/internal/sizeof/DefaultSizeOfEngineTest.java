@@ -16,7 +16,9 @@
 
 package org.ehcache.internal.sizeof;
 
+import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.sizeof.listeners.exceptions.VisitorListenerException;
+import org.ehcache.internal.store.heap.holders.CopiedOnHeapValueHolder;
 import org.ehcache.spi.sizeof.SizeOfEngine;
 import org.junit.Test;
 
@@ -35,20 +37,20 @@ public class DefaultSizeOfEngineTest {
   public void testMaxDepthReachedVisitorListenerException() {
     SizeOfEngine sizeOfEngine = new DefaultSizeOfEngine(3, Long.MAX_VALUE);
     try {
-      sizeOfEngine.sizeof(new MaxDepthGreaterThanThree());
+      sizeOfEngine.sizeof(new MaxDepthGreaterThanThree(), new CopiedOnHeapValueHolder(new MaxDepthGreaterThanThree(), 0l, true, new IdentityCopier()));
       fail();
     } catch (Exception visitorException) {
       assertThat(visitorException, instanceOf(VisitorListenerException.class));
       assertThat(visitorException.getMessage(), containsString("Max Depth reached for the object"));
     }
   }
-  
+
   @Test
   public void testMaxSizeReachedVisitorListenerException() {
     SizeOfEngine sizeOfEngine = new DefaultSizeOfEngine(Long.MAX_VALUE, 1000);
     try {
       String overSized = new String(new byte[1000]);
-      sizeOfEngine.sizeof(overSized);
+      sizeOfEngine.sizeof(overSized, new CopiedOnHeapValueHolder("test", 0l, true, new IdentityCopier()));
       fail();
     } catch (Exception visitorException) {
       assertThat(visitorException, instanceOf(VisitorListenerException.class));

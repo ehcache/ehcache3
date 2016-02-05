@@ -52,12 +52,12 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.internal.store.heap.
     when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(100, MemoryUnit.KB).build());
     return config;
   }
-  
+
   protected <Number, CharSequence> OnHeapStore<Number, CharSequence> newStore() {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
     return new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE));
   }
-  
+
   @SuppressWarnings("unchecked")
   @Test
   public void testBulkComputeFunctionGetsValuesOfEntries() throws Exception {

@@ -21,7 +21,7 @@ package org.ehcache.internal.sizeof.listeners.exceptions;
  *
  */
 public class VisitorListenerException extends RuntimeException {
-  
+
   public VisitorListenerException(String message) {
     super(message);
   }

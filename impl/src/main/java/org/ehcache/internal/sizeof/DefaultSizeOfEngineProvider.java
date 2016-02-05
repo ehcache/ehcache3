@@ -15,6 +15,8 @@
  */
 package org.ehcache.internal.sizeof;
 
+import org.ehcache.config.ResourceUnit;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
@@ -30,12 +32,12 @@ public class DefaultSizeOfEngineProvider implements SizeOfEngineProvider {
 
   private final long maxDepth;
   private final long maxSize;
-  
+
   public DefaultSizeOfEngineProvider(long maxDepth, long maxSize) {
     this.maxDepth = maxDepth;
     this.maxSize = maxSize;
   }
-  
+
   @Override
   public void start(ServiceProvider serviceProvider) {
     //no op
@@ -47,15 +49,15 @@ public class DefaultSizeOfEngineProvider implements SizeOfEngineProvider {
   }
 
   @Override
-  public SizeOfEngine createSizeOfEngine(boolean isByteSized, boolean isValueSerialized, ServiceConfiguration<?>... serviceConfigs) {
+  public SizeOfEngine createSizeOfEngine(ResourceUnit resourceUnit, ServiceConfiguration<?>... serviceConfigs) {
+    boolean isByteSized = resourceUnit instanceof MemoryUnit;
     if(!isByteSized) {
       return new NoopSizeOfEngine(); // Noop Size of Engine
     }
     SizeOfEngineConfiguration config = ServiceLocator.findSingletonAmongst(SizeOfEngineConfiguration.class, serviceConfigs);
     if(config != null) {
-      return new DefaultSizeOfEngine(config.getMaxDepth(), config.getMaxSize(), isValueSerialized);
+      return new DefaultSizeOfEngine(config.getMaxDepth(), config.getMaxSize());
     }
-    return new DefaultSizeOfEngine(maxDepth, maxSize, isValueSerialized);
+    return new DefaultSizeOfEngine(maxDepth, maxSize);
   }
-
 }

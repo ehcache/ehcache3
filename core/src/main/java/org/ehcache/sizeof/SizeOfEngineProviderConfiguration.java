@@ -24,18 +24,18 @@ import org.ehcache.spi.sizeof.SizeOfEngineProvider;
  */
 
 public interface SizeOfEngineProviderConfiguration extends ServiceCreationConfiguration<SizeOfEngineProvider> {
-  
+
   /**
    * No. of objects traversed as part of Object graph
-   * 
+   *
    * @return maximum number of objects traversed by the sizeofengine
    *         provided by sizeofengineprovider
    */
   long getMaxDepth();
-  
+
   /**
    * The max size till the object graph will be traversed
-   * 
+   *
    * @return size limit after which traversal of object graph will return
    */
   long getMaxSize();

@@ -17,7 +17,6 @@
 package org.ehcache.internal.sizeof;
 
 import org.ehcache.sizeof.SizeOfEngineProviderConfiguration;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.sizeof.SizeOfEngineProvider;
 
 /**
@@ -28,7 +27,7 @@ public class DefaultSizeOfEngineProviderConfiguration implements SizeOfEnginePro
 
   private final long maxDepth;
   private final long maxSize;
-  
+
   public DefaultSizeOfEngineProviderConfiguration(long maxDepth, long maxSize) {
     if(maxDepth <= 0 || maxSize <= 0) {
       throw new IllegalArgumentException("SizeOfEngine cannot take non-positive arguments.");
@@ -36,7 +35,7 @@ public class DefaultSizeOfEngineProviderConfiguration implements SizeOfEnginePro
     this.maxDepth = maxDepth;
     this.maxSize = maxSize;
   }
-  
+
   @Override
   public Class<SizeOfEngineProvider> getServiceType() {
     return SizeOfEngineProvider.class;
@@ -49,7 +48,7 @@ public class DefaultSizeOfEngineProviderConfiguration implements SizeOfEnginePro
   public long getMaxSize() {
     return maxSize;
   }
-  
-  
+
+
 
 }

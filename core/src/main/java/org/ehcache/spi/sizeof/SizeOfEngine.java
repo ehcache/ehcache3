@@ -15,29 +15,24 @@
  */
 package org.ehcache.spi.sizeof;
 
+import org.ehcache.spi.cache.Store;
+
 /**
  * SizeOf engines are used to calculate the size of objects.
- * 
+ *
  * @author Abhilash
  *
  */
 public interface SizeOfEngine {
-  
+
   /**
-   * Size of the objects on Heap
-   * 
-   * @param objects objects to be sized
-   * @return size of the objects on heap 
-   */
-  long sizeof(Object... objects);
-  
-  /**
-   * Sizes the key along with the offset of 
-   * the key holder
-   * 
+   * Size of the objects on Heap including the
+   * overhead
+   *
    * @param key key to be sized
-   * @return size of the key along with the offset
+   * @param holder value holder to be sized
+   * @return size of the objects on heap including the overhead
    */
-  long sizeofKey(Object key);
-  
+  <K, V> long sizeof(K key, Store.ValueHolder<V> holder);
+
 }

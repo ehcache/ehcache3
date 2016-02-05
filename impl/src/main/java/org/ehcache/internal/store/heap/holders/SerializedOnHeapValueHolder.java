@@ -17,6 +17,7 @@ package org.ehcache.internal.store.heap.holders;
 
 import org.ehcache.exceptions.SerializerException;
 import org.ehcache.expiry.Duration;
+import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.serialization.Serializer;
 
@@ -24,6 +25,7 @@ import java.nio.ByteBuffer;
 
 public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   private final ByteBuffer buffer;
+  @IgnoreSizeOf
   private final Serializer<V> serializer;
 
   protected SerializedOnHeapValueHolder(long id, V value, long creationTime, long expirationTime, boolean veto, Serializer<V> serializer) {

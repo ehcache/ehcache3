@@ -26,14 +26,14 @@ public interface SizeOfEngineConfiguration extends ServiceConfiguration<SizeOfEn
 
   /**
    * No. of objects traversed as part of Object graph
-   * 
+   *
    * @return maximum number of objects traversed by this sizeofengine
    */
   long getMaxDepth();
-  
+
   /**
    * The max size till the object graph will be traversed
-   * 
+   *
    * @return size limit after which traversal of object graph will return
    */
   long getMaxSize();

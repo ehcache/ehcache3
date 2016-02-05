@@ -28,7 +28,7 @@ import org.junit.Test;
  *
  */
 public class DefaultSizeOfEngineConfigurationTest {
-  
+
   @Test
   public void testIllegalMaxDepthArgument() {
     try {
@@ -39,7 +39,7 @@ public class DefaultSizeOfEngineConfigurationTest {
       assertThat(illegalArgument.getMessage(), equalTo("MaxDepth/MaxSize can only accept positive values."));
     }
   }
-  
+
   @Test
   public void testIllegalMaxSizeArgument() {
     try {
@@ -50,7 +50,7 @@ public class DefaultSizeOfEngineConfigurationTest {
       assertThat(illegalArgument.getMessage(), equalTo("MaxDepth/MaxSize can only accept positive values."));
     }
   }
-  
+
   @Test
   public void testValidArguments() {
     DefaultSizeOfEngineConfiguration configuration = new DefaultSizeOfEngineConfiguration(10l, 10l);

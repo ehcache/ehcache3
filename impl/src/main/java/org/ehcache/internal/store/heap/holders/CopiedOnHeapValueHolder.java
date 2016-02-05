@@ -17,6 +17,7 @@
 package org.ehcache.internal.store.heap.holders;
 
 import org.ehcache.expiry.Duration;
+import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
 
@@ -25,6 +26,7 @@ import org.ehcache.spi.copy.Copier;
  */
 public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   private final V copiedValue;
+  @IgnoreSizeOf
   private final Copier<V> valueCopier;
 
   protected CopiedOnHeapValueHolder(long id, V value, long creationTime, long expirationTime, boolean veto, Copier<V> valueCopier) {

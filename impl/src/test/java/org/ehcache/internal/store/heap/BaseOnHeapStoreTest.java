@@ -716,7 +716,7 @@ public abstract class BaseOnHeapStoreTest {
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
     store.put("key", "value");
     StoreEventListener<String, String> listener = addListener(store);
-    
+
     timeSource.advanceTime(1);
 
     ValueHolder<String> newValue = store.computeIfAbsent("key", new Function<String, String>() {
@@ -942,7 +942,7 @@ public abstract class BaseOnHeapStoreTest {
     final CountDownLatch testCompletionLatch = new CountDownLatch(1);
     final CountDownLatch threadFaultCompletionLatch = new CountDownLatch(1);
     final CountDownLatch mainFaultCreationLatch = new CountDownLatch(1);
-    
+
 
     Thread thread = new Thread(new Runnable() {
       @Override
@@ -972,7 +972,7 @@ public abstract class BaseOnHeapStoreTest {
       }
     });
     thread.start();
-      
+
     store.getOrComputeIfAbsent("1", new Function<String, ValueHolder<String>>() {
       @Override
       public ValueHolder<String> apply(final String s) {
@@ -981,7 +981,7 @@ public abstract class BaseOnHeapStoreTest {
           threadFaultCompletionLatch.await();
         } catch (InterruptedException e) {
           e.printStackTrace();
-        } 
+        }
         return null;
       }
     });
@@ -1373,8 +1373,8 @@ public abstract class BaseOnHeapStoreTest {
   protected <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry) {
     return newStore(timeSource, expiry, Eviction.none());
   }
-  
-  protected abstract void updateStoreCapacity(OnHeapStore<?, ?> store, int newCapacity); 
+
+  protected abstract void updateStoreCapacity(OnHeapStore<?, ?> store, int newCapacity);
 
   protected abstract <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
       final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto);

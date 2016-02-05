@@ -38,7 +38,7 @@ public class DefaultSizeOfEngineProviderConfigurationTest {
       assertThat(illegalArgument.getMessage(), equalTo("SizeOfEngine cannot take non-positive arguments."));
     }
   }
-  
+
   @Test
   public void testIllegalMaxSizeArgument() {
     try {
@@ -49,7 +49,7 @@ public class DefaultSizeOfEngineProviderConfigurationTest {
       assertThat(illegalArgument.getMessage(), equalTo("SizeOfEngine cannot take non-positive arguments."));
     }
   }
-  
+
   @Test
   public void testValidArguments() {
     DefaultSizeOfEngineProviderConfiguration configuration = new DefaultSizeOfEngineProviderConfiguration(10l, 10l);

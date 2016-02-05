@@ -15,6 +15,7 @@
  */
 package org.ehcache.spi.sizeof;
 
+import org.ehcache.config.ResourceUnit;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -25,14 +26,13 @@ import org.ehcache.spi.service.ServiceConfiguration;
 public interface SizeOfEngineProvider extends Service {
 
   /**
-   * Creates a {@link SizeOfEngine} which will size objects 
-   * with maximum depth and maximum size 
+   * Creates a {@link SizeOfEngine} which will size objects
+   * with maximum depth and maximum size
    *
-   * @param isByteSized Whether store is byte sized 
-   * @param isValueSerialized is the value serialized or copied
+   * @param resourceUnit type of the unit used to size the store
    * @param serviceConfigs Array of {@link ServiceConfiguration}s
    * @return {@link SizeOfEngine} instance
    */
-  
-  SizeOfEngine createSizeOfEngine(boolean isByteSized, boolean isValueSerialized, ServiceConfiguration<?>... serviceConfigs);
+
+  SizeOfEngine createSizeOfEngine(ResourceUnit resourceUnit, ServiceConfiguration<?>... serviceConfigs);
 }

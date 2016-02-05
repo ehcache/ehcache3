@@ -49,6 +49,9 @@ public abstract class OnHeapValueHolder<V> extends AbstractValueHolder<V> {
   }
 
   public void setSize(long size) {
+    if (this.size != 0) {
+      throw new UnsupportedOperationException("Cannot change the size if it is done already");
+    }
     this.size = size;
   }
   

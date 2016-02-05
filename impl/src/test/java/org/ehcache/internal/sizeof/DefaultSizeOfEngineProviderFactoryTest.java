@@ -15,6 +15,7 @@
  */
 package org.ehcache.internal.sizeof;
 
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.sizeof.SizeOfEngine;
 import org.ehcache.spi.sizeof.SizeOfEngineProvider;
@@ -23,19 +24,32 @@ import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.mock;
+import static org.hamcrest.Matchers.instanceOf;
 
 /**
  * @author Abhilash
  *
  */
+
 public class DefaultSizeOfEngineProviderFactoryTest {
 
   @Test
   public void testNullConfiguration() {
     DefaultSizeOfEngineProviderFactory factory = new DefaultSizeOfEngineProviderFactory();
     SizeOfEngineProvider sizeOfEngineProvider = factory.create(null);
-    SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(true, false, mock(ServiceConfiguration.class));
+    SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(MemoryUnit.B, mock(ServiceConfiguration.class));
     assertThat(sizeOfEngineProvider, notNullValue());
     assertThat(sizeOfEngine, notNullValue());
+    assertThat(sizeOfEngine, instanceOf(DefaultSizeOfEngine.class));
+  }
+
+  @Test
+  public void testNoopSizeOfEngineConfig() {
+    DefaultSizeOfEngineProviderFactory factory = new DefaultSizeOfEngineProviderFactory();
+    SizeOfEngineProvider sizeOfEngineProvider = factory.create(null);
+    SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(null, mock(ServiceConfiguration.class));
+    assertThat(sizeOfEngineProvider, notNullValue());
+    assertThat(sizeOfEngine, notNullValue());
+    assertThat(sizeOfEngine, instanceOf(NoopSizeOfEngine.class));
   }
 }

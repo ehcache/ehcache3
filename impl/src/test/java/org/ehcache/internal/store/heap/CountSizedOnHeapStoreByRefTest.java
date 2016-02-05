@@ -32,7 +32,7 @@ import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 
 public class CountSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
-  
+
   private static final Copier DEFAULT_COPIER = new IdentityCopier();
 
   @Override
@@ -47,7 +47,7 @@ public class CountSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
   protected <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
       final Expiry<? super K, ? super V> expiry,
       final EvictionVeto<? super K, ? super V> veto, final int capacity) {
-    
+
     return new OnHeapStore<K, V>(new Store.Configuration<K, V>() {
       @SuppressWarnings("unchecked")
       @Override

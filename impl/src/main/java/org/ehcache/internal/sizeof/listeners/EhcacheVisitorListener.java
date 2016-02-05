@@ -24,12 +24,12 @@ import org.ehcache.sizeof.VisitorListener;
  */
 
 public class EhcacheVisitorListener implements VisitorListener {
-  
+
   private final long maxDepth;
   private final long maxSize;
   private long currentDepth;
   private long currentSize;
-  
+
   public EhcacheVisitorListener(long maxDepth, long maxSize) {
     this.maxDepth = maxDepth;
     this.maxSize = maxSize;
@@ -43,7 +43,6 @@ public class EhcacheVisitorListener implements VisitorListener {
     if((currentSize += size) > maxSize) {
       throw new VisitorListenerException("Max Size reached for the object : "+ object);
     }
-    
   }
 
 }

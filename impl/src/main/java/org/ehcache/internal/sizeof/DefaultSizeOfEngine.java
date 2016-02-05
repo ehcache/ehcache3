@@ -15,13 +15,13 @@
  */
 package org.ehcache.internal.sizeof;
 
+import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.sizeof.listeners.EhcacheVisitorListener;
 import org.ehcache.internal.store.heap.holders.CopiedOnHeapKey;
 import org.ehcache.sizeof.SizeOfFilterSource;
 import org.ehcache.sizeof.SizeOf;
-import org.ehcache.spi.copy.Copier;
-import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.sizeof.SizeOfEngine;
 
 /**
@@ -29,35 +29,25 @@ import org.ehcache.spi.sizeof.SizeOfEngine;
  *
  */
 public class DefaultSizeOfEngine implements SizeOfEngine {
-  
+
   private final long maxDepth;
   private final long maxSize;
   private final SizeOf sizeOf;
-  private final SizeOfFilterSource filterSource = new SizeOfFilterSource(true);
-  
+  private final long chmTreeBinOffset;
   private final long onHeapKeyOffset;
-  
+  private final SizeOfFilterSource filterSource = new SizeOfFilterSource(true);
+
   public DefaultSizeOfEngine(long maxDepth, long maxSize) {
-    this(maxDepth, maxSize, false);
-  }
-  
-  public DefaultSizeOfEngine(long maxDepth, long maxSize, boolean isValueSerialized) {
     this.maxDepth = maxDepth;
     this.maxSize = maxSize;
-    this.filterSource.ignoreInstancesOf(Copier.class, false);
-    this.filterSource.ignoreInstancesOf(Serializer.class, false);
     this.sizeOf = SizeOf.newInstance(filterSource.getFilters());
-    this.onHeapKeyOffset = sizeof(new CopiedOnHeapKey(new Object(), new IdentityCopier()));
+    this.onHeapKeyOffset = sizeOf.deepSizeOf(new CopiedOnHeapKey(new Object(), new IdentityCopier()));
+    this.chmTreeBinOffset = sizeOf.deepSizeOf(ConcurrentHashMap.FAKE_TREE_BIN);
   }
 
   @Override
-  public long sizeof(Object... objects) {    
-    return sizeOf.deepSizeOf(new EhcacheVisitorListener(maxDepth, maxSize), objects);
-  }
-
-  @Override
-  public long sizeofKey(Object key) {
-    return sizeof(key) + this.onHeapKeyOffset;
+  public <K, V> long sizeof(K key, Store.ValueHolder<V> holder) {
+    return sizeOf.deepSizeOf(new EhcacheVisitorListener(maxDepth, maxSize), key, holder) + this.chmTreeBinOffset + this.onHeapKeyOffset;
   }
 
 }

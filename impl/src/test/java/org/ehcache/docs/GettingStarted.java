@@ -39,7 +39,6 @@ import org.ehcache.docs.plugs.StringSerializer;
 import org.ehcache.event.EventType;
 import org.ehcache.internal.copy.ReadWriteCopier;
 import org.ehcache.spi.copy.Copier;
-import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
@@ -166,13 +165,13 @@ public class GettingStarted {
   @Test
   public void byteSizedTieredCache() {
     // tag::byteSizedTieredCache[]
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
             .heap(10, MemoryUnit.KB) // <1>
             .offheap(10, MemoryUnit.MB)
             .build())
         .add(new DefaultSizeOfEngineConfiguration(1000, 1000)) // <2>    
-        .buildConfig(Long.class, String.class);
+        .build();
     
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("cache", cacheConfiguration)
