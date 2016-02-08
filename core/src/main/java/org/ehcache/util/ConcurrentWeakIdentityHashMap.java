@@ -18,9 +18,10 @@ package org.ehcache.util;
 
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
-import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
+import java.util.AbstractSet;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -117,15 +118,28 @@ public class ConcurrentWeakIdentityHashMap<K, V> implements ConcurrentMap<K, V> 
 
   @Override
   public Set<K> keySet() {
-    purgeKeys();
-    final HashSet<K> ks = new HashSet<K>();
-    for (WeakReference<K> kWeakReference : map.keySet()) {
-      final K k = kWeakReference.get();
-      if (k != null) {
-        ks.add(k);
+    return new AbstractSet<K>() {
+      @Override
+      public Iterator<K> iterator() {
+        purgeKeys();
+        return new WeakSafeIterator<K, WeakReference<K>>(map.keySet().iterator()) {
+          @Override
+          protected K extract(WeakReference<K> u) {
+            return u.get();
+          }
+        };
       }
-    }
-    return ks;
+
+      @Override
+      public boolean contains(Object o) {
+        return ConcurrentWeakIdentityHashMap.this.containsKey(o);
+      }
+
+      @Override
+      public int size() {
+        return map.size();
+      }
+    };
   }
 
   @Override
@@ -136,15 +150,28 @@ public class ConcurrentWeakIdentityHashMap<K, V> implements ConcurrentMap<K, V> 
 
   @Override
   public Set<Entry<K, V>> entrySet() {
-    purgeKeys();
-    final HashSet<Entry<K, V>> entries = new HashSet<Entry<K, V>>();
-    for (Entry<WeakReference<K>, V> entry : map.entrySet()) {
-      final K k = entry.getKey().get();
-      if(k != null) {
-        entries.add(new AbstractMap.SimpleEntry<K, V>(k, entry.getValue()));
+    return new AbstractSet<Entry<K, V>>() {
+      @Override
+      public Iterator<Entry<K, V>> iterator() {
+        purgeKeys();
+        return new WeakSafeIterator<Entry<K, V>, Entry<WeakReference<K>, V>>(map.entrySet().iterator()) {
+          @Override
+          protected Entry<K, V> extract(Entry<WeakReference<K>, V> u) {
+            K key = u.getKey().get();
+            if (key == null) {
+              return null;
+            } else {
+              return new SimpleEntry<K, V>(key, u.getValue());
+            }
+          }
+        };
       }
-    }
-    return entries;
+
+      @Override
+      public int size() {
+        return map.size();
+      }
+    };
   }
 
   private void purgeKeys() {
@@ -176,5 +203,46 @@ public class ConcurrentWeakIdentityHashMap<K, V> implements ConcurrentMap<K, V> 
     public int hashCode() {
       return hashCode;
     }
+  }
+
+  private static abstract class WeakSafeIterator<T, U> implements Iterator<T> {
+
+    private final Iterator<U> weakIterator;
+    protected T strongNext;
+
+    public WeakSafeIterator(Iterator<U> weakIterator) {
+      this.weakIterator = weakIterator;
+      advance();
+    }
+
+    private void advance() {
+      while (weakIterator.hasNext()) {
+        U nextU = weakIterator.next();
+        if ((strongNext = extract(nextU)) != null) {
+          return;
+        }
+      }
+      strongNext = null;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return strongNext != null;
+    }
+
+    @Override
+    public final T next() {
+      T next = strongNext;
+      advance();
+      return next;
+    }
+
+    @Override
+    public void remove() {
+      throw new UnsupportedOperationException();
+    }
+
+
+    protected abstract T extract(U u);
   }
 }
