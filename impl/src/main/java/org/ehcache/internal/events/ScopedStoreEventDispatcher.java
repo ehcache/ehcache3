@@ -16,115 +16,24 @@
 
 package org.ehcache.internal.events;
 
-import org.ehcache.events.StoreEventDispatcher;
 import org.ehcache.events.StoreEventSink;
-import org.ehcache.spi.cache.events.StoreEventFilter;
-import org.ehcache.spi.cache.events.StoreEventListener;
-
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * ScopedStoreEventDispatcher
  */
-public class ScopedStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V> {
+public class ScopedStoreEventDispatcher<K, V> extends AbstractStoreEventDispatcher<K, V> {
 
-  private static final StoreEventSink NO_OP_EVENT_SINK = new CloseableStoreEventSink() {
-    @Override
-    public void close() {
-      // Do nothing
-    }
-
-    @Override
-    public void closeOnFailure() {
-      // Do nothing
-    }
-
-    @Override
-    public void removed(Object key, Object value) {
-      // Do nothing
-    }
-
-    @Override
-    public void updated(Object key, Object oldValue, Object newValue) {
-      // Do nothing
-    }
-
-    @Override
-    public void expired(Object key, Object value) {
-      // Do nothing
-    }
-
-    @Override
-    public void created(Object key, Object value) {
-      // Do nothing
-    }
-
-    @Override
-    public void evicted(Object key, Object value) {
-      // Do nothing
-    }
-  };
-
-  private final Set<StoreEventFilter<K, V>> filters = new CopyOnWriteArraySet<StoreEventFilter<K, V>>();
-  private final Set<StoreEventListener<K, V>> listeners = new CopyOnWriteArraySet<StoreEventListener<K, V>>();
-  private final BlockingQueue<FireableStoreEventHolder<K, V>>[] orderedQueues;
-  private volatile boolean ordered = false;
 
   public ScopedStoreEventDispatcher(int orderedEventParallelism) {
-    if (orderedEventParallelism <= 0) {
-      throw new IllegalArgumentException("Ordered event parallelism must be an integer greater than 0");
-    }
-    orderedQueues = new LinkedBlockingQueue[orderedEventParallelism];
-    for (int i = 0; i < orderedQueues.length; i++) {
-      orderedQueues[i] = new LinkedBlockingQueue<FireableStoreEventHolder<K, V>>(10000);
-    }
+    super(orderedEventParallelism);
   }
 
   @Override
   public StoreEventSink<K, V> eventSink() {
-    if (listeners.isEmpty()) {
+    if (getListeners().isEmpty()) {
       return NO_OP_EVENT_SINK;
     } else {
-      return new InvocationScopedEventSink<K, V>(filters, ordered, orderedQueues, listeners);
+      return new InvocationScopedEventSink<K, V>(getFilters(), isEventOrdering(), getOrderedQueues(), getListeners());
     }
   }
-
-  @Override
-  public void releaseEventSink(StoreEventSink<K, V> eventSink) {
-    ((CloseableStoreEventSink) eventSink).close();
-  }
-
-  @Override
-  public void releaseEventSinkAfterFailure(StoreEventSink<K, V> eventSink, Throwable throwable) {
-    ((CloseableStoreEventSink) eventSink).closeOnFailure();
-  }
-
-  @Override
-  public void addEventListener(StoreEventListener<K, V> eventListener) {
-    listeners.add(eventListener);
-  }
-
-  @Override
-  public void removeEventListener(StoreEventListener<K, V> eventListener) {
-    listeners.remove(eventListener);
-  }
-
-  @Override
-  public void addEventFilter(StoreEventFilter<K, V> eventFilter) {
-    filters.add(eventFilter);
-  }
-
-  @Override
-  public void setEventOrdering(boolean ordering) {
-    this.ordered = ordering;
-  }
-
-  @Override
-  public boolean isEventOrdering() {
-    return ordered;
-  }
-
 }

@@ -35,6 +35,11 @@ public enum EventOrdering {
 
   EventOrdering(boolean ordered) {this.ordered = ordered;}
 
+  /**
+   * Indicates if the value obeys ordering
+   *
+   * @return {@link true} in case it does, {@link false} otherwise
+   */
   public boolean isOrdered() {
     return ordered;
   }

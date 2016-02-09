@@ -700,7 +700,7 @@ class ConfigurationParser {
       this.parallelismLevel = type.getParallelismLevel().intValue();
       String threadPool = type.getThreadPool();
       Set<Listener> listenerSet = new HashSet<Listener>();
-      final List<ListenersType.Listener> xmlListeners = type != null ? type.getListener(): null;
+      final List<ListenersType.Listener> xmlListeners = type.getListener();
       extractListeners(listenerSet, xmlListeners);
 
       for (ListenersType other : others) {

@@ -86,7 +86,7 @@ class InvocationScopedEventSink<K, V> implements CloseableStoreEventSink<K, V> {
     }
   }
 
-  private boolean acceptEvent(EventType type, K key, V oldValue, V newValue) {
+  protected boolean acceptEvent(EventType type, K key, V oldValue, V newValue) {
     for (StoreEventFilter<K, V> filter : filters) {
       if (!filter.acceptEvent(type, key, oldValue, newValue)) {
         return false;
@@ -117,11 +117,11 @@ class InvocationScopedEventSink<K, V> implements CloseableStoreEventSink<K, V> {
     close();
   }
 
-  private BlockingQueue<FireableStoreEventHolder<K, V>> getOrderedQueue(FireableStoreEventHolder<K, V> event) {
-    return orderedQueues[event.eventKeyHash() % orderedQueues.length];
+  protected Deque<FireableStoreEventHolder<K, V>> getEvents() {
+    return events;
   }
 
-  private void handleEvent(K key, FireableStoreEventHolder<K, V> event) {
+  protected void handleEvent(K key, FireableStoreEventHolder<K, V> event) {
     events.add(event);
     if (ordered) {
       try {
@@ -131,6 +131,10 @@ class InvocationScopedEventSink<K, V> implements CloseableStoreEventSink<K, V> {
         Thread.currentThread().interrupt();
       }
     }
+  }
+
+  private BlockingQueue<FireableStoreEventHolder<K, V>> getOrderedQueue(FireableStoreEventHolder<K, V> event) {
+    return orderedQueues[event.eventKeyHash() % orderedQueues.length];
   }
 
   private void fireOrdered(Set<StoreEventListener<K, V>> listeners, Deque<FireableStoreEventHolder<K, V>> events) {

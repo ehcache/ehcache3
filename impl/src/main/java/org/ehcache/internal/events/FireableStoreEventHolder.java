@@ -96,4 +96,8 @@ class FireableStoreEventHolder<K, V> {
   int eventKeyHash() {
     return event.getKey().hashCode();
   }
+
+  StoreEvent<K, V> getEvent() {
+    return event;
+  }
 }

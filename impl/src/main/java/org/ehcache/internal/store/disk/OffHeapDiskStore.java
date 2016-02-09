@@ -28,7 +28,7 @@ import org.ehcache.events.StoreEventDispatcher;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceService;
-import org.ehcache.internal.events.ScopedStoreEventDispatcher;
+import org.ehcache.internal.events.ThreadLocalStoreEventDispatcher;
 import org.ehcache.internal.store.disk.factories.EhcachePersistentSegmentFactory;
 import org.ehcache.internal.store.offheap.AbstractOffHeapStore;
 import org.ehcache.internal.store.offheap.EhcacheOffHeapBackingMap;
@@ -253,7 +253,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
     @Override
     public <K, V> OffHeapDiskStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      return createStoreInternal(storeConfig, new ScopedStoreEventDispatcher<K, V>(storeConfig.getOrderedEventParallelism()), serviceConfigs);
+      return createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<K, V>(storeConfig.getOrderedEventParallelism()), serviceConfigs);
     }
 
     private <K, V> OffHeapDiskStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, StoreEventDispatcher<K, V> eventDispatcher, ServiceConfiguration<?>... serviceConfigs) {

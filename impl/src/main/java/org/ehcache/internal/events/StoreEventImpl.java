@@ -19,6 +19,8 @@ package org.ehcache.internal.events;
 import org.ehcache.event.EventType;
 import org.ehcache.spi.cache.events.StoreEvent;
 
+import static java.lang.String.format;
+
 /**
  * StoreEventImpl
  */
@@ -87,5 +89,10 @@ public class StoreEventImpl<K, V> implements StoreEvent<K, V> {
     result = 31 * result + (oldValue != null ? oldValue.hashCode() : 0);
     result = 31 * result + (newValue != null ? newValue.hashCode() : 0);
     return result;
+  }
+
+  @Override
+  public String toString() {
+    return format("Event of type %s for key %s", type, key);
   }
 }
