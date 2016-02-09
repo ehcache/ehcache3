@@ -13,10 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.clustered;
 
-dependencies {
-  testCompile project(':clustered:server')
-  testCompile project(':clustered:client')
-  testCompile "org.terracotta:coordinator-entity-server:$parent.coordinatorVersion"
-  testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
+import java.io.Serializable;
+
+/**
+ *
+ * @author cdennis
+ */
+public class ServerSideConfiguration implements Serializable {
+  
+  private final int magic;
+
+  public ServerSideConfiguration(int magic) {
+    this.magic = magic;
+  }
+  
+  public int getMagic() {
+    return magic;
+  }
 }

@@ -13,10 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.clustered;
 
-dependencies {
-  testCompile project(':clustered:server')
-  testCompile project(':clustered:client')
-  testCompile "org.terracotta:coordinator-entity-server:$parent.coordinatorVersion"
-  testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
+/**
+ *
+ * @author cdennis
+ */
+public final class Util {
+  
+  private Util() {}
+  
+  
+  public static <T extends Exception> T unwrapException(Throwable t, Class<T> aClass) {
+    Throwable cause = t.getCause();
+    if (cause != null) {
+      t = cause;
+    }
+    
+    if (aClass.isInstance(t)) {
+      return aClass.cast(t);
+    } else if (t instanceof RuntimeException) {
+      throw (RuntimeException) t;
+    } else if (t instanceof Error) {
+      throw (Error) t;
+    } else {
+      throw new RuntimeException(t);
+    }
+  }
 }

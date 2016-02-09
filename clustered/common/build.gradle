@@ -15,8 +15,5 @@
  */
 
 dependencies {
-  testCompile project(':clustered:server')
-  testCompile project(':clustered:client')
-  testCompile "org.terracotta:coordinator-entity-server:$parent.coordinatorVersion"
-  testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
+  compile "org.terracotta:entity-server-api:$parent.entityApiVersion"
 }

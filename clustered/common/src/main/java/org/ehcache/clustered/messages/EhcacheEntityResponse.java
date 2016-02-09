@@ -13,10 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.clustered.messages;
 
-dependencies {
-  testCompile project(':clustered:server')
-  testCompile project(':clustered:client')
-  testCompile "org.terracotta:coordinator-entity-server:$parent.coordinatorVersion"
-  testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
+import java.io.Serializable;
+import org.terracotta.entity.EntityResponse;
+
+/**
+ *
+ * @author cdennis
+ */
+public interface EhcacheEntityResponse extends EntityResponse, Serializable {
+  
 }

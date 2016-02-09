@@ -21,6 +21,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import org.ehcache.clustered.client.EhcacheClientEntityService;
 import org.ehcache.clustered.server.EhcacheServerEntityService;
+import org.terracotta.consensus.entity.CoordinationServerEntityService;
+import org.terracotta.consensus.entity.client.ClientCoordinationEntityService;
 import org.terracotta.passthrough.PassthroughServer;
 
 public final class TestUtils {
@@ -33,6 +35,8 @@ public final class TestUtils {
     PassthroughServer server = new PassthroughServer(true);
     server.registerServerEntityService(new EhcacheServerEntityService());
     server.registerClientEntityService(new EhcacheClientEntityService());
+    server.registerServerEntityService(new CoordinationServerEntityService());
+    server.registerClientEntityService(new ClientCoordinationEntityService());
     server.start();
     return server;
   }
