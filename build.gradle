@@ -230,8 +230,7 @@ configure(allprojects.findAll({ p -> p.ext.properties.distribution })) {
       }
 
       instruction 'Export-Package', '*'
-      instruction 'Import-Package', '!sun.misc', '!sun.security.action', '!com.sun.jmx.mbeanserver', '*'
-      
+      instruction 'Import-Package', '*'
     }
     manifest.inheritFrom(osgiManifest) {
       eachEntry {
