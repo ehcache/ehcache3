@@ -18,12 +18,16 @@ package org.ehcache.util;
 
 import org.junit.Test;
 
+import java.util.AbstractMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -120,4 +124,113 @@ public class ConcurrentWeakIdentityHashMapTest {
     map.put(key, v);
     return key;
   }
+
+  @Test
+  public void testKeySetSize() throws Exception {
+    ConcurrentWeakIdentityHashMap<String, String> map = new ConcurrentWeakIdentityHashMap<String, String>();
+    Set<String> keys = map.keySet();
+
+    String key1 = "key1";
+    String key2 = "key2";
+    String key3 = "key3";
+    map.put(key1, "value1");
+    map.put(key2, "value2");
+    map.put(key3, "value3");
+
+    assertThat(keys.size(), is(3));
+  }
+
+  @Test
+  public void testKeySetContainsReflectsMapChanges() throws Exception {
+    ConcurrentWeakIdentityHashMap<String, String> map = new ConcurrentWeakIdentityHashMap<String, String>();
+    Set<String> keys = map.keySet();
+
+    String key1 = "key1";
+    String key2 = "key2";
+    String key3 = "key3";
+    map.put(key1, "value1");
+    map.put(key2, "value2");
+    map.put(key3, "value3");
+
+    assertThat(keys.contains(key1), is(true));
+    assertThat(keys.contains(key2), is(true));
+    assertThat(keys.contains(key3), is(true));
+  }
+
+  @Test
+  public void testKeySetIteratorReflectsMapChanges() {
+    ConcurrentWeakIdentityHashMap<String, String> map = new ConcurrentWeakIdentityHashMap<String, String>();
+    Set<String> keys = map.keySet();
+
+    String key1 = "key1";
+    String key2 = "key2";
+    String key3 = "key3";
+    map.put(key1, "value1");
+    map.put(key2, "value2");
+    map.put(key3, "value3");
+
+    Iterator<String> iterator = keys.iterator();
+    assertThat(iterator.hasNext(), is(true));
+    assertThat(iterator.next(), startsWith("key"));
+    assertThat(iterator.hasNext(), is(true));
+    assertThat(iterator.next(), startsWith("key"));
+    assertThat(iterator.hasNext(), is(true));
+    assertThat(iterator.next(), startsWith("key"));
+    assertThat(iterator.hasNext(), is(false));
+  }
+
+  @Test
+  public void testEntrySetSize() throws Exception {
+    ConcurrentWeakIdentityHashMap<String, String> map = new ConcurrentWeakIdentityHashMap<String, String>();
+    Set<Map.Entry<String, String>> entries = map.entrySet();
+
+    String key1 = "key1";
+    String key2 = "key2";
+    String key3 = "key3";
+    map.put(key1, "value1");
+    map.put(key2, "value2");
+    map.put(key3, "value3");
+
+    assertThat(entries.size(), is(3));
+  }
+
+  @Test
+  public void testEntrySetContainsReflectsMapChanges() throws Exception {
+    ConcurrentWeakIdentityHashMap<String, String> map = new ConcurrentWeakIdentityHashMap<String, String>();
+    Set<Map.Entry<String, String>> entries = map.entrySet();
+
+    String key1 = "key1";
+    String key2 = "key2";
+    String key3 = "key3";
+    map.put(key1, "value1");
+    map.put(key2, "value2");
+    map.put(key3, "value3");
+
+    assertThat(entries.contains(new AbstractMap.SimpleEntry<String, String>("key1", "value1")), is(true));
+    assertThat(entries.contains(new AbstractMap.SimpleEntry<String, String>("key1", "value1")), is(true));
+    assertThat(entries.contains(new AbstractMap.SimpleEntry<String, String>("key1", "value1")), is(true));
+  }
+
+  @Test
+  public void testEntrySetIteratorReflectsMapChanges() {
+    ConcurrentWeakIdentityHashMap<String, String> map = new ConcurrentWeakIdentityHashMap<String, String>();
+    Set<Map.Entry<String, String>> entries = map.entrySet();
+
+    String key1 = "key1";
+    String key2 = "key2";
+    String key3 = "key3";
+    map.put(key1, "value1");
+    map.put(key2, "value2");
+    map.put(key3, "value3");
+
+    Iterator<Map.Entry<String, String>> iterator = entries.iterator();
+    assertThat(iterator.hasNext(), is(true));
+    assertThat(iterator.next().getKey(), startsWith("key"));
+    assertThat(iterator.hasNext(), is(true));
+    assertThat(iterator.next().getKey(), startsWith("key"));
+    assertThat(iterator.hasNext(), is(true));
+    assertThat(iterator.next().getKey(), startsWith("key"));
+    assertThat(iterator.hasNext(), is(false));
+  }
+
 }
