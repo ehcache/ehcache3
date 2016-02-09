@@ -167,22 +167,22 @@ public class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(false);
     cacheManager.init();
 
-    DefaultCopierConfiguration copierConfiguration = new DefaultCopierConfiguration(
+    DefaultCopierConfiguration<String> copierConfiguration = new DefaultCopierConfiguration(
         SerializingCopier.class, CopierConfiguration.Type.VALUE);
     final Cache<Long, String> cache1 = cacheManager.createCache("cache1",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder().withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES))
-            .buildConfig(Long.class, String.class));
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class).withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES))
+            .build());
     performAssertions(cache1, true);
 
     final Cache<Long, String> cache2 = cacheManager.createCache("cache2",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
             .add(copierConfiguration)
-            .buildConfig(Long.class, String.class));
+            .build());
     performAssertions(cache2, false);
 
     final Cache<Long, String> cache3 = cacheManager.createCache("cache3",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder()
-            .buildConfig(Long.class, String.class));
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+            .build());
     performAssertions(cache3, true);
 
     cacheManager.close();

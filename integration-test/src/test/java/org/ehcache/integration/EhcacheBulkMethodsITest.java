@@ -66,8 +66,8 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testPutAll_without_cache_writer() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildConfig(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.build();
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
     CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
@@ -90,9 +90,9 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testPutAll_with_cache_writer() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
-        .buildConfig(String.class, String.class);
+        .build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
@@ -129,9 +129,9 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testPutAll_with_cache_writer_that_throws_exception() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
-        .buildConfig(String.class, String.class);
+        .build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     CacheLoaderWriter cacheLoaderWriterThatThrows = mock(CacheLoaderWriter.class);
@@ -164,9 +164,9 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testPutAll_store_throws_cache_exception() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
-        .buildConfig(String.class, String.class);
+        .build();
 
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
@@ -205,8 +205,8 @@ public class EhcacheBulkMethodsITest {
   
   @Test
   public void testGetAll_without_cache_loader() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildConfig(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.build();
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
     CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
@@ -234,8 +234,8 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testGetAll_with_cache_loader() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildConfig(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
@@ -266,8 +266,8 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testGetAll_cache_loader_throws_exception() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildConfig(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
@@ -301,8 +301,8 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testGetAll_store_throws_cache_exception() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildConfig(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
@@ -333,8 +333,8 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testRemoveAll_without_cache_writer() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildConfig(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.build();
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
     CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
@@ -366,9 +366,9 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testRemoveAll_with_cache_writer() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
-        .buildConfig(String.class, String.class);
+        .build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
@@ -411,9 +411,9 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testRemoveAll_cache_writer_throws_exception() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
-        .buildConfig(String.class, String.class);
+        .build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     CacheLoaderWriter cacheLoaderWriterThatThrows = mock(CacheLoaderWriter.class);
@@ -453,9 +453,9 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testRemoveAll_with_store_that_throws() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
-        .buildConfig(String.class, String.class);
+        .build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);

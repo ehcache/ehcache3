@@ -65,9 +65,9 @@ public class DefaultSharedManagementServiceTest {
 
   @Before
   public void init() {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
-        .buildConfig(Long.class, String.class);
+        .build();
 
     service = new DefaultSharedManagementService();
 
@@ -191,9 +191,9 @@ public class DefaultSharedManagementServiceTest {
     assertThat(cacheManager1.getCache("aCache1", Long.class, String.class).get(1L), equalTo("1"));
     assertThat(cacheManager2.getCache("aCache2", Long.class, String.class).get(2L), equalTo("2"));
 
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
-        .buildConfig(Long.class, String.class);
+        .build();
     cacheManager1.createCache("aCache4", cacheConfiguration);
 
     cacheManager1.getCache("aCache4", Long.class, String.class).put(4L, "4");

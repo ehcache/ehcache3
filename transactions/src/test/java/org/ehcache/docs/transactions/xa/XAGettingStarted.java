@@ -80,12 +80,12 @@ public class XAGettingStarted {
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .using(new XAStoreProviderConfiguration()) // <2>
-        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder() // <3>
+        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class) // <3>
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder() // <4>
                     .heap(10, EntryUnit.ENTRIES)
             )
             .add(new XAStoreConfiguration("xaCache")) // <5>
-            .buildConfig(Long.class, String.class)
+            .build()
         )
         .build(true);
 
@@ -110,12 +110,12 @@ public class XAGettingStarted {
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .using(new XAStoreProviderConfiguration()) // <2>
-        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder() // <3>
+        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class) // <3>
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder() // <4>
                     .heap(10, EntryUnit.ENTRIES)
             )
             .add(new XAStoreConfiguration("xaCache")) // <5>
-            .buildConfig(Long.class, String.class)
+            .build()
         )
         .build(true);
 
@@ -143,12 +143,12 @@ public class XAGettingStarted {
         .using(new XAStoreProviderConfiguration()) // <2>
         .using(new TransactionManagerProviderConfiguration(
             new TransactionManagerWrapper(transactionManager, new BitronixXAResourceRegistry()))) // <3>
-        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder() // <4>
+        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class) // <4>
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder() // <5>
                     .heap(10, EntryUnit.ENTRIES)
             )
             .add(new XAStoreConfiguration("xaCache")) // <6>
-            .buildConfig(Long.class, String.class)
+            .build()
         )
         .build(true);
 
@@ -175,13 +175,13 @@ public class XAGettingStarted {
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .using(new XAStoreProviderConfiguration()) // <2>
-        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder() // <3>
+        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class) // <3>
                 .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder() // <4>
                         .heap(10, EntryUnit.ENTRIES)
                 )
                 .add(new XAStoreConfiguration("xaCache")) // <5>
                 .add(new DefaultCacheLoaderWriterConfiguration(klazz, singletonMap(1L, "eins"))) // <6>
-                .buildConfig(Long.class, String.class)
+                .build()
         )
         .build(true);
 
@@ -208,14 +208,14 @@ public class XAGettingStarted {
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .using(new XAStoreProviderConfiguration()) // <2>
         .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "testXACacheWithThreeTiers"))) // <3>
-        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder() // <4>
+        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class) // <4>
                 .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder() // <5>
                         .heap(10, EntryUnit.ENTRIES)
                         .offheap(10, MemoryUnit.MB)
                         .disk(20, MemoryUnit.MB, true)
                 )
                 .add(new XAStoreConfiguration("xaCache")) // <6>
-                .buildConfig(Long.class, String.class)
+                .build()
         )
         .build(true);
 

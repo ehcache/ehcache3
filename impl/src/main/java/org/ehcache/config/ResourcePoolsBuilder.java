@@ -27,7 +27,7 @@ import static org.ehcache.config.ResourcePoolsImpl.validateResourcePools;
 /**
  * @author Ludovic Orban
  */
-public class ResourcePoolsBuilder {
+public class ResourcePoolsBuilder implements Builder<ResourcePools> {
 
   private final Map<ResourceType, ResourcePool> resourcePools;
 
@@ -75,6 +75,7 @@ public class ResourcePoolsBuilder {
     return with(ResourceType.Core.DISK, size, unit, persistent);
   }
 
+  @Override
   public ResourcePools build() {
     return new ResourcePoolsImpl(resourcePools);
   }

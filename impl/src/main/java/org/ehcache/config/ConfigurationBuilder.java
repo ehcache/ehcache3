@@ -31,7 +31,7 @@ import static java.util.Collections.unmodifiableMap;
 /**
  * @author Alex Snaps
  */
-public class ConfigurationBuilder {
+public class ConfigurationBuilder implements Builder<Configuration> {
 
   private final Map<String, CacheConfiguration<?, ?>> caches;
   private final List<ServiceCreationConfiguration<?>> serviceConfigurations;
@@ -64,7 +64,8 @@ public class ConfigurationBuilder {
     this.serviceConfigurations = builder.serviceConfigurations;
     this.classLoader = classLoader;
   }
-  
+
+  @Override
   public Configuration build() {
     return new DefaultConfiguration(caches, classLoader, serviceConfigurations.toArray(new ServiceCreationConfiguration<?>[serviceConfigurations.size()]));
   }

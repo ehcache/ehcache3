@@ -39,8 +39,8 @@ public class ThreadPoolsTest {
 
     try {
       cacheManager.createCache("testCache",
-          CacheConfigurationBuilder.newCacheConfigurationBuilder()
-              .buildConfig(Long.class, String.class));
+          CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+              .build());
       fail("expected IllegalStateException");
     } catch (IllegalStateException ise) {
       // expected
@@ -59,8 +59,8 @@ public class ThreadPoolsTest {
         .build(true);
 
     cacheManager.createCache("testCache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder()
-            .buildConfig(Long.class, String.class));
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+            .build());
 
     cacheManager.close();
   }
@@ -74,8 +74,8 @@ public class ThreadPoolsTest {
         .build(true);
 
     cacheManager.createCache("testCache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder()
-            .buildConfig(Long.class, String.class));
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+            .build());
 
     cacheManager.close();
   }
@@ -91,8 +91,8 @@ public class ThreadPoolsTest {
 
     try {
       cacheManager.createCache("testCache",
-          CacheConfigurationBuilder.newCacheConfigurationBuilder()
-              .buildConfig(Long.class, String.class));
+          CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+              .build());
       fail("expected IllegalStateException");
     } catch (IllegalStateException ise) {
       // expected

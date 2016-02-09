@@ -157,7 +157,7 @@ public class ConfigurationMergerTest {
   public void jsr107ExpiryGetsOverriddenByTemplate() throws Exception {
     when(jsr107Service.getTemplateNameForCache("cache")).thenReturn("cacheTemplate");
     when(xmlConfiguration.newCacheConfigurationBuilderFromTemplate("cacheTemplate", Object.class, Object.class)).thenReturn(
-        newCacheConfigurationBuilder().withExpiry(Expirations.timeToLiveExpiration(new Duration(5, TimeUnit.MINUTES)))
+        newCacheConfigurationBuilder(Object.class, Object.class).withExpiry(Expirations.timeToLiveExpiration(new Duration(5, TimeUnit.MINUTES)))
     );
 
     MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();
@@ -178,7 +178,7 @@ public class ConfigurationMergerTest {
   public void jsr107LoaderGetsOverriddenByTemplate() throws Exception {
     when(jsr107Service.getTemplateNameForCache("cache")).thenReturn("cacheTemplate");
     when(xmlConfiguration.newCacheConfigurationBuilderFromTemplate("cacheTemplate", Object.class, Object.class)).thenReturn(
-        newCacheConfigurationBuilder().add(new DefaultCacheLoaderWriterConfiguration((Class)null))
+        newCacheConfigurationBuilder(Object.class, Object.class).add(new DefaultCacheLoaderWriterConfiguration((Class)null))
     );
 
     MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();
@@ -194,7 +194,7 @@ public class ConfigurationMergerTest {
 
   @Test
   public void jsr107StoreByValueGetsOverriddenByTemplate() throws Exception {
-    CacheConfigurationBuilder<Object, Object> builder = newCacheConfigurationBuilder()
+    CacheConfigurationBuilder<Object, Object> builder = newCacheConfigurationBuilder(Object.class, Object.class)
         .add(new DefaultCopierConfiguration<Object>((Class)IdentityCopier.class, CopierConfiguration.Type.KEY))
         .add(new DefaultCopierConfiguration<Object>((Class)IdentityCopier.class, CopierConfiguration.Type.VALUE));
     

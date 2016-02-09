@@ -33,8 +33,9 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
     The first `String` argument is the alias used to interact with the `Cache` through the `CacheManager`; the second
     argument is `org.ehcache.config.CacheConfiguration` to configure the `Cache`. We use the static
     `.newCacheConfigurationBuilder()` method on `org.ehcache.config.CacheConfigurationBuilder` to create a default config;
-<3> Finally, invoking `.build(bool)` returns a fully instantiated, possibly initialized, `CacheManager` we can use;
-<4> Before you start to use the `CacheManager` it needs to be `init()`, which can be done for you by the builder by passing `true` to `build(bool)`;
+<3> Finally, invoking `.build()` returns a fully instantiated, but uninitialized, `CacheManager` we can use;
+<4> Before you start to use the `CacheManager` it needs to be `init()`, which can be done for you by the builder by passing
+    `true` to `build(boolean)`;
 <5> We can retrieve the `preConfigured` aliased `Cache` we declared in step 2. For type-safety, we ask for both key and
     value types to be passed in. If these differ from the ones we expect, the `CacheManager` throws a `ClassCastException`
     early in the application's lifecycle. It also guards the `Cache` from being polluted by random types.
@@ -235,7 +236,9 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 ----
 
 <1> Configure the key's serializer.
-<2> Configure the value's serializer.
+<2> Configure the value's serializer. Note that the casting is required as the serializer's type does not exactly match
+    the configured value type. This is okay as long as the serializer guarantees that the deserialized class will be
+    exactly the serialized class.
 
 Serializer instances are created per cache for keys and values separately.
 By default, serializers are automatically used by tiers that require them (off-heap and disk) but the on-heap tier, while it can

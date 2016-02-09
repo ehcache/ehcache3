@@ -47,9 +47,9 @@ public class DefaultCacheLoaderWriterProviderTest {
   public void testCacheConfigUsage() {
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("foo",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder()
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
                 .add(new DefaultCacheLoaderWriterConfiguration(MyLoader.class))
-                .buildConfig(Object.class, Object.class)).build(true);
+                .build()).build(true);
     final Object foo = manager.getCache("foo", Object.class, Object.class).get(new Object());
     assertThat(foo, is(MyLoader.object));
   }
@@ -57,8 +57,8 @@ public class DefaultCacheLoaderWriterProviderTest {
   @Test
   public void testCacheManagerConfigUsage() {
 
-    final CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .buildConfig(Object.class, Object.class);
+    final CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
+        .build();
 
     final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
     caches.put("foo", cacheConfiguration);
@@ -72,9 +72,9 @@ public class DefaultCacheLoaderWriterProviderTest {
 
   @Test
   public void testCacheConfigOverridesCacheManagerConfig() {
-    final CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+    final CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
         .add(new DefaultCacheLoaderWriterConfiguration(MyOtherLoader.class))
-        .buildConfig(Object.class, Object.class);
+        .build();
 
     final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
     caches.put("foo", cacheConfiguration);
@@ -93,11 +93,11 @@ public class DefaultCacheLoaderWriterProviderTest {
     Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) (Class) (MyLoader.class);
     CacheManager cacheManager = cacheManagerBuilder.build(true);
     final Cache<Long, String> cache = cacheManager.createCache("cache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
             .add(new DefaultCacheLoaderWriterConfiguration(klazz))
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(100, EntryUnit.ENTRIES).build())
-            .buildConfig(Long.class, String.class));
+            .build());
     Collection<ServiceConfiguration<?>> serviceConfiguration = cache.getRuntimeConfiguration()
         .getServiceConfigurations();
     assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(DefaultCacheLoaderWriterConfiguration.class)));

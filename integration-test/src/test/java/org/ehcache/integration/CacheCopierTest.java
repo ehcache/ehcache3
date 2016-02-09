@@ -36,7 +36,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -52,7 +51,7 @@ import static org.junit.Assert.assertThat;
 public class CacheCopierTest {
 
   CacheManager cacheManager;
-  CacheConfigurationBuilder<Long, Person> baseConfig = CacheConfigurationBuilder.<Long, Person>newCacheConfigurationBuilder()
+  CacheConfigurationBuilder<Long, Person> baseConfig = CacheConfigurationBuilder.<Long, Person>newCacheConfigurationBuilder(Long.class, Person.class)
       .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES).build());
 
 
@@ -71,7 +70,7 @@ public class CacheCopierTest {
   public void testCopyValueOnRead() throws Exception {
     CacheConfiguration<Long, Person> cacheConfiguration = baseConfig
         .add(new DefaultCopierConfiguration<Person>(PersonOnReadCopier.class, CopierConfiguration.Type.VALUE))
-        .buildConfig(Long.class, Person.class);
+        .build();
 
     Cache<Long, Person> cache = cacheManager.createCache("cache", cacheConfiguration);
 
@@ -94,7 +93,7 @@ public class CacheCopierTest {
   public void testCopyValueOnWrite() throws Exception {
     CacheConfiguration<Long, Person> cacheConfiguration = baseConfig
         .add(new DefaultCopierConfiguration<Person>(PersonOnWriteCopier.class, CopierConfiguration.Type.VALUE))
-        .buildConfig(Long.class, Person.class);
+        .build();
 
     Cache<Long, Person> cache = cacheManager.createCache("cache", cacheConfiguration);
 
@@ -115,7 +114,7 @@ public class CacheCopierTest {
 
   @Test
   public void testIdentityCopier() throws Exception {
-    CacheConfiguration<Long, Person> cacheConfiguration = baseConfig.buildConfig(Long.class, Person.class);
+    CacheConfiguration<Long, Person> cacheConfiguration = baseConfig.build();
 
     Cache<Long, Person> cache = cacheManager.createCache("cache", cacheConfiguration);
 
@@ -137,7 +136,7 @@ public class CacheCopierTest {
     CacheConfiguration<Long, Person> cacheConfiguration = baseConfig
         .add(new DefaultCopierConfiguration<Person>((Class)SerializingCopier.class, CopierConfiguration.Type.VALUE))
         .add(new DefaultSerializerConfiguration<Person>(PersonSerializer.class, SerializerConfiguration.Type.VALUE))
-        .buildConfig(Long.class, Person.class);
+        .build();
 
     Cache<Long, Person> cache = cacheManager.createCache("cache", cacheConfiguration);
 
@@ -160,7 +159,7 @@ public class CacheCopierTest {
   public void testReadWriteCopier() throws Exception {
     CacheConfiguration<Long, Person> cacheConfiguration = baseConfig
         .add(new DefaultCopierConfiguration<Person>(PersonCopier.class, CopierConfiguration.Type.VALUE))
-        .buildConfig(Long.class, Person.class);
+        .build();
 
     Cache<Long, Person> cache = cacheManager.createCache("cache", cacheConfiguration);
 

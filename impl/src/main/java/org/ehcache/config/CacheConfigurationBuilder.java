@@ -36,22 +36,28 @@ import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 /**
  * @author Alex Snaps
  */
-public class CacheConfigurationBuilder<K, V> {
+public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfiguration<K, V>> {
 
   private final Collection<ServiceConfiguration<?>> serviceConfigurations = new HashSet<ServiceConfiguration<?>>();
   private Expiry<? super K, ? super V> expiry;
   private ClassLoader classLoader = null;
   private EvictionVeto<? super K, ? super V> evictionVeto;
   private ResourcePools resourcePools = newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
+  private Class<? super K> keyType;
+  private Class<? super V> valueType;
 
-  private CacheConfigurationBuilder() {
+  public static <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilder(Class<K> keyType, Class<V> valueType) {
+    return new CacheConfigurationBuilder<K, V>(keyType, valueType);
   }
 
-  public static <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilder() {
-    return new CacheConfigurationBuilder<K, V>();
+  private CacheConfigurationBuilder(Class<K> keyType, Class<V> valueType) {
+    this.keyType = keyType;
+    this.valueType = valueType;
   }
 
   private CacheConfigurationBuilder(CacheConfigurationBuilder<? super K, ? super V> other) {
+    this.keyType = other.keyType;
+    this.valueType = other.valueType;
     this.expiry = other.expiry;
     this.classLoader = other.classLoader;
     this.evictionVeto = other.evictionVeto;
@@ -96,19 +102,6 @@ public class CacheConfigurationBuilder<K, V> {
     return null;
   }
 
-  public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType) {
-    return new BaseCacheConfiguration<CK, CV>(keyType, valueType, evictionVeto,
-        classLoader, expiry, resourcePools,
-        serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
-  }
-
-  public <CK extends K, CV extends V> CacheConfiguration<CK, CV> buildConfig(Class<CK> keyType, Class<CV> valueType,
-                                                     EvictionVeto<? super CK, ? super CV> evictionVeto) {
-    return new BaseCacheConfiguration<CK, CV>(keyType, valueType, evictionVeto,
-        classLoader, expiry, resourcePools,
-        serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
-  }
-  
   public CacheConfigurationBuilder<K, V> withClassLoader(ClassLoader classLoader) {
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
     otherBuilder.classLoader = classLoader;
@@ -183,7 +176,7 @@ public class CacheConfigurationBuilder<K, V> {
     return otherBuilder;
   }
 
-  public CacheConfigurationBuilder<K, V> withKeyCopier(Class<Copier<K>> keyCopierClass) {
+  public CacheConfigurationBuilder<K, V> withKeyCopier(Class<? extends Copier<K>> keyCopierClass) {
     if (keyCopierClass == null) {
       throw new NullPointerException("Null key copier class");
     }
@@ -201,7 +194,7 @@ public class CacheConfigurationBuilder<K, V> {
     return otherBuilder;
   }
 
-  public CacheConfigurationBuilder<K, V> withValueCopier(Class<Copier<V>> valueCopierClass) {
+  public CacheConfigurationBuilder<K, V> withValueCopier(Class<? extends Copier<V>> valueCopierClass) {
     if (valueCopierClass == null) {
       throw new NullPointerException("Null value copier");
     }
@@ -219,7 +212,7 @@ public class CacheConfigurationBuilder<K, V> {
     return otherBuilder;
   }
 
-  public CacheConfigurationBuilder<K, V> withKeySerializer(Class<Serializer<K>> keySerializerClass) {
+  public CacheConfigurationBuilder<K, V> withKeySerializer(Class<? extends Serializer<K>> keySerializerClass) {
     if (keySerializerClass == null) {
       throw new NullPointerException("Null key serializer class");
     }
@@ -237,7 +230,7 @@ public class CacheConfigurationBuilder<K, V> {
     return otherBuilder;
   }
 
-  public CacheConfigurationBuilder<K, V> withValueSerializer(Class<Serializer<V>> valueSerializerClass) {
+  public CacheConfigurationBuilder<K, V> withValueSerializer(Class<? extends Serializer<V>> valueSerializerClass) {
     if (valueSerializerClass == null) {
       throw new NullPointerException("Null value serializer class");
     }
@@ -246,4 +239,11 @@ public class CacheConfigurationBuilder<K, V> {
     return otherBuilder;
   }
 
+  @Override
+  public CacheConfiguration<K, V> build() {
+    return new BaseCacheConfiguration<K, V>(keyType, valueType, evictionVeto,
+        classLoader, expiry, resourcePools,
+        serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
+
+  }
 }

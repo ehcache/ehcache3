@@ -24,17 +24,11 @@ import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.internal.classes.ClassInstanceConfiguration;
-import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.spi.copy.Copier;
-import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.CompleteConfiguration;
@@ -42,6 +36,8 @@ import javax.cache.configuration.Configuration;
 import javax.cache.configuration.Factory;
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
@@ -73,7 +69,7 @@ class ConfigurationMerger {
     Eh107Expiry<K, V> expiryPolicy = null;
     CacheLoaderWriter<? super K, V> loaderWriter = null;
     try {
-      CacheConfigurationBuilder<K, V> builder = newCacheConfigurationBuilder();
+      CacheConfigurationBuilder<K, V> builder = newCacheConfigurationBuilder(configuration.getKeyType(), configuration.getValueType());
       String templateName = jsr107Service.getTemplateNameForCache(cacheName);
       if (xmlConfiguration != null && templateName != null) {
         CacheConfigurationBuilder<K, V> templateBuilder = xmlConfiguration.newCacheConfigurationBuilderFromTemplate(templateName,
@@ -111,7 +107,7 @@ class ConfigurationMerger {
         LOG.info("Cache {} will use loader/writer configuration from template {}", cacheName, templateName);
       }
 
-      CacheConfiguration<K, V> cacheConfiguration = builder.buildConfig(jsr107Configuration.getKeyType(), jsr107Configuration.getValueType());
+      CacheConfiguration<K, V> cacheConfiguration = builder.build();
 
       if (!useJsr107Expiry) {
         expiryPolicy = new EhcacheExpiryWrapper<K, V>(cacheConfiguration.getExpiry());

@@ -68,11 +68,11 @@ public class CacheManagerDestroyRemovesPersistenceTest {
   public void initCacheManager(File file) throws URISyntaxException {
     persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(new CacheManagerPersistenceConfiguration(file)) 
-        .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder()
+        .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
             .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
                 .disk(10L, MemoryUnit.MB, true)) 
-            .buildConfig(Long.class, String.class))
+            .build())
         .build(true);
   }
 

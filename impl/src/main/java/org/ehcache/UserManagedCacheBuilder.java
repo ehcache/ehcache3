@@ -17,6 +17,7 @@
 package org.ehcache;
 
 import org.ehcache.config.BaseCacheConfiguration;
+import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
@@ -66,7 +67,7 @@ import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 /**
  * @author Alex Snaps
  */
-public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
+public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> implements Builder<T> {
 
   @ServiceDependencies(Store.Provider.class)
   private static class ServiceDeps {
@@ -278,6 +279,11 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> {
       build.init();
     }
     return build;
+  }
+
+  @Override
+  public T build() {
+    return build(false);
   }
 
   public final <N extends T> UserManagedCacheBuilder<K, V, N> with(UserManagedCacheConfiguration<K, V, N> cfg) {
