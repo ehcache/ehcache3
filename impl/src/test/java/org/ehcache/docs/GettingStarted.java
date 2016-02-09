@@ -38,6 +38,7 @@ import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.docs.plugs.StringSerializer;
 import org.ehcache.event.EventType;
 import org.ehcache.internal.copy.ReadWriteCopier;
+import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 
 import java.io.File;
@@ -164,7 +165,7 @@ public class GettingStarted {
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
         .withKeySerializer(new LongSerializer()) // <1>
-        .withValueSerializer(new CharSequenceSerializer()) // <2>
+        .withValueSerializer((Serializer) new CharSequenceSerializer()) // <2>
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
