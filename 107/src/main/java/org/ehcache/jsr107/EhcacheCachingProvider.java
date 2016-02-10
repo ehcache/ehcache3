@@ -35,7 +35,7 @@ import org.ehcache.config.DefaultConfiguration;
 import org.ehcache.config.Jsr107Configuration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.xml.XmlConfiguration;
-import org.ehcache.management.ManagementRegistry;
+import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.Service;
@@ -125,14 +125,14 @@ public class EhcacheCachingProvider implements CachingProvider {
     return cacheManager;
   }
 
-  @ServiceDependencies(ManagementRegistry.class)
+  @ServiceDependencies(ManagementRegistryService.class)
   static class ManagementRegistryCollectorService implements Service {
 
-    public volatile ManagementRegistry managementRegistry;
+    public volatile ManagementRegistryService managementRegistry;
 
     @Override
     public void start(ServiceProvider serviceProvider) {
-      managementRegistry = serviceProvider.getService(ManagementRegistry.class);
+      managementRegistry = serviceProvider.getService(ManagementRegistryService.class);
     }
 
     @Override

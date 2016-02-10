@@ -16,5 +16,5 @@
 
 dependencies {
   compile project(':api'), project(':core'), project(':impl')
-  compile group: 'org.terracotta', name: 'management-model', version: parent.managementVersion
+  compile group: 'org.terracotta', name: 'management-registry', version: parent.managementVersion
 }

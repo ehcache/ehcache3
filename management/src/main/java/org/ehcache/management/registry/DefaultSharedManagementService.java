@@ -20,19 +20,21 @@ import org.ehcache.EhcacheManager;
 import org.ehcache.Status;
 import org.ehcache.events.CacheManagerListener;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.management.CapabilityManagement;
-import org.ehcache.management.ManagementRegistry;
+import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.SharedManagementService;
-import org.ehcache.management.providers.ManagementProvider;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.CacheManagerProviderService;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.terracotta.management.capabilities.Capability;
+import org.terracotta.management.context.Context;
 import org.terracotta.management.context.ContextContainer;
+import org.terracotta.management.registry.CapabilityManagement;
+import org.terracotta.management.registry.DefaultCapabilityManagement;
+import org.terracotta.management.registry.ManagementProvider;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
@@ -42,15 +44,15 @@ import java.util.concurrent.ConcurrentMap;
  *
  * @author Mathieu Carbou
  */
-@ServiceDependencies({CacheManagerProviderService.class, ManagementRegistry.class})
+@ServiceDependencies({CacheManagerProviderService.class, ManagementRegistryService.class})
 public class DefaultSharedManagementService implements SharedManagementService {
 
-  private final ConcurrentMap<String, ManagementRegistry> delegates = new ConcurrentHashMap<String, ManagementRegistry>();
+  private final ConcurrentMap<Context, ManagementRegistryService> delegates = new ConcurrentHashMap<Context, ManagementRegistryService>();
 
   @Override
   public void start(final ServiceProvider serviceProvider) {
-    final ManagementRegistry managementRegistry = serviceProvider.getService(ManagementRegistry.class);
-    final String alias = managementRegistry.getConfiguration().getCacheManagerAlias();
+    final ManagementRegistryService managementRegistry = serviceProvider.getService(ManagementRegistryService.class);
+    final Context cmContext = managementRegistry.getConfiguration().getContext();
     final EhcacheManager ehcacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
 
     ehcacheManager.registerListener(new CacheManagerListener() {
@@ -64,13 +66,23 @@ public class DefaultSharedManagementService implements SharedManagementService {
 
       @Override
       public void stateTransition(Status from, Status to) {
-        if (from == Status.UNINITIALIZED && to == Status.AVAILABLE) {
-          if (delegates.put(alias, managementRegistry) != null) {
-            throw new IllegalStateException("Duplicate cache manager alias in ManagementRegistry : " + alias);
-          }
-        } else if (from == Status.AVAILABLE && to == Status.UNINITIALIZED) {
-          delegates.remove(alias);
-          ehcacheManager.deregisterListener(this);
+        switch (to) {
+
+          case AVAILABLE:
+            delegates.put(cmContext, managementRegistry);
+            break;
+
+          case UNINITIALIZED:
+            delegates.remove(cmContext);
+            ehcacheManager.deregisterListener(this);
+            break;
+
+          case MAINTENANCE:
+            // in case we need management capabilities in maintenance mode
+            break;
+
+          default:
+            throw new AssertionError(to);
         }
       }
     });
@@ -81,18 +93,18 @@ public class DefaultSharedManagementService implements SharedManagementService {
   }
 
   @Override
-  public Collection<ContextContainer> getContexts() {
-    Collection<ContextContainer> contexts = new ArrayList<ContextContainer>();
-    for (ManagementRegistry delegate : delegates.values()) {
-      contexts.add(delegate.getContext());
+  public Map<Context, ContextContainer> getContextContainers() {
+    Map<Context, ContextContainer> contexts = new HashMap<Context, ContextContainer>();
+    for (Map.Entry<Context, ManagementRegistryService> entry : delegates.entrySet()) {
+      contexts.put(entry.getKey(), entry.getValue().getContextContainer());
     }
     return contexts;
   }
 
   @Override
-  public Map<String, Collection<Capability>> getCapabilities() {
-    Map<String, Collection<Capability>> capabilities = new LinkedHashMap<String, Collection<Capability>>();
-    for (Map.Entry<String, ManagementRegistry> entry : delegates.entrySet()) {
+  public Map<Context, Collection<Capability>> getCapabilities() {
+    Map<Context, Collection<Capability>> capabilities = new HashMap<Context, Collection<Capability>>();
+    for (Map.Entry<Context, ManagementRegistryService> entry : delegates.entrySet()) {
       capabilities.put(entry.getKey(), entry.getValue().getCapabilities());
     }
     return capabilities;
@@ -101,7 +113,7 @@ public class DefaultSharedManagementService implements SharedManagementService {
   @Override
   public Collection<ManagementProvider<?>> getManagementProvidersByCapability(String capabilityName) {
     List<ManagementProvider<?>> allProviders = new ArrayList<ManagementProvider<?>>();
-    for (ManagementRegistry managementRegistry : delegates.values()) {
+    for (ManagementRegistryService managementRegistry : delegates.values()) {
       allProviders.addAll(managementRegistry.getManagementProvidersByCapability(capabilityName));
     }
     return allProviders;

@@ -15,15 +15,16 @@
  */
 package org.ehcache.management.providers.statistics;
 
-import org.ehcache.management.annotations.Named;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
-import org.ehcache.management.providers.CacheBindingManagementProviderSkeleton;
-import org.ehcache.management.registry.CacheBinding;
+import org.ehcache.management.providers.CacheBinding;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.capabilities.StatisticsCapability;
-import org.terracotta.management.capabilities.context.CapabilityContext;
 import org.terracotta.management.capabilities.descriptors.Descriptor;
 import org.terracotta.management.context.Context;
+import org.terracotta.management.registry.AbstractManagementProvider;
+import org.terracotta.management.registry.action.ExposedObject;
+import org.terracotta.management.registry.action.Named;
+import org.terracotta.management.registry.action.RequiredContext;
 import org.terracotta.management.stats.Statistic;
 
 import java.util.Collection;
@@ -37,40 +38,43 @@ import java.util.concurrent.ScheduledExecutorService;
  * @author Ludovic Orban
  */
 @Named("StatisticsCapability")
-public class EhcacheStatisticsProvider extends CacheBindingManagementProviderSkeleton<EhcacheStatistics> {
+@RequiredContext({@Named("cacheManagerName"), @Named("cacheName")})
+public class EhcacheStatisticsProvider extends AbstractManagementProvider<CacheBinding> {
 
   private final StatisticsProviderConfiguration configuration;
   private final ScheduledExecutorService executor;
+  private final Context cmContex;
 
-  public EhcacheStatisticsProvider(String cacheManagerAlias, StatisticsProviderConfiguration statisticsProviderConfiguration, ScheduledExecutorService executor) {
-    super(cacheManagerAlias);
+  public EhcacheStatisticsProvider(Context cmContex, StatisticsProviderConfiguration statisticsProviderConfiguration, ScheduledExecutorService executor) {
+    super(CacheBinding.class);
+    this.cmContex = cmContex;
     this.configuration = statisticsProviderConfiguration;
     this.executor = executor;
   }
 
   @Override
-  protected EhcacheStatistics createManagedObject(CacheBinding cacheBinding) {
-    return new EhcacheStatistics(cacheBinding.getCache(), configuration, executor);
+  protected ExposedObject<CacheBinding> wrap(CacheBinding cacheBinding) {
+    return new EhcacheStatistics(cmContex.with("cacheName", cacheBinding.getAlias()), cacheBinding, configuration, executor);
   }
 
   @Override
-  protected void close(CacheBinding cacheBinding, EhcacheStatistics managed) {
-    managed.dispose();
+  protected void dispose(ExposedObject<CacheBinding> exposedObject) {
+    ((EhcacheStatistics) exposedObject).dispose();
   }
 
   @Override
-  protected Capability createCapability(String name, CapabilityContext context, Collection<Descriptor> descriptors) {
+  public Capability getCapability() {
     StatisticsCapability.Properties properties = new StatisticsCapability.Properties(configuration.averageWindowDuration(),
         configuration.averageWindowUnit(), configuration.historySize(), configuration.historyInterval(),
         configuration.historyIntervalUnit(), configuration.timeToDisable(), configuration.timeToDisableUnit());
-    return new StatisticsCapability(name, properties, descriptors, context);
+    return new StatisticsCapability(getCapabilityName(), properties, getDescriptors(), getCapabilityContext());
   }
 
   @Override
   public Set<Descriptor> getDescriptors() {
     Set<Descriptor> capabilities = new HashSet<Descriptor>();
-    for (EhcacheStatistics ehcacheStatistics : managedObjects.values()) {
-      capabilities.addAll(ehcacheStatistics.getDescriptors());
+    for (ExposedObject ehcacheStatistics : managedObjects) {
+      capabilities.addAll(((EhcacheStatistics) ehcacheStatistics).getDescriptors());
     }
     return capabilities;
   }
@@ -78,10 +82,10 @@ public class EhcacheStatisticsProvider extends CacheBindingManagementProviderSke
   @Override
   public Map<String, Statistic<?, ?>> collectStatistics(Context context, Collection<String> statisticNames, long since) {
     Map<String, Statistic<?, ?>> statistics = new HashMap<String, Statistic<?, ?>>(statisticNames.size());
-    Map.Entry<CacheBinding, EhcacheStatistics> entry = findManagedObject(context);
-    if (entry != null) {
+    EhcacheStatistics ehcacheStatistics = (EhcacheStatistics) findExposedObject(context);
+    if (ehcacheStatistics != null) {
       for (String statisticName : statisticNames) {
-        statistics.putAll(entry.getValue().queryStatistic(statisticName, since));
+        statistics.putAll(ehcacheStatistics.queryStatistic(statisticName, since));
       }
     }
     return statistics;

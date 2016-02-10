@@ -22,10 +22,10 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.management.ManagementRegistry;
-import org.ehcache.management.ResultSet;
+import org.ehcache.management.ManagementRegistryService;
+import org.ehcache.management.registry.DefaultManagementRegistryService;
+import org.terracotta.management.registry.ResultSet;
 import org.ehcache.management.SharedManagementService;
-import org.ehcache.management.registry.DefaultManagementRegistry;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultSharedManagementService;
 import org.hamcrest.Matchers;
@@ -56,7 +56,7 @@ public class ManagementTest {
         .build();
 
     DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager"); // <1>
-    ManagementRegistry managementRegistry = new DefaultManagementRegistry(registryConfiguration); // <2>
+    ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration); // <2>
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache", cacheConfiguration)
         .using(managementRegistry) // <3>
@@ -93,7 +93,7 @@ public class ManagementTest {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .build();
 
-    ManagementRegistry managementRegistry = new DefaultManagementRegistry();
+    ManagementRegistryService managementRegistry = new DefaultManagementRegistryService();
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache", cacheConfiguration)
         .using(managementRegistry)
@@ -104,7 +104,7 @@ public class ManagementTest {
     Assert.assertThat(capabilities.isEmpty(), Matchers.is(false));
     Capability capability = capabilities.iterator().next();
     String capabilityName = capability.getName(); // <2>
-    Collection<Descriptor> capabilityDescriptions = capability.getDescriptions(); // <3>
+    Collection<Descriptor> capabilityDescriptions = capability.getDescriptors(); // <3>
     Assert.assertThat(capabilityDescriptions.isEmpty(), Matchers.is(false));
     CapabilityContext capabilityContext = capability.getCapabilityContext();
     Collection<CapabilityContext.Attribute> attributes = capabilityContext.getAttributes(); // <4>
@@ -117,7 +117,7 @@ public class ManagementTest {
     Assert.assertThat(attribute2.getName(), Matchers.equalTo("cacheName")); // <6>
     Assert.assertThat(attribute2.isRequired(), Matchers.is(true));
 
-    ContextContainer contextContainer = managementRegistry.getContext();  // <7>
+    ContextContainer contextContainer = managementRegistry.getContextContainer();  // <7>
     Assert.assertThat(contextContainer.getName(), Matchers.equalTo("cacheManagerName"));  // <8>
     Assert.assertThat(contextContainer.getValue(), Matchers.startsWith("cache-manager-"));
     Collection<ContextContainer> subContexts = contextContainer.getSubContexts();
@@ -138,7 +138,7 @@ public class ManagementTest {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .build();
 
-    ManagementRegistry managementRegistry = new DefaultManagementRegistry();
+    ManagementRegistryService managementRegistry = new DefaultManagementRegistryService();
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache", cacheConfiguration)
         .using(managementRegistry)
@@ -181,11 +181,11 @@ public class ManagementTest {
         .using(sharedManagementService) // <3>
         .build(true);
 
-    Context context1 = Context.create()
+    Context context1 = Context.empty()
       .with("cacheManagerName", "myCacheManager-1")
       .with("cacheName", "aCache");
 
-    Context context2 = Context.create()
+    Context context2 = Context.empty()
       .with("cacheManagerName", "myCacheManager-2")
       .with("cacheName", "aCache");
 
@@ -204,10 +204,10 @@ public class ManagementTest {
     // end::managingMultipleCacheManagers[]
   }
 
-  private static Context createContext(ManagementRegistry managementRegistry) {
-    ContextContainer cacheManagerCtx = managementRegistry.getContext();
+  private static Context createContext(ManagementRegistryService managementRegistry) {
+    ContextContainer cacheManagerCtx = managementRegistry.getContextContainer();
     ContextContainer firstCacheCtx = cacheManagerCtx.getSubContexts().iterator().next();
-    return Context.create()
+    return Context.empty()
         .with(cacheManagerCtx.getName(), cacheManagerCtx.getValue())
         .with(firstCacheCtx.getName(), firstCacheCtx.getValue());
   }

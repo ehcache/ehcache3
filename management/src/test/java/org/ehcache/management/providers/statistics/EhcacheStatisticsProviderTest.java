@@ -18,12 +18,14 @@ package org.ehcache.management.providers.statistics;
 import org.ehcache.Ehcache;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
-import org.ehcache.management.registry.CacheBinding;
+import org.ehcache.management.providers.CacheBinding;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.terracotta.management.capabilities.context.CapabilityContext;
 import org.terracotta.management.capabilities.descriptors.Descriptor;
 import org.terracotta.management.capabilities.descriptors.StatisticDescriptor;
+import org.terracotta.management.context.Context;
+import org.terracotta.management.registry.action.ExposedObject;
 import org.terracotta.management.stats.StatisticType;
 
 import java.util.HashSet;
@@ -46,14 +48,15 @@ import static org.mockito.Mockito.when;
  */
 public class EhcacheStatisticsProviderTest {
 
+  Context cmContext_0 = Context.create("cacheManagerName", "cache-manager-0");
 
   @Test
   public void testDescriptions() throws Exception {
     StatisticsProviderConfiguration statisticsProviderConfiguration = new EhcacheStatisticsProviderConfiguration(5 * 60, TimeUnit.SECONDS, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS);
     ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
-    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider("cache-manager-0", statisticsProviderConfiguration, executor) {
+    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmContext_0, statisticsProviderConfiguration, executor) {
       @Override
-      protected EhcacheStatistics createManagedObject(CacheBinding cacheBinding) {
+      protected ExposedObject<CacheBinding> wrap(CacheBinding cacheBinding) {
         EhcacheStatistics mock = mock(EhcacheStatistics.class);
         Set<Descriptor> descriptors = new HashSet<Descriptor>();
         descriptors.add(new StatisticDescriptor("aCounter", StatisticType.COUNTER));
@@ -81,9 +84,9 @@ public class EhcacheStatisticsProviderTest {
   public void testCapabilityContext() throws Exception {
     StatisticsProviderConfiguration statisticsProviderConfiguration = new EhcacheStatisticsProviderConfiguration(5 * 60, TimeUnit.SECONDS, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS);
     ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
-    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider("cache-manager-0", statisticsProviderConfiguration, executor) {
+    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmContext_0, statisticsProviderConfiguration, executor) {
       @Override
-      protected EhcacheStatistics createManagedObject(CacheBinding cacheBinding) {
+      protected ExposedObject<CacheBinding> wrap(CacheBinding cacheBinding) {
         return mock(EhcacheStatistics.class);
       }
     };
@@ -110,10 +113,10 @@ public class EhcacheStatisticsProviderTest {
   public void testCallAction() throws Exception {
     StatisticsProviderConfiguration statisticsProviderConfiguration = new EhcacheStatisticsProviderConfiguration(5 * 60, TimeUnit.SECONDS, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS);
     ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
-    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider("cache-manager-0", statisticsProviderConfiguration, executor);
+    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmContext_0, statisticsProviderConfiguration, executor);
 
     try {
-      ehcacheStatisticsProvider.callAction(null, null, null, null);
+      ehcacheStatisticsProvider.callAction(null, null);
       fail("expected UnsupportedOperationException");
     } catch (UnsupportedOperationException uoe) {
       // expected
