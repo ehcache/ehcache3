@@ -373,8 +373,8 @@ public class GettingStarted {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCopier(Description.class, DescriptionCopier.class) // <1>
         .withCopier(Person.class, PersonCopier.class)
-        .withCache("cache", cacheConfiguration)   //<3>
-        .withCache("anotherCache", anotherCacheConfiguration)   //<4>
+        .withCache("cache", cacheConfiguration)  // <2>
+        .withCache("anotherCache", anotherCacheConfiguration)  // <3>
         .build(true);
 
     Cache<Description, Person> cache = cacheManager.getCache("cache", Description.class, Person.class);
