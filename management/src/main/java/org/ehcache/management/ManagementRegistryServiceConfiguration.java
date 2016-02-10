@@ -40,6 +40,13 @@ public interface ManagementRegistryServiceConfiguration extends ServiceCreationC
   String getStatisticsExecutorAlias();
 
   /**
+   * Gets the alias of the executor to use for asynchronous collector service tasks.
+   *
+   * @return The static colector executor alias
+   */
+  String getCollectorExecutorAlias();
+
+  /**
    * Returns the configuration of a specific {@link ManagementProvider} type.
    *
    * @param managementProviderClass The type of the class managing statistics, capabilities, actions, etc.

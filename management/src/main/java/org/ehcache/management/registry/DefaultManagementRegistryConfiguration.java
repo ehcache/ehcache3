@@ -37,6 +37,7 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   private final Map<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>> configurationMap = new HashMap<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>>();
   private Context context = Context.empty();
   private String statisticsExecutorAlias;
+  private String collectorExecutorAlias;
 
   public DefaultManagementRegistryConfiguration() {
     setCacheManagerAlias("cache-manager-" + COUNTER.getAndIncrement());
@@ -47,7 +48,7 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
     return setContext(Context.create("cacheManagerName", alias));
   }
 
-  private DefaultManagementRegistryConfiguration setContext(Context context) {
+  public DefaultManagementRegistryConfiguration setContext(Context context) {
     if (!this.context.contains("cacheManagerName") && !context.contains("cacheManagerName")) {
       throw new IllegalArgumentException("'cacheManagerName' is missing from context");
     }
@@ -57,6 +58,11 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
 
   public DefaultManagementRegistryConfiguration setStatisticsExecutorAlias(String alias) {
     this.statisticsExecutorAlias = alias;
+    return this;
+  }
+
+  public DefaultManagementRegistryConfiguration setCollectorExecutorAlias(String collectorExecutorAlias) {
+    this.collectorExecutorAlias = collectorExecutorAlias;
     return this;
   }
 
@@ -74,6 +80,11 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   @Override
   public String getStatisticsExecutorAlias() {
     return this.statisticsExecutorAlias;
+  }
+
+  @Override
+  public String getCollectorExecutorAlias() {
+    return this.collectorExecutorAlias;
   }
 
   @Override
