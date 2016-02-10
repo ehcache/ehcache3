@@ -15,7 +15,6 @@
  */
 package org.ehcache.internal.store.heap;
 
-import org.ehcache.Cache;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
@@ -27,11 +26,13 @@ import org.ehcache.function.Function;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
+import org.ehcache.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.sizeof.SizeOfEngine;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -39,6 +40,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+
 import org.ehcache.config.Eviction;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -164,20 +166,24 @@ public class OnHeapStoreEvictionTest {
     }, timeSource);
   }
 
-  static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
+  public static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
 
     private static final Copier DEFAULT_COPIER = new IdentityCopier();
 
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
-      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER);
+      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER,  new NoopSizeOfEngine());
+    }
+    
+    public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource, final SizeOfEngine engine) {
+      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine);
     }
 
     private boolean enforceCapacityWasCalled = false;
 
     @Override
-    ValueHolder<V> enforceCapacityIfValueNotNull(final OnHeapValueHolder<V> computeResult) {
+    protected void enforceCapacity(long delta) {
       enforceCapacityWasCalled = true;
-      return super.enforceCapacityIfValueNotNull(computeResult);
+      super.enforceCapacity(delta);
     }
 
     boolean enforceCapacityWasCalled() {

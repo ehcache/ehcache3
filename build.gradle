@@ -22,6 +22,7 @@ ext {
   statisticVersion = '1.1.0'
   jcacheVersion = '1.0.0'
   slf4jVersion = '1.7.7'
+  sizeofVersion = '0.3.0'
 
   utils = new Utils(version: baseVersion)
   isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')

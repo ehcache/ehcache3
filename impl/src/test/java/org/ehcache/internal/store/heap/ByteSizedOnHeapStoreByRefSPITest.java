@@ -19,15 +19,16 @@ package org.ehcache.internal.store.heap;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
-import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
-import org.ehcache.internal.sizeof.NoopSizeOfEngine;
+import org.ehcache.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
+import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.heap.holders.CopiedOnHeapValueHolder;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
@@ -37,16 +38,10 @@ import org.junit.Before;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
-/**
- * Test the {@link org.ehcache.internal.store.heap.OnHeapStore} compliance to the
- * {@link org.ehcache.spi.cache.Store} contract.
- *
- * @author Aurelien Broszniowski
- */
-
-public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
+public class ByteSizedOnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
 
   private StoreFactory<String, String> storeFactory;
+  private static final int MAGIC_NUM = 500;
 
   @Override
   protected StoreFactory<String, String> getStoreFactory() {
@@ -78,11 +73,11 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
       public Store<String, String> newStoreWithEvictionVeto(EvictionVeto<String, String> evictionVeto) {
         return newStore(null, evictionVeto, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
       }
-      
+
       private Store<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         ResourcePools resourcePools = buildResourcePools(capacity);
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, getClass().getClassLoader(), expiry, resourcePools, null, null);
-        return new OnHeapStore<String, String>(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine());
+        return new OnHeapStore<String, String>(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE));
       }
 
       @Override
@@ -92,9 +87,9 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
 
       private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
         if (capacityConstraint == null) {
-          return newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
+          return newResourcePoolsBuilder().heap(10, MemoryUnit.KB).build();
         } else {
-          return newResourcePoolsBuilder().heap((Long)capacityConstraint, EntryUnit.ENTRIES).build();
+          return newResourcePoolsBuilder().heap((Long)capacityConstraint * MAGIC_NUM, MemoryUnit.B).build();
         }
       }
 

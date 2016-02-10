@@ -13,10 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.sizeof;
 
-dependencies {
-  compile project(':api'), project(':core')
-  compile group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
-  compile group: 'org.ehcache', name: 'sizeof', version: parent.sizeofVersion
-  testCompile project(path: ':core-spi-test'), 'org.ow2.asm:asm-all:5.0.4'
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.sizeof.SizeOfEngineProvider;
+
+/**
+ * @author Abhilash
+ *
+ */
+public interface SizeOfEngineConfiguration extends ServiceConfiguration<SizeOfEngineProvider> {
+
+  /**
+   * No. of objects traversed as part of Object graph
+   *
+   * @return maximum number of objects traversed by this sizeofengine
+   */
+  long getMaxDepth();
+
+  /**
+   * The max size till the object graph will be traversed
+   *
+   * @return size limit after which traversal of object graph will return
+   */
+  long getMaxSize();
 }

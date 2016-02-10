@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-dependencies {
-  compile project(':api'), project(':core')
-  compile group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
-  compile group: 'org.ehcache', name: 'sizeof', version: parent.sizeofVersion
-  testCompile project(path: ':core-spi-test'), 'org.ow2.asm:asm-all:5.0.4'
-}
+/**
+ * Package for API related to sizeof in Ehcache
+ */
+package org.ehcache.spi.sizeof;

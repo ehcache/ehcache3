@@ -14,9 +14,20 @@
  * limitations under the License.
  */
 
-dependencies {
-  compile project(':api'), project(':core')
-  compile group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
-  compile group: 'org.ehcache', name: 'sizeof', version: parent.sizeofVersion
-  testCompile project(path: ':core-spi-test'), 'org.ow2.asm:asm-all:5.0.4'
+package org.ehcache.internal.sizeof;
+
+import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.sizeof.SizeOfEngine;
+
+/**
+ * @author Abhilash
+ *
+ */
+public class NoopSizeOfEngine implements SizeOfEngine {
+
+  @Override
+  public <K, V> long sizeof(K key, Store.ValueHolder<V> holder) {
+    return 1L;
+  }
+
 }

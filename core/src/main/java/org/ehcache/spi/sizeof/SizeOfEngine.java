@@ -13,10 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.spi.sizeof;
 
-dependencies {
-  compile project(':api'), project(':core')
-  compile group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
-  compile group: 'org.ehcache', name: 'sizeof', version: parent.sizeofVersion
-  testCompile project(path: ':core-spi-test'), 'org.ow2.asm:asm-all:5.0.4'
+import org.ehcache.spi.cache.Store;
+
+/**
+ * SizeOf engines are used to calculate the size of objects.
+ *
+ * @author Abhilash
+ *
+ */
+public interface SizeOfEngine {
+
+  /**
+   * Size of the objects on Heap including the
+   * overhead
+   *
+   * @param key key to be sized
+   * @param holder value holder to be sized
+   * @return size of the objects on heap including the overhead
+   */
+  <K, V> long sizeof(K key, Store.ValueHolder<V> holder);
+
 }

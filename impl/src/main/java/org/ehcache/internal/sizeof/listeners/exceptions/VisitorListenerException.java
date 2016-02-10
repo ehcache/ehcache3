@@ -13,10 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.internal.sizeof.listeners.exceptions;
 
-dependencies {
-  compile project(':api'), project(':core')
-  compile group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
-  compile group: 'org.ehcache', name: 'sizeof', version: parent.sizeofVersion
-  testCompile project(path: ':core-spi-test'), 'org.ow2.asm:asm-all:5.0.4'
+
+/**
+ * @author Abhilash
+ *
+ */
+public class VisitorListenerException extends RuntimeException {
+
+  public VisitorListenerException(String message) {
+    super(message);
+  }
+
 }
