@@ -25,6 +25,8 @@ import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.copy.SerializingCopier;
+import org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration;
+import org.ehcache.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
@@ -109,7 +111,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     otherBuilder.classLoader = classLoader;
     return otherBuilder;
   }
-  
+
   public CacheConfigurationBuilder<K, V> withResourcePools(ResourcePools resourcePools) {
     if (resourcePools == null) {
       throw new NullPointerException("Null resource pools");
@@ -260,6 +262,26 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
       otherBuilder.serviceConfigurations.remove(existingServiceConfiguration);
     }
     otherBuilder.serviceConfigurations.add(configuration);
+    return otherBuilder;
+  }
+
+  public CacheConfigurationBuilder<K, V> withSizeOfEngineOfMaxTraversals(long maxTraversals) {
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    SizeOfEngineConfiguration configuration = otherBuilder.getExistingServiceConfiguration(SizeOfEngineConfiguration.class);
+    if (configuration != null) {
+      otherBuilder.remove(configuration);
+    }
+    otherBuilder.add(new DefaultSizeOfEngineConfiguration(maxTraversals, configuration.getMaxSize()));
+    return otherBuilder;
+  }
+
+  public CacheConfigurationBuilder<K, V> withSizeOfEngineOfMaxSize(long maxSize) {
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    SizeOfEngineConfiguration configuration = otherBuilder.getExistingServiceConfiguration(SizeOfEngineConfiguration.class);
+    if (configuration != null) {
+      otherBuilder.remove(configuration);
+    }
+    otherBuilder.add(new DefaultSizeOfEngineConfiguration(configuration.getMaxTraversals(), maxSize));
     return otherBuilder;
   }
 
