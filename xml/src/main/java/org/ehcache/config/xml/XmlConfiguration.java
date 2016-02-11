@@ -34,6 +34,7 @@ import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.config.store.disk.OffHeapDiskStoreProviderConfiguration;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.config.loaderwriter.writebehind.WriteBehindConfigurationBuilder;
 import org.ehcache.config.loaderwriter.writebehind.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
 import org.ehcache.config.xml.ConfigurationParser.Batching;
@@ -50,6 +51,9 @@ import org.ehcache.event.EventOrdering;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration;
+import org.ehcache.internal.sizeof.DefaultSizeOfEngineProviderConfiguration;
+import org.ehcache.sizeof.SizeOfEngineProviderConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
@@ -207,6 +211,14 @@ public class XmlConfiguration implements Configuration {
       }
       serviceConfigs.add(configuration);
     }
+    if (configurationParser.getSizeOfengine() != null) {
+      if (configurationParser.getSizeOfengine().getUnit().value().equalsIgnoreCase("entries")) {
+        throw new IllegalArgumentException("SizeOfEngine cannot be configured with entries.");
+      }
+      SizeOfEngineProviderConfiguration configuration = new DefaultSizeOfEngineProviderConfiguration(configurationParser.getSizeOfengine().getMaxObjectSize().longValue(),
+        MemoryUnit.valueOf(configurationParser.getSizeOfengine().getUnit().value().toUpperCase()), configurationParser.getSizeOfengine().getMaxObjectGraphSize().longValue());
+      serviceConfigs.add(configuration);
+    }
     if (configurationParser.getPersistence() != null) {
       serviceConfigs.add(new CacheManagerPersistenceConfiguration(new File(configurationParser.getPersistence().getDirectory())));
     }
@@ -254,7 +266,7 @@ public class XmlConfiguration implements Configuration {
           cacheClassLoader = ClassLoading.getDefaultClassLoader();
         }
       }
-      
+
       Class keyType = getClassForName(cacheDefinition.keyType(), cacheClassLoader);
       Class valueType = getClassForName(cacheDefinition.valueType(), cacheClassLoader);
       CacheConfigurationBuilder<Object, Object> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(keyType, valueType);
@@ -277,6 +289,10 @@ public class XmlConfiguration implements Configuration {
       if (cacheDefinition.valueCopier() != null) {
         Class valueCopier = getClassForName(cacheDefinition.valueCopier(), cacheClassLoader);
         builder = builder.add(new DefaultCopierConfiguration(valueCopier, DefaultCopierConfiguration.Type.VALUE));
+      }
+      if (cacheDefinition.sizeOfEngineLimits() != null) {
+        builder = builder.add(new DefaultSizeOfEngineConfiguration(cacheDefinition.sizeOfEngineLimits().getMaxObjectSize(), cacheDefinition.sizeOfEngineLimits().getUnit(),
+            cacheDefinition.sizeOfEngineLimits().getMaxObjectGraphSize()));
       }
       EvictionVeto evictionVeto = getInstanceOfName(cacheDefinition.evictionVeto(), cacheClassLoader, EvictionVeto.class);
       builder = builder.withEvictionVeto(evictionVeto);
@@ -442,6 +458,10 @@ public class XmlConfiguration implements Configuration {
     if (cacheTemplate.valueCopier() != null) {
       final Class<Copier<?>> valueCopier = (Class<Copier<?>>) getClassForName(cacheTemplate.valueCopier(), defaultClassLoader);
       builder = builder.add(new DefaultCopierConfiguration(valueCopier, DefaultCopierConfiguration.Type.VALUE));
+    }
+    if (cacheTemplate.sizeOfEngineLimits() != null) {
+      builder = builder.add(new DefaultSizeOfEngineConfiguration(cacheTemplate.sizeOfEngineLimits().getMaxObjectSize(), cacheTemplate.sizeOfEngineLimits().getUnit(),
+        cacheTemplate.sizeOfEngineLimits().getMaxObjectGraphSize()));
     }
     final String loaderWriter = cacheTemplate.loaderWriter();
     if(loaderWriter!= null) {

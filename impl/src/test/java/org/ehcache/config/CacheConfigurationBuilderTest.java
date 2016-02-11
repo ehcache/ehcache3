@@ -26,6 +26,7 @@ import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.classes.ClassInstanceConfiguration;
+import org.ehcache.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -39,7 +40,9 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 public class CacheConfigurationBuilderTest {
 
@@ -56,7 +59,7 @@ public class CacheConfigurationBuilderTest {
         .withEvictionVeto(veto)
         .build();
 
-    assertThat(veto, (Matcher) sameInstance(cacheConfiguration.getEvictionVeto()));
+    assertThat(veto, (Matcher)sameInstance(cacheConfiguration.getEvictionVeto()));
   }
 
   @Test
@@ -215,7 +218,7 @@ public class CacheConfigurationBuilderTest {
   @Test
   public void testNothing() {
     final CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, CharSequence.class);
-   
+
     final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
 
     builder
@@ -248,5 +251,26 @@ public class CacheConfigurationBuilderTest {
         .build();
     assertThat(config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getType(), Matchers.<ResourceType>is(ResourceType.Core.OFFHEAP));
     assertThat(config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getUnit(), Matchers.<ResourceUnit>is(MemoryUnit.MB));
+  }
+
+  @Test
+  public void testSizeOf() {
+    CacheConfigurationBuilder<String, String> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+
+    builder = builder.withSizeOfMaxObjectSize(10, MemoryUnit.B).withSizeOfMaxObjectGraph(100);
+    CacheConfiguration<String, String> configuration = builder.build();
+
+    SizeOfEngineConfiguration sizeOfEngineConfiguration = ServiceLocator.findSingletonAmongst(SizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
+    assertThat(sizeOfEngineConfiguration, notNullValue());
+    assertEquals(sizeOfEngineConfiguration.getMaxObjectSize(), 10);
+    assertEquals(sizeOfEngineConfiguration.getUnit(), MemoryUnit.B);
+    assertEquals(sizeOfEngineConfiguration.getMaxObjectGraphSize(), 100);
+
+    builder = builder.withSizeOfMaxObjectGraph(1000);
+    configuration = builder.build();
+
+    sizeOfEngineConfiguration = ServiceLocator.findSingletonAmongst(SizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
+    assertEquals(sizeOfEngineConfiguration.getMaxObjectGraphSize(), 1000);
+
   }
 }

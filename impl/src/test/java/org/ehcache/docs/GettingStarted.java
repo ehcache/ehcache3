@@ -163,22 +163,38 @@ public class GettingStarted {
   @Test
   public void byteSizedTieredCache() {
     // tag::byteSizedTieredCache[]
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+    CacheConfiguration<Long, String> usesConfiguredInCacheConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
             .heap(10, MemoryUnit.KB) // <1>
             .offheap(10, MemoryUnit.MB)
             .build())
-        .add(new DefaultSizeOfEngineConfiguration(1000, 1000)) // <2>
+        .withSizeOfMaxObjectGraph(1000)
+        .withSizeOfMaxObjectSize(1000, MemoryUnit.B) // <2>
+        .build();
+
+    CacheConfiguration<Long, String> usesDefaultSizeOfEngineConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            .heap(10, MemoryUnit.KB)
+            .offheap(10, MemoryUnit.MB)
+            .build())
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("cache", cacheConfiguration)
+        .withDefaultSizeOfMaxObjectSize(500, MemoryUnit.B)
+        .withDefaultSizeOfMaxObjectGraph(2000) // <3>
+        .withCache("usesConfiguredInCache", usesConfiguredInCacheConfig)
+        .withCache("usesDefaultSizeOfEngine", usesDefaultSizeOfEngineConfig)
         .build(true);
 
-    Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
+    Cache<Long, String> usesConfiguredInCache = cacheManager.getCache("usesConfiguredInCache", Long.class, String.class);
 
-    cache.put(1L, "one");
-    assertThat(cache.get(1L), equalTo("one"));
+    usesConfiguredInCache.put(1L, "one");
+    assertThat(usesConfiguredInCache.get(1L), equalTo("one"));
+
+    Cache<Long, String> usesDefaultSizeOfEngine = cacheManager.getCache("usesDefaultSizeOfEngine", Long.class, String.class);
+
+    usesDefaultSizeOfEngine.put(1L, "one");
+    assertThat(usesDefaultSizeOfEngine.get(1L), equalTo("one"));
 
     cacheManager.close();
     // end::byteSizedTieredCache[]
@@ -237,15 +253,15 @@ public class GettingStarted {
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
             .withLoaderWriter(new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero"))) // <1>
             .build());
-    
+
     assertThat(writeThroughCache.get(41L), is("zero"));
     writeThroughCache.put(42L, "one");
     assertThat(writeThroughCache.get(42L), equalTo("one"));
-    
+
     cacheManager.close();
     // end::writeThroughCache[]
   }
-  
+
   @Test
   public void writeBehindCache() throws ClassNotFoundException {
     // tag::writeBehindCache[]
@@ -260,15 +276,15 @@ public class GettingStarted {
                 .concurrencyLevel(1) // <5>
                 .enableCoalescing()) // <6>
             .build());
-    
+
     assertThat(writeBehindCache.get(41L), is("zero"));
     writeBehindCache.put(42L, "one");
     writeBehindCache.put(43L, "two");
     writeBehindCache.put(42L, "This goes for the record");
     assertThat(writeBehindCache.get(42L), equalTo("This goes for the record"));
-    
+
     cacheManager.close();
-    // end::writeBehindCache[]  
+    // end::writeBehindCache[]
   }
 
   @Test
@@ -300,7 +316,7 @@ public class GettingStarted {
     assertThat(cache.getRuntimeConfiguration().getResourcePools()
         .getPoolForResource(ResourceType.Core.HEAP).getSize(), is(20L));
     // end::updateResourcesAtRuntime[]
-    
+
     for(long i = 0; i < 20; i++ ){
       cache.put(i, "Hello World");
     }

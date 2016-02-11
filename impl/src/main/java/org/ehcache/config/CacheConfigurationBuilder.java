@@ -23,6 +23,7 @@ import org.ehcache.config.event.DefaultEventSourceConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration;
@@ -36,6 +37,10 @@ import java.util.Collection;
 import java.util.HashSet;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
+import static org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
+import static org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
+
 
 /**
  * @author Alex Snaps
@@ -265,23 +270,27 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     return otherBuilder;
   }
 
-  public CacheConfigurationBuilder<K, V> withSizeOfEngineOfMaxTraversals(long maxTraversals) {
+  public CacheConfigurationBuilder<K, V> withSizeOfMaxObjectGraph(long size) {
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    SizeOfEngineConfiguration configuration = otherBuilder.getExistingServiceConfiguration(SizeOfEngineConfiguration.class);
-    if (configuration != null) {
-      otherBuilder.remove(configuration);
+    SizeOfEngineConfiguration configuration = otherBuilder.getExistingServiceConfiguration(DefaultSizeOfEngineConfiguration.class);
+    if (configuration == null) {
+      otherBuilder.serviceConfigurations.add(new DefaultSizeOfEngineConfiguration(DEFAULT_MAX_OBJECT_SIZE, DEFAULT_UNIT, size));
+    } else {
+      otherBuilder.serviceConfigurations.remove(configuration);
+      otherBuilder.serviceConfigurations.add(new DefaultSizeOfEngineConfiguration(configuration.getMaxObjectSize(), configuration.getUnit(), size));
     }
-    otherBuilder.add(new DefaultSizeOfEngineConfiguration(maxTraversals, configuration.getMaxSize()));
     return otherBuilder;
   }
 
-  public CacheConfigurationBuilder<K, V> withSizeOfEngineOfMaxSize(long maxSize) {
+  public CacheConfigurationBuilder<K, V> withSizeOfMaxObjectSize(long size, MemoryUnit unit) {
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    SizeOfEngineConfiguration configuration = otherBuilder.getExistingServiceConfiguration(SizeOfEngineConfiguration.class);
-    if (configuration != null) {
-      otherBuilder.remove(configuration);
+    SizeOfEngineConfiguration configuration = getExistingServiceConfiguration(DefaultSizeOfEngineConfiguration.class);
+    if (configuration == null) {
+      otherBuilder.serviceConfigurations.add(new DefaultSizeOfEngineConfiguration(size, unit, DEFAULT_OBJECT_GRAPH_SIZE));
+    } else {
+      otherBuilder.serviceConfigurations.remove(configuration);
+      otherBuilder.serviceConfigurations.add(new DefaultSizeOfEngineConfiguration(size, unit, configuration.getMaxObjectGraphSize()));
     }
-    otherBuilder.add(new DefaultSizeOfEngineConfiguration(configuration.getMaxTraversals(), maxSize));
     return otherBuilder;
   }
 

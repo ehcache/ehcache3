@@ -23,13 +23,17 @@ import com.pany.ehcache.copier.Person;
 import com.pany.ehcache.integration.TestCacheEventListener;
 import com.pany.ehcache.integration.TestCacheLoaderWriter;
 import com.pany.ehcache.integration.TestSecondCacheEventListener;
+
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.event.DefaultCacheEventDispatcherConfiguration;
+import org.ehcache.config.ResourcePools;
+import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.event.EventType;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
@@ -45,11 +49,13 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * @author Alex Snaps
@@ -124,10 +130,10 @@ public class IntegrationConfigurationTest {
     templateCache.put(key1, "Bye y'all!");
     assertThat(TestCacheLoaderWriter.lastWrittenKey, is(key1));
   }
-  
+
   @Test
   public void testWriteBehind() throws ClassNotFoundException, InstantiationException, IllegalAccessException, SAXException, IOException, InterruptedException {
-    
+
     Configuration configuration = new XmlConfiguration(this.getClass().getResource("/configs/writebehind-cache.xml"));
     assertThat(configuration.getCacheConfigurations().containsKey("bar"), is(true));
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
@@ -151,7 +157,7 @@ public class IntegrationConfigurationTest {
     templateCache.put(key1, "Bye y'all!");
     TestCacheLoaderWriter.latch.await(2, TimeUnit.SECONDS);
     assertThat(TestCacheLoaderWriter.lastWrittenKey, is(key1));
-    
+
   }
 
   @Test
@@ -253,9 +259,46 @@ public class IntegrationConfigurationTest {
     }
   }
 
+  @Test
+  public void testCacheWithSizeOfEngine() throws Exception {
+    Configuration configuration = new XmlConfiguration(this.getClass().getResource("/configs/sizeof-engine.xml"));
+    final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
+    cacheManager.init();
+    try {
+      Cache<String, String> usesDefaultSizeOfEngine = cacheManager.getCache("usesDefaultSizeOfEngine", String.class, String.class);
+      usesDefaultSizeOfEngine.put("foo", "bar");
+
+      Cache<String, String> usesConfiguredInCache = cacheManager.getCache("usesConfiguredInCache", String.class, String.class);
+      usesConfiguredInCache.put("foo", "bar");
+
+      assertThat(usesDefaultSizeOfEngine.get("foo"), is("bar"));
+      assertThat(usesConfiguredInCache.get("foo"), is("bar"));
+
+      ResourcePools pools = ResourcePoolsBuilder.newResourcePoolsBuilder().heap(20L, EntryUnit.ENTRIES).build();
+      try {
+        usesDefaultSizeOfEngine.getRuntimeConfiguration().updateResourcePools(pools);
+        fail();
+      } catch (Exception ex) {
+        assertThat(ex, instanceOf(UnsupportedOperationException.class));
+        assertThat(ex.getMessage(), equalTo("Modifying ResourceUnit type is not supported"));
+      }
+
+      try {
+        usesConfiguredInCache.getRuntimeConfiguration().updateResourcePools(pools);
+        fail();
+      } catch (Exception ex) {
+        assertThat(ex, instanceOf(UnsupportedOperationException.class));
+        assertThat(ex.getMessage(), equalTo("Modifying ResourceUnit type is not supported"));
+      }
+
+    } finally {
+      cacheManager.close();
+    }
+  }
+
   private static void resetValues() {
     TestCacheEventListener.FIRED_EVENT = null;
     TestSecondCacheEventListener.SECOND_LISTENER_FIRED_EVENT= null;
   }
-  
+
 }

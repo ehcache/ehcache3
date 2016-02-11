@@ -15,6 +15,7 @@
  */
 package org.ehcache.internal.sizeof;
 
+import org.ehcache.config.units.MemoryUnit;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -29,9 +30,9 @@ import static org.junit.Assert.fail;
 public class DefaultSizeOfEngineProviderConfigurationTest {
 
   @Test
-  public void testIllegalMaxDepthArgument() {
+  public void testIllegalMaxObjectSizeArgument() {
     try {
-      new DefaultSizeOfEngineProviderConfiguration(0, 1l);
+      new DefaultSizeOfEngineProviderConfiguration(0, MemoryUnit.B, 1l);
       fail();
     } catch (Exception illegalArgument) {
       assertThat(illegalArgument, instanceOf(IllegalArgumentException.class));
@@ -40,9 +41,9 @@ public class DefaultSizeOfEngineProviderConfigurationTest {
   }
 
   @Test
-  public void testIllegalMaxSizeArgument() {
+  public void testIllegalMaxObjectGraphSizeArgument() {
     try {
-      new DefaultSizeOfEngineProviderConfiguration(1l, 0);
+      new DefaultSizeOfEngineProviderConfiguration(1l, MemoryUnit.B, 0);
       fail();
     } catch (Exception illegalArgument) {
       assertThat(illegalArgument, instanceOf(IllegalArgumentException.class));
@@ -52,8 +53,9 @@ public class DefaultSizeOfEngineProviderConfigurationTest {
 
   @Test
   public void testValidArguments() {
-    DefaultSizeOfEngineProviderConfiguration configuration = new DefaultSizeOfEngineProviderConfiguration(10l, 10l);
-    assertThat(configuration.getMaxDepth(), equalTo(10l));
-    assertThat(configuration.getMaxSize(), equalTo(10l));
+    DefaultSizeOfEngineProviderConfiguration configuration = new DefaultSizeOfEngineProviderConfiguration(10l, MemoryUnit.B, 10l);
+    assertThat(configuration.getMaxObjectGraphSize(), equalTo(10l));
+    assertThat(configuration.getMaxObjectSize(), equalTo(10l));
+    assertThat(configuration.getUnit(), equalTo(MemoryUnit.B));
   }
 }

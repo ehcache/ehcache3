@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.sizeof;
 
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.sizeof.SizeOfEngineProviderConfiguration;
 import org.ehcache.spi.sizeof.SizeOfEngineProvider;
 
@@ -25,15 +26,17 @@ import org.ehcache.spi.sizeof.SizeOfEngineProvider;
  */
 public class DefaultSizeOfEngineProviderConfiguration implements SizeOfEngineProviderConfiguration {
 
-  private final long maxDepth;
-  private final long maxSize;
+  private final long objectGraphSize;
+  private final long maxObjectSize;
+  private final MemoryUnit unit;
 
-  public DefaultSizeOfEngineProviderConfiguration(long maxDepth, long maxSize) {
-    if(maxDepth <= 0 || maxSize <= 0) {
+  public DefaultSizeOfEngineProviderConfiguration(long size, MemoryUnit unit, long objectGraphSize) {
+    if (size <= 0 || objectGraphSize <= 0) {
       throw new IllegalArgumentException("SizeOfEngine cannot take non-positive arguments.");
     }
-    this.maxDepth = maxDepth;
-    this.maxSize = maxSize;
+    this.objectGraphSize = objectGraphSize;
+    this.maxObjectSize = size;
+    this.unit = unit;
   }
 
   @Override
@@ -41,14 +44,16 @@ public class DefaultSizeOfEngineProviderConfiguration implements SizeOfEnginePro
     return SizeOfEngineProvider.class;
   }
 
-  public long getMaxDepth() {
-    return maxDepth;
+  public long getMaxObjectGraphSize() {
+    return this.objectGraphSize;
   }
 
-  public long getMaxSize() {
-    return maxSize;
+  public long getMaxObjectSize() {
+    return this.maxObjectSize;
   }
 
-
-
+  @Override
+  public MemoryUnit getUnit() {
+    return this.unit;
+  }
 }

@@ -25,6 +25,7 @@ import com.pany.ehcache.serializer.TestSerializer;
 import com.pany.ehcache.serializer.TestSerializer2;
 import com.pany.ehcache.serializer.TestSerializer3;
 import com.pany.ehcache.serializer.TestSerializer4;
+
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
@@ -45,6 +46,10 @@ import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.copy.SerializingCopier;
+import org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration;
+import org.ehcache.internal.sizeof.DefaultSizeOfEngineProviderConfiguration;
+import org.ehcache.sizeof.SizeOfEngineConfiguration;
+import org.ehcache.sizeof.SizeOfEngineProviderConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfiguration;
@@ -66,6 +71,7 @@ import org.xml.sax.SAXParseException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
@@ -329,29 +335,29 @@ public class XmlConfigurationTest {
     assertSame(config.getClassLoader(), ClassLoading.getDefaultClassLoader());
     assertNull(config.getCacheConfigurations().get("bar").getClassLoader());
   }
-  
+
   @Test
   public void testClassLoaderSpecified() throws Exception {
     ClassLoader cl = new ClassLoader() {
       //
     };
-    
+
     XmlConfiguration config= new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), cl);
 
     assertSame(cl, config.getClassLoader());
     assertNull(config.getCacheConfigurations().get("bar").getClassLoader());
   }
-  
+
   @Test
   public void testCacheClassLoaderSpecified() throws Exception {
     ClassLoader cl = new ClassLoader() {
       //
     };
-    
+
     ClassLoader cl2 = new ClassLoader() {
       //
     };
-    
+
     assertNotSame(cl, cl2);
 
     Map<String, ClassLoader> loaders = new HashMap<String, ClassLoader>();
@@ -495,20 +501,20 @@ public class XmlConfigurationTest {
     assertThat(directoryValue, containsString("\n"));
     assertThat(directoryValue, containsString("\t"));
   }
-  
+
   @Test
   public void testWriteBehind() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/writebehind-cache.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
-    
+
     Collection<ServiceConfiguration<?>> serviceConfiguration = xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations();
-    
+
     assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
-    
+
     serviceConfiguration = xmlConfig.newCacheConfigurationBuilderFromTemplate("example").build().getServiceConfigurations();
-    
+
     assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
-    
+
     for (ServiceConfiguration<?> configuration : serviceConfiguration) {
       if(configuration instanceof WriteBehindConfiguration) {
         BatchingConfiguration batchingConfig = ((WriteBehindConfiguration) configuration).getBatchingConfiguration();
@@ -543,7 +549,7 @@ public class XmlConfigurationTest {
     CacheConfigurationBuilder<Object, Object> templateConfig = xmlConfig.newCacheConfigurationBuilderFromTemplate("example");
     assertThat(templateConfig.getExistingServiceConfiguration(DefaultCacheEventListenerConfiguration.class), notNullValue());
   }
-  
+
   @Test
   public void testDefaulSerializerXmlsSerializersValueHasWhitespaces() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/default-serializer.xml");
@@ -552,29 +558,29 @@ public class XmlConfigurationTest {
     Document doc = dBuilder.parse(new File(resource.toURI()));
 
     NodeList nList = doc.getElementsByTagName("ehcache:serializer");
-   
+
     assertThat(nList.item(2).getFirstChild().getNodeValue(), containsString(" "));
     assertThat(nList.item(2).getFirstChild().getNodeValue(), containsString("\n"));
-    
+
     assertThat(nList.item(3).getFirstChild().getNodeValue(), containsString(" "));
     assertThat(nList.item(3).getFirstChild().getNodeValue(), containsString("\n"));
-    
-    
+
+
     nList = doc.getElementsByTagName("ehcache:key-type");
-    
+
     assertThat(nList.item(0).getFirstChild().getNodeValue(), containsString(" "));
     assertThat(nList.item(0).getFirstChild().getNodeValue(), containsString("\n"));
-    
+
     assertThat(nList.item(1).getFirstChild().getNodeValue(), containsString(" "));
     assertThat(nList.item(1).getFirstChild().getNodeValue(), containsString("\n"));
-    
+
     nList = doc.getElementsByTagName("ehcache:value-type");
     assertThat(nList.item(0).getFirstChild().getNodeValue(), containsString(" "));
     assertThat(nList.item(0).getFirstChild().getNodeValue(), containsString("\n"));
-    
+
     assertThat(nList.item(1).getFirstChild().getNodeValue(), containsString(" "));
     assertThat(nList.item(1).getFirstChild().getNodeValue(), containsString("\n"));
-    
+
 
   }
 
@@ -610,6 +616,29 @@ public class XmlConfigurationTest {
     thrown.expect(NullPointerException.class);
     thrown.expectMessage("The cacheClassLoaders map can not be null");
     XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), mock(ClassLoader.class), null);
+  }
+
+  @Test
+  public void testSizeOfEngineLimits() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/sizeof-engine.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    SizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
+
+    assertThat(sizeOfEngineProviderConfig, notNullValue());
+    assertEquals(sizeOfEngineProviderConfig.getMaxObjectGraphSize(), 200);
+    assertEquals(sizeOfEngineProviderConfig.getMaxObjectSize(), 100000);
+
+    CacheConfiguration<?, ?> cacheConfig = xmlConfig.getCacheConfigurations().get("usesDefaultSizeOfEngine");
+    SizeOfEngineConfiguration sizeOfEngineConfig = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig.getServiceConfigurations());
+
+    assertThat(sizeOfEngineConfig, nullValue());
+
+    CacheConfiguration<?, ?> cacheConfig1 = xmlConfig.getCacheConfigurations().get("usesConfiguredInCache");
+    SizeOfEngineConfiguration sizeOfEngineConfig1 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig1.getServiceConfigurations());
+
+    assertThat(sizeOfEngineConfig1, notNullValue());
+    assertEquals(sizeOfEngineConfig1.getMaxObjectGraphSize(), 500);
+    assertEquals(sizeOfEngineConfig1.getMaxObjectSize(), 200000);
   }
 
   private void checkListenerConfigurationExists(Collection<?> configuration) {

@@ -34,14 +34,14 @@ import static org.junit.Assert.fail;
 public class DefaultSizeOfEngineTest {
 
   @Test
-  public void testMaxDepthReachedVisitorListenerException() {
+  public void testMaxTraversalsReachedVisitorListenerException() {
     SizeOfEngine sizeOfEngine = new DefaultSizeOfEngine(3, Long.MAX_VALUE);
     try {
       sizeOfEngine.sizeof(new MaxDepthGreaterThanThree(), new CopiedOnHeapValueHolder(new MaxDepthGreaterThanThree(), 0l, true, new IdentityCopier()));
       fail();
     } catch (Exception visitorException) {
       assertThat(visitorException, instanceOf(VisitorListenerException.class));
-      assertThat(visitorException.getMessage(), containsString("Max Depth reached for the object"));
+      assertThat(visitorException.getMessage(), containsString("Max Object Graph Size reached for the object"));
     }
   }
 
@@ -54,7 +54,7 @@ public class DefaultSizeOfEngineTest {
       fail();
     } catch (Exception visitorException) {
       assertThat(visitorException, instanceOf(VisitorListenerException.class));
-      assertThat(visitorException.getMessage(), containsString("Max Size reached for the object"));
+      assertThat(visitorException.getMessage(), containsString("Max Object Size reached for the object"));
     }
   }
   private static class MaxDepthGreaterThanThree {

@@ -29,14 +29,14 @@ public class DefaultSizeOfEngineProviderFactory implements ServiceFactory<SizeOf
 
   @Override
   public SizeOfEngineProvider create(ServiceCreationConfiguration<SizeOfEngineProvider> configuration) {
-    long maxDepth = 1000;
-    long maxSize = Long.MAX_VALUE;
+    long maxTraversals = DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
+    long maxSize = DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
     if(configuration != null) {
       DefaultSizeOfEngineProviderConfiguration sizeOfEngineConfiguration = (DefaultSizeOfEngineProviderConfiguration)configuration;
-      maxDepth = sizeOfEngineConfiguration.getMaxDepth();
-      maxSize = sizeOfEngineConfiguration.getMaxSize();
+      maxTraversals = sizeOfEngineConfiguration.getMaxObjectGraphSize();
+      maxSize = sizeOfEngineConfiguration.getUnit().toBytes(sizeOfEngineConfiguration.getMaxObjectSize());
     }
-    return new DefaultSizeOfEngineProvider(maxDepth, maxSize);
+    return new DefaultSizeOfEngineProvider(maxTraversals, maxSize);
   }
 
   @Override

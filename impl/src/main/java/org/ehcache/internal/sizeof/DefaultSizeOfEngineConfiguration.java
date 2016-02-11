@@ -15,6 +15,7 @@
  */
 package org.ehcache.internal.sizeof;
 
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.spi.sizeof.SizeOfEngineProvider;
 
@@ -24,15 +25,21 @@ import org.ehcache.spi.sizeof.SizeOfEngineProvider;
  */
 public class DefaultSizeOfEngineConfiguration implements SizeOfEngineConfiguration {
 
-  private final long maxDepth;
-  private final long maxSize;
+  public static final int DEFAULT_OBJECT_GRAPH_SIZE = 1000;
+  public static final long DEFAULT_MAX_OBJECT_SIZE = Long.MAX_VALUE;
+  public static final MemoryUnit DEFAULT_UNIT = MemoryUnit.B;
 
-  public DefaultSizeOfEngineConfiguration(long maxDepth, long maxSize) {
-    if(maxDepth <= 0 || maxSize <= 0) {
-      throw new IllegalArgumentException("MaxDepth/MaxSize can only accept positive values.");
+  private final long objectGraphSize;
+  private final long maxObjectSize;
+  private final MemoryUnit unit;
+
+  public DefaultSizeOfEngineConfiguration(long size, MemoryUnit unit, long objectGraphSize) {
+    if (size <= 0 || objectGraphSize <= 0) {
+      throw new IllegalArgumentException("ObjectGraphSize/ObjectSize can only accept positive values.");
     }
-    this.maxDepth = maxDepth;
-    this.maxSize = maxSize;
+    this.objectGraphSize = objectGraphSize;
+    this.maxObjectSize = size;
+    this.unit = unit;
   }
 
   @Override
@@ -41,13 +48,18 @@ public class DefaultSizeOfEngineConfiguration implements SizeOfEngineConfigurati
   }
 
   @Override
-  public long getMaxDepth() {
-    return this.maxDepth;
+  public long getMaxObjectGraphSize() {
+    return this.objectGraphSize;
   }
 
   @Override
-  public long getMaxSize() {
-    return this.maxSize;
+  public long getMaxObjectSize() {
+    return this.maxObjectSize;
+  }
+
+  @Override
+  public MemoryUnit getUnit() {
+    return this.unit;
   }
 
 }
