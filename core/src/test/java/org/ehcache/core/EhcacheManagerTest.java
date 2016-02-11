@@ -476,7 +476,7 @@ public class EhcacheManagerTest {
       }
 
       @Override
-      void closeEhcache(final String alias, final Ehcache<?, ?> ehcache) {
+      protected void closeEhcache(final String alias, final Ehcache<?, ?> ehcache) {
         super.closeEhcache(alias, ehcache);
         caches.remove(ehcache);
       }
@@ -487,9 +487,10 @@ public class EhcacheManagerTest {
       fail();
     } catch (StateTransitionException e) {
       assertThat(cacheManager.getStatus(), is(Status.UNINITIALIZED));
-      assertThat(e.getCause().getMessage(), CoreMatchers.startsWith("Cache '"));
-      assertThat(e.getCause().getMessage(), CoreMatchers.endsWith("' creation in EhcacheManager failed."));
-
+      final String message = e.getCause().getMessage();
+      assertThat(message, CoreMatchers.startsWith("Cache '"));
+      assertThat(message, containsString("' creation in "));
+      assertThat(message, CoreMatchers.endsWith(" failed."));
     }
     assertThat(caches.isEmpty(), is(true));
   }
@@ -523,7 +524,7 @@ public class EhcacheManagerTest {
       }
 
       @Override
-      void closeEhcache(final String alias, final Ehcache<?, ?> ehcache) {
+      protected void closeEhcache(final String alias, final Ehcache<?, ?> ehcache) {
         super.closeEhcache(alias, ehcache);
         if(alias.equals("foobar")) {
           throw thrown;

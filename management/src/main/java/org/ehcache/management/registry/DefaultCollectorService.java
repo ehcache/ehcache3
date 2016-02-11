@@ -16,8 +16,8 @@
 package org.ehcache.management.registry;
 
 import org.ehcache.Cache;
+import org.ehcache.CacheManager;
 import org.ehcache.Status;
-import org.ehcache.core.EhcacheManager;
 import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ExecutionService;
@@ -29,6 +29,7 @@ import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.cache.ObservableCacheManager;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +70,7 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
   private volatile TimeSource timeSource;
   private volatile ManagementRegistryService managementRegistry;
   private volatile ScheduledExecutorService scheduledExecutorService;
-  private volatile EhcacheManager cacheManager;
+  private volatile CacheManager cacheManager;
   private volatile ManagementRegistryServiceConfiguration configuration;
 
   public DefaultCollectorService(MessageConsumer messageConsumer) {
@@ -84,7 +85,9 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
     cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
     scheduledExecutorService = serviceProvider.getService(ExecutionService.class).getScheduledExecutor(configuration.getCollectorExecutorAlias());
 
-    cacheManager.registerListener(this);
+    if (cacheManager instanceof ObservableCacheManager) {
+      ((ObservableCacheManager)cacheManager).registerListener(this);
+    }
   }
 
   @Override
@@ -141,7 +144,9 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
                 EhcacheNotification.CACHE_MANAGER_CLOSED.name())));
 
         // deregister me
-        cacheManager.deregisterListener(this);
+        if (cacheManager instanceof ObservableCacheManager) {
+          ((ObservableCacheManager)cacheManager).deregisterListener(this);
+        }
         break;
 
       default:

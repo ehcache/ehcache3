@@ -16,9 +16,9 @@
 package org.ehcache.management.registry;
 
 import org.ehcache.Cache;
+import org.ehcache.CacheManager;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.EhcacheManager;
 import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ExecutionService;
@@ -29,6 +29,7 @@ import org.ehcache.management.providers.EhcacheStatisticCollectorProvider;
 import org.ehcache.management.providers.actions.EhcacheActionProvider;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.cache.ObservableCacheManager;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.terracotta.management.context.ContextContainer;
 import org.terracotta.management.registry.AbstractManagementRegistry;
@@ -51,7 +52,7 @@ public class DefaultManagementRegistryService extends AbstractManagementRegistry
 
   private final ManagementRegistryServiceConfiguration configuration;
   private volatile ScheduledExecutorService statisticsExecutor;
-  private volatile EhcacheManager cacheManager;
+  private volatile CacheManager cacheManager;
 
   public DefaultManagementRegistryService() {
     this(new DefaultManagementRegistryConfiguration());
@@ -74,7 +75,9 @@ public class DefaultManagementRegistryService extends AbstractManagementRegistry
         statisticsExecutor));
     addManagementProvider(new EhcacheStatisticCollectorProvider(getConfiguration().getContext()));
 
-    this.cacheManager.registerListener(this);
+    if (this.cacheManager instanceof ObservableCacheManager) {
+      ((ObservableCacheManager)this.cacheManager).registerListener(this);
+    }
   }
 
   @Override
@@ -120,7 +123,9 @@ public class DefaultManagementRegistryService extends AbstractManagementRegistry
         break;
 
       case UNINITIALIZED:
-        this.cacheManager.deregisterListener(this);
+        if (this.cacheManager instanceof ObservableCacheManager) {
+          ((ObservableCacheManager)this.cacheManager).deregisterListener(this);
+        }
         break;
 
       case MAINTENANCE:

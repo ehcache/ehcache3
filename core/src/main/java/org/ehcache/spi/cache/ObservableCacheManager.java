@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.service;
+package org.ehcache.spi.cache;
 
-import org.ehcache.CacheManager;
-import org.ehcache.spi.service.Service;
+
+import org.ehcache.core.events.CacheManagerListener;
 
 /**
- * Special service that services can depend onto to be able to recover the instance of the current {@link CacheManager}
+ * Specifies methods for a cache manager observable by the management framework.
  *
- * @author Mathieu Carbou
+ * @author Clifford W. Johnson
  */
-public interface CacheManagerProviderService extends Service {
+public interface ObservableCacheManager {
+  void registerListener(CacheManagerListener listener);
 
-  CacheManager getCacheManager();
-
+  void deregisterListener(CacheManagerListener listener);
 }
