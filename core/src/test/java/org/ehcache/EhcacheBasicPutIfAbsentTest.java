@@ -515,26 +515,6 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));
   }
 
-  @Test
-  public void testPutIfAbsentImmediatelyExpiredEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
-    this.store = spy(fakeStore);
-
-    final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.<String, String>emptyMap());
-    
-    final Expiry<String, String> expiry = mock(Expiry.class);
-    when(expiry.getExpiryForCreation("key", "value")).thenReturn(Duration.ZERO);
-    
-    final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter, expiry);
-
-    assertThat(ehcache.putIfAbsent("key", "value"), nullValue());
-    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
-    assertThat(fakeStore.getEntryMap().get("key"), nullValue());
-    assertThat(fakeWriter.getEntryMap().get("key"), equalTo("value"));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.HIT));
-  }  
-    
   /**
    * Gets an initialized {@link Ehcache Ehcache} instance using the
    * {@link org.ehcache.spi.loaderwriter.CacheLoaderWriter CacheLoaderWriter} provided.

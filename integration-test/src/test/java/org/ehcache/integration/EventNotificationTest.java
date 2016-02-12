@@ -385,10 +385,16 @@ public class EventNotificationTest {
     for (int i = 0; i < 10; i++) {
       operators[i].join();
     }
+
+    int entryCount = 0;
+    for (Cache.Entry<Number, Number> entry : cache) {
+      entryCount++;
+    }
+
     cacheManager.close();
 
     assertEquals(100, listener1.created.get());
-    assertEquals(90, listener1.evicted.get());
+    assertEquals(100 - entryCount, listener1.evicted.get());
   }
 
   public static class Listener implements CacheEventListener<Object, Object> {

@@ -1035,7 +1035,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         }
       });
       if (computeResult == null) {
-        if (write.get()) {
+        if (write.get() && replacedOrRemovedValue.get() != null) {
           decrementCurrentUsageInBytesIfRequired(replacedOrRemovedValue.get().size());
         }
       } else if (write.get()) {
@@ -1331,20 +1331,18 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       throw new NullPointerException();
     }
 
-    eventSink.updated(key, oldValue, newValue);
-
-    Duration duration;
+    Duration duration = Duration.ZERO;
     try {
       duration = expiry.getExpiryForUpdate(key, oldValue, newValue);
     } catch (RuntimeException re) {
       LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-      eventSink.expired(key, newValue);
-      return null;
     }
     if (Duration.ZERO.equals(duration)) {
-      eventSink.expired(key, newValue);
+      eventSink.removed(key, oldValue);
       return null;
     }
+
+    eventSink.updated(key, oldValue, newValue);
 
     long expirationTime;
     if (duration == null) {

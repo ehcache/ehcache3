@@ -228,10 +228,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         } catch (Exception e) {
           throw new CachePassThroughException(newCacheWritingException(e));
         }
-        
-        if (newValueAlreadyExpired(key, previousValue, value)) {
-          return null;
-        }
         return value;
       }
     });
@@ -266,7 +262,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     if (newValue == null) {
       return false;
     }
-    
+
     final Duration duration;
     if (oldValue == null) {
       try {
@@ -283,8 +279,8 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         return true;
       }
     }
-    
-    return Duration.ZERO.equals(duration); 
+
+    return Duration.ZERO.equals(duration);
   }
   
   @Override
@@ -772,10 +768,6 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
           } catch (Exception e) {
             throw new CachePassThroughException(newCacheWritingException(e));
           }
-        }
-
-        if (newValueAlreadyExpired(key, null, value)) {
-          return null;
         }
 
         installed.set(true);
