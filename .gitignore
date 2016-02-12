@@ -17,3 +17,5 @@ build/
 .nb-gradle-properties
 
 /classes
+
+pom.xml

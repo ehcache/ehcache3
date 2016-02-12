@@ -41,6 +41,7 @@ subprojects {
   apply plugin: 'checkstyle'
   apply plugin: 'findbugs'
   apply plugin: 'jacoco'
+  apply plugin: 'maven'
 
   group = 'org.ehcache.modules'
   version = baseVersion
@@ -143,6 +144,28 @@ subprojects {
       csv.enabled false
     }
   }
+
+  afterEvaluate {
+
+    task createPom {
+      pom {
+        project {
+          groupId project.group
+          artifactId "ehcache-${project.name}"
+          version project.version
+          licenses {
+            license {
+              name 'The Apache Software License, Version 2.0'
+              url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+              distribution 'repo'
+            }
+          }
+        }
+      }.writeTo("pom.xml")
+    }
+
+  }
+
 }
 
 allprojects {
