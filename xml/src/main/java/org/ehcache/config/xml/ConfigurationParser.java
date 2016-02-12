@@ -38,6 +38,7 @@ import org.ehcache.config.xml.model.ResourceType;
 import org.ehcache.config.xml.model.ResourcesType;
 import org.ehcache.config.xml.model.SerializerType;
 import org.ehcache.config.xml.model.ServiceType;
+import org.ehcache.config.xml.model.SizeofType;
 import org.ehcache.config.xml.model.TimeType;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
@@ -70,6 +71,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
 import org.ehcache.config.xml.model.ThreadPoolReferenceType;
 import org.ehcache.config.xml.model.ThreadPoolsType;
 
@@ -154,6 +156,10 @@ class ConfigurationParser {
 
   public ThreadPoolsType getThreadPools() {
     return config.getThreadPools();
+  }
+
+  public SizeofType getSizeOfengine() {
+    return config.getDefaultSizeofEngine();
   }
 
   public Iterable<CacheDefinition> getCacheElements() {
@@ -375,6 +381,16 @@ class ConfigurationParser {
               return null;
             }
           }
+
+          @Override
+          public SizeOfEngineLimits sizeOfEngineLimits() {
+            SizeofType sizeofType = null;
+            for (BaseCacheType source : sources) {
+              sizeofType = source.getSizeofEngine();
+              if (sizeofType != null) break;
+            }
+            return sizeofType != null ? new XmlSizeOfEngineLimits(sizeofType) : null;
+          }
         });
       }
     }
@@ -537,6 +553,12 @@ class ConfigurationParser {
             final DiskStoreSettingsType diskStoreSettings = cacheTemplate.getDiskStoreSettings();
             return diskStoreSettings == null ? null : new XmlDiskStoreSettings(diskStoreSettings);
           }
+
+          @Override
+          public SizeOfEngineLimits sizeOfEngineLimits() {
+            SizeofType type = cacheTemplate.getSizeofEngine();
+            return type == null ? null : new XmlSizeOfEngineLimits(type);
+          }
         });
       }
     }
@@ -612,10 +634,13 @@ class ConfigurationParser {
     Iterable<ServiceConfiguration<?>> serviceConfigs();
 
     Iterable<ResourcePool> resourcePools();
-    
+
     WriteBehind writeBehind();
 
     DiskStoreSettings diskStoreSettings();
+
+    SizeOfEngineLimits sizeOfEngineLimits();
+
   }
 
   interface CacheDefinition extends CacheTemplate {
@@ -660,11 +685,11 @@ class ConfigurationParser {
     TimeUnit unit();
 
   }
-  
+
   interface WriteBehind {
 
     int maxQueueSize();
-    
+
     int concurrency();
 
     String threadPool();
@@ -684,10 +709,20 @@ class ConfigurationParser {
   }
 
   interface DiskStoreSettings {
-    
+
     int writerConcurrency();
-    
+
     String threadPool();
+  }
+
+
+  interface SizeOfEngineLimits {
+
+    long getMaxObjectGraphSize();
+
+    long getMaxObjectSize();
+
+    MemoryUnit getUnit();
   }
 
   private static class XmlListenersConfig implements ListenersConfig {
@@ -756,6 +791,7 @@ class ConfigurationParser {
     public Iterable<Listener> listeners() {
       return listeners;
     }
+
   }
 
   private static class XmlExpiry implements Expiry {
@@ -810,6 +846,35 @@ class ConfigurationParser {
       }
       return null;
     }
+  }
+
+  private static class XmlSizeOfEngineLimits implements SizeOfEngineLimits {
+
+    private final SizeofType sizeoflimits;
+
+    private XmlSizeOfEngineLimits(SizeofType sizeoflimits) {
+      this.sizeoflimits = sizeoflimits;
+    }
+
+    @Override
+    public long getMaxObjectGraphSize() {
+      return sizeoflimits.getMaxObjectGraphSize().longValue();
+    }
+
+    @Override
+    public long getMaxObjectSize() {
+      return sizeoflimits.getMaxObjectSize().longValue();
+    }
+
+    @Override
+    public MemoryUnit getUnit() {
+      if (sizeoflimits.getUnit().value().equalsIgnoreCase("entries")) {
+        throw new IllegalArgumentException("SizeOfEngine cannot be configured with entries.");
+      } else {
+        return MemoryUnit.valueOf(sizeoflimits.getUnit().value().toUpperCase());
+      }
+    }
+
   }
 
   private static class XmlWriteBehind implements WriteBehind {

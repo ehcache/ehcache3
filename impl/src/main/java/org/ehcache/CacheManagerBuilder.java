@@ -26,6 +26,10 @@ import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration;
+import org.ehcache.internal.sizeof.DefaultSizeOfEngineProviderConfiguration;
+import org.ehcache.sizeof.SizeOfEngineProviderConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.Service;
@@ -39,6 +43,9 @@ import java.util.Set;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableSet;
 import static org.ehcache.config.ConfigurationBuilder.newConfigurationBuilder;
+import static org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
+import static org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
+import static org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
 
 /**
  * @author Alex Snaps
@@ -65,7 +72,7 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
     this.configBuilder = newConfigurationBuilder();
     this.services = emptySet();
   }
-  
+
   private CacheManagerBuilder(CacheManagerBuilder<T> builder, Set<Service> services) {
     this.configBuilder = builder.configBuilder;
     this.services = unmodifiableSet(services);
@@ -84,12 +91,12 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
     final EhcacheManager ehcacheManager = new EhcacheManager(configuration, services);
     return cast(ehcacheManager);
   }
-  
+
   @SuppressWarnings("unchecked")
   T cast(EhcacheManager ehcacheManager) {
     return (T) ehcacheManager;
   }
-  
+
   public <K, V> CacheManagerBuilder<T> withCache(String alias, CacheConfiguration<K, V> configuration) {
     return new CacheManagerBuilder<T>(this, configBuilder.addCache(alias, configuration));
   }
@@ -129,6 +136,26 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
     } else {
       service.addSerializerFor(clazz, serializer);
       return this;
+    }
+  }
+
+  public CacheManagerBuilder<T> withDefaultSizeOfMaxObjectGraph(long size) {
+    SizeOfEngineProviderConfiguration configuration = configBuilder.findServiceByClass(DefaultSizeOfEngineProviderConfiguration.class);
+    if (configuration == null) {
+      return new CacheManagerBuilder<T>(this, configBuilder.addService(new DefaultSizeOfEngineProviderConfiguration(DEFAULT_MAX_OBJECT_SIZE, DEFAULT_UNIT, size)));
+    } else {
+      ConfigurationBuilder builder = configBuilder.removeService(configuration);
+      return new CacheManagerBuilder<T>(this, builder.addService(new DefaultSizeOfEngineProviderConfiguration(configuration.getMaxObjectSize(), configuration.getUnit(), size)));
+    }
+  }
+
+  public CacheManagerBuilder<T> withDefaultSizeOfMaxObjectSize(long size, MemoryUnit unit) {
+    SizeOfEngineProviderConfiguration configuration = configBuilder.findServiceByClass(DefaultSizeOfEngineProviderConfiguration.class);
+    if (configuration == null) {
+      return new CacheManagerBuilder<T>(this, configBuilder.addService(new DefaultSizeOfEngineProviderConfiguration(size, unit, DEFAULT_OBJECT_GRAPH_SIZE)));
+    } else {
+      ConfigurationBuilder builder = configBuilder.removeService(configuration);
+      return new CacheManagerBuilder<T>(this, builder.addService(new DefaultSizeOfEngineProviderConfiguration(size, unit, configuration.getMaxObjectGraphSize())));
     }
   }
 

@@ -30,16 +30,16 @@ import org.ehcache.spi.sizeof.SizeOfEngine;
  */
 public class DefaultSizeOfEngine implements SizeOfEngine {
 
-  private final long maxDepth;
-  private final long maxSize;
+  private final long maxObjectGraphSize;
+  private final long maxObjectSize;
   private final SizeOf sizeOf;
   private final long chmTreeBinOffset;
   private final long onHeapKeyOffset;
   private final SizeOfFilterSource filterSource = new SizeOfFilterSource(true);
 
-  public DefaultSizeOfEngine(long maxDepth, long maxSize) {
-    this.maxDepth = maxDepth;
-    this.maxSize = maxSize;
+  public DefaultSizeOfEngine(long maxObjectGraphSize, long maxObjectSize) {
+    this.maxObjectGraphSize = maxObjectGraphSize;
+    this.maxObjectSize = maxObjectSize;
     this.sizeOf = SizeOf.newInstance(filterSource.getFilters());
     this.onHeapKeyOffset = sizeOf.deepSizeOf(new CopiedOnHeapKey(new Object(), new IdentityCopier()));
     this.chmTreeBinOffset = sizeOf.deepSizeOf(ConcurrentHashMap.FAKE_TREE_BIN);
@@ -47,7 +47,7 @@ public class DefaultSizeOfEngine implements SizeOfEngine {
 
   @Override
   public <K, V> long sizeof(K key, Store.ValueHolder<V> holder) {
-    return sizeOf.deepSizeOf(new EhcacheVisitorListener(maxDepth, maxSize), key, holder) + this.chmTreeBinOffset + this.onHeapKeyOffset;
+    return sizeOf.deepSizeOf(new EhcacheVisitorListener(maxObjectGraphSize, maxObjectSize), key, holder) + this.chmTreeBinOffset + this.onHeapKeyOffset;
   }
 
 }

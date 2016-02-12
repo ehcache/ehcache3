@@ -15,6 +15,7 @@
  */
 package org.ehcache.sizeof;
 
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.sizeof.SizeOfEngineProvider;
 
@@ -25,16 +26,24 @@ import org.ehcache.spi.sizeof.SizeOfEngineProvider;
 public interface SizeOfEngineConfiguration extends ServiceConfiguration<SizeOfEngineProvider> {
 
   /**
-   * No. of objects traversed as part of Object graph
+   * Maximum number of objects in Object graph
    *
-   * @return maximum number of objects traversed by this sizeofengine
+   * @return maximum number of objects in Object graph
    */
-  long getMaxDepth();
+  long getMaxObjectGraphSize();
 
   /**
-   * The max size till the object graph will be traversed
+   * Maximum size limit of the object to be sized
    *
-   * @return size limit after which traversal of object graph will return
+   * @return maximum size limit of the object to be sized
    */
-  long getMaxSize();
+  long getMaxObjectSize();
+
+  /**
+   * The unit in which the object is sized.
+   *
+   * @return the unit
+   */
+  MemoryUnit getUnit();
+
 }

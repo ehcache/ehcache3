@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.fail;
 
+import org.ehcache.config.units.MemoryUnit;
 import org.junit.Test;
 
 /**
@@ -30,32 +31,33 @@ import org.junit.Test;
 public class DefaultSizeOfEngineConfigurationTest {
 
   @Test
-  public void testIllegalMaxDepthArgument() {
+  public void testIllegalMaxObjectSizeArgument() {
     try {
-      new DefaultSizeOfEngineConfiguration(0, 1l);
+      new DefaultSizeOfEngineConfiguration(0, MemoryUnit.B, 1l);
       fail();
     } catch (Exception illegalArgument) {
       assertThat(illegalArgument, instanceOf(IllegalArgumentException.class));
-      assertThat(illegalArgument.getMessage(), equalTo("MaxDepth/MaxSize can only accept positive values."));
+      assertThat(illegalArgument.getMessage(), equalTo("ObjectGraphSize/ObjectSize can only accept positive values."));
     }
   }
 
   @Test
-  public void testIllegalMaxSizeArgument() {
+  public void testIllegalMaxObjectGraphSizeArgument() {
     try {
-      new DefaultSizeOfEngineConfiguration(1l, 0);
+      new DefaultSizeOfEngineConfiguration(1l, MemoryUnit.B, 0);
       fail();
     } catch (Exception illegalArgument) {
       assertThat(illegalArgument, instanceOf(IllegalArgumentException.class));
-      assertThat(illegalArgument.getMessage(), equalTo("MaxDepth/MaxSize can only accept positive values."));
+      assertThat(illegalArgument.getMessage(), equalTo("ObjectGraphSize/ObjectSize can only accept positive values."));
     }
   }
 
   @Test
   public void testValidArguments() {
-    DefaultSizeOfEngineConfiguration configuration = new DefaultSizeOfEngineConfiguration(10l, 10l);
-    assertThat(configuration.getMaxDepth(), equalTo(10l));
-    assertThat(configuration.getMaxSize(), equalTo(10l));
+    DefaultSizeOfEngineConfiguration configuration = new DefaultSizeOfEngineConfiguration(10l, MemoryUnit.B, 10l);
+    assertThat(configuration.getMaxObjectGraphSize(), equalTo(10l));
+    assertThat(configuration.getMaxObjectSize(), equalTo(10l));
+    assertThat(configuration.getUnit(), equalTo(MemoryUnit.B));
   }
 
 }

@@ -25,23 +25,23 @@ import org.ehcache.sizeof.VisitorListener;
 
 public class EhcacheVisitorListener implements VisitorListener {
 
-  private final long maxDepth;
-  private final long maxSize;
+  private final long maxObjectGraphSize;
+  private final long maxObjectSize;
   private long currentDepth;
   private long currentSize;
 
-  public EhcacheVisitorListener(long maxDepth, long maxSize) {
-    this.maxDepth = maxDepth;
-    this.maxSize = maxSize;
+  public EhcacheVisitorListener(long maxObjectGraphSize, long maxObjectSize) {
+    this.maxObjectGraphSize = maxObjectGraphSize;
+    this.maxObjectSize = maxObjectSize;
   }
 
   @Override
   public void visited(Object object, long size) {
-    if((currentDepth += 1) > maxDepth) {
-      throw new VisitorListenerException("Max Depth reached for the object : "+ object);
+    if((currentDepth += 1) > maxObjectGraphSize) {
+      throw new VisitorListenerException("Max Object Graph Size reached for the object : "+ object);
     }
-    if((currentSize += size) > maxSize) {
-      throw new VisitorListenerException("Max Size reached for the object : "+ object);
+    if((currentSize += size) > maxObjectSize) {
+      throw new VisitorListenerException("Max Object Size reached for the object : "+ object);
     }
   }
 

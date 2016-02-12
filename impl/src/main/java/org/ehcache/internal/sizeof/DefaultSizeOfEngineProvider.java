@@ -30,12 +30,12 @@ import org.ehcache.spi.sizeof.SizeOfEngineProvider;
  */
 public class DefaultSizeOfEngineProvider implements SizeOfEngineProvider {
 
-  private final long maxDepth;
-  private final long maxSize;
+  private final long maxObjectGraphSize;
+  private final long maxObjectSize;
 
-  public DefaultSizeOfEngineProvider(long maxDepth, long maxSize) {
-    this.maxDepth = maxDepth;
-    this.maxSize = maxSize;
+  public DefaultSizeOfEngineProvider(long maxObjectGraphSize, long maxObjectSize) {
+    this.maxObjectGraphSize = maxObjectGraphSize;
+    this.maxObjectSize = maxObjectSize;
   }
 
   @Override
@@ -56,8 +56,9 @@ public class DefaultSizeOfEngineProvider implements SizeOfEngineProvider {
     }
     SizeOfEngineConfiguration config = ServiceLocator.findSingletonAmongst(SizeOfEngineConfiguration.class, serviceConfigs);
     if(config != null) {
-      return new DefaultSizeOfEngine(config.getMaxDepth(), config.getMaxSize());
+      long maxSize = config.getUnit().toBytes(config.getMaxObjectSize());
+      return new DefaultSizeOfEngine(config.getMaxObjectGraphSize(), maxSize);
     }
-    return new DefaultSizeOfEngine(maxDepth, maxSize);
+    return new DefaultSizeOfEngine(maxObjectGraphSize, maxObjectSize);
   }
 }

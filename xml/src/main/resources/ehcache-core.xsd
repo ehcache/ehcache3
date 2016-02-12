@@ -82,6 +82,13 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element> 
+      <xs:element name="default-sizeof-engine" type="ehcache:sizeof-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            The element defines the sizing limits for the default SizeOfEngine.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element> 
       <xs:choice minOccurs="0" maxOccurs="unbounded">
         <xs:element name="cache" type="ehcache:cache-type">
           <xs:annotation>
@@ -155,6 +162,12 @@
   
   <xs:complexType name="thread-pool-reference-type">
     <xs:attribute name="thread-pool" use="required" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="sizeof-type">
+    <xs:attribute name="max-object-graph-size" use="optional" type="xs:positiveInteger" default="1000" />
+    <xs:attribute name="max-object-size" use="optional" type="xs:positiveInteger" default="9223372036854775807" />
+    <xs:attribute name="unit" use="optional" type="ehcache:resource-unit" default="b"/>
   </xs:complexType>
 
   <xs:complexType name="cache-type">
@@ -236,6 +249,13 @@
         <xs:annotation>
           <xs:documentation xml:lang="en">
             Configures the listeners for the Cache.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="sizeof-engine" type="ehcache:sizeof-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            The element defines the sizing limits for the Cache's SizeOfEngine.
           </xs:documentation>
         </xs:annotation>
       </xs:element>
