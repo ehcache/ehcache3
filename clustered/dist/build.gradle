@@ -15,7 +15,14 @@
  */
 
 group = 'org.ehcache'
-archivesBaseName = 'ehcache'
+archivesBaseName = 'ehcache-clustered'
+
+apply plugin: 'distribution'
+
+configurations {
+  kit
+  serverLibs
+}
 
 dependencies {
   compile project(':api')
@@ -25,7 +32,27 @@ dependencies {
   compile project(':107')
   compile project(':xml')
   compile project(':transactions')
-  
+  compile project(':clustered:client')
+  compile project(':clustered:common')
+
   shadow "org.slf4j:slf4j-api:$parent.slf4jVersion"
   shadowProvided 'javax.transaction:jta:1.1', 'org.codehaus.btm:btm:2.1.4'
+
+  kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@tar.gz" changing true
+  serverLibs project(':clustered:server')
+}
+
+distributions {
+  main {
+    baseName = "ehcache-clustered-kit"
+    contents {
+      from configurations.kit.files.collect { tarTree(it) }
+      into ("terracotta-$terracottaCoreVersion/plugins/lib") {
+        from configurations.serverLibs
+      }
+      into ('client') {
+        from jar.archivePath
+      }
+    }
+  }
 }

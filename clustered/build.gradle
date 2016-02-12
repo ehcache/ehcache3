@@ -18,6 +18,7 @@ ext {
     coordinatorVersion = '1.0-SNAPSHOT'
     entityApiVersion = '1.0-SNAPSHOT'
     entityTestLibVersion = '1.0-SNAPSHOT'
+    terracottaCoreVersion = '5.0.0-SNAPSHOT'
 }
 
 subprojects {
