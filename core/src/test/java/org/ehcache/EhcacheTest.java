@@ -20,7 +20,6 @@ import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourcePoolsHelper;
 import org.ehcache.events.CacheEventDispatcher;
-import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.StateTransitionException;
@@ -29,6 +28,7 @@ import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.events.StoreEventSource;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
@@ -432,12 +432,7 @@ public class EhcacheTest {
     }
 
     @Override
-    public void enableStoreEventNotifications(StoreEventListener<String, String> listener) {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public void disableStoreEventNotifications() {
+    public StoreEventSource<String, String> getStoreEventSource() {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 

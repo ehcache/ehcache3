@@ -307,6 +307,7 @@
       </xs:element>
     </xs:sequence>
     <xs:attribute name="thread-pool" type="xs:string" use="optional"/>
+    <xs:attribute name="parallelism-level" type="xs:positiveInteger" use="optional" default="8"/>
   </xs:complexType>
 
   <xs:complexType name="cache-integration-type">

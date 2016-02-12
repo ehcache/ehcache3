@@ -20,9 +20,11 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.events.StoreEventDispatcher;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
+import org.ehcache.internal.events.NullStoreEventDispatcher;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.internal.store.heap.OnHeapStore;
@@ -74,12 +76,13 @@ public class CompoundCachingTierSPITest extends CachingTierSPITest<String, Strin
 
       private CachingTier<String, String> newCachingTier(Long capacity) {
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null,
-                ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
-        
-        OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, SystemTimeSource.INSTANCE, 10 * 1024 * 1024);
+                ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), 0, new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
+
+        StoreEventDispatcher<String, String> eventDispatcher = NullStoreEventDispatcher.nullStoreEventDispatcher();
+        OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, SystemTimeSource.INSTANCE, eventDispatcher, 10 * 1024 * 1024);
         OffHeapStoreLifecycleHelper.init(offHeapStore);
         IdentityCopier<String> copier = new IdentityCopier<String>();
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, copier, copier, new NoopSizeOfEngine());
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, copier, copier, new NoopSizeOfEngine(), eventDispatcher);
         CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(onHeapStore, offHeapStore);
         map.put(compoundCachingTier, offHeapStore);
         return compoundCachingTier;

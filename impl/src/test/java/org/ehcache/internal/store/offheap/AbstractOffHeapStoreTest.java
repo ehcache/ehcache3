@@ -16,18 +16,10 @@
 
 package org.ehcache.internal.store.offheap;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.ehcache.Cache;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.events.StoreEventListener;
+import org.ehcache.event.EventType;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
@@ -38,6 +30,29 @@ import org.ehcache.function.NullaryFunction;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.spi.cache.AbstractValueHolder;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.events.StoreEvent;
+import org.ehcache.spi.cache.events.StoreEventListener;
+import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.statistics.LowerCachingTierOperationsOutcome;
+import org.ehcache.statistics.StoreOperationOutcomes;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
+import org.hamcrest.TypeSafeMatcher;
+import org.junit.Test;
+import org.terracotta.context.ContextElement;
+import org.terracotta.context.TreeNode;
+import org.terracotta.context.query.QueryBuilder;
+import org.terracotta.statistics.OperationStatistic;
+import org.terracotta.statistics.StatisticsManager;
+
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.internal.util.StatisticsTestUtils.validateStats;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -51,22 +66,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-
-import org.ehcache.statistics.LowerCachingTierOperationsOutcome;
-import org.ehcache.statistics.StoreOperationOutcomes;
-import org.ehcache.spi.cache.tiering.CachingTier;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-import org.terracotta.context.ContextElement;
-import org.terracotta.context.TreeNode;
-import org.terracotta.context.query.QueryBuilder;
-import org.terracotta.statistics.OperationStatistic;
-import org.terracotta.statistics.StatisticsManager;
 
 /**
  *
@@ -164,7 +167,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testInvalidateKey() throws Exception {
+  public void testInvalidateKeyAbsent() throws Exception {
     final TestTimeSource timeSource = new TestTimeSource();
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
 
@@ -180,11 +183,30 @@ public abstract class AbstractOffHeapStoreTest {
       offHeapStore.invalidate("1");
       assertThat(invalidated.get(), is(nullValue()));
       validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.InvalidateOutcome.MISS));
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
 
+  @Test
+  public void testInvalidateKeyPresent() throws Exception {
+    final TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
+
+    try {
       offHeapStore.put("1", "one");
+
+      final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
+      offHeapStore.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
+        @Override
+        public void onInvalidation(String key, Store.ValueHolder<String> valueHolder) {
+          invalidated.set(valueHolder);
+        }
+      });
+
       offHeapStore.invalidate("1");
       assertThat(invalidated.get().value(), equalTo("one"));
-      validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.InvalidateOutcome.MISS, LowerCachingTierOperationsOutcome.InvalidateOutcome.REMOVED));
+      validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.InvalidateOutcome.REMOVED));
 
       assertThat(offHeapStore.get("1"), is(nullValue()));
     } finally {
@@ -193,7 +215,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testInvalidateKeyWithFunction() throws Exception {
+  public void testInvalidateWithFunctionKeyAbsent() throws Exception {
     final TestTimeSource timeSource = new TestTimeSource();
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
 
@@ -218,13 +240,38 @@ public abstract class AbstractOffHeapStoreTest {
       assertThat(invalidated.get(), is(nullValue()));
       assertThat(functionInvoked.get(), is(true));
       validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.InvalidateOutcome.MISS));
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
 
-      functionInvoked.set(false);
+  @Test
+  public void testInvalidateWithFunctionKeyPresent() throws Exception {
+    final TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
+
+    try {
       offHeapStore.put("1", "one");
+      final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
+      offHeapStore.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
+        @Override
+        public void onInvalidation(String key, Store.ValueHolder<String> valueHolder) {
+          invalidated.set(valueHolder);
+        }
+      });
+
+      final AtomicBoolean functionInvoked = new AtomicBoolean(false);
+      NullaryFunction<String> nullaryFunction = new NullaryFunction<String>() {
+        @Override
+        public String apply() {
+          functionInvoked.set(true);
+          return "";
+        }
+      };
       offHeapStore.invalidate("1", nullaryFunction);
       assertThat(invalidated.get().value(), equalTo("one"));
       assertThat(functionInvoked.get(), is(true));
-      validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.InvalidateOutcome.MISS, LowerCachingTierOperationsOutcome.InvalidateOutcome.REMOVED));
+      validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.InvalidateOutcome.REMOVED));
 
       assertThat(offHeapStore.get("1"), is(nullValue()));
     } finally {
@@ -281,23 +328,7 @@ public abstract class AbstractOffHeapStoreTest {
       }
     };
 
-    AbstractOffHeapStore<String, byte[]> offHeapStore = createAndInitStore(timeSource, expiry, evictionVeto);
-    try {
-      StoreEventListener<String, byte[]> mock = mock(StoreEventListener.class);
-      offHeapStore.enableStoreEventNotifications(mock);
-
-      byte[] value = getBytes(MemoryUnit.KB.toBytes(200));
-      offHeapStore.put("key1", value);
-      offHeapStore.put("key2", value);
-      offHeapStore.put("key3", value);
-      offHeapStore.put("key4", value);
-      offHeapStore.put("key5", value);
-      offHeapStore.put("key6", value);
-
-      verify(mock, atLeast(1)).onEviction(anyString(), any(Store.ValueHolder.class));
-    } finally {
-      destroyStore(offHeapStore);
-    }
+    performEvictionTest(timeSource, expiry, evictionVeto);
   }
 
   @Test
@@ -312,23 +343,7 @@ public abstract class AbstractOffHeapStoreTest {
       }
     };
 
-    AbstractOffHeapStore<String, byte[]> offHeapStore = createAndInitStore(timeSource, expiry, evictionVeto);
-    try {
-      StoreEventListener<String, byte[]> mock = mock(StoreEventListener.class);
-      offHeapStore.enableStoreEventNotifications(mock);
-
-      byte[] value = getBytes(MemoryUnit.KB.toBytes(200));
-      offHeapStore.put("key1", value);
-      offHeapStore.put("key2", value);
-      offHeapStore.put("key3", value);
-      offHeapStore.put("key4", value);
-      offHeapStore.put("key5", value);
-      offHeapStore.put("key6", value);
-
-      verify(mock, atLeast(1)).onEviction(anyString(), any(Store.ValueHolder.class));
-    } finally {
-      destroyStore(offHeapStore);
-    }
+    performEvictionTest(timeSource, expiry, evictionVeto);
   }
 
   @Test
@@ -378,16 +393,13 @@ public abstract class AbstractOffHeapStoreTest {
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
     try {
       final List<String> expiredKeys = new ArrayList<String>();
-      offHeapStore.enableStoreEventNotifications(new StoreEventListener<String, String>() {
+      offHeapStore.getStoreEventSource().addEventListener(new StoreEventListener<String, String>() {
 
         @Override
-        public void onEviction(final String key, final Store.ValueHolder<String> valueHolder) {
-          throw new AssertionError("This should not have happened.");
-        }
-
-        @Override
-        public void onExpiration(final String key, final Store.ValueHolder<String> valueHolder) {
-          expiredKeys.add(key);
+        public void onEvent(StoreEvent<String, String> event) {
+          if (event.getType() == EventType.EXPIRED) {
+            expiredKeys.add(event.getKey());
+          }
         }
       });
 
@@ -579,16 +591,13 @@ public abstract class AbstractOffHeapStoreTest {
       offHeapStore.put("key4", "value4");
 
       final List<String> expiredKeys = new ArrayList<String>();
-      offHeapStore.enableStoreEventNotifications(new StoreEventListener<String, String>() {
+      offHeapStore.getStoreEventSource().addEventListener(new StoreEventListener<String, String>() {
 
         @Override
-        public void onEviction(final String key, final Store.ValueHolder<String> valueHolder) {
-          throw new AssertionError("This should not have happened.");
-        }
-
-        @Override
-        public void onExpiration(final String key, final Store.ValueHolder<String> valueHolder) {
-          expiredKeys.add(key);
+        public void onEvent(StoreEvent<String, String> event) {
+          if (event.getType() == EventType.EXPIRED) {
+            expiredKeys.add(event.getKey());
+          }
         }
       });
 
@@ -673,6 +682,40 @@ public abstract class AbstractOffHeapStoreTest {
 
   protected abstract void destroyStore(AbstractOffHeapStore<?, ?> store);
 
+  private void performEvictionTest(TestTimeSource timeSource, Expiry<Object, Object> expiry, EvictionVeto<String, byte[]> evictionVeto) throws CacheAccessException {AbstractOffHeapStore<String, byte[]> offHeapStore = createAndInitStore(timeSource, expiry, evictionVeto);
+    try {
+      StoreEventListener<String, byte[]> listener = mock(StoreEventListener.class);
+      offHeapStore.getStoreEventSource().addEventListener(listener);
+
+      byte[] value = getBytes(MemoryUnit.KB.toBytes(200));
+      offHeapStore.put("key1", value);
+      offHeapStore.put("key2", value);
+      offHeapStore.put("key3", value);
+      offHeapStore.put("key4", value);
+      offHeapStore.put("key5", value);
+      offHeapStore.put("key6", value);
+
+      Matcher<StoreEvent<String, byte[]>> matcher = eventType(EventType.EVICTED);
+      verify(listener, atLeast(1)).onEvent(argThat(matcher));
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
+
+  public static <K, V> Matcher<StoreEvent<K, V>> eventType(final EventType type) {
+    return new TypeSafeMatcher<StoreEvent<K, V>>() {
+      @Override
+      protected boolean matchesSafely(StoreEvent<K, V> item) {
+        return item.getType().equals(type);
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("store event of type '").appendValue(type).appendText("'");
+      }
+    };
+  }
+
   private OperationStatistic<StoreOperationOutcomes.ExpirationOutcome> getExpirationStatistic(Store<?, ?> store) {
     StatisticsManager statisticsManager = new StatisticsManager();
     statisticsManager.root(store);
@@ -692,19 +735,6 @@ public abstract class AbstractOffHeapStoreTest {
     byte[] value = new byte[valueLengthInt];
     new Random().nextBytes(value);
     return value;
-  }
-
-  private static class TestStoreEventListener<K, V> implements StoreEventListener<K, V> {
-
-    @Override
-    public void onEviction(final K key, final Store.ValueHolder<V> valueHolder) {
-      System.out.println("Evicted " + key);
-    }
-
-    @Override
-    public void onExpiration(final K key, final Store.ValueHolder<V> valueHolder) {
-      System.out.println("Expired " + key);
-    }
   }
 
   private static class TestTimeSource implements TimeSource {

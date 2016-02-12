@@ -26,6 +26,7 @@ import org.ehcache.function.NullaryFunction;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.sizeof.NoopSizeOfEngine;
+import org.ehcache.internal.events.NullStoreEventDispatcher;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
 import org.junit.Before;
@@ -44,7 +45,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -111,7 +111,7 @@ public class OnHeapStoreValueCopierTest {
       }
     };
 
-    store = new OnHeapStore<Long, Value>(configuration, SystemTimeSource.INSTANCE, new IdentityCopier<Long>(), valueCopier,  new NoopSizeOfEngine());
+    store = new OnHeapStore<Long, Value>(configuration, SystemTimeSource.INSTANCE, new IdentityCopier<Long>(), valueCopier,  new NoopSizeOfEngine(), NullStoreEventDispatcher.<Long, Value>nullStoreEventDispatcher());
   }
 
   @Test

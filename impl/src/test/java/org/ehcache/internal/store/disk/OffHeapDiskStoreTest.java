@@ -25,6 +25,8 @@ import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
+import org.ehcache.internal.events.TestStoreEventDispatcher;
+import org.ehcache.internal.executor.OnDemandExecutionService;
 import org.ehcache.internal.persistence.TestLocalPersistenceService;
 import org.ehcache.internal.store.offheap.AbstractOffHeapStore;
 import org.ehcache.internal.store.offheap.AbstractOffHeapStoreTest;
@@ -34,15 +36,14 @@ import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
-import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.FileBasedPersistenceContext;
+import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.IOException;
 
 import static org.ehcache.expiry.Expirations.noExpiration;
-import org.ehcache.internal.executor.OnDemandExecutionService;
 import static org.ehcache.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -80,11 +81,14 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       ClassLoader classLoader = getClass().getClassLoader();
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
-      StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, classLoader, expiry, null, keySerializer, valueSerializer);
+      StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class,
+          null, classLoader, expiry, null, 0, keySerializer, valueSerializer);
       OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<String, String>(
               getPersistenceContext(),
               new OnDemandExecutionService(), null, 1,
-              storeConfiguration, timeSource, MemoryUnit.MB.toBytes(1));
+              storeConfiguration, timeSource,
+              new TestStoreEventDispatcher<String, String>(),
+              MemoryUnit.MB.toBytes(1));
       OffHeapDiskStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {
@@ -100,11 +104,14 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       ClassLoader classLoader = getClass().getClassLoader();
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
-      StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class, evictionVeto, getClass().getClassLoader(), expiry, null, keySerializer, valueSerializer);
+      StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class,
+          evictionVeto, getClass().getClassLoader(), expiry, null, 0, keySerializer, valueSerializer);
       OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<String, byte[]>(
               getPersistenceContext(),
               new OnDemandExecutionService(), null, 1,
-              storeConfiguration, timeSource, MemoryUnit.MB.toBytes(1));
+              storeConfiguration, timeSource,
+              new TestStoreEventDispatcher<String, byte[]>(),
+              MemoryUnit.MB.toBytes(1));
       OffHeapDiskStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {
@@ -133,6 +140,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     when(storeConfig.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
         .disk(10, MemoryUnit.MB)
         .build());
+    when(storeConfig.getOrderedEventParallelism()).thenReturn(1);
     try {
       provider.createStore(storeConfig);
       fail("IllegalStateException expected");

@@ -17,13 +17,15 @@
 package org.ehcache.events;
 
 import org.ehcache.Cache;
-import org.ehcache.event.CacheEvent;
+import org.ehcache.CacheConfigurationChangeListener;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 
 /**
  * @author Ludovic Orban
@@ -31,16 +33,7 @@ import java.util.EnumSet;
 public class DisabledCacheEventNotificationService<K, V> implements CacheEventDispatcher<K, V> {
 
   @Override
-  public void onEvent(CacheEvent<K, V> kvCacheEvent) {
-  }
-
-  @Override
   public void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering, EventFiring firing, EnumSet<EventType> eventTypes) {
-  }
-
-  @Override
-  public boolean hasListeners() {
-    return false;
   }
 
   @Override
@@ -48,10 +41,15 @@ public class DisabledCacheEventNotificationService<K, V> implements CacheEventDi
   }
 
   @Override
-  public void releaseAllListeners() {
+  public void shutdown() {
   }
 
   @Override
-  public void setStoreListenerSource(Cache<K, V> source) {
+  public void setListenerSource(Cache<K, V> source) {
+  }
+
+  @Override
+  public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
+    return Collections.emptyList();
   }
 }

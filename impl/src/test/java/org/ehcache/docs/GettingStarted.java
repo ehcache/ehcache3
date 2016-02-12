@@ -38,9 +38,7 @@ import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.docs.plugs.StringSerializer;
 import org.ehcache.event.EventType;
 import org.ehcache.internal.copy.ReadWriteCopier;
-import org.ehcache.spi.copy.Copier;
 import org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 
@@ -161,7 +159,7 @@ public class GettingStarted {
     cacheManager.close();
     // end::defaultSerializers[]
   }
-  
+
   @Test
   public void byteSizedTieredCache() {
     // tag::byteSizedTieredCache[]
@@ -170,13 +168,13 @@ public class GettingStarted {
             .heap(10, MemoryUnit.KB) // <1>
             .offheap(10, MemoryUnit.MB)
             .build())
-        .add(new DefaultSizeOfEngineConfiguration(1000, 1000)) // <2>    
+        .add(new DefaultSizeOfEngineConfiguration(1000, 1000)) // <2>
         .build();
-    
+
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("cache", cacheConfiguration)
         .build(true);
-    
+
     Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
 
     cache.put(1L, "one");
@@ -308,6 +306,22 @@ public class GettingStarted {
     }
     assertThat(listener.evicted(), is(0));
 
+    cacheManager.close();
+  }
+
+  @Test
+  public void configuringEventProcessing() {
+    CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
+        .newEventListenerConfiguration(ListenerObject.class, EventType.EVICTED).ordered().synchronous();
+    // tag::configuringEventProcessingQueues[]
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(5L, EntryUnit.ENTRIES).build())
+        .withOrderedEventParallelism(10) // <1>
+        .withListenersThreadPoolAlias("listeners-pool")
+        .build();
+    // end::configuringEventProcessingQueues[]
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
+        .build(true);
     cacheManager.close();
   }
 

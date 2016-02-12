@@ -20,10 +20,12 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.copy.SerializingCopier;
+import org.ehcache.internal.events.TestStoreEventDispatcher;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.internal.store.StoreFactory;
@@ -38,8 +40,6 @@ import org.junit.Before;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
-
-import org.ehcache.expiry.Expirations;
 
 /**
  * Test the {@link org.ehcache.internal.store.heap.OnHeapStore} compliance to the
@@ -87,8 +87,10 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
       
       private Store<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         ResourcePools resourcePools = buildResourcePools(capacity);
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, getClass().getClassLoader(), expiry, resourcePools, new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
-        return new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine());
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
+            evictionVeto, getClass().getClassLoader(), expiry, resourcePools, 0,
+            new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
+        return new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), new TestStoreEventDispatcher<String, String>());
       }
 
       @Override

@@ -19,7 +19,6 @@ import org.ehcache.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourcePoolsHelper;
 import org.ehcache.events.CacheEventDispatcher;
-import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
@@ -29,6 +28,7 @@ import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.events.StoreEventSource;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.Description;
 import org.hamcrest.Factory;
@@ -372,13 +372,8 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public void enableStoreEventNotifications(final StoreEventListener<String, String> listener) {
-      //no-op
-    }
-
-    @Override
-    public void disableStoreEventNotifications() {
-      throw new UnsupportedOperationException();
+    public StoreEventSource<String, String> getStoreEventSource() {
+      throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     /**
@@ -420,20 +415,6 @@ public abstract class EhcacheBasicCrudBase {
               return cacheEntry.getValue();
             }
 
-            @Override
-            public long getCreationTime(final TimeUnit unit) {
-              return cacheEntry.getValue().creationTime(unit);
-            }
-
-            @Override
-            public long getLastAccessTime(final TimeUnit unit) {
-              return cacheEntry.getValue().lastAccessTime(unit);
-            }
-
-            @Override
-            public float getHitRate(final TimeUnit unit) {
-              return cacheEntry.getValue().hitRate(System.currentTimeMillis(), unit);
-            }
           };
         }
       };

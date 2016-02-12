@@ -23,10 +23,13 @@ import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.internal.events.TestStoreEventDispatcher;
+import org.ehcache.internal.executor.OnDemandExecutionService;
 import org.ehcache.internal.persistence.TestLocalPersistenceService;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
@@ -50,8 +53,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.ResourceType.Core.DISK;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.internal.executor.OnDemandExecutionService;
 
 /**
  * OffHeapStoreSPITest
@@ -105,11 +106,14 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
           ResourcePool diskPool = resourcePools.getPoolForResource(DISK);
           MemoryUnit unit = (MemoryUnit)diskPool.getUnit();
           
-          Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, getClass().getClassLoader(), expiry, resourcePools, keySerializer, valueSerializer);
+          Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
+              evictionVeto, getClass().getClassLoader(), expiry, resourcePools, 0, keySerializer, valueSerializer);
           OffHeapDiskStore<String, String> store = new OffHeapDiskStore<String, String>(
                   persistenceService.createPersistenceContextWithin(space, "store"),
                   new OnDemandExecutionService(), null, 1,
-                  config, timeSource, unit.toBytes(diskPool.getSize()));
+                  config, timeSource,
+                  new TestStoreEventDispatcher<String, String>(),
+                  unit.toBytes(diskPool.getSize()));
           OffHeapDiskStore.Provider.init(store);
           createdStores.put(store, spaceName);
           return store;

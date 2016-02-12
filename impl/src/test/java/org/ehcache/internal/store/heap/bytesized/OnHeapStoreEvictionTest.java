@@ -75,6 +75,11 @@ public class OnHeapStoreEvictionTest extends org.ehcache.internal.store.heap.OnH
       public Serializer<V> getValueSerializer() {
         throw new AssertionError();
       }
+
+      @Override
+      public int getOrderedEventParallelism() {
+        return 0;
+      }
     }, timeSource, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE));
   }
 

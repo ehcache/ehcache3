@@ -21,11 +21,13 @@ import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.TimeSource;
-import static org.ehcache.spi.TestServiceProvider.providerContaining;
+import org.ehcache.internal.events.TestStoreEventDispatcher;
 import org.ehcache.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
+
+import static org.ehcache.spi.TestServiceProvider.providerContaining;
 
 public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
 
@@ -37,8 +39,9 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
       ClassLoader classLoader = getClass().getClassLoader();
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
-      StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class, null, classLoader, expiry, null, keySerializer, valueSerializer);
-      OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(storeConfiguration, timeSource, MemoryUnit.MB.toBytes(1));
+      StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class,
+          null, classLoader, expiry, null, 0, keySerializer, valueSerializer);
+      OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(storeConfiguration, timeSource, new TestStoreEventDispatcher<String, String>(), MemoryUnit.MB.toBytes(1));
       OffHeapStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {
@@ -54,8 +57,9 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
       ClassLoader classLoader = getClass().getClassLoader();
       Serializer<String> keySerializer = serializationProvider.createValueSerializer(String.class, classLoader);
       Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
-      StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class, evictionVeto, getClass().getClassLoader(), expiry, null, keySerializer, valueSerializer);
-      OffHeapStore<String, byte[]> offHeapStore = new OffHeapStore<String, byte[]>(storeConfiguration, timeSource, MemoryUnit.MB.toBytes(1));
+      StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class,
+          evictionVeto, getClass().getClassLoader(), expiry, null, 0, keySerializer, valueSerializer);
+      OffHeapStore<String, byte[]> offHeapStore = new OffHeapStore<String, byte[]>(storeConfiguration, timeSource, new TestStoreEventDispatcher<String, byte[]>(),MemoryUnit.MB.toBytes(1));
       OffHeapStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {

@@ -25,10 +25,10 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
+import org.ehcache.internal.events.TestStoreEventDispatcher;
 import org.ehcache.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
-import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.heap.holders.CopiedOnHeapValueHolder;
 import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.cache.Store;
@@ -76,8 +76,10 @@ public class ByteSizedOnHeapStoreByRefSPITest extends StoreSPITest<String, Strin
 
       private Store<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         ResourcePools resourcePools = buildResourcePools(capacity);
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), evictionVeto, getClass().getClassLoader(), expiry, resourcePools, null, null);
-        return new OnHeapStore<String, String>(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE));
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
+            evictionVeto, getClass().getClassLoader(), expiry, resourcePools, 0, null, null);
+        return new OnHeapStore<String, String>(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER,
+            new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), new TestStoreEventDispatcher<String, String>());
       }
 
       @Override

@@ -27,7 +27,7 @@ public abstract class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
       final EvictionVeto<? super K, ? super V> veto) {
     return newStore(timeSource, expiry, veto, 100);
   }
-  
+
   protected abstract <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource,
       Expiry<? super K, ? super V> expiry,
       EvictionVeto<? super K, ? super V> veto, int capacity);

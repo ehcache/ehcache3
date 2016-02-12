@@ -21,6 +21,7 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.function.Function;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.internal.events.NullStoreEventDispatcher;
 import org.ehcache.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.spi.cache.Store;
@@ -55,7 +56,8 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.internal.store.heap.
 
   protected <Number, CharSequence> OnHeapStore<Number, CharSequence> newStore() {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
-    return new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE));
+    return new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER,
+        new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.<Number, CharSequence>nullStoreEventDispatcher());
   }
 
   @SuppressWarnings("unchecked")
@@ -69,7 +71,8 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.internal.store.heap.
     when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(100, MemoryUnit.KB).build());
     Store.Configuration<Number, Number> configuration = config;
 
-    OnHeapStore<Number, Number> store = new OnHeapStore<Number, Number>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE));
+    OnHeapStore<Number, Number> store = new OnHeapStore<Number, Number>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER,
+        new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.<Number, Number>nullStoreEventDispatcher());
     store.put(1, 2);
     store.put(2, 3);
     store.put(3, 4);

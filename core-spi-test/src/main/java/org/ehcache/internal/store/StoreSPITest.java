@@ -178,4 +178,22 @@ public abstract class StoreSPITest<K, V> {
         new StoreExpiryEventListenerTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
+
+  @Test
+  public void testStoreCreationEventListener() throws Exception {
+    StoreCreationEventListenerTest<K, V> testSuite = new StoreCreationEventListenerTest<K, V>(getStoreFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
+  public void testStoreUpdateEventListener() throws Exception {
+    StoreUpdateEventListenerTest<K, V> testSuite = new StoreUpdateEventListenerTest<K, V>(getStoreFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
+  public void testStoreRemovalEventListener() throws Exception {
+    StoreRemovalEventListenerTest<K, V> testSuite = new StoreRemovalEventListenerTest<K, V>(getStoreFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
 }

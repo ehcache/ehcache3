@@ -571,7 +571,7 @@ public class EhcacheManagerTest {
 
       @Override
       public <K, V> void releaseCacheEventDispatcher(CacheEventDispatcher<K, V> cenlService) {
-        cenlService.releaseAllListeners();
+        cenlService.shutdown();
       }
     });
     Store mockStore = mock(Store.class);
@@ -597,7 +597,7 @@ public class EhcacheManagerTest {
     Ehcache<Object, Object> testCache = (Ehcache<Object, Object>) cacheManager.getCache("foo", Object.class, Object.class);
     cacheManager.close();
     verify(testCache).close();
-    verify(cenlServiceMock, times(1)).releaseAllListeners();
+    verify(cenlServiceMock, times(1)).shutdown();
   }
 
   @Test

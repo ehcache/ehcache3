@@ -24,6 +24,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.copy.SerializingCopier;
+import org.ehcache.internal.events.NullStoreEventDispatcher;
 import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.internal.store.heap.OnHeapStore;
@@ -69,8 +70,10 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       private CachingTier<String, String> newCachingTier(Long capacity) {
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null,
-                ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
-        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE));
+            ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), 0,
+            new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
+        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier,
+            new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
       }
 
       @Override

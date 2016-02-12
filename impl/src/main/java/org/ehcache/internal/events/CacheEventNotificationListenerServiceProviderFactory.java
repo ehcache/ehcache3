@@ -20,10 +20,6 @@ import org.ehcache.events.CacheEventDispatcherFactory;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
 
-/**
- * @author palmanojkumar
- *
- */
 public class CacheEventNotificationListenerServiceProviderFactory implements ServiceFactory<CacheEventDispatcherFactory> {
 
   @Override

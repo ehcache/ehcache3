@@ -25,6 +25,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
+import org.ehcache.internal.serialization.JavaSerializer;
 import org.ehcache.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.spi.ServiceLocator;
@@ -33,18 +34,16 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.ServiceConfiguration;
-
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.Serializable;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import org.ehcache.internal.serialization.JavaSerializer;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
 
 /**
  * @author rism
@@ -98,6 +97,11 @@ public class CacheStoreFlushWhileShutdownTest {
       @Override
       public Serializer<String> getValueSerializer() {
         return new JavaSerializer<String>(getClassLoader());
+      }
+
+      @Override
+      public int getOrderedEventParallelism() {
+        return 1;
       }
     };
 

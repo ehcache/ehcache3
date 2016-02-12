@@ -21,7 +21,8 @@ import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.events.StoreEventListener;
+import org.ehcache.event.EventType;
+import org.ehcache.events.StoreEventDispatcher;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
@@ -32,21 +33,26 @@ import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
+import org.ehcache.internal.events.TestStoreEventDispatcher;
 import org.ehcache.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.internal.store.heap.OnHeapStore;
 import org.ehcache.internal.store.heap.holders.CopiedOnHeapValueHolder;
 import org.ehcache.sizeof.SizeOf;
 import org.ehcache.sizeof.SizeOfFilterSource;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.events.StoreEvent;
+import org.ehcache.spi.cache.events.StoreEventListener;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.sizeof.SizeOfEngine;
+import org.hamcrest.Matcher;
 import org.junit.Test;
-import org.mockito.Matchers;
 
+import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -130,7 +136,12 @@ public class ByteAccountingTest {
       public Serializer<V> getValueSerializer() {
         throw new AssertionError("By-ref heap store using serializers!");
       }
-    }, timeSource, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE));
+
+      @Override
+      public int getOrderedEventParallelism() {
+        return 0;
+      }
+    }, timeSource, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), new TestStoreEventDispatcher<K, V>());
   }
 
   @Test
@@ -387,8 +398,8 @@ public class ByteAccountingTest {
   @Test
   public void testEviction() throws CacheAccessException {
     OnHeapStoreForTests<String, String> store = newStore(1);
-    StoreEventListener<String, String> listener = mock(StoreEventListener.class);
-    store.enableStoreEventNotifications(listener);
+    StoreEventListener listener = mock(StoreEventListener.class);
+    store.getStoreEventSource().addEventListener(listener);
 
     store.put(KEY, VALUE);
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
@@ -399,7 +410,8 @@ public class ByteAccountingTest {
     long requiredSize = getSize(key1, value1);
 
     store.put(key1, value1);
-    verify(listener, times(1)).onEviction(Matchers.<String>any(), Matchers.<Store.ValueHolder<String>>any());
+    Matcher<StoreEvent<String, byte[]>> matcher = eventType(EventType.EVICTED);
+    verify(listener, times(1)).onEvent(argThat(matcher));
     if (store.get(key1) != null) {
       assertThat(store.getCurrentUsageInBytes(), is(requiredSize));
     } else {
@@ -417,8 +429,9 @@ public class ByteAccountingTest {
 
     private static final Copier DEFAULT_COPIER = new IdentityCopier();
 
-    public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource, final SizeOfEngine engine) {
-      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine);
+    public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource,
+                               final SizeOfEngine engine, StoreEventDispatcher<K, V> eventDispatcher) {
+      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine, eventDispatcher);
     }
 
     @Override

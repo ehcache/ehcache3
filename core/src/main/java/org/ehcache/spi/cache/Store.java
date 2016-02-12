@@ -19,12 +19,12 @@ package org.ehcache.spi.cache;
 import org.ehcache.Cache;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
+import org.ehcache.spi.cache.events.StoreEventSource;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -199,15 +199,11 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
   void clear() throws CacheAccessException;
 
   /**
-   * Enables notifications for store-initiated events, i.e. eviction and expiration.
-   * @param listener listener to notify
+   * Exposes the {@code Store} eventing system to allow configuration and registration of listeners.
+   *
+   * @return the {@code StoreEventSource} of this {@code Store}
    */
-  void enableStoreEventNotifications(StoreEventListener<K, V> listener);
-  
-  /**
-   * Disables store event notifications.
-   */
-  void disableStoreEventNotifications();
+  StoreEventSource<K, V> getStoreEventSource();
 
   /**
    * Returns an iterator over the elements in this store.  The elements are
@@ -494,17 +490,28 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      * The resource pools this store can make use of
      */
     ResourcePools getResourcePools();
-    
+
+    /**
+     * The serializer for key instances
+     */
     Serializer<K> getKeySerializer();
-    
+
+    /**
+     * The serializer for value instances
+     */
     Serializer<V> getValueSerializer();
+
+    /**
+     * The number of parallel queues used when doing ordered events
+     */
+    int getOrderedEventParallelism();
   }
 
   /**
    * An iterator over a Store.
    * @param <T> the type of the elements iterated over
    */
-  public interface Iterator<T> {
+  interface Iterator<T> {
 
     /**
      * Returns <tt>true</tt> if the iteration has more elements. (In other

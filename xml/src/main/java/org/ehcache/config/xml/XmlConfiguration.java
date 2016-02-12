@@ -25,6 +25,7 @@ import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.config.event.CacheEventDispatcherFactoryConfiguration;
 import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
+import org.ehcache.config.event.DefaultCacheEventDispatcherConfiguration;
 import org.ehcache.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
@@ -317,39 +318,7 @@ public class XmlConfiguration implements Configuration {
                   .queueSize(writeBehind.maxQueueSize()));
         }
       }
-      if(cacheDefinition.listeners()!= null) {
-        for (ConfigurationParser.Listener listener : cacheDefinition.listeners()) {
-          final Class<CacheEventListener<?, ?>> cacheEventListenerClass = (Class<CacheEventListener<?, ?>>) getClassForName(listener.className(), cacheClassLoader);
-          final List<EventType> eventListToFireOn = listener.fireOn();
-          Set<org.ehcache.event.EventType> eventSetToFireOn = new HashSet<org.ehcache.event.EventType>();
-          for (EventType events : eventListToFireOn) {
-            switch (events) {
-              case CREATED:
-                eventSetToFireOn.add(org.ehcache.event.EventType.CREATED);
-                break;
-              case EVICTED:
-                eventSetToFireOn.add(org.ehcache.event.EventType.EVICTED);
-                break;
-              case EXPIRED:
-                eventSetToFireOn.add(org.ehcache.event.EventType.EXPIRED);
-                break;
-              case UPDATED:
-                eventSetToFireOn.add(org.ehcache.event.EventType.UPDATED);
-                break;
-              case REMOVED:
-                eventSetToFireOn.add(org.ehcache.event.EventType.REMOVED);
-                break;
-              default:
-                throw new IllegalArgumentException("Invalid Event Type provided");
-            }
-          }
-          CacheEventListenerConfigurationBuilder listenerBuilder = CacheEventListenerConfigurationBuilder
-              .newEventListenerConfiguration(cacheEventListenerClass, eventSetToFireOn)
-              .firingMode(EventFiring.valueOf(listener.eventFiring().value()))
-              .eventOrdering(EventOrdering.valueOf(listener.eventOrdering().value()));
-          builder = builder.add(listenerBuilder);
-        }
-      }
+      builder = handleListenersConfig(cacheDefinition.listenersConfig(), cacheClassLoader, builder);
       final CacheConfiguration<?, ?> config = builder.build();
       cacheConfigurations.put(alias, config);
     }
@@ -495,39 +464,7 @@ public class XmlConfiguration implements Configuration {
                 .queueSize(writeBehind.maxQueueSize()));
       }
     }
-    if(cacheTemplate.listeners()!= null) {
-      for (ConfigurationParser.Listener listener : cacheTemplate.listeners()) {
-        final Class<CacheEventListener<?, ?>> cacheEventListenerClass = (Class<CacheEventListener<?, ?>>)getClassForName(listener.className(), defaultClassLoader);
-        final List<EventType> eventListToFireOn = listener.fireOn();
-        Set<org.ehcache.event.EventType> eventSetToFireOn = new HashSet<org.ehcache.event.EventType>();
-        for (EventType events : eventListToFireOn) {
-          switch (events) {
-            case CREATED:
-              eventSetToFireOn.add(org.ehcache.event.EventType.CREATED);
-              break;
-            case EVICTED:
-              eventSetToFireOn.add(org.ehcache.event.EventType.EVICTED);
-              break;
-            case EXPIRED:
-              eventSetToFireOn.add(org.ehcache.event.EventType.EXPIRED);
-              break;
-            case UPDATED:
-              eventSetToFireOn.add(org.ehcache.event.EventType.UPDATED);
-              break;
-            case REMOVED:
-              eventSetToFireOn.add(org.ehcache.event.EventType.REMOVED);
-              break;
-            default:
-              throw new IllegalArgumentException("Invalid Event Type provided");
-          }
-        }
-        CacheEventListenerConfigurationBuilder listenerBuilder = CacheEventListenerConfigurationBuilder
-            .newEventListenerConfiguration(cacheEventListenerClass, eventSetToFireOn)
-            .firingMode(EventFiring.valueOf(listener.eventFiring().value()))
-            .eventOrdering(EventOrdering.valueOf(listener.eventOrdering().value()));
-        builder = builder.add(listenerBuilder);
-      }
-    }
+    builder = handleListenersConfig(cacheTemplate.listenersConfig(), defaultClassLoader, builder);
     ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
     for (ResourcePool resourcePool : cacheTemplate.resourcePools()) {
       resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool.getType(), resourcePool.getSize(), resourcePool.getUnit(), resourcePool.isPersistent());
@@ -535,6 +472,48 @@ public class XmlConfiguration implements Configuration {
     builder = builder.withResourcePools(resourcePoolsBuilder);
     for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {
       builder = builder.add(serviceConfiguration);
+    }
+    return builder;
+  }
+
+  private <K, V> CacheConfigurationBuilder<K, V> handleListenersConfig(ConfigurationParser.ListenersConfig listenersConfig, ClassLoader defaultClassLoader, CacheConfigurationBuilder<K, V> builder) throws ClassNotFoundException {
+    if(listenersConfig != null) {
+      if (listenersConfig.threadPool() != null) {
+        builder = builder.add(new DefaultCacheEventDispatcherConfiguration(listenersConfig.threadPool()));
+      }
+      if (listenersConfig.listeners() != null) {
+        for (ConfigurationParser.Listener listener : listenersConfig.listeners()) {
+          final Class<CacheEventListener<?, ?>> cacheEventListenerClass = (Class<CacheEventListener<?, ?>>)getClassForName(listener.className(), defaultClassLoader);
+          final List<EventType> eventListToFireOn = listener.fireOn();
+          Set<org.ehcache.event.EventType> eventSetToFireOn = new HashSet<org.ehcache.event.EventType>();
+          for (EventType events : eventListToFireOn) {
+            switch (events) {
+              case CREATED:
+                eventSetToFireOn.add(org.ehcache.event.EventType.CREATED);
+                break;
+              case EVICTED:
+                eventSetToFireOn.add(org.ehcache.event.EventType.EVICTED);
+                break;
+              case EXPIRED:
+                eventSetToFireOn.add(org.ehcache.event.EventType.EXPIRED);
+                break;
+              case UPDATED:
+                eventSetToFireOn.add(org.ehcache.event.EventType.UPDATED);
+                break;
+              case REMOVED:
+                eventSetToFireOn.add(org.ehcache.event.EventType.REMOVED);
+                break;
+              default:
+                throw new IllegalArgumentException("Invalid Event Type provided");
+            }
+          }
+          CacheEventListenerConfigurationBuilder listenerBuilder = CacheEventListenerConfigurationBuilder
+              .newEventListenerConfiguration(cacheEventListenerClass, eventSetToFireOn)
+              .firingMode(EventFiring.valueOf(listener.eventFiring().value()))
+              .eventOrdering(EventOrdering.valueOf(listener.eventOrdering().value()));
+          builder = builder.add(listenerBuilder);
+        }
+      }
     }
     return builder;
   }

@@ -18,6 +18,7 @@ package org.ehcache.internal.store.heap;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.events.StoreEventSink;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -26,6 +27,7 @@ import org.ehcache.function.Function;
 import org.ehcache.internal.SystemTimeSource;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.copy.IdentityCopier;
+import org.ehcache.internal.events.NullStoreEventDispatcher;
 import org.ehcache.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.spi.cache.Store;
@@ -163,6 +165,11 @@ public class OnHeapStoreEvictionTest {
       public Serializer<V> getValueSerializer() {
         throw new AssertionError();
       }
+
+      @Override
+      public int getOrderedEventParallelism() {
+        return 1;
+      }
     }, timeSource);
   }
 
@@ -171,19 +178,19 @@ public class OnHeapStoreEvictionTest {
     private static final Copier DEFAULT_COPIER = new IdentityCopier();
 
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
-      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER,  new NoopSizeOfEngine());
+      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER,  new NoopSizeOfEngine(), NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher());
     }
-    
+
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource, final SizeOfEngine engine) {
-      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine);
+      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine, NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher());
     }
 
     private boolean enforceCapacityWasCalled = false;
 
     @Override
-    protected void enforceCapacity(long delta) {
+    protected void enforceCapacity(long delta, StoreEventSink<K, V> eventSink) {
       enforceCapacityWasCalled = true;
-      super.enforceCapacity(delta);
+      super.enforceCapacity(delta, eventSink);
     }
 
     boolean enforceCapacityWasCalled() {

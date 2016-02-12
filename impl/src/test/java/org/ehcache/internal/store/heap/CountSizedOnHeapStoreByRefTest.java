@@ -15,8 +15,6 @@
  */
 package org.ehcache.internal.store.heap;
 
-import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
-
 import org.ehcache.CacheConfigurationChangeEvent;
 import org.ehcache.CacheConfigurationChangeListener;
 import org.ehcache.CacheConfigurationProperty;
@@ -31,6 +29,8 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+
 public class CountSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
 
   private static final Copier DEFAULT_COPIER = new IdentityCopier();
@@ -38,7 +38,7 @@ public class CountSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
   @Override
   protected void updateStoreCapacity(OnHeapStore<?, ?> store, int newCapacity) {
     CacheConfigurationChangeListener listener = store.getConfigurationChangeListeners().get(0);
-    listener.cacheConfigurationChange(new CacheConfigurationChangeEvent(CacheConfigurationProperty.UPDATESIZE,
+    listener.cacheConfigurationChange(new CacheConfigurationChangeEvent(CacheConfigurationProperty.UPDATE_SIZE,
         newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES).build(),
         newResourcePoolsBuilder().heap(newCapacity, EntryUnit.ENTRIES).build()));
   }
@@ -90,7 +90,12 @@ public class CountSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
       public Serializer<V> getValueSerializer() {
         throw new AssertionError("By-ref heap store using serializers!");
       }
-    }, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine());
+
+      @Override
+      public int getOrderedEventParallelism() {
+        return 0;
+      }
+    }, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine(), eventDispatcher);
   }
 
 }

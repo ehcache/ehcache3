@@ -42,7 +42,7 @@ public class ByteSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
   @Override
   protected void updateStoreCapacity(OnHeapStore<?, ?> store, int newCapacity) {
     CacheConfigurationChangeListener listener = store.getConfigurationChangeListeners().get(0);
-    listener.cacheConfigurationChange(new CacheConfigurationChangeEvent(CacheConfigurationProperty.UPDATESIZE,
+    listener.cacheConfigurationChange(new CacheConfigurationChangeEvent(CacheConfigurationProperty.UPDATE_SIZE,
         newResourcePoolsBuilder().heap(100, MemoryUnit.KB).build(),
         newResourcePoolsBuilder().heap(newCapacity * MAGIC_NUM, MemoryUnit.KB).build()));
   }
@@ -94,7 +94,12 @@ public class ByteSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
       public Serializer<V> getValueSerializer() {
         throw new AssertionError("By-ref heap store using serializers!");
       }
-    }, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE));
+
+      @Override
+      public int getOrderedEventParallelism() {
+        return 0;
+      }
+    }, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), eventDispatcher);
   }
 
 }

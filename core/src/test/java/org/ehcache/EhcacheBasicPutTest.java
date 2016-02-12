@@ -509,61 +509,6 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
-    
-  /**
-   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
-   * <ul>
-   *   <li>key not present in {@code Store}</li>
-   *   <li>key not present via {@code CacheLoaderWriter}</li>
-   * </ul>
-   */
-  @Test
-  public void testPutNoStoreEntryImmediatelyExpiredEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
-    this.store = spy(fakeStore);
-
-    final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.<String, String>emptyMap());
-    
-    final Expiry<String, String> expiry = mock(Expiry.class);
-    when(expiry.getExpiryForCreation("key", "value")).thenReturn(Duration.ZERO);
-    
-    final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter, expiry);
-
-    ehcache.put("key", "value");
-    verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
-    assertThat(fakeStore.getEntryMap().get("key"), nullValue());
-    assertThat(fakeWriter.getEntryMap().get("key"), equalTo("value"));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.NOOP));
-  }  
-    
-  /**
-   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
-   * <ul>
-   *   <li>key not present in {@code Store}</li>
-   *   <li>key not present via {@code CacheLoaderWriter}</li>
-   * </ul>
-   */
-  @Test
-  public void testPutOverExistingEntryImmediatelyExpiredEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>singletonMap("key", "old-value"));
-    this.store = spy(fakeStore);
-
-    final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.<String, String>singletonMap("key", "old-value"));
-    
-    final Expiry<String, String> expiry = mock(Expiry.class);
-    when(expiry.getExpiryForUpdate("key", "old-value", "value")).thenReturn(Duration.ZERO);
-    
-    final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter, expiry);
-
-    ehcache.put("key", "value");
-    verify(this.store).compute(eq("key"), getAnyBiFunction());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
-    assertThat(fakeStore.getEntryMap().get("key"), nullValue());
-    assertThat(fakeWriter.getEntryMap().get("key"), equalTo("value"));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.NOOP));
-  }
-
   /**
    * Gets an initialized {@link Ehcache Ehcache} instance using the
    * {@link org.ehcache.spi.writer.CacheLoaderWriter CacheLoaderWriter} provided.

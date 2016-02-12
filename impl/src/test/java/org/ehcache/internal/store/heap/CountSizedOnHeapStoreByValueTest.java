@@ -15,10 +15,6 @@
  */
 package org.ehcache.internal.store.heap;
 
-import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
-
-import java.io.Serializable;
-
 import org.ehcache.CacheConfigurationChangeEvent;
 import org.ehcache.CacheConfigurationChangeListener;
 import org.ehcache.CacheConfigurationProperty;
@@ -33,12 +29,16 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 
+import java.io.Serializable;
+
+import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+
 public class CountSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
 
   @Override
   protected void updateStoreCapacity(OnHeapStore<?, ?> store, int newCapacity) {
     CacheConfigurationChangeListener listener = store.getConfigurationChangeListeners().get(0);
-    listener.cacheConfigurationChange(new CacheConfigurationChangeEvent(CacheConfigurationProperty.UPDATESIZE,
+    listener.cacheConfigurationChange(new CacheConfigurationChangeEvent(CacheConfigurationProperty.UPDATE_SIZE,
         newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES).build(),
         newResourcePoolsBuilder().heap(newCapacity, EntryUnit.ENTRIES).build()));
   }
@@ -90,7 +90,12 @@ public class CountSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
       public Serializer<V> getValueSerializer() {
         return new JavaSerializer<V>(getClass().getClassLoader());
       }
-    }, timeSource, keyCopier, valueCopier, new NoopSizeOfEngine());
+
+      @Override
+      public int getOrderedEventParallelism() {
+        return 0;
+      }
+    }, timeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
 
   }
 

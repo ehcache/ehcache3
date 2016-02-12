@@ -17,6 +17,9 @@
 package org.ehcache.internal.util;
 
 import org.ehcache.Cache;
+import org.ehcache.event.EventType;
+import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.events.StoreEvent;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -53,6 +56,34 @@ public class Matchers {
       @Override
       public void describeTo(Description description) {
         description.appendText("cache containing entry {").appendValue(key).appendText(", ").appendValue(value).appendText("}");
+      }
+    };
+  }
+
+  public static <V> Matcher<Store.ValueHolder<V>> valueHeld(final V value) {
+    return new TypeSafeMatcher<Store.ValueHolder<V>>() {
+      @Override
+      protected boolean matchesSafely(Store.ValueHolder<V> item) {
+        return item.value().equals(value);
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("value holder containing value '").appendValue(value).appendText("'");
+      }
+    };
+  }
+
+  public static <K, V> Matcher<StoreEvent<K, V>> eventOfType(final EventType type) {
+    return new TypeSafeMatcher<StoreEvent<K, V>>() {
+      @Override
+      protected boolean matchesSafely(StoreEvent<K, V> item) {
+        return item.getType().equals(type);
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("event of type '").appendValue(type).appendText("'");
       }
     };
   }

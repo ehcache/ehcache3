@@ -22,23 +22,25 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
+import org.ehcache.spi.cache.ConfigurationChangeSupport;
 
 import java.util.EnumSet;
 
 /**
- * @author Ludovic Orban
+ * Bridges the {@link org.ehcache.spi.cache.Store} eventing system, by providing the
+ * {@link StoreEventDispatcher} used to collect events and then produce
+ * {@link CacheEvent}s that can be consumed by {@link CacheEventListener}s.
+ *
+ * @param <K> the key type of mappings
+ * @param <V> the value type of mappings
  */
-public interface CacheEventDispatcher<K, V> {
-
-  void onEvent(CacheEvent<K, V> kvCacheEvent);
+public interface CacheEventDispatcher<K, V> extends ConfigurationChangeSupport {
 
   void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering, EventFiring firing, EnumSet<EventType> eventTypes);
 
-  boolean hasListeners();
-
   void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener);
 
-  void releaseAllListeners();
+  void shutdown();
 
-  void setStoreListenerSource(Cache<K, V> source);
+  void setListenerSource(Cache<K, V> source);
 }

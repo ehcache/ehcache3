@@ -21,7 +21,6 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.StoreConfigurationImpl;
 import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
-import org.ehcache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
@@ -35,6 +34,7 @@ import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.internal.store.DefaultStoreProvider;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.cache.events.StoreEventSource;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -53,10 +53,6 @@ import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.transaction.RollbackException;
-import javax.transaction.Synchronization;
-import javax.transaction.SystemException;
-import javax.transaction.Transaction;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,8 +63,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
+import javax.transaction.RollbackException;
+import javax.transaction.Synchronization;
+import javax.transaction.SystemException;
+import javax.transaction.Transaction;
 
 import static org.ehcache.spi.ServiceLocator.findAmongst;
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
@@ -92,6 +92,7 @@ public class XAStore<K, V> implements Store<K, V> {
   private final String uniqueXAResourceId;
   private final XATransactionContextFactory<K, V> transactionContextFactory;
   private final EhcacheXAResource recoveryXaResource;
+  private final StoreEventSourceWrapper<K, V> eventSourceWrapper;
 
   public XAStore(Class<K> keyType, Class<V> valueType, Store<K, SoftLock<V>> underlyingStore, TransactionManagerWrapper transactionManagerWrapper,
                  TimeSource timeSource, Journal<K> journal, String uniqueXAResourceId) {
@@ -104,6 +105,7 @@ public class XAStore<K, V> implements Store<K, V> {
     this.uniqueXAResourceId = uniqueXAResourceId;
     this.transactionContextFactory = new XATransactionContextFactory<K, V>(timeSource);
     this.recoveryXaResource = new EhcacheXAResource<K, V>(underlyingStore, journal, transactionContextFactory);
+    this.eventSourceWrapper = new StoreEventSourceWrapper<K, V>(underlyingStore.getStoreEventSource());
   }
 
   private boolean isInDoubt(SoftLock<V> softLock) {
@@ -290,33 +292,8 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public void enableStoreEventNotifications(final StoreEventListener<K, V> listener) {
-    underlyingStore.enableStoreEventNotifications(new StoreEventListener<K, SoftLock<V>>() {
-      @Override
-      public void onEviction(K key, ValueHolder<SoftLock<V>> valueHolder) {
-        SoftLock<V> softLock = valueHolder.value();
-        if (softLock.getTransactionId() == null || softLock.getOldValue() != null) {
-          listener.onEviction(key, new XAValueHolder<V>(valueHolder, softLock.getOldValue()));
-        } else {
-          listener.onEviction(key, new XAValueHolder<V>(valueHolder, softLock.getNewValueHolder().value()));
-        }
-      }
-
-      @Override
-      public void onExpiration(K key, ValueHolder<SoftLock<V>> valueHolder) {
-        SoftLock<V> softLock = valueHolder.value();
-        if (softLock.getTransactionId() == null || softLock.getOldValue() != null) {
-          listener.onEviction(key, new XAValueHolder<V>(valueHolder, softLock.getOldValue()));
-        } else {
-          listener.onEviction(key, new XAValueHolder<V>(valueHolder, softLock.getNewValueHolder().value()));
-        }
-      }
-    });
-  }
-
-  @Override
-  public void disableStoreEventNotifications() {
-    underlyingStore.disableStoreEventNotifications();
+  public StoreEventSource<K, V> getStoreEventSource() {
+    return eventSourceWrapper;
   }
 
   @Override
@@ -357,20 +334,6 @@ public class XAStore<K, V> implements Store<K, V> {
             return entry.getValue();
           }
 
-          @Override
-          public long getCreationTime(TimeUnit unit) {
-            return entry.getValue().creationTime(unit);
-          }
-
-          @Override
-          public long getLastAccessTime(TimeUnit unit) {
-            return entry.getValue().lastAccessTime(unit);
-          }
-
-          @Override
-          public float getHitRate(TimeUnit unit) {
-            return entry.getValue().hitRate(timeSource.getTimeMillis(), unit);
-          }
         };
         return;
       }
@@ -406,20 +369,6 @@ public class XAStore<K, V> implements Store<K, V> {
               return xaValueHolder;
             }
 
-            @Override
-            public long getCreationTime(TimeUnit unit) {
-              return next.getCreationTime(unit);
-            }
-
-            @Override
-            public long getLastAccessTime(TimeUnit unit) {
-              return next.getLastAccessTime(unit);
-            }
-
-            @Override
-            public float getHitRate(TimeUnit unit) {
-              return next.getHitRate(unit);
-            }
           };
           break;
         }
@@ -826,7 +775,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
         // create the underlying store
         Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto,
-            storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
+            storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getOrderedEventParallelism(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
         Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig,  underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
 
         // create the XA store

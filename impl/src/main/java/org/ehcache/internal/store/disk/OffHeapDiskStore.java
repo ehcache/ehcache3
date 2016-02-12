@@ -18,14 +18,20 @@ package org.ehcache.internal.store.disk;
 
 import org.ehcache.CacheConfigurationChangeListener;
 import org.ehcache.Status;
+import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.events.StoreEventDispatcher;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceService;
+import org.ehcache.internal.events.ThreadLocalStoreEventDispatcher;
 import org.ehcache.internal.store.disk.factories.EhcachePersistentSegmentFactory;
+import org.ehcache.internal.store.offheap.AbstractOffHeapStore;
+import org.ehcache.internal.store.offheap.EhcacheOffHeapBackingMap;
 import org.ehcache.internal.store.offheap.OffHeapValueHolder;
 import org.ehcache.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.internal.store.offheap.portability.SerializerPortability;
@@ -34,8 +40,10 @@ import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.ExecutionService;
 import org.ehcache.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.LocalPersistenceService;
+import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.SupplementaryService;
@@ -64,13 +72,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import org.ehcache.config.Eviction;
-import org.ehcache.config.store.disk.OffHeapDiskStoreConfiguration;
-import org.ehcache.internal.store.offheap.AbstractOffHeapStore;
-import org.ehcache.internal.store.offheap.EhcacheOffHeapBackingMap;
+
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
-import org.ehcache.spi.service.ExecutionService;
-import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 
 /**
  *
@@ -94,9 +97,9 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   private volatile EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
 
   public OffHeapDiskStore(FileBasedPersistenceContext fileBasedPersistenceContext,
-          ExecutionService executionService, String threadPoolAlias, int writerConcurrency,
-          final Configuration<K, V> config, TimeSource timeSource, long sizeInBytes) {
-    super("local-disk", config, timeSource);
+                          ExecutionService executionService, String threadPoolAlias, int writerConcurrency,
+                          final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes) {
+    super("local-disk", config, timeSource, eventDispatcher);
     this.fileBasedPersistenceContext = fileBasedPersistenceContext;
     this.executionService = executionService;
     this.threadPoolAlias = threadPoolAlias;
@@ -250,6 +253,10 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
     @Override
     public <K, V> OffHeapDiskStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      return createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<K, V>(storeConfig.getOrderedEventParallelism()), serviceConfigs);
+    }
+
+    private <K, V> OffHeapDiskStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, StoreEventDispatcher<K, V> eventDispatcher, ServiceConfiguration<?>... serviceConfigs) {
       if (serviceProvider == null) {
         throw new NullPointerException("ServiceProvider is null in OffHeapDiskStore.Provider.");
       }
@@ -283,7 +290,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
         OffHeapDiskStore<K, V> offHeapStore = new OffHeapDiskStore<K, V>(persistenceContext,
                 executionService, threadPoolAlias, writerConcurrency,
-                storeConfig, timeSource, unit.toBytes(diskPool.getSize()));
+                storeConfig, timeSource, eventDispatcher, unit.toBytes(diskPool.getSize()));
         createdStores.add(offHeapStore);
         return offHeapStore;
       } catch (CachePersistenceException cpex) {

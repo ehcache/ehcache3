@@ -18,10 +18,6 @@ package org.ehcache.config.event;
 import org.ehcache.events.CacheEventDispatcherFactory;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
-/**
- *
- * @author cdennis
- */
 public class CacheEventDispatcherFactoryConfiguration implements ServiceCreationConfiguration<CacheEventDispatcherFactory> {
 
   private final String threadPoolAlias;

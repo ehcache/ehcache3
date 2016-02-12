@@ -16,9 +16,12 @@
 package org.ehcache.internal.events;
 
 import org.ehcache.config.event.CacheEventDispatcherFactoryConfiguration;
-import org.ehcache.events.CacheEventDispatcher;
+import org.ehcache.config.event.DefaultCacheEventDispatcherConfiguration;
 import org.ehcache.events.CacheEventDispatcherFactory;
+import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.events.CacheEventDispatcherImpl;
+import org.ehcache.events.DisabledCacheEventNotificationService;
+import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ExecutionService;
@@ -28,81 +31,77 @@ import org.ehcache.spi.service.ServiceDependencies;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import static org.ehcache.internal.executor.ExecutorUtil.shutdown;
-
 /**
- * @author palmanojkumar
- *
+ * {@link CacheEventDispatcher} implementation that shares a single {@link ExecutorService} for unordered firing
+ * between {@link org.ehcache.Cache}s of a given {@link org.ehcache.CacheManager}. For ordered firing, a unique
+ * single threaded {@link ExecutorService} is handed to each cache.
  */
 @ServiceDependencies(ExecutionService.class)
 public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFactory {
 
   private final String threadPoolAlias;
-  
   private volatile ExecutionService executionService;
-  
-  private volatile ExecutorService orderedExecutor;
-  private volatile ExecutorService unorderedExecutor;
+  private volatile ExecutorService unOrderedExecutor;
 
   public CacheEventDispatcherFactoryImpl() {
     this.threadPoolAlias = null;
   }
-  
+
   public CacheEventDispatcherFactoryImpl(CacheEventDispatcherFactoryConfiguration configuration) {
     this.threadPoolAlias = configuration.getThreadPoolAlias();
   }
 
   @Override
   public void start(ServiceProvider serviceProvider) {
-    //Exeuctors here should be cache-manager scoped but optionally overridable on a per cache basis
     executionService = serviceProvider.getService(ExecutionService.class);
   }
 
   @Override
   public void stop() {
-    try {
-      if (orderedExecutor != null) {
-        shutdown(orderedExecutor);
-      }
-    } finally {
-      if (unorderedExecutor != null) {
-        shutdown(unorderedExecutor);
-      }
+    if (unOrderedExecutor != null) {
+      unOrderedExecutor.shutdown();
     }
   }
 
   @Override
   public <K, V> CacheEventDispatcher<K, V> createCacheEventDispatcher(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs) {
-    try {
-      return new CacheEventDispatcherImpl<K, V>(getOrderedExecutor(), getUnorderedExecutor(), store);
-    } catch (IllegalArgumentException iae) {
-      if (threadPoolAlias == null) {
-        throw new IllegalStateException("No default executor could be found for Cache Event Dispatcher");
-      } else {
-        throw new IllegalStateException("No executor named '" + threadPoolAlias + "' could be found for Cache Event Dispatcher");
-      }
+    String tPAlias = threadPoolAlias;
+    DefaultCacheEventDispatcherConfiguration config = ServiceLocator.findSingletonAmongst(DefaultCacheEventDispatcherConfiguration.class, serviceConfigs);
+    if (config != null) {
+      tPAlias = config.getThreadPoolAlias();
+    }
+    if (getUnorderedExecutor() == null) {
+      // TODO when do we actually get there? And if no longer, should we?
+      return new DisabledCacheEventNotificationService<K, V>();
+    } else {
+      return new CacheEventDispatcherImpl<K, V>(store, getUnorderedExecutor(), executionService.getOrderedExecutor(tPAlias, new LinkedBlockingQueue<Runnable>()));
     }
   }
 
   @Override
   public <K, V> void releaseCacheEventDispatcher(CacheEventDispatcher<K, V> cenlService) {
     if (cenlService != null) {
-      cenlService.releaseAllListeners();
+      cenlService.shutdown();
     }
     
   }
 
-  private synchronized ExecutorService getOrderedExecutor() {
-    if (orderedExecutor == null) {
-      orderedExecutor = executionService.getOrderedExecutor(threadPoolAlias, new LinkedBlockingQueue<Runnable>());
+  private ExecutorService getUnorderedExecutor() {
+    if (unOrderedExecutor == null) {
+      synchronized (this) {
+        if (unOrderedExecutor == null) {
+          try {
+            unOrderedExecutor = executionService.getUnorderedExecutor(threadPoolAlias, new LinkedBlockingQueue<Runnable>());
+          } catch (IllegalArgumentException e) {
+            if (threadPoolAlias == null) {
+              throw new IllegalStateException("No default executor could be found for Cache Event Dispatcher", e);
+            } else {
+              throw new IllegalStateException("No executor named '" + threadPoolAlias + "' could be found for Cache Event Dispatcher", e);
+            }
+          }
+        }
+      }
     }
-    return orderedExecutor;
-  }
-
-  private synchronized ExecutorService getUnorderedExecutor() {
-    if (unorderedExecutor == null) {
-      unorderedExecutor = executionService.getUnorderedExecutor(threadPoolAlias, new LinkedBlockingQueue<Runnable>());
-    }
-    return unorderedExecutor;
+    return unOrderedExecutor;
   }
 }

@@ -20,9 +20,12 @@ import org.ehcache.CacheConfigurationChangeListener;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.events.StoreEventDispatcher;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.internal.TimeSource;
 import org.ehcache.internal.TimeSourceService;
+import org.ehcache.internal.events.NullStoreEventDispatcher;
+import org.ehcache.internal.events.ThreadLocalStoreEventDispatcher;
 import org.ehcache.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.ehcache.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.internal.store.offheap.portability.SerializerPortability;
@@ -47,7 +50,6 @@ import org.terracotta.offheapstore.util.Factory;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
@@ -66,8 +68,8 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
   private volatile EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
 
-  public OffHeapStore(final Configuration<K, V> config, TimeSource timeSource, long sizeInBytes) {
-    super("local-offheap", config, timeSource);
+  public OffHeapStore(final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes) {
+    super("local-offheap", config, timeSource, eventDispatcher);
     EvictionVeto<? super K, ? super V> veto = config.getEvictionVeto();
     if (veto != null) {
       evictionVeto = wrap(veto);
@@ -117,6 +119,10 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
     @Override
     public <K, V> OffHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      return createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<K, V>(storeConfig.getOrderedEventParallelism()), serviceConfigs);
+    }
+
+    private <K, V> OffHeapStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, StoreEventDispatcher<K, V> eventDispatcher, ServiceConfiguration<?>... serviceConfigs) {
       if (serviceProvider == null) {
         throw new NullPointerException("ServiceProvider is null in OffHeapStore.Provider.");
       }
@@ -129,7 +135,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       MemoryUnit unit = (MemoryUnit)offHeapPool.getUnit();
 
 
-      OffHeapStore<K, V> offHeapStore = new OffHeapStore<K, V>(storeConfig, timeSource, unit.toBytes(offHeapPool.getSize()));
+      OffHeapStore<K, V> offHeapStore = new OffHeapStore<K, V>(storeConfig, timeSource, eventDispatcher, unit.toBytes(offHeapPool.getSize()));
       createdStores.add(offHeapStore);
       return offHeapStore;
     }
@@ -189,7 +195,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
     @Override
     public <K, V> LowerCachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      return createStore(storeConfig, serviceConfigs);
+      return createStoreInternal(storeConfig, NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher(), serviceConfigs);
     }
 
     @Override

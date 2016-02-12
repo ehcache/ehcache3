@@ -16,33 +16,35 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.events.StoreEventListener;
+import org.ehcache.event.EventType;
+import org.ehcache.spi.cache.events.StoreEvent;
+import org.ehcache.spi.cache.events.StoreEventListener;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.test.After;
+import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.SPITest;
+import org.hamcrest.Matcher;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
- * Test the expiry half of the {@link org.ehcache.spi.cache.Store#enableStoreEventNotifications(org.ehcache.events.StoreEventListener)} contract of the
+ * Tests expiry events according to the contract of the
  * {@link org.ehcache.spi.cache.Store Store} interface.
- * <p/>
- *
- * @author Gaurav Mangalick
  */
-
 public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
+
+  private TestTimeSource timeSource;
 
   public StoreExpiryEventListenerTest(StoreFactory<K, V> factory) {
     super(factory);
@@ -50,163 +52,124 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
 
   final K k = factory.createKey(1L);
   final V v = factory.createValue(1l);
-  final K k2 = factory.createKey(2L);
   final V v2 = factory.createValue(2l);
-  final V v3 = factory.createValue(3l);
 
   protected Store<K, V> kvStore;
 
-  @After
-  public void tearDown() {
-    if (kvStore != null) {
-      factory.close(kvStore);
-      kvStore = null;
-    }
+  @Before
+  public void setUp() {
+    timeSource = new TestTimeSource();
+    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
   }
 
   @SPITest
   public void testGetOnExpiration() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
-    TestStoreEventListener listener = new TestStoreEventListener();
-    kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
+    StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
     assertThat(kvStore.get(k), is(nullValue()));
-    assertThat(listener.expired, hasItem(k));
+    verifyListenerInteractions(listener);
   }
 
   @SPITest
   public void testContainsKeyOnExpiration() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
-    TestStoreEventListener listener = new TestStoreEventListener();
-    kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
+    StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
     assertThat(kvStore.containsKey(k), is(false));
-    assertThat(listener.expired, hasItem(k));
+    verifyListenerInteractions(listener);
   }
 
   @SPITest
   public void testPutIfAbsentOnExpiration() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
-    TestStoreEventListener listener = new TestStoreEventListener();
-    kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
+    StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
-    Store.ValueHolder<V> lastValue = kvStore.putIfAbsent(k, v);
-    assertThat(lastValue, is(nullValue()));
-    assertThat(listener.expired, hasItem(k));
+    assertThat(kvStore.putIfAbsent(k, v), is(nullValue()));
+    verifyListenerInteractions(listener);
   }
 
   @SPITest
   public void testRemoveOnExpiration() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
-    TestStoreEventListener listener = new TestStoreEventListener();
-    kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
+    StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
     assertThat(kvStore.remove(k, v), is(false));
-    assertThat(listener.expired, hasItem(k));
+    verifyListenerInteractions(listener);
   }
 
   @SPITest
   public void testReplaceTwoArgsOnExpiration() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
-    TestStoreEventListener listener = new TestStoreEventListener();
-    kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
+    StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
     assertThat(kvStore.replace(k, v), is(nullValue()));
-    assertThat(listener.expired, hasItem(k));
+    verifyListenerInteractions(listener);
   }
 
   @SPITest
   public void testReplaceThreeArgsOnExpiration() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
-    TestStoreEventListener listener = new TestStoreEventListener();
-    kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
+    StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
     assertThat(kvStore.replace(k, v, v2), is(false));
-    assertThat(listener.expired, hasItem(k));
+    verifyListenerInteractions(listener);
   }
 
   @SPITest
   public void testComputeOnExpiration() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
-    TestStoreEventListener listener = new TestStoreEventListener();
-    kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
+    StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
-    kvStore.compute(k, new BiFunction<K, V, V>() {
+    assertThat(kvStore.compute(k, new BiFunction<K, V, V>() {
       @Override
       public V apply(K mappedKey, V mappedValue) {
         return v2;
       }
-    });
-    assertThat(kvStore.get(k).value(), is(v2));
-    assertThat(listener.expired, hasItem(k));
+    }).value(), is(v2));
+    verifyListenerInteractions(listener);
   }
 
   @SPITest
   public void testComputeIfAbsentOnExpiration() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
-    TestStoreEventListener listener = new TestStoreEventListener();
-    kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
+    StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
 
-    kvStore.computeIfAbsent(k, new Function<K, V>() {
+    assertThat(kvStore.computeIfAbsent(k, new Function<K, V>() {
       @Override
       public V apply(K mappedKey) {
         return v2;
       }
-    });
-    assertThat(kvStore.get(k).value(), is(v2));
-    assertThat(listener.expired, hasItem(k));
+    }).value(), is(v2));
+    verifyListenerInteractions(listener);
   }
 
   @SPITest
   public void testComputeIfPresentOnExpiration() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
-    TestStoreEventListener listener = new TestStoreEventListener();
-    kvStore.enableStoreEventNotifications(listener);
     kvStore.put(k, v);
+    StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
 
-    kvStore.computeIfPresent(k, new BiFunction<K, V, V>() {
+    assertThat(kvStore.computeIfPresent(k, new BiFunction<K, V, V>() {
       @Override
       public V apply(K mappedKey, V mappedValue) {
         throw new AssertionError();
       }
-    });
-    assertThat(kvStore.get(k), is(nullValue()));
-    assertThat(listener.expired, hasItem(k));
+    }), nullValue());
+    verifyListenerInteractions(listener);
   }
 
-  private class TestStoreEventListener implements StoreEventListener<K, V> {
-    private final Set<K> expired = new HashSet<K>();
-
-    @Override
-    public void onEviction(final K key, final Store.ValueHolder<V> valueHolder) {
-      fail("Unexpected eviction");
-    }
-
-    @Override
-    public void onExpiration(final K key, final Store.ValueHolder<V> valueHolder) {
-      expired.add(key);
-    }
+  private void verifyListenerInteractions(StoreEventListener<K, V> listener) {
+    Matcher<StoreEvent<K, V>> matcher = eventType(EventType.EXPIRED);
+    verify(listener).onEvent(argThat(matcher));
   }
 
+  private StoreEventListener<K, V> addListener(Store<K, V> kvStore) {
+    StoreEventListener<K, V> listener = mock(StoreEventListener.class);
 
+    kvStore.getStoreEventSource().addEventListener(listener);
+    return listener;
+  }
 }
 

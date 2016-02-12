@@ -97,6 +97,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private boolean useValueSerializingCopier;
   private Serializer<K> keySerializer;
   private Serializer<V> valueSerializer;
+  private int orderedEventParallelism = 4;
 
 
   public UserManagedCacheBuilder(final Class<K> keyType, final Class<V> valueType) {
@@ -223,7 +224,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     }
     final Store.Provider storeProvider = serviceLocator.getService(Store.Provider.class);
     Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType, evictionVeto, classLoader,
-            expiry, resourcePools, keySerializer, valueSerializer);
+            expiry, resourcePools, orderedEventParallelism, keySerializer, valueSerializer);
     final Store<K, V> store = storeProvider.createStore(storeConfig, serviceConfigs);
 
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionVeto,
@@ -328,6 +329,11 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
   public final UserManagedCacheBuilder<K, V, T> withResourcePools(ResourcePoolsBuilder resourcePoolsBuilder) {
     return withResourcePools(resourcePoolsBuilder.build());
+  }
+
+  public final UserManagedCacheBuilder<K, V, T> withOrderedEventParallelism(int parallelism) {
+    this.orderedEventParallelism = parallelism;
+    return this;
   }
 
   public UserManagedCacheBuilder<K, V, T> withEvictionVeto(EvictionVeto<K, V> evictionVeto) {

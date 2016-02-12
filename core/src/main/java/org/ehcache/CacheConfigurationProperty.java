@@ -16,12 +16,19 @@
 
 package org.ehcache;
 
-/**
- * @author rism
- */
 public enum CacheConfigurationProperty {
   /**
    * used to update size of ResourcePool in RuntimeConfig
    */
-  UPDATESIZE
+  UPDATE_SIZE,
+
+  /**
+   * used to register new {@link org.ehcache.event.CacheEventListener}
+   */
+  ADD_LISTENER,
+
+  /**
+   * used to remove {@link org.ehcache.event.CacheEventListener}
+   */
+  REMOVE_LISTENER
 }
