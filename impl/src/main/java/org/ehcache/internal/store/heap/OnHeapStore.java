@@ -677,9 +677,17 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
               enforceCapacity(newValue.size());
               return getValue(newValue);
             } else {
-              ValueHolder<V> p = getValue(backEnd.remove(key));
+              final AtomicReference<ValueHolder<V>> invalidatedValue = new AtomicReference<ValueHolder<V>>();
+              backEnd.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+                @Override
+                public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+                  notifyInvalidation(key, mappedValue);
+                  invalidatedValue.set(mappedValue);
+                  return null;
+                }
+              });
+              ValueHolder<V> p = getValue(invalidatedValue.get());
               if (p != null) {
-                notifyInvalidation(key, p);
                 if (p.isExpired(now, TimeUnit.MILLISECONDS)) {
                   getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED_MISS);
                   return null;
